@@ -1,9 +1,5 @@
-import { LoginForm } from "~/components/login-form";
+import { redirect } from "next/navigation";
 
 export default function PublicPage() {
-  return (
-    <div className="w-1/2">
-      <LoginForm />
-    </div>
-  );
+  redirect("/login");
 }

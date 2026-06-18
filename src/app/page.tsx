@@ -1,17 +1,12 @@
-import { headers } from "next/headers";
-import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
-import { auth } from "~/server/better-auth";
-import { getSession } from "~/server/better-auth/server";
-import { api, HydrateClient } from "~/trpc/server";
-
 export default async function Home() {
-  const session = await getSession();
+  const { userId } = await auth();
 
-  if (session) {
+  if (userId) {
     redirect("/dashboard");
-  } else {
-    redirect("/public");
   }
+
+  redirect("/login");
 }

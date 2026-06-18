@@ -1,16 +1,21 @@
-import { AppSidebar } from "~/components/app-sidebar"
-import { ChartAreaInteractive } from "~/components/chart-area-interactive"
-import { DataTable } from "~/components/data-table"
-import { SectionCards } from "~/components/section-cards"
-import { SiteHeader } from "~/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "~/components/ui/sidebar"
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-import data from "./data.json"
+import { AppSidebar } from "~/components/app-sidebar";
+import { ChartAreaInteractive } from "~/components/chart-area-interactive";
+import { DataTable } from "~/components/data-table";
+import { SectionCards } from "~/components/section-cards";
+import { SiteHeader } from "~/components/site-header";
+import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 
-export default function Page() {
+import data from "./data.json";
+
+export default async function Page() {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/login");
+  }
+
   return (
     <SidebarProvider
       style={
@@ -36,5 +41,5 @@ export default function Page() {
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

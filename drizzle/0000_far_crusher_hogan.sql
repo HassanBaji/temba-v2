@@ -6,7 +6,7 @@ CREATE TYPE "public"."player_type" AS ENUM('player', 'guest');--> statement-brea
 CREATE TYPE "public"."group_sport" AS ENUM('padel', 'football');--> statement-breakpoint
 CREATE TYPE "public"."group_type" AS ENUM('public', 'private');--> statement-breakpoint
 CREATE TABLE "account" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"account_id" text NOT NULL,
 	"provider_id" text NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE "account" (
 );
 --> statement-breakpoint
 CREATE TABLE "session" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"expires_at" timestamp NOT NULL,
 	"token" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -34,10 +34,13 @@ CREATE TABLE "session" (
 );
 --> statement-breakpoint
 CREATE TABLE "user" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"email" text NOT NULL,
-	"phone" text NOT NULL,
+	"username" text,
+	"display_username" text,
+	"phone_number" text,
+	"phone_number_verified" boolean NOT NULL,
 	"email_verified" boolean NOT NULL,
 	"image" varchar,
 	"number_of_games_played" integer DEFAULT 0 NOT NULL,
@@ -45,11 +48,12 @@ CREATE TABLE "user" (
 	"created_at" timestamp NOT NULL,
 	"updated_at" timestamp NOT NULL,
 	CONSTRAINT "user_email_unique" UNIQUE("email"),
-	CONSTRAINT "user_phone_unique" UNIQUE("phone")
+	CONSTRAINT "user_username_unique" UNIQUE("username"),
+	CONSTRAINT "user_phone_number_unique" UNIQUE("phone_number")
 );
 --> statement-breakpoint
 CREATE TABLE "verification" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"identifier" text NOT NULL,
 	"value" text NOT NULL,
 	"expires_at" timestamp NOT NULL,
@@ -58,7 +62,7 @@ CREATE TABLE "verification" (
 );
 --> statement-breakpoint
 CREATE TABLE "courts" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"latitude" numeric(10, 8),
 	"longitude" numeric(11, 8),
@@ -72,7 +76,7 @@ CREATE TABLE "courts" (
 );
 --> statement-breakpoint
 CREATE TABLE "coach" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"sport" "coach_sport" DEFAULT 'padel',
 	"name" varchar(255),
 	"mobile" varchar(255),
@@ -87,7 +91,7 @@ CREATE TABLE "coach" (
 );
 --> statement-breakpoint
 CREATE TABLE "coaching_session" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"coach_id" uuid NOT NULL,
 	"start_time" timestamp NOT NULL,
 	"end_time" timestamp NOT NULL,
@@ -100,7 +104,7 @@ CREATE TABLE "coaching_session" (
 );
 --> statement-breakpoint
 CREATE TABLE "games" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255),
 	"court_id" uuid NOT NULL,
 	"start_time" timestamp NOT NULL,
@@ -121,7 +125,7 @@ CREATE TABLE "games" (
 );
 --> statement-breakpoint
 CREATE TABLE "game_players" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"game_id" uuid NOT NULL,
 	"user_id" uuid,
 	"playerType" "player_type" DEFAULT 'player',
@@ -137,7 +141,7 @@ CREATE TABLE "game_players" (
 );
 --> statement-breakpoint
 CREATE TABLE "game_teams" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"game_id" uuid NOT NULL,
 	"name" varchar(255),
 	"sets_won" integer,
@@ -147,7 +151,7 @@ CREATE TABLE "game_teams" (
 );
 --> statement-breakpoint
 CREATE TABLE "groups" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255),
 	"description" varchar(255),
 	"total_games_played" integer DEFAULT 0 NOT NULL,
@@ -159,7 +163,7 @@ CREATE TABLE "groups" (
 );
 --> statement-breakpoint
 CREATE TABLE "group_members" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"group_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"total_games_played" integer DEFAULT 0 NOT NULL,
@@ -170,7 +174,7 @@ CREATE TABLE "group_members" (
 );
 --> statement-breakpoint
 CREATE TABLE "coaching_session_players" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"coaching_session_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
