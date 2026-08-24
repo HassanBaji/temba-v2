@@ -1,0 +1,99 @@
+---
+alwaysApply: true
+---
+
+## Existing Patterns Take Priority
+
+The existing codebase is the primary source of truth.
+
+Before creating:
+
+- a component
+- a hook
+- a service
+- an API endpoint
+- a repository
+- a form
+- a table
+- a Prisma query
+- an error handling mechanism
+
+search for an existing implementation of the same concept.
+
+If one exists, follow its structure and conventions.
+
+Do not introduce a new library, architecture pattern, folder,
+abstraction, or convention when an existing solution already exists.
+
+# Project Standards
+
+Before implementing any change:
+
+1. Inspect the existing codebase for similar functionality.
+2. Follow existing patterns instead of introducing new architecture.
+3. Reuse existing components, hooks, utilities, services, types, and helpers where possible.
+4. Do not create new abstractions unless there is a clear need.
+5. Keep changes focused on the requested feature.
+
+# Project Structure
+
+Follow the existing folder structure.
+
+When adding a new feature:
+
+- Place UI components alongside similar existing components.
+- Place business logic in the existing service/domain layer.
+- Place database access in the existing repository/data-access layer.
+- Place shared types in the project's existing type locations.
+- Do not invent new top-level directories without justification.
+
+# TypeScript
+
+- Use TypeScript for all new code.
+- Avoid `any`.
+- Prefer explicit domain types.
+- Reuse existing types where possible.
+- Keep functions small and single-purpose.
+- Prefer named functions for substantial business logic.
+
+# React
+
+- Use functional components.
+- Keep components focused on presentation.
+- Move substantial business logic into hooks/services.
+- Reuse existing UI components before creating new ones.
+- Follow existing component naming conventions.
+
+# API / Backend
+
+- Follow existing API patterns.
+- Validate input at the boundary.
+- Keep database queries separate from presentation/UI logic.
+- Use existing error-handling patterns.
+- Do not introduce a different response format.
+
+# Database
+
+- Follow existing Prisma conventions.
+- Do not modify existing migrations.
+- Create new migrations for schema changes.
+- Use existing naming conventions.
+
+# Implementation Process
+
+Before coding:
+
+- Find 2-3 similar implementations in the repository.
+- Identify the pattern they use.
+- Follow that pattern.
+
+After coding:
+
+- Run formatting.
+- Run linting.
+- Run TypeScript checks.
+- Fix errors before considering the task complete.
+
+When uncertain about architecture:
+DO NOT invent a new pattern.
+Search the repository for an existing implementation first.

@@ -11,9 +11,24 @@
 
 # On Linux and macOS you can run this script directly - `./start-database.sh`
 
-# import env variables from .env
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DB_ENV="$SCRIPT_DIR/packages/db/.env"
+APP_ENV="$SCRIPT_DIR/apps/temba/.env"
+
+if [ ! -f "$APP_ENV" ]; then
+  echo "App env file missing. Copy apps/temba/.env.example to apps/temba/.env first."
+  exit 1
+fi
+
+if [ ! -f "$DB_ENV" ]; then
+  echo "DB Package env file missing. Copy packages/db/.env.example to packages/db/.env first."
+  exit 1
+fi
+
+# import env variables from the DB Package env file
 set -a
-source .env
+source "$DB_ENV"
+set +a
 
 DB_PASSWORD=$(echo "$DATABASE_URL" | awk -F':' '{print $3}' | awk -F'@' '{print $1}')
 DB_PORT=$(echo "$DATABASE_URL" | awk -F':' '{print $4}' | awk -F'\/' '{print $1}')
@@ -66,16 +81,18 @@ if [ "$DB_PASSWORD" = "password" ]; then
   echo "You are using the default database password"
   read -p "Should we generate a random password for you? [y/N]: " -r REPLY
   if ! [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "Please change the default password in the .env file and try again"
+    echo "Please change the default password in the DB Package .env file and try again"
     exit 1
   fi
   # Generate a random URL-safe password
   DB_PASSWORD=$(openssl rand -base64 12 | tr '+/' '-_')
   if [[ "$(uname)" == "Darwin" ]]; then
     # macOS requires an empty string to be passed with the `i` flag
-    sed -i '' "s#:password@#:$DB_PASSWORD@#" .env
+    sed -i '' "s#:password@#:$DB_PASSWORD@#" "$DB_ENV"
+    sed -i '' "s#:password@#:$DB_PASSWORD@#" "$APP_ENV"
   else
-    sed -i "s#:password@#:$DB_PASSWORD@#" .env
+    sed -i "s#:password@#:$DB_PASSWORD@#" "$DB_ENV"
+    sed -i "s#:password@#:$DB_PASSWORD@#" "$APP_ENV"
   fi
 fi
 
