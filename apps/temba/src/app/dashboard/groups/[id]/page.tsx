@@ -135,9 +135,7 @@ export default function GroupHomePage({
           </div>
         </div>
 
-        {group.data &&
-        group.data.communityId &&
-        !group.data.communityMembership ? (
+        {group.data?.communityId && !group.data.communityMembership ? (
           <p className="text-sm text-white/60">
             You cannot join this Club Group until you are a member of its
             Community.
