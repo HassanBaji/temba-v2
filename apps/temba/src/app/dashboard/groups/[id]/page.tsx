@@ -34,9 +34,23 @@ export default function GroupHomePage({
     },
   });
 
+  const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
+    onSuccess: async () => {
+      toast.success("Joined Group");
+      await utils.groups.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const leaveGroup = api.groups.leave.useMutation({
     onSuccess: async (result) => {
-      toast.success("Left Group — you remain in the Community");
+      toast.success(
+        result.communityId
+          ? "Left Group — you remain in the Community"
+          : "Left Group",
+      );
       await utils.groups.byId.invalidate({ id });
       if (result.communityId) {
         await utils.communities.byId.invalidate({ id: result.communityId });
@@ -47,6 +61,25 @@ export default function GroupHomePage({
       toast.error(error.message);
     },
   });
+
+  const joinPending =
+    joinClubPublic.isPending || joinLoosePublic.isPending;
+
+  function onJoin() {
+    if (group.data?.canJoinLoosePublic) {
+      joinLoosePublic.mutate({ groupId: id });
+      return;
+    }
+    if (group.data?.canJoinClubPublic) {
+      joinClubPublic.mutate({ groupId: id });
+    }
+  }
+
+  async function copyGroupUrl() {
+    const url = `${window.location.origin}/dashboard/groups/${id}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Group URL copied");
+  }
 
   return (
     <DashboardShell title={group.data?.name ?? "Group"}>
@@ -74,6 +107,11 @@ export default function GroupHomePage({
                   {group.data.sport ? (
                     <span>· {group.data.sport}</span>
                   ) : null}
+                  {group.data.isLoose ? (
+                    <span>· Loose Group</span>
+                  ) : (
+                    <span>· Club Group</span>
+                  )}
                   {group.data.membership ? <span>· You are a member</span> : null}
                   {!group.data.communityMembership && group.data.communityId ? (
                     <span>· Not a Community member</span>
@@ -85,6 +123,9 @@ export default function GroupHomePage({
                     <Badge variant="outline" className="capitalize">
                       {group.data.type}
                     </Badge>
+                    {group.data.isLoose ? (
+                      <Badge variant="outline">Loose</Badge>
+                    ) : null}
                   </div>
                 ) : null}
                 {group.data.community ? (
@@ -98,17 +139,20 @@ export default function GroupHomePage({
                     </Link>
                   </p>
                 ) : null}
+                {group.data.isLoose && group.data.type === "public" ? (
+                  <p className="text-sm text-white/60">
+                    Open-with-link: share the Group URL. Not listed in the
+                    Directory. No Invite link.
+                  </p>
+                ) : null}
               </>
             ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2">
             {group.data?.canJoin ? (
-              <Button
-                onClick={() => joinClubPublic.mutate({ groupId: id })}
-                disabled={joinClubPublic.isPending}
-              >
-                {joinClubPublic.isPending ? "Joining…" : "Join Group"}
+              <Button onClick={onJoin} disabled={joinPending}>
+                {joinPending ? "Joining…" : "Join Group"}
               </Button>
             ) : null}
             {group.data?.membership ? (
@@ -118,6 +162,11 @@ export default function GroupHomePage({
                 disabled={leaveGroup.isPending}
               >
                 {leaveGroup.isPending ? "Leaving…" : "Leave Group"}
+              </Button>
+            ) : null}
+            {group.data?.isLoose && group.data.type === "public" ? (
+              <Button variant="outline" onClick={copyGroupUrl}>
+                Copy Group URL
               </Button>
             ) : null}
             {group.data?.communityId ? (

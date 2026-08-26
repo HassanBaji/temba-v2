@@ -152,6 +152,57 @@ export const groupsRouter = createTRPCRouter({
       };
     }),
 
+  createLoosePublic: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().trim().min(1).max(255),
+        description: z.string().trim().max(255).optional(),
+        sport: sportSchema,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const created = await ctx.db.transaction(async (tx) => {
+        const [group] = await tx
+          .insert(groups)
+          .values({
+            name: input.name,
+            description: input.description,
+            type: GroupTypeEnum.PUBLIC,
+            sport: input.sport,
+            communityId: null,
+            createdBy: appUser.id,
+          })
+          .returning();
+
+        if (!group) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create Loose Group",
+          });
+        }
+
+        await tx.insert(groupMembers).values({
+          groupId: group.id,
+          userId: appUser.id,
+        });
+
+        return group;
+      });
+
+      return {
+        id: created.id,
+        name: created.name,
+        description: created.description,
+        type: created.type,
+        sport: created.sport as GroupSportEnum,
+        communityId: created.communityId,
+        createdBy: created.createdBy,
+        createdAt: created.createdAt,
+      };
+    }),
+
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -179,13 +230,17 @@ export const groupsRouter = createTRPCRouter({
         );
       }
 
+      const isLoosePublic =
+        !group.communityId && group.type === GroupTypeEnum.PUBLIC;
       const isClubPublic =
         Boolean(group.communityId) && group.type === GroupTypeEnum.PUBLIC;
-      const canJoin =
+      const canJoinClubPublic =
         isClubPublic &&
         Boolean(communityMembership) &&
         !membership &&
         !community?.archivedAt;
+      const canJoinLoosePublic = isLoosePublic && !membership;
+      const canJoin = canJoinClubPublic || canJoinLoosePublic;
 
       return {
         id: group.id,
@@ -194,6 +249,7 @@ export const groupsRouter = createTRPCRouter({
         type: group.type,
         sport: group.sport as GroupSportEnum | null,
         communityId: group.communityId,
+        isLoose: !group.communityId,
         community: community
           ? {
               id: community.id,
@@ -208,6 +264,8 @@ export const groupsRouter = createTRPCRouter({
           ? { role: communityMembership.role }
           : null,
         canJoin,
+        canJoinLoosePublic,
+        canJoinClubPublic,
       };
     }),
 
@@ -259,6 +317,58 @@ export const groupsRouter = createTRPCRouter({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You must be a Community member to join its Club Groups",
+        });
+      }
+
+      const existing = await ctx.db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, group.id),
+          eq(groupMembers.userId, appUser.id),
+        ),
+      });
+
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already a member of this Group",
+        });
+      }
+
+      const [created] = await ctx.db
+        .insert(groupMembers)
+        .values({
+          groupId: group.id,
+          userId: appUser.id,
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to join Group",
+        });
+      }
+
+      return { ok: true as const, groupId: group.id };
+    }),
+
+  joinLoosePublic: protectedProcedure
+    .input(z.object({ groupId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const group = await requireGroup(ctx.db, input.groupId);
+
+      if (group.communityId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This is not a Loose Group",
+        });
+      }
+
+      if (group.type !== GroupTypeEnum.PUBLIC) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Loose Group Private cannot be joined via the Group URL",
         });
       }
 

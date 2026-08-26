@@ -23,9 +23,14 @@ export default function MyCommunitiesPage() {
               Communities you belong to. Open one to return to its home.
             </p>
           </div>
-          <Button asChild>
-            <Link href="/dashboard/communities/new">Create Community</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/groups/new">Create Loose Group</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/communities/new">Create Community</Link>
+            </Button>
+          </div>
         </div>
 
         {mine.isLoading ? (

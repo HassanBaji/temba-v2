@@ -51,6 +51,11 @@ const data = {
       icon: IconUsers,
     },
     {
+      title: "Create Loose Group",
+      url: "/dashboard/groups/new",
+      icon: IconFolder,
+    },
+    {
       title: "Lifecycle",
       url: "#",
       icon: IconListDetails,
