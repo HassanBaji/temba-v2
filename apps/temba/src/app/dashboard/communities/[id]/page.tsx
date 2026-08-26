@@ -167,6 +167,30 @@ export default function CommunityHomePage({
     },
   });
 
+  const addSport = api.communities.addSport.useMutation({
+    onSuccess: async (result) => {
+      toast.success(`Added ${result.sport}`);
+      await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+      await utils.communities.directory.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const removeSport = api.communities.removeSport.useMutation({
+    onSuccess: async (result) => {
+      toast.success(`Removed ${result.sport}`);
+      await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+      await utils.communities.directory.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const isPublic = community.data?.type === "public";
   const isLive = !community.data?.archivedAt;
   const isMember = Boolean(community.data?.membership);
@@ -179,6 +203,11 @@ export default function CommunityHomePage({
   const isLastOwnerBlockedLeave =
     community.data?.membership?.role === "owner" &&
     community.data.canLeave === false;
+  const availableSportsToAdd = (
+    ["padel", "football"] as const
+  ).filter((sport) => !community.data?.sports.includes(sport));
+  const sportsMutationPending =
+    addSport.isPending || removeSport.isPending;
 
   return (
     <DashboardShell title={community.data?.name ?? "Community"}>
@@ -268,6 +297,90 @@ export default function CommunityHomePage({
             </Button>
           </div>
         </div>
+
+        {community.data?.canManageSports ? (
+          <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">
+            <div>
+              <h3 className="text-lg font-medium text-white">Sports</h3>
+              <p className="mt-2 text-sm text-white/70">
+                Owner or Admin can add padel or football to the allow-list.
+                Removing a sport is refused while any Club Group of that sport
+                exists. New Club Groups may only use a sport on this list.
+              </p>
+            </div>
+
+            <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+              {community.data.sports.map((sport) => (
+                <li
+                  key={sport}
+                  className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span className="capitalize text-white">{sport}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      removeSport.mutate({ communityId: id, sport })
+                    }
+                    disabled={sportsMutationPending}
+                  >
+                    {removeSport.isPending &&
+                    removeSport.variables?.sport === sport
+                      ? "Removing…"
+                      : "Remove"}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+
+            {availableSportsToAdd.length > 0 ? (
+              <form
+                className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const formData = new FormData(event.currentTarget);
+                  const sportValue = formData.get("sport");
+                  if (
+                    sportValue !== "padel" &&
+                    sportValue !== "football"
+                  ) {
+                    return;
+                  }
+                  addSport.mutate({ communityId: id, sport: sportValue });
+                }}
+              >
+                <div className="flex-1 space-y-2">
+                  <label
+                    htmlFor="add-community-sport"
+                    className="text-sm text-white/70"
+                  >
+                    Add sport
+                  </label>
+                  <select
+                    id="add-community-sport"
+                    name="sport"
+                    required
+                    className="h-9 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                    defaultValue={availableSportsToAdd[0]}
+                  >
+                    {availableSportsToAdd.map((sport) => (
+                      <option key={sport} value={sport}>
+                        {sport}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button type="submit" disabled={sportsMutationPending}>
+                  {addSport.isPending ? "Adding…" : "Add"}
+                </Button>
+              </form>
+            ) : (
+              <p className="text-sm text-white/60">
+                Both padel and football are already on the allow-list.
+              </p>
+            )}
+          </section>
+        ) : null}
 
         {community.data ? (
           <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">

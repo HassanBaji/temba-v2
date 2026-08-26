@@ -290,6 +290,7 @@ export const communitiesRouter = createTRPCRouter({
         isStaffRole(membership?.role);
       const canCreateClubGroup =
         !community.archivedAt && isStaffRole(membership?.role);
+      const canManageSports = isStaffRole(membership?.role);
       const canManageRoles = membership?.role === "owner";
 
       let canLeave = Boolean(membership);
@@ -343,6 +344,7 @@ export const communitiesRouter = createTRPCRouter({
         canManageJoinRequests,
         canManageInvites,
         canCreateClubGroup,
+        canManageSports,
         canManageRoles,
         canLeave,
         groups: clubGroups.map((group) => ({
@@ -529,6 +531,108 @@ export const communitiesRouter = createTRPCRouter({
       return {
         ok: true as const,
         communityId: community.id,
+      };
+    }),
+
+  addSport: protectedProcedure
+    .input(
+      z.object({
+        communityId: z.string().uuid(),
+        sport: sportSchema,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const existing = await ctx.db.query.communitySports.findFirst({
+        where: and(
+          eq(communitySports.communityId, community.id),
+          eq(communitySports.sport, input.sport),
+        ),
+      });
+
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Sport is already on this Community's sports allow-list",
+        });
+      }
+
+      const [created] = await ctx.db
+        .insert(communitySports)
+        .values({
+          communityId: community.id,
+          sport: input.sport,
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to add sport",
+        });
+      }
+
+      return {
+        ok: true as const,
+        communityId: community.id,
+        sport: created.sport as GroupSportEnum,
+      };
+    }),
+
+  removeSport: protectedProcedure
+    .input(
+      z.object({
+        communityId: z.string().uuid(),
+        sport: sportSchema,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const existing = await ctx.db.query.communitySports.findFirst({
+        where: and(
+          eq(communitySports.communityId, community.id),
+          eq(communitySports.sport, input.sport),
+        ),
+      });
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Sport is not on this Community's sports allow-list",
+        });
+      }
+
+      const clubGroupWithSport = await ctx.db.query.groups.findFirst({
+        where: and(
+          eq(groups.communityId, community.id),
+          eq(groups.sport, input.sport),
+        ),
+      });
+
+      if (clubGroupWithSport) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot remove a sport while a Club Group of that sport exists in this Community",
+        });
+      }
+
+      await ctx.db
+        .delete(communitySports)
+        .where(eq(communitySports.id, existing.id));
+
+      return {
+        ok: true as const,
+        communityId: community.id,
+        sport: input.sport,
       };
     }),
 
