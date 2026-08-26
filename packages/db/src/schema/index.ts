@@ -10,4 +10,7 @@ export * from "./game-players";
 export * from "./game-teams";
 export * from "./groups";
 export * from "./group-members";
+export * from "./communities";
+export * from "./community-members";
+export * from "./community-sports";
 export * from "./coaching-session-players";
