@@ -306,7 +306,14 @@ export default function CommunityHomePage({
                 onSubmit={(event) => {
                   event.preventDefault();
                   const formData = new FormData(event.currentTarget);
-                  const email = String(formData.get("email") ?? "");
+                  const emailValue = formData.get("email");
+                  if (typeof emailValue !== "string") {
+                    return;
+                  }
+                  const email = emailValue.trim();
+                  if (!email) {
+                    return;
+                  }
                   sendEmailInvite.mutate({ communityId: id, email });
                   event.currentTarget.reset();
                 }}
