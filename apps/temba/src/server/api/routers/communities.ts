@@ -104,7 +104,7 @@ async function requireOwner(
 ) {
   const membership = await requireMembership(database, communityId, userId);
 
-  if (!membership || membership.role !== "owner") {
+  if (membership?.role !== "owner") {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Only Owners can change Community roles",
