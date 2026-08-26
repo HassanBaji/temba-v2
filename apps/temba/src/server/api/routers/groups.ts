@@ -1670,10 +1670,23 @@ export const groupsRouter = createTRPCRouter({
         };
       }
 
-      await ctx.db.insert(groupMembers).values({
-        groupId: group.id,
-        userId: appUser.id,
-      });
+      const [inserted] = await ctx.db
+        .insert(groupMembers)
+        .values({
+          groupId: group.id,
+          userId: appUser.id,
+        })
+        .onConflictDoNothing({
+          target: [groupMembers.groupId, groupMembers.userId],
+        })
+        .returning();
+
+      if (!inserted) {
+        return {
+          groupId: group.id,
+          alreadyMember: true as const,
+        };
+      }
 
       return {
         groupId: group.id,

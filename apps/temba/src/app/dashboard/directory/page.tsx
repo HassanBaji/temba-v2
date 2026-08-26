@@ -109,7 +109,7 @@ export default function DirectoryPage() {
                         }
                         disabled={requestJoin.isPending}
                       >
-                        {joinStatus === "rejected"
+                        {joinStatus === "rejected" || joinStatus === "approved"
                           ? "Request again"
                           : "Request to join"}
                       </Button>

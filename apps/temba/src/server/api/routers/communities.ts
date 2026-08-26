@@ -125,6 +125,23 @@ async function countOwners(database: DbClient, communityId: string) {
   return owners.length;
 }
 
+/** Lock Owner rows so last-Owner leave/demote cannot race to zero Owners. */
+async function lockOwnersForUpdate(
+  tx: Parameters<Parameters<DbClient["transaction"]>[0]>[0],
+  communityId: string,
+) {
+  return tx
+    .select({ id: communityMembers.id })
+    .from(communityMembers)
+    .where(
+      and(
+        eq(communityMembers.communityId, communityId),
+        eq(communityMembers.role, CommunityRoleEnum.OWNER),
+      ),
+    )
+    .for("update");
+}
+
 async function requireLivePrivateCommunity(database: DbClient, id: string) {
   const community = await requireCommunity(database, id);
 
@@ -442,35 +459,38 @@ export const communitiesRouter = createTRPCRouter({
         };
       }
 
-      const demotingOwner =
-        previousRole === "owner" && nextRole !== "owner";
+      const demotingOwner = previousRole === "owner" && nextRole !== "owner";
 
-      if (demotingOwner) {
-        const ownerCount = await countOwners(ctx.db, community.id);
-        if (ownerCount <= 1) {
+      const updated = await ctx.db.transaction(async (tx) => {
+        if (demotingOwner) {
+          const owners = await lockOwnersForUpdate(tx, community.id);
+          if (owners.length <= 1) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message:
+                "The last Owner cannot demote until another Owner is promoted",
+            });
+          }
+        }
+
+        const [row] = await tx
+          .update(communityMembers)
+          .set({
+            role: nextRole,
+            updatedAt: new Date(),
+          })
+          .where(eq(communityMembers.id, target.id))
+          .returning();
+
+        if (!row) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "The last Owner cannot demote until another Owner is promoted",
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to update member role",
           });
         }
-      }
 
-      const [updated] = await ctx.db
-        .update(communityMembers)
-        .set({
-          role: nextRole,
-          updatedAt: new Date(),
-        })
-        .where(eq(communityMembers.id, target.id))
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update member role",
-        });
-      }
+        return row;
+      });
 
       return {
         ok: true as const,
@@ -576,42 +596,49 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      if (membership.role === "owner") {
-        const ownerCount = await countOwners(ctx.db, community.id);
-
-        if (ownerCount <= 1) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "The last Owner cannot leave until another Owner is promoted",
-          });
-        }
-      }
-
       const clubGroups = await ctx.db.query.groups.findMany({
         where: eq(groups.communityId, community.id),
         columns: { id: true },
       });
 
       // Leave removes membership only — never Soft-archives the Community.
+      // Clears join-request history so Public members can re-request after leave.
       await ctx.db.transaction(async (tx) => {
+        if (membership.role === "owner") {
+          const owners = await lockOwnersForUpdate(tx, community.id);
+          if (owners.length <= 1) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message:
+                "The last Owner cannot leave until another Owner is promoted",
+            });
+          }
+        }
+
         if (clubGroups.length > 0) {
-          await tx
-            .delete(groupMembers)
-            .where(
-              and(
-                eq(groupMembers.userId, appUser.id),
-                inArray(
-                  groupMembers.groupId,
-                  clubGroups.map((group) => group.id),
-                ),
+          await tx.delete(groupMembers).where(
+            and(
+              eq(groupMembers.userId, appUser.id),
+              inArray(
+                groupMembers.groupId,
+                clubGroups.map((group) => group.id),
               ),
-            );
+            ),
+          );
         }
 
         await tx
           .delete(communityMembers)
           .where(eq(communityMembers.id, membership.id));
+
+        await tx
+          .delete(communityJoinRequests)
+          .where(
+            and(
+              eq(communityJoinRequests.communityId, community.id),
+              eq(communityJoinRequests.userId, appUser.id),
+            ),
+          );
       });
 
       return {
@@ -795,14 +822,8 @@ export const communitiesRouter = createTRPCRouter({
         };
       }
 
-      if (existing?.status === "approved") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Join request was already approved",
-        });
-      }
-
-      if (existing?.status === "rejected") {
+      // Non-members may re-request after leave (approved leftover) or reject.
+      if (existing?.status === "rejected" || existing?.status === "approved") {
         const [updated] = await ctx.db
           .update(communityJoinRequests)
           .set({
@@ -1044,14 +1065,16 @@ export const communitiesRouter = createTRPCRouter({
       await requireStaff(ctx.db, community.id, appUser.id);
 
       const email = normalizeInviteEmail(input.email);
-      const existingInvite = await ctx.db.query.communityEmailInvites.findFirst({
-        where: and(
-          eq(communityEmailInvites.communityId, community.id),
-          eq(communityEmailInvites.email, email),
-          isNull(communityEmailInvites.acceptedAt),
-          isNull(communityEmailInvites.revokedAt),
-        ),
-      });
+      const existingInvite = await ctx.db.query.communityEmailInvites.findFirst(
+        {
+          where: and(
+            eq(communityEmailInvites.communityId, community.id),
+            eq(communityEmailInvites.email, email),
+            isNull(communityEmailInvites.acceptedAt),
+            isNull(communityEmailInvites.revokedAt),
+          ),
+        },
+      );
 
       if (existingInvite) {
         throw new TRPCError({
@@ -1372,10 +1395,7 @@ export const communitiesRouter = createTRPCRouter({
         return { status: "invalid" as const };
       }
 
-      if (
-        invite.community.type !== "private" ||
-        invite.community.archivedAt
-      ) {
+      if (invite.community.type !== "private" || invite.community.archivedAt) {
         return { status: "unavailable" as const };
       }
 
@@ -1560,11 +1580,24 @@ export const communitiesRouter = createTRPCRouter({
         };
       }
 
-      await ctx.db.insert(communityMembers).values({
-        communityId: community.id,
-        userId: appUser.id,
-        role: CommunityRoleEnum.MEMBER,
-      });
+      const [inserted] = await ctx.db
+        .insert(communityMembers)
+        .values({
+          communityId: community.id,
+          userId: appUser.id,
+          role: CommunityRoleEnum.MEMBER,
+        })
+        .onConflictDoNothing({
+          target: [communityMembers.communityId, communityMembers.userId],
+        })
+        .returning();
+
+      if (!inserted) {
+        return {
+          communityId: community.id,
+          alreadyMember: true as const,
+        };
+      }
 
       return {
         communityId: community.id,
