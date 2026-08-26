@@ -205,7 +205,12 @@ export default function CommunityHomePage({
     community.data.canLeave === false;
   const availableSportsToAdd = (
     ["padel", "football"] as const
-  ).filter((sport) => !community.data?.sports.includes(sport));
+  ).filter(
+    (sport) =>
+      !(community.data?.sports as readonly string[] | undefined)?.includes(
+        sport,
+      ),
+  );
   const sportsMutationPending =
     addSport.isPending || removeSport.isPending;
 
@@ -320,12 +325,15 @@ export default function CommunityHomePage({
                     size="sm"
                     variant="outline"
                     onClick={() =>
-                      removeSport.mutate({ communityId: id, sport })
+                      removeSport.mutate({
+                        communityId: id,
+                        sport: sport as "padel" | "football",
+                      })
                     }
                     disabled={sportsMutationPending}
                   >
                     {removeSport.isPending &&
-                    removeSport.variables?.sport === sport
+                    removeSport.variables?.sport === String(sport)
                       ? "Removing…"
                       : "Remove"}
                   </Button>
