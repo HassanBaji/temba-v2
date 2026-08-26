@@ -441,6 +441,7 @@ export const groupsRouter = createTRPCRouter({
               archivedAt: community.archivedAt,
             }
           : null,
+        isCommunityArchived: Boolean(community?.archivedAt),
         createdBy: group.createdBy,
         createdAt: group.createdAt,
         membership: membership ? { id: membership.id } : null,

@@ -283,7 +283,9 @@ export const communitiesRouter = createTRPCRouter({
       });
 
       const canManageJoinRequests =
-        community.type === "public" && isStaffRole(membership?.role);
+        community.type === "public" &&
+        !community.archivedAt &&
+        isStaffRole(membership?.role);
       const canManageInvites =
         community.type === "private" &&
         !community.archivedAt &&
@@ -292,6 +294,10 @@ export const communitiesRouter = createTRPCRouter({
         !community.archivedAt && isStaffRole(membership?.role);
       const canManageSports = isStaffRole(membership?.role);
       const canManageRoles = membership?.role === "owner";
+      const canSoftArchive =
+        !community.archivedAt && isStaffRole(membership?.role);
+      const canUnarchive =
+        Boolean(community.archivedAt) && isStaffRole(membership?.role);
 
       let canLeave = Boolean(membership);
       if (membership?.role === "owner") {
@@ -346,6 +352,8 @@ export const communitiesRouter = createTRPCRouter({
         canCreateClubGroup,
         canManageSports,
         canManageRoles,
+        canSoftArchive,
+        canUnarchive,
         canLeave,
         groups: clubGroups.map((group) => ({
           id: group.id,
@@ -468,6 +476,84 @@ export const communitiesRouter = createTRPCRouter({
         ok: true as const,
         userId: updated.userId,
         role: asRole(updated.role),
+      };
+    }),
+
+  softArchive: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Community is already Soft-archived",
+        });
+      }
+
+      // Soft-archive hides listing and join paths. Club Groups stay attached
+      // (communityId unchanged). Invite tokens are kept, not auto-revoked.
+      const [updated] = await ctx.db
+        .update(communities)
+        .set({
+          archivedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(communities.id, community.id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to Soft-archive Community",
+        });
+      }
+
+      return {
+        id: updated.id,
+        archivedAt: updated.archivedAt,
+      };
+    }),
+
+  unarchive: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      if (!community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Community is not Soft-archived",
+        });
+      }
+
+      // Unarchive restores Directory listing and join rules. The same Invite
+      // link token remains active unless staff rotated or revoked it.
+      const [updated] = await ctx.db
+        .update(communities)
+        .set({
+          archivedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(communities.id, community.id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to unarchive Community",
+        });
+      }
+
+      return {
+        id: updated.id,
+        archivedAt: updated.archivedAt,
       };
     }),
 
@@ -828,6 +914,13 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot approve join requests for an archived Community",
+        });
+      }
+
       await requireStaff(ctx.db, community.id, appUser.id);
 
       if (request.status !== "pending") {
@@ -896,6 +989,13 @@ export const communitiesRouter = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Join requests only apply to Community Public",
+        });
+      }
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot reject join requests for an archived Community",
         });
       }
 

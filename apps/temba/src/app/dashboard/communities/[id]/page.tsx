@@ -150,6 +150,32 @@ export default function CommunityHomePage({
     },
   });
 
+  const softArchive = api.communities.softArchive.useMutation({
+    onSuccess: async () => {
+      toast.success("Community Soft-archived");
+      await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+      await utils.communities.directory.invalidate();
+      await utils.games.listPublicPickup.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const unarchive = api.communities.unarchive.useMutation({
+    onSuccess: async () => {
+      toast.success("Community unarchived");
+      await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+      await utils.communities.directory.invalidate();
+      await utils.games.listPublicPickup.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const members = api.communities.listMembers.useQuery(
     { communityId: id },
     { enabled: Boolean(community.data?.membership) },
@@ -213,6 +239,7 @@ export default function CommunityHomePage({
   );
   const sportsMutationPending =
     addSport.isPending || removeSport.isPending;
+  const archivePending = softArchive.isPending || unarchive.isPending;
 
   return (
     <DashboardShell title={community.data?.name ?? "Community"}>
@@ -237,13 +264,18 @@ export default function CommunityHomePage({
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-white/70">
                   <span className="capitalize">{community.data.type}</span>
+                  {!isLive ? <span>· Soft-archived</span> : null}
                   {community.data.membership ? (
                     <span>· Your role: {community.data.membership.role}</span>
                   ) : null}
-                  {!community.data.membership && joinStatus === "pending" ? (
+                  {!community.data.membership &&
+                  isLive &&
+                  joinStatus === "pending" ? (
                     <span>· Join request pending</span>
                   ) : null}
-                  {!community.data.membership && joinStatus === "rejected" ? (
+                  {!community.data.membership &&
+                  isLive &&
+                  joinStatus === "rejected" ? (
                     <span>· Join request rejected</span>
                   ) : null}
                 </div>
@@ -253,6 +285,9 @@ export default function CommunityHomePage({
                       {sport}
                     </Badge>
                   ))}
+                  {!isLive ? (
+                    <Badge variant="outline">Archived</Badge>
+                  ) : null}
                 </div>
               </>
             ) : null}
@@ -276,6 +311,23 @@ export default function CommunityHomePage({
             {isPublic && isLive && !isMember && joinStatus === "pending" ? (
               <Button variant="secondary" disabled>
                 Request pending
+              </Button>
+            ) : null}
+            {community.data?.canSoftArchive ? (
+              <Button
+                variant="outline"
+                onClick={() => softArchive.mutate({ communityId: id })}
+                disabled={archivePending}
+              >
+                {softArchive.isPending ? "Archiving…" : "Soft-archive"}
+              </Button>
+            ) : null}
+            {community.data?.canUnarchive ? (
+              <Button
+                onClick={() => unarchive.mutate({ communityId: id })}
+                disabled={archivePending}
+              >
+                {unarchive.isPending ? "Unarchiving…" : "Unarchive"}
               </Button>
             ) : null}
             {isMember ? (
@@ -302,6 +354,31 @@ export default function CommunityHomePage({
             </Button>
           </div>
         </div>
+
+        {community.data && !isLive && !isMember ? (
+          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
+            <h3 className="text-lg font-medium text-white">
+              This Community is Soft-archived
+            </h3>
+            <p className="mt-2 text-sm text-white/70">
+              It is not open for new joins, requests, or invites. Members can
+              still open history and Games. This is not a missing page.
+            </p>
+          </section>
+        ) : null}
+
+        {community.data && !isLive && isMember ? (
+          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
+            <h3 className="text-lg font-medium text-white">
+              Soft-archived
+            </h3>
+            <p className="mt-2 text-sm text-white/70">
+              Hidden from the Directory. Club Groups stay attached. You can
+              still open Groups and see history and Games. New joins and invites
+              are paused until an Owner or Admin unarchives.
+            </p>
+          </section>
+        ) : null}
 
         {community.data?.canManageSports ? (
           <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">

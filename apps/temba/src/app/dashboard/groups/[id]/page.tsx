@@ -241,8 +241,13 @@ export default function GroupHomePage({
                   ) : (
                     <span>· Club Group</span>
                   )}
+                  {group.data.isCommunityArchived ? (
+                    <span>· Community Soft-archived</span>
+                  ) : null}
                   {group.data.membership ? <span>· You are a member</span> : null}
-                  {!group.data.communityMembership && group.data.communityId ? (
+                  {!group.data.communityMembership &&
+                  group.data.communityId &&
+                  !group.data.isCommunityArchived ? (
                     <span>· Not a Community member</span>
                   ) : null}
                 </div>
@@ -254,6 +259,9 @@ export default function GroupHomePage({
                     </Badge>
                     {group.data.isLoose ? (
                       <Badge variant="outline">Loose</Badge>
+                    ) : null}
+                    {group.data.isCommunityArchived ? (
+                      <Badge variant="outline">Archived</Badge>
                     ) : null}
                   </div>
                 ) : null}
@@ -340,7 +348,34 @@ export default function GroupHomePage({
           </div>
         </div>
 
-        {group.data?.communityId && !group.data.communityMembership ? (
+        {group.data?.isCommunityArchived &&
+        !group.data.communityMembership ? (
+          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
+            <h3 className="text-lg font-medium text-white">
+              This Club Group&apos;s Community is Soft-archived
+            </h3>
+            <p className="mt-2 text-sm text-white/70">
+              It is not open for join. Members of the Community can still open
+              history and Games. This is not a missing page.
+            </p>
+          </section>
+        ) : null}
+
+        {group.data?.isCommunityArchived && group.data.communityMembership ? (
+          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
+            <h3 className="text-lg font-medium text-white">
+              Community Soft-archived
+            </h3>
+            <p className="mt-2 text-sm text-white/70">
+              This Club Group stays attached to its Community. You can still
+              open it and see history and Games while the Community is archived.
+            </p>
+          </section>
+        ) : null}
+
+        {group.data?.communityId &&
+        !group.data.communityMembership &&
+        !group.data.isCommunityArchived ? (
           <p className="text-sm text-white/60">
             You cannot join this Club Group until you are a member of its
             Community.

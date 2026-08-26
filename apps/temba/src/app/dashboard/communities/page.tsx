@@ -62,9 +62,13 @@ export default function MyCommunitiesPage() {
                     <p className="font-medium text-white">{community.name}</p>
                     <p className="text-sm capitalize text-white/60">
                       {community.type} · {community.role}
+                      {community.archivedAt ? " · Soft-archived" : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {community.archivedAt ? (
+                      <Badge variant="outline">Archived</Badge>
+                    ) : null}
                     {community.sports.map((sport) => (
                       <Badge key={sport} variant="secondary">
                         {sport}
