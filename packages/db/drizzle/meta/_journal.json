@@ -22,6 +22,13 @@
       "when": 1787733210074,
       "tag": "0002_even_captain_midlands",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787734148084,
+      "tag": "0003_lovely_firestar",
+      "breakpoints": true
     }
   ]
 }

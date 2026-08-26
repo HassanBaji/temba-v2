@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm";
 import { user } from "./user";
 import { communityMembers } from "./community-members";
 import { communitySports } from "./community-sports";
+import { communityJoinRequests } from "./community-join-requests";
 
 export const communityTypes = pgEnum("community_type", ["public", "private"]);
 
@@ -31,4 +32,5 @@ export const communityRelations = relations(communities, ({ one, many }) => ({
   }),
   members: many(communityMembers),
   sports: many(communitySports),
+  joinRequests: many(communityJoinRequests),
 }));

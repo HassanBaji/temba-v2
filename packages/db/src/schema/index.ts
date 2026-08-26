@@ -13,4 +13,5 @@ export * from "./group-members";
 export * from "./communities";
 export * from "./community-members";
 export * from "./community-sports";
+export * from "./community-join-requests";
 export * from "./coaching-session-players";
