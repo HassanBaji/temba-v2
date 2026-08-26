@@ -115,8 +115,8 @@ export default function GroupHomePage({
     },
   });
 
-  const revokeClubPrivateInvite = api.groups.revokeClubPrivateInvite.useMutation(
-    {
+  const revokeClubPrivateInvite =
+    api.groups.revokeClubPrivateInvite.useMutation({
       onSuccess: async () => {
         toast.success("Invite revoked");
         await utils.groups.listClubPrivateInvites.invalidate({ groupId: id });
@@ -124,11 +124,10 @@ export default function GroupHomePage({
       onError: (error) => {
         toast.error(error.message);
       },
-    },
-  );
+    });
 
-  const acceptClubPrivateInvite = api.groups.acceptClubPrivateInvite.useMutation(
-    {
+  const acceptClubPrivateInvite =
+    api.groups.acceptClubPrivateInvite.useMutation({
       onSuccess: async () => {
         toast.success("Joined Club Group Private");
         await utils.groups.byId.invalidate({ id });
@@ -141,8 +140,7 @@ export default function GroupHomePage({
       onError: (error) => {
         toast.error(error.message);
       },
-    },
-  );
+    });
 
   const sendEmailInvite = api.groups.sendEmailInvite.useMutation({
     onSuccess: async (result) => {
@@ -197,8 +195,7 @@ export default function GroupHomePage({
     },
   });
 
-  const joinPending =
-    joinClubPublic.isPending || joinLoosePublic.isPending;
+  const joinPending = joinClubPublic.isPending || joinLoosePublic.isPending;
 
   const pendingInviteUserIds = new Set(
     pendingInvites.data?.map((invite) => invite.user.id) ?? [],
@@ -250,9 +247,7 @@ export default function GroupHomePage({
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-white/70">
                   <span className="capitalize">{group.data.type}</span>
-                  {group.data.sport ? (
-                    <span>· {group.data.sport}</span>
-                  ) : null}
+                  {group.data.sport ? <span>· {group.data.sport}</span> : null}
                   {group.data.isLoose ? (
                     <span>· Loose Group</span>
                   ) : (
@@ -261,7 +256,9 @@ export default function GroupHomePage({
                   {group.data.isCommunityArchived ? (
                     <span>· Community Soft-archived</span>
                   ) : null}
-                  {group.data.membership ? <span>· You are a member</span> : null}
+                  {group.data.membership ? (
+                    <span>· You are a member</span>
+                  ) : null}
                   {!group.data.communityMembership &&
                   group.data.communityId &&
                   !group.data.isCommunityArchived ? (
@@ -307,8 +304,8 @@ export default function GroupHomePage({
                 ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (
                   <p className="text-sm text-white/60">
-                    Club Group Private: in-app invite of Community members
-                    only. No Email invite or Invite link.
+                    Club Group Private: in-app invite of Community members only.
+                    No Email invite or Invite link.
                   </p>
                 ) : null}
               </>
@@ -361,9 +358,7 @@ export default function GroupHomePage({
             ) : null}
             {group.data?.communityId ? (
               <Button variant="outline" asChild>
-                <Link
-                  href={`/dashboard/communities/${group.data.communityId}`}
-                >
+                <Link href={`/dashboard/communities/${group.data.communityId}`}>
                   Community
                 </Link>
               </Button>
@@ -374,8 +369,7 @@ export default function GroupHomePage({
           </div>
         </div>
 
-        {group.data?.isCommunityArchived &&
-        !group.data.communityMembership ? (
+        {group.data?.isCommunityArchived && !group.data.communityMembership ? (
           <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
             <h3 className="text-lg font-medium text-white">
               This Club Group&apos;s Community is Soft-archived
@@ -411,9 +405,7 @@ export default function GroupHomePage({
         {group.data?.canInviteClubPrivate ? (
           <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">
             <div>
-              <h3 className="text-lg font-medium text-white">
-                In-app invites
-              </h3>
+              <h3 className="text-lg font-medium text-white">In-app invites</h3>
               <p className="mt-2 text-sm text-white/70">
                 Owner, Admin, or this Group&apos;s creator can invite existing
                 Community members. Outsiders cannot be invited. There is no
@@ -498,7 +490,9 @@ export default function GroupHomePage({
         {group.data?.canManageInvites ? (
           <section className="space-y-6 rounded-xl border border-white/10 bg-black/20 p-6">
             <div>
-              <h3 className="text-lg font-medium text-white">Private invites</h3>
+              <h3 className="text-lg font-medium text-white">
+                Private invites
+              </h3>
               <p className="mt-2 text-sm text-white/70">
                 Only the creator can send Email invites and manage one reusable
                 Invite link.
@@ -537,7 +531,9 @@ export default function GroupHomePage({
               </form>
 
               {emailInvites.data?.length === 0 ? (
-                <p className="text-sm text-white/60">No unused Email invites.</p>
+                <p className="text-sm text-white/60">
+                  No unused Email invites.
+                </p>
               ) : null}
               {emailInvites.data && emailInvites.data.length > 0 ? (
                 <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
@@ -624,7 +620,9 @@ export default function GroupHomePage({
                 </>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-white/70">No active Invite link.</p>
+                  <p className="text-sm text-white/70">
+                    No active Invite link.
+                  </p>
                   <Button
                     size="sm"
                     onClick={() => createInviteLink.mutate({ groupId: id })}

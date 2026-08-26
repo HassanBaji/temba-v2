@@ -182,11 +182,7 @@ async function deleteEmptyGroup(args: {
   }
 
   if (
-    await groupHasNonCreatorMembers(
-      args.database,
-      group.id,
-      group.createdBy,
-    )
+    await groupHasNonCreatorMembers(args.database, group.id, group.createdBy)
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -521,8 +517,7 @@ export const groupsRouter = createTRPCRouter({
           communityRole: communityMembership?.role,
           callerId: appUser.id,
         });
-      const canManageInvites =
-        isLoosePrivate && group.createdBy === appUser.id;
+      const canManageInvites = isLoosePrivate && group.createdBy === appUser.id;
 
       const canDelete = await mayDeleteEmptyGroup({
         database: ctx.db,
@@ -932,7 +927,8 @@ export const groupsRouter = createTRPCRouter({
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only Owner, Admin, or this Group's creator can list invites",
+          message:
+            "Only Owner, Admin, or this Group's creator can list invites",
         });
       }
 
@@ -1330,10 +1326,7 @@ export const groupsRouter = createTRPCRouter({
 
       return {
         id: active.id,
-        inviteUrl: groupInviteLinkUrl(
-          getAppOrigin(ctx.headers),
-          active.token,
-        ),
+        inviteUrl: groupInviteLinkUrl(getAppOrigin(ctx.headers), active.token),
         createdAt: active.createdAt,
       };
     }),
@@ -1384,10 +1377,7 @@ export const groupsRouter = createTRPCRouter({
 
       return {
         id: created.id,
-        inviteUrl: groupInviteLinkUrl(
-          getAppOrigin(ctx.headers),
-          created.token,
-        ),
+        inviteUrl: groupInviteLinkUrl(getAppOrigin(ctx.headers), created.token),
         createdAt: created.createdAt,
       };
     }),
@@ -1441,10 +1431,7 @@ export const groupsRouter = createTRPCRouter({
 
       return {
         id: created.id,
-        inviteUrl: groupInviteLinkUrl(
-          getAppOrigin(ctx.headers),
-          created.token,
-        ),
+        inviteUrl: groupInviteLinkUrl(getAppOrigin(ctx.headers), created.token),
         createdAt: created.createdAt,
       };
     }),
