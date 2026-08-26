@@ -1,0 +1,12 @@
+{
+  "name": "Temba",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "temba dev",
+      "command": "pnpm --filter temba dev"
+    }
+  ],
+  "ports": [{ "name": "temba dev", "port": 3000 }]
+}
