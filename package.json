@@ -2,6 +2,11 @@
   "name": "temba-workspace",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev:dashboard": "turbo run dev --filter=temba",
+    "build:dashboard": "turbo run build --filter=temba",
+    "start:dashboard": "turbo run start --filter=temba"
+  },
   "dependencies": {
     "turbo": "^2.10.11"
   },
