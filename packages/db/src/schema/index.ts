@@ -12,6 +12,8 @@ export * from "./group-enums";
 export * from "./groups";
 export * from "./group-members";
 export * from "./group-member-invites";
+export * from "./group-email-invites";
+export * from "./group-invite-links";
 export * from "./communities";
 export * from "./community-members";
 export * from "./community-sports";

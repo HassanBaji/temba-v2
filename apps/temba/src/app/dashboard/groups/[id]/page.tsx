@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
@@ -31,6 +32,16 @@ export default function GroupHomePage({
   const pendingInvites = api.groups.listClubPrivateInvites.useQuery(
     { groupId: id },
     { enabled: Boolean(group.data?.canInviteClubPrivate) },
+  );
+
+  const emailInvites = api.groups.listEmailInvites.useQuery(
+    { groupId: id },
+    { enabled: Boolean(group.data?.canManageInvites) },
+  );
+
+  const inviteLink = api.groups.getInviteLink.useQuery(
+    { groupId: id },
+    { enabled: Boolean(group.data?.canManageInvites) },
   );
 
   const joinClubPublic = api.groups.joinClubPublic.useMutation({
@@ -115,6 +126,59 @@ export default function GroupHomePage({
       },
     },
   );
+
+  const sendEmailInvite = api.groups.sendEmailInvite.useMutation({
+    onSuccess: async (result) => {
+      toast.success(`Email invite ready for ${result.email}`);
+      await utils.groups.listEmailInvites.invalidate({ groupId: id });
+      await navigator.clipboard.writeText(result.inviteUrl);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const revokeEmailInvite = api.groups.revokeEmailInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Email invite revoked");
+      await utils.groups.listEmailInvites.invalidate({ groupId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const createInviteLink = api.groups.createInviteLink.useMutation({
+    onSuccess: async (result) => {
+      await utils.groups.getInviteLink.invalidate({ groupId: id });
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success("Invite link copied");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const rotateInviteLink = api.groups.rotateInviteLink.useMutation({
+    onSuccess: async (result) => {
+      await utils.groups.getInviteLink.invalidate({ groupId: id });
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success("Invite link rotated and copied");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const revokeInviteLink = api.groups.revokeInviteLink.useMutation({
+    onSuccess: async () => {
+      toast.success("Invite link revoked");
+      await utils.groups.getInviteLink.invalidate({ groupId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const joinPending =
     joinClubPublic.isPending || joinLoosePublic.isPending;
@@ -208,6 +272,12 @@ export default function GroupHomePage({
                   <p className="text-sm text-white/60">
                     Open-with-link: share the Group URL. Not listed in the
                     Directory. No Invite link.
+                  </p>
+                ) : null}
+                {group.data.isLoose && group.data.type === "private" ? (
+                  <p className="text-sm text-white/60">
+                    Loose Group Private: Email invite and Invite link from the
+                    creator only. Not listed in the Directory.
                   </p>
                 ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (
@@ -361,6 +431,149 @@ export default function GroupHomePage({
                 ))}
               </ul>
             ) : null}
+          </section>
+        ) : null}
+
+        {group.data?.canManageInvites ? (
+          <section className="space-y-6 rounded-xl border border-white/10 bg-black/20 p-6">
+            <div>
+              <h3 className="text-lg font-medium text-white">Private invites</h3>
+              <p className="mt-2 text-sm text-white/70">
+                Only the creator can send Email invites and manage one reusable
+                Invite link.
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-white/10 p-4">
+              <h4 className="font-medium text-white">Email invite</h4>
+              <form
+                className="flex flex-col gap-3 sm:flex-row"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const formData = new FormData(event.currentTarget);
+                  const emailValue = formData.get("email");
+                  if (typeof emailValue !== "string") {
+                    return;
+                  }
+                  const email = emailValue.trim();
+                  if (!email) {
+                    return;
+                  }
+                  sendEmailInvite.mutate({ groupId: id, email });
+                  event.currentTarget.reset();
+                }}
+              >
+                <Input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="invitee@email.com"
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={sendEmailInvite.isPending}>
+                  {sendEmailInvite.isPending ? "Sending…" : "Send invite"}
+                </Button>
+              </form>
+
+              {emailInvites.data?.length === 0 ? (
+                <p className="text-sm text-white/60">No unused Email invites.</p>
+              ) : null}
+              {emailInvites.data && emailInvites.data.length > 0 ? (
+                <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+                  {emailInvites.data.map((invite) => (
+                    <li
+                      key={invite.id}
+                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium text-white">{invite.email}</p>
+                        <p className="text-xs text-white/60">
+                          {invite.attachedUserId
+                            ? "Attached to existing User"
+                            : "No User yet"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(
+                              invite.inviteUrl,
+                            );
+                            toast.success("Email invite URL copied");
+                          }}
+                        >
+                          Copy URL
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            revokeEmailInvite.mutate({ inviteId: invite.id })
+                          }
+                          disabled={revokeEmailInvite.isPending}
+                        >
+                          Revoke
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-white/10 p-4">
+              <h4 className="font-medium text-white">Invite link</h4>
+              {inviteLink.data ? (
+                <>
+                  <p className="text-sm text-white/70">
+                    Live reusable link. Any authenticated User who opens it
+                    joins the Group.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(
+                          inviteLink.data!.inviteUrl,
+                        );
+                        toast.success("Invite link copied");
+                      }}
+                    >
+                      Copy link
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => rotateInviteLink.mutate({ groupId: id })}
+                      disabled={rotateInviteLink.isPending}
+                    >
+                      Rotate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => revokeInviteLink.mutate({ groupId: id })}
+                      disabled={revokeInviteLink.isPending}
+                    >
+                      Revoke
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-white/70">No active Invite link.</p>
+                  <Button
+                    size="sm"
+                    onClick={() => createInviteLink.mutate({ groupId: id })}
+                    disabled={createInviteLink.isPending}
+                  >
+                    {createInviteLink.isPending ? "Creating…" : "Create link"}
+                  </Button>
+                </div>
+              )}
+            </div>
           </section>
         ) : null}
       </div>

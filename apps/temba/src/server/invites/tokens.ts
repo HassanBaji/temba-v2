@@ -3,6 +3,8 @@ import { randomBytes } from "node:crypto";
 import {
   communityEmailInvitePath,
   communityInviteLinkPath,
+  groupEmailInvitePath,
+  groupInviteLinkPath,
 } from "~/lib/invite-paths";
 
 export function createOpaqueToken() {
@@ -26,8 +28,21 @@ export function communityInviteLinkUrl(origin: string, token: string) {
   return `${origin}${communityInviteLinkPath(token)}`;
 }
 
+export function groupEmailInviteUrl(origin: string, token: string) {
+  return `${origin}${groupEmailInvitePath(token)}`;
+}
+
+export function groupInviteLinkUrl(origin: string, token: string) {
+  return `${origin}${groupInviteLinkPath(token)}`;
+}
+
 export function normalizeInviteEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-export { communityEmailInvitePath, communityInviteLinkPath };
+export {
+  communityEmailInvitePath,
+  communityInviteLinkPath,
+  groupEmailInvitePath,
+  groupInviteLinkPath,
+};

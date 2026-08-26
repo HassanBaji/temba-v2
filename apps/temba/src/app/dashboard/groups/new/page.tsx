@@ -24,11 +24,14 @@ import {
 import { api } from "~/trpc/react";
 
 type Sport = "padel" | "football";
+type GroupVisibility = "public" | "private";
 
 export default function NewLooseGroupPage() {
   const router = useRouter();
   const [name, setName] = React.useState("");
   const [sport, setSport] = React.useState<Sport>("padel");
+  const [visibility, setVisibility] =
+    React.useState<GroupVisibility>("public");
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
     onSuccess: (group) => {
@@ -40,12 +43,26 @@ export default function NewLooseGroupPage() {
     },
   });
 
+  const createLoosePrivate = api.groups.createLoosePrivate.useMutation({
+    onSuccess: (group) => {
+      toast.success("Loose Group Private created");
+      router.push(`/dashboard/groups/${group.id}`);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const isPending =
+    createLoosePublic.isPending || createLoosePrivate.isPending;
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    createLoosePublic.mutate({
-      name,
-      sport,
-    });
+    if (visibility === "private") {
+      createLoosePrivate.mutate({ name, sport });
+      return;
+    }
+    createLoosePublic.mutate({ name, sport });
   }
 
   return (
@@ -53,12 +70,12 @@ export default function NewLooseGroupPage() {
       <div className="mx-auto w-full max-w-lg space-y-6">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight text-white">
-            Create a Loose Group Public
+            Create a Loose Group
           </h2>
           <p className="text-sm text-white/70">
-            A squad outside any Community. Public means join via the Group URL —
-            not listed in the Directory, and not an Invite link. You become a
-            Group member.
+            A squad outside any Community. Public joins via the Group URL;
+            Private uses Email invites and one reusable Invite link. You become
+            a Group member.
           </p>
         </div>
 
@@ -93,15 +110,40 @@ export default function NewLooseGroupPage() {
                   <SelectItem value="football">Football</SelectItem>
                 </SelectContent>
               </Select>
+              <FieldDescription>Exactly one sport.</FieldDescription>
+            </Field>
+
+            <Field>
+              <FieldLabel>Type</FieldLabel>
+              <Select
+                value={visibility}
+                onValueChange={(value) =>
+                  setVisibility(value as GroupVisibility)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">
+                    Public (open-with-link)
+                  </SelectItem>
+                  <SelectItem value="private">
+                    Private (Email invite + Invite link)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <FieldDescription>
-                Exactly one sport. Type is Public (open-with-link).
+                {visibility === "private"
+                  ? "Only you can send Email invites and manage the Invite link."
+                  : "Share the Group URL. Not listed in the Directory."}
               </FieldDescription>
             </Field>
           </FieldGroup>
 
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={createLoosePublic.isPending}>
-              {createLoosePublic.isPending ? "Creating…" : "Create Group"}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Creating…" : "Create Group"}
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard/communities">Cancel</Link>
