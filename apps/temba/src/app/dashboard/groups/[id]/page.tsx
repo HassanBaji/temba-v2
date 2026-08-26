@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +18,7 @@ export default function GroupHomePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const utils = api.useUtils();
   const group = api.groups.byId.useQuery({ id });
 
@@ -81,6 +83,21 @@ export default function GroupHomePage({
         await utils.communities.byId.invalidate({ id: result.communityId });
         await utils.communities.mine.invalidate();
       }
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteGroup = api.groups.delete.useMutation({
+    onSuccess: async (result) => {
+      toast.success("Group deleted");
+      if (result.communityId) {
+        await utils.communities.byId.invalidate({ id: result.communityId });
+        router.push(`/dashboard/communities/${result.communityId}`);
+        return;
+      }
+      router.push("/dashboard/groups/new");
     },
     onError: (error) => {
       toast.error(error.message);
@@ -326,6 +343,15 @@ export default function GroupHomePage({
                 disabled={leaveGroup.isPending}
               >
                 {leaveGroup.isPending ? "Leaving…" : "Leave Group"}
+              </Button>
+            ) : null}
+            {group.data?.canDelete ? (
+              <Button
+                variant="outline"
+                onClick={() => deleteGroup.mutate({ groupId: id })}
+                disabled={deleteGroup.isPending}
+              >
+                {deleteGroup.isPending ? "Deleting…" : "Delete Group"}
               </Button>
             ) : null}
             {group.data?.isLoose && group.data.type === "public" ? (
