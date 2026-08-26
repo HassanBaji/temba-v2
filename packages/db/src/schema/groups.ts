@@ -15,6 +15,7 @@ import {
   GroupTypeEnum,
 } from "./group-enums";
 import { relations } from "drizzle-orm";
+import { groupMemberInvites } from "./group-member-invites";
 
 export {
   groupSports,
@@ -47,4 +48,5 @@ export const groupRelations = relations(groups, ({ one, many }) => ({
     references: [communities.id],
   }),
   games: many(games),
+  memberInvites: many(groupMemberInvites),
 }));

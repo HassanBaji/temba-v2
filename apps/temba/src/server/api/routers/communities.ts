@@ -304,6 +304,7 @@ export const communitiesRouter = createTRPCRouter({
         canManageJoinRequests,
         canManageInvites,
         canCreateClubGroup,
+        canLeave: Boolean(membership),
         groups: clubGroups.map((group) => ({
           id: group.id,
           name: group.name,
@@ -312,6 +313,111 @@ export const communitiesRouter = createTRPCRouter({
           sport: group.sport as GroupSportEnum | null,
           isMember: memberGroupIds.has(group.id),
         })),
+      };
+    }),
+
+  listMembers: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+
+      const membership = await requireMembership(
+        ctx.db,
+        community.id,
+        appUser.id,
+      );
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only Community members can list members",
+        });
+      }
+
+      const rows = await ctx.db.query.communityMembers.findMany({
+        where: eq(communityMembers.communityId, community.id),
+        with: {
+          user: true,
+        },
+        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      });
+
+      return rows.map((row) => ({
+        id: row.id,
+        role: asRole(row.role),
+        user: {
+          id: row.user.id,
+          name: row.user.name,
+          email: row.user.email,
+        },
+      }));
+    }),
+
+  leave: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+
+      const membership = await requireMembership(
+        ctx.db,
+        community.id,
+        appUser.id,
+      );
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You are not a member of this Community",
+        });
+      }
+
+      if (membership.role === "owner") {
+        const owners = await ctx.db.query.communityMembers.findMany({
+          where: and(
+            eq(communityMembers.communityId, community.id),
+            eq(communityMembers.role, CommunityRoleEnum.OWNER),
+          ),
+        });
+
+        if (owners.length <= 1) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "The last Owner cannot leave until another Owner is promoted",
+          });
+        }
+      }
+
+      const clubGroups = await ctx.db.query.groups.findMany({
+        where: eq(groups.communityId, community.id),
+        columns: { id: true },
+      });
+
+      await ctx.db.transaction(async (tx) => {
+        if (clubGroups.length > 0) {
+          await tx
+            .delete(groupMembers)
+            .where(
+              and(
+                eq(groupMembers.userId, appUser.id),
+                inArray(
+                  groupMembers.groupId,
+                  clubGroups.map((group) => group.id),
+                ),
+              ),
+            );
+        }
+
+        await tx
+          .delete(communityMembers)
+          .where(eq(communityMembers.id, membership.id));
+      });
+
+      return {
+        ok: true as const,
+        communityId: community.id,
       };
     }),
 

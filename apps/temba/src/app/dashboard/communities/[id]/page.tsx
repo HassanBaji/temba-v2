@@ -120,8 +120,30 @@ export default function CommunityHomePage({
 
   const createClubPublic = api.groups.createClubPublic.useMutation({
     onSuccess: async () => {
-      toast.success("Club Group created");
+      toast.success("Club Group Public created");
       await utils.communities.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const createClubPrivate = api.groups.createClubPrivate.useMutation({
+    onSuccess: async () => {
+      toast.success("Club Group Private created");
+      await utils.communities.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const leaveCommunity = api.communities.leave.useMutation({
+    onSuccess: async () => {
+      toast.success("Left Community and its Club Groups");
+      await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+      await utils.communities.directory.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -134,6 +156,8 @@ export default function CommunityHomePage({
   const joinStatus = community.data?.joinRequest?.status;
   const canRequestJoin =
     isPublic && isLive && !isMember && joinStatus !== "pending";
+  const createClubPending =
+    createClubPublic.isPending || createClubPrivate.isPending;
 
   return (
     <DashboardShell title={community.data?.name ?? "Community"}>
@@ -199,6 +223,15 @@ export default function CommunityHomePage({
                 Request pending
               </Button>
             ) : null}
+            {community.data?.canLeave ? (
+              <Button
+                variant="outline"
+                onClick={() => leaveCommunity.mutate({ communityId: id })}
+                disabled={leaveCommunity.isPending}
+              >
+                {leaveCommunity.isPending ? "Leaving…" : "Leave Community"}
+              </Button>
+            ) : null}
             <Button variant="outline" asChild>
               <Link href="/dashboard/communities">My Communities</Link>
             </Button>
@@ -251,66 +284,130 @@ export default function CommunityHomePage({
             )}
 
             {community.data.canCreateClubGroup ? (
-              <form
-                className="space-y-3 rounded-lg border border-white/10 p-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const formData = new FormData(event.currentTarget);
-                  const nameValue = formData.get("name");
-                  const sportValue = formData.get("sport");
-                  if (
-                    typeof nameValue !== "string" ||
-                    typeof sportValue !== "string"
-                  ) {
-                    return;
-                  }
-                  const name = nameValue.trim();
-                  if (!name) {
-                    return;
-                  }
-                  if (sportValue !== "padel" && sportValue !== "football") {
-                    return;
-                  }
-                  createClubPublic.mutate({
-                    communityId: id,
-                    name,
-                    sport: sportValue,
-                  });
-                  event.currentTarget.reset();
-                }}
-              >
-                <h4 className="font-medium text-white">
-                  Create Club Group Public
-                </h4>
-                <p className="text-sm text-white/60">
-                  Owner or Admin only. Sport must be on Community sports. You
-                  join as a Group member.
-                </p>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Input
-                    name="name"
-                    required
-                    maxLength={255}
-                    placeholder="Group name"
-                    className="flex-1"
-                  />
-                  <select
-                    name="sport"
-                    required
-                    className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
-                    defaultValue={community.data.sports[0] ?? ""}
-                  >
-                    {community.data.sports.map((sport) => (
-                      <option key={sport} value={sport}>
-                        {sport}
-                      </option>
-                    ))}
-                  </select>
-                  <Button type="submit" disabled={createClubPublic.isPending}>
-                    {createClubPublic.isPending ? "Creating…" : "Create"}
-                  </Button>
-                </div>
-              </form>
+              <div className="space-y-4">
+                <form
+                  className="space-y-3 rounded-lg border border-white/10 p-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const formData = new FormData(event.currentTarget);
+                    const nameValue = formData.get("name");
+                    const sportValue = formData.get("sport");
+                    if (
+                      typeof nameValue !== "string" ||
+                      typeof sportValue !== "string"
+                    ) {
+                      return;
+                    }
+                    const name = nameValue.trim();
+                    if (!name) {
+                      return;
+                    }
+                    if (sportValue !== "padel" && sportValue !== "football") {
+                      return;
+                    }
+                    createClubPublic.mutate({
+                      communityId: id,
+                      name,
+                      sport: sportValue,
+                    });
+                    event.currentTarget.reset();
+                  }}
+                >
+                  <h4 className="font-medium text-white">
+                    Create Club Group Public
+                  </h4>
+                  <p className="text-sm text-white/60">
+                    Owner or Admin only. Open to Community members. Sport must
+                    be on Community sports. You join as a Group member.
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Input
+                      name="name"
+                      required
+                      maxLength={255}
+                      placeholder="Group name"
+                      className="flex-1"
+                    />
+                    <select
+                      name="sport"
+                      required
+                      className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                      defaultValue={community.data.sports[0] ?? ""}
+                    >
+                      {community.data.sports.map((sport) => (
+                        <option key={sport} value={sport}>
+                          {sport}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="submit" disabled={createClubPending}>
+                      {createClubPublic.isPending ? "Creating…" : "Create"}
+                    </Button>
+                  </div>
+                </form>
+
+                <form
+                  className="space-y-3 rounded-lg border border-white/10 p-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const formData = new FormData(event.currentTarget);
+                    const nameValue = formData.get("name");
+                    const sportValue = formData.get("sport");
+                    if (
+                      typeof nameValue !== "string" ||
+                      typeof sportValue !== "string"
+                    ) {
+                      return;
+                    }
+                    const name = nameValue.trim();
+                    if (!name) {
+                      return;
+                    }
+                    if (sportValue !== "padel" && sportValue !== "football") {
+                      return;
+                    }
+                    createClubPrivate.mutate({
+                      communityId: id,
+                      name,
+                      sport: sportValue,
+                    });
+                    event.currentTarget.reset();
+                  }}
+                >
+                  <h4 className="font-medium text-white">
+                    Create Club Group Private
+                  </h4>
+                  <p className="text-sm text-white/60">
+                    Owner or Admin only. Invite-only for Community members
+                    (in-app). No Email invite or Invite link. Sport must be on
+                    Community sports.
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Input
+                      name="name"
+                      required
+                      maxLength={255}
+                      placeholder="Group name"
+                      className="flex-1"
+                    />
+                    <select
+                      name="sport"
+                      required
+                      className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                      defaultValue={community.data.sports[0] ?? ""}
+                    >
+                      {community.data.sports.map((sport) => (
+                        <option key={sport} value={sport}>
+                          {sport}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="submit" disabled={createClubPending}>
+                      {createClubPrivate.isPending ? "Creating…" : "Create"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
             ) : null}
           </section>
         ) : null}
