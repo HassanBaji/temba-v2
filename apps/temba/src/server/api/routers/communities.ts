@@ -97,6 +97,34 @@ async function requireStaff(
   return membership;
 }
 
+async function requireOwner(
+  database: DbClient,
+  communityId: string,
+  userId: string,
+) {
+  const membership = await requireMembership(database, communityId, userId);
+
+  if (!membership || membership.role !== "owner") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only Owners can change Community roles",
+    });
+  }
+
+  return membership;
+}
+
+async function countOwners(database: DbClient, communityId: string) {
+  const owners = await database.query.communityMembers.findMany({
+    where: and(
+      eq(communityMembers.communityId, communityId),
+      eq(communityMembers.role, CommunityRoleEnum.OWNER),
+    ),
+  });
+
+  return owners.length;
+}
+
 async function requireLivePrivateCommunity(database: DbClient, id: string) {
   const community = await requireCommunity(database, id);
 
@@ -262,6 +290,15 @@ export const communitiesRouter = createTRPCRouter({
         isStaffRole(membership?.role);
       const canCreateClubGroup =
         !community.archivedAt && isStaffRole(membership?.role);
+      const canManageRoles = membership?.role === "owner";
+
+      let canLeave = Boolean(membership);
+      if (membership?.role === "owner") {
+        const ownerCount = await countOwners(ctx.db, community.id);
+        if (ownerCount <= 1) {
+          canLeave = false;
+        }
+      }
 
       const clubGroups = await ctx.db.query.groups.findMany({
         where: eq(groups.communityId, community.id),
@@ -294,7 +331,9 @@ export const communitiesRouter = createTRPCRouter({
         sports: community.sports.map(
           (sportRow) => sportRow.sport as GroupSportEnum,
         ),
-        membership: membership ? { role: asRole(membership.role) } : null,
+        membership: membership
+          ? { role: asRole(membership.role), userId: appUser.id }
+          : null,
         joinRequest: joinRequest
           ? {
               id: joinRequest.id,
@@ -304,7 +343,8 @@ export const communitiesRouter = createTRPCRouter({
         canManageJoinRequests,
         canManageInvites,
         canCreateClubGroup,
-        canLeave: Boolean(membership),
+        canManageRoles,
+        canLeave,
         groups: clubGroups.map((group) => ({
           id: group.id,
           name: group.name,
@@ -354,6 +394,81 @@ export const communitiesRouter = createTRPCRouter({
       }));
     }),
 
+  setMemberRole: protectedProcedure
+    .input(
+      z.object({
+        communityId: z.string().uuid(),
+        userId: z.string().uuid(),
+        role: z.enum(["owner", "admin", "member"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+
+      await requireOwner(ctx.db, community.id, appUser.id);
+
+      const target = await requireMembership(
+        ctx.db,
+        community.id,
+        input.userId,
+      );
+
+      if (!target) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Community member not found",
+        });
+      }
+
+      const nextRole = input.role;
+      const previousRole = asRole(target.role);
+
+      if (previousRole === nextRole) {
+        return {
+          ok: true as const,
+          userId: target.userId,
+          role: previousRole,
+        };
+      }
+
+      const demotingOwner =
+        previousRole === "owner" && nextRole !== "owner";
+
+      if (demotingOwner) {
+        const ownerCount = await countOwners(ctx.db, community.id);
+        if (ownerCount <= 1) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "The last Owner cannot demote until another Owner is promoted",
+          });
+        }
+      }
+
+      const [updated] = await ctx.db
+        .update(communityMembers)
+        .set({
+          role: nextRole,
+          updatedAt: new Date(),
+        })
+        .where(eq(communityMembers.id, target.id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update member role",
+        });
+      }
+
+      return {
+        ok: true as const,
+        userId: updated.userId,
+        role: asRole(updated.role),
+      };
+    }),
+
   leave: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -374,14 +489,9 @@ export const communitiesRouter = createTRPCRouter({
       }
 
       if (membership.role === "owner") {
-        const owners = await ctx.db.query.communityMembers.findMany({
-          where: and(
-            eq(communityMembers.communityId, community.id),
-            eq(communityMembers.role, CommunityRoleEnum.OWNER),
-          ),
-        });
+        const ownerCount = await countOwners(ctx.db, community.id);
 
-        if (owners.length <= 1) {
+        if (ownerCount <= 1) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message:
@@ -395,6 +505,7 @@ export const communitiesRouter = createTRPCRouter({
         columns: { id: true },
       });
 
+      // Leave removes membership only — never Soft-archives the Community.
       await ctx.db.transaction(async (tx) => {
         if (clubGroups.length > 0) {
           await tx

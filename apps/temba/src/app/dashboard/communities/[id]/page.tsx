@@ -150,6 +150,23 @@ export default function CommunityHomePage({
     },
   });
 
+  const members = api.communities.listMembers.useQuery(
+    { communityId: id },
+    { enabled: Boolean(community.data?.membership) },
+  );
+
+  const setMemberRole = api.communities.setMemberRole.useMutation({
+    onSuccess: async (result) => {
+      toast.success(`Role updated to ${result.role}`);
+      await utils.communities.listMembers.invalidate({ communityId: id });
+      await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const isPublic = community.data?.type === "public";
   const isLive = !community.data?.archivedAt;
   const isMember = Boolean(community.data?.membership);
@@ -158,6 +175,10 @@ export default function CommunityHomePage({
     isPublic && isLive && !isMember && joinStatus !== "pending";
   const createClubPending =
     createClubPublic.isPending || createClubPrivate.isPending;
+  const viewerUserId = community.data?.membership?.userId;
+  const isLastOwnerBlockedLeave =
+    community.data?.membership?.role === "owner" &&
+    community.data.canLeave === false;
 
   return (
     <DashboardShell title={community.data?.name ?? "Community"}>
@@ -223,11 +244,18 @@ export default function CommunityHomePage({
                 Request pending
               </Button>
             ) : null}
-            {community.data?.canLeave ? (
+            {isMember ? (
               <Button
                 variant="outline"
                 onClick={() => leaveCommunity.mutate({ communityId: id })}
-                disabled={leaveCommunity.isPending}
+                disabled={
+                  leaveCommunity.isPending || !community.data?.canLeave
+                }
+                title={
+                  isLastOwnerBlockedLeave
+                    ? "The last Owner cannot leave until another Owner is promoted"
+                    : undefined
+                }
               >
                 {leaveCommunity.isPending ? "Leaving…" : "Leave Community"}
               </Button>
@@ -408,6 +436,96 @@ export default function CommunityHomePage({
                   </div>
                 </form>
               </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {isMember ? (
+          <section className="rounded-xl border border-white/10 bg-black/20 p-6">
+            <h3 className="text-lg font-medium text-white">Members</h3>
+            <p className="mt-2 text-sm text-white/70">
+              {community.data?.canManageRoles
+                ? "Owners can promote or demote members. Multiple Owners are allowed. The last Owner cannot leave or self-demote."
+                : "Only Owners can change roles. Admins cannot promote, demote, or change Owner-ship."}
+            </p>
+
+            {isLastOwnerBlockedLeave ? (
+              <p className="mt-2 text-sm text-amber-200/90">
+                You are the last Owner. Promote someone else before leaving or
+                demoting yourself. Leaving does not Soft-archive this Community.
+              </p>
+            ) : null}
+
+            {members.isLoading ? (
+              <div className="mt-4 space-y-3">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ) : null}
+
+            {members.error ? (
+              <p className="mt-4 text-sm text-red-300">{members.error.message}</p>
+            ) : null}
+
+            {members.data && members.data.length > 0 ? (
+              <ul className="mt-4 divide-y divide-white/10 rounded-lg border border-white/10">
+                {members.data.map((member) => {
+                  const isSelf = member.user.id === viewerUserId;
+                  return (
+                    <li
+                      key={member.id}
+                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium text-white">
+                          {member.user.name}
+                          {isSelf ? (
+                            <span className="ml-2 text-sm font-normal text-white/60">
+                              (you)
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-sm text-white/60">
+                          {member.user.email}
+                        </p>
+                      </div>
+                      {community.data?.canManageRoles ? (
+                        <select
+                          className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm capitalize text-white"
+                          value={member.role}
+                          disabled={setMemberRole.isPending}
+                          onChange={(event) => {
+                            const role = event.target.value;
+                            if (
+                              role !== "owner" &&
+                              role !== "admin" &&
+                              role !== "member"
+                            ) {
+                              return;
+                            }
+                            if (role === member.role) {
+                              return;
+                            }
+                            setMemberRole.mutate({
+                              communityId: id,
+                              userId: member.user.id,
+                              role,
+                            });
+                          }}
+                        >
+                          <option value="owner">owner</option>
+                          <option value="admin">admin</option>
+                          <option value="member">member</option>
+                        </select>
+                      ) : (
+                        <span className="text-sm capitalize text-white/70">
+                          {member.role}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             ) : null}
           </section>
         ) : null}
