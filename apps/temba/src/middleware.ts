@@ -1,6 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 const isAuthRoute = createRouteMatcher(["/login(.*)", "/signup(.*)"]);
 
@@ -12,7 +14,12 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
 
   if (isAuthRoute(req) && userId) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    const redirectUrl = safeInternalRedirect(
+      req.nextUrl.searchParams.get("redirect_url"),
+    );
+    return NextResponse.redirect(
+      new URL(redirectUrl ?? "/dashboard", req.url),
+    );
   }
 
   if (req.nextUrl.pathname === "/public") {

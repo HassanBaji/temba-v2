@@ -4,18 +4,33 @@ import { z } from "zod";
 
 import {
   communities,
+  communityEmailInvites,
+  communityInviteLinks,
   communityJoinRequests,
   communityMembers,
   communitySports,
   CommunityJoinRequestStatusEnum,
   CommunityRoleEnum,
   CommunityTypeEnum,
+  user,
   type GroupSportEnum,
 } from "@repo/db";
 
 import { type db } from "~/server/db";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+  communityEmailInviteUrl,
+  communityInviteLinkUrl,
+  createOpaqueToken,
+  getAppOrigin,
+  normalizeInviteEmail,
+} from "~/server/invites/tokens";
+import { sendCommunityEmailInviteMail } from "~/server/mail/send-community-email-invite";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 
 const sportSchema = z.enum(["padel", "football"]);
 const communityTypeSchema = z.enum(["public", "private"]);
@@ -73,11 +88,31 @@ async function requireStaff(
   if (!membership || !isStaffRole(membership.role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only Owner or Admin can manage join requests",
+      message: "Only Owner or Admin can manage this Community",
     });
   }
 
   return membership;
+}
+
+async function requireLivePrivateCommunity(database: DbClient, id: string) {
+  const community = await requireCommunity(database, id);
+
+  if (community.type !== "private") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Community Public has no Email invite or Invite link",
+    });
+  }
+
+  if (community.archivedAt) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Cannot manage invites for an archived Community",
+    });
+  }
+
+  return community;
 }
 
 export const communitiesRouter = createTRPCRouter({
@@ -219,6 +254,10 @@ export const communitiesRouter = createTRPCRouter({
 
       const canManageJoinRequests =
         community.type === "public" && isStaffRole(membership?.role);
+      const canManageInvites =
+        community.type === "private" &&
+        !community.archivedAt &&
+        isStaffRole(membership?.role);
 
       return {
         id: community.id,
@@ -238,6 +277,7 @@ export const communitiesRouter = createTRPCRouter({
             }
           : null,
         canManageJoinRequests,
+        canManageInvites,
         groups: [] as const,
       };
     }),
@@ -532,5 +572,549 @@ export const communitiesRouter = createTRPCRouter({
       }
 
       return { ok: true as const };
+    }),
+
+  sendEmailInvite: protectedProcedure
+    .input(
+      z.object({
+        communityId: z.string().uuid(),
+        email: z.string().trim().email().max(255),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireLivePrivateCommunity(
+        ctx.db,
+        input.communityId,
+      );
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const email = normalizeInviteEmail(input.email);
+      const existingInvite = await ctx.db.query.communityEmailInvites.findFirst({
+        where: and(
+          eq(communityEmailInvites.communityId, community.id),
+          eq(communityEmailInvites.email, email),
+          isNull(communityEmailInvites.acceptedAt),
+          isNull(communityEmailInvites.revokedAt),
+        ),
+      });
+
+      if (existingInvite) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "An unused Email invite already exists for this address",
+        });
+      }
+
+      const attachedUser = await ctx.db.query.user.findFirst({
+        where: eq(user.email, email),
+      });
+
+      const token = createOpaqueToken();
+      const [created] = await ctx.db
+        .insert(communityEmailInvites)
+        .values({
+          communityId: community.id,
+          email,
+          userId: attachedUser?.id,
+          invitedBy: appUser.id,
+          token,
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Email invite",
+        });
+      }
+
+      const inviteUrl = communityEmailInviteUrl(
+        getAppOrigin(ctx.headers),
+        created.token,
+      );
+
+      await sendCommunityEmailInviteMail({
+        to: email,
+        communityName: community.name,
+        inviteUrl,
+      });
+
+      return {
+        id: created.id,
+        email: created.email,
+        inviteUrl,
+        attachedUserId: created.userId,
+      };
+    }),
+
+  listEmailInvites: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireLivePrivateCommunity(
+        ctx.db,
+        input.communityId,
+      );
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const rows = await ctx.db.query.communityEmailInvites.findMany({
+        where: and(
+          eq(communityEmailInvites.communityId, community.id),
+          isNull(communityEmailInvites.acceptedAt),
+          isNull(communityEmailInvites.revokedAt),
+        ),
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      });
+
+      const origin = getAppOrigin(ctx.headers);
+
+      return rows.map((row) => ({
+        id: row.id,
+        email: row.email,
+        attachedUserId: row.userId,
+        inviteUrl: communityEmailInviteUrl(origin, row.token),
+        createdAt: row.createdAt,
+      }));
+    }),
+
+  revokeEmailInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const invite = await ctx.db.query.communityEmailInvites.findFirst({
+        where: eq(communityEmailInvites.id, input.inviteId),
+      });
+
+      if (!invite) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Email invite not found",
+        });
+      }
+
+      const community = await requireLivePrivateCommunity(
+        ctx.db,
+        invite.communityId,
+      );
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      if (invite.acceptedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Accepted Email invites cannot be revoked",
+        });
+      }
+
+      if (invite.revokedAt) {
+        return { ok: true as const };
+      }
+
+      const [updated] = await ctx.db
+        .update(communityEmailInvites)
+        .set({
+          revokedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(communityEmailInvites.id, invite.id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to revoke Email invite",
+        });
+      }
+
+      return { ok: true as const };
+    }),
+
+  getInviteLink: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireLivePrivateCommunity(
+        ctx.db,
+        input.communityId,
+      );
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const active = await ctx.db.query.communityInviteLinks.findFirst({
+        where: and(
+          eq(communityInviteLinks.communityId, community.id),
+          isNull(communityInviteLinks.revokedAt),
+        ),
+      });
+
+      if (!active) {
+        return null;
+      }
+
+      return {
+        id: active.id,
+        inviteUrl: communityInviteLinkUrl(
+          getAppOrigin(ctx.headers),
+          active.token,
+        ),
+        createdAt: active.createdAt,
+      };
+    }),
+
+  createInviteLink: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireLivePrivateCommunity(
+        ctx.db,
+        input.communityId,
+      );
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const existing = await ctx.db.query.communityInviteLinks.findFirst({
+        where: and(
+          eq(communityInviteLinks.communityId, community.id),
+          isNull(communityInviteLinks.revokedAt),
+        ),
+      });
+
+      if (existing) {
+        return {
+          id: existing.id,
+          inviteUrl: communityInviteLinkUrl(
+            getAppOrigin(ctx.headers),
+            existing.token,
+          ),
+          createdAt: existing.createdAt,
+        };
+      }
+
+      const [created] = await ctx.db
+        .insert(communityInviteLinks)
+        .values({
+          communityId: community.id,
+          createdBy: appUser.id,
+          token: createOpaqueToken(),
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Invite link",
+        });
+      }
+
+      return {
+        id: created.id,
+        inviteUrl: communityInviteLinkUrl(
+          getAppOrigin(ctx.headers),
+          created.token,
+        ),
+        createdAt: created.createdAt,
+      };
+    }),
+
+  rotateInviteLink: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireLivePrivateCommunity(
+        ctx.db,
+        input.communityId,
+      );
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const created = await ctx.db.transaction(async (tx) => {
+        const active = await tx.query.communityInviteLinks.findFirst({
+          where: and(
+            eq(communityInviteLinks.communityId, community.id),
+            isNull(communityInviteLinks.revokedAt),
+          ),
+        });
+
+        if (active) {
+          await tx
+            .update(communityInviteLinks)
+            .set({
+              revokedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(communityInviteLinks.id, active.id));
+        }
+
+        const [next] = await tx
+          .insert(communityInviteLinks)
+          .values({
+            communityId: community.id,
+            createdBy: appUser.id,
+            token: createOpaqueToken(),
+          })
+          .returning();
+
+        if (!next) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to rotate Invite link",
+          });
+        }
+
+        return next;
+      });
+
+      return {
+        id: created.id,
+        inviteUrl: communityInviteLinkUrl(
+          getAppOrigin(ctx.headers),
+          created.token,
+        ),
+        createdAt: created.createdAt,
+      };
+    }),
+
+  revokeInviteLink: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireLivePrivateCommunity(
+        ctx.db,
+        input.communityId,
+      );
+      await requireStaff(ctx.db, community.id, appUser.id);
+
+      const active = await ctx.db.query.communityInviteLinks.findFirst({
+        where: and(
+          eq(communityInviteLinks.communityId, community.id),
+          isNull(communityInviteLinks.revokedAt),
+        ),
+      });
+
+      if (!active) {
+        return { ok: true as const };
+      }
+
+      await ctx.db
+        .update(communityInviteLinks)
+        .set({
+          revokedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(communityInviteLinks.id, active.id));
+
+      return { ok: true as const };
+    }),
+
+  previewEmailInvite: publicProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .query(async ({ ctx, input }) => {
+      const invite = await ctx.db.query.communityEmailInvites.findFirst({
+        where: eq(communityEmailInvites.token, input.token),
+        with: {
+          community: true,
+        },
+      });
+
+      if (!invite || invite.acceptedAt || invite.revokedAt) {
+        return { status: "invalid" as const };
+      }
+
+      if (
+        invite.community.type !== "private" ||
+        invite.community.archivedAt
+      ) {
+        return { status: "unavailable" as const };
+      }
+
+      return {
+        status: "ready" as const,
+        communityName: invite.community.name,
+        invitedEmail: invite.email,
+      };
+    }),
+
+  previewInviteLink: publicProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .query(async ({ ctx, input }) => {
+      const link = await ctx.db.query.communityInviteLinks.findFirst({
+        where: eq(communityInviteLinks.token, input.token),
+        with: {
+          community: true,
+        },
+      });
+
+      if (!link || link.revokedAt) {
+        return { status: "invalid" as const };
+      }
+
+      if (link.community.type !== "private" || link.community.archivedAt) {
+        return { status: "unavailable" as const };
+      }
+
+      return {
+        status: "ready" as const,
+        communityName: link.community.name,
+      };
+    }),
+
+  acceptEmailInvite: protectedProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const invite = await ctx.db.query.communityEmailInvites.findFirst({
+        where: eq(communityEmailInvites.token, input.token),
+      });
+
+      if (!invite || invite.acceptedAt || invite.revokedAt) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Email invite is not available",
+        });
+      }
+
+      const community = await requireCommunity(ctx.db, invite.communityId);
+
+      if (community.type !== "private") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Community Public has no Email invite",
+        });
+      }
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot join an archived Community",
+        });
+      }
+
+      if (normalizeInviteEmail(appUser.email) !== invite.email) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Signed-in email does not match this Email invite. The invite was not consumed.",
+        });
+      }
+
+      const existingMembership = await requireMembership(
+        ctx.db,
+        community.id,
+        appUser.id,
+      );
+      if (existingMembership) {
+        if (!invite.acceptedAt) {
+          await ctx.db
+            .update(communityEmailInvites)
+            .set({
+              acceptedAt: new Date(),
+              userId: appUser.id,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(communityEmailInvites.id, invite.id),
+                isNull(communityEmailInvites.acceptedAt),
+                isNull(communityEmailInvites.revokedAt),
+              ),
+            );
+        }
+
+        return {
+          communityId: community.id,
+          alreadyMember: true as const,
+        };
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(communityEmailInvites)
+          .set({
+            acceptedAt: new Date(),
+            userId: appUser.id,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(communityEmailInvites.id, invite.id),
+              isNull(communityEmailInvites.acceptedAt),
+              isNull(communityEmailInvites.revokedAt),
+            ),
+          )
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Email invite is no longer available",
+          });
+        }
+
+        await tx.insert(communityMembers).values({
+          communityId: community.id,
+          userId: appUser.id,
+          role: CommunityRoleEnum.MEMBER,
+        });
+      });
+
+      return {
+        communityId: community.id,
+        alreadyMember: false as const,
+      };
+    }),
+
+  acceptInviteLink: protectedProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const link = await ctx.db.query.communityInviteLinks.findFirst({
+        where: eq(communityInviteLinks.token, input.token),
+      });
+
+      if (!link || link.revokedAt) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invite link is not available",
+        });
+      }
+
+      const community = await requireCommunity(ctx.db, link.communityId);
+
+      if (community.type !== "private") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Community Public has no Invite link",
+        });
+      }
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot join an archived Community",
+        });
+      }
+
+      const existingMembership = await requireMembership(
+        ctx.db,
+        community.id,
+        appUser.id,
+      );
+      if (existingMembership) {
+        return {
+          communityId: community.id,
+          alreadyMember: true as const,
+        };
+      }
+
+      await ctx.db.insert(communityMembers).values({
+        communityId: community.id,
+        userId: appUser.id,
+        role: CommunityRoleEnum.MEMBER,
+      });
+
+      return {
+        communityId: community.id,
+        alreadyMember: false as const,
+      };
     }),
 });

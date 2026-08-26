@@ -4,6 +4,8 @@ import { user } from "./user";
 import { communityMembers } from "./community-members";
 import { communitySports } from "./community-sports";
 import { communityJoinRequests } from "./community-join-requests";
+import { communityEmailInvites } from "./community-email-invites";
+import { communityInviteLinks } from "./community-invite-links";
 
 export const communityTypes = pgEnum("community_type", ["public", "private"]);
 
@@ -33,4 +35,6 @@ export const communityRelations = relations(communities, ({ one, many }) => ({
   members: many(communityMembers),
   sports: many(communitySports),
   joinRequests: many(communityJoinRequests),
+  emailInvites: many(communityEmailInvites),
+  inviteLinks: many(communityInviteLinks),
 }));
