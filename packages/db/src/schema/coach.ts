@@ -7,7 +7,7 @@ import {
   boolean,
 } from "drizzle-orm/pg-core";
 import { user } from "./user";
-import { groupSports } from "./groups";
+import { groupSports } from "./group-enums";
 import { courts } from "./courts";
 
 export const coachSports = pgEnum("coach_sport", ["padel", "football"]);

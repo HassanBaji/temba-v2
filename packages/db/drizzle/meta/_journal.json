@@ -15,6 +15,48 @@
       "when": 1787726689661,
       "tag": "0001_open_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787733210074,
+      "tag": "0002_even_captain_midlands",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787734148084,
+      "tag": "0003_lovely_firestar",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787735370939,
+      "tag": "0004_brave_mole_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787736279035,
+      "tag": "0005_huge_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787737335111,
+      "tag": "0006_unusual_jasper_sitwell",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787738439864,
+      "tag": "0007_clever_nova",
+      "breakpoints": true
     }
   ]
 }

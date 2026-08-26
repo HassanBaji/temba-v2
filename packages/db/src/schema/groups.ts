@@ -4,24 +4,27 @@ import {
   varchar,
   timestamp,
   integer,
-  pgEnum,
 } from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { games } from "./games";
+import { communities } from "./communities";
+import {
+  groupSports,
+  groupTypes,
+  GroupSportEnum,
+  GroupTypeEnum,
+} from "./group-enums";
 import { relations } from "drizzle-orm";
+import { groupMemberInvites } from "./group-member-invites";
+import { groupEmailInvites } from "./group-email-invites";
+import { groupInviteLinks } from "./group-invite-links";
 
-export const groupTypes = pgEnum("group_type", ["public", "private"]);
-export const groupSports = pgEnum("group_sport", ["padel", "football"]);
-
-export enum GroupTypeEnum {
-  PUBLIC = "public",
-  PRIVATE = "private",
-}
-
-export enum GroupSportEnum {
-  PADEL = "padel",
-  FOOTBALL = "football",
-}
+export {
+  groupSports,
+  groupTypes,
+  GroupSportEnum,
+  GroupTypeEnum,
+} from "./group-enums";
 
 export const groups = pgTable("groups", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -30,6 +33,9 @@ export const groups = pgTable("groups", {
   totalGamesPlayed: integer("total_games_played").notNull().default(0),
   type: groupTypes().default(GroupTypeEnum.PRIVATE),
   sport: groupSports().default(GroupSportEnum.PADEL),
+  communityId: uuid("community_id").references(() => communities.id, {
+    onDelete: "restrict",
+  }),
   createdBy: uuid("created_by")
     .references(() => user.id, { onDelete: "cascade" })
     .notNull(),
@@ -39,5 +45,12 @@ export const groups = pgTable("groups", {
 
 export const groupRelations = relations(groups, ({ one, many }) => ({
   createdBy: one(user, { fields: [groups.createdBy], references: [user.id] }),
+  community: one(communities, {
+    fields: [groups.communityId],
+    references: [communities.id],
+  }),
   games: many(games),
+  memberInvites: many(groupMemberInvites),
+  emailInvites: many(groupEmailInvites),
+  inviteLinks: many(groupInviteLinks),
 }));
