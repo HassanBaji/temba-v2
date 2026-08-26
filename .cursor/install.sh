@@ -27,6 +27,7 @@ pnpm install --frozen-lockfile
 
 # Sync Clerk secrets from Cloud Agent environment variables into apps/temba/.env
 # when present. Values are never printed. Empty .env placeholders are replaced.
+# Reject known-invalid placeholder strings so agents do not silently sync them.
 set_env_kv() {
   local file="$1" key="$2" value="$3"
   if grep -q "^${key}=" "$file"; then
@@ -39,9 +40,30 @@ set_env_kv() {
   fi
 }
 
-if [ -n "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" ]; then
+is_usable_clerk_secret() {
+  local value="$1"
+  # Non-empty, not a documented placeholder, and long enough to be a real Clerk key.
+  if [ -z "$value" ]; then
+    return 1
+  fi
+  case "$value" in
+    *placeholder* | pk_test_ | sk_test_ | pk_live_ | sk_live_)
+      return 1
+      ;;
+  esac
+  if [ "${#value}" -lt 30 ]; then
+    return 1
+  fi
+  return 0
+}
+
+if is_usable_clerk_secret "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}"; then
   set_env_kv apps/temba/.env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
+elif [ -n "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" ]; then
+  echo "warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
 fi
-if [ -n "${CLERK_SECRET_KEY:-}" ]; then
+if is_usable_clerk_secret "${CLERK_SECRET_KEY:-}"; then
   set_env_kv apps/temba/.env CLERK_SECRET_KEY "$CLERK_SECRET_KEY"
+elif [ -n "${CLERK_SECRET_KEY:-}" ]; then
+  echo "warning: CLERK_SECRET_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
 fi

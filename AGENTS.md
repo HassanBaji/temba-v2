@@ -17,7 +17,7 @@ Project subagents live in `.cursor/agents/`: `planner`, `implementer`, `reviewer
 Cloud Agents use `.cursor/environment.json` (`install` → `.cursor/install.sh`, `start` → `.cursor/start.sh`, terminal `pnpm --filter temba dev` on port 3000).
 
 - PostgreSQL runs natively on the VM (not Docker). Do not rely on `./start-database.sh` in Cloud Agents; `start` already brings up the cluster and applies Drizzle migrations.
-- Required environment secrets: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` (Clerk development instance). Without them the App fails env validation and the login UI cannot render.
+- Required environment secrets: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` from a Clerk **development** instance API Keys page (`pk_test_…` / `sk_test_…`). Do not use empty strings or literals like `pk_test_placeholder` / `sk_test_placeholder` — Clerk rejects those and `/login` returns 500. Without real keys the App fails env validation and the login UI cannot render.
 - Local `.env` files under `apps/temba` and `packages/db` are created from the checked-in examples during install; `DATABASE_URL` defaults to `postgresql://postgres:password@localhost:5432/temba`.
 - Useful checks after boot: `pnpm exec turbo run typecheck`, `pnpm exec turbo run build --filter temba`, curl `http://localhost:3000/login`.
 
