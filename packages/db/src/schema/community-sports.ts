@@ -1,7 +1,7 @@
 import { pgTable, uuid, timestamp, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { communities } from "./communities";
-import { groupSports } from "./groups";
+import { groupSports } from "./group-enums";
 
 export const communitySports = pgTable(
   "community_sports",

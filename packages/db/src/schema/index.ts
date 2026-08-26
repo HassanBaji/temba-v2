@@ -8,6 +8,7 @@ export * from "./coaching-session";
 export * from "./games";
 export * from "./game-players";
 export * from "./game-teams";
+export * from "./group-enums";
 export * from "./groups";
 export * from "./group-members";
 export * from "./communities";

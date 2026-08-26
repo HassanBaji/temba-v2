@@ -118,6 +118,16 @@ export default function CommunityHomePage({
     },
   });
 
+  const createClubPublic = api.groups.createClubPublic.useMutation({
+    onSuccess: async () => {
+      toast.success("Club Group created");
+      await utils.communities.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const isPublic = community.data?.type === "public";
   const isLive = !community.data?.archivedAt;
   const isMember = Boolean(community.data?.membership);
@@ -199,12 +209,109 @@ export default function CommunityHomePage({
         </div>
 
         {community.data ? (
-          <section className="rounded-xl border border-white/10 bg-black/20 p-6">
-            <h3 className="text-lg font-medium text-white">Groups</h3>
-            <p className="mt-2 text-sm text-white/70">
-              This Community has no Groups yet. You can return here anytime from
-              My Communities.
-            </p>
+          <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">
+            <div>
+              <h3 className="text-lg font-medium text-white">Groups</h3>
+              <p className="mt-2 text-sm text-white/70">
+                Club Groups stay inside this Community. Public Groups are open
+                to Community members with no extra request. Groups are not listed
+                in the Directory.
+              </p>
+            </div>
+
+            {community.data.groups.length === 0 ? (
+              <p className="text-sm text-white/60">
+                This Community has no Groups yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+                {community.data.groups.map((group) => (
+                  <li
+                    key={group.id}
+                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium text-white">
+                        {group.name ?? "Untitled Group"}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-sm text-white/60">
+                        <span className="capitalize">{group.type}</span>
+                        {group.sport ? (
+                          <span>· {group.sport}</span>
+                        ) : null}
+                        {group.isMember ? <span>· Joined</span> : null}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/dashboard/groups/${group.id}`}>Open</Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {community.data.canCreateClubGroup ? (
+              <form
+                className="space-y-3 rounded-lg border border-white/10 p-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const formData = new FormData(event.currentTarget);
+                  const nameValue = formData.get("name");
+                  const sportValue = formData.get("sport");
+                  if (
+                    typeof nameValue !== "string" ||
+                    typeof sportValue !== "string"
+                  ) {
+                    return;
+                  }
+                  const name = nameValue.trim();
+                  if (!name) {
+                    return;
+                  }
+                  if (sportValue !== "padel" && sportValue !== "football") {
+                    return;
+                  }
+                  createClubPublic.mutate({
+                    communityId: id,
+                    name,
+                    sport: sportValue,
+                  });
+                  event.currentTarget.reset();
+                }}
+              >
+                <h4 className="font-medium text-white">
+                  Create Club Group Public
+                </h4>
+                <p className="text-sm text-white/60">
+                  Owner or Admin only. Sport must be on Community sports. You
+                  join as a Group member.
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Input
+                    name="name"
+                    required
+                    maxLength={255}
+                    placeholder="Group name"
+                    className="flex-1"
+                  />
+                  <select
+                    name="sport"
+                    required
+                    className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                    defaultValue={community.data.sports[0] ?? ""}
+                  >
+                    {community.data.sports.map((sport) => (
+                      <option key={sport} value={sport}>
+                        {sport}
+                      </option>
+                    ))}
+                  </select>
+                  <Button type="submit" disabled={createClubPublic.isPending}>
+                    {createClubPublic.isPending ? "Creating…" : "Create"}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
           </section>
         ) : null}
 

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -12,6 +12,8 @@ import {
   CommunityJoinRequestStatusEnum,
   CommunityRoleEnum,
   CommunityTypeEnum,
+  groupMembers,
+  groups,
   user,
   type GroupSportEnum,
 } from "@repo/db";
@@ -258,6 +260,29 @@ export const communitiesRouter = createTRPCRouter({
         community.type === "private" &&
         !community.archivedAt &&
         isStaffRole(membership?.role);
+      const canCreateClubGroup =
+        !community.archivedAt && isStaffRole(membership?.role);
+
+      const clubGroups = await ctx.db.query.groups.findMany({
+        where: eq(groups.communityId, community.id),
+        orderBy: (table, { asc }) => [asc(table.name)],
+      });
+
+      const memberGroupIds = new Set<string>();
+      if (clubGroups.length > 0) {
+        const myGroupMemberships = await ctx.db.query.groupMembers.findMany({
+          where: and(
+            eq(groupMembers.userId, appUser.id),
+            inArray(
+              groupMembers.groupId,
+              clubGroups.map((group) => group.id),
+            ),
+          ),
+        });
+        for (const row of myGroupMemberships) {
+          memberGroupIds.add(row.groupId);
+        }
+      }
 
       return {
         id: community.id,
@@ -278,7 +303,15 @@ export const communitiesRouter = createTRPCRouter({
           : null,
         canManageJoinRequests,
         canManageInvites,
-        groups: [] as const,
+        canCreateClubGroup,
+        groups: clubGroups.map((group) => ({
+          id: group.id,
+          name: group.name,
+          description: group.description,
+          type: group.type,
+          sport: group.sport as GroupSportEnum | null,
+          isMember: memberGroupIds.has(group.id),
+        })),
       };
     }),
 

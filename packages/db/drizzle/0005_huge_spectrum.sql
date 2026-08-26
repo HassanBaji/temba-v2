@@ -1,0 +1,2 @@
+ALTER TABLE "groups" ADD COLUMN "community_id" uuid;--> statement-breakpoint
+ALTER TABLE "groups" ADD CONSTRAINT "groups_community_id_communities_id_fk" FOREIGN KEY ("community_id") REFERENCES "public"."communities"("id") ON DELETE restrict ON UPDATE no action;
