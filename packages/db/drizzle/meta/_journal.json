@@ -8,6 +8,13 @@
       "when": 1781427029798,
       "tag": "0000_far_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787726689661,
+      "tag": "0001_open_loki",
+      "breakpoints": true
     }
   ]
 }
