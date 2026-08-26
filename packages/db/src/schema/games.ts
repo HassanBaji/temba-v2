@@ -58,7 +58,7 @@ export const games = pgTable("games", {
     .references(() => user.id, { onDelete: "cascade" }),
   isPublic: boolean("is_public").notNull().default(false),
   groupId: uuid("group_id").references(() => groups.id, {
-    onDelete: "cascade",
+    onDelete: "restrict",
   }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
