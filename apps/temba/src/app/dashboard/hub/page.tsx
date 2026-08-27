@@ -131,7 +131,6 @@ export default function GroupsAndCommunitiesHubPage() {
                           </p>
                           <p className="text-muted-foreground text-sm capitalize">
                             {group.type}
-                            {group.sport ? ` · ${group.sport}` : ""}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
