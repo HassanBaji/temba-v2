@@ -10,7 +10,10 @@ import {
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { HOME_UPCOMING_GAME_STATUSES } from "~/server/home/upcoming-games";
+import {
+  HOME_UPCOMING_GAME_STATUSES,
+  filterAndSortHomeUpcomingGames,
+} from "~/server/home/upcoming-games";
 import {
   sortStandingMembers,
   standingPosition,
@@ -81,7 +84,7 @@ export const usersRouter = createTRPCRouter({
           groupId: membership.group.id,
           groupName: membership.group.name,
           sport: membership.group.sport as GroupSportEnum | null,
-          position: position ?? 1,
+          position,
           memberCount: peers.length,
         };
       })
@@ -120,7 +123,11 @@ export const usersRouter = createTRPCRouter({
             orderBy: (table, { asc }) => [asc(table.startTime)],
           });
 
-    const upcomingGames = upcomingGameRows.flatMap((game) => {
+    const upcomingGames = filterAndSortHomeUpcomingGames(
+      upcomingGameRows,
+      new Set(groupIds),
+      now,
+    ).flatMap((game) => {
       if (game.groupId === null) {
         return [];
       }

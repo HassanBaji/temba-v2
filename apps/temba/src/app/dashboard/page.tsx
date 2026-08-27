@@ -6,18 +6,8 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { formatGameStart } from "~/lib/format-game-start";
 import { api } from "~/trpc/react";
-
-function formatGameStart(startTime: Date | string) {
-  const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export default function HomePage() {
   const home = api.users.home.useQuery();
@@ -161,8 +151,9 @@ export default function HomePage() {
                             {entry.groupName ?? "Untitled Group"}
                           </p>
                           <p className="text-muted-foreground text-sm">
-                            {entry.position} of {entry.memberCount} on the
-                            leaderboard
+                            {entry.position != null
+                              ? `${entry.position} of ${entry.memberCount} on the leaderboard`
+                              : `— of ${entry.memberCount} on the leaderboard`}
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -172,7 +163,9 @@ export default function HomePage() {
                             </Badge>
                           ) : null}
                           <span className="text-foreground text-sm font-medium tabular-nums">
-                            #{entry.position}
+                            {entry.position != null
+                              ? `#${entry.position}`
+                              : "—"}
                           </span>
                         </div>
                       </Link>

@@ -29,6 +29,8 @@ import {
   GROUP_GAME_HISTORY_LIMIT,
   GROUP_GAME_HISTORY_STATUSES,
   HOME_UPCOMING_GAME_STATUSES,
+  filterAndSortGroupGameHistory,
+  filterAndSortGroupUpcomingGames,
 } from "~/server/groups/group-games";
 import {
   createOpaqueToken,
@@ -656,7 +658,11 @@ export const groupsRouter = createTRPCRouter({
         limit: GROUP_GAME_HISTORY_LIMIT,
       });
 
-      const upcomingGames = upcomingGameRows.flatMap((game) => {
+      const upcomingGames = filterAndSortGroupUpcomingGames(
+        upcomingGameRows,
+        group.id,
+        now,
+      ).flatMap((game) => {
         if (game.groupId === null) {
           return [];
         }
@@ -674,7 +680,11 @@ export const groupsRouter = createTRPCRouter({
         ];
       });
 
-      const gameHistory = historyGameRows.flatMap((game) => {
+      const gameHistory = filterAndSortGroupGameHistory(
+        historyGameRows,
+        group.id,
+        now,
+      ).flatMap((game) => {
         if (game.groupId === null) {
           return [];
         }

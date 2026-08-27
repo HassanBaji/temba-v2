@@ -10,18 +10,8 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
+import { formatGameStart } from "~/lib/format-game-start";
 import { api } from "~/trpc/react";
-
-function formatGameStart(startTime: Date | string) {
-  const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export default function GroupHomePage({
   params,
@@ -375,7 +365,7 @@ export default function GroupHomePage({
               </Button>
             ) : null}
             <Button variant="outline" asChild>
-              <Link href="/dashboard/communities">My Communities</Link>
+              <Link href="/dashboard/hub">Groups &amp; Communities</Link>
             </Button>
           </div>
         </div>
