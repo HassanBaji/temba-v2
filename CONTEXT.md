@@ -49,7 +49,7 @@ A Group that does not belong to a Community.
 _Avoid_: orphan, standalone group, free group
 
 **Community Public**:
-A Community joinable by request if you have the Community URL. No Email invite or Invite link. Not listed in the App today; when Directory ships it will list live Community Public clubs.
+A Community joinable by request if you have the Community URL. No Email invite or Invite link; listed in Directory when that planned surface ships.
 _Avoid_: open Community, listed Community (as the name of the type), Route `/public`
 
 **Community Private**:
