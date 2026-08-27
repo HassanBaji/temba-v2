@@ -283,10 +283,32 @@ export const communitiesRouter = createTRPCRouter({
       const canManageTeamLinks = isStaffRole(membership?.role);
 
       let canLeave = Boolean(membership);
+      let linkedTeamBlocksLeave = false;
       if (membership?.role === "owner") {
         const ownerCount = await countOwners(ctx.db, community.id);
         if (ownerCount <= 1) {
           canLeave = false;
+        }
+      }
+
+      if (membership) {
+        const teamSeats = await ctx.db.query.teamMembers.findMany({
+          where: eq(teamMembers.userId, appUser.id),
+          columns: { teamId: true },
+        });
+        const teamIds = teamSeats.map((row) => row.teamId);
+        if (teamIds.length > 0) {
+          const linkedSeat = await ctx.db.query.teams.findFirst({
+            where: and(
+              eq(teams.communityId, community.id),
+              inArray(teams.id, teamIds),
+            ),
+            columns: { id: true },
+          });
+          if (linkedSeat) {
+            linkedTeamBlocksLeave = true;
+            canLeave = false;
+          }
         }
       }
 
@@ -367,6 +389,7 @@ export const communitiesRouter = createTRPCRouter({
         canSoftArchive,
         canUnarchive,
         canLeave,
+        linkedTeamBlocksLeave,
         canManageTeamLinks,
         groups: clubGroups.map((group) => ({
           id: group.id,
@@ -599,6 +622,28 @@ export const communitiesRouter = createTRPCRouter({
           code: "BAD_REQUEST",
           message: "You are not a member of this Community",
         });
+      }
+
+      const teamSeats = await ctx.db.query.teamMembers.findMany({
+        where: eq(teamMembers.userId, appUser.id),
+        columns: { teamId: true },
+      });
+      const linkedTeamIds = teamSeats.map((row) => row.teamId);
+      if (linkedTeamIds.length > 0) {
+        const linkedSeat = await ctx.db.query.teams.findFirst({
+          where: and(
+            eq(teams.communityId, community.id),
+            inArray(teams.id, linkedTeamIds),
+          ),
+          columns: { id: true },
+        });
+        if (linkedSeat) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Leave Community is refused while you sit on a Team linked to this Community. Unlink or dissolve the Team first.",
+          });
+        }
       }
 
       const clubGroups = await ctx.db.query.groups.findMany({

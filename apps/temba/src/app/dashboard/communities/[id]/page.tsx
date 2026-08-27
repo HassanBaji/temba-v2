@@ -236,7 +236,9 @@ export default function CommunityHomePage({
   const viewerUserId = community.data?.membership?.userId;
   const isLastOwnerBlockedLeave =
     community.data?.membership?.role === "owner" &&
-    community.data.canLeave === false;
+    community.data.canLeave === false &&
+    !community.data.linkedTeamBlocksLeave;
+  const linkedTeamBlocksLeave = Boolean(community.data?.linkedTeamBlocksLeave);
   const archivePending = softArchive.isPending || unarchive.isPending;
 
   return (
@@ -334,9 +336,11 @@ export default function CommunityHomePage({
                 onClick={() => leaveCommunity.mutate({ communityId: id })}
                 disabled={leaveCommunity.isPending || !community.data?.canLeave}
                 title={
-                  isLastOwnerBlockedLeave
-                    ? "The last Owner cannot leave until another Owner is promoted"
-                    : undefined
+                  linkedTeamBlocksLeave
+                    ? "Unlink or dissolve the linked Team first"
+                    : isLastOwnerBlockedLeave
+                      ? "The last Owner cannot leave until another Owner is promoted"
+                      : undefined
                 }
               >
                 {leaveCommunity.isPending ? "Leaving…" : "Leave Community"}
@@ -620,6 +624,13 @@ export default function CommunityHomePage({
                 ? "Owners can promote or demote members. Multiple Owners are allowed. The last Owner cannot leave or self-demote."
                 : "Only Owners can change roles. Admins cannot promote, demote, or change Owner-ship."}
             </p>
+
+            {linkedTeamBlocksLeave ? (
+              <p className="mt-2 text-sm text-amber-200/90">
+                Leave is refused while you sit on a Team linked to this
+                Community. Unlink or dissolve the Team first.
+              </p>
+            ) : null}
 
             {isLastOwnerBlockedLeave ? (
               <p className="mt-2 text-sm text-amber-200/90">

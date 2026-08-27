@@ -442,6 +442,7 @@ export const teamsRouter = createTRPCRouter({
 
       const canRequestLink =
         isMember && !incomplete && !team.communityId && !pendingLinkRequest;
+      const canUnlink = isMember && Boolean(team.communityId);
 
       return {
         id: team.id,
@@ -479,6 +480,7 @@ export const teamsRouter = createTRPCRouter({
         canDissolve,
         canAccept,
         canRequestLink,
+        canUnlink,
         pendingLinkRequest: pendingLinkRequest
           ? {
               id: pendingLinkRequest.id,
@@ -1184,6 +1186,66 @@ export const teamsRouter = createTRPCRouter({
         teamId: created.teamId,
         communityId: created.communityId,
         status: created.status,
+      };
+    }),
+
+  unlink: protectedProcedure
+    .input(z.object({ teamId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const team = await requireTeam(ctx.db, input.teamId);
+
+      const membership = await ctx.db.query.teamMembers.findFirst({
+        where: and(
+          eq(teamMembers.teamId, team.id),
+          eq(teamMembers.userId, appUser.id),
+        ),
+      });
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only a Team member can unlink this Team",
+        });
+      }
+
+      if (!team.communityId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Team is not linked to a Community",
+        });
+      }
+
+      const previousCommunityId = team.communityId;
+
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .update(teamLinkRequests)
+          .set({
+            status: TeamLinkRequestStatusEnum.REJECTED,
+            decidedBy: appUser.id,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(teamLinkRequests.teamId, team.id),
+              eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
+            ),
+          );
+
+        await tx
+          .update(teams)
+          .set({
+            communityId: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(teams.id, team.id));
+      });
+
+      return {
+        ok: true as const,
+        teamId: team.id,
+        communityId: previousCommunityId,
       };
     }),
 

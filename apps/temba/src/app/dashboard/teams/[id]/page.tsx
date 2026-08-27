@@ -101,6 +101,21 @@ export default function TeamHomePage({
     },
   });
 
+  const unlink = api.teams.unlink.useMutation({
+    onSuccess: async (result) => {
+      toast.success("Team unlinked");
+      await utils.teams.byId.invalidate({ id });
+      await utils.teams.mine.invalidate();
+      if (result.communityId) {
+        await utils.communities.byId.invalidate({ id: result.communityId });
+        await utils.communities.mine.invalidate();
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   return (
     <DashboardShell title={team.data?.displayName ?? "Team"}>
       <div className="space-y-6">
@@ -176,6 +191,15 @@ export default function TeamHomePage({
                 disabled={acceptInvite.isPending}
               >
                 {acceptInvite.isPending ? "Accepting…" : "Accept invite"}
+              </Button>
+            ) : null}
+            {team.data?.canUnlink ? (
+              <Button
+                variant="outline"
+                onClick={() => unlink.mutate({ teamId: id })}
+                disabled={unlink.isPending}
+              >
+                {unlink.isPending ? "Unlinking…" : "Unlink Team"}
               </Button>
             ) : null}
             {team.data?.canDissolve ? (
