@@ -13,6 +13,10 @@ import {
   CommunityRoleEnum,
   groupMembers,
   groups,
+  teamLinkRequests,
+  TeamLinkRequestStatusEnum,
+  teamMembers,
+  teams,
   user,
   type GroupSportEnum,
 } from "@repo/db";
@@ -52,6 +56,17 @@ function asJoinStatus(status: string): JoinRequestStatus {
   return status as JoinRequestStatus;
 }
 
+function teamDisplayName(name: string | null, memberNames: string[]) {
+  const trimmed = name?.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  if (memberNames.length === 0) {
+    return "Untitled Team";
+  }
+  return memberNames.join(" & ");
+}
+
 async function requireCommunity(database: DbClient, id: string) {
   const community = await database.query.communities.findFirst({
     where: eq(communities.id, id),
@@ -83,13 +98,14 @@ async function requireStaff(
   database: DbClient,
   communityId: string,
   userId: string,
+  message = "Only Owner or Admin can manage this Community",
 ) {
   const membership = await requireMembership(database, communityId, userId);
 
   if (!membership || !isStaffRole(membership.role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only Owner or Admin can manage this Community",
+      message,
     });
   }
 
@@ -264,8 +280,11 @@ export const communitiesRouter = createTRPCRouter({
         !community.archivedAt && isStaffRole(membership?.role);
       const canUnarchive =
         Boolean(community.archivedAt) && isStaffRole(membership?.role);
+      const canManageTeamLinks =
+        !community.archivedAt && isStaffRole(membership?.role);
 
       let canLeave = Boolean(membership);
+      let linkedTeamBlocksLeave = false;
       if (membership?.role === "owner") {
         const ownerCount = await countOwners(ctx.db, community.id);
         if (ownerCount <= 1) {
@@ -273,10 +292,38 @@ export const communitiesRouter = createTRPCRouter({
         }
       }
 
+      if (membership) {
+        const teamSeats = await ctx.db.query.teamMembers.findMany({
+          where: eq(teamMembers.userId, appUser.id),
+          columns: { teamId: true },
+        });
+        const teamIds = teamSeats.map((row) => row.teamId);
+        if (teamIds.length > 0) {
+          const linkedSeat = await ctx.db.query.teams.findFirst({
+            where: and(
+              eq(teams.communityId, community.id),
+              inArray(teams.id, teamIds),
+            ),
+            columns: { id: true },
+          });
+          if (linkedSeat) {
+            linkedTeamBlocksLeave = true;
+            canLeave = false;
+          }
+        }
+      }
+
       const clubGroups = await ctx.db.query.groups.findMany({
         where: eq(groups.communityId, community.id),
         orderBy: (table, { asc }) => [asc(table.name)],
       });
+
+      const linkedTeamRows = membership
+        ? await ctx.db.query.teams.findMany({
+            where: eq(teams.communityId, community.id),
+            orderBy: (table, { asc }) => [asc(table.name)],
+          })
+        : [];
 
       const memberGroupIds = new Set<string>();
       if (clubGroups.length > 0) {
@@ -292,6 +339,28 @@ export const communitiesRouter = createTRPCRouter({
         for (const row of myGroupMemberships) {
           memberGroupIds.add(row.groupId);
         }
+      }
+
+      const linkedTeamIds = linkedTeamRows.map((team) => team.id);
+      const linkedTeamMemberRows =
+        linkedTeamIds.length === 0
+          ? []
+          : await ctx.db.query.teamMembers.findMany({
+              where: inArray(teamMembers.teamId, linkedTeamIds),
+              with: {
+                user: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            });
+      const linkedMembersByTeam = new Map<string, string[]>();
+      for (const row of linkedTeamMemberRows) {
+        const list = linkedMembersByTeam.get(row.teamId) ?? [];
+        list.push(row.user.name);
+        linkedMembersByTeam.set(row.teamId, list);
       }
 
       return {
@@ -321,6 +390,8 @@ export const communitiesRouter = createTRPCRouter({
         canSoftArchive,
         canUnarchive,
         canLeave,
+        linkedTeamBlocksLeave,
+        canManageTeamLinks,
         groups: clubGroups.map((group) => ({
           id: group.id,
           name: group.name,
@@ -328,6 +399,15 @@ export const communitiesRouter = createTRPCRouter({
           type: group.type,
           sport: group.sport as GroupSportEnum | null,
           isMember: memberGroupIds.has(group.id),
+        })),
+        teams: linkedTeamRows.map((team) => ({
+          id: team.id,
+          name: team.name,
+          displayName: teamDisplayName(
+            team.name,
+            linkedMembersByTeam.get(team.id) ?? [],
+          ),
+          sport: team.sport as GroupSportEnum,
         })),
       };
     }),
@@ -545,6 +625,28 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
+      const teamSeats = await ctx.db.query.teamMembers.findMany({
+        where: eq(teamMembers.userId, appUser.id),
+        columns: { teamId: true },
+      });
+      const linkedTeamIds = teamSeats.map((row) => row.teamId);
+      if (linkedTeamIds.length > 0) {
+        const linkedSeat = await ctx.db.query.teams.findFirst({
+          where: and(
+            eq(teams.communityId, community.id),
+            inArray(teams.id, linkedTeamIds),
+          ),
+          columns: { id: true },
+        });
+        if (linkedSeat) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Leave Community is refused while you sit on a Team linked to this Community. Unlink or dissolve the Team first.",
+          });
+        }
+      }
+
       const clubGroups = await ctx.db.query.groups.findMany({
         where: eq(groups.communityId, community.id),
         columns: { id: true },
@@ -687,6 +789,21 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
+      const linkedTeamWithSport = await ctx.db.query.teams.findFirst({
+        where: and(
+          eq(teams.communityId, community.id),
+          eq(teams.sport, input.sport),
+        ),
+      });
+
+      if (linkedTeamWithSport) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot remove a sport while a linked Team of that sport exists in this Community",
+        });
+      }
+
       await ctx.db
         .delete(communitySports)
         .where(eq(communitySports.id, existing.id));
@@ -695,6 +812,252 @@ export const communitiesRouter = createTRPCRouter({
         ok: true as const,
         communityId: community.id,
         sport: input.sport,
+      };
+    }),
+
+  listTeamLinkRequests: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+      await requireStaff(
+        ctx.db,
+        community.id,
+        appUser.id,
+        "Only Owner or Admin can list Team link requests",
+      );
+
+      const rows = await ctx.db.query.teamLinkRequests.findMany({
+        where: and(
+          eq(teamLinkRequests.communityId, community.id),
+          eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
+        ),
+        with: {
+          team: true,
+          requestedBy: {
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      });
+
+      const teamIds = rows.map((row) => row.team.id);
+      const memberRows =
+        teamIds.length === 0
+          ? []
+          : await ctx.db.query.teamMembers.findMany({
+              where: inArray(teamMembers.teamId, teamIds),
+              with: {
+                user: {
+                  columns: { id: true, name: true },
+                },
+              },
+            });
+      const membersByTeam = new Map<string, string[]>();
+      for (const row of memberRows) {
+        const list = membersByTeam.get(row.teamId) ?? [];
+        list.push(row.user.name);
+        membersByTeam.set(row.teamId, list);
+      }
+
+      return rows.map((row) => ({
+        id: row.id,
+        createdAt: row.createdAt,
+        team: {
+          id: row.team.id,
+          displayName: teamDisplayName(
+            row.team.name,
+            membersByTeam.get(row.team.id) ?? [],
+          ),
+          sport: row.team.sport as GroupSportEnum,
+        },
+        requestedBy: row.requestedBy,
+      }));
+    }),
+
+  approveTeamLink: protectedProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const request = await ctx.db.query.teamLinkRequests.findFirst({
+        where: eq(teamLinkRequests.id, input.requestId),
+        with: {
+          team: true,
+        },
+      });
+
+      if (request?.status !== "pending") {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team link request is not available",
+        });
+      }
+
+      await requireStaff(
+        ctx.db,
+        request.communityId,
+        appUser.id,
+        "Only Owner or Admin can approve Team link requests",
+      );
+
+      const community = await requireCommunity(ctx.db, request.communityId);
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot approve Team link requests for an archived Community",
+        });
+      }
+
+      if (request.team.communityId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Team is already linked to a Community",
+        });
+      }
+
+      const allowedSport = await ctx.db.query.communitySports.findFirst({
+        where: and(
+          eq(communitySports.communityId, request.communityId),
+          eq(communitySports.sport, request.team.sport),
+        ),
+      });
+
+      if (!allowedSport) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Sport is not on this Community's sports allow-list",
+        });
+      }
+
+      const memberRows = await ctx.db.query.teamMembers.findMany({
+        where: eq(teamMembers.teamId, request.team.id),
+      });
+
+      if (memberRows.length < 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Incomplete Teams cannot be linked",
+        });
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        for (const member of memberRows) {
+          const existing = await tx.query.communityMembers.findFirst({
+            where: and(
+              eq(communityMembers.communityId, request.communityId),
+              eq(communityMembers.userId, member.userId),
+            ),
+          });
+          if (!existing) {
+            await tx.insert(communityMembers).values({
+              communityId: request.communityId,
+              userId: member.userId,
+              role: CommunityRoleEnum.MEMBER,
+            });
+          }
+        }
+
+        await tx
+          .update(teams)
+          .set({
+            communityId: request.communityId,
+            updatedAt: new Date(),
+          })
+          .where(eq(teams.id, request.team.id));
+
+        const [updated] = await tx
+          .update(teamLinkRequests)
+          .set({
+            status: TeamLinkRequestStatusEnum.APPROVED,
+            decidedBy: appUser.id,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(teamLinkRequests.id, request.id),
+              eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
+            ),
+          )
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Team link request is no longer pending",
+          });
+        }
+      });
+
+      return {
+        ok: true as const,
+        teamId: request.team.id,
+        communityId: request.communityId,
+      };
+    }),
+
+  rejectTeamLink: protectedProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const request = await ctx.db.query.teamLinkRequests.findFirst({
+        where: eq(teamLinkRequests.id, input.requestId),
+      });
+
+      if (request?.status !== "pending") {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team link request is not available",
+        });
+      }
+
+      await requireStaff(
+        ctx.db,
+        request.communityId,
+        appUser.id,
+        "Only Owner or Admin can reject Team link requests",
+      );
+
+      const community = await requireCommunity(ctx.db, request.communityId);
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot reject Team link requests for an archived Community",
+        });
+      }
+
+      const [updated] = await ctx.db
+        .update(teamLinkRequests)
+        .set({
+          status: TeamLinkRequestStatusEnum.REJECTED,
+          decidedBy: appUser.id,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(teamLinkRequests.id, request.id),
+            eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
+          ),
+        )
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Team link request is no longer pending",
+        });
+      }
+
+      return {
+        ok: true as const,
+        teamId: request.teamId,
+        communityId: request.communityId,
       };
     }),
 
