@@ -7,17 +7,13 @@ import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,13 +24,11 @@ import {
 import { api } from "~/trpc/react";
 
 type CommunityType = "public" | "private";
-type Sport = "padel" | "football";
 
 export default function NewCommunityPage() {
   const router = useRouter();
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<CommunityType>("public");
-  const [sports, setSports] = React.useState<Sport[]>([]);
 
   const createCommunity = api.communities.create.useMutation({
     onSuccess: (community) => {
@@ -46,21 +40,12 @@ export default function NewCommunityPage() {
     },
   });
 
-  function toggleSport(sport: Sport, checked: boolean) {
-    setSports((current) => {
-      if (checked) {
-        return current.includes(sport) ? current : [...current, sport];
-      }
-      return current.filter((value) => value !== sport);
-    });
-  }
-
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     createCommunity.mutate({
       name,
       type,
-      sports,
+      sports: ["padel"],
     });
   }
 
@@ -72,8 +57,7 @@ export default function NewCommunityPage() {
             Create a Community
           </h2>
           <p className="text-muted-foreground text-sm">
-            Start a club with at least one sport. You become the Owner. Groups
-            are optional.
+            You become the Owner. Groups are optional.
           </p>
         </div>
 
@@ -114,35 +98,6 @@ export default function NewCommunityPage() {
                 Public clubs appear in the Directory. Private clubs do not.
               </FieldDescription>
             </Field>
-
-            <FieldSet>
-              <FieldLegend variant="label">Sports</FieldLegend>
-              <FieldDescription>
-                Choose padel, football, or both. At least one is required.
-              </FieldDescription>
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="sport-padel"
-                    checked={sports.includes("padel")}
-                    onCheckedChange={(checked) =>
-                      toggleSport("padel", checked === true)
-                    }
-                  />
-                  <Label htmlFor="sport-padel">Padel</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="sport-football"
-                    checked={sports.includes("football")}
-                    onCheckedChange={(checked) =>
-                      toggleSport("football", checked === true)
-                    }
-                  />
-                  <Label htmlFor="sport-football">Football</Label>
-                </div>
-              </div>
-            </FieldSet>
           </FieldGroup>
 
           <div className="flex items-center gap-3">
