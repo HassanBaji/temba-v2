@@ -32,6 +32,10 @@ import {
   normalizeInviteEmail,
 } from "~/server/invites/tokens";
 import { sendGroupEmailInviteMail } from "~/server/mail/send-group-email-invite";
+import {
+  sortStandingMembers,
+  standingPosition,
+} from "~/server/standing/compare-standing";
 
 const sportSchema = z.enum(["padel", "football"]);
 
@@ -565,14 +569,43 @@ export const groupsRouter = createTRPCRouter({
         !membership &&
         !community?.archivedAt;
 
-      let memberUserIds: string[] = [];
-      if (canInviteClubPrivate) {
-        const members = await ctx.db.query.groupMembers.findMany({
-          where: eq(groupMembers.groupId, group.id),
-          columns: { userId: true },
-        });
-        memberUserIds = members.map((row) => row.userId);
-      }
+      const memberRows = await ctx.db.query.groupMembers.findMany({
+        where: eq(groupMembers.groupId, group.id),
+        with: {
+          user: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      const memberUserIds = memberRows.map((row) => row.userId);
+
+      const sortedStanding = sortStandingMembers(
+        memberRows.map((row) => ({
+          userId: row.userId,
+          totalSetsWon: row.totalSetsWon,
+          totalPointsWon: row.totalPointsWon,
+          totalGamesPlayed: row.totalGamesPlayed,
+          name: row.user.name,
+        })),
+      );
+
+      const leaderboard = sortedStanding.map((entry, index) => ({
+        userId: entry.userId,
+        name: entry.name,
+        totalSetsWon: entry.totalSetsWon,
+        totalPointsWon: entry.totalPointsWon,
+        totalGamesPlayed: entry.totalGamesPlayed,
+        position: index + 1,
+        isViewer: entry.userId === appUser.id,
+      }));
+
+      const viewerStandingPosition = membership
+        ? standingPosition(sortedStanding, appUser.id)
+        : null;
 
       return {
         id: group.id,
@@ -582,6 +615,7 @@ export const groupsRouter = createTRPCRouter({
         sport: group.sport as GroupSportEnum | null,
         communityId: group.communityId,
         isLoose: !group.communityId,
+        totalGamesPlayed: group.totalGamesPlayed,
         community: community
           ? {
               id: community.id,
@@ -592,7 +626,19 @@ export const groupsRouter = createTRPCRouter({
         isCommunityArchived: Boolean(community?.archivedAt),
         createdBy: group.createdBy,
         createdAt: group.createdAt,
-        membership: membership ? { id: membership.id } : null,
+        membership: membership
+          ? {
+              id: membership.id,
+              totalGamesPlayed: membership.totalGamesPlayed,
+              totalSetsWon: membership.totalSetsWon,
+              totalPointsWon: membership.totalPointsWon,
+              standingPosition: viewerStandingPosition,
+            }
+          : null,
+        standing: {
+          memberCount: memberRows.length,
+          leaderboard,
+        },
         communityMembership: communityMembership
           ? { role: communityMembership.role }
           : null,

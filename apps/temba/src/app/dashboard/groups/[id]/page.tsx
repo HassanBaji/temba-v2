@@ -402,6 +402,129 @@ export default function GroupHomePage({
           </p>
         ) : null}
 
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Group stats
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Stored counters for this Group.
+            </p>
+            <dl className="border-border bg-card rounded-xl border">
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Games played</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.totalGamesPlayed}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        ) : null}
+
+        {group.data?.membership ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Your standing
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Your membership counters and position on this Group&apos;s
+              leaderboard (by sets won).
+            </p>
+            <dl className="border-border bg-card grid grid-cols-1 divide-y rounded-xl border md:grid-cols-4 md:divide-x md:divide-y-0">
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Position</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.standingPosition != null
+                    ? `#${group.data.membership.standingPosition}`
+                    : "—"}
+                  <span className="text-muted-foreground ml-2 text-sm font-normal">
+                    of {group.data.standing.memberCount}
+                  </span>
+                </dd>
+              </div>
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Sets won</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.totalSetsWon}
+                </dd>
+              </div>
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Points won</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.totalPointsWon}
+                </dd>
+              </div>
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Games played</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.totalGamesPlayed}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        ) : group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Your standing
+            </h3>
+            <div className="border-border bg-card rounded-xl border px-4 py-6">
+              <p className="text-muted-foreground text-sm">
+                You are not a member of this Group, so you do not have a
+                standing position here. Join to appear on the leaderboard.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Standing leaderboard
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Members ordered by sets won, then points won, then Games played,
+              then name.
+            </p>
+
+            {group.data.standing.leaderboard.length === 0 ? (
+              <div className="border-border bg-card rounded-xl border px-4 py-6">
+                <p className="text-muted-foreground text-sm">
+                  No members yet. When people join this Group, their standing
+                  will show here with sets, points, and Games at zero until they
+                  play.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                {group.data.standing.leaderboard.map((entry) => (
+                  <li
+                    key={entry.userId}
+                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-foreground font-medium">
+                        <span className="text-muted-foreground mr-2 tabular-nums">
+                          #{entry.position}
+                        </span>
+                        {entry.name}
+                        {entry.isViewer ? (
+                          <span className="text-muted-foreground ml-2 text-sm font-normal">
+                            (you)
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {entry.totalSetsWon} sets · {entry.totalPointsWon}{" "}
+                        points · {entry.totalGamesPlayed} Games
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
         {group.data?.canInviteClubPrivate ? (
           <section className="border-border bg-card space-y-4 rounded-xl border p-6">
             <div>
