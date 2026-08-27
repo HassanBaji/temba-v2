@@ -115,7 +115,7 @@ export default function NewLooseGroupPage() {
               <FieldDescription>
                 {visibility === "private"
                   ? "Only you can send Email invites and manage the Invite link."
-                  : "Share the Group URL. Not listed in the Directory."}
+                  : "Share the Group URL. Anyone with the link can join."}
               </FieldDescription>
             </Field>
           </FieldGroup>

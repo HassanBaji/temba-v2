@@ -11,7 +11,6 @@ import {
   communitySports,
   CommunityJoinRequestStatusEnum,
   CommunityRoleEnum,
-  CommunityTypeEnum,
   groupMembers,
   groups,
   user,
@@ -219,56 +218,6 @@ export const communitiesRouter = createTRPCRouter({
 
       return community;
     }),
-
-  directory: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
-
-    const rows = await ctx.db.query.communities.findMany({
-      where: and(
-        eq(communities.type, CommunityTypeEnum.PUBLIC),
-        isNull(communities.archivedAt),
-      ),
-      with: {
-        sports: true,
-      },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    });
-
-    const memberships = await ctx.db.query.communityMembers.findMany({
-      where: eq(communityMembers.userId, appUser.id),
-    });
-    const membershipByCommunity = new Map(
-      memberships.map((row) => [row.communityId, row]),
-    );
-
-    const joinRequests = await ctx.db.query.communityJoinRequests.findMany({
-      where: eq(communityJoinRequests.userId, appUser.id),
-    });
-    const joinRequestByCommunity = new Map(
-      joinRequests.map((row) => [row.communityId, row]),
-    );
-
-    return rows.map((row) => {
-      const membership = membershipByCommunity.get(row.id);
-      const joinRequest = joinRequestByCommunity.get(row.id);
-
-      return {
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        type: row.type,
-        sports: row.sports.map((sportRow) => sportRow.sport as GroupSportEnum),
-        createdAt: row.createdAt,
-        membership: membership ? { role: asRole(membership.role) } : null,
-        joinRequest: joinRequest
-          ? {
-              id: joinRequest.id,
-              status: asJoinStatus(joinRequest.status),
-            }
-          : null,
-      };
-    });
-  }),
 
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
@@ -553,7 +502,7 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      // Unarchive restores Directory listing and join rules. The same Invite
+      // Unarchive restores join rules. The same Invite
       // link token remains active unless staff rotated or revoked it.
       const [updated] = await ctx.db
         .update(communities)

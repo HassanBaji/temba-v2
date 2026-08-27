@@ -29,7 +29,6 @@ export default function CommunityHomePage({
     onSuccess: async () => {
       toast.success("Join request sent");
       await utils.communities.byId.invalidate({ id });
-      await utils.communities.directory.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -143,7 +142,6 @@ export default function CommunityHomePage({
       toast.success("Left Community and its Club Groups");
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
-      await utils.communities.directory.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -155,7 +153,6 @@ export default function CommunityHomePage({
       toast.success("Community Soft-archived");
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
-      await utils.communities.directory.invalidate();
       await utils.games.listPublicPickup.invalidate();
     },
     onError: (error) => {
@@ -168,7 +165,6 @@ export default function CommunityHomePage({
       toast.success("Community unarchived");
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
-      await utils.communities.directory.invalidate();
       await utils.games.listPublicPickup.invalidate();
     },
     onError: (error) => {
@@ -313,9 +309,6 @@ export default function CommunityHomePage({
             <Button variant="outline" asChild>
               <Link href="/dashboard/communities">My Communities</Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/directory">Directory</Link>
-            </Button>
           </div>
         </div>
 
@@ -337,9 +330,9 @@ export default function CommunityHomePage({
               Soft-archived
             </h3>
             <p className="text-muted-foreground mt-2 text-sm">
-              Hidden from the Directory. Club Groups stay attached. You can
-              still open Groups and see history and Games. New joins and invites
-              are paused until an Owner or Admin unarchives.
+              Club Groups stay attached. You can still open Groups and see
+              history and Games. New joins, requests, Email invites, and Invite
+              links are paused until an Owner or Admin unarchives.
             </p>
           </section>
         ) : null}
@@ -350,8 +343,7 @@ export default function CommunityHomePage({
               <h3 className="text-foreground text-lg font-medium">Groups</h3>
               <p className="text-muted-foreground mt-2 text-sm">
                 Club Groups stay inside this Community. Public Groups are open
-                to Community members with no extra request. Groups are not
-                listed in the Directory.
+                to Community members with no extra request.
               </p>
             </div>
 

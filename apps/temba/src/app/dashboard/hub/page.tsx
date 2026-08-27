@@ -29,9 +29,6 @@ export default function GroupsAndCommunitiesHubPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild>
-              <Link href="/dashboard/directory">Find clubs</Link>
-            </Button>
-            <Button variant="outline" asChild>
               <Link href="/dashboard/groups/new">Create Loose Group</Link>
             </Button>
             <Button asChild>

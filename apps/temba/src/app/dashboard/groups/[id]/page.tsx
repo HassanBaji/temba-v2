@@ -308,14 +308,12 @@ export default function GroupHomePage({
                 ) : null}
                 {group.data.isLoose && group.data.type === "public" ? (
                   <p className="text-muted-foreground text-sm">
-                    Open-with-link: share the Group URL. Not listed in the
-                    Directory. No Invite link.
+                    Open-with-link: share the Group URL. No Invite link.
                   </p>
                 ) : null}
                 {group.data.isLoose && group.data.type === "private" ? (
                   <p className="text-muted-foreground text-sm">
                     Private: Email invite and Invite link from the creator only.
-                    Not listed in the Directory.
                   </p>
                 ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (
