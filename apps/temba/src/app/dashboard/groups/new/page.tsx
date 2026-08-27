@@ -125,7 +125,7 @@ export default function NewLooseGroupPage() {
               {isPending ? "Creating…" : "Create Group"}
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/dashboard/communities">Cancel</Link>
+              <Link href="/dashboard/groups">Cancel</Link>
             </Button>
           </div>
         </form>

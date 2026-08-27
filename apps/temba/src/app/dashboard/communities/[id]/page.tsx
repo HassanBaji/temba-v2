@@ -307,7 +307,7 @@ export default function CommunityHomePage({
               </Button>
             ) : null}
             <Button variant="outline" asChild>
-              <Link href="/dashboard/communities">My Communities</Link>
+              <Link href="/dashboard/communities">Communities</Link>
             </Button>
           </div>
         </div>

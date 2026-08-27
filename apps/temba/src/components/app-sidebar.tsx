@@ -3,7 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import { IconHome, IconUsersGroup } from "@tabler/icons-react";
+import {
+  IconBuildingCommunity,
+  IconHome,
+  IconUsersGroup,
+} from "@tabler/icons-react";
 
 import { NavMain } from "~/components/nav-main";
 import {
@@ -23,9 +27,14 @@ const navMain = [
     icon: IconHome,
   },
   {
-    title: "Groups & Communities",
-    url: "/dashboard/hub",
+    title: "Groups",
+    url: "/dashboard/groups",
     icon: IconUsersGroup,
+  },
+  {
+    title: "Communities",
+    url: "/dashboard/communities",
+    icon: IconBuildingCommunity,
   },
 ];
 

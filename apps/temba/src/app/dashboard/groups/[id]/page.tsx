@@ -112,7 +112,7 @@ export default function GroupHomePage({
         router.push(`/dashboard/communities/${result.communityId}`);
         return;
       }
-      router.push("/dashboard/groups/new");
+      router.push("/dashboard/groups");
     },
     onError: (error) => {
       toast.error(error.message);
@@ -371,15 +371,23 @@ export default function GroupHomePage({
               </Button>
             ) : null}
             {group.data?.communityId ? (
+              <>
+                <Button variant="outline" asChild>
+                  <Link
+                    href={`/dashboard/communities/${group.data.communityId}`}
+                  >
+                    Community
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/dashboard/communities">Communities</Link>
+                </Button>
+              </>
+            ) : group.data ? (
               <Button variant="outline" asChild>
-                <Link href={`/dashboard/communities/${group.data.communityId}`}>
-                  Community
-                </Link>
+                <Link href="/dashboard/groups">Groups</Link>
               </Button>
             ) : null}
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/communities">My Communities</Link>
-            </Button>
           </div>
         </div>
 

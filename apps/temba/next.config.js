@@ -10,6 +10,15 @@ const config = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/hub",
+        destination: "/dashboard/groups",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default config;
