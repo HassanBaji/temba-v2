@@ -209,4 +209,10 @@ The Community spec (`.scratch/community/spec.md`) remains the contract for Commu
 
 Locked decisions (not a further grill): UI-only lock; create Community / Club Group / Loose Group App forms always send padel; no sport field and no one-option picker; Community home has no add/remove Community sports UI; tRPC unchanged; enums keep `football`; Community sports table kept; badges kept; plural sports copy kept; Game stays padel-shaped and is not built here; football rows stay readable; production inventory is not a gate.
 
-Next step: vertical tickets. Do not implement until tickets exist and an implementer is asked to run them.
+Tickets (all unblocked, `ready-for-agent`):
+
+- [Create Community is padel-only](https://linear.app/temba-app/issue/TEM-11/create-community-is-padel-only) (TEM-11)
+- [Create Loose Group is padel-only](https://linear.app/temba-app/issue/TEM-12/create-loose-group-is-padel-only) (TEM-12)
+- [Community home is padel-only](https://linear.app/temba-app/issue/TEM-13/community-home-is-padel-only) (TEM-13)
+
+Do not implement until an implementer is asked to run them. Work the frontier: any of the three can start immediately.
