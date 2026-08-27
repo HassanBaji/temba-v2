@@ -61,6 +61,7 @@ export default function GroupHomePage({
     onSuccess: async () => {
       toast.success("Joined Group");
       await utils.groups.byId.invalidate({ id });
+      await utils.groups.mine.invalidate();
       if (group.data?.communityId) {
         await utils.communities.byId.invalidate({
           id: group.data.communityId,
@@ -76,6 +77,7 @@ export default function GroupHomePage({
     onSuccess: async () => {
       toast.success("Joined Group");
       await utils.groups.byId.invalidate({ id });
+      await utils.groups.mine.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -90,6 +92,7 @@ export default function GroupHomePage({
           : "Left Group",
       );
       await utils.groups.byId.invalidate({ id });
+      await utils.groups.mine.invalidate();
       if (result.communityId) {
         await utils.communities.byId.invalidate({ id: result.communityId });
         await utils.communities.mine.invalidate();
@@ -103,6 +106,7 @@ export default function GroupHomePage({
   const deleteGroup = api.groups.delete.useMutation({
     onSuccess: async (result) => {
       toast.success("Group deleted");
+      await utils.groups.mine.invalidate();
       if (result.communityId) {
         await utils.communities.byId.invalidate({ id: result.communityId });
         router.push(`/dashboard/communities/${result.communityId}`);
@@ -142,6 +146,7 @@ export default function GroupHomePage({
       onSuccess: async () => {
         toast.success("Joined Club Group Private");
         await utils.groups.byId.invalidate({ id });
+        await utils.groups.mine.invalidate();
         if (group.data?.communityId) {
           await utils.communities.byId.invalidate({
             id: group.data.communityId,
@@ -260,7 +265,7 @@ export default function GroupHomePage({
                   <span className="capitalize">{group.data.type}</span>
                   {group.data.sport ? <span>· {group.data.sport}</span> : null}
                   {group.data.isLoose ? (
-                    <span>· Loose Group</span>
+                    <span>· Group outside a Community</span>
                   ) : (
                     <span>· Club Group</span>
                   )}
@@ -283,7 +288,7 @@ export default function GroupHomePage({
                       {group.data.type}
                     </Badge>
                     {group.data.isLoose ? (
-                      <Badge variant="outline">Loose</Badge>
+                      <Badge variant="outline">Outside a Community</Badge>
                     ) : null}
                     {group.data.isCommunityArchived ? (
                       <Badge variant="outline">Archived</Badge>
@@ -309,8 +314,8 @@ export default function GroupHomePage({
                 ) : null}
                 {group.data.isLoose && group.data.type === "private" ? (
                   <p className="text-muted-foreground text-sm">
-                    Loose Group Private: Email invite and Invite link from the
-                    creator only. Not listed in the Directory.
+                    Private: Email invite and Invite link from the creator only.
+                    Not listed in the Directory.
                   </p>
                 ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (

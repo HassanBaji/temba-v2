@@ -32,7 +32,7 @@ export default function NewLooseGroupPage() {
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
     onSuccess: (group) => {
-      toast.success("Loose Group created");
+      toast.success("Group created");
       router.push(`/dashboard/groups/${group.id}`);
     },
     onError: (error) => {
@@ -42,7 +42,7 @@ export default function NewLooseGroupPage() {
 
   const createLoosePrivate = api.groups.createLoosePrivate.useMutation({
     onSuccess: (group) => {
-      toast.success("Loose Group Private created");
+      toast.success("Group Private created");
       router.push(`/dashboard/groups/${group.id}`);
     },
     onError: (error) => {
@@ -62,11 +62,11 @@ export default function NewLooseGroupPage() {
   }
 
   return (
-    <DashboardShell title="Create Loose Group">
+    <DashboardShell title="Create Group">
       <div className="mx-auto w-full max-w-lg space-y-6">
         <div className="space-y-1">
           <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Loose Group
+            Create a Group
           </h2>
           <p className="text-muted-foreground text-sm">
             A squad outside any Community. Public joins via the Group URL;
