@@ -14,6 +14,7 @@ export * from "./group-members";
 export * from "./teams";
 export * from "./team-members";
 export * from "./team-member-invites";
+export * from "./team-email-invites";
 export * from "./group-member-invites";
 export * from "./group-email-invites";
 export * from "./group-invite-links";

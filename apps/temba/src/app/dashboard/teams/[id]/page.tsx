@@ -32,9 +32,30 @@ export default function TeamHomePage({
     },
   });
 
+  const sendEmailInvite = api.teams.sendEmailInvite.useMutation({
+    onSuccess: async (result) => {
+      toast.success(`Email invite ready for ${result.email}`);
+      await utils.teams.byId.invalidate({ id });
+      await navigator.clipboard.writeText(result.inviteUrl);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const revokeInvite = api.teams.revokeInAppInvite.useMutation({
     onSuccess: async () => {
       toast.success("Invite revoked");
+      await utils.teams.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const revokeEmailInvite = api.teams.revokeEmailInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Email invite revoked");
       await utils.teams.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -233,14 +254,14 @@ export default function TeamHomePage({
         ) : null}
 
         {team.data?.canInvite ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+          <section className="border-border bg-card space-y-6 rounded-xl border p-6">
             <div>
               <h3 className="text-foreground text-lg font-medium">
                 Partner invite
               </h3>
               <p className="text-muted-foreground mt-2 text-sm">
-                Invite an existing User by email to the open seat. At most one
-                unused invite. Revoke it before sending another.
+                One unused open-seat invite at a time (in-app or Email). Revoke
+                it before sending another. There is no Team Invite link.
               </p>
             </div>
 
@@ -252,7 +273,7 @@ export default function TeamHomePage({
                       {team.data.unusedInvite.user.name}
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      {team.data.unusedInvite.user.email}
+                      In-app · {team.data.unusedInvite.user.email}
                     </p>
                   </div>
                   <Button
@@ -269,36 +290,124 @@ export default function TeamHomePage({
                   </Button>
                 </div>
               </div>
-            ) : (
-              <form
-                className="flex flex-col gap-3 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const formData = new FormData(event.currentTarget);
-                  const emailValue = formData.get("email");
-                  if (typeof emailValue !== "string") {
-                    return;
-                  }
-                  const email = emailValue.trim();
-                  if (!email) {
-                    return;
-                  }
-                  inviteInApp.mutate({ teamId: id, email });
-                  event.currentTarget.reset();
-                }}
-              >
-                <Input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="partner@email.com"
-                  className="flex-1"
-                />
-                <Button type="submit" disabled={inviteInApp.isPending}>
-                  {inviteInApp.isPending ? "Inviting…" : "Invite"}
-                </Button>
-              </form>
-            )}
+            ) : null}
+
+            {team.data.unusedEmailInvite ? (
+              <div className="divide-border border-border divide-y rounded-lg border">
+                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-foreground font-medium">
+                      {team.data.unusedEmailInvite.email}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      Email invite
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(
+                          team.data.unusedEmailInvite!.inviteUrl,
+                        );
+                        toast.success("Invite URL copied");
+                      }}
+                    >
+                      Copy URL
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        revokeEmailInvite.mutate({
+                          inviteId: team.data.unusedEmailInvite!.id,
+                        })
+                      }
+                      disabled={revokeEmailInvite.isPending}
+                    >
+                      {revokeEmailInvite.isPending ? "Revoking…" : "Revoke"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {!team.data.unusedInvite && !team.data.unusedEmailInvite ? (
+              <div className="space-y-6">
+                <div className="border-border space-y-3 rounded-lg border p-4">
+                  <h4 className="text-foreground font-medium">
+                    In-app invite (existing User)
+                  </h4>
+                  <form
+                    className="flex flex-col gap-3 sm:flex-row"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const formData = new FormData(event.currentTarget);
+                      const emailValue = formData.get("email");
+                      if (typeof emailValue !== "string") {
+                        return;
+                      }
+                      const email = emailValue.trim();
+                      if (!email) {
+                        return;
+                      }
+                      inviteInApp.mutate({ teamId: id, email });
+                      event.currentTarget.reset();
+                    }}
+                  >
+                    <Input
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="existing-user@email.com"
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={inviteInApp.isPending}>
+                      {inviteInApp.isPending ? "Inviting…" : "Invite User"}
+                    </Button>
+                  </form>
+                </div>
+
+                <div className="border-border space-y-3 rounded-lg border p-4">
+                  <h4 className="text-foreground font-medium">Email invite</h4>
+                  <p className="text-muted-foreground text-sm">
+                    Any address is OK. They join after Clerk sign-in if their
+                    email matches. This does not add Community membership.
+                  </p>
+                  <form
+                    className="flex flex-col gap-3 sm:flex-row"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const formData = new FormData(event.currentTarget);
+                      const emailValue = formData.get("email");
+                      if (typeof emailValue !== "string") {
+                        return;
+                      }
+                      const email = emailValue.trim();
+                      if (!email) {
+                        return;
+                      }
+                      sendEmailInvite.mutate({ teamId: id, email });
+                      event.currentTarget.reset();
+                    }}
+                  >
+                    <Input
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="invitee@email.com"
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={sendEmailInvite.isPending}>
+                      {sendEmailInvite.isPending
+                        ? "Sending…"
+                        : "Send Email invite"}
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            ) : null}
           </section>
         ) : null}
       </div>

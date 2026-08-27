@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   communities,
   communityMembers,
+  teamEmailInvites,
   teamMemberInvites,
   teamMembers,
   teams,
@@ -12,10 +13,20 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
-import { normalizeInviteEmail } from "~/server/invites/tokens";
+import {
+  createOpaqueToken,
+  getAppOrigin,
+  normalizeInviteEmail,
+  teamEmailInviteUrl,
+} from "~/server/invites/tokens";
+import { sendTeamEmailInviteMail } from "~/server/mail/send-team-email-invite";
 
 const sportSchema = z.enum(["padel", "football"]);
 
@@ -83,6 +94,25 @@ async function unusedInviteForTeam(database: DbClient, teamId: string) {
       },
     },
   });
+}
+
+async function unusedEmailInviteForTeam(database: DbClient, teamId: string) {
+  return database.query.teamEmailInvites.findFirst({
+    where: and(
+      eq(teamEmailInvites.teamId, teamId),
+      isNull(teamEmailInvites.acceptedAt),
+      isNull(teamEmailInvites.revokedAt),
+    ),
+  });
+}
+
+async function hasUnusedOpenSeatInvite(database: DbClient, teamId: string) {
+  const inApp = await unusedInviteForTeam(database, teamId);
+  if (inApp) {
+    return true;
+  }
+  const email = await unusedEmailInviteForTeam(database, teamId);
+  return Boolean(email);
 }
 
 async function unusedInviteForUserOnTeam(
@@ -378,13 +408,14 @@ export const teamsRouter = createTRPCRouter({
       const memberRows = await listTeamMembers(ctx.db, team.id);
       const memberNames = memberRows.map((row) => row.user.name);
       const incomplete = memberRows.length < 2;
-      const unusedInvite = isMember
-        ? await unusedInviteForTeam(ctx.db, team.id)
-        : pendingInvite
-          ? await unusedInviteForTeam(ctx.db, team.id)
-          : null;
-
       const canInvite = isMember && incomplete && team.createdBy === appUser.id;
+      const unusedInvite = canInvite
+        ? await unusedInviteForTeam(ctx.db, team.id)
+        : null;
+      const unusedEmailInvite = canInvite
+        ? await unusedEmailInviteForTeam(ctx.db, team.id)
+        : null;
+
       const canDissolve =
         isMember && (team.createdBy === appUser.id || !incomplete);
       const canAccept = Boolean(pendingInvite) && !isMember;
@@ -433,6 +464,18 @@ export const teamsRouter = createTRPCRouter({
                 id: unusedInvite.id,
                 createdAt: unusedInvite.createdAt,
                 user: unusedInvite.user,
+              }
+            : null,
+        unusedEmailInvite:
+          canInvite && unusedEmailInvite
+            ? {
+                id: unusedEmailInvite.id,
+                email: unusedEmailInvite.email,
+                inviteUrl: teamEmailInviteUrl(
+                  getAppOrigin(ctx.headers),
+                  unusedEmailInvite.token,
+                ),
+                createdAt: unusedEmailInvite.createdAt,
               }
             : null,
       };
@@ -492,8 +535,7 @@ export const teamsRouter = createTRPCRouter({
         });
       }
 
-      const existingUnused = await unusedInviteForTeam(ctx.db, team.id);
-      if (existingUnused) {
+      if (await hasUnusedOpenSeatInvite(ctx.db, team.id)) {
         throw new TRPCError({
           code: "CONFLICT",
           message: "Revoke the unused invite before sending a new one",
@@ -736,6 +778,280 @@ export const teamsRouter = createTRPCRouter({
       };
     }),
 
+  sendEmailInvite: protectedProcedure
+    .input(
+      z.object({
+        teamId: z.string().uuid(),
+        email: z.string().trim().email().max(255),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const team = await requireTeam(ctx.db, input.teamId);
+
+      if (team.createdBy !== appUser.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Only the creator can invite a partner while the Team is incomplete",
+        });
+      }
+
+      const memberRows = await listTeamMembers(ctx.db, team.id);
+      if (memberRows.length >= 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Team is full",
+        });
+      }
+
+      const email = normalizeInviteEmail(input.email);
+      if (normalizeInviteEmail(appUser.email) === email) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You cannot invite yourself",
+        });
+      }
+
+      if (await hasUnusedOpenSeatInvite(ctx.db, team.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Revoke the unused invite before sending a new one",
+        });
+      }
+
+      const attachedUser = await ctx.db.query.user.findFirst({
+        where: eq(user.email, email),
+      });
+
+      if (attachedUser) {
+        const alreadyMember = memberRows.some(
+          (row) => row.userId === attachedUser.id,
+        );
+        if (alreadyMember) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "User is already a member of this Team",
+          });
+        }
+      }
+
+      const token = createOpaqueToken();
+      const [created] = await ctx.db
+        .insert(teamEmailInvites)
+        .values({
+          teamId: team.id,
+          email,
+          userId: attachedUser?.id,
+          invitedBy: appUser.id,
+          token,
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Email invite",
+        });
+      }
+
+      const inviteUrl = teamEmailInviteUrl(
+        getAppOrigin(ctx.headers),
+        created.token,
+      );
+
+      await sendTeamEmailInviteMail({
+        to: email,
+        teamName: team.name ?? "Team",
+        inviteUrl,
+      });
+
+      return {
+        id: created.id,
+        email: created.email,
+        inviteUrl,
+        attachedUserId: created.userId,
+      };
+    }),
+
+  revokeEmailInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const invite = await ctx.db.query.teamEmailInvites.findFirst({
+        where: eq(teamEmailInvites.id, input.inviteId),
+      });
+
+      if (!invite) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Email invite not found",
+        });
+      }
+
+      const team = await requireTeam(ctx.db, invite.teamId);
+
+      if (team.createdBy !== appUser.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the creator can revoke Team invites",
+        });
+      }
+
+      if (invite.acceptedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Accepted Email invites cannot be revoked",
+        });
+      }
+
+      if (invite.revokedAt) {
+        return { ok: true as const };
+      }
+
+      await ctx.db
+        .update(teamEmailInvites)
+        .set({
+          revokedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(teamEmailInvites.id, invite.id));
+
+      return { ok: true as const };
+    }),
+
+  previewEmailInvite: publicProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .query(async ({ ctx, input }) => {
+      const invite = await ctx.db.query.teamEmailInvites.findFirst({
+        where: eq(teamEmailInvites.token, input.token),
+        with: {
+          team: true,
+        },
+      });
+
+      if (!invite || invite.acceptedAt || invite.revokedAt) {
+        return { status: "invalid" as const };
+      }
+
+      const memberRows = await listTeamMembers(ctx.db, invite.team.id);
+      if (memberRows.length >= 2) {
+        return { status: "unavailable" as const };
+      }
+
+      return {
+        status: "ready" as const,
+        teamName: teamDisplayName(
+          invite.team.name,
+          memberRows.map((row) => row.user.name),
+        ),
+        invitedEmail: invite.email,
+      };
+    }),
+
+  acceptEmailInvite: protectedProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const invite = await ctx.db.query.teamEmailInvites.findFirst({
+        where: eq(teamEmailInvites.token, input.token),
+      });
+
+      if (!invite || invite.acceptedAt || invite.revokedAt) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Email invite is not available",
+        });
+      }
+
+      const team = await requireTeam(ctx.db, invite.teamId);
+
+      if (normalizeInviteEmail(appUser.email) !== invite.email) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Signed-in email does not match this Email invite. The invite was not consumed.",
+        });
+      }
+
+      const memberRows = await listTeamMembers(ctx.db, team.id);
+      const existing = memberRows.find((row) => row.userId === appUser.id);
+
+      if (existing) {
+        await ctx.db
+          .update(teamEmailInvites)
+          .set({
+            acceptedAt: new Date(),
+            userId: appUser.id,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(teamEmailInvites.id, invite.id),
+              isNull(teamEmailInvites.acceptedAt),
+              isNull(teamEmailInvites.revokedAt),
+            ),
+          );
+
+        return {
+          teamId: team.id,
+          alreadyMember: true as const,
+        };
+      }
+
+      if (memberRows.length >= 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Team is full",
+        });
+      }
+
+      const creatorId = memberRows[0]?.userId ?? team.createdBy;
+      if (await unorderedPairIsReserved(ctx.db, creatorId, appUser.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "This pair already has a Team or a pending invite",
+        });
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(teamEmailInvites)
+          .set({
+            acceptedAt: new Date(),
+            userId: appUser.id,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(teamEmailInvites.id, invite.id),
+              isNull(teamEmailInvites.acceptedAt),
+              isNull(teamEmailInvites.revokedAt),
+            ),
+          )
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Email invite is no longer available",
+          });
+        }
+
+        await tx.insert(teamMembers).values({
+          teamId: team.id,
+          userId: appUser.id,
+        });
+      });
+
+      return {
+        teamId: team.id,
+        alreadyMember: false as const,
+      };
+    }),
+
   dissolve: protectedProcedure
     .input(z.object({ teamId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -778,6 +1094,20 @@ export const teamsRouter = createTRPCRouter({
               eq(teamMemberInvites.teamId, team.id),
               isNull(teamMemberInvites.acceptedAt),
               isNull(teamMemberInvites.revokedAt),
+            ),
+          );
+
+        await tx
+          .update(teamEmailInvites)
+          .set({
+            revokedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(teamEmailInvites.teamId, team.id),
+              isNull(teamEmailInvites.acceptedAt),
+              isNull(teamEmailInvites.revokedAt),
             ),
           );
 

@@ -71,6 +71,13 @@
       "when": 1787830689604,
       "tag": "0009_dear_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787830994104,
+      "tag": "0010_abnormal_elektra",
+      "breakpoints": true
     }
   ]
 }
