@@ -466,6 +466,28 @@ export const groupsRouter = createTRPCRouter({
       });
     }),
 
+  /** Loose Groups the caller belongs to (Club Groups live under Communities). */
+  mineLoose: protectedProcedure.query(async ({ ctx }) => {
+    const appUser = await resolveAppUser();
+
+    const memberships = await ctx.db.query.groupMembers.findMany({
+      where: eq(groupMembers.userId, appUser.id),
+      with: {
+        group: true,
+      },
+    });
+
+    return memberships
+      .filter((membership) => membership.group.communityId === null)
+      .map((membership) => ({
+        id: membership.group.id,
+        name: membership.group.name,
+        description: membership.group.description,
+        type: membership.group.type,
+        sport: membership.group.sport as GroupSportEnum | null,
+      }));
+  }),
+
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {

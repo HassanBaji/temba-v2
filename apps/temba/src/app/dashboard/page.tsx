@@ -17,12 +17,11 @@ export default async function Page() {
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">Home</h2>
           <p className="text-muted-foreground text-sm">
-            Your Temba dashboard. Browse the Directory or open Groups &amp;
-            Communities from the sidebar.
+            Your Temba dashboard. Open Groups &amp; Communities from the
+            sidebar, or find clubs in the Directory.
           </p>
         </div>
-        {/* Temporary until Groups & Communities hub CTA lands */}
-        <Button variant="outline" asChild>
+        <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard/directory">Directory</Link>
         </Button>
       </div>
