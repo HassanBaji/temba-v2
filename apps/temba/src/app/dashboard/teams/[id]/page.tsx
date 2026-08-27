@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use } from "react";
+import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
@@ -15,7 +18,53 @@ export default function TeamHomePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
+  const utils = api.useUtils();
   const team = api.teams.byId.useQuery({ id });
+
+  const inviteInApp = api.teams.inviteInApp.useMutation({
+    onSuccess: async () => {
+      toast.success("Invite sent");
+      await utils.teams.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const revokeInvite = api.teams.revokeInAppInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Invite revoked");
+      await utils.teams.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const acceptInvite = api.teams.acceptInAppInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Joined Team");
+      await utils.teams.byId.invalidate({ id });
+      await utils.teams.mine.invalidate();
+      await utils.teams.pendingInvites.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const dissolve = api.teams.dissolve.useMutation({
+    onSuccess: async () => {
+      toast.success("Team dissolved");
+      await utils.teams.mine.invalidate();
+      await utils.teams.pendingInvites.invalidate();
+      router.push("/dashboard/teams");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   return (
     <DashboardShell title={team.data?.displayName ?? "Team"}>
@@ -82,6 +131,27 @@ export default function TeamHomePage({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {team.data?.canAccept && team.data.pendingInvite ? (
+              <Button
+                onClick={() =>
+                  acceptInvite.mutate({
+                    inviteId: team.data.pendingInvite!.id,
+                  })
+                }
+                disabled={acceptInvite.isPending}
+              >
+                {acceptInvite.isPending ? "Accepting…" : "Accept invite"}
+              </Button>
+            ) : null}
+            {team.data?.canDissolve ? (
+              <Button
+                variant="outline"
+                onClick={() => dissolve.mutate({ teamId: id })}
+                disabled={dissolve.isPending}
+              >
+                {dissolve.isPending ? "Dissolving…" : "Dissolve Team"}
+              </Button>
+            ) : null}
             {team.data ? (
               <Button variant="outline" asChild>
                 <Link href="/dashboard/teams">My Teams</Link>
@@ -159,6 +229,76 @@ export default function TeamHomePage({
                 full and Games are completed.
               </p>
             ) : null}
+          </section>
+        ) : null}
+
+        {team.data?.canInvite ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Partner invite
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Invite an existing User by email to the open seat. At most one
+                unused invite. Revoke it before sending another.
+              </p>
+            </div>
+
+            {team.data.unusedInvite ? (
+              <div className="divide-border border-border divide-y rounded-lg border">
+                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-foreground font-medium">
+                      {team.data.unusedInvite.user.name}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {team.data.unusedInvite.user.email}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      revokeInvite.mutate({
+                        inviteId: team.data.unusedInvite!.id,
+                      })
+                    }
+                    disabled={revokeInvite.isPending}
+                  >
+                    {revokeInvite.isPending ? "Revoking…" : "Revoke"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form
+                className="flex flex-col gap-3 sm:flex-row"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const formData = new FormData(event.currentTarget);
+                  const emailValue = formData.get("email");
+                  if (typeof emailValue !== "string") {
+                    return;
+                  }
+                  const email = emailValue.trim();
+                  if (!email) {
+                    return;
+                  }
+                  inviteInApp.mutate({ teamId: id, email });
+                  event.currentTarget.reset();
+                }}
+              >
+                <Input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="partner@email.com"
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={inviteInApp.isPending}>
+                  {inviteInApp.isPending ? "Inviting…" : "Invite"}
+                </Button>
+              </form>
+            )}
           </section>
         ) : null}
       </div>
