@@ -12,6 +12,17 @@ import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
+function formatGameStart(startTime: Date | string) {
+  const date = startTime instanceof Date ? startTime : new Date(startTime);
+  return date.toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function GroupHomePage({
   params,
 }: {
@@ -237,15 +248,15 @@ export default function GroupHomePage({
             ) : null}
 
             {group.error ? (
-              <p className="text-sm text-red-300">{group.error.message}</p>
+              <p className="text-destructive text-sm">{group.error.message}</p>
             ) : null}
 
             {group.data ? (
               <>
-                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                <h2 className="text-foreground text-2xl font-semibold tracking-tight">
                   {group.data.name ?? "Untitled Group"}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-white/70">
+                <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
                   <span className="capitalize">{group.data.type}</span>
                   {group.data.sport ? <span>· {group.data.sport}</span> : null}
                   {group.data.isLoose ? (
@@ -280,30 +291,30 @@ export default function GroupHomePage({
                   </div>
                 ) : null}
                 {group.data.community ? (
-                  <p className="text-sm text-white/60">
+                  <p className="text-muted-foreground text-sm">
                     Club Group in{" "}
                     <Link
                       href={`/dashboard/communities/${group.data.community.id}`}
-                      className="underline underline-offset-2 hover:text-white"
+                      className="hover:text-foreground underline underline-offset-2"
                     >
                       {group.data.community.name}
                     </Link>
                   </p>
                 ) : null}
                 {group.data.isLoose && group.data.type === "public" ? (
-                  <p className="text-sm text-white/60">
+                  <p className="text-muted-foreground text-sm">
                     Open-with-link: share the Group URL. Not listed in the
                     Directory. No Invite link.
                   </p>
                 ) : null}
                 {group.data.isLoose && group.data.type === "private" ? (
-                  <p className="text-sm text-white/60">
+                  <p className="text-muted-foreground text-sm">
                     Loose Group Private: Email invite and Invite link from the
                     creator only. Not listed in the Directory.
                   </p>
                 ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (
-                  <p className="text-sm text-white/60">
+                  <p className="text-muted-foreground text-sm">
                     Club Group Private: in-app invite of Community members only.
                     No Email invite or Invite link.
                   </p>
@@ -371,10 +382,10 @@ export default function GroupHomePage({
 
         {group.data?.isCommunityArchived && !group.data.communityMembership ? (
           <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-lg font-medium text-white">
+            <h3 className="text-foreground text-lg font-medium">
               This Club Group&apos;s Community is Soft-archived
             </h3>
-            <p className="mt-2 text-sm text-white/70">
+            <p className="text-muted-foreground mt-2 text-sm">
               It is not open for join. Members of the Community can still open
               history and Games. This is not a missing page.
             </p>
@@ -383,10 +394,10 @@ export default function GroupHomePage({
 
         {group.data?.isCommunityArchived && group.data.communityMembership ? (
           <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-lg font-medium text-white">
+            <h3 className="text-foreground text-lg font-medium">
               Community Soft-archived
             </h3>
-            <p className="mt-2 text-sm text-white/70">
+            <p className="text-muted-foreground mt-2 text-sm">
               This Club Group stays attached to its Community. You can still
               open it and see history and Games while the Community is archived.
             </p>
@@ -396,17 +407,241 @@ export default function GroupHomePage({
         {group.data?.communityId &&
         !group.data.communityMembership &&
         !group.data.isCommunityArchived ? (
-          <p className="text-sm text-white/60">
+          <p className="text-muted-foreground text-sm">
             You cannot join this Club Group until you are a member of its
             Community.
           </p>
         ) : null}
 
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Group stats
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Stored counters for this Group.
+            </p>
+            <dl className="border-border bg-card rounded-xl border">
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Games played</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.totalGamesPlayed}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        ) : null}
+
+        {group.data?.membership ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Your standing
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Your membership counters and position on this Group&apos;s
+              leaderboard (by sets won).
+            </p>
+            <dl className="border-border bg-card grid grid-cols-1 divide-y rounded-xl border md:grid-cols-4 md:divide-x md:divide-y-0">
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Position</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.standingPosition != null
+                    ? `#${group.data.membership.standingPosition}`
+                    : "—"}
+                  <span className="text-muted-foreground ml-2 text-sm font-normal">
+                    of {group.data.standing.memberCount}
+                  </span>
+                </dd>
+              </div>
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Sets won</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.totalSetsWon}
+                </dd>
+              </div>
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Points won</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.totalPointsWon}
+                </dd>
+              </div>
+              <div className="space-y-1 px-4 py-4">
+                <dt className="text-muted-foreground text-sm">Games played</dt>
+                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
+                  {group.data.membership.totalGamesPlayed}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        ) : group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Your standing
+            </h3>
+            <div className="border-border bg-card rounded-xl border px-4 py-6">
+              <p className="text-muted-foreground text-sm">
+                You are not a member of this Group, so you do not have a
+                standing position here. Join to appear on the leaderboard.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Standing leaderboard
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Members ordered by sets won, then points won, then Games played,
+              then name.
+            </p>
+
+            {group.data.standing.leaderboard.length === 0 ? (
+              <div className="border-border bg-card rounded-xl border px-4 py-6">
+                <p className="text-muted-foreground text-sm">
+                  No members yet. When people join this Group, their standing
+                  will show here with sets, points, and Games at zero until they
+                  play.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                {group.data.standing.leaderboard.map((entry) => (
+                  <li
+                    key={entry.userId}
+                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-foreground font-medium">
+                        <span className="text-muted-foreground mr-2 tabular-nums">
+                          #{entry.position}
+                        </span>
+                        {entry.name}
+                        {entry.isViewer ? (
+                          <span className="text-muted-foreground ml-2 text-sm font-normal">
+                            (you)
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {entry.totalSetsWon} sets · {entry.totalPointsWon}{" "}
+                        points · {entry.totalGamesPlayed} Games
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Upcoming Games
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Pending and confirmed Games for this Group, soonest first.
+            </p>
+
+            {group.data.upcomingGames.length === 0 ? (
+              <div className="border-border bg-card rounded-xl border px-4 py-6">
+                <p className="text-muted-foreground text-sm">
+                  No upcoming Games scheduled for this Group. When a pending or
+                  confirmed Game is set with a start time from now on, it will
+                  show up here.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                {group.data.upcomingGames.map((game) => (
+                  <li
+                    key={game.id}
+                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-foreground font-medium">
+                        {game.name ?? "Untitled Game"}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {formatGameStart(game.startTime)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {game.sport ? (
+                        <Badge variant="secondary" className="capitalize">
+                          {game.sport}
+                        </Badge>
+                      ) : null}
+                      <Badge variant="outline" className="capitalize">
+                        {game.status}
+                      </Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Game history
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Past, completed, or cancelled Games for this Group, newest first.
+            </p>
+
+            {group.data.gameHistory.length === 0 ? (
+              <div className="border-border bg-card rounded-xl border px-4 py-6">
+                <p className="text-muted-foreground text-sm">
+                  No Game history yet. Finished, cancelled, or past-start Games
+                  for this Group will appear here.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                {group.data.gameHistory.map((game) => (
+                  <li
+                    key={game.id}
+                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-foreground font-medium">
+                        {game.name ?? "Untitled Game"}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {formatGameStart(game.startTime)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {game.sport ? (
+                        <Badge variant="secondary" className="capitalize">
+                          {game.sport}
+                        </Badge>
+                      ) : null}
+                      {game.status ? (
+                        <Badge variant="outline" className="capitalize">
+                          {game.status}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
         {group.data?.canInviteClubPrivate ? (
-          <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
             <div>
-              <h3 className="text-lg font-medium text-white">In-app invites</h3>
-              <p className="mt-2 text-sm text-white/70">
+              <h3 className="text-foreground text-lg font-medium">
+                In-app invites
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
                 Owner, Admin, or this Group&apos;s creator can invite existing
                 Community members. Outsiders cannot be invited. There is no
                 Email invite or Invite link for Club Group Private.
@@ -432,7 +667,7 @@ export default function GroupHomePage({
               <select
                 name="userId"
                 required
-                className="h-9 flex-1 rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                className="border-input bg-background text-foreground h-9 flex-1 rounded-md border px-3 text-sm"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -450,21 +685,23 @@ export default function GroupHomePage({
             </form>
 
             {pendingInvites.data?.length === 0 ? (
-              <p className="text-sm text-white/60">No unused invites.</p>
+              <p className="text-muted-foreground text-sm">
+                No unused invites.
+              </p>
             ) : null}
 
             {pendingInvites.data && pendingInvites.data.length > 0 ? (
-              <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+              <ul className="divide-border border-border divide-y rounded-lg border">
                 {pendingInvites.data.map((invite) => (
                   <li
                     key={invite.id}
                     className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <p className="font-medium text-white">
+                      <p className="text-foreground font-medium">
                         {invite.user.name}
                       </p>
-                      <p className="text-sm text-white/60">
+                      <p className="text-muted-foreground text-sm">
                         {invite.user.email}
                       </p>
                     </div>
@@ -488,19 +725,19 @@ export default function GroupHomePage({
         ) : null}
 
         {group.data?.canManageInvites ? (
-          <section className="space-y-6 rounded-xl border border-white/10 bg-black/20 p-6">
+          <section className="border-border bg-card space-y-6 rounded-xl border p-6">
             <div>
-              <h3 className="text-lg font-medium text-white">
+              <h3 className="text-foreground text-lg font-medium">
                 Private invites
               </h3>
-              <p className="mt-2 text-sm text-white/70">
+              <p className="text-muted-foreground mt-2 text-sm">
                 Only the creator can send Email invites and manage one reusable
                 Invite link.
               </p>
             </div>
 
-            <div className="space-y-3 rounded-lg border border-white/10 p-4">
-              <h4 className="font-medium text-white">Email invite</h4>
+            <div className="border-border space-y-3 rounded-lg border p-4">
+              <h4 className="text-foreground font-medium">Email invite</h4>
               <form
                 className="flex flex-col gap-3 sm:flex-row"
                 onSubmit={(event) => {
@@ -531,20 +768,22 @@ export default function GroupHomePage({
               </form>
 
               {emailInvites.data?.length === 0 ? (
-                <p className="text-sm text-white/60">
+                <p className="text-muted-foreground text-sm">
                   No unused Email invites.
                 </p>
               ) : null}
               {emailInvites.data && emailInvites.data.length > 0 ? (
-                <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+                <ul className="divide-border border-border divide-y rounded-lg border">
                   {emailInvites.data.map((invite) => (
                     <li
                       key={invite.id}
                       className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
-                        <p className="font-medium text-white">{invite.email}</p>
-                        <p className="text-xs text-white/60">
+                        <p className="text-foreground font-medium">
+                          {invite.email}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
                           {invite.attachedUserId
                             ? "Attached to existing User"
                             : "No User yet"}
@@ -580,11 +819,11 @@ export default function GroupHomePage({
               ) : null}
             </div>
 
-            <div className="space-y-3 rounded-lg border border-white/10 p-4">
-              <h4 className="font-medium text-white">Invite link</h4>
+            <div className="border-border space-y-3 rounded-lg border p-4">
+              <h4 className="text-foreground font-medium">Invite link</h4>
               {inviteLink.data ? (
                 <>
-                  <p className="text-sm text-white/70">
+                  <p className="text-muted-foreground text-sm">
                     Live reusable link. Any authenticated User who opens it
                     joins the Group.
                   </p>
@@ -620,7 +859,7 @@ export default function GroupHomePage({
                 </>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-white/70">
+                  <p className="text-muted-foreground text-sm">
                     No active Invite link.
                   </p>
                   <Button

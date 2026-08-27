@@ -68,10 +68,10 @@ export default function NewCommunityPage() {
     <DashboardShell title="Create Community">
       <div className="mx-auto w-full max-w-lg space-y-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">
+          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
             Create a Community
           </h2>
-          <p className="text-sm text-white/70">
+          <p className="text-muted-foreground text-sm">
             Start a club with at least one sport. You become the Owner. Groups
             are optional.
           </p>
@@ -79,7 +79,7 @@ export default function NewCommunityPage() {
 
         <form
           onSubmit={onSubmit}
-          className="space-y-6 rounded-xl border border-white/10 bg-black/20 p-6"
+          className="border-border bg-card space-y-6 rounded-xl border p-6"
         >
           <FieldGroup>
             <Field>

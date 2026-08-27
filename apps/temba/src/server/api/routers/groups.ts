@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -7,6 +7,7 @@ import {
   communityMembers,
   communitySports,
   games,
+  GameStatusEnum,
   groupEmailInvites,
   groupInviteLinks,
   groupMemberInvites,
@@ -25,6 +26,11 @@ import {
 } from "~/server/api/trpc";
 import { type db } from "~/server/db";
 import {
+  GROUP_GAME_HISTORY_LIMIT,
+  GROUP_GAME_HISTORY_STATUSES,
+  HOME_UPCOMING_GAME_STATUSES,
+} from "~/server/groups/group-games";
+import {
   createOpaqueToken,
   getAppOrigin,
   groupEmailInviteUrl,
@@ -32,6 +38,10 @@ import {
   normalizeInviteEmail,
 } from "~/server/invites/tokens";
 import { sendGroupEmailInviteMail } from "~/server/mail/send-group-email-invite";
+import {
+  sortStandingMembers,
+  standingPosition,
+} from "~/server/standing/compare-standing";
 
 const sportSchema = z.enum(["padel", "football"]);
 
@@ -466,6 +476,28 @@ export const groupsRouter = createTRPCRouter({
       });
     }),
 
+  /** Loose Groups the caller belongs to (Club Groups live under Communities). */
+  mineLoose: protectedProcedure.query(async ({ ctx }) => {
+    const appUser = await resolveAppUser();
+
+    const memberships = await ctx.db.query.groupMembers.findMany({
+      where: eq(groupMembers.userId, appUser.id),
+      with: {
+        group: true,
+      },
+    });
+
+    return memberships
+      .filter((membership) => membership.group.communityId === null)
+      .map((membership) => ({
+        id: membership.group.id,
+        name: membership.group.name,
+        description: membership.group.description,
+        type: membership.group.type,
+        sport: membership.group.sport as GroupSportEnum | null,
+      }));
+  }),
+
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -543,14 +575,120 @@ export const groupsRouter = createTRPCRouter({
         !membership &&
         !community?.archivedAt;
 
-      let memberUserIds: string[] = [];
-      if (canInviteClubPrivate) {
-        const members = await ctx.db.query.groupMembers.findMany({
-          where: eq(groupMembers.groupId, group.id),
-          columns: { userId: true },
-        });
-        memberUserIds = members.map((row) => row.userId);
-      }
+      const memberRows = await ctx.db.query.groupMembers.findMany({
+        where: eq(groupMembers.groupId, group.id),
+        with: {
+          user: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      const memberUserIds = memberRows.map((row) => row.userId);
+
+      const sortedStanding = sortStandingMembers(
+        memberRows.map((row) => ({
+          userId: row.userId,
+          totalSetsWon: row.totalSetsWon,
+          totalPointsWon: row.totalPointsWon,
+          totalGamesPlayed: row.totalGamesPlayed,
+          name: row.user.name,
+        })),
+      );
+
+      const leaderboard = sortedStanding.map((entry, index) => ({
+        userId: entry.userId,
+        name: entry.name,
+        totalSetsWon: entry.totalSetsWon,
+        totalPointsWon: entry.totalPointsWon,
+        totalGamesPlayed: entry.totalGamesPlayed,
+        position: index + 1,
+        isViewer: entry.userId === appUser.id,
+      }));
+
+      const viewerStandingPosition = membership
+        ? standingPosition(sortedStanding, appUser.id)
+        : null;
+
+      const now = new Date();
+
+      // Upcoming / history are scoped by this Group id only (excludes null groupId).
+      // Soft-archived Communities are not filtered — members still see Games.
+      const upcomingGameRows = await ctx.db.query.games.findMany({
+        where: and(
+          eq(games.groupId, group.id),
+          inArray(games.status, [...HOME_UPCOMING_GAME_STATUSES]),
+          gte(games.startTime, now),
+        ),
+        columns: {
+          id: true,
+          name: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          sport: true,
+          groupId: true,
+        },
+        orderBy: (table, { asc }) => [asc(table.startTime)],
+      });
+
+      const historyGameRows = await ctx.db.query.games.findMany({
+        where: and(
+          eq(games.groupId, group.id),
+          or(
+            lt(games.startTime, now),
+            inArray(games.status, [...GROUP_GAME_HISTORY_STATUSES]),
+          ),
+        ),
+        columns: {
+          id: true,
+          name: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          sport: true,
+          groupId: true,
+        },
+        orderBy: (table, { desc }) => [desc(table.startTime)],
+        limit: GROUP_GAME_HISTORY_LIMIT,
+      });
+
+      const upcomingGames = upcomingGameRows.flatMap((game) => {
+        if (game.groupId === null) {
+          return [];
+        }
+        return [
+          {
+            id: game.id,
+            name: game.name,
+            startTime: game.startTime,
+            endTime: game.endTime,
+            status: (game.status ?? GameStatusEnum.PENDING) as
+              | "pending"
+              | "confirmed",
+            sport: game.sport,
+          },
+        ];
+      });
+
+      const gameHistory = historyGameRows.flatMap((game) => {
+        if (game.groupId === null) {
+          return [];
+        }
+        return [
+          {
+            id: game.id,
+            name: game.name,
+            startTime: game.startTime,
+            endTime: game.endTime,
+            status: game.status,
+            sport: game.sport,
+          },
+        ];
+      });
 
       return {
         id: group.id,
@@ -560,6 +698,7 @@ export const groupsRouter = createTRPCRouter({
         sport: group.sport as GroupSportEnum | null,
         communityId: group.communityId,
         isLoose: !group.communityId,
+        totalGamesPlayed: group.totalGamesPlayed,
         community: community
           ? {
               id: community.id,
@@ -570,7 +709,21 @@ export const groupsRouter = createTRPCRouter({
         isCommunityArchived: Boolean(community?.archivedAt),
         createdBy: group.createdBy,
         createdAt: group.createdAt,
-        membership: membership ? { id: membership.id } : null,
+        membership: membership
+          ? {
+              id: membership.id,
+              totalGamesPlayed: membership.totalGamesPlayed,
+              totalSetsWon: membership.totalSetsWon,
+              totalPointsWon: membership.totalPointsWon,
+              standingPosition: viewerStandingPosition,
+            }
+          : null,
+        standing: {
+          memberCount: memberRows.length,
+          leaderboard,
+        },
+        upcomingGames,
+        gameHistory,
         communityMembership: communityMembership
           ? { role: communityMembership.role }
           : null,
