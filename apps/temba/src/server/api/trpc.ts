@@ -12,6 +12,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
+import { requireOperator } from "~/server/auth/require-operator";
 import { db } from "~/server/db";
 
 /**
@@ -129,3 +130,13 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Operator procedure
+ *
+ * Clerk `publicMetadata.operator === true`. Community roles are unchanged.
+ */
+export const operatorProcedure = protectedProcedure.use(async ({ next }) => {
+  await requireOperator();
+  return next();
+});

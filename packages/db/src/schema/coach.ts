@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { groupSports } from "./group-enums";
-import { courts } from "./courts";
+import { venues } from "./venues";
 
 export const coachSports = pgEnum("coach_sport", ["padel", "football"]);
 
@@ -25,7 +25,7 @@ export const coach = pgTable("coach", {
   email: varchar("email", { length: 255 }),
   description: varchar("description", { length: 255 }),
   courtId: uuid("court_id")
-    .references(() => courts.id, { onDelete: "cascade" })
+    .references(() => venues.id, { onDelete: "cascade" })
     .notNull(),
   imageUrl: varchar("image_url", { length: 255 }),
   isActive: boolean("is_active").notNull().default(true),

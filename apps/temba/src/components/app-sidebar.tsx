@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import {
   IconBuildingCommunity,
   IconHome,
+  IconMapPin,
   IconUsers,
   IconUsersGroup,
 } from "@tabler/icons-react";
@@ -44,7 +45,17 @@ const navMain = [
   },
 ];
 
+const venuesNav = {
+  title: "Venues",
+  url: "/dashboard/venues",
+  icon: IconMapPin,
+};
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useUser();
+  const isOperator = user?.publicMetadata.operator === true;
+  const items = isOperator ? [...navMain, venuesNav] : navMain;
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -62,7 +73,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain items={items} />
       </SidebarContent>
       <SidebarFooter>
         <div className="flex items-center gap-2 px-2 py-1">

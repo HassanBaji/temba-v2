@@ -85,6 +85,34 @@
       "when": 1787831290290,
       "tag": "0011_free_mandarin",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787836014756,
+      "tag": "0012_evolve_courts_into_venues",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787836409607,
+      "tag": "0013_courts_on_venues",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787836944075,
+      "tag": "0014_venue_archived_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1787837095213,
+      "tag": "0015_community_venue_link",
+      "breakpoints": true
     }
   ]
 }

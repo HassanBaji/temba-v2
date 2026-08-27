@@ -1,6 +1,6 @@
 import { pgTable, uuid, timestamp, integer, pgEnum } from "drizzle-orm/pg-core";
 import { coach } from "./coach";
-import { courts } from "./courts";
+import { venues } from "./venues";
 import { relations } from "drizzle-orm";
 
 export const coachingSessionStatus = pgEnum("coaching_session_status", [
@@ -26,7 +26,7 @@ export const coachingSession = pgTable("coaching_session", {
   price: integer("price").notNull(),
   status: coachingSessionStatus().default(CoachingSessionStatusEnum.PENDING),
   courtId: uuid("court_id")
-    .references(() => courts.id, { onDelete: "cascade" })
+    .references(() => venues.id, { onDelete: "cascade" })
     .notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
