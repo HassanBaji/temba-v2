@@ -6,6 +6,13 @@ import { courts, venues } from "@repo/db";
 
 import { type db } from "~/server/db";
 import { createTRPCRouter, operatorProcedure } from "~/server/api/trpc";
+import {
+  assertVenueLogoType,
+  decodeVenueLogoBase64,
+  removeVenueLogoObject,
+  uploadVenueLogoObject,
+  VENUE_LOGO_CONTENT_TYPES,
+} from "~/server/storage/venue-logos";
 
 const venueWriteSchema = z.object({
   name: z.string().trim().min(1).max(255),
@@ -128,6 +135,7 @@ export const venuesRouter = createTRPCRouter({
           country: true,
           latitude: true,
           longitude: true,
+          logoImageUrl: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -402,5 +410,74 @@ export const venuesRouter = createTRPCRouter({
 
       await ctx.db.delete(courts).where(eq(courts.id, input.id));
       return { id: existing.id };
+    }),
+
+  uploadLogo: operatorProcedure
+    .input(
+      z.object({
+        venueId: z.string().uuid(),
+        contentType: z.enum(VENUE_LOGO_CONTENT_TYPES),
+        dataBase64: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await requireVenue(ctx.db, input.venueId);
+
+      const bytes = decodeVenueLogoBase64(input.dataBase64);
+      const contentType = assertVenueLogoType(bytes, input.contentType);
+      const logoImageUrl = await uploadVenueLogoObject({
+        venueId: input.venueId,
+        bytes,
+        contentType,
+      });
+
+      const [updated] = await ctx.db
+        .update(venues)
+        .set({
+          logoImageUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(venues.id, input.venueId))
+        .returning({
+          id: venues.id,
+          logoImageUrl: venues.logoImageUrl,
+        });
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to save Venue logo",
+        });
+      }
+
+      return updated;
+    }),
+
+  clearLogo: operatorProcedure
+    .input(z.object({ venueId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await requireVenue(ctx.db, input.venueId);
+      await removeVenueLogoObject(input.venueId);
+
+      const [updated] = await ctx.db
+        .update(venues)
+        .set({
+          logoImageUrl: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(venues.id, input.venueId))
+        .returning({
+          id: venues.id,
+          logoImageUrl: venues.logoImageUrl,
+        });
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to clear Venue logo",
+        });
+      }
+
+      return updated;
     }),
 });

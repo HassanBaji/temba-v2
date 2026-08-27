@@ -36,6 +36,36 @@ function coordToInput(value: string | null | undefined): string {
   return value;
 }
 
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+type LogoContentType = "image/jpeg" | "image/png" | "image/webp";
+
+function asLogoContentType(value: string): LogoContentType | null {
+  if (value === "image/jpg") {
+    return "image/jpeg";
+  }
+  if (
+    value === "image/jpeg" ||
+    value === "image/png" ||
+    value === "image/webp"
+  ) {
+    return value;
+  }
+  return null;
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
 export default function VenueHomePage({
   params,
 }: {
@@ -123,6 +153,26 @@ export default function VenueHomePage({
     },
   });
 
+  const uploadLogo = api.venues.uploadLogo.useMutation({
+    onSuccess: async () => {
+      toast.success("Logo saved");
+      await utils.venues.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const clearLogo = api.venues.clearLogo.useMutation({
+    onSuccess: async () => {
+      toast.success("Logo cleared");
+      await utils.venues.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     updateVenue.mutate({
@@ -138,6 +188,25 @@ export default function VenueHomePage({
   function onAddCourt(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     addCourt.mutate({ venueId: id, name: newCourtName });
+  }
+
+  async function onLogoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+    const contentType = asLogoContentType(file.type);
+    if (!contentType) {
+      toast.error("Logo must be a JPEG, PNG, or WebP image");
+      return;
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+      toast.error("Logo must be at most 2 MB");
+      return;
+    }
+    const dataBase64 = await fileToBase64(file);
+    uploadLogo.mutate({ venueId: id, contentType, dataBase64 });
   }
 
   return (
@@ -243,6 +312,49 @@ export default function VenueHomePage({
                 </Button>
               </div>
             </form>
+
+            <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+              <div className="space-y-1">
+                <h3 className="text-foreground text-lg font-medium">Logo</h3>
+                <p className="text-muted-foreground text-sm">
+                  Optional. JPEG, PNG, or WebP, at most 2 MB. Display uses the
+                  public URL.
+                </p>
+              </div>
+
+              {venue.data.logoImageUrl ? (
+                // Public catalog URL (ADR-0006); not a signed URL.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={venue.data.logoImageUrl}
+                  alt={`${venue.data.name} logo`}
+                  className="border-border h-24 w-24 rounded-md border object-cover"
+                />
+              ) : (
+                <p className="text-muted-foreground text-sm">No logo yet.</p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    void onLogoFileChange(event);
+                  }}
+                  disabled={uploadLogo.isPending || clearLogo.isPending}
+                />
+                {venue.data.logoImageUrl ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={clearLogo.isPending || uploadLogo.isPending}
+                    onClick={() => clearLogo.mutate({ venueId: id })}
+                  >
+                    {clearLogo.isPending ? "Clearing…" : "Clear logo"}
+                  </Button>
+                ) : null}
+              </div>
+            </section>
 
             <section className="border-border bg-card space-y-4 rounded-xl border p-6">
               <div className="space-y-1">

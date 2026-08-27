@@ -67,3 +67,15 @@ if is_usable_clerk_secret "${CLERK_SECRET_KEY:-}"; then
 elif [ -n "${CLERK_SECRET_KEY:-}" ]; then
   echo "warning: CLERK_SECRET_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
 fi
+
+# Supabase Storage (Venue logos). Sync when Cloud secrets are present so env
+# validation can require URL, write key, and bucket name (ADR-0006).
+if [ -n "${SUPABASE_URL:-}" ]; then
+  set_env_kv apps/temba/.env SUPABASE_URL "$SUPABASE_URL"
+fi
+if [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+  set_env_kv apps/temba/.env SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY"
+fi
+if [ -n "${SUPABASE_VENUE_LOGOS_BUCKET:-}" ]; then
+  set_env_kv apps/temba/.env SUPABASE_VENUE_LOGOS_BUCKET "$SUPABASE_VENUE_LOGOS_BUCKET"
+fi
