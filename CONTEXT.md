@@ -33,8 +33,16 @@ _Avoid_: Public (EWA Connect’s second App), public app, public package, Commun
 ### Product
 
 **Community**:
-A club people belong to. It may contain many Groups and many Teams and offers one or more sports.
+A club people belong to. It may contain many Groups and many Teams, may link to at most one Venue, and offers one or more sports.
 _Avoid_: Workspace, club, org, server, workspace (when you mean Community)
+
+**Venue**:
+A physical facility: one addressable site with a name, location, and Courts. Not a Community, not a legal entity, not a brand. A Community may link to at most one Venue; a Venue may be linked by many Communities.
+_Avoid_: club (that is the avoided synonym for Community), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
+
+**Court**:
+A named playing surface that belongs to one Venue.
+_Avoid_: Venue, pitch, field, club (when you mean this entity)
 
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
@@ -84,6 +92,14 @@ _Avoid_: magic link, Invite link, mail (when you mean this product)
 A reusable door URL for a Community Private or Loose Group Private until staff rotate or revoke it. Any authenticated User may use a live Invite link.
 _Avoid_: Email invite, magic link, Group URL (Loose Group Public uses the Group URL, not an Invite link)
 
+**Venue link**:
+A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. Distinct from Invite link and from a Team’s Community link.
+_Avoid_: Invite link, membership, join, Club Team
+
+**Venue link request**:
+A request by a Community Owner or Admin to associate that Community with an existing Venue. An Operator approves or rejects it. Distinct from a User’s Community join request.
+_Avoid_: join request (that is a User requesting Community membership), Team link request
+
 **Community sports**:
 The allow-list of sports a Community offers (padel, football, or both). Each Group and each Team still has exactly one sport.
 _Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
@@ -109,15 +125,19 @@ A Community role. The creator starts as Owner. A Community always has at least o
 _Avoid_: admin (when you mean Owner), founder
 
 **Admin**:
-A Community role that helps run the Community (admit people, create Club Groups, archive) but does not change Owner-ship.
-_Avoid_: Owner, moderator
+A Community role that helps run the Community (admit people, create Club Groups, archive, request a Venue link) but does not change Owner-ship.
+_Avoid_: Owner, moderator, Operator
+
+**Operator**:
+A Temba staff User. Not a Community role. Operators curate Venues and Courts and decide Venue link requests.
+_Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
 
 **Member**:
 A Community role with no staff powers. Community membership is required to join that Community’s Club Groups. Leaving a Community is refused while the User sits on any Team linked to that Community.
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
 **Soft-archive**:
-A reversible hide of a Community and its Club Groups. For Teams: refuse new Team→Community link requests and decisions while archived; refuse invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats remain visible to those allowed to open them. Games are kept. Not a delete, and not detaching Groups.
+A reversible hide. For a Community: hides it and its Club Groups together; Games are kept; Club Groups stay attached; refuse new joins, invites, Team→Community link requests and decisions, Venue link requests and decisions, and invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats and a live Venue link remain visible to those allowed to open the Community. For a Venue: hides it from the Community request catalog; refuse new Venue link requests and decisions; live Community Venue links stay; Members still see that Venue on Community home as history. Not a delete, not detaching Groups, and not unlinking a Venue.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
