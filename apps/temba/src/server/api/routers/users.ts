@@ -1,9 +1,16 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 
-import { communityMembers, groupMembers, type GroupSportEnum } from "@repo/db";
+import {
+  communityMembers,
+  games,
+  GameStatusEnum,
+  groupMembers,
+  type GroupSportEnum,
+} from "@repo/db";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { HOME_UPCOMING_GAME_STATUSES } from "~/server/home/upcoming-games";
 import {
   sortStandingMembers,
   standingPosition,
@@ -11,11 +18,14 @@ import {
 
 export const usersRouter = createTRPCRouter({
   /**
-   * Home metrics and per-Group standing for the signed-in User.
-   * Position is among that Group's members only — not a global rank.
+   * Home metrics, upcoming Games, and per-Group standing for the signed-in User.
+   * Upcoming Games are membership-scoped only (no public pickup); Soft-archived
+   * Club Group Games still appear. Standing position is among that Group's
+   * members only — not a global rank.
    */
   home: protectedProcedure.query(async ({ ctx }) => {
     const appUser = await resolveAppUser();
+    const now = new Date();
 
     const communityMemberships = await ctx.db.query.communityMembers.findMany({
       where: eq(communityMembers.userId, appUser.id),
@@ -81,10 +91,60 @@ export const usersRouter = createTRPCRouter({
         }),
       );
 
+    const upcomingGameRows =
+      groupIds.length === 0
+        ? []
+        : await ctx.db.query.games.findMany({
+            where: and(
+              inArray(games.groupId, groupIds),
+              inArray(games.status, [...HOME_UPCOMING_GAME_STATUSES]),
+              gte(games.startTime, now),
+            ),
+            columns: {
+              id: true,
+              name: true,
+              startTime: true,
+              endTime: true,
+              status: true,
+              sport: true,
+              groupId: true,
+            },
+            with: {
+              group: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+            orderBy: (table, { asc }) => [asc(table.startTime)],
+          });
+
+    const upcomingGames = upcomingGameRows.flatMap((game) => {
+      if (game.groupId === null) {
+        return [];
+      }
+      return [
+        {
+          id: game.id,
+          name: game.name,
+          startTime: game.startTime,
+          endTime: game.endTime,
+          status: (game.status ?? GameStatusEnum.PENDING) as
+            | "pending"
+            | "confirmed",
+          sport: game.sport,
+          groupId: game.groupId,
+          groupName: game.group?.name ?? null,
+        },
+      ];
+    });
+
     return {
       gamesPlayed: appUser.numberOfGamesPlayed,
       communitiesCount: communityMemberships.length,
       groupsCount: myGroupMemberships.length,
+      upcomingGames,
       standing,
     };
   }),
