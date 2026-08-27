@@ -49,15 +49,15 @@ A Group that does not belong to a Community.
 _Avoid_: orphan, standalone group, free group
 
 **Community Public**:
-A Community listed in the Directory and joinable by request.
+A Community joinable by request if you have the Community URL. No Email invite or Invite link; listed in Directory when that planned surface ships.
 _Avoid_: open Community, listed Community (as the name of the type), Route `/public`
 
 **Community Private**:
-A Community that is not listed and is joinable only by Email invite or Invite link.
-_Avoid_: secret Community, hidden Community
+A Community joinable only by Email invite or Invite link.
+_Avoid_: secret Community, hidden Community, unlisted Community (when you mean this type)
 
 **Directory**:
-The list of live Community Public clubs. Groups are never in the Directory.
+A planned App list of live Community Public clubs. Not a shipped surface. Groups are never in the Directory.
 _Avoid_: Group directory, marketplace, feed
 
 **Club Group Public**:
