@@ -1,6 +1,7 @@
 import { communitiesRouter } from "~/server/api/routers/communities";
 import { gamesRouter } from "~/server/api/routers/games";
 import { groupsRouter } from "~/server/api/routers/groups";
+import { usersRouter } from "~/server/api/routers/users";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   communities: communitiesRouter,
   games: gamesRouter,
   groups: groupsRouter,
+  users: usersRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;
