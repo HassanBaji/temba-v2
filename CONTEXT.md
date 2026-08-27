@@ -33,12 +33,12 @@ _Avoid_: Public (EWA Connect’s second App), public app, public package, Commun
 ### Product
 
 **Community**:
-A club people belong to. It may contain many Groups and offers one or more sports.
+A club people belong to. It may contain many Groups and many Teams and offers one or more sports.
 _Avoid_: Workspace, club, org, server, workspace (when you mean Community)
 
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
-_Avoid_: Community, team, lobby, channel
+_Avoid_: Community, Team, lobby, channel
 
 **Club Group**:
 A Group that belongs to a Community.
@@ -85,8 +85,24 @@ A reusable door URL for a Community Private or Loose Group Private until staff r
 _Avoid_: Email invite, magic link, Group URL (Loose Group Public uses the Group URL, not an Invite link)
 
 **Community sports**:
-The allow-list of sports a Community offers (padel, football, or both). Each Group still has exactly one sport.
-_Avoid_: Group sports (that is the single sport on a Group)
+The allow-list of sports a Community offers (padel, football, or both). Each Group and each Team still has exactly one sport.
+_Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
+
+**Team**:
+A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending invite for the second seat). Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval, and either member may unlink.
+_Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
+
+**Club Team**:
+A Team currently linked to a Community.
+_Avoid_: Club Group, nested team
+
+**Loose Team**:
+A Team with no Community link (unattached).
+_Avoid_: orphan Team, standalone Team, free Team
+
+**Game team**:
+One side in a single Game (the `game_teams` row). Not a Team.
+_Avoid_: Team (when you mean a Game side), partnership
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
@@ -97,11 +113,11 @@ A Community role that helps run the Community (admit people, create Club Groups,
 _Avoid_: Owner, moderator
 
 **Member**:
-A Community role with no staff powers. Community membership is required to join that Community’s Club Groups.
+A Community role with no staff powers. Community membership is required to join that Community’s Club Groups. Leaving a Community is refused while the User sits on any Team linked to that Community.
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
 **Soft-archive**:
-A reversible hide of a Community and its Club Groups. Games are kept. Not a delete, and not detaching Groups.
+A reversible hide of a Community and its Club Groups. For Teams: refuse new Team→Community link requests and decisions while archived; refuse invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats remain visible to those allowed to open them. Games are kept. Not a delete, and not detaching Groups.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
