@@ -20,9 +20,9 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 ## User Stories
 
-1. As an authenticated User, I want to create a Community Public with a name and at least one sport (padel, football, or both), so that I become its Owner of a listed club.
+1. As an authenticated User, I want to create a Community Public with a name and type only, so that I become its Owner of a listed club. The App stores padel on Community sports. I do not pick a sport. (tRPC still requires at least one sport and still accepts football; see `.scratch/padel-only-ui/spec.md`.)
 
-2. As an authenticated User, I want to create a Community Private with a name and at least one sport, so that the club is unlisted and invite-only.
+2. As an authenticated User, I want to create a Community Private with a name and type only, so that the club is unlisted and invite-only. The App stores padel on Community sports. I do not pick a sport.
 
 3. As a new Owner, I want the Community to exist with zero Groups, so that I can set up the club before adding squads.
 
@@ -54,11 +54,11 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 17. As a User, I want Community Public clubs to have no Email invite and no Invite link, so that listed clubs stay request-to-join and staff cannot skip the queue with a magic URL.
 
-18. As an Owner or Admin, I want to create a Club Group in my Community with a name, type (public or private), and exactly one sport from Community sports, so that the squad plays that sport. I am added as a Group member as the creator.
+18. As an Owner or Admin, I want to create a Club Group in my Community with a name and type (public or private) only, so that the squad plays padel. The App stores padel. I am added as a Group member as the creator. Create from the App is refused if padel is not on Community sports. (tRPC still takes one allow-list sport, including football when it is on the list.)
 
 19. As a Member who is not Owner or Admin, I want creating a Club Group to be refused, so that staff control squads inside the club.
 
-20. As an authenticated User, I want to create a Loose Group with a name, type, and one sport, so that I can run a squad outside any club. I am added as a Group member.
+20. As an authenticated User, I want to create a Loose Group with a name and type only, so that I can run a padel squad outside any club. The App stores padel. I am added as a Group member. (tRPC still takes padel or football.)
 
 21. As a Community Member, I want to join a Club Group Public in that Community with no extra request, so that public-to-members means open inside the club.
 
@@ -80,9 +80,9 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 30. As a User, I want to belong to multiple Communities at once.
 
-31. As an Owner or Admin, I want to add a sport to Community sports, so that we can add football later.
+31. As an Owner or Admin, I want Community home to have no add/remove Community sports controls, so that the App does not offer football. tRPC `addSport` / `removeSport` stay so football can be turned on later without a schema change.
 
-32. As an Owner or Admin, I want removing a sport to be refused while any Club Group of that sport exists in that Community.
+32. As a caller of remove Community sports tRPC, I want removing a sport to be refused while any Club Group of that sport exists in that Community, so that the allow-list cannot drop a sport still in use.
 
 33. As an Owner or Admin, I want to Soft-archive a live Community, so that it and its Club Groups disappear from the Directory and new joins, requests, Email invites, and Invite links stop. Club Groups stay attached (they do not become Loose Groups). Loose Groups are untouched. Games on those Club Groups are kept. Live Invite links and unused Email invites for that Community must not admit anyone after archive. Unarchive restores the same Invite link token unless staff rotate.
 
@@ -126,7 +126,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 - Community membership stores Community, User, and role (Owner, Admin, or Member) on that row, unique per Community and User.
 
-- Community sports is the allow-list: Community plus sport, using the existing Group sport enum (do not add a fourth padel/football enum), unique per Community and sport. Create Community requires at least one sport.
+- Community sports is the allow-list: Community plus sport, using the existing Group sport enum (do not add a fourth padel/football enum), unique per Community and sport. Create Community tRPC requires at least one sport. The App’s create-Community page always submits padel and has no sport picker (`.scratch/padel-only-ui/spec.md`).
 
 - Join requests apply to Community Public only (the App refuses them for Community Private). One row per Community and User, status pending, approved, or rejected, no message, optional decider. Re-request turns rejected into pending on the same row. Ignore leaves pending.
 
@@ -148,9 +148,9 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 - Creating a Community inserts the Community, an Owner membership, and at least one Community sports row in one transaction.
 
-- Creating a Club Group: caller is Owner or Admin; sport is required and on the allow-list; parent is set; creator is inserted as a Group member.
+- Creating a Club Group: caller is Owner or Admin; sport is required and on the allow-list; parent is set; creator is inserted as a Group member. The App always submits padel and has no sport field.
 
-- Creating a Loose Group: no parent; any authenticated User; sport required; creator inserted as a Group member.
+- Creating a Loose Group: no parent; any authenticated User; sport required; creator inserted as a Group member. The App always submits padel and has no sport field.
 
 - Club Group Public join: caller is a live Community member.
 
@@ -182,7 +182,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 - Community names are not globally unique (same as Group names today).
 
-- Authenticated dashboard: Directory plus create Community; Community home (Groups, members, requests if Community Public staff, Email invites and Invite link if Community Private staff, Soft-archive); Group home (Club Group or Loose Group). Reuse existing UI primitives. No Group Directory page.
+- Authenticated dashboard: Directory plus create Community; Community home (Groups, members, requests if Community Public staff, Email invites and Invite link if Community Private staff, Soft-archive); Group home (Club Group or Loose Group). Reuse existing UI primitives. No Group Directory page. No sport picker on create Community, Club Group, or Loose Group; no add/remove Community sports section on Community home.
 
 ## Testing Decisions
 
@@ -203,13 +203,13 @@ If you implement this spec, you implement these seams:
 - Community Private Email invite to an email that already has a User: attach and email; matching session auto-joins
 - Community Private Invite link: copy, unlimited joins, rotate kills old token, revoke leaves no door; Members cannot mint links
 - Club Group: no email or Invite link; in-app invite of Community members only; outsiders cannot join Club Groups
-- Owner or Admin create Club Group with allow-list sport; Member cannot
-- Any authenticated User creates a Loose Group
+- Owner or Admin create Club Group from the App with padel (no sport field); tRPC still takes one allow-list sport; Member cannot
+- Any authenticated User creates a Loose Group from the App with padel (no sport field); tRPC still takes padel or football
 - Loose Group Public: join via Group URL, not Invite link table
 - Loose Group Private: Email invite and Invite link by creator only; same Clerk, match, and rotate rules
 - Leave Group keeps Community; leave Community drops all Club Groups, not Loose Groups
 - User in two Communities
-- Add sport OK; remove sport blocked while a Club Group of that sport exists
+- Community home has no add/remove Community sports UI; add sport tRPC still OK; remove sport tRPC blocked while a Club Group of that sport exists
 - Soft-archive hides Community and Club Groups together; members see history and Games; non-members see archived; unarchive restores; Loose Groups untouched; archived Community invites and links refuse consume
 - Soft-archived Community Games do not appear as live public pickup
 - Last Owner cannot leave or demote; multiple Owners; leave is not Soft-archive
@@ -252,6 +252,8 @@ None. Temba has no tests and no mailer. The Game router is a stub.
 
 Glossary: Root CONTEXT.md (Workspace terms plus Product terms). Architecture: docs/adr/0004 (optional Community parent), 0005 (Soft-archive). ADRs 0001–0003 are Workspace conversion and do not constrain this feature except: one App, Route `/public` is not a product, schema lives in the DB Package.
 
-Locked v1 defaults (not a further grill): join request has no message and no expiry; Email invite is named, unknown OK, Clerk then email must match, auto-join, no expiry, revoke unused, one unused per subject and email; Invite link is one reusable token, unlimited, no expiry, rotate or revoke, any authenticated User; email and Invite link only on Community Private (Owner/Admin) and Loose Group Private (creator); Directory is Community Public only; unique Group membership; Community creator is Owner; Group creator auto-joins the Group; create Community requires at least one sport; names not globally unique; only Owners change roles; Owner and Admin Soft-archive and (if Community Private) manage invites; Soft-archived Community refuses invite consume and keeps tokens unless staff rotate; mail provider TBD.
+Locked v1 defaults (not a further grill): join request has no message and no expiry; Email invite is named, unknown OK, Clerk then email must match, auto-join, no expiry, revoke unused, one unused per subject and email; Invite link is one reusable token, unlimited, no expiry, rotate or revoke, any authenticated User; email and Invite link only on Community Private (Owner/Admin) and Loose Group Private (creator); Directory is Community Public only; unique Group membership; Community creator is Owner; Group creator auto-joins the Group; create Community tRPC requires at least one sport; App sport-choosing UI is padel-only (create Community / Club Group / Loose Group always send padel; Community home has no add/remove Community sports UI); names not globally unique; only Owners change roles; Owner and Admin Soft-archive and (if Community Private) manage invites; Soft-archived Community refuses invite consume and keeps tokens unless staff rotate; mail provider TBD.
+
+App padel-only UI: `.scratch/padel-only-ui/spec.md`. That spec is the delta; do not rebuild football pickers from older wording in this file.
 
 Next step: vertical tickets. Do not implement until tickets exist and an implementer is asked to run them.

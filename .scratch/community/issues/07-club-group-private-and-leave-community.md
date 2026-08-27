@@ -8,7 +8,7 @@
 
 **Parent:** #1 Community: clubs, Groups, sports, and Private invites
 
-- [ ] Owner or Admin can create a Club Group Private with one sport on Community sports
+- [ ] Owner or Admin can create a Club Group Private with a name and private type only; the App stores padel; create from the App is refused if padel is not on Community sports
 - [ ] Owner, Admin, or that Group’s creator can invite an existing Community member into that Club Group Private in-app
 - [ ] A Community Member who is not staff and not that Group’s creator cannot invite themselves or others
 - [ ] Invitee must already be a Community member; outsiders cannot join via this path
