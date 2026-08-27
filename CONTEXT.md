@@ -89,7 +89,7 @@ The allow-list of sports a Community offers (padel, football, or both). Each Gro
 _Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
 
 **Team**:
-A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending invite for the second seat). A Team may be unattached or linked to at most one Community (link rules are product-owned; not the same as Group’s create-time immutable parent).
+A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending invite for the second seat). Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval, and either member may unlink.
 _Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
 
 **Club Team**:
@@ -113,7 +113,7 @@ A Community role that helps run the Community (admit people, create Club Groups,
 _Avoid_: Owner, moderator
 
 **Member**:
-A Community role with no staff powers. Community membership is required to join that Community’s Club Groups.
+A Community role with no staff powers. Community membership is required to join that Community’s Club Groups. Leaving a Community is refused while the User sits on any Team linked to that Community.
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
 **Soft-archive**:

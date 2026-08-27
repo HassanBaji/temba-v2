@@ -1,13 +1,15 @@
 # Padel Teams — settled decisions
 
-Status: grilling in progress (round 4 open — discovery / Private admit / unlink / leave leftovers). Spec not written yet.
+Status: grilling complete — awaiting user confirmation of shared understanding before `/to-spec`.
 
 ## Superseded
 
-- **R1-Q2**: Immutable Community parent at create — **superseded** by link-with-approval.
-- **R2-Q9-B**: Email accept auto-joins Community — **withdrawn**; replaced by **R3-Q25-A** (Email = Team seat only).
+- **R1-Q2**: Immutable Community parent at create — superseded by link-with-approval.
+- **R2-Q9-B**: Email accept auto-joins Community — withdrawn (Email = Team seat only).
+- **R2-Q11-C**: Leave Community leaves Club Team memberships intact — **superseded by R4-Q37-B**: leave Community is **refused** while the User is on any Team linked to that Community.
+- **R2-Q17-B**: Linked Teams not listed on Community home — **amended by R4-Q34-A**: Community home lists linked Teams for Community Members; personal My Teams remains.
 
-## Settled (rounds 1–3)
+## Settled (rounds 1–4)
 
 ### Entity & membership
 
@@ -21,41 +23,49 @@ Status: grilling in progress (round 4 open — discovery / Private admit / unlin
 
 ### Invites
 
-8. Doors in v1: **in-app** (existing User) + **Email invite**. **Invite link = non-goal** (R3-Q31-A).
+8. Doors in v1: **in-app** (existing User) + **Email invite**. **Invite link = non-goal**.
 9. At most **one** unused invite for the open seat (in-app or Email).
 10. In-app pending reserves global pair `(creator, B)`; Email reserves on accept (refuse if pair exists).
-11. Email accept fills Team seat only; **never** Community membership (R3-Q25-A).
+11. Email accept fills Team seat only; **never** Community membership.
 
-### Community link (replaces create-time parent)
+### Community link
 
-12. Every Team is created **unattached** (Loose). Linking is the only path to Club Team (R3-Q20-A).
-13. Link request: either member when full; creator only while incomplete (R3-Q21-B).
-14. Only **full** Teams may request a link (R3-Q27-A).
-15. Owner or Admin approve; Community Public **and** Private (R3-Q22-A, Q23-A).
-16. On approve: **auto-admit** any seat not yet a Community Member, then attach Team (R3-Q24-B). *(Private-club intentionality confirmed in round 4.)*
-17. Sport must be on Community sports allow-list at **link request and approve** (R3-Q28-B). Removing a Community sport refuses while a linked Team of that sport exists.
-18. Either Team member may **unlink immediately** (no staff) (R3-Q26-C). *(Aftermath in round 4.)*
-19. Leave Community **does not** remove the User from Teams linked to that Community (R2-Q11-C). *(Visibility after leave in round 4.)*
+12. Every Team is created **unattached** (Loose). Linking is the only path to Club Team.
+13. Link request: either member when full; creator only while incomplete.
+14. Only **full** Teams may request a link.
+15. Owner or Admin approve; Community Public **and** Private.
+16. On approve: **auto-admit** any seat not yet a Community Member (including on Private), then attach Team.
+17. Sport must be on Community sports allow-list at **link request and approve**. Removing a Community sport refuses while a linked Team of that sport exists.
+18. Either Team member may **unlink immediately** (no staff). Unlink cancels pending link requests for that Team; Team may re-link later (same or other Community) subject to Soft-archive and allow-list.
+19. **Leave Community is refused** while the User is on any Team linked to that Community. User must unlink or dissolve first.
 
 ### Soft-archive
 
-20. While Soft-archived: refuse new link requests and approve/reject of pending link requests; refuse Team invites/accept for **already linked** Teams; unattached Teams unchanged; members can still open linked Team + stats; unarchive restores (R3-Q29-A).
+20. While Soft-archived: refuse new link requests and approve/reject of pending link requests; refuse Team invites/accept for **already linked** Teams; unattached Teams unchanged; allowed viewers can still open linked Team + stats; unarchive restores.
 
 ### Stats, Games, UI
 
 21. Stats UI + stored counters (games / wins / losses / related); counter **updates** deferred to Game-completion slice (zeros until then).
-22. Incomplete Teams show the same stats block (zeros) + waiting-for-partner copy (R3-Q33-A).
-23. Any **Community Member** may open a linked Team’s stats (R3-Q32-B). *(Discovery surface vs “not on Community home” open in round 4.)*
-24. Personal **My Teams** surface; linked Teams **not** listed on Community home per R2-Q17-B — may be amended if discovery requires a Community list (round 4).
-25. Nullable Team FK on `game_teams` in this slice (R3-Q30-A); explicit attribution; no counter updates yet.
+22. Incomplete Teams show the same stats block (zeros) + waiting-for-partner copy.
+23. Any **Community Member** may open a linked Team’s stats.
+24. **My Teams** lists Teams you sit on. **Community home** lists Teams linked to that Community (for Community Members).
+25. Nullable Team FK on `game_teams` in this slice; explicit attribution; no counter updates yet.
 
-## Open (round 4)
+## Explicit non-goals (v1)
 
-- How Community Members discover linked Teams if they are not on Community home (Q32-B vs Q17-B).
-- Confirm Q24-B auto-admit on Private Communities.
-- Unlink aftermath: pending link requests, re-link, Soft-archive.
-- After leave Community while still on a linked Team: My Teams + Community Member visibility; re-link auto-admit.
+- Team Invite link
+- Partner replace without dissolve
+- Unlink requiring staff approval
+- Create Team already linked to a Community
+- Link request from incomplete Teams
+- Updating win/loss counters from completed Games (depends on Game-completion slice)
+- Game create / score UI (out of scope; FK only)
+
+## Open dependencies (not blocking shared understanding)
+
+- Game-completion slice will write counters using the explicit Team id on Game sides.
+- Mail for Team Email invites can follow existing Community/Group Email invite stub pattern.
 
 ## Divergence from Groups
 
-Teams deliberately diverge from ADR-0004 (Group parent immutable at create): Teams attach/detach via link/unlink.
+Teams deliberately diverge from ADR-0004 (Group parent immutable at create): Teams attach/detach via link/unlink with staff approve on link.
