@@ -69,10 +69,10 @@ export default function NewLooseGroupPage() {
     <DashboardShell title="Create Loose Group">
       <div className="mx-auto w-full max-w-lg space-y-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             Create a Loose Group
           </h2>
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-muted-foreground">
             A squad outside any Community. Public joins via the Group URL;
             Private uses Email invites and one reusable Invite link. You become
             a Group member.
@@ -81,7 +81,7 @@ export default function NewLooseGroupPage() {
 
         <form
           onSubmit={onSubmit}
-          className="space-y-6 rounded-xl border border-white/10 bg-black/20 p-6"
+          className="space-y-6 rounded-xl border border-border bg-card p-6"
         >
           <FieldGroup>
             <Field>

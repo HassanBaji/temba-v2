@@ -254,15 +254,15 @@ export default function CommunityHomePage({
             ) : null}
 
             {community.error ? (
-              <p className="text-sm text-red-300">{community.error.message}</p>
+              <p className="text-sm text-destructive">{community.error.message}</p>
             ) : null}
 
             {community.data ? (
               <>
-                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
                   {community.data.name}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-white/70">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span className="capitalize">{community.data.type}</span>
                   {!isLive ? <span>· Soft-archived</span> : null}
                   {community.data.membership ? (
@@ -357,10 +357,10 @@ export default function CommunityHomePage({
 
         {community.data && !isLive && !isMember ? (
           <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-lg font-medium text-white">
+            <h3 className="text-lg font-medium text-foreground">
               This Community is Soft-archived
             </h3>
-            <p className="mt-2 text-sm text-white/70">
+            <p className="mt-2 text-sm text-muted-foreground">
               It is not open for new joins, requests, or invites. Members can
               still open history and Games. This is not a missing page.
             </p>
@@ -369,10 +369,10 @@ export default function CommunityHomePage({
 
         {community.data && !isLive && isMember ? (
           <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-lg font-medium text-white">
+            <h3 className="text-lg font-medium text-foreground">
               Soft-archived
             </h3>
-            <p className="mt-2 text-sm text-white/70">
+            <p className="mt-2 text-sm text-muted-foreground">
               Hidden from the Directory. Club Groups stay attached. You can
               still open Groups and see history and Games. New joins and invites
               are paused until an Owner or Admin unarchives.
@@ -381,23 +381,23 @@ export default function CommunityHomePage({
         ) : null}
 
         {community.data?.canManageSports ? (
-          <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">
+          <section className="space-y-4 rounded-xl border border-border bg-card p-6">
             <div>
-              <h3 className="text-lg font-medium text-white">Sports</h3>
-              <p className="mt-2 text-sm text-white/70">
+              <h3 className="text-lg font-medium text-foreground">Sports</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
                 Owner or Admin can add padel or football to the allow-list.
                 Removing a sport is refused while any Club Group of that sport
                 exists. New Club Groups may only use a sport on this list.
               </p>
             </div>
 
-            <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+            <ul className="divide-y divide-border rounded-lg border border-border">
               {community.data.sports.map((sport) => (
                 <li
                   key={sport}
                   className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="capitalize text-white">{sport}</span>
+                  <span className="capitalize text-foreground">{sport}</span>
                   <Button
                     size="sm"
                     variant="outline"
@@ -437,7 +437,7 @@ export default function CommunityHomePage({
                 <div className="flex-1 space-y-2">
                   <label
                     htmlFor="add-community-sport"
-                    className="text-sm text-white/70"
+                    className="text-sm text-muted-foreground"
                   >
                     Add sport
                   </label>
@@ -445,7 +445,7 @@ export default function CommunityHomePage({
                     id="add-community-sport"
                     name="sport"
                     required
-                    className="h-9 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                     defaultValue={availableSportsToAdd[0]}
                   >
                     {availableSportsToAdd.map((sport) => (
@@ -460,7 +460,7 @@ export default function CommunityHomePage({
                 </Button>
               </form>
             ) : (
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-muted-foreground">
                 Both padel and football are already on the allow-list.
               </p>
             )}
@@ -468,10 +468,10 @@ export default function CommunityHomePage({
         ) : null}
 
         {community.data ? (
-          <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-6">
+          <section className="space-y-4 rounded-xl border border-border bg-card p-6">
             <div>
-              <h3 className="text-lg font-medium text-white">Groups</h3>
-              <p className="mt-2 text-sm text-white/70">
+              <h3 className="text-lg font-medium text-foreground">Groups</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
                 Club Groups stay inside this Community. Public Groups are open
                 to Community members with no extra request. Groups are not listed
                 in the Directory.
@@ -479,21 +479,21 @@ export default function CommunityHomePage({
             </div>
 
             {community.data.groups.length === 0 ? (
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-muted-foreground">
                 This Community has no Groups yet.
               </p>
             ) : (
-              <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+              <ul className="divide-y divide-border rounded-lg border border-border">
                 {community.data.groups.map((group) => (
                   <li
                     key={group.id}
                     className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="space-y-1">
-                      <p className="font-medium text-white">
+                      <p className="font-medium text-foreground">
                         {group.name ?? "Untitled Group"}
                       </p>
-                      <div className="flex flex-wrap gap-2 text-sm text-white/60">
+                      <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                         <span className="capitalize">{group.type}</span>
                         {group.sport ? (
                           <span>· {group.sport}</span>
@@ -512,7 +512,7 @@ export default function CommunityHomePage({
             {community.data.canCreateClubGroup ? (
               <div className="space-y-4">
                 <form
-                  className="space-y-3 rounded-lg border border-white/10 p-4"
+                  className="space-y-3 rounded-lg border border-border p-4"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const formData = new FormData(event.currentTarget);
@@ -539,10 +539,10 @@ export default function CommunityHomePage({
                     event.currentTarget.reset();
                   }}
                 >
-                  <h4 className="font-medium text-white">
+                  <h4 className="font-medium text-foreground">
                     Create Club Group Public
                   </h4>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-muted-foreground">
                     Owner or Admin only. Open to Community members. Sport must
                     be on Community sports. You join as a Group member.
                   </p>
@@ -557,7 +557,7 @@ export default function CommunityHomePage({
                     <select
                       name="sport"
                       required
-                      className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
                       defaultValue={community.data.sports[0] ?? ""}
                     >
                       {community.data.sports.map((sport) => (
@@ -573,7 +573,7 @@ export default function CommunityHomePage({
                 </form>
 
                 <form
-                  className="space-y-3 rounded-lg border border-white/10 p-4"
+                  className="space-y-3 rounded-lg border border-border p-4"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const formData = new FormData(event.currentTarget);
@@ -600,10 +600,10 @@ export default function CommunityHomePage({
                     event.currentTarget.reset();
                   }}
                 >
-                  <h4 className="font-medium text-white">
+                  <h4 className="font-medium text-foreground">
                     Create Club Group Private
                   </h4>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-muted-foreground">
                     Owner or Admin only. Invite-only for Community members
                     (in-app). No Email invite or Invite link. Sport must be on
                     Community sports.
@@ -619,7 +619,7 @@ export default function CommunityHomePage({
                     <select
                       name="sport"
                       required
-                      className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
                       defaultValue={community.data.sports[0] ?? ""}
                     >
                       {community.data.sports.map((sport) => (
@@ -639,9 +639,9 @@ export default function CommunityHomePage({
         ) : null}
 
         {isMember ? (
-          <section className="rounded-xl border border-white/10 bg-black/20 p-6">
-            <h3 className="text-lg font-medium text-white">Members</h3>
-            <p className="mt-2 text-sm text-white/70">
+          <section className="rounded-xl border border-border bg-card p-6">
+            <h3 className="text-lg font-medium text-foreground">Members</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
               {community.data?.canManageRoles
                 ? "Owners can promote or demote members. Multiple Owners are allowed. The last Owner cannot leave or self-demote."
                 : "Only Owners can change roles. Admins cannot promote, demote, or change Owner-ship."}
@@ -662,11 +662,11 @@ export default function CommunityHomePage({
             ) : null}
 
             {members.error ? (
-              <p className="mt-4 text-sm text-red-300">{members.error.message}</p>
+              <p className="mt-4 text-sm text-destructive">{members.error.message}</p>
             ) : null}
 
             {members.data && members.data.length > 0 ? (
-              <ul className="mt-4 divide-y divide-white/10 rounded-lg border border-white/10">
+              <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
                 {members.data.map((member) => {
                   const isSelf = member.user.id === viewerUserId;
                   return (
@@ -675,21 +675,21 @@ export default function CommunityHomePage({
                       className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-foreground">
                           {member.user.name}
                           {isSelf ? (
-                            <span className="ml-2 text-sm font-normal text-white/60">
+                            <span className="ml-2 text-sm font-normal text-muted-foreground">
                               (you)
                             </span>
                           ) : null}
                         </p>
-                        <p className="text-sm text-white/60">
+                        <p className="text-sm text-muted-foreground">
                           {member.user.email}
                         </p>
                       </div>
                       {community.data?.canManageRoles ? (
                         <select
-                          className="h-9 rounded-md border border-white/15 bg-black/40 px-3 text-sm capitalize text-white"
+                          className="h-9 rounded-md border border-input bg-background px-3 text-sm capitalize text-foreground"
                           value={member.role}
                           disabled={setMemberRole.isPending}
                           onChange={(event) => {
@@ -716,7 +716,7 @@ export default function CommunityHomePage({
                           <option value="member">member</option>
                         </select>
                       ) : (
-                        <span className="text-sm capitalize text-white/70">
+                        <span className="text-sm capitalize text-muted-foreground">
                           {member.role}
                         </span>
                       )}
@@ -729,9 +729,9 @@ export default function CommunityHomePage({
         ) : null}
 
         {community.data?.canManageJoinRequests ? (
-          <section className="rounded-xl border border-white/10 bg-black/20 p-6">
-            <h3 className="text-lg font-medium text-white">Join requests</h3>
-            <p className="mt-2 text-sm text-white/70">
+          <section className="rounded-xl border border-border bg-card p-6">
+            <h3 className="text-lg font-medium text-foreground">Join requests</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
               Approve to admit as Member, reject to refuse (they may
               re-request), or leave pending to ignore.
             </p>
@@ -744,27 +744,27 @@ export default function CommunityHomePage({
             ) : null}
 
             {joinRequests.error ? (
-              <p className="mt-4 text-sm text-red-300">
+              <p className="mt-4 text-sm text-destructive">
                 {joinRequests.error.message}
               </p>
             ) : null}
 
             {joinRequests.data?.length === 0 ? (
-              <p className="mt-4 text-sm text-white/60">No pending requests.</p>
+              <p className="mt-4 text-sm text-muted-foreground">No pending requests.</p>
             ) : null}
 
             {joinRequests.data && joinRequests.data.length > 0 ? (
-              <ul className="mt-4 divide-y divide-white/10 rounded-lg border border-white/10">
+              <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
                 {joinRequests.data.map((request) => (
                   <li
                     key={request.id}
                     className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <p className="font-medium text-white">
+                      <p className="font-medium text-foreground">
                         {request.user.name}
                       </p>
-                      <p className="text-sm text-white/60">
+                      <p className="text-sm text-muted-foreground">
                         {request.user.email}
                       </p>
                     </div>
@@ -803,24 +803,24 @@ export default function CommunityHomePage({
         ) : null}
 
         {community.data?.type === "public" ? (
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-muted-foreground">
             Community Public uses request-to-join only. There is no Email invite
             or Invite link.
           </p>
         ) : null}
 
         {community.data?.canManageInvites ? (
-          <section className="space-y-6 rounded-xl border border-white/10 bg-black/20 p-6">
+          <section className="space-y-6 rounded-xl border border-border bg-card p-6">
             <div>
-              <h3 className="text-lg font-medium text-white">Private invites</h3>
-              <p className="mt-2 text-sm text-white/70">
+              <h3 className="text-lg font-medium text-foreground">Private invites</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
                 Owner and Admin can send Email invites and manage one reusable
                 Invite link.
               </p>
             </div>
 
-            <div className="space-y-3 rounded-lg border border-white/10 p-4">
-              <h4 className="font-medium text-white">Email invite</h4>
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <h4 className="font-medium text-foreground">Email invite</h4>
               <form
                 className="flex flex-col gap-3 sm:flex-row"
                 onSubmit={(event) => {
@@ -851,18 +851,18 @@ export default function CommunityHomePage({
               </form>
 
               {emailInvites.data?.length === 0 ? (
-                <p className="text-sm text-white/60">No unused Email invites.</p>
+                <p className="text-sm text-muted-foreground">No unused Email invites.</p>
               ) : null}
               {emailInvites.data && emailInvites.data.length > 0 ? (
-                <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+                <ul className="divide-y divide-border rounded-lg border border-border">
                   {emailInvites.data.map((invite) => (
                     <li
                       key={invite.id}
                       className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
-                        <p className="font-medium text-white">{invite.email}</p>
-                        <p className="text-xs text-white/60">
+                        <p className="font-medium text-foreground">{invite.email}</p>
+                        <p className="text-xs text-muted-foreground">
                           {invite.attachedUserId
                             ? "Attached to existing User"
                             : "No User yet"}
@@ -896,11 +896,11 @@ export default function CommunityHomePage({
               ) : null}
             </div>
 
-            <div className="space-y-3 rounded-lg border border-white/10 p-4">
-              <h4 className="font-medium text-white">Invite link</h4>
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <h4 className="font-medium text-foreground">Invite link</h4>
               {inviteLink.data ? (
                 <>
-                  <p className="text-sm text-white/70">
+                  <p className="text-sm text-muted-foreground">
                     Live reusable link. Any authenticated User who opens it
                     becomes a Member.
                   </p>
@@ -936,7 +936,7 @@ export default function CommunityHomePage({
                 </>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-white/70">No active Invite link.</p>
+                  <p className="text-sm text-muted-foreground">No active Invite link.</p>
                   <Button
                     size="sm"
                     onClick={() => createInviteLink.mutate({ communityId: id })}

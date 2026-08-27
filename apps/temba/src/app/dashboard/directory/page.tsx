@@ -28,10 +28,10 @@ export default function DirectoryPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-white">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               Directory
             </h2>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-muted-foreground">
               Live Community Public clubs only. Private clubs and Groups are not
               listed. Request to join — no Email invite or Invite link.
             </p>
@@ -49,17 +49,17 @@ export default function DirectoryPage() {
         ) : null}
 
         {directory.error ? (
-          <p className="text-sm text-red-300">{directory.error.message}</p>
+          <p className="text-sm text-destructive">{directory.error.message}</p>
         ) : null}
 
         {directory.data?.length === 0 ? (
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-muted-foreground">
             No live public Communities yet. Create one to see it here.
           </p>
         ) : null}
 
         {directory.data && directory.data.length > 0 ? (
-          <ul className="divide-y divide-white/10 rounded-xl border border-white/10 bg-black/20">
+          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
             {directory.data.map((community) => {
               const isMember = Boolean(community.membership);
               const joinStatus = community.joinRequest?.status;
@@ -74,9 +74,9 @@ export default function DirectoryPage() {
                     href={`/dashboard/communities/${community.id}`}
                     className="min-w-0 flex-1 space-y-1 transition hover:opacity-90"
                   >
-                    <p className="font-medium text-white">{community.name}</p>
+                    <p className="font-medium text-foreground">{community.name}</p>
                     {community.description ? (
-                      <p className="text-sm text-white/60">
+                      <p className="text-sm text-muted-foreground">
                         {community.description}
                       </p>
                     ) : null}
