@@ -28,10 +28,10 @@ export default function DirectoryPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
               Directory
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Live Community Public clubs only. Private clubs and Groups are not
               listed. Request to join — no Email invite or Invite link.
             </p>
@@ -49,17 +49,17 @@ export default function DirectoryPage() {
         ) : null}
 
         {directory.error ? (
-          <p className="text-sm text-destructive">{directory.error.message}</p>
+          <p className="text-destructive text-sm">{directory.error.message}</p>
         ) : null}
 
         {directory.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             No live public Communities yet. Create one to see it here.
           </p>
         ) : null}
 
         {directory.data && directory.data.length > 0 ? (
-          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+          <ul className="divide-border border-border bg-card divide-y rounded-xl border">
             {directory.data.map((community) => {
               const isMember = Boolean(community.membership);
               const joinStatus = community.joinRequest?.status;
@@ -74,9 +74,11 @@ export default function DirectoryPage() {
                     href={`/dashboard/communities/${community.id}`}
                     className="min-w-0 flex-1 space-y-1 transition hover:opacity-90"
                   >
-                    <p className="font-medium text-foreground">{community.name}</p>
+                    <p className="text-foreground font-medium">
+                      {community.name}
+                    </p>
                     {community.description ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         {community.description}
                       </p>
                     ) : null}

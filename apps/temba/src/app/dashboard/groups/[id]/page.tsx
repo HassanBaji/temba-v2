@@ -237,15 +237,15 @@ export default function GroupHomePage({
             ) : null}
 
             {group.error ? (
-              <p className="text-sm text-destructive">{group.error.message}</p>
+              <p className="text-destructive text-sm">{group.error.message}</p>
             ) : null}
 
             {group.data ? (
               <>
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                <h2 className="text-foreground text-2xl font-semibold tracking-tight">
                   {group.data.name ?? "Untitled Group"}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
                   <span className="capitalize">{group.data.type}</span>
                   {group.data.sport ? <span>· {group.data.sport}</span> : null}
                   {group.data.isLoose ? (
@@ -280,30 +280,30 @@ export default function GroupHomePage({
                   </div>
                 ) : null}
                 {group.data.community ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Club Group in{" "}
                     <Link
                       href={`/dashboard/communities/${group.data.community.id}`}
-                      className="underline underline-offset-2 hover:text-foreground"
+                      className="hover:text-foreground underline underline-offset-2"
                     >
                       {group.data.community.name}
                     </Link>
                   </p>
                 ) : null}
                 {group.data.isLoose && group.data.type === "public" ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Open-with-link: share the Group URL. Not listed in the
                     Directory. No Invite link.
                   </p>
                 ) : null}
                 {group.data.isLoose && group.data.type === "private" ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Loose Group Private: Email invite and Invite link from the
                     creator only. Not listed in the Directory.
                   </p>
                 ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Club Group Private: in-app invite of Community members only.
                     No Email invite or Invite link.
                   </p>
@@ -371,10 +371,10 @@ export default function GroupHomePage({
 
         {group.data?.isCommunityArchived && !group.data.communityMembership ? (
           <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-lg font-medium text-foreground">
+            <h3 className="text-foreground text-lg font-medium">
               This Club Group&apos;s Community is Soft-archived
             </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-sm">
               It is not open for join. Members of the Community can still open
               history and Games. This is not a missing page.
             </p>
@@ -383,10 +383,10 @@ export default function GroupHomePage({
 
         {group.data?.isCommunityArchived && group.data.communityMembership ? (
           <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-lg font-medium text-foreground">
+            <h3 className="text-foreground text-lg font-medium">
               Community Soft-archived
             </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-sm">
               This Club Group stays attached to its Community. You can still
               open it and see history and Games while the Community is archived.
             </p>
@@ -396,17 +396,19 @@ export default function GroupHomePage({
         {group.data?.communityId &&
         !group.data.communityMembership &&
         !group.data.isCommunityArchived ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             You cannot join this Club Group until you are a member of its
             Community.
           </p>
         ) : null}
 
         {group.data?.canInviteClubPrivate ? (
-          <section className="space-y-4 rounded-xl border border-border bg-card p-6">
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
             <div>
-              <h3 className="text-lg font-medium text-foreground">In-app invites</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <h3 className="text-foreground text-lg font-medium">
+                In-app invites
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
                 Owner, Admin, or this Group&apos;s creator can invite existing
                 Community members. Outsiders cannot be invited. There is no
                 Email invite or Invite link for Club Group Private.
@@ -432,7 +434,7 @@ export default function GroupHomePage({
               <select
                 name="userId"
                 required
-                className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                className="border-input bg-background text-foreground h-9 flex-1 rounded-md border px-3 text-sm"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -450,21 +452,23 @@ export default function GroupHomePage({
             </form>
 
             {pendingInvites.data?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No unused invites.</p>
+              <p className="text-muted-foreground text-sm">
+                No unused invites.
+              </p>
             ) : null}
 
             {pendingInvites.data && pendingInvites.data.length > 0 ? (
-              <ul className="divide-y divide-border rounded-lg border border-border">
+              <ul className="divide-border border-border divide-y rounded-lg border">
                 {pendingInvites.data.map((invite) => (
                   <li
                     key={invite.id}
                     className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <p className="font-medium text-foreground">
+                      <p className="text-foreground font-medium">
                         {invite.user.name}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         {invite.user.email}
                       </p>
                     </div>
@@ -488,19 +492,19 @@ export default function GroupHomePage({
         ) : null}
 
         {group.data?.canManageInvites ? (
-          <section className="space-y-6 rounded-xl border border-border bg-card p-6">
+          <section className="border-border bg-card space-y-6 rounded-xl border p-6">
             <div>
-              <h3 className="text-lg font-medium text-foreground">
+              <h3 className="text-foreground text-lg font-medium">
                 Private invites
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-2 text-sm">
                 Only the creator can send Email invites and manage one reusable
                 Invite link.
               </p>
             </div>
 
-            <div className="space-y-3 rounded-lg border border-border p-4">
-              <h4 className="font-medium text-foreground">Email invite</h4>
+            <div className="border-border space-y-3 rounded-lg border p-4">
+              <h4 className="text-foreground font-medium">Email invite</h4>
               <form
                 className="flex flex-col gap-3 sm:flex-row"
                 onSubmit={(event) => {
@@ -531,20 +535,22 @@ export default function GroupHomePage({
               </form>
 
               {emailInvites.data?.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   No unused Email invites.
                 </p>
               ) : null}
               {emailInvites.data && emailInvites.data.length > 0 ? (
-                <ul className="divide-y divide-border rounded-lg border border-border">
+                <ul className="divide-border border-border divide-y rounded-lg border">
                   {emailInvites.data.map((invite) => (
                     <li
                       key={invite.id}
                       className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
-                        <p className="font-medium text-foreground">{invite.email}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-foreground font-medium">
+                          {invite.email}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
                           {invite.attachedUserId
                             ? "Attached to existing User"
                             : "No User yet"}
@@ -580,11 +586,11 @@ export default function GroupHomePage({
               ) : null}
             </div>
 
-            <div className="space-y-3 rounded-lg border border-border p-4">
-              <h4 className="font-medium text-foreground">Invite link</h4>
+            <div className="border-border space-y-3 rounded-lg border p-4">
+              <h4 className="text-foreground font-medium">Invite link</h4>
               {inviteLink.data ? (
                 <>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Live reusable link. Any authenticated User who opens it
                     joins the Group.
                   </p>
@@ -620,7 +626,7 @@ export default function GroupHomePage({
                 </>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     No active Invite link.
                   </p>
                   <Button

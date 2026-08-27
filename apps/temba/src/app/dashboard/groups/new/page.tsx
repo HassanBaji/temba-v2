@@ -30,8 +30,7 @@ export default function NewLooseGroupPage() {
   const router = useRouter();
   const [name, setName] = React.useState("");
   const [sport, setSport] = React.useState<Sport>("padel");
-  const [visibility, setVisibility] =
-    React.useState<GroupVisibility>("public");
+  const [visibility, setVisibility] = React.useState<GroupVisibility>("public");
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
     onSuccess: (group) => {
@@ -53,8 +52,7 @@ export default function NewLooseGroupPage() {
     },
   });
 
-  const isPending =
-    createLoosePublic.isPending || createLoosePrivate.isPending;
+  const isPending = createLoosePublic.isPending || createLoosePrivate.isPending;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,10 +67,10 @@ export default function NewLooseGroupPage() {
     <DashboardShell title="Create Loose Group">
       <div className="mx-auto w-full max-w-lg space-y-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
             Create a Loose Group
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             A squad outside any Community. Public joins via the Group URL;
             Private uses Email invites and one reusable Invite link. You become
             a Group member.
@@ -81,7 +79,7 @@ export default function NewLooseGroupPage() {
 
         <form
           onSubmit={onSubmit}
-          className="space-y-6 rounded-xl border border-border bg-card p-6"
+          className="border-border bg-card space-y-6 rounded-xl border p-6"
         >
           <FieldGroup>
             <Field>

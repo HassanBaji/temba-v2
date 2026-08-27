@@ -16,10 +16,10 @@ export default function MyCommunitiesPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
               My Communities
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Communities you belong to. Open one to return to its home.
             </p>
           </div>
@@ -41,26 +41,28 @@ export default function MyCommunitiesPage() {
         ) : null}
 
         {mine.error ? (
-          <p className="text-sm text-destructive">{mine.error.message}</p>
+          <p className="text-destructive text-sm">{mine.error.message}</p>
         ) : null}
 
         {mine.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             You are not in any Communities yet.
           </p>
         ) : null}
 
         {mine.data && mine.data.length > 0 ? (
-          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+          <ul className="divide-border border-border bg-card divide-y rounded-xl border">
             {mine.data.map((community) => (
               <li key={community.id}>
                 <Link
                   href={`/dashboard/communities/${community.id}`}
-                  className="flex flex-col gap-2 px-4 py-4 transition hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                  className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="space-y-1">
-                    <p className="font-medium text-foreground">{community.name}</p>
-                    <p className="text-sm capitalize text-muted-foreground">
+                    <p className="text-foreground font-medium">
+                      {community.name}
+                    </p>
+                    <p className="text-muted-foreground text-sm capitalize">
                       {community.type} · {community.role}
                       {community.archivedAt ? " · Soft-archived" : ""}
                     </p>
