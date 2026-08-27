@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -7,6 +7,7 @@ import {
   communityMembers,
   communitySports,
   games,
+  GameStatusEnum,
   groupEmailInvites,
   groupInviteLinks,
   groupMemberInvites,
@@ -24,6 +25,11 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { type db } from "~/server/db";
+import {
+  GROUP_GAME_HISTORY_LIMIT,
+  GROUP_GAME_HISTORY_STATUSES,
+  HOME_UPCOMING_GAME_STATUSES,
+} from "~/server/groups/group-games";
 import {
   createOpaqueToken,
   getAppOrigin,
@@ -607,6 +613,83 @@ export const groupsRouter = createTRPCRouter({
         ? standingPosition(sortedStanding, appUser.id)
         : null;
 
+      const now = new Date();
+
+      // Upcoming / history are scoped by this Group id only (excludes null groupId).
+      // Soft-archived Communities are not filtered — members still see Games.
+      const upcomingGameRows = await ctx.db.query.games.findMany({
+        where: and(
+          eq(games.groupId, group.id),
+          inArray(games.status, [...HOME_UPCOMING_GAME_STATUSES]),
+          gte(games.startTime, now),
+        ),
+        columns: {
+          id: true,
+          name: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          sport: true,
+          groupId: true,
+        },
+        orderBy: (table, { asc }) => [asc(table.startTime)],
+      });
+
+      const historyGameRows = await ctx.db.query.games.findMany({
+        where: and(
+          eq(games.groupId, group.id),
+          or(
+            lt(games.startTime, now),
+            inArray(games.status, [...GROUP_GAME_HISTORY_STATUSES]),
+          ),
+        ),
+        columns: {
+          id: true,
+          name: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          sport: true,
+          groupId: true,
+        },
+        orderBy: (table, { desc }) => [desc(table.startTime)],
+        limit: GROUP_GAME_HISTORY_LIMIT,
+      });
+
+      const upcomingGames = upcomingGameRows.flatMap((game) => {
+        if (game.groupId === null) {
+          return [];
+        }
+        return [
+          {
+            id: game.id,
+            name: game.name,
+            startTime: game.startTime,
+            endTime: game.endTime,
+            status: (game.status ?? GameStatusEnum.PENDING) as
+              | "pending"
+              | "confirmed",
+            sport: game.sport,
+          },
+        ];
+      });
+
+      const gameHistory = historyGameRows.flatMap((game) => {
+        if (game.groupId === null) {
+          return [];
+        }
+        return [
+          {
+            id: game.id,
+            name: game.name,
+            startTime: game.startTime,
+            endTime: game.endTime,
+            status: game.status,
+            sport: game.sport,
+          },
+        ];
+      });
+
       return {
         id: group.id,
         name: group.name,
@@ -639,6 +722,8 @@ export const groupsRouter = createTRPCRouter({
           memberCount: memberRows.length,
           leaderboard,
         },
+        upcomingGames,
+        gameHistory,
         communityMembership: communityMembership
           ? { role: communityMembership.role }
           : null,

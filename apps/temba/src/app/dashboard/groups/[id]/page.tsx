@@ -12,6 +12,17 @@ import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
+function formatGameStart(startTime: Date | string) {
+  const date = startTime instanceof Date ? startTime : new Date(startTime);
+  return date.toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function GroupHomePage({
   params,
 }: {
@@ -517,6 +528,105 @@ export default function GroupHomePage({
                         {entry.totalSetsWon} sets · {entry.totalPointsWon}{" "}
                         points · {entry.totalGamesPlayed} Games
                       </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Upcoming Games
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Pending and confirmed Games for this Group, soonest first.
+            </p>
+
+            {group.data.upcomingGames.length === 0 ? (
+              <div className="border-border bg-card rounded-xl border px-4 py-6">
+                <p className="text-muted-foreground text-sm">
+                  No upcoming Games scheduled for this Group. When a pending or
+                  confirmed Game is set with a start time from now on, it will
+                  show up here.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                {group.data.upcomingGames.map((game) => (
+                  <li
+                    key={game.id}
+                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-foreground font-medium">
+                        {game.name ?? "Untitled Game"}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {formatGameStart(game.startTime)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {game.sport ? (
+                        <Badge variant="secondary" className="capitalize">
+                          {game.sport}
+                        </Badge>
+                      ) : null}
+                      <Badge variant="outline" className="capitalize">
+                        {game.status}
+                      </Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        {group.data ? (
+          <section className="space-y-3">
+            <h3 className="text-foreground text-lg font-semibold tracking-tight">
+              Game history
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Past, completed, or cancelled Games for this Group, newest first.
+            </p>
+
+            {group.data.gameHistory.length === 0 ? (
+              <div className="border-border bg-card rounded-xl border px-4 py-6">
+                <p className="text-muted-foreground text-sm">
+                  No Game history yet. Finished, cancelled, or past-start Games
+                  for this Group will appear here.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                {group.data.gameHistory.map((game) => (
+                  <li
+                    key={game.id}
+                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-foreground font-medium">
+                        {game.name ?? "Untitled Game"}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {formatGameStart(game.startTime)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {game.sport ? (
+                        <Badge variant="secondary" className="capitalize">
+                          {game.sport}
+                        </Badge>
+                      ) : null}
+                      {game.status ? (
+                        <Badge variant="outline" className="capitalize">
+                          {game.status}
+                        </Badge>
+                      ) : null}
                     </div>
                   </li>
                 ))}
