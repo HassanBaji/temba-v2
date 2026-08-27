@@ -117,7 +117,7 @@ A Community role with no staff powers. Community membership is required to join 
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
 **Soft-archive**:
-A reversible hide of a Community and its Club Groups (and, for Teams, the same refuse-new-activity rules once link behavior is locked). Games are kept. Not a delete, and not detaching Groups.
+A reversible hide of a Community and its Club Groups. For Teams: refuse new Team→Community link requests and decisions while archived; refuse invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats remain visible to those allowed to open them. Games are kept. Not a delete, and not detaching Groups.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
