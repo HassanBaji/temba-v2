@@ -282,8 +282,43 @@ export default function VenueHomePage({
             <p className="text-muted-foreground mt-2 text-sm">
               It is hidden from the Community request catalog. You can still
               edit fields, Courts, and logo. Unarchive to restore it to the live
-              catalog.
+              catalog. Live Community links stay.
             </p>
+          </section>
+        ) : null}
+
+        {venue.data ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Linked Communities
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Communities that currently have a live Venue link. Sharing a
+                Venue does not change membership.
+              </p>
+            </div>
+            {venue.data.linkedCommunities.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No Communities are live-linked to this Venue.
+              </p>
+            ) : (
+              <ul className="divide-border border-border divide-y rounded-lg border">
+                {venue.data.linkedCommunities.map((community) => (
+                  <li
+                    key={community.id}
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                  >
+                    <p className="text-foreground font-medium">
+                      {community.name}
+                    </p>
+                    {community.archivedAt ? (
+                      <Badge variant="outline">Soft-archived</Badge>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         ) : null}
 

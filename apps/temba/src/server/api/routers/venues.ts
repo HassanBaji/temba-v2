@@ -2,9 +2,16 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { courts, venues } from "@repo/db";
+import {
+  courts,
+  communities,
+  venueLinkRequests,
+  VenueLinkRequestStatusEnum,
+  venues,
+} from "@repo/db";
 
 import { type db } from "~/server/db";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { createTRPCRouter, operatorProcedure } from "~/server/api/trpc";
 import {
   assertVenueLogoType,
@@ -158,7 +165,20 @@ export const venuesRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
       }
 
-      return venue;
+      const linkedCommunities = await ctx.db.query.communities.findMany({
+        where: eq(communities.venueId, venue.id),
+        columns: {
+          id: true,
+          name: true,
+          archivedAt: true,
+        },
+        orderBy: (table, { asc }) => [asc(table.name)],
+      });
+
+      return {
+        ...venue,
+        linkedCommunities,
+      };
     }),
 
   create: operatorProcedure
@@ -551,5 +571,190 @@ export const venuesRouter = createTRPCRouter({
       }
 
       return updated;
+    }),
+
+  listPendingLinkRequests: operatorProcedure.query(async ({ ctx }) => {
+    const rows = await ctx.db.query.venueLinkRequests.findMany({
+      where: eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
+      with: {
+        community: {
+          columns: {
+            id: true,
+            name: true,
+            archivedAt: true,
+          },
+        },
+        venue: {
+          columns: {
+            id: true,
+            name: true,
+            city: true,
+            country: true,
+            archivedAt: true,
+          },
+        },
+        requestedBy: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: (table, { asc }) => [asc(table.createdAt)],
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      createdAt: row.createdAt,
+      community: row.community,
+      venue: row.venue,
+      requestedBy: row.requestedBy,
+    }));
+  }),
+
+  approveLinkRequest: operatorProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const request = await ctx.db.query.venueLinkRequests.findFirst({
+        where: eq(venueLinkRequests.id, input.requestId),
+        with: {
+          community: true,
+          venue: true,
+        },
+      });
+
+      if (request?.status !== VenueLinkRequestStatusEnum.PENDING) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Venue link request is not available",
+        });
+      }
+
+      if (request.community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot decide Venue link requests for an archived Community",
+        });
+      }
+
+      if (request.venue.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot decide Venue link requests for a Soft-archived Venue",
+        });
+      }
+
+      if (request.community.venueId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Community already has a Venue link",
+        });
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .update(communities)
+          .set({
+            venueId: request.venueId,
+            updatedAt: new Date(),
+          })
+          .where(eq(communities.id, request.communityId));
+
+        const [updated] = await tx
+          .update(venueLinkRequests)
+          .set({
+            status: VenueLinkRequestStatusEnum.APPROVED,
+            decidedBy: appUser.id,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(venueLinkRequests.id, request.id),
+              eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
+            ),
+          )
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Venue link request is no longer pending",
+          });
+        }
+      });
+
+      return {
+        ok: true as const,
+        communityId: request.communityId,
+        venueId: request.venueId,
+      };
+    }),
+
+  rejectLinkRequest: operatorProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const request = await ctx.db.query.venueLinkRequests.findFirst({
+        where: eq(venueLinkRequests.id, input.requestId),
+        with: {
+          community: true,
+          venue: true,
+        },
+      });
+
+      if (request?.status !== VenueLinkRequestStatusEnum.PENDING) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Venue link request is not available",
+        });
+      }
+
+      if (request.community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot decide Venue link requests for an archived Community",
+        });
+      }
+
+      if (request.venue.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot decide Venue link requests for a Soft-archived Venue",
+        });
+      }
+
+      const [updated] = await ctx.db
+        .update(venueLinkRequests)
+        .set({
+          status: VenueLinkRequestStatusEnum.REJECTED,
+          decidedBy: appUser.id,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(venueLinkRequests.id, request.id),
+            eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
+          ),
+        )
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Venue link request is no longer pending",
+        });
+      }
+
+      return {
+        ok: true as const,
+        communityId: request.communityId,
+        venueId: request.venueId,
+      };
     }),
 });

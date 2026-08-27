@@ -26,4 +26,5 @@ export * from "./community-sports";
 export * from "./community-join-requests";
 export * from "./community-email-invites";
 export * from "./community-invite-links";
+export * from "./venue-link-requests";
 export * from "./coaching-session-players";

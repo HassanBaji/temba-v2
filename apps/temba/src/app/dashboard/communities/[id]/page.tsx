@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { use } from "react";
+import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -142,6 +143,32 @@ export default function CommunityHomePage({
       await utils.communities.listTeamLinkRequests.invalidate({
         communityId: id,
       });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const [venueQuery, setVenueQuery] = React.useState("");
+  const liveVenues = api.communities.searchLiveVenues.useQuery(
+    { communityId: id, query: venueQuery },
+    { enabled: Boolean(community.data?.canRequestVenueLink) },
+  );
+
+  const requestVenueLink = api.communities.requestVenueLink.useMutation({
+    onSuccess: async () => {
+      toast.success("Venue link requested");
+      await utils.communities.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const unlinkVenue = api.communities.unlinkVenue.useMutation({
+    onSuccess: async () => {
+      toast.success("Venue unlinked");
+      await utils.communities.byId.invalidate({ id });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -374,6 +401,144 @@ export default function CommunityHomePage({
               history and Games. New joins, requests, Email invites, and Invite
               links are paused until an Owner or Admin unarchives.
             </p>
+          </section>
+        ) : null}
+
+        {community.data?.membership ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">Venue</h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Where this Community plays. Members see the linked place only.
+              </p>
+            </div>
+
+            {community.data.venue ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-start gap-4">
+                  {community.data.venue.logoImageUrl ? (
+                    // Public catalog URL (ADR-0006); not a signed URL.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={community.data.venue.logoImageUrl}
+                      alt={`${community.data.venue.name} logo`}
+                      className="border-border h-16 w-16 rounded-md border object-cover"
+                    />
+                  ) : null}
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-foreground font-medium">
+                        {community.data.venue.name}
+                      </p>
+                      {community.data.venue.archivedAt ? (
+                        <Badge variant="outline">Venue Soft-archived</Badge>
+                      ) : null}
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      {community.data.venue.city},{" "}
+                      {community.data.venue.country}
+                    </p>
+                  </div>
+                </div>
+                {community.data.venue.courts.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No Courts.</p>
+                ) : (
+                  <ul className="text-muted-foreground list-inside list-disc text-sm">
+                    {community.data.venue.courts.map((court) => (
+                      <li key={court.id}>{court.name}</li>
+                    ))}
+                  </ul>
+                )}
+                {community.data.canUnlinkVenue ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={unlinkVenue.isPending}
+                    onClick={() => unlinkVenue.mutate({ communityId: id })}
+                  >
+                    {unlinkVenue.isPending ? "Unlinking…" : "Unlink Venue"}
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                This Community is not linked to a Venue.
+              </p>
+            )}
+
+            {community.data.canManageVenueLink &&
+            community.data.venueLinkRequest?.status === "pending" ? (
+              <p className="text-muted-foreground text-sm">
+                Venue link request pending for{" "}
+                {community.data.venueLinkRequest.venue.name} (
+                {community.data.venueLinkRequest.venue.city},{" "}
+                {community.data.venueLinkRequest.venue.country}).
+              </p>
+            ) : null}
+
+            {community.data.canManageVenueLink &&
+            community.data.venueLinkRequest?.status === "rejected" &&
+            !community.data.venue ? (
+              <p className="text-muted-foreground text-sm">
+                Last Venue link request for{" "}
+                {community.data.venueLinkRequest.venue.name} was rejected. You
+                may request again.
+              </p>
+            ) : null}
+
+            {community.data.canRequestVenueLink ? (
+              <div className="space-y-3">
+                <Input
+                  value={venueQuery}
+                  onChange={(event) => setVenueQuery(event.target.value)}
+                  placeholder="Search live Venues by name, city, or country"
+                />
+                {liveVenues.isLoading ? (
+                  <Skeleton className="h-16 w-full" />
+                ) : null}
+                {liveVenues.error ? (
+                  <p className="text-destructive text-sm">
+                    {liveVenues.error.message}
+                  </p>
+                ) : null}
+                {liveVenues.data?.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No live Venues match.
+                  </p>
+                ) : null}
+                {liveVenues.data && liveVenues.data.length > 0 ? (
+                  <ul className="divide-border border-border divide-y rounded-lg border">
+                    {liveVenues.data.map((venue) => (
+                      <li
+                        key={venue.id}
+                        className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div>
+                          <p className="text-foreground font-medium">
+                            {venue.name}
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {venue.city}, {venue.country}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={requestVenueLink.isPending}
+                          onClick={() =>
+                            requestVenueLink.mutate({
+                              communityId: id,
+                              venueId: venue.id,
+                            })
+                          }
+                        >
+                          Request link
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         ) : null}
 

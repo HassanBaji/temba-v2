@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Badge } from "~/components/ui/badge";
@@ -9,7 +10,31 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
 export default function VenuesPage() {
+  const utils = api.useUtils();
   const venues = api.venues.list.useQuery();
+  const pendingLinks = api.venues.listPendingLinkRequests.useQuery();
+
+  const approveLink = api.venues.approveLinkRequest.useMutation({
+    onSuccess: async () => {
+      toast.success("Venue link approved");
+      await utils.venues.listPendingLinkRequests.invalidate();
+      await utils.venues.list.invalidate();
+      await utils.venues.byId.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const rejectLink = api.venues.rejectLinkRequest.useMutation({
+    onSuccess: async () => {
+      toast.success("Venue link request rejected");
+      await utils.venues.listPendingLinkRequests.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   return (
     <DashboardShell title="Venues">
@@ -28,6 +53,71 @@ export default function VenuesPage() {
             <Link href="/dashboard/venues/new">Create Venue</Link>
           </Button>
         </div>
+
+        <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+          <div>
+            <h3 className="text-foreground text-lg font-medium">
+              Pending Venue link requests
+            </h3>
+            <p className="text-muted-foreground mt-2 text-sm">
+              Approve sets the Community live Venue pointer. Reject is silent
+              and does not admit Users.
+            </p>
+          </div>
+
+          {pendingLinks.isLoading ? <Skeleton className="h-16 w-full" /> : null}
+          {pendingLinks.error ? (
+            <p className="text-destructive text-sm">
+              {pendingLinks.error.message}
+            </p>
+          ) : null}
+          {pendingLinks.data?.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No pending Venue link requests.
+            </p>
+          ) : null}
+          {pendingLinks.data && pendingLinks.data.length > 0 ? (
+            <ul className="divide-border border-border divide-y rounded-lg border">
+              {pendingLinks.data.map((request) => (
+                <li
+                  key={request.id}
+                  className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-foreground font-medium">
+                      {request.community.name}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {request.requestedBy.name} · {request.venue.name} ·{" "}
+                      {request.createdAt.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        approveLink.mutate({ requestId: request.id })
+                      }
+                      disabled={approveLink.isPending || rejectLink.isPending}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        rejectLink.mutate({ requestId: request.id })
+                      }
+                      disabled={approveLink.isPending || rejectLink.isPending}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
 
         {venues.isLoading ? (
           <div className="space-y-3">

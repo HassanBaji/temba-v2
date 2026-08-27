@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { courts } from "./courts";
+import { communities } from "./communities";
 
 /**
  * Venue is the evolved leftover courts table (same id space). Game, coach,
@@ -42,4 +43,5 @@ export const venues = pgTable(
 
 export const venueRelations = relations(venues, ({ many }) => ({
   courts: many(courts),
+  communities: many(communities),
 }));

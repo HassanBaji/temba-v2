@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -18,6 +18,9 @@ import {
   teamMembers,
   teams,
   user,
+  venueLinkRequests,
+  VenueLinkRequestStatusEnum,
+  venues,
   type GroupSportEnum,
 } from "@repo/db";
 
@@ -43,6 +46,7 @@ const communityTypeSchema = z.enum(["public", "private"]);
 type DbClient = typeof db;
 type CommunityRole = "owner" | "admin" | "member";
 type JoinRequestStatus = "pending" | "approved" | "rejected";
+type VenueLinkStatus = "pending" | "approved" | "rejected";
 
 function isStaffRole(role: string | null | undefined) {
   return role === "owner" || role === "admin";
@@ -54,6 +58,10 @@ function asRole(role: string): CommunityRole {
 
 function asJoinStatus(status: string): JoinRequestStatus {
   return status as JoinRequestStatus;
+}
+
+function asVenueLinkStatus(status: string): VenueLinkStatus {
+  return status as VenueLinkStatus;
 }
 
 function teamDisplayName(name: string | null, memberNames: string[]) {
@@ -77,6 +85,55 @@ async function requireCommunity(database: DbClient, id: string) {
   }
 
   return community;
+}
+
+async function loadMemberVenue(database: DbClient, venueId: string | null) {
+  if (!venueId) {
+    return null;
+  }
+
+  const venue = await database.query.venues.findFirst({
+    where: eq(venues.id, venueId),
+    columns: {
+      id: true,
+      name: true,
+      city: true,
+      country: true,
+      logoImageUrl: true,
+      archivedAt: true,
+    },
+    with: {
+      courts: {
+        columns: {
+          id: true,
+          name: true,
+          createdAt: true,
+        },
+        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      },
+    },
+  });
+
+  return venue ?? null;
+}
+
+function mapVenueLinkRequestRow(row: {
+  id: string;
+  status: string;
+  createdAt: Date;
+  venue: { id: string; name: string; city: string; country: string };
+}) {
+  return {
+    id: row.id,
+    status: asVenueLinkStatus(row.status),
+    createdAt: row.createdAt,
+    venue: {
+      id: row.venue.id,
+      name: row.venue.name,
+      city: row.venue.city,
+      country: row.venue.country,
+    },
+  };
 }
 
 async function requireMembership(
@@ -282,6 +339,63 @@ export const communitiesRouter = createTRPCRouter({
         Boolean(community.archivedAt) && isStaffRole(membership?.role);
       const canManageTeamLinks =
         !community.archivedAt && isStaffRole(membership?.role);
+      const canManageVenueLink =
+        !community.archivedAt && isStaffRole(membership?.role);
+
+      const venue = membership
+        ? await loadMemberVenue(ctx.db, community.venueId)
+        : null;
+
+      let venueLinkRequest: ReturnType<typeof mapVenueLinkRequestRow> | null =
+        null;
+      if (isStaffRole(membership?.role)) {
+        const pendingRequest = await ctx.db.query.venueLinkRequests.findFirst({
+          where: and(
+            eq(venueLinkRequests.communityId, community.id),
+            eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
+          ),
+          with: {
+            venue: {
+              columns: {
+                id: true,
+                name: true,
+                city: true,
+                country: true,
+              },
+            },
+          },
+        });
+        if (pendingRequest) {
+          venueLinkRequest = mapVenueLinkRequestRow(pendingRequest);
+        } else {
+          const lastRejected = await ctx.db.query.venueLinkRequests.findFirst({
+            where: and(
+              eq(venueLinkRequests.communityId, community.id),
+              eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.REJECTED),
+            ),
+            with: {
+              venue: {
+                columns: {
+                  id: true,
+                  name: true,
+                  city: true,
+                  country: true,
+                },
+              },
+            },
+            orderBy: (table, { desc }) => [desc(table.createdAt)],
+          });
+          if (lastRejected) {
+            venueLinkRequest = mapVenueLinkRequestRow(lastRejected);
+          }
+        }
+      }
+
+      const canRequestVenueLink =
+        canManageVenueLink &&
+        !community.venueId &&
+        venueLinkRequest?.status !== "pending";
+      const canUnlinkVenue = canManageVenueLink && Boolean(community.venueId);
 
       let canLeave = Boolean(membership);
       let linkedTeamBlocksLeave = false;
@@ -392,6 +506,11 @@ export const communitiesRouter = createTRPCRouter({
         canLeave,
         linkedTeamBlocksLeave,
         canManageTeamLinks,
+        canManageVenueLink,
+        canRequestVenueLink,
+        canUnlinkVenue,
+        venue,
+        venueLinkRequest,
         groups: clubGroups.map((group) => ({
           id: group.id,
           name: group.name,
@@ -1962,6 +2081,210 @@ export const communitiesRouter = createTRPCRouter({
       return {
         communityId: community.id,
         alreadyMember: false as const,
+      };
+    }),
+
+  searchLiveVenues: protectedProcedure
+    .input(
+      z.object({
+        communityId: z.string().uuid(),
+        query: z.string().trim().max(255),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+      await requireStaff(
+        ctx.db,
+        community.id,
+        appUser.id,
+        "Only Owner or Admin can search Venues",
+      );
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot search Venues for an archived Community",
+        });
+      }
+
+      const query = input.query;
+      const rows = await ctx.db.query.venues.findMany({
+        where: and(
+          isNull(venues.archivedAt),
+          query
+            ? or(
+                ilike(venues.name, `%${query}%`),
+                ilike(venues.city, `%${query}%`),
+                ilike(venues.country, `%${query}%`),
+              )
+            : undefined,
+        ),
+        columns: {
+          id: true,
+          name: true,
+          city: true,
+          country: true,
+          logoImageUrl: true,
+        },
+        with: {
+          courts: {
+            columns: {
+              id: true,
+              name: true,
+              createdAt: true,
+            },
+            orderBy: (table, { asc }) => [asc(table.createdAt)],
+          },
+        },
+        orderBy: (table, { asc }) => [
+          asc(table.name),
+          asc(table.city),
+          asc(table.country),
+        ],
+      });
+
+      return rows;
+    }),
+
+  requestVenueLink: protectedProcedure
+    .input(
+      z.object({
+        communityId: z.string().uuid(),
+        venueId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+      await requireStaff(
+        ctx.db,
+        community.id,
+        appUser.id,
+        "Only Owner or Admin can request a Venue link",
+      );
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot request a Venue link for an archived Community",
+        });
+      }
+
+      if (community.venueId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Community already has a Venue link",
+        });
+      }
+
+      const venue = await ctx.db.query.venues.findFirst({
+        where: eq(venues.id, input.venueId),
+        columns: { id: true, archivedAt: true },
+      });
+
+      if (!venue) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+      }
+
+      if (venue.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot request a link to a Soft-archived Venue",
+        });
+      }
+
+      const pending = await ctx.db.query.venueLinkRequests.findFirst({
+        where: and(
+          eq(venueLinkRequests.communityId, community.id),
+          eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
+        ),
+      });
+
+      if (pending) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "This Community already has a pending Venue link request",
+        });
+      }
+
+      try {
+        const [created] = await ctx.db
+          .insert(venueLinkRequests)
+          .values({
+            communityId: community.id,
+            venueId: venue.id,
+            requestedBy: appUser.id,
+            status: VenueLinkRequestStatusEnum.PENDING,
+          })
+          .returning();
+
+        if (!created) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create Venue link request",
+          });
+        }
+
+        return {
+          id: created.id,
+          communityId: created.communityId,
+          venueId: created.venueId,
+          status: asVenueLinkStatus(created.status),
+        };
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          error.code === "23505"
+        ) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "This Community already has a pending Venue link request",
+          });
+        }
+        throw error;
+      }
+    }),
+
+  unlinkVenue: protectedProcedure
+    .input(z.object({ communityId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const community = await requireCommunity(ctx.db, input.communityId);
+      await requireStaff(
+        ctx.db,
+        community.id,
+        appUser.id,
+        "Only Owner or Admin can unlink a Venue",
+      );
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot unlink a Venue from an archived Community",
+        });
+      }
+
+      if (!community.venueId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Community is not linked to a Venue",
+        });
+      }
+
+      await ctx.db
+        .update(communities)
+        .set({
+          venueId: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(communities.id, community.id));
+
+      return {
+        ok: true as const,
+        communityId: community.id,
       };
     }),
 });
