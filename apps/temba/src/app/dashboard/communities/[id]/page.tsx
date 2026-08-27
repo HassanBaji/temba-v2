@@ -342,7 +342,7 @@ export default function CommunityHomePage({
               </Button>
             ) : null}
             <Button variant="outline" asChild>
-              <Link href="/dashboard/communities">My Communities</Link>
+              <Link href="/dashboard/hub">Groups &amp; Communities</Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard/directory">Directory</Link>
