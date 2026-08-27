@@ -11,7 +11,7 @@ import {
   filterAndSortHomeUpcomingGames,
   isHomeUpcomingGame,
   type HomeUpcomingGameCandidate,
-} from "~/server/home/upcoming-games";
+} from "../home/upcoming-games";
 
 export { HOME_UPCOMING_GAME_STATUSES };
 
