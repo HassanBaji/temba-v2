@@ -70,12 +70,31 @@ fi
 
 # Supabase Storage (Venue logos). Sync when Cloud secrets are present so env
 # validation can require URL, write key, and bucket name (ADR-0006).
+# Empty .env.example values fail validation; if Cloud secrets are absent,
+# write syntactically valid placeholders so /login can render. Live logo
+# upload still needs real keys.
+env_value_empty() {
+  local file="$1" key="$2"
+  local line value
+  line=$(grep "^${key}=" "$file" || true)
+  value="${line#${key}=}"
+  value="${value#\"}"
+  value="${value%\"}"
+  [ -z "$value" ]
+}
+
 if [ -n "${SUPABASE_URL:-}" ]; then
   set_env_kv apps/temba/.env SUPABASE_URL "$SUPABASE_URL"
+elif env_value_empty apps/temba/.env SUPABASE_URL; then
+  set_env_kv apps/temba/.env SUPABASE_URL "https://example.supabase.co"
 fi
 if [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
   set_env_kv apps/temba/.env SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY"
+elif env_value_empty apps/temba/.env SUPABASE_SERVICE_ROLE_KEY; then
+  set_env_kv apps/temba/.env SUPABASE_SERVICE_ROLE_KEY "cloud-agent-build-only-not-a-real-key"
 fi
 if [ -n "${SUPABASE_VENUE_LOGOS_BUCKET:-}" ]; then
   set_env_kv apps/temba/.env SUPABASE_VENUE_LOGOS_BUCKET "$SUPABASE_VENUE_LOGOS_BUCKET"
+elif env_value_empty apps/temba/.env SUPABASE_VENUE_LOGOS_BUCKET; then
+  set_env_kv apps/temba/.env SUPABASE_VENUE_LOGOS_BUCKET "venue-logos"
 fi
