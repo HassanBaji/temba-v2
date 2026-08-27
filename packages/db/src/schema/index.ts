@@ -3,6 +3,7 @@ export * from "./session";
 export * from "./user";
 export * from "./verification";
 export * from "./venues";
+export * from "./courts";
 export * from "./coach";
 export * from "./coaching-session";
 export * from "./games";

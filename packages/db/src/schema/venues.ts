@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   decimal,
   pgTable,
@@ -7,6 +7,8 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+import { courts } from "./courts";
 
 /**
  * Venue is the evolved leftover courts table (same id space). Game, coach,
@@ -36,3 +38,7 @@ export const venues = pgTable(
     ),
   }),
 );
+
+export const venueRelations = relations(venues, ({ many }) => ({
+  courts: many(courts),
+}));
