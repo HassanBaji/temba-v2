@@ -246,4 +246,16 @@ Glossary: apply the Language patch in root CONTEXT.md in the same planning commi
 
 Locked v1 defaults (not a further grill): no Court cap; catalog search contains name/city/country; Operator queue shows Community name, requester, Venue, time; lat/lng Operator-only; Create Community name+type only; city and country trimmed free text; uniqueness (name, city, country) includes archived rows; silent reject.
 
-Next step after this spec is approved: `/to-tickets` (Linear implementation tickets, local spec stays here). Do not implement from this file until tickets exist and an implementer is asked to run them.
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/venues/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-24 Operator can create and edit Venues](https://linear.app/temba-app/issue/TEM-24/operator-can-create-and-edit-venues) | — |
+| 2 | [TEM-25 Operator can manage Courts on a Venue](https://linear.app/temba-app/issue/TEM-25/operator-can-manage-courts-on-a-venue) | TEM-24 |
+| 3 | [TEM-26 Operator can upload a Venue logo](https://linear.app/temba-app/issue/TEM-26/operator-can-upload-a-venue-logo) | TEM-24 |
+| 4 | [TEM-27 Operator can Soft-archive a Venue](https://linear.app/temba-app/issue/TEM-27/operator-can-soft-archive-a-venue) | TEM-24 |
+| 5 | [TEM-28 Community can request, link, and unlink a Venue](https://linear.app/temba-app/issue/TEM-28/community-can-request-link-and-unlink-a-venue) | TEM-24, TEM-25, TEM-27 |
+
+Frontier: **TEM-24** only. Do not implement until an implementer / orchestrator is asked to run the tickets in order. TEM-26 is parallel with TEM-25 and TEM-27; it does not block TEM-28.
