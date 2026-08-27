@@ -23,13 +23,11 @@ import {
 } from "~/components/ui/select";
 import { api } from "~/trpc/react";
 
-type Sport = "padel" | "football";
 type GroupVisibility = "public" | "private";
 
 export default function NewLooseGroupPage() {
   const router = useRouter();
   const [name, setName] = React.useState("");
-  const [sport, setSport] = React.useState<Sport>("padel");
   const [visibility, setVisibility] = React.useState<GroupVisibility>("public");
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
@@ -57,10 +55,10 @@ export default function NewLooseGroupPage() {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (visibility === "private") {
-      createLoosePrivate.mutate({ name, sport });
+      createLoosePrivate.mutate({ name, sport: "padel" });
       return;
     }
-    createLoosePublic.mutate({ name, sport });
+    createLoosePublic.mutate({ name, sport: "padel" });
   }
 
   return (
@@ -92,23 +90,6 @@ export default function NewLooseGroupPage() {
                 required
                 maxLength={255}
               />
-            </Field>
-
-            <Field>
-              <FieldLabel>Sport</FieldLabel>
-              <Select
-                value={sport}
-                onValueChange={(value) => setSport(value as Sport)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select sport" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="padel">Padel</SelectItem>
-                  <SelectItem value="football">Football</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldDescription>Exactly one sport.</FieldDescription>
             </Field>
 
             <Field>
