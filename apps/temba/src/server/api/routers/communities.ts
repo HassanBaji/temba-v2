@@ -763,6 +763,44 @@ export const communitiesRouter = createTRPCRouter({
       },
     });
 
+    const communityIds = memberships.map(
+      (membership) => membership.community.id,
+    );
+
+    const clubGroups =
+      communityIds.length > 0
+        ? await ctx.db.query.groups.findMany({
+            where: inArray(groups.communityId, communityIds),
+            orderBy: (table, { asc }) => [asc(table.name)],
+          })
+        : [];
+
+    const memberGroupIds = new Set<string>();
+    if (clubGroups.length > 0) {
+      const myGroupMemberships = await ctx.db.query.groupMembers.findMany({
+        where: and(
+          eq(groupMembers.userId, appUser.id),
+          inArray(
+            groupMembers.groupId,
+            clubGroups.map((group) => group.id),
+          ),
+        ),
+      });
+      for (const row of myGroupMemberships) {
+        memberGroupIds.add(row.groupId);
+      }
+    }
+
+    const groupsByCommunityId = new Map<string, typeof clubGroups>();
+    for (const group of clubGroups) {
+      if (!group.communityId) {
+        continue;
+      }
+      const nested = groupsByCommunityId.get(group.communityId) ?? [];
+      nested.push(group);
+      groupsByCommunityId.set(group.communityId, nested);
+    }
+
     return memberships.map((membership) => ({
       id: membership.community.id,
       name: membership.community.name,
@@ -773,6 +811,16 @@ export const communitiesRouter = createTRPCRouter({
         (sportRow) => sportRow.sport as GroupSportEnum,
       ),
       archivedAt: membership.community.archivedAt,
+      groups: (groupsByCommunityId.get(membership.community.id) ?? []).map(
+        (group) => ({
+          id: group.id,
+          name: group.name,
+          description: group.description,
+          type: group.type,
+          sport: group.sport as GroupSportEnum | null,
+          isMember: memberGroupIds.has(group.id),
+        }),
+      ),
     }));
   }),
 

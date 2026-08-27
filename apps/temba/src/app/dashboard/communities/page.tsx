@@ -8,29 +8,25 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
-export default function MyCommunitiesPage() {
+export default function CommunitiesPage() {
   const mine = api.communities.mine.useQuery();
 
   return (
-    <DashboardShell title="My Communities">
+    <DashboardShell title="Communities">
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
             <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              My Communities
+              Communities
             </h2>
             <p className="text-muted-foreground text-sm">
-              Communities you belong to. Open one to return to its home.
+              Communities you belong to, with every Club Group nested. Open a
+              Community or Group to go to its home.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/groups/new">Create Loose Group</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/dashboard/communities/new">Create Community</Link>
-            </Button>
-          </div>
+          <Button asChild>
+            <Link href="/dashboard/communities/new">Create Community</Link>
+          </Button>
         </div>
 
         {mine.isLoading ? (
@@ -69,7 +65,7 @@ export default function MyCommunitiesPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {community.archivedAt ? (
-                      <Badge variant="outline">Archived</Badge>
+                      <Badge variant="outline">Soft-archived</Badge>
                     ) : null}
                     {community.sports.map((sport) => (
                       <Badge key={sport} variant="secondary">
@@ -78,6 +74,35 @@ export default function MyCommunitiesPage() {
                     ))}
                   </div>
                 </Link>
+                <ul className="border-border divide-border divide-y border-t">
+                  {community.groups.length === 0 ? (
+                    <li className="text-muted-foreground px-4 py-3 pl-8 text-sm">
+                      No Groups yet.
+                    </li>
+                  ) : (
+                    community.groups.map((group) => (
+                      <li key={group.id}>
+                        <Link
+                          href={`/dashboard/groups/${group.id}`}
+                          className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-3 pl-8 transition sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="space-y-1">
+                            <p className="text-foreground font-medium">
+                              {group.name ?? "Untitled Group"}
+                            </p>
+                            <p className="text-muted-foreground text-sm capitalize">
+                              {group.type}
+                              {group.isMember ? " · Joined" : ""}
+                            </p>
+                          </div>
+                          {group.sport ? (
+                            <Badge variant="secondary">{group.sport}</Badge>
+                          ) : null}
+                        </Link>
+                      </li>
+                    ))
+                  )}
+                </ul>
               </li>
             ))}
           </ul>
