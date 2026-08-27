@@ -6,6 +6,7 @@ import { UserButton } from "@clerk/nextjs";
 import {
   IconBuildingCommunity,
   IconHome,
+  IconUsers,
   IconUsersGroup,
 } from "@tabler/icons-react";
 
@@ -30,6 +31,11 @@ const navMain = [
     title: "Groups",
     url: "/dashboard/groups",
     icon: IconUsersGroup,
+  },
+  {
+    title: "Teams",
+    url: "/dashboard/teams",
+    icon: IconUsers,
   },
   {
     title: "Communities",
