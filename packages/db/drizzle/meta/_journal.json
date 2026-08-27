@@ -99,6 +99,13 @@
       "when": 1787836409607,
       "tag": "0013_courts_on_venues",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787836944075,
+      "tag": "0014_venue_archived_at",
+      "breakpoints": true
     }
   ]
 }

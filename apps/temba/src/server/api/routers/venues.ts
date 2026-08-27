@@ -71,7 +71,7 @@ const duplicateCourtMessage =
 async function requireVenue(database: DbClient, id: string) {
   const venue = await database.query.venues.findFirst({
     where: eq(venues.id, id),
-    columns: { id: true },
+    columns: { id: true, archivedAt: true },
   });
 
   if (!venue) {
@@ -112,6 +112,7 @@ export const venuesRouter = createTRPCRouter({
         country: true,
         latitude: true,
         longitude: true,
+        archivedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -136,6 +137,7 @@ export const venuesRouter = createTRPCRouter({
           latitude: true,
           longitude: true,
           logoImageUrl: true,
+          archivedAt: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -475,6 +477,76 @@ export const venuesRouter = createTRPCRouter({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to clear Venue logo",
+        });
+      }
+
+      return updated;
+    }),
+
+  softArchive: operatorProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const venue = await requireVenue(ctx.db, input.id);
+
+      if (venue.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Venue is already Soft-archived",
+        });
+      }
+
+      // Soft-archive hides the Venue from the Community request catalog.
+      // Edits stay allowed. Live Community pointers are not cleared.
+      const [updated] = await ctx.db
+        .update(venues)
+        .set({
+          archivedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(venues.id, venue.id))
+        .returning({
+          id: venues.id,
+          archivedAt: venues.archivedAt,
+        });
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to Soft-archive Venue",
+        });
+      }
+
+      return updated;
+    }),
+
+  unarchive: operatorProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const venue = await requireVenue(ctx.db, input.id);
+
+      if (!venue.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Venue is not Soft-archived",
+        });
+      }
+
+      const [updated] = await ctx.db
+        .update(venues)
+        .set({
+          archivedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(venues.id, venue.id))
+        .returning({
+          id: venues.id,
+          archivedAt: venues.archivedAt,
+        });
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to unarchive Venue",
         });
       }
 

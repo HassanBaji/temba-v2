@@ -26,6 +26,7 @@ export const venues = pgTable(
     phone: varchar("phone", { length: 255 }),
     website: varchar("website", { length: 255 }),
     logoImageUrl: varchar("logo_image_url", { length: 255 }),
+    archivedAt: timestamp("archived_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

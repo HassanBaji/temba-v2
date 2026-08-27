@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
@@ -19,8 +20,8 @@ export default function VenuesPage() {
               Venues
             </h2>
             <p className="text-muted-foreground text-sm">
-              Physical sites in the catalog. Create a Venue before any Community
-              claims it.
+              Physical sites in the catalog, including Soft-archived Venues.
+              Create a Venue before any Community claims it.
             </p>
           </div>
           <Button asChild>
@@ -57,8 +58,12 @@ export default function VenuesPage() {
                     <p className="text-foreground font-medium">{venue.name}</p>
                     <p className="text-muted-foreground text-sm">
                       {venue.city}, {venue.country}
+                      {venue.archivedAt ? " · Soft-archived" : ""}
                     </p>
                   </div>
+                  {venue.archivedAt ? (
+                    <Badge variant="outline">Soft-archived</Badge>
+                  ) : null}
                 </Link>
               </li>
             ))}

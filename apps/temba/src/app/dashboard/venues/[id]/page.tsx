@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -173,6 +174,28 @@ export default function VenueHomePage({
     },
   });
 
+  const softArchive = api.venues.softArchive.useMutation({
+    onSuccess: async () => {
+      toast.success("Venue Soft-archived");
+      await utils.venues.byId.invalidate({ id });
+      await utils.venues.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const unarchive = api.venues.unarchive.useMutation({
+    onSuccess: async () => {
+      toast.success("Venue unarchived");
+      await utils.venues.byId.invalidate({ id });
+      await utils.venues.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     updateVenue.mutate({
@@ -212,15 +235,57 @@ export default function VenueHomePage({
   return (
     <DashboardShell title="Venue">
       <div className="mx-auto w-full max-w-2xl space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            {venue.data?.name ?? "Venue"}
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Edit name, city, country, and optional coordinates. Courts are named
-            playing surfaces on this Venue.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-foreground text-2xl font-semibold tracking-tight">
+                {venue.data?.name ?? "Venue"}
+              </h2>
+              {venue.data?.archivedAt ? (
+                <Badge variant="outline">Soft-archived</Badge>
+              ) : null}
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Edit name, city, country, and optional coordinates. Courts are
+              named playing surfaces on this Venue.
+            </p>
+          </div>
+          {venue.data ? (
+            <div className="flex flex-wrap gap-2">
+              {venue.data.archivedAt ? (
+                <Button
+                  type="button"
+                  onClick={() => unarchive.mutate({ id })}
+                  disabled={unarchive.isPending || softArchive.isPending}
+                >
+                  {unarchive.isPending ? "Unarchiving…" : "Unarchive"}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => softArchive.mutate({ id })}
+                  disabled={softArchive.isPending || unarchive.isPending}
+                >
+                  {softArchive.isPending ? "Archiving…" : "Soft-archive"}
+                </Button>
+              )}
+            </div>
+          ) : null}
         </div>
+
+        {venue.data?.archivedAt ? (
+          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
+            <h3 className="text-foreground text-lg font-medium">
+              This Venue is Soft-archived
+            </h3>
+            <p className="text-muted-foreground mt-2 text-sm">
+              It is hidden from the Community request catalog. You can still
+              edit fields, Courts, and logo. Unarchive to restore it to the live
+              catalog.
+            </p>
+          </section>
+        ) : null}
 
         {venue.isLoading ? <Skeleton className="h-64 w-full" /> : null}
 
