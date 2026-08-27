@@ -33,12 +33,12 @@ _Avoid_: Public (EWA Connect’s second App), public app, public package, Commun
 ### Product
 
 **Community**:
-A club people belong to. It may contain many Groups and offers one or more sports.
+A club people belong to. It may contain many Groups and many Teams and offers one or more sports.
 _Avoid_: Workspace, club, org, server, workspace (when you mean Community)
 
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
-_Avoid_: Community, team, lobby, channel
+_Avoid_: Community, Team, lobby, channel
 
 **Club Group**:
 A Group that belongs to a Community.
@@ -85,8 +85,24 @@ A reusable door URL for a Community Private or Loose Group Private until staff r
 _Avoid_: Email invite, magic link, Group URL (Loose Group Public uses the Group URL, not an Invite link)
 
 **Community sports**:
-The allow-list of sports a Community offers (padel, football, or both). Each Group still has exactly one sport.
-_Avoid_: Group sports (that is the single sport on a Group)
+The allow-list of sports a Community offers (padel, football, or both). Each Group and each Team still has exactly one sport.
+_Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
+
+**Team**:
+A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending invite for the second seat). Every Team is either a Club Team or a Loose Team. The Community parent is chosen at create time and is immutable.
+_Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
+
+**Club Team**:
+A Team that belongs to a Community.
+_Avoid_: Club Group, nested team
+
+**Loose Team**:
+A Team that does not belong to a Community.
+_Avoid_: orphan Team, standalone Team, free Team
+
+**Game team**:
+One side in a single Game (the `game_teams` row). Not a Team.
+_Avoid_: Team (when you mean a Game side), partnership
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
