@@ -93,7 +93,7 @@ export default function HomePage() {
                     pending or confirmed Game, it will show up here.
                   </p>
                   <Button asChild size="sm">
-                    <Link href="/dashboard/hub">Groups &amp; Communities</Link>
+                    <Link href="/dashboard/groups">Groups</Link>
                   </Button>
                 </div>
               ) : (
@@ -145,7 +145,7 @@ export default function HomePage() {
                     your standing on the leaderboard.
                   </p>
                   <Button asChild size="sm">
-                    <Link href="/dashboard/hub">Groups &amp; Communities</Link>
+                    <Link href="/dashboard/groups">Groups</Link>
                   </Button>
                 </div>
               ) : (

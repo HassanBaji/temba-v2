@@ -27,12 +27,14 @@ type GroupVisibility = "public" | "private";
 
 export default function NewLooseGroupPage() {
   const router = useRouter();
+  const utils = api.useUtils();
   const [name, setName] = React.useState("");
   const [visibility, setVisibility] = React.useState<GroupVisibility>("public");
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
-    onSuccess: (group) => {
-      toast.success("Loose Group created");
+    onSuccess: async (group) => {
+      toast.success("Group created");
+      await utils.groups.mine.invalidate();
       router.push(`/dashboard/groups/${group.id}`);
     },
     onError: (error) => {
@@ -41,8 +43,9 @@ export default function NewLooseGroupPage() {
   });
 
   const createLoosePrivate = api.groups.createLoosePrivate.useMutation({
-    onSuccess: (group) => {
-      toast.success("Loose Group Private created");
+    onSuccess: async (group) => {
+      toast.success("Group Private created");
+      await utils.groups.mine.invalidate();
       router.push(`/dashboard/groups/${group.id}`);
     },
     onError: (error) => {
@@ -62,11 +65,11 @@ export default function NewLooseGroupPage() {
   }
 
   return (
-    <DashboardShell title="Create Loose Group">
+    <DashboardShell title="Create Group">
       <div className="mx-auto w-full max-w-lg space-y-6">
         <div className="space-y-1">
           <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Loose Group
+            Create a Group
           </h2>
           <p className="text-muted-foreground text-sm">
             A squad outside any Community. Public joins via the Group URL;
@@ -115,7 +118,7 @@ export default function NewLooseGroupPage() {
               <FieldDescription>
                 {visibility === "private"
                   ? "Only you can send Email invites and manage the Invite link."
-                  : "Share the Group URL. Not listed in the Directory."}
+                  : "Share the Group URL. Anyone with the link can join."}
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -125,7 +128,7 @@ export default function NewLooseGroupPage() {
               {isPending ? "Creating…" : "Create Group"}
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/dashboard/communities">Cancel</Link>
+              <Link href="/dashboard/groups">Cancel</Link>
             </Button>
           </div>
         </form>

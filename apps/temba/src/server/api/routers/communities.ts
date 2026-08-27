@@ -11,7 +11,6 @@ import {
   communitySports,
   CommunityJoinRequestStatusEnum,
   CommunityRoleEnum,
-  CommunityTypeEnum,
   groupMembers,
   groups,
   user,
@@ -219,56 +218,6 @@ export const communitiesRouter = createTRPCRouter({
 
       return community;
     }),
-
-  directory: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
-
-    const rows = await ctx.db.query.communities.findMany({
-      where: and(
-        eq(communities.type, CommunityTypeEnum.PUBLIC),
-        isNull(communities.archivedAt),
-      ),
-      with: {
-        sports: true,
-      },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    });
-
-    const memberships = await ctx.db.query.communityMembers.findMany({
-      where: eq(communityMembers.userId, appUser.id),
-    });
-    const membershipByCommunity = new Map(
-      memberships.map((row) => [row.communityId, row]),
-    );
-
-    const joinRequests = await ctx.db.query.communityJoinRequests.findMany({
-      where: eq(communityJoinRequests.userId, appUser.id),
-    });
-    const joinRequestByCommunity = new Map(
-      joinRequests.map((row) => [row.communityId, row]),
-    );
-
-    return rows.map((row) => {
-      const membership = membershipByCommunity.get(row.id);
-      const joinRequest = joinRequestByCommunity.get(row.id);
-
-      return {
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        type: row.type,
-        sports: row.sports.map((sportRow) => sportRow.sport as GroupSportEnum),
-        createdAt: row.createdAt,
-        membership: membership ? { role: asRole(membership.role) } : null,
-        joinRequest: joinRequest
-          ? {
-              id: joinRequest.id,
-              status: asJoinStatus(joinRequest.status),
-            }
-          : null,
-      };
-    });
-  }),
 
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
@@ -553,7 +502,7 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      // Unarchive restores Directory listing and join rules. The same Invite
+      // Unarchive restores join rules. The same Invite
       // link token remains active unless staff rotated or revoked it.
       const [updated] = await ctx.db
         .update(communities)
@@ -763,6 +712,44 @@ export const communitiesRouter = createTRPCRouter({
       },
     });
 
+    const communityIds = memberships.map(
+      (membership) => membership.community.id,
+    );
+
+    const clubGroups =
+      communityIds.length > 0
+        ? await ctx.db.query.groups.findMany({
+            where: inArray(groups.communityId, communityIds),
+            orderBy: (table, { asc }) => [asc(table.name)],
+          })
+        : [];
+
+    const memberGroupIds = new Set<string>();
+    if (clubGroups.length > 0) {
+      const myGroupMemberships = await ctx.db.query.groupMembers.findMany({
+        where: and(
+          eq(groupMembers.userId, appUser.id),
+          inArray(
+            groupMembers.groupId,
+            clubGroups.map((group) => group.id),
+          ),
+        ),
+      });
+      for (const row of myGroupMemberships) {
+        memberGroupIds.add(row.groupId);
+      }
+    }
+
+    const groupsByCommunityId = new Map<string, typeof clubGroups>();
+    for (const group of clubGroups) {
+      if (!group.communityId) {
+        continue;
+      }
+      const nested = groupsByCommunityId.get(group.communityId) ?? [];
+      nested.push(group);
+      groupsByCommunityId.set(group.communityId, nested);
+    }
+
     return memberships.map((membership) => ({
       id: membership.community.id,
       name: membership.community.name,
@@ -773,6 +760,16 @@ export const communitiesRouter = createTRPCRouter({
         (sportRow) => sportRow.sport as GroupSportEnum,
       ),
       archivedAt: membership.community.archivedAt,
+      groups: (groupsByCommunityId.get(membership.community.id) ?? []).map(
+        (group) => ({
+          id: group.id,
+          name: group.name,
+          description: group.description,
+          type: group.type,
+          sport: group.sport as GroupSportEnum | null,
+          isMember: memberGroupIds.has(group.id),
+        }),
+      ),
     }));
   }),
 

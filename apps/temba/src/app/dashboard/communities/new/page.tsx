@@ -27,12 +27,14 @@ type CommunityType = "public" | "private";
 
 export default function NewCommunityPage() {
   const router = useRouter();
+  const utils = api.useUtils();
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<CommunityType>("public");
 
   const createCommunity = api.communities.create.useMutation({
-    onSuccess: (community) => {
+    onSuccess: async (community) => {
       toast.success("Community created");
+      await utils.communities.mine.invalidate();
       router.push(`/dashboard/communities/${community.id}`);
     },
     onError: (error) => {
@@ -89,13 +91,17 @@ export default function NewCommunityPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="public">
-                    Public (listed in Directory)
+                    Public (join by request via URL)
                   </SelectItem>
-                  <SelectItem value="private">Private (invite-only)</SelectItem>
+                  <SelectItem value="private">
+                    Private (Email invite + Invite link)
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
-                Public clubs appear in the Directory. Private clubs do not.
+                {type === "private"
+                  ? "Invite-only: Email invite and Invite link."
+                  : "Joinable by request via the Community URL. Not listed in the App today."}
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -105,7 +111,7 @@ export default function NewCommunityPage() {
               {createCommunity.isPending ? "Creating…" : "Create Community"}
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/dashboard/directory">Cancel</Link>
+              <Link href="/dashboard/communities">Cancel</Link>
             </Button>
           </div>
         </form>
