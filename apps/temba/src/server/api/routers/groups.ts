@@ -180,7 +180,7 @@ async function deleteEmptyGroup(args: {
   } else if (group.createdBy !== args.callerId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the creator can delete a Loose Group",
+      message: "Only the creator can delete this Group",
     });
   }
 
@@ -239,21 +239,22 @@ async function requireLoosePrivateCreator(
   if (group.communityId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This is not a Loose Group",
+      message: "This Group belongs to a Community",
     });
   }
 
   if (group.type !== GroupTypeEnum.PRIVATE) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Loose Group Public has no Email invite or Invite link",
+      message:
+        "Public Groups outside a Community have no Email invite or Invite link",
     });
   }
 
   if (group.createdBy !== callerId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the creator can manage Loose Group Private invites",
+      message: "Only the creator can manage invites for this Private Group",
     });
   }
 
@@ -367,7 +368,7 @@ async function createLooseGroup(args: {
     if (!group) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create Loose Group",
+        message: "Failed to create Group",
       });
     }
 
@@ -871,14 +872,14 @@ export const groupsRouter = createTRPCRouter({
       if (group.communityId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "This is not a Loose Group",
+          message: "This Group belongs to a Community",
         });
       }
 
       if (group.type !== GroupTypeEnum.PUBLIC) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Loose Group Private cannot be joined via the Group URL",
+          message: "Private Groups cannot be joined via the Group URL",
         });
       }
 
@@ -1727,14 +1728,14 @@ export const groupsRouter = createTRPCRouter({
       if (group.communityId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "This Email invite is not for a Loose Group",
+          message: "This Email invite is not for a Group outside a Community",
         });
       }
 
       if (group.type !== GroupTypeEnum.PRIVATE) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Loose Group Public has no Email invite",
+          message: "Public Groups outside a Community have no Email invite",
         });
       }
 
@@ -1834,14 +1835,14 @@ export const groupsRouter = createTRPCRouter({
       if (group.communityId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "This Invite link is not for a Loose Group",
+          message: "This Invite link is not for a Group outside a Community",
         });
       }
 
       if (group.type !== GroupTypeEnum.PRIVATE) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Loose Group Public has no Invite link",
+          message: "Public Groups outside a Community have no Invite link",
         });
       }
 

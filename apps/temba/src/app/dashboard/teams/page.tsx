@@ -80,7 +80,7 @@ export default function TeamsIndexPage() {
                     {team.community ? (
                       <Badge variant="outline">Club Team</Badge>
                     ) : (
-                      <Badge variant="outline">Loose Team</Badge>
+                      <Badge variant="outline">Unattached</Badge>
                     )}
                     {team.sport ? (
                       <Badge variant="secondary" className="capitalize">

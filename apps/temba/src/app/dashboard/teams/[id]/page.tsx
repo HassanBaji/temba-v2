@@ -153,7 +153,7 @@ export default function TeamHomePage({
                     {team.data.sport}
                   </Badge>
                   {team.data.isLoose ? (
-                    <Badge variant="outline">Loose Team</Badge>
+                    <Badge variant="outline">Unattached</Badge>
                   ) : (
                     <Badge variant="outline">Club Team</Badge>
                   )}
