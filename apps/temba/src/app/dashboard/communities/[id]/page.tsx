@@ -121,6 +121,8 @@ export default function CommunityHomePage({
     onSuccess: async () => {
       toast.success("Club Group Public created");
       await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+      await utils.groups.mine.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -131,6 +133,8 @@ export default function CommunityHomePage({
     onSuccess: async () => {
       toast.success("Club Group Private created");
       await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+      await utils.groups.mine.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -142,6 +146,7 @@ export default function CommunityHomePage({
       toast.success("Left Community and its Club Groups");
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
+      await utils.groups.mine.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);

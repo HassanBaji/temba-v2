@@ -27,12 +27,14 @@ type GroupVisibility = "public" | "private";
 
 export default function NewLooseGroupPage() {
   const router = useRouter();
+  const utils = api.useUtils();
   const [name, setName] = React.useState("");
   const [visibility, setVisibility] = React.useState<GroupVisibility>("public");
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
-    onSuccess: (group) => {
+    onSuccess: async (group) => {
       toast.success("Group created");
+      await utils.groups.mine.invalidate();
       router.push(`/dashboard/groups/${group.id}`);
     },
     onError: (error) => {
@@ -41,8 +43,9 @@ export default function NewLooseGroupPage() {
   });
 
   const createLoosePrivate = api.groups.createLoosePrivate.useMutation({
-    onSuccess: (group) => {
+    onSuccess: async (group) => {
       toast.success("Group Private created");
+      await utils.groups.mine.invalidate();
       router.push(`/dashboard/groups/${group.id}`);
     },
     onError: (error) => {

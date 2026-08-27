@@ -27,12 +27,14 @@ type CommunityType = "public" | "private";
 
 export default function NewCommunityPage() {
   const router = useRouter();
+  const utils = api.useUtils();
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<CommunityType>("public");
 
   const createCommunity = api.communities.create.useMutation({
-    onSuccess: (community) => {
+    onSuccess: async (community) => {
       toast.success("Community created");
+      await utils.communities.mine.invalidate();
       router.push(`/dashboard/communities/${community.id}`);
     },
     onError: (error) => {

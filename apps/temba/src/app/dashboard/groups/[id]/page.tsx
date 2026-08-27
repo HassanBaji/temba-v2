@@ -66,6 +66,7 @@ export default function GroupHomePage({
         await utils.communities.byId.invalidate({
           id: group.data.communityId,
         });
+        await utils.communities.mine.invalidate();
       }
     },
     onError: (error) => {
@@ -109,6 +110,7 @@ export default function GroupHomePage({
       await utils.groups.mine.invalidate();
       if (result.communityId) {
         await utils.communities.byId.invalidate({ id: result.communityId });
+        await utils.communities.mine.invalidate();
         router.push(`/dashboard/communities/${result.communityId}`);
         return;
       }
@@ -151,6 +153,7 @@ export default function GroupHomePage({
           await utils.communities.byId.invalidate({
             id: group.data.communityId,
           });
+          await utils.communities.mine.invalidate();
         }
       },
       onError: (error) => {
