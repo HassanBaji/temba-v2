@@ -89,15 +89,15 @@ The allow-list of sports a Community offers (padel, football, or both). Each Gro
 _Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
 
 **Team**:
-A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending invite for the second seat). Every Team is either a Club Team or a Loose Team. The Community parent is chosen at create time and is immutable.
+A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending invite for the second seat). A Team may be unattached or linked to at most one Community (link rules are product-owned; not the same as Group’s create-time immutable parent).
 _Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
 
 **Club Team**:
-A Team that belongs to a Community.
+A Team currently linked to a Community.
 _Avoid_: Club Group, nested team
 
 **Loose Team**:
-A Team that does not belong to a Community.
+A Team with no Community link (unattached).
 _Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
@@ -117,7 +117,7 @@ A Community role with no staff powers. Community membership is required to join 
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
 **Soft-archive**:
-A reversible hide of a Community and its Club Groups. Games are kept. Not a delete, and not detaching Groups.
+A reversible hide of a Community and its Club Groups (and, for Teams, the same refuse-new-activity rules once link behavior is locked). Games are kept. Not a delete, and not detaching Groups.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
