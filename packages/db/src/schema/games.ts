@@ -9,7 +9,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { courts } from "./courts";
+import { venues } from "./venues";
 import { user } from "./user";
 import { relations } from "drizzle-orm";
 import { gamePlayers } from "./game-players";
@@ -42,7 +42,7 @@ export const games = pgTable("games", {
   name: varchar("name", { length: 255 }),
   courtId: uuid("court_id")
     .notNull()
-    .references(() => courts.id, { onDelete: "cascade" }),
+    .references(() => venues.id, { onDelete: "cascade" }),
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   durationInMinutes: integer("duration_in_minutes").notNull(),
@@ -65,7 +65,7 @@ export const games = pgTable("games", {
 });
 
 export const gameRelations = relations(games, ({ one, many }) => ({
-  court: one(courts, { fields: [games.courtId], references: [courts.id] }),
+  court: one(venues, { fields: [games.courtId], references: [venues.id] }),
   createdBy: one(user, { fields: [games.createdBy], references: [user.id] }),
   group: one(groups, { fields: [games.groupId], references: [groups.id] }),
   players: many(gamePlayers),

@@ -3,6 +3,7 @@ import { gamesRouter } from "~/server/api/routers/games";
 import { groupsRouter } from "~/server/api/routers/groups";
 import { teamsRouter } from "~/server/api/routers/teams";
 import { usersRouter } from "~/server/api/routers/users";
+import { venuesRouter } from "~/server/api/routers/venues";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   groups: groupsRouter,
   teams: teamsRouter,
   users: usersRouter,
+  venues: venuesRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

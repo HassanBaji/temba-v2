@@ -2,7 +2,7 @@ export * from "./account";
 export * from "./session";
 export * from "./user";
 export * from "./verification";
-export * from "./courts";
+export * from "./venues";
 export * from "./coach";
 export * from "./coaching-session";
 export * from "./games";
