@@ -65,6 +65,28 @@ async function requireTeam(database: DbClient, id: string) {
   return team;
 }
 
+async function refuseIfLinkedCommunityArchived(
+  database: DbClient,
+  team: { communityId: string | null },
+  message: string,
+) {
+  if (!team.communityId) {
+    return;
+  }
+
+  const community = await database.query.communities.findFirst({
+    where: eq(communities.id, team.communityId),
+    columns: { archivedAt: true },
+  });
+
+  if (community?.archivedAt) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message,
+    });
+  }
+}
+
 async function listTeamMembers(database: DbClient, teamId: string) {
   return database.query.teamMembers.findMany({
     where: eq(teamMembers.teamId, teamId),
@@ -411,7 +433,11 @@ export const teamsRouter = createTRPCRouter({
       const memberRows = await listTeamMembers(ctx.db, team.id);
       const memberNames = memberRows.map((row) => row.user.name);
       const incomplete = memberRows.length < 2;
-      const canInvite = isMember && incomplete && team.createdBy === appUser.id;
+      const canInvite =
+        isMember &&
+        incomplete &&
+        team.createdBy === appUser.id &&
+        !community?.archivedAt;
       const unusedInvite = canInvite
         ? await unusedInviteForTeam(ctx.db, team.id)
         : null;
@@ -421,7 +447,8 @@ export const teamsRouter = createTRPCRouter({
 
       const canDissolve =
         isMember && (team.createdBy === appUser.id || !incomplete);
-      const canAccept = Boolean(pendingInvite) && !isMember;
+      const canAccept =
+        Boolean(pendingInvite) && !isMember && !community?.archivedAt;
 
       const pendingLinkRequest = isMember
         ? await ctx.db.query.teamLinkRequests.findFirst({
@@ -524,6 +551,12 @@ export const teamsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
       const team = await requireTeam(ctx.db, input.teamId);
+
+      await refuseIfLinkedCommunityArchived(
+        ctx.db,
+        team,
+        "Cannot invite into a Team linked to an archived Community",
+      );
 
       if (team.createdBy !== appUser.id) {
         throw new TRPCError({
@@ -733,6 +766,11 @@ export const teamsRouter = createTRPCRouter({
       }
 
       const team = await requireTeam(ctx.db, invite.teamId);
+      await refuseIfLinkedCommunityArchived(
+        ctx.db,
+        team,
+        "Cannot accept a Team invite while the linked Community is archived",
+      );
       const memberRows = await listTeamMembers(ctx.db, team.id);
 
       const existing = memberRows.find((row) => row.userId === appUser.id);
@@ -821,6 +859,12 @@ export const teamsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
       const team = await requireTeam(ctx.db, input.teamId);
+
+      await refuseIfLinkedCommunityArchived(
+        ctx.db,
+        team,
+        "Cannot invite into a Team linked to an archived Community",
+      );
 
       if (team.createdBy !== appUser.id) {
         throw new TRPCError({
@@ -968,6 +1012,16 @@ export const teamsRouter = createTRPCRouter({
         return { status: "invalid" as const };
       }
 
+      if (invite.team.communityId) {
+        const linked = await ctx.db.query.communities.findFirst({
+          where: eq(communities.id, invite.team.communityId),
+          columns: { archivedAt: true },
+        });
+        if (linked?.archivedAt) {
+          return { status: "unavailable" as const };
+        }
+      }
+
       const memberRows = await listTeamMembers(ctx.db, invite.team.id);
       if (memberRows.length >= 2) {
         return { status: "unavailable" as const };
@@ -1008,6 +1062,12 @@ export const teamsRouter = createTRPCRouter({
             "Signed-in email does not match this Email invite. The invite was not consumed.",
         });
       }
+
+      await refuseIfLinkedCommunityArchived(
+        ctx.db,
+        team,
+        "Cannot accept a Team invite while the linked Community is archived",
+      );
 
       const memberRows = await listTeamMembers(ctx.db, team.id);
       const existing = memberRows.find((row) => row.userId === appUser.id);
@@ -1133,6 +1193,13 @@ export const teamsRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Community not found",
+        });
+      }
+
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot request a Team link to an archived Community",
         });
       }
 

@@ -280,7 +280,8 @@ export const communitiesRouter = createTRPCRouter({
         !community.archivedAt && isStaffRole(membership?.role);
       const canUnarchive =
         Boolean(community.archivedAt) && isStaffRole(membership?.role);
-      const canManageTeamLinks = isStaffRole(membership?.role);
+      const canManageTeamLinks =
+        !community.archivedAt && isStaffRole(membership?.role);
 
       let canLeave = Boolean(membership);
       let linkedTeamBlocksLeave = false;
@@ -904,6 +905,15 @@ export const communitiesRouter = createTRPCRouter({
         "Only Owner or Admin can approve Team link requests",
       );
 
+      const community = await requireCommunity(ctx.db, request.communityId);
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot approve Team link requests for an archived Community",
+        });
+      }
+
       if (request.team.communityId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -1013,6 +1023,14 @@ export const communitiesRouter = createTRPCRouter({
         appUser.id,
         "Only Owner or Admin can reject Team link requests",
       );
+
+      const community = await requireCommunity(ctx.db, request.communityId);
+      if (community.archivedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot reject Team link requests for an archived Community",
+        });
+      }
 
       const [updated] = await ctx.db
         .update(teamLinkRequests)

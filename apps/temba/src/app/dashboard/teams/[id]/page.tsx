@@ -341,11 +341,13 @@ export default function TeamHomePage({
                   <option value="" disabled>
                     Select a Community
                   </option>
-                  {communities.data?.map((community) => (
-                    <option key={community.id} value={community.id}>
-                      {community.name}
-                    </option>
-                  ))}
+                  {communities.data
+                    ?.filter((community) => !community.archivedAt)
+                    .map((community) => (
+                      <option key={community.id} value={community.id}>
+                        {community.name}
+                      </option>
+                    ))}
                 </select>
                 <Button type="submit" disabled={requestLink.isPending}>
                   {requestLink.isPending ? "Requesting…" : "Request link"}
