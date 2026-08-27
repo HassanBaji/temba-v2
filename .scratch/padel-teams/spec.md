@@ -185,4 +185,17 @@ Settled grilling: `.scratch/padel-teams/decisions.md`. Padel-only UI: `.scratch/
 
 Locked v1 defaults (not a further grill): Email invite named, unknown OK, Clerk then email match, no expiry, revoke unused, one unused open-seat invite; no Team Invite link; link approve auto-admits on Public and Private; leave Community blocked while on linked Team; unlink immediate by either member; counters zero until Game-completion; App create Team always padel; names not globally unique; mail provider TBD.
 
-Next step after the user approves this spec: **to-tickets** (Linear implementation tickets). Do not implement until tickets exist and an implementer is asked to run them.
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/padel-teams/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-18 Create Loose Team + My Teams + Team home](https://linear.app/temba-app/issue/TEM-18/create-loose-team-my-teams-team-home) | — |
+| 2 | [TEM-19 In-app partner invite + dissolve](https://linear.app/temba-app/issue/TEM-19/in-app-partner-invite-dissolve) | TEM-18 |
+| 3 | [TEM-20 Email partner invite](https://linear.app/temba-app/issue/TEM-20/email-partner-invite) | TEM-19 |
+| 4 | [TEM-21 Link Team to Community](https://linear.app/temba-app/issue/TEM-21/link-team-to-community) | TEM-19 |
+| 5 | [TEM-22 Unlink + leave-Community gate](https://linear.app/temba-app/issue/TEM-22/unlink-leave-community-gate) | TEM-21 |
+| 6 | [TEM-23 Soft-archive Team rules](https://linear.app/temba-app/issue/TEM-23/soft-archive-team-rules) | TEM-20, TEM-21 |
+
+Frontier: **TEM-18** only. Do not implement until an implementer / orchestrator is asked to run the tickets in order.
