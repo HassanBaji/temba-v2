@@ -117,6 +117,37 @@ export default function CommunityHomePage({
     },
   });
 
+  const teamLinkRequests = api.communities.listTeamLinkRequests.useQuery(
+    { communityId: id },
+    { enabled: Boolean(community.data?.canManageTeamLinks) },
+  );
+
+  const approveTeamLink = api.communities.approveTeamLink.useMutation({
+    onSuccess: async () => {
+      toast.success("Team linked");
+      await utils.communities.listTeamLinkRequests.invalidate({
+        communityId: id,
+      });
+      await utils.communities.byId.invalidate({ id });
+      await utils.communities.mine.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const rejectTeamLink = api.communities.rejectTeamLink.useMutation({
+    onSuccess: async () => {
+      toast.success("Link request rejected");
+      await utils.communities.listTeamLinkRequests.invalidate({
+        communityId: id,
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const createClubPublic = api.groups.createClubPublic.useMutation({
     onSuccess: async () => {
       toast.success("Club Group Public created");
@@ -467,6 +498,116 @@ export default function CommunityHomePage({
                   </div>
                 </form>
               </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {community.data?.membership ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">Teams</h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Partnerships linked to this Community. Members can open a linked
+                Team&apos;s stats.
+              </p>
+            </div>
+
+            {community.data.teams.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                This Community has no linked Teams yet.
+              </p>
+            ) : (
+              <ul className="divide-border border-border divide-y rounded-lg border">
+                {community.data.teams.map((team) => (
+                  <li
+                    key={team.id}
+                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-foreground font-medium">
+                        {team.displayName}
+                      </p>
+                      <p className="text-muted-foreground text-sm capitalize">
+                        {team.sport}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/dashboard/teams/${team.id}`}>Open</Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        {community.data?.canManageTeamLinks ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Team link requests
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Owner or Admin approve or reject. Approve auto-admits any seat
+                who is not yet a Community Member, then attaches the Team.
+              </p>
+            </div>
+
+            {teamLinkRequests.isLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : null}
+
+            {teamLinkRequests.error ? (
+              <p className="text-destructive text-sm">
+                {teamLinkRequests.error.message}
+              </p>
+            ) : null}
+
+            {teamLinkRequests.data?.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No pending Team link requests.
+              </p>
+            ) : null}
+
+            {teamLinkRequests.data && teamLinkRequests.data.length > 0 ? (
+              <ul className="divide-border border-border divide-y rounded-lg border">
+                {teamLinkRequests.data.map((request) => (
+                  <li
+                    key={request.id}
+                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-foreground font-medium">
+                        {request.team.displayName}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {request.requestedBy.name} · {request.team.sport}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          approveTeamLink.mutate({ requestId: request.id })
+                        }
+                        disabled={approveTeamLink.isPending}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          rejectTeamLink.mutate({ requestId: request.id })
+                        }
+                        disabled={rejectTeamLink.isPending}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </section>
         ) : null}

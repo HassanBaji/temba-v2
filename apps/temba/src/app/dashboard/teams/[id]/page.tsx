@@ -87,6 +87,20 @@ export default function TeamHomePage({
     },
   });
 
+  const communities = api.communities.mine.useQuery(undefined, {
+    enabled: Boolean(team.data?.canRequestLink),
+  });
+
+  const requestLink = api.teams.requestLink.useMutation({
+    onSuccess: async () => {
+      toast.success("Link request sent");
+      await utils.teams.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   return (
     <DashboardShell title={team.data?.displayName ?? "Team"}>
       <div className="space-y-6">
@@ -249,6 +263,70 @@ export default function TeamHomePage({
                 Waiting for a partner — stats stay at zero until the Team is
                 full and Games are completed.
               </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {team.data?.canRequestLink || team.data?.pendingLinkRequest ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Community link
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Full Teams can request a link to a Community. Owner or Admin
+                approve; missing members are auto-admitted.
+              </p>
+            </div>
+
+            {team.data.pendingLinkRequest ? (
+              <p className="text-muted-foreground text-sm">
+                Pending request to{" "}
+                <span className="text-foreground font-medium">
+                  {team.data.pendingLinkRequest.community.name}
+                </span>
+                .
+              </p>
+            ) : null}
+
+            {team.data.canRequestLink ? (
+              <form
+                className="flex flex-col gap-3 sm:flex-row"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const formData = new FormData(event.currentTarget);
+                  const communityIdValue = formData.get("communityId");
+                  if (
+                    typeof communityIdValue !== "string" ||
+                    !communityIdValue
+                  ) {
+                    return;
+                  }
+                  requestLink.mutate({
+                    teamId: id,
+                    communityId: communityIdValue,
+                  });
+                }}
+              >
+                <select
+                  name="communityId"
+                  required
+                  className="border-input bg-background text-foreground h-9 flex-1 rounded-md border px-3 text-sm"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Select a Community
+                  </option>
+                  {communities.data?.map((community) => (
+                    <option key={community.id} value={community.id}>
+                      {community.name}
+                    </option>
+                  ))}
+                </select>
+                <Button type="submit" disabled={requestLink.isPending}>
+                  {requestLink.isPending ? "Requesting…" : "Request link"}
+                </Button>
+              </form>
             ) : null}
           </section>
         ) : null}
