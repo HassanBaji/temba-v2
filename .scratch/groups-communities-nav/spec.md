@@ -242,4 +242,11 @@ Community spec Directory stories (browse list of live Community Public) are supe
 
 Locked decisions (not a further grill): two sidebar items not tabs; Groups = membership; Communities = nested inventory of all Club Groups; duplicate listing intended; Create Group still Loose Group; no Find clubs; delete hub with redirect to Groups; delete Directory page (404) and list tRPC; keep request-to-join and admit; rewrite live Directory copy; keep Loose Group in glossary; keep Directory as planned; new/extended reads allowed; no schema or membership-rule changes except removing the Directory list.
 
-Next step: vertical tickets via `/to-tickets` when Linear is connected. Do not implement until tickets exist and an implementer is asked to run them.
+Tickets (`ready-for-agent`):
+
+- [Groups page lists Groups I belong to](https://linear.app/temba-app/issue/TEM-14/groups-page-lists-groups-i-belong-to) (TEM-14) — unblocked
+- [Communities page nests Club Groups](https://linear.app/temba-app/issue/TEM-15/communities-page-nests-club-groups) (TEM-15) — unblocked
+- [Remove Directory list and live Directory copy](https://linear.app/temba-app/issue/TEM-16/remove-directory-list-and-live-directory-copy) (TEM-16) — unblocked
+- [Split sidebar and retire hub](https://linear.app/temba-app/issue/TEM-17/split-sidebar-and-retire-hub) (TEM-17) — blocked by TEM-14 and TEM-15
+
+Do not implement until an implementer is asked to run them. Work the frontier: TEM-14, TEM-15, or TEM-16 can start immediately. TEM-17 waits on TEM-14 and TEM-15.
