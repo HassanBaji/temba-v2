@@ -13,7 +13,7 @@
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
     "start": "next start",
-    "test": "tsx --test src/server/standing/compare-standing.test.ts src/server/home/upcoming-games.test.ts src/server/groups/group-games.test.ts",
+    "test": "tsx --test src/server/**/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
