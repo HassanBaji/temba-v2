@@ -1,6 +1,6 @@
 # Padel Teams — settled decisions
 
-Status: grilling complete — awaiting user confirmation of shared understanding before `/to-spec`.
+Status: grilling complete — shared understanding confirmed; spec at `.scratch/padel-teams/spec.md` awaiting user approval before `/to-tickets`.
 
 ## Superseded
 
