@@ -52,9 +52,14 @@ export default function GroupHomePage({
     { enabled: Boolean(group.data?.canManageInvites) },
   );
 
+  const lookupInvites = api.groups.listLookupInvites.useQuery(
+    { groupId: id },
+    { enabled: Boolean(group.data?.canManageLookupInvites) },
+  );
+
   const inviteLink = api.groups.getInviteLink.useQuery(
     { groupId: id },
-    { enabled: Boolean(group.data?.canManageInvites) },
+    { enabled: Boolean(group.data?.canManageInviteLinks) },
   );
 
   const joinClubPublic = api.groups.joinClubPublic.useMutation({
@@ -193,21 +198,20 @@ export default function GroupHomePage({
     },
   });
 
-  const rotateInviteLink = api.groups.rotateInviteLink.useMutation({
-    onSuccess: async (result) => {
-      await utils.groups.getInviteLink.invalidate({ groupId: id });
-      await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("Invite link rotated and copied");
+  const sendLookupInvite = api.groups.sendLookupInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Lookup invite sent");
+      await utils.groups.listLookupInvites.invalidate({ groupId: id });
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
-  const revokeInviteLink = api.groups.revokeInviteLink.useMutation({
+  const revokeLookupInvite = api.groups.revokeLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Invite link revoked");
-      await utils.groups.getInviteLink.invalidate({ groupId: id });
+      toast.success("Lookup invite revoked");
+      await utils.groups.listLookupInvites.invalidate({ groupId: id });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -311,12 +315,14 @@ export default function GroupHomePage({
                 ) : null}
                 {group.data.isLoose && group.data.type === "public" ? (
                   <p className="text-muted-foreground text-sm">
-                    Open-with-link: share the Group URL. No Invite link.
+                    Open-with-link: share the Group URL. The creator can also
+                    send a Lookup invite or copy an Invite link.
                   </p>
                 ) : null}
                 {group.data.isLoose && group.data.type === "private" ? (
                   <p className="text-muted-foreground text-sm">
-                    Private: Email invite and Invite link from the creator only.
+                    Private: Lookup invite and Invite link from the creator.
+                    Email invite is still available.
                   </p>
                 ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (
@@ -738,6 +744,85 @@ export default function GroupHomePage({
           </section>
         ) : null}
 
+        {group.data?.canManageLookupInvites ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Lookup invite
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Only you can look up an existing User by username, email, or
+                phone. The invitee accepts on Invites. Lookup invites do not
+                expire.
+              </p>
+            </div>
+
+            <form
+              className="flex flex-col gap-3 sm:flex-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                const queryValue = formData.get("query");
+                if (typeof queryValue !== "string") {
+                  return;
+                }
+                const query = queryValue.trim();
+                if (!query) {
+                  return;
+                }
+                sendLookupInvite.mutate({ groupId: id, query });
+                event.currentTarget.reset();
+              }}
+            >
+              <Input
+                name="query"
+                type="text"
+                required
+                placeholder="Username, email, or phone"
+                className="flex-1"
+              />
+              <Button type="submit" disabled={sendLookupInvite.isPending}>
+                {sendLookupInvite.isPending ? "Sending…" : "Send Lookup invite"}
+              </Button>
+            </form>
+
+            {lookupInvites.data?.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No unused Lookup invites.
+              </p>
+            ) : null}
+            {lookupInvites.data && lookupInvites.data.length > 0 ? (
+              <ul className="divide-border border-border divide-y rounded-lg border">
+                {lookupInvites.data.map((invite) => (
+                  <li
+                    key={invite.id}
+                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-foreground font-medium">
+                        {invite.user.name}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {invite.user.email}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        revokeLookupInvite.mutate({ inviteId: invite.id })
+                      }
+                      disabled={revokeLookupInvite.isPending}
+                    >
+                      Revoke
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ) : null}
+
         {group.data?.canManageInvites ? (
           <section className="border-border bg-card space-y-6 rounded-xl border p-6">
             <div>
@@ -745,8 +830,7 @@ export default function GroupHomePage({
                 Private invites
               </h3>
               <p className="text-muted-foreground mt-2 text-sm">
-                Only the creator can send Email invites and manage one reusable
-                Invite link.
+                Only the creator can send Email invites.
               </p>
             </div>
 
@@ -832,60 +916,37 @@ export default function GroupHomePage({
                 </ul>
               ) : null}
             </div>
+          </section>
+        ) : null}
 
-            <div className="border-border space-y-3 rounded-lg border p-4">
-              <h4 className="text-foreground font-medium">Invite link</h4>
-              {inviteLink.data ? (
-                <>
-                  <p className="text-muted-foreground text-sm">
-                    Live reusable link. Any authenticated User who opens it
-                    joins the Group.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(
-                          inviteLink.data!.inviteUrl,
-                        );
-                        toast.success("Invite link copied");
-                      }}
-                    >
-                      Copy link
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => rotateInviteLink.mutate({ groupId: id })}
-                      disabled={rotateInviteLink.isPending}
-                    >
-                      Rotate
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => revokeInviteLink.mutate({ groupId: id })}
-                      disabled={revokeInviteLink.isPending}
-                    >
-                      Revoke
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">
-                    No active Invite link.
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => createInviteLink.mutate({ groupId: id })}
-                    disabled={createInviteLink.isPending}
-                  >
-                    {createInviteLink.isPending ? "Creating…" : "Create link"}
-                  </Button>
-                </div>
-              )}
+        {group.data?.canManageInviteLinks ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Invite link
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Each copy mints a new 6-hour token. Older copied URLs stay live
+                until each expires. There is no rotate or revoke. Distinct from
+                the Group URL.
+              </p>
             </div>
+            {inviteLink.data ? (
+              <p className="text-muted-foreground break-all text-sm">
+                Newest: {inviteLink.data.inviteUrl}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No live Invite link. Copy to mint one.
+              </p>
+            )}
+            <Button
+              size="sm"
+              onClick={() => createInviteLink.mutate({ groupId: id })}
+              disabled={createInviteLink.isPending}
+            >
+              {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
+            </Button>
           </section>
         ) : null}
       </div>

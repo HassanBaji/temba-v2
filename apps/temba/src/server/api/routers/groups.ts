@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, gte, inArray, isNull, lt, ne, or } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, isNull, lt, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -19,6 +19,11 @@ import {
 } from "@repo/db";
 
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { resolveLookupUser } from "~/server/invites/resolve-lookup-user";
+import {
+  inviteLinkExpiresAt,
+  isInviteLinkLive,
+} from "~/server/invites/invite-link-expiry";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -255,6 +260,30 @@ async function requireLoosePrivateCreator(
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Only the creator can manage invites for this Private Group",
+    });
+  }
+
+  return group;
+}
+
+async function requireLooseCreator(
+  database: DbClient,
+  groupId: string,
+  callerId: string,
+) {
+  const group = await requireGroup(database, groupId);
+
+  if (group.communityId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This Group belongs to a Community",
+    });
+  }
+
+  if (group.createdBy !== callerId) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only the creator can manage invites for this Group",
     });
   }
 
@@ -587,6 +616,9 @@ export const groupsRouter = createTRPCRouter({
           callerId: appUser.id,
         });
       const canManageInvites = isLoosePrivate && group.createdBy === appUser.id;
+      const canManageLookupInvites =
+        (isLoosePublic || isLoosePrivate) && group.createdBy === appUser.id;
+      const canManageInviteLinks = canManageLookupInvites;
 
       const canDelete = await mayDeleteEmptyGroup({
         database: ctx.db,
@@ -770,13 +802,15 @@ export const groupsRouter = createTRPCRouter({
         canInviteClubPrivate,
         canAcceptClubPrivateInvite,
         canManageInvites,
+        canManageLookupInvites,
+        canManageInviteLinks,
         canDelete,
         pendingInvite: pendingInvite
           ? { id: pendingInvite.id, createdAt: pendingInvite.createdAt }
           : null,
         memberUserIds,
         hasEmailInvite: canManageInvites,
-        hasInviteLink: canManageInvites,
+        hasInviteLink: canManageInviteLinks,
       };
     }),
 
@@ -1493,31 +1527,318 @@ export const groupsRouter = createTRPCRouter({
       return { ok: true as const };
     }),
 
-  getInviteLink: protectedProcedure
+  sendLookupInvite: protectedProcedure
+    .input(
+      z.object({
+        groupId: z.string().uuid(),
+        query: z.string().trim().min(1).max(255),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const group = await requireLooseCreator(
+        ctx.db,
+        input.groupId,
+        appUser.id,
+      );
+      const invitee = await resolveLookupUser(ctx.db, input.query);
+
+      const existingMember = await ctx.db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, group.id),
+          eq(groupMembers.userId, invitee.id),
+        ),
+      });
+
+      if (existingMember) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "User is already a member of this Group",
+        });
+      }
+
+      const existingInvite = await ctx.db.query.groupMemberInvites.findFirst({
+        where: and(
+          eq(groupMemberInvites.groupId, group.id),
+          eq(groupMemberInvites.userId, invitee.id),
+          isNull(groupMemberInvites.acceptedAt),
+          isNull(groupMemberInvites.revokedAt),
+        ),
+      });
+
+      if (existingInvite) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "An unused Lookup invite already exists for this User",
+        });
+      }
+
+      const [created] = await ctx.db
+        .insert(groupMemberInvites)
+        .values({
+          groupId: group.id,
+          userId: invitee.id,
+          invitedBy: appUser.id,
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Lookup invite",
+        });
+      }
+
+      return {
+        id: created.id,
+        groupId: created.groupId,
+        userId: created.userId,
+        createdAt: created.createdAt,
+      };
+    }),
+
+  listLookupInvites: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
-      const group = await requireLoosePrivateCreator(
+      const group = await requireLooseCreator(
         ctx.db,
         input.groupId,
         appUser.id,
       );
 
-      const active = await ctx.db.query.groupInviteLinks.findFirst({
+      const rows = await ctx.db.query.groupMemberInvites.findMany({
         where: and(
-          eq(groupInviteLinks.groupId, group.id),
-          isNull(groupInviteLinks.revokedAt),
+          eq(groupMemberInvites.groupId, group.id),
+          isNull(groupMemberInvites.acceptedAt),
+          isNull(groupMemberInvites.revokedAt),
+        ),
+        with: {
+          user: true,
+        },
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      });
+
+      return rows.map((row) => ({
+        id: row.id,
+        createdAt: row.createdAt,
+        user: {
+          id: row.user.id,
+          name: row.user.name,
+          email: row.user.email,
+        },
+      }));
+    }),
+
+  revokeLookupInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const invite = await ctx.db.query.groupMemberInvites.findFirst({
+        where: eq(groupMemberInvites.id, input.inviteId),
+      });
+
+      if (!invite) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup invite not found",
+        });
+      }
+
+      await requireLooseCreator(ctx.db, invite.groupId, appUser.id);
+
+      if (invite.acceptedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Accepted Lookup invites cannot be revoked",
+        });
+      }
+
+      if (invite.revokedAt) {
+        return { ok: true as const };
+      }
+
+      const [updated] = await ctx.db
+        .update(groupMemberInvites)
+        .set({
+          revokedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(groupMemberInvites.id, invite.id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to revoke Lookup invite",
+        });
+      }
+
+      return { ok: true as const };
+    }),
+
+  pendingLookupInvites: protectedProcedure.query(async ({ ctx }) => {
+    const appUser = await resolveAppUser();
+
+    const rows = await ctx.db.query.groupMemberInvites.findMany({
+      where: and(
+        eq(groupMemberInvites.userId, appUser.id),
+        isNull(groupMemberInvites.acceptedAt),
+        isNull(groupMemberInvites.revokedAt),
+      ),
+      with: {
+        group: true,
+        invitedBy: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: (table, { desc }) => [desc(table.createdAt)],
+    });
+
+    return rows
+      .filter((row) => !row.group.communityId)
+      .map((row) => ({
+        id: row.id,
+        groupId: row.groupId,
+        groupName: row.group.name,
+        invitedBy: {
+          id: row.invitedBy.id,
+          name: row.invitedBy.name,
+          email: row.invitedBy.email,
+        },
+        createdAt: row.createdAt,
+      }));
+  }),
+
+  acceptLookupInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+
+      const invite = await ctx.db.query.groupMemberInvites.findFirst({
+        where: eq(groupMemberInvites.id, input.inviteId),
+      });
+
+      if (!invite || invite.acceptedAt || invite.revokedAt) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup invite is not available",
+        });
+      }
+
+      if (invite.userId !== appUser.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invite is for a different User",
+        });
+      }
+
+      const group = await requireGroup(ctx.db, invite.groupId);
+
+      if (group.communityId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Lookup invite is not for a Group outside a Community",
+        });
+      }
+
+      const existing = await ctx.db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, group.id),
+          eq(groupMembers.userId, appUser.id),
         ),
       });
 
-      if (!active) {
+      if (existing) {
+        await ctx.db
+          .update(groupMemberInvites)
+          .set({
+            acceptedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(groupMemberInvites.id, invite.id),
+              isNull(groupMemberInvites.acceptedAt),
+              isNull(groupMemberInvites.revokedAt),
+            ),
+          );
+
+        return {
+          ok: true as const,
+          groupId: group.id,
+          alreadyMember: true as const,
+        };
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(groupMemberInvites)
+          .set({
+            acceptedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(groupMemberInvites.id, invite.id),
+              isNull(groupMemberInvites.acceptedAt),
+              isNull(groupMemberInvites.revokedAt),
+            ),
+          )
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Lookup invite is no longer available",
+          });
+        }
+
+        await tx.insert(groupMembers).values({
+          groupId: group.id,
+          userId: appUser.id,
+        });
+      });
+
+      return {
+        ok: true as const,
+        groupId: group.id,
+        alreadyMember: false as const,
+      };
+    }),
+
+  getInviteLink: protectedProcedure
+    .input(z.object({ groupId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const group = await requireLooseCreator(
+        ctx.db,
+        input.groupId,
+        appUser.id,
+      );
+
+      const newest = await ctx.db.query.groupInviteLinks.findFirst({
+        where: and(
+          eq(groupInviteLinks.groupId, group.id),
+          gt(groupInviteLinks.expiresAt, new Date()),
+        ),
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      });
+
+      if (!newest) {
         return null;
       }
 
       return {
-        id: active.id,
-        inviteUrl: groupInviteLinkUrl(getAppOrigin(ctx.headers), active.token),
-        createdAt: active.createdAt,
+        id: newest.id,
+        inviteUrl: groupInviteLinkUrl(getAppOrigin(ctx.headers), newest.token),
+        createdAt: newest.createdAt,
+        expiresAt: newest.expiresAt,
       };
     }),
 
@@ -1525,36 +1846,21 @@ export const groupsRouter = createTRPCRouter({
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
-      const group = await requireLoosePrivateCreator(
+      const group = await requireLooseCreator(
         ctx.db,
         input.groupId,
         appUser.id,
       );
 
-      const existing = await ctx.db.query.groupInviteLinks.findFirst({
-        where: and(
-          eq(groupInviteLinks.groupId, group.id),
-          isNull(groupInviteLinks.revokedAt),
-        ),
-      });
-
-      if (existing) {
-        return {
-          id: existing.id,
-          inviteUrl: groupInviteLinkUrl(
-            getAppOrigin(ctx.headers),
-            existing.token,
-          ),
-          createdAt: existing.createdAt,
-        };
-      }
-
+      const createdAt = new Date();
       const [created] = await ctx.db
         .insert(groupInviteLinks)
         .values({
           groupId: group.id,
           createdBy: appUser.id,
           token: createOpaqueToken(),
+          createdAt,
+          expiresAt: inviteLinkExpiresAt(createdAt),
         })
         .returning();
 
@@ -1569,93 +1875,8 @@ export const groupsRouter = createTRPCRouter({
         id: created.id,
         inviteUrl: groupInviteLinkUrl(getAppOrigin(ctx.headers), created.token),
         createdAt: created.createdAt,
+        expiresAt: created.expiresAt,
       };
-    }),
-
-  rotateInviteLink: protectedProcedure
-    .input(z.object({ groupId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
-      const group = await requireLoosePrivateCreator(
-        ctx.db,
-        input.groupId,
-        appUser.id,
-      );
-
-      const created = await ctx.db.transaction(async (tx) => {
-        const active = await tx.query.groupInviteLinks.findFirst({
-          where: and(
-            eq(groupInviteLinks.groupId, group.id),
-            isNull(groupInviteLinks.revokedAt),
-          ),
-        });
-
-        if (active) {
-          await tx
-            .update(groupInviteLinks)
-            .set({
-              revokedAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(eq(groupInviteLinks.id, active.id));
-        }
-
-        const [next] = await tx
-          .insert(groupInviteLinks)
-          .values({
-            groupId: group.id,
-            createdBy: appUser.id,
-            token: createOpaqueToken(),
-          })
-          .returning();
-
-        if (!next) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to rotate Invite link",
-          });
-        }
-
-        return next;
-      });
-
-      return {
-        id: created.id,
-        inviteUrl: groupInviteLinkUrl(getAppOrigin(ctx.headers), created.token),
-        createdAt: created.createdAt,
-      };
-    }),
-
-  revokeInviteLink: protectedProcedure
-    .input(z.object({ groupId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
-      const group = await requireLoosePrivateCreator(
-        ctx.db,
-        input.groupId,
-        appUser.id,
-      );
-
-      const active = await ctx.db.query.groupInviteLinks.findFirst({
-        where: and(
-          eq(groupInviteLinks.groupId, group.id),
-          isNull(groupInviteLinks.revokedAt),
-        ),
-      });
-
-      if (!active) {
-        return { ok: true as const };
-      }
-
-      await ctx.db
-        .update(groupInviteLinks)
-        .set({
-          revokedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(groupInviteLinks.id, active.id));
-
-      return { ok: true as const };
     }),
 
   previewEmailInvite: publicProcedure
@@ -1693,11 +1914,11 @@ export const groupsRouter = createTRPCRouter({
         },
       });
 
-      if (!link || link.revokedAt) {
+      if (!link || !isInviteLinkLive(link.expiresAt)) {
         return { status: "invalid" as const };
       }
 
-      if (link.group.communityId || link.group.type !== "private") {
+      if (link.group.communityId) {
         return { status: "unavailable" as const };
       }
 
@@ -1823,7 +2044,7 @@ export const groupsRouter = createTRPCRouter({
         where: eq(groupInviteLinks.token, input.token),
       });
 
-      if (!link || link.revokedAt) {
+      if (!link || !isInviteLinkLive(link.expiresAt)) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Invite link is not available",
@@ -1839,13 +2060,6 @@ export const groupsRouter = createTRPCRouter({
         });
       }
 
-      if (group.type !== GroupTypeEnum.PRIVATE) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Public Groups outside a Community have no Invite link",
-        });
-      }
-
       const existingMembership = await ctx.db.query.groupMembers.findFirst({
         where: and(
           eq(groupMembers.groupId, group.id),
@@ -1854,10 +2068,10 @@ export const groupsRouter = createTRPCRouter({
       });
 
       if (existingMembership) {
-        return {
-          groupId: group.id,
-          alreadyMember: true as const,
-        };
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already a member of this Group",
+        });
       }
 
       const [inserted] = await ctx.db
@@ -1872,10 +2086,10 @@ export const groupsRouter = createTRPCRouter({
         .returning();
 
       if (!inserted) {
-        return {
-          groupId: group.id,
-          alreadyMember: true as const,
-        };
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already a member of this Group",
+        });
       }
 
       return {
