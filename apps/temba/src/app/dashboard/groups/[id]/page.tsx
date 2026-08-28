@@ -33,20 +33,6 @@ export default function GroupHomePage({
   const utils = api.useUtils();
   const group = api.groups.byId.useQuery({ id });
 
-  const communityMembers = api.communities.listMembers.useQuery(
-    { communityId: group.data?.communityId ?? "" },
-    {
-      enabled: Boolean(
-        group.data?.communityId && group.data.canInviteClubPrivate,
-      ),
-    },
-  );
-
-  const pendingInvites = api.groups.listClubPrivateInvites.useQuery(
-    { groupId: id },
-    { enabled: Boolean(group.data?.canInviteClubPrivate) },
-  );
-
   const emailInvites = api.groups.listEmailInvites.useQuery(
     { groupId: id },
     { enabled: Boolean(group.data?.canManageInvites) },
@@ -126,28 +112,6 @@ export default function GroupHomePage({
     },
   });
 
-  const inviteClubPrivate = api.groups.inviteClubPrivate.useMutation({
-    onSuccess: async () => {
-      toast.success("Invite sent");
-      await utils.groups.listClubPrivateInvites.invalidate({ groupId: id });
-      await utils.groups.byId.invalidate({ id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const revokeClubPrivateInvite =
-    api.groups.revokeClubPrivateInvite.useMutation({
-      onSuccess: async () => {
-        toast.success("Invite revoked");
-        await utils.groups.listClubPrivateInvites.invalidate({ groupId: id });
-      },
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    });
-
   const acceptClubPrivateInvite =
     api.groups.acceptClubPrivateInvite.useMutation({
       onSuccess: async () => {
@@ -219,17 +183,6 @@ export default function GroupHomePage({
   });
 
   const joinPending = joinClubPublic.isPending || joinLoosePublic.isPending;
-
-  const pendingInviteUserIds = new Set(
-    pendingInvites.data?.map((invite) => invite.user.id) ?? [],
-  );
-
-  const inviteCandidates =
-    communityMembers.data?.filter(
-      (member) =>
-        !group.data?.memberUserIds.includes(member.user.id) &&
-        !pendingInviteUserIds.has(member.user.id),
-    ) ?? [];
 
   function onJoin() {
     if (group.data?.canJoinLoosePublic) {
@@ -325,10 +278,19 @@ export default function GroupHomePage({
                     Email invite is still available.
                   </p>
                 ) : null}
+                {!group.data.isLoose && group.data.type === "public" ? (
+                  <p className="text-muted-foreground text-sm">
+                    Club Group Public: Community Members can join. Owner or
+                    Admin can also send a Lookup invite or copy an Invite link.
+                    The Group creator may Lookup existing Members only.
+                  </p>
+                ) : null}
                 {!group.data.isLoose && group.data.type === "private" ? (
                   <p className="text-muted-foreground text-sm">
-                    Club Group Private: in-app invite of Community members only.
-                    No Email invite or Invite link.
+                    Club Group Private: Owner or Admin can Lookup-invite any
+                    User or copy an Invite link (auto-admits as Member then
+                    joins). The Group creator may Lookup existing Members only
+                    and cannot mint Invite links.
                   </p>
                 ) : null}
               </>
@@ -655,95 +617,6 @@ export default function GroupHomePage({
           </section>
         ) : null}
 
-        {group.data?.canInviteClubPrivate ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                In-app invites
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Owner, Admin, or this Group&apos;s creator can invite existing
-                Community members. Outsiders cannot be invited. There is no
-                Email invite or Invite link for Club Group Private.
-              </p>
-            </div>
-
-            <form
-              className="flex flex-col gap-3 sm:flex-row"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const formData = new FormData(event.currentTarget);
-                const userIdValue = formData.get("userId");
-                if (typeof userIdValue !== "string" || !userIdValue) {
-                  return;
-                }
-                inviteClubPrivate.mutate({
-                  groupId: id,
-                  userId: userIdValue,
-                });
-                event.currentTarget.reset();
-              }}
-            >
-              <select
-                name="userId"
-                required
-                className="border-input bg-background text-foreground h-9 flex-1 rounded-md border px-3 text-sm"
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  Select Community member
-                </option>
-                {inviteCandidates.map((member) => (
-                  <option key={member.user.id} value={member.user.id}>
-                    {member.user.name} ({member.user.email})
-                  </option>
-                ))}
-              </select>
-              <Button type="submit" disabled={inviteClubPrivate.isPending}>
-                {inviteClubPrivate.isPending ? "Inviting…" : "Invite"}
-              </Button>
-            </form>
-
-            {pendingInvites.data?.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No unused invites.
-              </p>
-            ) : null}
-
-            {pendingInvites.data && pendingInvites.data.length > 0 ? (
-              <ul className="divide-border border-border divide-y rounded-lg border">
-                {pendingInvites.data.map((invite) => (
-                  <li
-                    key={invite.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-foreground font-medium">
-                        {invite.user.name}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {invite.user.email}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        revokeClubPrivateInvite.mutate({
-                          inviteId: invite.id,
-                        })
-                      }
-                      disabled={revokeClubPrivateInvite.isPending}
-                    >
-                      Revoke
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
-
         {group.data?.canManageLookupInvites ? (
           <section className="border-border bg-card space-y-4 rounded-xl border p-6">
             <div>
@@ -751,9 +624,9 @@ export default function GroupHomePage({
                 Lookup invite
               </h3>
               <p className="text-muted-foreground mt-2 text-sm">
-                Only you can look up an existing User by username, email, or
-                phone. The invitee accepts on Invites. Lookup invites do not
-                expire.
+                {group.data.isLoose
+                  ? "Only you can look up an existing User by username, email, or phone. The invitee accepts on Invites. Lookup invites do not expire."
+                  : "Owner or Admin can look up any existing User. Accept auto-admits them as Community Member then joins this Group. The Group creator may Lookup existing Members only. Invitees accept on Invites."}
               </p>
             </div>
 

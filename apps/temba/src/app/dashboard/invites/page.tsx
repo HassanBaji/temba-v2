@@ -29,6 +29,7 @@ export default function InvitesPage() {
       toast.success("Joined Group");
       await utils.groups.pendingLookupInvites.invalidate();
       await utils.groups.mine.invalidate();
+      await utils.communities.mine.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
