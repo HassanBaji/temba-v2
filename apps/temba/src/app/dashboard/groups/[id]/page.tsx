@@ -107,24 +107,6 @@ export default function GroupHomePage({
     },
   });
 
-  const acceptClubPrivateInvite =
-    api.groups.acceptClubPrivateInvite.useMutation({
-      onSuccess: async () => {
-        toast.success("Joined Club Group Private");
-        await utils.groups.byId.invalidate({ id });
-        await utils.groups.mine.invalidate();
-        if (group.data?.communityId) {
-          await utils.communities.byId.invalidate({
-            id: group.data.communityId,
-          });
-          await utils.communities.mine.invalidate();
-        }
-      },
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    });
-
   const createInviteLink = api.groups.createInviteLink.useMutation({
     onSuccess: async (result) => {
       await utils.groups.getInviteLink.invalidate({ groupId: id });
@@ -274,21 +256,6 @@ export default function GroupHomePage({
             {group.data?.canJoin ? (
               <Button onClick={onJoin} disabled={joinPending}>
                 {joinPending ? "Joining…" : "Join Group"}
-              </Button>
-            ) : null}
-            {group.data?.canAcceptClubPrivateInvite &&
-            group.data.pendingInvite ? (
-              <Button
-                onClick={() =>
-                  acceptClubPrivateInvite.mutate({
-                    inviteId: group.data.pendingInvite!.id,
-                  })
-                }
-                disabled={acceptClubPrivateInvite.isPending}
-              >
-                {acceptClubPrivateInvite.isPending
-                  ? "Accepting…"
-                  : "Accept invite"}
               </Button>
             ) : null}
             {group.data?.membership ? (
