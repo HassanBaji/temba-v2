@@ -33,11 +33,6 @@ export default function GroupHomePage({
   const utils = api.useUtils();
   const group = api.groups.byId.useQuery({ id });
 
-  const emailInvites = api.groups.listEmailInvites.useQuery(
-    { groupId: id },
-    { enabled: Boolean(group.data?.canManageInvites) },
-  );
-
   const lookupInvites = api.groups.listLookupInvites.useQuery(
     { groupId: id },
     { enabled: Boolean(group.data?.canManageLookupInvites) },
@@ -129,27 +124,6 @@ export default function GroupHomePage({
         toast.error(error.message);
       },
     });
-
-  const sendEmailInvite = api.groups.sendEmailInvite.useMutation({
-    onSuccess: async (result) => {
-      toast.success(`Email invite ready for ${result.email}`);
-      await utils.groups.listEmailInvites.invalidate({ groupId: id });
-      await navigator.clipboard.writeText(result.inviteUrl);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const revokeEmailInvite = api.groups.revokeEmailInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Email invite revoked");
-      await utils.groups.listEmailInvites.invalidate({ groupId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
 
   const createInviteLink = api.groups.createInviteLink.useMutation({
     onSuccess: async (result) => {
@@ -275,7 +249,6 @@ export default function GroupHomePage({
                 {group.data.isLoose && group.data.type === "private" ? (
                   <p className="text-muted-foreground text-sm">
                     Private: Lookup invite and Invite link from the creator.
-                    Email invite is still available.
                   </p>
                 ) : null}
                 {!group.data.isLoose && group.data.type === "public" ? (
@@ -693,102 +666,6 @@ export default function GroupHomePage({
                 ))}
               </ul>
             ) : null}
-          </section>
-        ) : null}
-
-        {group.data?.canManageInvites ? (
-          <section className="border-border bg-card space-y-6 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Private invites
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Only the creator can send Email invites.
-              </p>
-            </div>
-
-            <div className="border-border space-y-3 rounded-lg border p-4">
-              <h4 className="text-foreground font-medium">Email invite</h4>
-              <form
-                className="flex flex-col gap-3 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const formData = new FormData(event.currentTarget);
-                  const emailValue = formData.get("email");
-                  if (typeof emailValue !== "string") {
-                    return;
-                  }
-                  const email = emailValue.trim();
-                  if (!email) {
-                    return;
-                  }
-                  sendEmailInvite.mutate({ groupId: id, email });
-                  event.currentTarget.reset();
-                }}
-              >
-                <Input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="invitee@email.com"
-                  className="flex-1"
-                />
-                <Button type="submit" disabled={sendEmailInvite.isPending}>
-                  {sendEmailInvite.isPending ? "Sending…" : "Send invite"}
-                </Button>
-              </form>
-
-              {emailInvites.data?.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  No unused Email invites.
-                </p>
-              ) : null}
-              {emailInvites.data && emailInvites.data.length > 0 ? (
-                <ul className="divide-border border-border divide-y rounded-lg border">
-                  {emailInvites.data.map((invite) => (
-                    <li
-                      key={invite.id}
-                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-foreground font-medium">
-                          {invite.email}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {invite.attachedUserId
-                            ? "Attached to existing User"
-                            : "No User yet"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(
-                              invite.inviteUrl,
-                            );
-                            toast.success("Email invite URL copied");
-                          }}
-                        >
-                          Copy URL
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            revokeEmailInvite.mutate({ inviteId: invite.id })
-                          }
-                          disabled={revokeEmailInvite.isPending}
-                        >
-                          Revoke
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
           </section>
         ) : null}
 

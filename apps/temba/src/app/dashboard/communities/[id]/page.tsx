@@ -59,10 +59,6 @@ export default function CommunityHomePage({
     },
   });
 
-  const emailInvites = api.communities.listEmailInvites.useQuery(
-    { communityId: id },
-    { enabled: Boolean(community.data?.canManageInvites) },
-  );
   const inviteLink = api.communities.getInviteLink.useQuery(
     { communityId: id },
     { enabled: Boolean(community.data?.canManageInviteLinks) },
@@ -91,26 +87,6 @@ export default function CommunityHomePage({
     },
   });
 
-  const sendEmailInvite = api.communities.sendEmailInvite.useMutation({
-    onSuccess: async (result) => {
-      toast.success(`Email invite ready for ${result.email}`);
-      await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("Invite URL copied");
-      await utils.communities.listEmailInvites.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-  const revokeEmailInvite = api.communities.revokeEmailInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Email invite revoked");
-      await utils.communities.listEmailInvites.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
   const createInviteLink = api.communities.createInviteLink.useMutation({
     onSuccess: async (result) => {
       await navigator.clipboard.writeText(result.inviteUrl);
@@ -402,7 +378,7 @@ export default function CommunityHomePage({
             </h3>
             <p className="text-muted-foreground mt-2 text-sm">
               Club Groups stay attached. You can still open Groups and see
-              history and Games. New joins, requests, Email invites, and Invite
+              history and Games. New joins, requests, Lookup invites, and Invite
               links are paused until an Owner or Admin unarchives.
             </p>
           </section>
@@ -654,8 +630,8 @@ export default function CommunityHomePage({
                     Create Club Group Private
                   </h4>
                   <p className="text-muted-foreground text-sm">
-                    Owner or Admin only. Invite-only for Community members
-                    (in-app). No Email invite or Invite link.
+                    Owner or Admin can send Lookup invites and copy Invite
+                    links. The Group creator may Lookup existing Members only.
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <Input
@@ -1046,102 +1022,6 @@ export default function CommunityHomePage({
                 ))}
               </ul>
             ) : null}
-          </section>
-        ) : null}
-
-        {community.data?.canManageInvites ? (
-          <section className="border-border bg-card space-y-6 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Private invites
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Owner and Admin can send Email invites.
-              </p>
-            </div>
-
-            <div className="border-border space-y-3 rounded-lg border p-4">
-              <h4 className="text-foreground font-medium">Email invite</h4>
-              <form
-                className="flex flex-col gap-3 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const formData = new FormData(event.currentTarget);
-                  const emailValue = formData.get("email");
-                  if (typeof emailValue !== "string") {
-                    return;
-                  }
-                  const email = emailValue.trim();
-                  if (!email) {
-                    return;
-                  }
-                  sendEmailInvite.mutate({ communityId: id, email });
-                  event.currentTarget.reset();
-                }}
-              >
-                <Input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="invitee@email.com"
-                  className="flex-1"
-                />
-                <Button type="submit" disabled={sendEmailInvite.isPending}>
-                  {sendEmailInvite.isPending ? "Sending…" : "Send invite"}
-                </Button>
-              </form>
-
-              {emailInvites.data?.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  No unused Email invites.
-                </p>
-              ) : null}
-              {emailInvites.data && emailInvites.data.length > 0 ? (
-                <ul className="divide-border border-border divide-y rounded-lg border">
-                  {emailInvites.data.map((invite) => (
-                    <li
-                      key={invite.id}
-                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-foreground font-medium">
-                          {invite.email}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {invite.attachedUserId
-                            ? "Attached to existing User"
-                            : "No User yet"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(
-                              invite.inviteUrl,
-                            );
-                            toast.success("Email invite URL copied");
-                          }}
-                        >
-                          Copy URL
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            revokeEmailInvite.mutate({ inviteId: invite.id })
-                          }
-                          disabled={revokeEmailInvite.isPending}
-                        >
-                          Revoke
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
           </section>
         ) : null}
 
