@@ -57,11 +57,11 @@ A Group that does not belong to a Community.
 _Avoid_: orphan, standalone group, free group
 
 **Community Public**:
-A Community joinable by request if you have the Community URL. No Email invite or Invite link; listed in Directory when that planned surface ships.
+A Community joinable by request if you have the Community URL. Owner or Admin may also send a Lookup invite or mint an Invite link (Invite link admits immediately). Listed in Directory when that planned surface ships.
 _Avoid_: open Community, listed Community (as the name of the type), Route `/public`
 
 **Community Private**:
-A Community joinable only by Email invite or Invite link.
+A Community joinable by Lookup invite or Invite link from Owner or Admin, or by Owner/Admin Club Group Lookup invite or Invite link that auto-admits as Member then joins the Club Group. No request-to-join.
 _Avoid_: secret Community, hidden Community, unlisted Community (when you mean this type)
 
 **Directory**:
@@ -69,28 +69,32 @@ A planned App list of live Community Public clubs. Not a shipped surface. Groups
 _Avoid_: Group directory, marketplace, feed
 
 **Club Group Public**:
-A Club Group any Community member may join.
+A Club Group any Community Member may join. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
 _Avoid_: open Group (when you mean Club Group Public)
 
 **Club Group Private**:
-A Club Group joinable only by in-app invite, even for Community members.
+A Club Group joinable by Lookup invite or Invite link. Owner or Admin may invite any User (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
 _Avoid_: secret Group (when you mean Club Group Private)
 
 **Loose Group Public**:
-A Loose Group that is not listed; any authenticated User with the Group URL may join.
-_Avoid_: listed Group, Invite link (that is a different door for Loose Group Private)
+A Loose Group that is not listed; any authenticated User with the Group URL may join. The creator may also send Lookup invites and mint Invite links.
+_Avoid_: listed Group, Invite link (that is a different door from Group URL)
 
 **Loose Group Private**:
-A Loose Group that is not listed; joinable by Email invite or Invite link from the User who created it.
+A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it.
 _Avoid_: secret Loose Group
 
+**Lookup invite**:
+An in-app invitation to one existing User, found by searching username, email, or phone. The invitee must accept. Staff who may send may revoke unused Lookup invites.
+_Avoid_: Email invite, User directory, phone invite, magic link, Invite link
+
 **Email invite**:
-A named invitation bound to one email address. After Clerk sign-in or sign-up, Temba joins the person only if that account’s email matches.
-_Avoid_: magic link, Invite link, mail (when you mean this product)
+Retired as a product door. Do not send named invitations bound to an email address. Leftover Email invite URLs must not admit.
+_Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 
 **Invite link**:
-A reusable door URL for a Community Private or Loose Group Private until staff rotate or revoke it. Any authenticated User may use a live Invite link.
-_Avoid_: Email invite, magic link, Group URL (Loose Group Public uses the Group URL, not an Invite link)
+A door URL any authenticated User may use while that token is live. Each copy mints a new token that expires 6 hours after mint; older tokens stay valid until each expires. No rotate or revoke. Used on Community (Public and Private), every Group type, and incomplete Team.
+_Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Venue link**:
 A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. Distinct from Invite link and from a Team’s Community link.
@@ -105,7 +109,7 @@ The allow-list of sports a Community offers (padel, football, or both). Each Gro
 _Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
 
 **Team**:
-A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending invite for the second seat). Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval, and either member may unlink.
+A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending Lookup invite or live Invite link for the second seat). Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval, and either member may unlink.
 _Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
 
 **Club Team**:
