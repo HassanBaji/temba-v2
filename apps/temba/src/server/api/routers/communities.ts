@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, eq, gt, ilike, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -28,6 +28,10 @@ import {
 import { type db } from "~/server/db";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { resolveLookupUser } from "~/server/invites/resolve-lookup-user";
+import {
+  inviteLinkExpiresAt,
+  isInviteLinkLive,
+} from "~/server/invites/invite-link-expiry";
 import {
   communityEmailInviteUrl,
   communityInviteLinkUrl,
@@ -339,6 +343,8 @@ export const communitiesRouter = createTRPCRouter({
         isStaffRole(membership?.role);
       const canManageLookupInvites =
         !community.archivedAt && isStaffRole(membership?.role);
+      const canManageInviteLinks =
+        !community.archivedAt && isStaffRole(membership?.role);
       const canCreateClubGroup =
         !community.archivedAt && isStaffRole(membership?.role);
       const canManageSports = isStaffRole(membership?.role);
@@ -509,6 +515,7 @@ export const communitiesRouter = createTRPCRouter({
         canManageJoinRequests,
         canManageInvites,
         canManageLookupInvites,
+        canManageInviteLinks,
         canCreateClubGroup,
         canManageSports,
         canManageRoles,
@@ -1981,30 +1988,29 @@ export const communitiesRouter = createTRPCRouter({
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
-      const community = await requireLivePrivateCommunity(
-        ctx.db,
-        input.communityId,
-      );
+      const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
-      const active = await ctx.db.query.communityInviteLinks.findFirst({
+      const newest = await ctx.db.query.communityInviteLinks.findFirst({
         where: and(
           eq(communityInviteLinks.communityId, community.id),
-          isNull(communityInviteLinks.revokedAt),
+          gt(communityInviteLinks.expiresAt, new Date()),
         ),
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
       });
 
-      if (!active) {
+      if (!newest) {
         return null;
       }
 
       return {
-        id: active.id,
+        id: newest.id,
         inviteUrl: communityInviteLinkUrl(
           getAppOrigin(ctx.headers),
-          active.token,
+          newest.token,
         ),
-        createdAt: active.createdAt,
+        createdAt: newest.createdAt,
+        expiresAt: newest.expiresAt,
       };
     }),
 
@@ -2012,36 +2018,18 @@ export const communitiesRouter = createTRPCRouter({
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
-      const community = await requireLivePrivateCommunity(
-        ctx.db,
-        input.communityId,
-      );
+      const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
-      const existing = await ctx.db.query.communityInviteLinks.findFirst({
-        where: and(
-          eq(communityInviteLinks.communityId, community.id),
-          isNull(communityInviteLinks.revokedAt),
-        ),
-      });
-
-      if (existing) {
-        return {
-          id: existing.id,
-          inviteUrl: communityInviteLinkUrl(
-            getAppOrigin(ctx.headers),
-            existing.token,
-          ),
-          createdAt: existing.createdAt,
-        };
-      }
-
+      const createdAt = new Date();
       const [created] = await ctx.db
         .insert(communityInviteLinks)
         .values({
           communityId: community.id,
           createdBy: appUser.id,
           token: createOpaqueToken(),
+          createdAt,
+          expiresAt: inviteLinkExpiresAt(createdAt),
         })
         .returning();
 
@@ -2059,96 +2047,8 @@ export const communitiesRouter = createTRPCRouter({
           created.token,
         ),
         createdAt: created.createdAt,
+        expiresAt: created.expiresAt,
       };
-    }),
-
-  rotateInviteLink: protectedProcedure
-    .input(z.object({ communityId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
-      const community = await requireLivePrivateCommunity(
-        ctx.db,
-        input.communityId,
-      );
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const created = await ctx.db.transaction(async (tx) => {
-        const active = await tx.query.communityInviteLinks.findFirst({
-          where: and(
-            eq(communityInviteLinks.communityId, community.id),
-            isNull(communityInviteLinks.revokedAt),
-          ),
-        });
-
-        if (active) {
-          await tx
-            .update(communityInviteLinks)
-            .set({
-              revokedAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(eq(communityInviteLinks.id, active.id));
-        }
-
-        const [next] = await tx
-          .insert(communityInviteLinks)
-          .values({
-            communityId: community.id,
-            createdBy: appUser.id,
-            token: createOpaqueToken(),
-          })
-          .returning();
-
-        if (!next) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to rotate Invite link",
-          });
-        }
-
-        return next;
-      });
-
-      return {
-        id: created.id,
-        inviteUrl: communityInviteLinkUrl(
-          getAppOrigin(ctx.headers),
-          created.token,
-        ),
-        createdAt: created.createdAt,
-      };
-    }),
-
-  revokeInviteLink: protectedProcedure
-    .input(z.object({ communityId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
-      const community = await requireLivePrivateCommunity(
-        ctx.db,
-        input.communityId,
-      );
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const active = await ctx.db.query.communityInviteLinks.findFirst({
-        where: and(
-          eq(communityInviteLinks.communityId, community.id),
-          isNull(communityInviteLinks.revokedAt),
-        ),
-      });
-
-      if (!active) {
-        return { ok: true as const };
-      }
-
-      await ctx.db
-        .update(communityInviteLinks)
-        .set({
-          revokedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(communityInviteLinks.id, active.id));
-
-      return { ok: true as const };
     }),
 
   previewEmailInvite: publicProcedure
@@ -2186,11 +2086,11 @@ export const communitiesRouter = createTRPCRouter({
         },
       });
 
-      if (!link || link.revokedAt) {
+      if (!link || !isInviteLinkLive(link.expiresAt)) {
         return { status: "invalid" as const };
       }
 
-      if (link.community.type !== "private" || link.community.archivedAt) {
+      if (link.community.archivedAt) {
         return { status: "unavailable" as const };
       }
 
@@ -2315,7 +2215,7 @@ export const communitiesRouter = createTRPCRouter({
         where: eq(communityInviteLinks.token, input.token),
       });
 
-      if (!link || link.revokedAt) {
+      if (!link || !isInviteLinkLive(link.expiresAt)) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Invite link is not available",
@@ -2323,13 +2223,6 @@ export const communitiesRouter = createTRPCRouter({
       }
 
       const community = await requireCommunity(ctx.db, link.communityId);
-
-      if (community.type !== "private") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Community Public has no Invite link",
-        });
-      }
 
       if (community.archivedAt) {
         throw new TRPCError({
@@ -2344,10 +2237,10 @@ export const communitiesRouter = createTRPCRouter({
         appUser.id,
       );
       if (existingMembership) {
-        return {
-          communityId: community.id,
-          alreadyMember: true as const,
-        };
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already a Member of this Community",
+        });
       }
 
       const [inserted] = await ctx.db
@@ -2363,10 +2256,10 @@ export const communitiesRouter = createTRPCRouter({
         .returning();
 
       if (!inserted) {
-        return {
-          communityId: community.id,
-          alreadyMember: true as const,
-        };
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already a Member of this Community",
+        });
       }
 
       return {

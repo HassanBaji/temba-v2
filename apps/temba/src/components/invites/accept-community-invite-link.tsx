@@ -23,11 +23,7 @@ export function AcceptCommunityInviteLink({
   const preview = api.communities.previewInviteLink.useQuery({ token });
   const accept = api.communities.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success(
-        result.alreadyMember
-          ? "You are already a member"
-          : "Joined Community as Member",
-      );
+      toast.success("Joined Community as Member");
       router.replace(`/dashboard/communities/${result.communityId}`);
     },
     onError: (error) => {
@@ -62,7 +58,7 @@ export function AcceptCommunityInviteLink({
       <div className="space-y-3">
         <h1 className="text-xl font-semibold text-white">Invite unavailable</h1>
         <p className="text-sm text-white/70">
-          This Invite link is invalid or revoked.
+          This Invite link is invalid or expired.
         </p>
         <Button variant="outline" asChild>
           <Link href="/login">Go to login</Link>

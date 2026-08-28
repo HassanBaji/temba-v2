@@ -120,6 +120,13 @@
       "when": 1787915718994,
       "tag": "0016_absent_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787916016177,
+      "tag": "0017_dizzy_penance",
+      "breakpoints": true
     }
   ]
 }

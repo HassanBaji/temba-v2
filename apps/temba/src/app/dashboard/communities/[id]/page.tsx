@@ -65,7 +65,7 @@ export default function CommunityHomePage({
   );
   const inviteLink = api.communities.getInviteLink.useQuery(
     { communityId: id },
-    { enabled: Boolean(community.data?.canManageInvites) },
+    { enabled: Boolean(community.data?.canManageInviteLinks) },
   );
   const lookupInvites = api.communities.listLookupInvites.useQuery(
     { communityId: id },
@@ -115,25 +115,6 @@ export default function CommunityHomePage({
     onSuccess: async (result) => {
       await navigator.clipboard.writeText(result.inviteUrl);
       toast.success("Invite link copied");
-      await utils.communities.getInviteLink.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-  const rotateInviteLink = api.communities.rotateInviteLink.useMutation({
-    onSuccess: async (result) => {
-      await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("Invite link rotated and copied");
-      await utils.communities.getInviteLink.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-  const revokeInviteLink = api.communities.revokeInviteLink.useMutation({
-    onSuccess: async () => {
-      toast.success("Invite link revoked");
       await utils.communities.getInviteLink.invalidate({ communityId: id });
     },
     onError: (error) => {
@@ -984,7 +965,8 @@ export default function CommunityHomePage({
         {community.data?.type === "public" ? (
           <p className="text-muted-foreground text-xs">
             Community Public uses request-to-join. Owner or Admin can also send
-            a Lookup invite. There is no Email invite or Invite link.
+            a Lookup invite or copy an Invite link. There is no Email invite.
+            Invite link admits immediately and skips the request queue.
           </p>
         ) : null}
 
@@ -1074,8 +1056,7 @@ export default function CommunityHomePage({
                 Private invites
               </h3>
               <p className="text-muted-foreground mt-2 text-sm">
-                Owner and Admin can send Email invites and manage one reusable
-                Invite link.
+                Owner and Admin can send Email invites.
               </p>
             </div>
 
@@ -1161,64 +1142,36 @@ export default function CommunityHomePage({
                 </ul>
               ) : null}
             </div>
+          </section>
+        ) : null}
 
-            <div className="border-border space-y-3 rounded-lg border p-4">
-              <h4 className="text-foreground font-medium">Invite link</h4>
-              {inviteLink.data ? (
-                <>
-                  <p className="text-muted-foreground text-sm">
-                    Live reusable link. Any authenticated User who opens it
-                    becomes a Member.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(
-                          inviteLink.data!.inviteUrl,
-                        );
-                        toast.success("Invite link copied");
-                      }}
-                    >
-                      Copy link
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        rotateInviteLink.mutate({ communityId: id })
-                      }
-                      disabled={rotateInviteLink.isPending}
-                    >
-                      Rotate
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        revokeInviteLink.mutate({ communityId: id })
-                      }
-                      disabled={revokeInviteLink.isPending}
-                    >
-                      Revoke
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">
-                    No active Invite link.
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => createInviteLink.mutate({ communityId: id })}
-                    disabled={createInviteLink.isPending}
-                  >
-                    {createInviteLink.isPending ? "Creating…" : "Create link"}
-                  </Button>
-                </div>
-              )}
+        {community.data?.canManageInviteLinks ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Invite link
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Each copy mints a new 6-hour token. Older copied URLs stay live
+                until each expires. There is no rotate or revoke.
+              </p>
             </div>
+            {inviteLink.data ? (
+              <p className="text-muted-foreground break-all text-sm">
+                Newest: {inviteLink.data.inviteUrl}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No live Invite link. Copy to mint one.
+              </p>
+            )}
+            <Button
+              size="sm"
+              onClick={() => createInviteLink.mutate({ communityId: id })}
+              disabled={createInviteLink.isPending}
+            >
+              {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
+            </Button>
           </section>
         ) : null}
       </div>
