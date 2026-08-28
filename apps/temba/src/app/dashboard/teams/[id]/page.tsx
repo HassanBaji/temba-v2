@@ -22,21 +22,15 @@ export default function TeamHomePage({
   const utils = api.useUtils();
   const team = api.teams.byId.useQuery({ id });
 
+  const inviteLink = api.teams.getInviteLink.useQuery(
+    { teamId: id },
+    { enabled: Boolean(team.data?.canInvite) },
+  );
+
   const inviteInApp = api.teams.inviteInApp.useMutation({
     onSuccess: async () => {
-      toast.success("Invite sent");
+      toast.success("Lookup invite sent");
       await utils.teams.byId.invalidate({ id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const sendEmailInvite = api.teams.sendEmailInvite.useMutation({
-    onSuccess: async (result) => {
-      toast.success(`Email invite ready for ${result.email}`);
-      await utils.teams.byId.invalidate({ id });
-      await navigator.clipboard.writeText(result.inviteUrl);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -45,7 +39,7 @@ export default function TeamHomePage({
 
   const revokeInvite = api.teams.revokeInAppInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Invite revoked");
+      toast.success("Lookup invite revoked");
       await utils.teams.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -53,22 +47,11 @@ export default function TeamHomePage({
     },
   });
 
-  const revokeEmailInvite = api.teams.revokeEmailInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Email invite revoked");
-      await utils.teams.byId.invalidate({ id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const acceptInvite = api.teams.acceptInAppInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Joined Team");
-      await utils.teams.byId.invalidate({ id });
-      await utils.teams.mine.invalidate();
-      await utils.teams.pendingInvites.invalidate();
+  const createInviteLink = api.teams.createInviteLink.useMutation({
+    onSuccess: async (result) => {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success("Invite link copied");
+      await utils.teams.getInviteLink.invalidate({ teamId: id });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -79,7 +62,6 @@ export default function TeamHomePage({
     onSuccess: async () => {
       toast.success("Team dissolved");
       await utils.teams.mine.invalidate();
-      await utils.teams.pendingInvites.invalidate();
       router.push("/dashboard/teams");
     },
     onError: (error) => {
@@ -181,18 +163,6 @@ export default function TeamHomePage({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {team.data?.canAccept && team.data.pendingInvite ? (
-              <Button
-                onClick={() =>
-                  acceptInvite.mutate({
-                    inviteId: team.data.pendingInvite!.id,
-                  })
-                }
-                disabled={acceptInvite.isPending}
-              >
-                {acceptInvite.isPending ? "Accepting…" : "Accept invite"}
-              </Button>
-            ) : null}
             {team.data?.canUnlink ? (
               <Button
                 variant="outline"
@@ -361,13 +331,43 @@ export default function TeamHomePage({
           <section className="border-border bg-card space-y-6 rounded-xl border p-6">
             <div>
               <h3 className="text-foreground text-lg font-medium">
-                Partner invite
+                Lookup invite
               </h3>
               <p className="text-muted-foreground mt-2 text-sm">
-                One unused open-seat invite at a time (in-app or Email). Revoke
-                it before sending another. There is no Team Invite link.
+                Look up an existing User by username, email, or phone. The
+                invitee accepts on Invites. Lookup invites do not expire. A
+                pending Lookup invite and live Invite links may coexist.
               </p>
             </div>
+
+            <form
+              className="flex flex-col gap-3 sm:flex-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                const queryValue = formData.get("query");
+                if (typeof queryValue !== "string") {
+                  return;
+                }
+                const query = queryValue.trim();
+                if (!query) {
+                  return;
+                }
+                inviteInApp.mutate({ teamId: id, query });
+                event.currentTarget.reset();
+              }}
+            >
+              <Input
+                name="query"
+                type="text"
+                required
+                placeholder="Username, email, or phone"
+                className="flex-1"
+              />
+              <Button type="submit" disabled={inviteInApp.isPending}>
+                {inviteInApp.isPending ? "Sending…" : "Send Lookup invite"}
+              </Button>
+            </form>
 
             {team.data.unusedInvite ? (
               <div className="divide-border border-border divide-y rounded-lg border">
@@ -377,7 +377,7 @@ export default function TeamHomePage({
                       {team.data.unusedInvite.user.name}
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      In-app · {team.data.unusedInvite.user.email}
+                      {team.data.unusedInvite.user.email}
                     </p>
                   </div>
                   <Button
@@ -394,124 +394,42 @@ export default function TeamHomePage({
                   </Button>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No unused Lookup invites.
+              </p>
+            )}
+          </section>
+        ) : null}
 
-            {team.data.unusedEmailInvite ? (
-              <div className="divide-border border-border divide-y rounded-lg border">
-                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-foreground font-medium">
-                      {team.data.unusedEmailInvite.email}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      Email invite
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(
-                          team.data.unusedEmailInvite!.inviteUrl,
-                        );
-                        toast.success("Invite URL copied");
-                      }}
-                    >
-                      Copy URL
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        revokeEmailInvite.mutate({
-                          inviteId: team.data.unusedEmailInvite!.id,
-                        })
-                      }
-                      disabled={revokeEmailInvite.isPending}
-                    >
-                      {revokeEmailInvite.isPending ? "Revoking…" : "Revoke"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {!team.data.unusedInvite && !team.data.unusedEmailInvite ? (
-              <div className="space-y-6">
-                <div className="border-border space-y-3 rounded-lg border p-4">
-                  <h4 className="text-foreground font-medium">
-                    In-app invite (existing User)
-                  </h4>
-                  <form
-                    className="flex flex-col gap-3 sm:flex-row"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const formData = new FormData(event.currentTarget);
-                      const emailValue = formData.get("email");
-                      if (typeof emailValue !== "string") {
-                        return;
-                      }
-                      const email = emailValue.trim();
-                      if (!email) {
-                        return;
-                      }
-                      inviteInApp.mutate({ teamId: id, email });
-                      event.currentTarget.reset();
-                    }}
-                  >
-                    <Input
-                      name="email"
-                      type="email"
-                      required
-                      placeholder="existing-user@email.com"
-                      className="flex-1"
-                    />
-                    <Button type="submit" disabled={inviteInApp.isPending}>
-                      {inviteInApp.isPending ? "Inviting…" : "Invite User"}
-                    </Button>
-                  </form>
-                </div>
-
-                <div className="border-border space-y-3 rounded-lg border p-4">
-                  <h4 className="text-foreground font-medium">Email invite</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Any address is OK. They join after Clerk sign-in if their
-                    email matches. This does not add Community membership.
-                  </p>
-                  <form
-                    className="flex flex-col gap-3 sm:flex-row"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const formData = new FormData(event.currentTarget);
-                      const emailValue = formData.get("email");
-                      if (typeof emailValue !== "string") {
-                        return;
-                      }
-                      const email = emailValue.trim();
-                      if (!email) {
-                        return;
-                      }
-                      sendEmailInvite.mutate({ teamId: id, email });
-                      event.currentTarget.reset();
-                    }}
-                  >
-                    <Input
-                      name="email"
-                      type="email"
-                      required
-                      placeholder="invitee@email.com"
-                      className="flex-1"
-                    />
-                    <Button type="submit" disabled={sendEmailInvite.isPending}>
-                      {sendEmailInvite.isPending
-                        ? "Sending…"
-                        : "Send Email invite"}
-                    </Button>
-                  </form>
-                </div>
-              </div>
-            ) : null}
+        {team.data?.canInvite ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Invite link
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Each copy mints a new 6-hour token. Older copied URLs stay live
+                until each expires. There is no rotate or revoke. The first
+                successful accept fills the seat and kills leftover Team doors.
+              </p>
+            </div>
+            {inviteLink.data ? (
+              <p className="text-muted-foreground break-all text-sm">
+                Newest: {inviteLink.data.inviteUrl}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No live Invite link. Copy to mint one.
+              </p>
+            )}
+            <Button
+              size="sm"
+              onClick={() => createInviteLink.mutate({ teamId: id })}
+              disabled={createInviteLink.isPending}
+            >
+              {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
+            </Button>
           </section>
         ) : null}
       </div>

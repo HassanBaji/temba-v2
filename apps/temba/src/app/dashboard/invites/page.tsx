@@ -12,6 +12,7 @@ export default function InvitesPage() {
   const utils = api.useUtils();
   const communityInvites = api.communities.pendingLookupInvites.useQuery();
   const groupInvites = api.groups.pendingLookupInvites.useQuery();
+  const teamInvites = api.teams.pendingInvites.useQuery();
 
   const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
     onSuccess: async () => {
@@ -36,8 +37,23 @@ export default function InvitesPage() {
     },
   });
 
-  const isLoading = communityInvites.isLoading || groupInvites.isLoading;
-  const error = communityInvites.error ?? groupInvites.error;
+  const acceptTeam = api.teams.acceptInAppInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Joined Team");
+      await utils.teams.pendingInvites.invalidate();
+      await utils.teams.mine.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const isLoading =
+    communityInvites.isLoading ||
+    groupInvites.isLoading ||
+    teamInvites.isLoading;
+  const error =
+    communityInvites.error ?? groupInvites.error ?? teamInvites.error;
   const items = [
     ...(communityInvites.data ?? []).map((invite) => ({
       kind: "community" as const,
@@ -53,11 +69,19 @@ export default function InvitesPage() {
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
     })),
+    ...(teamInvites.data ?? []).map((invite) => ({
+      kind: "team" as const,
+      id: invite.id,
+      title: invite.displayName,
+      invitedBy: invite.invitedBy,
+      createdAt: invite.createdAt,
+    })),
   ].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const acceptPending = acceptCommunity.isPending || acceptGroup.isPending;
+  const acceptPending =
+    acceptCommunity.isPending || acceptGroup.isPending || acceptTeam.isPending;
 
   return (
     <DashboardShell title="Invites">
@@ -115,7 +139,11 @@ export default function InvitesPage() {
                       acceptCommunity.mutate({ inviteId: invite.id });
                       return;
                     }
-                    acceptGroup.mutate({ inviteId: invite.id });
+                    if (invite.kind === "group") {
+                      acceptGroup.mutate({ inviteId: invite.id });
+                      return;
+                    }
+                    acceptTeam.mutate({ inviteId: invite.id });
                   }}
                   disabled={acceptPending}
                 >
