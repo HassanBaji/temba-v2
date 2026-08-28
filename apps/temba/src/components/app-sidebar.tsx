@@ -6,6 +6,7 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import {
   IconBuildingCommunity,
   IconHome,
+  IconMail,
   IconMapPin,
   IconUsers,
   IconUsersGroup,
@@ -42,6 +43,11 @@ const navMain = [
     title: "Communities",
     url: "/dashboard/communities",
     icon: IconBuildingCommunity,
+  },
+  {
+    title: "Invites",
+    url: "/dashboard/invites",
+    icon: IconMail,
   },
 ];
 

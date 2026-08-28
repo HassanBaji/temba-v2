@@ -67,6 +67,29 @@ export default function CommunityHomePage({
     { communityId: id },
     { enabled: Boolean(community.data?.canManageInvites) },
   );
+  const lookupInvites = api.communities.listLookupInvites.useQuery(
+    { communityId: id },
+    { enabled: Boolean(community.data?.canManageLookupInvites) },
+  );
+
+  const sendLookupInvite = api.communities.sendLookupInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Lookup invite sent");
+      await utils.communities.listLookupInvites.invalidate({ communityId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  const revokeLookupInvite = api.communities.revokeLookupInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Lookup invite revoked");
+      await utils.communities.listLookupInvites.invalidate({ communityId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const sendEmailInvite = api.communities.sendEmailInvite.useMutation({
     onSuccess: async (result) => {
@@ -960,9 +983,88 @@ export default function CommunityHomePage({
 
         {community.data?.type === "public" ? (
           <p className="text-muted-foreground text-xs">
-            Community Public uses request-to-join only. There is no Email invite
-            or Invite link.
+            Community Public uses request-to-join. Owner or Admin can also send
+            a Lookup invite. There is no Email invite or Invite link.
           </p>
+        ) : null}
+
+        {community.data?.canManageLookupInvites ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Lookup invite
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Owner and Admin can look up an existing User by username, email,
+                or phone and send a Lookup invite. The invitee accepts on
+                Invites. Lookup invites do not expire.
+              </p>
+            </div>
+
+            <form
+              className="flex flex-col gap-3 sm:flex-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                const queryValue = formData.get("query");
+                if (typeof queryValue !== "string") {
+                  return;
+                }
+                const query = queryValue.trim();
+                if (!query) {
+                  return;
+                }
+                sendLookupInvite.mutate({ communityId: id, query });
+                event.currentTarget.reset();
+              }}
+            >
+              <Input
+                name="query"
+                type="text"
+                required
+                placeholder="Username, email, or phone"
+                className="flex-1"
+              />
+              <Button type="submit" disabled={sendLookupInvite.isPending}>
+                {sendLookupInvite.isPending ? "Sending…" : "Send Lookup invite"}
+              </Button>
+            </form>
+
+            {lookupInvites.data?.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No unused Lookup invites.
+              </p>
+            ) : null}
+            {lookupInvites.data && lookupInvites.data.length > 0 ? (
+              <ul className="divide-border border-border divide-y rounded-lg border">
+                {lookupInvites.data.map((invite) => (
+                  <li
+                    key={invite.id}
+                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-foreground font-medium">
+                        {invite.user.name}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {invite.user.email}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        revokeLookupInvite.mutate({ inviteId: invite.id })
+                      }
+                      disabled={revokeLookupInvite.isPending}
+                    >
+                      Revoke
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
         ) : null}
 
         {community.data?.canManageInvites ? (
