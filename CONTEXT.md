@@ -150,11 +150,23 @@ _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Match**:
 A playable contest with two sides that belongs to one Game.
-_Avoid_: Game (the parent event), session
+_Avoid_: Game (the parent event), session, fixture (when you mean a Match; not a separate entity)
 
 **Set**:
 The scoring length of a Match: one set or several. Not a create-able thing.
 _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temba term)
+
+**Americano**:
+A Game format with individual-only registration and rotating partners across multiple Matches. Matches are generated after registration.
+_Avoid_: Friendly tournament, tournament, team-only (illegal on this format)
+
+**Friendly tournament**:
+A Game format with multiple Matches and the same sides on every Match. The organizer adds each Match by hand.
+_Avoid_: Americano, bracket (a later style of Friendly tournament)
+
+**Waitlist**:
+The queue to join a Game after its cap is reached.
+_Avoid_: player (when you mean someone waitlisted), guest
 
 **User**:
 A person with a Temba account.
