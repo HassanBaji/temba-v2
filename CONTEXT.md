@@ -121,8 +121,8 @@ A Team with no Community link (unattached).
 _Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
-One side in a single Match. Not a Team.
-_Avoid_: Team (when you mean a Game side), partnership
+One side on a Game: a complete Team or an ad-hoc pair of Users, reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
+_Avoid_: Team (when you mean a Game side), partnership, pair (when you mean this entity)
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
@@ -158,11 +158,15 @@ _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temb
 
 **Americano**:
 A Game format with individual-only registration and rotating partners across multiple Matches. Matches are generated after registration.
-_Avoid_: Friendly tournament, tournament, team-only (illegal on this format)
+_Avoid_: Friendly tournament, Friendly game, tournament, team-only (illegal on this format)
 
 **Friendly tournament**:
 A Game format with multiple Matches and the same sides on every Match. The organizer adds each Match by hand.
-_Avoid_: Americano, bracket (a later style of Friendly tournament)
+_Avoid_: Americano, Friendly game, bracket (a later style of Friendly tournament)
+
+**Friendly game**:
+A Game format with exactly one Match, created with the Game.
+_Avoid_: Single, Friendly tournament, Americano
 
 **Waitlist**:
 The queue to join a Game after its cap is reached.
