@@ -250,3 +250,18 @@ Amends `.scratch/community/spec.md` invite doors: Email invite; never-expire one
 Settled grilling: conversation that produced this spec (rounds through shared-understanding confirm).
 
 Locked defaults: Invites page + sidebar; check-on-read 6h; Clerk primary phone; Clerk username as given; Invite link URL patterns above; Email invite UI/tRPC/accept gone on ship.
+
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/invite-lookup-and-link/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-29 Clerk identity + Community Lookup invite + Invites inbox](https://linear.app/temba-app/issue/TEM-29/clerk-identity-community-lookup-invite-invites-inbox) | — |
+| 2 | [TEM-30 Community 6h Invite link](https://linear.app/temba-app/issue/TEM-30/community-6h-invite-link) | TEM-29 |
+| 3 | [TEM-31 Loose Group Lookup invite + 6h Invite link](https://linear.app/temba-app/issue/TEM-31/loose-group-lookup-invite-6h-invite-link) | TEM-29 |
+| 4 | [TEM-32 Club Group Lookup invite + 6h Invite link + auto-admit](https://linear.app/temba-app/issue/TEM-32/club-group-lookup-invite-6h-invite-link-auto-admit) | TEM-29 |
+| 5 | [TEM-33 Team Lookup invite + Team Invite link](https://linear.app/temba-app/issue/TEM-33/team-lookup-invite-team-invite-link) | TEM-29 |
+| 6 | [TEM-34 Retire Email invite](https://linear.app/temba-app/issue/TEM-34/retire-email-invite) | TEM-30, TEM-31, TEM-32, TEM-33 |
+
+Frontier: **TEM-29** only. Tickets TEM-30–TEM-33 can proceed after TEM-29; TEM-31 and TEM-32 both touch Group home, so an orchestrator should run them in order. Do not implement until an implementer / orchestrator is asked to run the tickets.
