@@ -73,8 +73,8 @@ export default function NewLooseGroupPage() {
           </h2>
           <p className="text-muted-foreground text-sm">
             A squad outside any Community. Public joins via the Group URL;
-            Private uses Email invites and one reusable Invite link. You become
-            a Group member.
+            Private uses Lookup invites and 6-hour Invite links. You become a
+            Group member.
           </p>
         </div>
 
@@ -111,13 +111,13 @@ export default function NewLooseGroupPage() {
                     Public (open-with-link)
                   </SelectItem>
                   <SelectItem value="private">
-                    Private (Email invite + Invite link)
+                    Private (Lookup invite + Invite link)
                   </SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
                 {visibility === "private"
-                  ? "Only you can send Email invites and manage the Invite link."
+                  ? "Only you can send Lookup invites and copy Invite links."
                   : "Share the Group URL. Anyone with the link can join."}
               </FieldDescription>
             </Field>

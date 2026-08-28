@@ -94,13 +94,13 @@ export default function NewCommunityPage() {
                     Public (join by request via URL)
                   </SelectItem>
                   <SelectItem value="private">
-                    Private (Email invite + Invite link)
+                    Private (Lookup invite + Invite link)
                   </SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
                 {type === "private"
-                  ? "Invite-only: Email invite and Invite link."
+                  ? "Invite-only: Lookup invite and Invite link."
                   : "Joinable by request via the Community URL. Not listed in the App today."}
               </FieldDescription>
             </Field>

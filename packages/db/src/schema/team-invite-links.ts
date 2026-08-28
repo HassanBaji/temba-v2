@@ -1,32 +1,31 @@
 import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./user";
-import { groups } from "./groups";
+import { teams } from "./teams";
 
-export const groupInviteLinks = pgTable("group_invite_links", {
+export const teamInviteLinks = pgTable("team_invite_links", {
   id: uuid("id").primaryKey().defaultRandom(),
-  groupId: uuid("group_id")
-    .references(() => groups.id, { onDelete: "restrict" })
+  teamId: uuid("team_id")
+    .references(() => teams.id, { onDelete: "cascade" })
     .notNull(),
   createdBy: uuid("created_by")
     .references(() => user.id, { onDelete: "restrict" })
     .notNull(),
   token: varchar("token", { length: 64 }).notNull().unique(),
-  revokedAt: timestamp("revoked_at"),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const groupInviteLinkRelations = relations(
-  groupInviteLinks,
+export const teamInviteLinkRelations = relations(
+  teamInviteLinks,
   ({ one }) => ({
-    group: one(groups, {
-      fields: [groupInviteLinks.groupId],
-      references: [groups.id],
+    team: one(teams, {
+      fields: [teamInviteLinks.teamId],
+      references: [teams.id],
     }),
     createdBy: one(user, {
-      fields: [groupInviteLinks.createdBy],
+      fields: [teamInviteLinks.createdBy],
       references: [user.id],
     }),
   }),

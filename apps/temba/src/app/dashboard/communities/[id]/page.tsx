@@ -59,58 +59,38 @@ export default function CommunityHomePage({
     },
   });
 
-  const emailInvites = api.communities.listEmailInvites.useQuery(
-    { communityId: id },
-    { enabled: Boolean(community.data?.canManageInvites) },
-  );
   const inviteLink = api.communities.getInviteLink.useQuery(
     { communityId: id },
-    { enabled: Boolean(community.data?.canManageInvites) },
+    { enabled: Boolean(community.data?.canManageInviteLinks) },
+  );
+  const lookupInvites = api.communities.listLookupInvites.useQuery(
+    { communityId: id },
+    { enabled: Boolean(community.data?.canManageLookupInvites) },
   );
 
-  const sendEmailInvite = api.communities.sendEmailInvite.useMutation({
-    onSuccess: async (result) => {
-      toast.success(`Email invite ready for ${result.email}`);
-      await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("Invite URL copied");
-      await utils.communities.listEmailInvites.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-  const revokeEmailInvite = api.communities.revokeEmailInvite.useMutation({
+  const sendLookupInvite = api.communities.sendLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Email invite revoked");
-      await utils.communities.listEmailInvites.invalidate({ communityId: id });
+      toast.success("Lookup invite sent");
+      await utils.communities.listLookupInvites.invalidate({ communityId: id });
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
+  const revokeLookupInvite = api.communities.revokeLookupInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Lookup invite revoked");
+      await utils.communities.listLookupInvites.invalidate({ communityId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const createInviteLink = api.communities.createInviteLink.useMutation({
     onSuccess: async (result) => {
       await navigator.clipboard.writeText(result.inviteUrl);
       toast.success("Invite link copied");
-      await utils.communities.getInviteLink.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-  const rotateInviteLink = api.communities.rotateInviteLink.useMutation({
-    onSuccess: async (result) => {
-      await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("Invite link rotated and copied");
-      await utils.communities.getInviteLink.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-  const revokeInviteLink = api.communities.revokeInviteLink.useMutation({
-    onSuccess: async () => {
-      toast.success("Invite link revoked");
       await utils.communities.getInviteLink.invalidate({ communityId: id });
     },
     onError: (error) => {
@@ -398,7 +378,7 @@ export default function CommunityHomePage({
             </h3>
             <p className="text-muted-foreground mt-2 text-sm">
               Club Groups stay attached. You can still open Groups and see
-              history and Games. New joins, requests, Email invites, and Invite
+              history and Games. New joins, requests, Lookup invites, and Invite
               links are paused until an Owner or Admin unarchives.
             </p>
           </section>
@@ -650,8 +630,8 @@ export default function CommunityHomePage({
                     Create Club Group Private
                   </h4>
                   <p className="text-muted-foreground text-sm">
-                    Owner or Admin only. Invite-only for Community members
-                    (in-app). No Email invite or Invite link.
+                    Owner or Admin can send Lookup invites and copy Invite
+                    links. The Group creator may Lookup existing Members only.
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <Input
@@ -960,163 +940,118 @@ export default function CommunityHomePage({
 
         {community.data?.type === "public" ? (
           <p className="text-muted-foreground text-xs">
-            Community Public uses request-to-join only. There is no Email invite
-            or Invite link.
+            Community Public uses request-to-join. Owner or Admin can also send
+            a Lookup invite or copy an Invite link. There is no Email invite.
+            Invite link admits immediately and skips the request queue.
           </p>
         ) : null}
 
-        {community.data?.canManageInvites ? (
-          <section className="border-border bg-card space-y-6 rounded-xl border p-6">
+        {community.data?.canManageLookupInvites ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
             <div>
               <h3 className="text-foreground text-lg font-medium">
-                Private invites
+                Lookup invite
               </h3>
               <p className="text-muted-foreground mt-2 text-sm">
-                Owner and Admin can send Email invites and manage one reusable
-                Invite link.
+                Owner and Admin can look up an existing User by username, email,
+                or phone and send a Lookup invite. The invitee accepts on
+                Invites. Lookup invites do not expire.
               </p>
             </div>
 
-            <div className="border-border space-y-3 rounded-lg border p-4">
-              <h4 className="text-foreground font-medium">Email invite</h4>
-              <form
-                className="flex flex-col gap-3 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const formData = new FormData(event.currentTarget);
-                  const emailValue = formData.get("email");
-                  if (typeof emailValue !== "string") {
-                    return;
-                  }
-                  const email = emailValue.trim();
-                  if (!email) {
-                    return;
-                  }
-                  sendEmailInvite.mutate({ communityId: id, email });
-                  event.currentTarget.reset();
-                }}
-              >
-                <Input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="invitee@email.com"
-                  className="flex-1"
-                />
-                <Button type="submit" disabled={sendEmailInvite.isPending}>
-                  {sendEmailInvite.isPending ? "Sending…" : "Send invite"}
-                </Button>
-              </form>
+            <form
+              className="flex flex-col gap-3 sm:flex-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                const queryValue = formData.get("query");
+                if (typeof queryValue !== "string") {
+                  return;
+                }
+                const query = queryValue.trim();
+                if (!query) {
+                  return;
+                }
+                sendLookupInvite.mutate({ communityId: id, query });
+                event.currentTarget.reset();
+              }}
+            >
+              <Input
+                name="query"
+                type="text"
+                required
+                placeholder="Username, email, or phone"
+                className="flex-1"
+              />
+              <Button type="submit" disabled={sendLookupInvite.isPending}>
+                {sendLookupInvite.isPending ? "Sending…" : "Send Lookup invite"}
+              </Button>
+            </form>
 
-              {emailInvites.data?.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  No unused Email invites.
-                </p>
-              ) : null}
-              {emailInvites.data && emailInvites.data.length > 0 ? (
-                <ul className="divide-border border-border divide-y rounded-lg border">
-                  {emailInvites.data.map((invite) => (
-                    <li
-                      key={invite.id}
-                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-foreground font-medium">
-                          {invite.email}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {invite.attachedUserId
-                            ? "Attached to existing User"
-                            : "No User yet"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(
-                              invite.inviteUrl,
-                            );
-                            toast.success("Email invite URL copied");
-                          }}
-                        >
-                          Copy URL
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            revokeEmailInvite.mutate({ inviteId: invite.id })
-                          }
-                          disabled={revokeEmailInvite.isPending}
-                        >
-                          Revoke
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-
-            <div className="border-border space-y-3 rounded-lg border p-4">
-              <h4 className="text-foreground font-medium">Invite link</h4>
-              {inviteLink.data ? (
-                <>
-                  <p className="text-muted-foreground text-sm">
-                    Live reusable link. Any authenticated User who opens it
-                    becomes a Member.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(
-                          inviteLink.data!.inviteUrl,
-                        );
-                        toast.success("Invite link copied");
-                      }}
-                    >
-                      Copy link
-                    </Button>
+            {lookupInvites.data?.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No unused Lookup invites.
+              </p>
+            ) : null}
+            {lookupInvites.data && lookupInvites.data.length > 0 ? (
+              <ul className="divide-border border-border divide-y rounded-lg border">
+                {lookupInvites.data.map((invite) => (
+                  <li
+                    key={invite.id}
+                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-foreground font-medium">
+                        {invite.user.name}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {invite.user.email}
+                      </p>
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        rotateInviteLink.mutate({ communityId: id })
+                        revokeLookupInvite.mutate({ inviteId: invite.id })
                       }
-                      disabled={rotateInviteLink.isPending}
-                    >
-                      Rotate
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        revokeInviteLink.mutate({ communityId: id })
-                      }
-                      disabled={revokeInviteLink.isPending}
+                      disabled={revokeLookupInvite.isPending}
                     >
                       Revoke
                     </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">
-                    No active Invite link.
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => createInviteLink.mutate({ communityId: id })}
-                    disabled={createInviteLink.isPending}
-                  >
-                    {createInviteLink.isPending ? "Creating…" : "Create link"}
-                  </Button>
-                </div>
-              )}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ) : null}
+
+        {community.data?.canManageInviteLinks ? (
+          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+            <div>
+              <h3 className="text-foreground text-lg font-medium">
+                Invite link
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Each copy mints a new 6-hour token. Older copied URLs stay live
+                until each expires. There is no rotate or revoke.
+              </p>
             </div>
+            {inviteLink.data ? (
+              <p className="text-muted-foreground break-all text-sm">
+                Newest: {inviteLink.data.inviteUrl}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No live Invite link. Copy to mint one.
+              </p>
+            )}
+            <Button
+              size="sm"
+              onClick={() => createInviteLink.mutate({ communityId: id })}
+              disabled={createInviteLink.isPending}
+            >
+              {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
+            </Button>
           </section>
         ) : null}
       </div>

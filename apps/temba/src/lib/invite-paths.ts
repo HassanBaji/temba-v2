@@ -17,3 +17,7 @@ export function groupInviteLinkPath(token: string) {
 export function teamEmailInvitePath(token: string) {
   return `/invites/team/email/${token}`;
 }
+
+export function teamInviteLinkPath(token: string) {
+  return `/invites/team/link/${token}`;
+}

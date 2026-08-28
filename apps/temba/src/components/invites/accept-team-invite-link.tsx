@@ -10,7 +10,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
-export function AcceptCommunityInviteLink({
+export function AcceptTeamInviteLink({
   token,
   isSignedIn,
   returnPath,
@@ -20,11 +20,11 @@ export function AcceptCommunityInviteLink({
   returnPath: string;
 }) {
   const router = useRouter();
-  const preview = api.communities.previewInviteLink.useQuery({ token });
-  const accept = api.communities.acceptInviteLink.useMutation({
+  const preview = api.teams.previewInviteLink.useQuery({ token });
+  const accept = api.teams.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success("Joined Community as Member");
-      router.replace(`/dashboard/communities/${result.communityId}`);
+      toast.success("Joined Team");
+      router.replace(`/dashboard/teams/${result.teamId}`);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -72,7 +72,7 @@ export function AcceptCommunityInviteLink({
       <div className="space-y-3">
         <h1 className="text-xl font-semibold text-white">Invite unavailable</h1>
         <p className="text-sm text-white/70">
-          This Community cannot accept Invite links right now.
+          This Team cannot accept Invite links right now.
         </p>
       </div>
     );
@@ -83,11 +83,11 @@ export function AcceptCommunityInviteLink({
       <div className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-xl font-semibold text-white">
-            Join {preview.data?.communityName}
+            Join {preview.data?.teamName ?? "Team"}
           </h1>
           <p className="text-sm text-white/70">
-            Sign in or sign up with Clerk to become a Member. Opening this URL
-            does not log anyone in without Clerk.
+            Sign in or sign up with Clerk to take the open seat. Opening this
+            URL does not log anyone in without Clerk.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -117,7 +117,7 @@ export function AcceptCommunityInviteLink({
   return (
     <div className="space-y-3">
       <h1 className="text-xl font-semibold text-white">
-        Joining {preview.data?.communityName}…
+        Joining {preview.data?.teamName ?? "Team"}…
       </h1>
       <p className="text-sm text-white/70">
         Accepting the Invite link as the signed-in User.
