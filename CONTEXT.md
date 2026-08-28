@@ -121,7 +121,7 @@ A Team with no Community link (unattached).
 _Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
-One side in a single Game (the `game_teams` row). Not a Team.
+One side in a single Match. Not a Team.
 _Avoid_: Team (when you mean a Game side), partnership
 
 **Owner**:
@@ -145,8 +145,16 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-A match that may belong to a Group. Games do not belong to a Community directly.
-_Avoid_: session (when you mean Game), match (in code/docs; Game is the term)
+The parent event that contains one or more Matches. A Game may belong to a Group and does not belong to a Community directly.
+_Avoid_: Event (when you mean Game), session, match (that is a Match)
+
+**Match**:
+A playable contest with two sides that belongs to one Game.
+_Avoid_: Game (the parent event), session
+
+**Set**:
+The scoring length of a Match: one set or several. Not a create-able thing.
+_Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temba term)
 
 **User**:
 A person with a Temba account.
