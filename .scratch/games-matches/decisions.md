@@ -1,49 +1,46 @@
 # Games and Matches — settled decisions
 
-Status: grilling in progress — Rounds 1–4 (Q14–Q17) settled; Round 5 open.
+Status: grilling in progress — Rounds 1–5 settled; Round 6 open.
 
 ## Settled (round 1)
 
-1. **Breaking rename.** Today’s contest entity is a **Match**. **Game** is the parent event that contains one or more Matches. Rejected: keep Game as the contest and add a parent named Event; nest Match inside today’s Game without renaming.
-2. **Registration modes** on the Game: **individual** (Users fill seats) or **team-only** (only a complete persistent **Team** occupies a side). Padel doubles. No third team-like entity. Guests later unless requested.
-3. **This slice (provisional — Q20 may amend):** create + registration rules + caps. Configure one set vs several on a Match. No score entry, no live scoring, no Team/User/Group counter updates.
+1. **Breaking rename.** Today’s contest entity is a **Match**. **Game** is the parent event that contains one or more Matches.
+2. **Registration modes** on the Game: **individual** or **team-only** (complete persistent **Team**). Padel doubles.
+3. **This slice (amended Q20):** create + registration + caps + **static Set records** on Friendly game and Friendly tournament Matches. No point-by-point. No Team/User/Group counter updates. No Americano Matches or Sets this slice.
 
 ## Settled (round 2)
 
-4. **Formats this slice:** **Friendly game**, **Americano** (individual-only, rotating partners, Matches generated after registration in a later slice), **Friendly tournament** (fixed sides across Matches; organizer adds Matches by hand; individual or team-only). Bracket-style Friendly tournament is later.
-5. **Fixture** is another word for **Match**. Not a third entity. Not a glossary term.
-6. **Belonging:** optional Group (Club or Loose). Public pickup is a flag on the **Game**. Games still do not belong to a Community directly.
-7. **Registration** lives on the Game (not on a Match). Individual cap: **players allowed**, multiple of 4, min 4. Team-only cap: **teams allowed**, integer ≥ 2. Friendly game caps locked in round 4.
-8. **Waitlist** once the cap is reached; promote when someone leaves. Registration states: open, full, closed.
-9. **Court and time** live on **Match** (Court optional). Game may have an optional window and no Court.
+4. Formats: **Friendly game**, **Americano**, **Friendly tournament**. Bracket later. Fixture is not a term.
+5. Belonging: optional Group; public flag on the Game; not Community-direct.
+6. Registration on the Game. Caps: players allowed ×4 min 4; teams allowed ≥ 2 (Friendly game forced 4/2 in round 4).
+7. Waitlist FIFO, unbounded; states open / full / closed.
+8. Court and time on **Match** (Court optional). Game may have an optional window.
 
 ## Settled (round 3)
 
-10. Format A’s product name is **Friendly game**, not Single.
-11. **Organizers:** Club Group Game = any Community Owner or Admin. Loose Group Game = any Group member. Groupless public = creator only after create. Soft-archived Club Group: refuse new Games.
-12. **Register / waitlist:** Public Game = any authenticated User or complete Team. Non-public Group Game = Group members only. Public Group Game is a real join door. Team-only: **both** partners must already be allowed as individuals.
-13. Waitlist: **FIFO**, unbounded, leave waitlist or registered (leave registered → promote). **open** / **full** / **closed**.
-14. Individual Friendly tournament: register **with a partner** as an ad-hoc **Game team**.
-15. **Courts:** Club Group Game = linked Venue only. Loose/groupless = any live Operator Venue Court. Skip allowed.
+9. Organizers: Club Group = Owner/Admin; Loose Group = any member; groupless = creator. Soft-archive: refuse new Club Group Games.
+10. Public is a real join door. Non-public Group Game = Group members only. Team-only: both partners must be allowed as individuals.
+11. Individual Friendly tournament: register with a partner as an ad-hoc **Game team**.
+12. Courts: Club Group = linked Venue only; Loose/groupless = any live Operator Venue.
 
-## Settled (round 4, Q14–Q17)
+## Settled (round 4)
 
-16. Friendly game caps **forced 4 players / 2 teams**. Overflow = waitlist.
-17. Friendly tournament Matches: add anytime (open/full/closed). Sides optional. Leave clears that side; Match remains.
-18. Organizer may cancel a Game (waitlist discarded, Matches cancelled) or a Friendly tournament Match. Cancelling the only Match of a Friendly game cancels the Game. Americano: cancel Game only.
-19. After create: format, public flag, individual vs team-only **immutable**. Cap raise anytime; lower not below registered count. Window editable.
-20. Home upcoming = **Games** if registered, waitlisted, organizer, or member of the Game’s Group. Public pickup = isPublic Games excluding Soft-archived Club Group Games. Group home = that Group’s Games.
+13. Friendly game caps **4 / 2**. Tournament Matches add anytime; sides optional; leave clears side.
+14. Cancel Game or a tournament Match. Format, public, mode immutable. Cap raise ok; lower not below registered.
+15. Home/pickup/Group home list **Games**, not Matches.
 
-## Overrides in play (round 5)
+## Settled (round 5)
 
-- **Q18:** sets “as I played” for Friendly games and Matches — collides with Q3 and glossary Set. Not locked until Q20.
-- **Q19:** Lookup invite **and** Invite link on a Game (token rules as shipped). Who/what/accept not locked until Q21–Q23.
+16. **Sets:** unbounded records after play; organizer **or** Users on that Match’s two Game teams may add/remove. Counters stay at zero. Planned N gone.
+17. Game Lookup invite + Invite link; mint = organizers; token rules as shipped; no Email invite.
+18. Individual invite accept = register or waitlist; closed refuses. Team-only Lookup **not offered**. Team-only Invite link = **both** partners accept.
+19. **Non-public Club Group Game** Invite link does **not** bypass Group membership (Q23 override).
+20. Organizer kick = same as self-leave.
+21. Reopen closed (not cancelled, not archived). Soft-archive existing Club Group Games: visible, join doors closed, organizers may still schedule, cannot reopen.
 
-## Open (round 5)
+## Open (round 6)
 
-- Set records vs planned length (amend Q3 or not)
-- Who mints Game invites
-- What accept does (especially team-only)
-- Non-public Club Group Game Invite link: Game only vs also join Group
-- Organizer kick
-- Reopen + live Games on Soft-archived Community
+- Set payload (games-won vs winner only), draw, Match complete
+- When Sets may be added (both sides required?)
+- Invite fallout: groupless non-public, pending Team slot
+- Individual Friendly game: pairs vs four solo Users
