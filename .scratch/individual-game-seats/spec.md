@@ -223,4 +223,17 @@ DB Package schema/migration for Position and side index; App tRPC register/leave
 
 Glossary: Root `CONTEXT.md` (Game team may be incomplete; **Position**; Game, Match, Game team, Americano, Friendly game, Friendly tournament, Waitlist). Architecture: ADR-0008. Parent spec: `.scratch/games-matches/spec.md` (Stories 15–16 and Decision 25 amended). Settled grilling: `.scratch/individual-game-seats/decisions.md`.
 
-Do not implement until an implementer / orchestrator is asked to run tickets from this spec. Tickets via `/to-tickets` after this spec is approved.
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/individual-game-seats/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-76 Friendly game 2v2 + solo seat-join](https://linear.app/temba-app/issue/TEM-76/friendly-game-2v2-solo-seat-join) | — |
+| 2 | [TEM-77 Per-position leave + register-with-partner on a vacant side](https://linear.app/temba-app/issue/TEM-77/per-position-leave-register-with-partner-on-a-vacant-side) | TEM-76 |
+| 3 | [TEM-78 Move to a vacant Position](https://linear.app/temba-app/issue/TEM-78/move-to-a-vacant-position) | TEM-76 |
+| 4 | [TEM-79 Invite accept picks a Position](https://linear.app/temba-app/issue/TEM-79/invite-accept-picks-a-position) | TEM-76 |
+| 5 | [TEM-80 Scoring frozen until both Game teams are complete](https://linear.app/temba-app/issue/TEM-80/scoring-frozen-until-both-game-teams-are-complete) | TEM-76 |
+| 6 | [TEM-81 Tournament N×2 seats + cap](https://linear.app/temba-app/issue/TEM-81/tournament-n2-seats-cap) | TEM-76 |
+
+Frontier: **TEM-76** only. Do not implement until an implementer / orchestrator is asked to run the tickets.
