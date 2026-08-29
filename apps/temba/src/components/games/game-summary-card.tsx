@@ -1,0 +1,48 @@
+import Link from "next/link";
+
+import { ListRow } from "~/components/common/row-list";
+import { GameStatusBadge } from "~/components/temba/game-status-badge";
+import { SportBadge } from "~/components/temba/sport-badge";
+import { formatGameStart, formatRelativeDay } from "~/lib/format-game-start";
+
+export function GameSummaryCard({
+  name,
+  startTime,
+  groupName,
+  sport,
+  href,
+  cancelled = false,
+}: {
+  name: string | null;
+  startTime: Date | string;
+  groupName?: string | null;
+  sport?: string | null;
+  href?: string;
+  cancelled?: boolean;
+}) {
+  const title = name ?? "Untitled Game";
+  const meta = [
+    formatRelativeDay(startTime),
+    formatGameStart(startTime),
+    groupName,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" · ");
+
+  const trailing = (
+    <div className="flex flex-wrap items-center gap-2">
+      {sport ? <SportBadge sport={sport} /> : null}
+      {cancelled ? <GameStatusBadge status="cancelled" /> : null}
+    </div>
+  );
+
+  if (href) {
+    return (
+      <ListRow asChild title={title} meta={meta} trailing={trailing}>
+        <Link href={href} />
+      </ListRow>
+    );
+  }
+
+  return <ListRow title={title} meta={meta} trailing={trailing} />;
+}

@@ -8,12 +8,14 @@ export function DashboardShell({
   description,
   action,
   width,
+  hidePageHeader,
 }: {
   children: React.ReactNode;
   title?: string;
   description?: string;
   action?: React.ReactNode;
   width?: "content" | "wide";
+  hidePageHeader?: boolean;
 }) {
   return (
     <AppShell
@@ -21,6 +23,7 @@ export function DashboardShell({
       description={description}
       action={action}
       width={width}
+      hidePageHeader={hidePageHeader}
     >
       {children}
     </AppShell>

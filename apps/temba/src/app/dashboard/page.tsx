@@ -8,13 +8,14 @@ import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
-import { formatGameStart, formatRelativeDay } from "~/lib/format-game-start";
+import { formatRelativeDay } from "~/lib/format-game-start";
 import { api } from "~/trpc/react";
 
 function formatClock(startTime: Date | string) {
@@ -144,14 +145,14 @@ export default function HomePage() {
                 >
                   <RowList>
                     {restVisible.map((game) => (
-                      <ListRow
+                      <GameSummaryCard
                         key={game.id}
-                        asChild
-                        title={game.name ?? "Untitled Game"}
-                        meta={`${formatRelativeDay(game.startTime)} · ${formatGameStart(game.startTime)} · ${game.groupName ?? "Group"}`}
-                      >
-                        <Link href={`/dashboard/groups/${game.groupId}`} />
-                      </ListRow>
+                        name={game.name}
+                        startTime={game.startTime}
+                        groupName={game.groupName}
+                        sport={game.sport}
+                        href={`/dashboard/groups/${game.groupId}`}
+                      />
                     ))}
                   </RowList>
                 </Section>
