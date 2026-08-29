@@ -148,6 +148,13 @@
       "when": 1787984000000,
       "tag": "0020_game_parent_and_matches",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788015770012,
+      "tag": "0021_user_clerk_id",
+      "breakpoints": true
     }
   ]
 }
