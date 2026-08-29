@@ -6,8 +6,8 @@
  * - Still live: window has not ended if set, or a non-completed Match has
  *   start >= now or unset, or an Americano / empty tournament has no
  *   completed-only life
- * Soft-archived Club Groups are not filtered here — membership alone decides
- * visibility.
+ * Soft-archived Club Group Games still appear here (TEM-43). Public pickup
+ * excludes them separately.
  */
 
 export type GameListMatch = {

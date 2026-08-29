@@ -1,7 +1,8 @@
 /**
  * Group detail Games lists (TEM-10 / TEM-35).
  * Upcoming: live parent Games scoped to one Group (not Match rows).
- * Soft-archived Club Groups are not filtered here — Group membership / page access decides visibility.
+ * Soft-archived Club Group Games stay listed (TEM-43). Group membership /
+ * page access decides visibility. Public pickup excludes them.
  * History: cancelled, or not live; newest first; capped.
  * Games with null groupId never match a Group id filter.
  */

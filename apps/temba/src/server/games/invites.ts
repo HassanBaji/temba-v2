@@ -34,6 +34,8 @@ export async function assertGameInviteDoorsOpen(
   game: GameRow,
   now = new Date(),
 ) {
+  // Closed includes organizer-close, ended window, cancel, and Soft-archived
+  // Club Group Games (TEM-43). Mint and accept share this door.
   await assertRegistrationOpen(database, game, now);
 }
 

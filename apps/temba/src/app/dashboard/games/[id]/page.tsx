@@ -366,7 +366,7 @@ export default function GameHomePage({
   );
   const inviteLink = api.games.getInviteLink.useQuery(
     { gameId: id },
-    { enabled: Boolean(data?.isOrganizer) },
+    { enabled: Boolean(data?.isOrganizer && !data.joinFrozen) },
   );
 
   React.useEffect(() => {
@@ -463,6 +463,14 @@ export default function GameHomePage({
                   : `${data.registeredUserCount} / ${data.playersAllowed ?? 4} players`}
                 .
               </p>
+              {data.joinFrozen && !data.cancelledAt ? (
+                <p className="text-muted-foreground text-sm">
+                  This Club Group’s Community is Soft-archived. Register,
+                  waitlist, Lookup, and Invite link mint and accept stay closed.
+                  Organizers can still add Matches and assign Courts. Reopen is
+                  refused.
+                </p>
+              ) : null}
             </div>
 
             {data.isOrganizer && !data.cancelledAt ? (
@@ -505,8 +513,9 @@ export default function GameHomePage({
                 </div>
                 {data.joinFrozen ? (
                   <p className="text-muted-foreground text-sm">
-                    This Club Group’s Community is Soft-archived. Join doors
-                    stay closed; reopen is refused.
+                    Join doors stay closed while the Community is Soft-archived.
+                    Reopen is refused. Scheduling Matches and Courts still
+                    works.
                   </p>
                 ) : null}
                 <form
@@ -951,8 +960,8 @@ export default function GameHomePage({
                 >
                   <h4 className="text-foreground font-medium">Add Match</h4>
                   <p className="text-muted-foreground text-sm">
-                    Allowed while open, full, or closed. Sides and Court are
-                    optional.
+                    Allowed while open, full, closed, or Soft-archived. Sides
+                    and Court are optional.
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field>
@@ -1320,34 +1329,39 @@ export default function GameHomePage({
                   <p className="text-muted-foreground mt-2 text-sm">
                     Existing User only. They accept on Invites. Team-only Games
                     do not offer Lookup.
+                    {data.joinFrozen
+                      ? " Mint is refused while the Community is Soft-archived."
+                      : ""}
                   </p>
                 </div>
-                <form
-                  className="flex flex-wrap items-end gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    sendLookupInvite.mutate({
-                      gameId: id,
-                      query: lookupQuery,
-                    });
-                  }}
-                >
-                  <Field className="min-w-56 flex-1">
-                    <FieldLabel htmlFor="game-lookup-query">User</FieldLabel>
-                    <Input
-                      id="game-lookup-query"
-                      value={lookupQuery}
-                      onChange={(event) => setLookupQuery(event.target.value)}
-                      placeholder="Username, email, or phone"
-                      required
-                    />
-                  </Field>
-                  <Button type="submit" disabled={sendLookupInvite.isPending}>
-                    {sendLookupInvite.isPending
-                      ? "Sending…"
-                      : "Send Lookup invite"}
-                  </Button>
-                </form>
+                {data.joinFrozen ? null : (
+                  <form
+                    className="flex flex-wrap items-end gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      sendLookupInvite.mutate({
+                        gameId: id,
+                        query: lookupQuery,
+                      });
+                    }}
+                  >
+                    <Field className="min-w-56 flex-1">
+                      <FieldLabel htmlFor="game-lookup-query">User</FieldLabel>
+                      <Input
+                        id="game-lookup-query"
+                        value={lookupQuery}
+                        onChange={(event) => setLookupQuery(event.target.value)}
+                        placeholder="Username, email, or phone"
+                        required
+                      />
+                    </Field>
+                    <Button type="submit" disabled={sendLookupInvite.isPending}>
+                      {sendLookupInvite.isPending
+                        ? "Sending…"
+                        : "Send Lookup invite"}
+                    </Button>
+                  </form>
+                )}
                 {lookupInvites.data && lookupInvites.data.length > 0 ? (
                   <ul className="divide-border divide-y">
                     {lookupInvites.data.map((invite) => (
@@ -1375,7 +1389,7 @@ export default function GameHomePage({
               </section>
             ) : null}
 
-            {data.isOrganizer && !data.cancelledAt ? (
+            {data.isOrganizer && !data.cancelledAt && !data.joinFrozen ? (
               <section className="border-border bg-card space-y-4 rounded-xl border p-6">
                 <div>
                   <h3 className="text-foreground text-lg font-medium">

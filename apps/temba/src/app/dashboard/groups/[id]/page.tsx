@@ -471,7 +471,9 @@ export default function GroupHomePage({
               Upcoming Games
             </h3>
             <p className="text-muted-foreground text-sm">
-              Upcoming Games for this Group, soonest first.
+              {group.data.isCommunityArchived
+                ? "Existing Games stay listed here, not on public pickup. Join, waitlist, and Game invites are closed while the Community is Soft-archived."
+                : "Upcoming Games for this Group, soonest first."}
             </p>
 
             {group.data.upcomingGames.length === 0 ? (
