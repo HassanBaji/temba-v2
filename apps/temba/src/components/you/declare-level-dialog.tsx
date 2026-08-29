@@ -103,6 +103,9 @@ export function DeclareLevelDialog({
             <Field>
               <FieldLabel htmlFor="declare-level-choice">Level band</FieldLabel>
               <Select
+                // Nested modal Select portals fight Dialog/Drawer pointer capture;
+                // keep this Select non-modal so Level band options stay clickable.
+                modal={false}
                 value={choice}
                 onValueChange={(value) => setChoice(value as SelfDeclareChoice)}
               >
