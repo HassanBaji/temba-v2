@@ -44,9 +44,9 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 14. As a User on an Americano, I want to register as myself, so that I join the player pool. There is no Game team this slice.
 
-15. As a User on an individual Friendly game or Friendly tournament, I want to register **with a partner** as an ad-hoc Game team (not a Team), so that we are one side for the whole Game.
+15. As a User on an individual Friendly game or Friendly tournament, I want to register **with a partner** as an ad-hoc Game team (not a Team), so that we are one side for the whole Game. **Amended:** partner-register remains; solo seat-join is the other path — `.scratch/individual-game-seats/spec.md`.
 
-16. As a User who registered alone on an individual Friendly game or tournament, I want to count toward players allowed but not occupy a side until I register with a partner, so that a Friendly game still has exactly two Game teams when full of sides.
+16. As a User who registered alone on an individual Friendly game or tournament, I want to count toward players allowed but not occupy a side until I register with a partner, so that a Friendly game still has exactly two Game teams when full of sides. **Superseded:** solo occupy a Position immediately — `.scratch/individual-game-seats/spec.md`.
 
 17. As a member of a complete Team, I want to register that Team on a team-only Game, so that the partnership occupies one Game team.
 
@@ -257,6 +257,8 @@ Community/Group/Team Lookup invite and Invite link, Soft-archive refuse patterns
 Glossary: Root `CONTEXT.md` (Game, Match, Set, Game team, Americano, Friendly tournament, Friendly game, Waitlist; Invite link includes Game; Soft-archive Club Group Game clauses). Architecture: ADR-0008 (Game is the parent event). Courts: ADR-0007 leftover `court_id` → venues is corrected on **Match** to optional Court. Padel-only UI: `.scratch/padel-only-ui/spec.md`. Invites: `.scratch/invite-lookup-and-link/spec.md` token rules. Teams: `.scratch/padel-teams/spec.md` counter updates remain a later slice.
 
 Settled grilling: `.scratch/games-matches/decisions.md`.
+
+**Amended:** Stories 15–16 and Decision 25 (partner required; solo does not occupy a side) are superseded for individual Friendly game and Friendly tournament by `.scratch/individual-game-seats/spec.md` (solo seat-join, left/right Position, 2v2 display). Americano and team-only in this spec are unchanged.
 
 ## Implementation tickets (Linear)
 
