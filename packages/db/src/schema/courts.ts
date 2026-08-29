@@ -8,10 +8,11 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { venues } from "./venues";
+import { matches } from "./matches";
 
 /**
- * Named playing surface on a Venue. Games still point at the Venue row
- * (ADR-0007); deleting a Court must not cascade-delete Games.
+ * Named playing surface on a Venue. Match.courtId points here (ADR-0008);
+ * deleting a Court must not cascade-delete Matches (FK is on delete set null).
  */
 export const courts = pgTable(
   "courts",
@@ -33,9 +34,10 @@ export const courts = pgTable(
   }),
 );
 
-export const courtRelations = relations(courts, ({ one }) => ({
+export const courtRelations = relations(courts, ({ one, many }) => ({
   venue: one(venues, {
     fields: [courts.venueId],
     references: [venues.id],
   }),
+  matches: many(matches),
 }));

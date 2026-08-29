@@ -1,73 +1,62 @@
 import {
   boolean,
-  decimal,
   integer,
-  pgEnum,
   pgTable,
-  text,
   timestamp,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { venues } from "./venues";
-import { user } from "./user";
 import { relations } from "drizzle-orm";
+
+import { user } from "./user";
+import { groups } from "./groups";
 import { gamePlayers } from "./game-players";
 import { gameTeams } from "./game-teams";
-import { groups } from "./groups";
-
-export const gameStatus = pgEnum("game_status", [
-  "pending",
-  "confirmed",
-  "completed",
-  "cancelled",
-]);
-
-export const gameSports = pgEnum("game_sport", ["padel", "football"]);
-
-export enum GameStatusEnum {
-  PENDING = "pending",
-  CONFIRMED = "confirmed",
-  COMPLETED = "completed",
-  CANCELLED = "cancelled",
-}
-
-export enum GameSportEnum {
-  PADEL = "padel",
-  Football = "football",
-}
+import { matches } from "./matches";
+import { gameWaitlist } from "./game-waitlist";
+import { gameMemberInvites } from "./game-member-invites";
+import { gameInviteLinks } from "./game-invite-links";
+import {
+  gameFormats,
+  gameRegistrationModes,
+  gameSports,
+  GameFormatEnum,
+  GameRegistrationModeEnum,
+  GameSportEnum,
+} from "./game-enums";
 
 export const games = pgTable("games", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }),
-  courtId: uuid("court_id")
+  format: gameFormats("format").notNull().default(GameFormatEnum.FRIENDLY_GAME),
+  registrationMode: gameRegistrationModes("registration_mode")
     .notNull()
-    .references(() => venues.id, { onDelete: "cascade" }),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
-  durationInMinutes: integer("duration_in_minutes").notNull(),
-  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
-  pricePerPlayer: decimal("price_per_player", { precision: 10, scale: 2 }),
-  maxPlayers: integer("max_players"),
-  status: gameStatus().default(GameStatusEnum.PENDING),
-  sport: gameSports().default(GameSportEnum.PADEL),
-  setsPlayed: integer("sets_played"),
-  statusUpdatedAt: timestamp("status_updated_at"),
-  createdBy: uuid("created_by")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  isPublic: boolean("is_public").notNull().default(false),
+    .default(GameRegistrationModeEnum.INDIVIDUAL),
   groupId: uuid("group_id").references(() => groups.id, {
     onDelete: "restrict",
   }),
+  isPublic: boolean("is_public").notNull().default(false),
+  windowStart: timestamp("window_start"),
+  windowEnd: timestamp("window_end"),
+  playersAllowed: integer("players_allowed"),
+  teamsAllowed: integer("teams_allowed"),
+  sport: gameSports("sport").default(GameSportEnum.PADEL),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  cancelledAt: timestamp("cancelled_at"),
+  registrationClosedAt: timestamp("registration_closed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const gameRelations = relations(games, ({ one, many }) => ({
-  court: one(venues, { fields: [games.courtId], references: [venues.id] }),
   createdBy: one(user, { fields: [games.createdBy], references: [user.id] }),
   group: one(groups, { fields: [games.groupId], references: [groups.id] }),
+  matches: many(matches),
   players: many(gamePlayers),
   teams: many(gameTeams),
+  waitlist: many(gameWaitlist),
+  memberInvites: many(gameMemberInvites),
+  inviteLinks: many(gameInviteLinks),
 }));

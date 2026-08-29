@@ -464,15 +464,14 @@ export default function GroupHomePage({
               Upcoming Games
             </h3>
             <p className="text-muted-foreground text-sm">
-              Pending and confirmed Games for this Group, soonest first.
+              Upcoming Games for this Group, soonest first.
             </p>
 
             {group.data.upcomingGames.length === 0 ? (
               <div className="border-border bg-card rounded-xl border px-4 py-6">
                 <p className="text-muted-foreground text-sm">
-                  No upcoming Games scheduled for this Group. When a pending or
-                  confirmed Game is set with a start time from now on, it will
-                  show up here.
+                  No upcoming Games scheduled for this Group. When a Game is set
+                  with a live window or Match, it will show up here.
                 </p>
               </div>
             ) : (
@@ -497,7 +496,7 @@ export default function GroupHomePage({
                         </Badge>
                       ) : null}
                       <Badge variant="outline" className="capitalize">
-                        {game.status}
+                        {game.format.replaceAll("_", " ")}
                       </Badge>
                     </div>
                   </li>
@@ -513,13 +512,13 @@ export default function GroupHomePage({
               Game history
             </h3>
             <p className="text-muted-foreground text-sm">
-              Past, completed, or cancelled Games for this Group, newest first.
+              Past or cancelled Games for this Group, newest first.
             </p>
 
             {group.data.gameHistory.length === 0 ? (
               <div className="border-border bg-card rounded-xl border px-4 py-6">
                 <p className="text-muted-foreground text-sm">
-                  No Game history yet. Finished, cancelled, or past-start Games
+                  No Game history yet. Finished, cancelled, or past-window Games
                   for this Group will appear here.
                 </p>
               </div>
@@ -544,11 +543,11 @@ export default function GroupHomePage({
                           {game.sport}
                         </Badge>
                       ) : null}
-                      {game.status ? (
-                        <Badge variant="outline" className="capitalize">
-                          {game.status}
-                        </Badge>
-                      ) : null}
+                      <Badge variant="outline" className="capitalize">
+                        {game.cancelledAt
+                          ? "cancelled"
+                          : game.format.replaceAll("_", " ")}
+                      </Badge>
                     </div>
                   </li>
                 ))}
