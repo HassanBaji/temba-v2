@@ -63,6 +63,7 @@ import { type db } from "~/server/db";
 type DbClient = typeof db;
 
 const registrationModeSchema = z.enum(["individual", "team_only"]);
+const createFormatSchema = z.enum(["friendly_game", "americano"]);
 
 async function requireGroup(database: DbClient, groupId: string) {
   const group = await database.query.groups.findFirst({
@@ -248,7 +249,9 @@ export const gamesRouter = createTRPCRouter({
           name: z.string().trim().max(255).optional(),
           groupId: z.string().uuid().optional(),
           isPublic: z.boolean(),
+          format: createFormatSchema.default("friendly_game"),
           registrationMode: registrationModeSchema,
+          playersAllowed: z.number().int().optional(),
           windowStart: z.coerce.date().optional(),
           windowEnd: z.coerce.date().optional(),
         })
@@ -262,6 +265,25 @@ export const gamesRouter = createTRPCRouter({
             !value.windowEnd ||
             value.windowEnd.getTime() >= value.windowStart.getTime(),
           { message: "Window end must be at or after window start" },
+        )
+        .refine(
+          (value) =>
+            value.format !== "americano" ||
+            value.registrationMode === "individual",
+          { message: "Americano is individual-only" },
+        )
+        .refine(
+          (value) => {
+            if (value.format !== "americano") {
+              return true;
+            }
+            const cap = value.playersAllowed;
+            return cap != null && cap >= 4 && cap % 4 === 0;
+          },
+          {
+            message:
+              "Americano players allowed must be a multiple of 4, minimum 4",
+          },
         ),
     )
     .mutation(async ({ ctx, input }) => {
@@ -281,23 +303,28 @@ export const gamesRouter = createTRPCRouter({
               Math.round((windowEnd.getTime() - windowStart.getTime()) / 60000),
             )
           : null;
+      const isAmericano = input.format === "americano";
 
       const created = await ctx.db.transaction(async (tx) => {
         const [game] = await tx
           .insert(games)
           .values({
             name: input.name && input.name.length > 0 ? input.name : null,
-            format: GameFormatEnum.FRIENDLY_GAME,
+            format: isAmericano
+              ? GameFormatEnum.AMERICANO
+              : GameFormatEnum.FRIENDLY_GAME,
             registrationMode:
-              input.registrationMode === "team_only"
+              !isAmericano && input.registrationMode === "team_only"
                 ? GameRegistrationModeEnum.TEAM_ONLY
                 : GameRegistrationModeEnum.INDIVIDUAL,
             groupId: input.groupId ?? null,
             isPublic: input.isPublic,
             windowStart,
             windowEnd,
-            playersAllowed: FRIENDLY_PLAYERS_ALLOWED,
-            teamsAllowed: FRIENDLY_TEAMS_ALLOWED,
+            playersAllowed: isAmericano
+              ? (input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
+              : FRIENDLY_PLAYERS_ALLOWED,
+            teamsAllowed: isAmericano ? null : FRIENDLY_TEAMS_ALLOWED,
             sport: GameSportEnum.PADEL,
             createdBy: appUser.id,
           })
@@ -308,6 +335,10 @@ export const gamesRouter = createTRPCRouter({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to create Game",
           });
+        }
+
+        if (isAmericano) {
+          return { game, matchId: null as string | null };
         }
 
         const [match] = await tx
@@ -327,12 +358,12 @@ export const gamesRouter = createTRPCRouter({
           });
         }
 
-        return { game, match };
+        return { game, matchId: match.id };
       });
 
       return {
         id: created.game.id,
-        matchId: created.match.id,
+        matchId: created.matchId,
       };
     }),
 
@@ -544,6 +575,55 @@ export const gamesRouter = createTRPCRouter({
         ),
         eligibleTeams,
       };
+    }),
+
+  register: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const now = new Date();
+
+      if (game.format !== "americano") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Register as yourself on an Americano",
+        });
+      }
+      if (game.registrationMode !== "individual") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This Game is team-only",
+        });
+      }
+
+      await assertRegistrationOpen(ctx.db, game, now);
+      await assertUserPassesJoinGate(ctx.db, game, appUser.id);
+
+      if (await userAlreadyOnGame(ctx.db, game.id, appUser.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already registered on this Game",
+        });
+      }
+      if (await userAlreadyWaitlisted(ctx.db, game.id, appUser.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already on the waitlist",
+        });
+      }
+
+      const userCount = await registeredUserCount(ctx.db, game.id);
+      if (userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)) {
+        await enqueueWaitlistUser(ctx.db, game.id, appUser.id);
+        return { ok: true as const, waitlisted: true as const };
+      }
+
+      await ctx.db.insert(gamePlayers).values({
+        gameId: game.id,
+        userId: appUser.id,
+      });
+      return { ok: true as const, waitlisted: false as const };
     }),
 
   registerWithPartner: protectedProcedure

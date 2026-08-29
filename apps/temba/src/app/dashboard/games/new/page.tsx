@@ -25,6 +25,7 @@ import {
 import { api } from "~/trpc/react";
 
 type RegistrationMode = "individual" | "team_only";
+type GameFormat = "friendly_game" | "americano";
 
 function parseOptionalDate(value: string) {
   if (value.trim().length === 0) {
@@ -43,9 +44,11 @@ function NewGameForm() {
   const groupId = searchParams.get("groupId") ?? undefined;
 
   const [name, setName] = React.useState("");
+  const [format, setFormat] = React.useState<GameFormat>("friendly_game");
   const [isPublic, setIsPublic] = React.useState(false);
   const [registrationMode, setRegistrationMode] =
     React.useState<RegistrationMode>("individual");
+  const [playersAllowed, setPlayersAllowed] = React.useState("8");
   const [windowStart, setWindowStart] = React.useState("");
   const [windowEnd, setWindowEnd] = React.useState("");
 
@@ -71,7 +74,11 @@ function NewGameForm() {
       name: name.trim().length > 0 ? name.trim() : undefined,
       groupId,
       isPublic,
-      registrationMode,
+      format,
+      registrationMode:
+        format === "americano" ? "individual" : registrationMode,
+      playersAllowed:
+        format === "americano" ? Number(playersAllowed) : undefined,
       windowStart: parseOptionalDate(windowStart),
       windowEnd: parseOptionalDate(windowEnd),
     });
@@ -82,10 +89,11 @@ function NewGameForm() {
       <div className="mx-auto w-full max-w-lg space-y-6">
         <div className="space-y-1">
           <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Friendly game
+            Create a Game
           </h2>
           <p className="text-muted-foreground text-sm">
-            Padel only. Creates one Match. Caps are 4 players or 2 Teams.
+            Padel only. Friendly game creates one Match with caps 4 / 2.
+            Americano is a player pool with no Matches.
             {groupId
               ? " This Game belongs to the Group you opened it from."
               : " This Game has no Group. You are the organizer."}
@@ -109,29 +117,74 @@ function NewGameForm() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="game-mode">Registration</FieldLabel>
+              <FieldLabel htmlFor="game-format">Format</FieldLabel>
               <Select
-                value={registrationMode}
-                onValueChange={(value) =>
-                  setRegistrationMode(value as RegistrationMode)
-                }
+                value={format}
+                onValueChange={(value) => {
+                  const next = value as GameFormat;
+                  setFormat(next);
+                  if (next === "americano") {
+                    setRegistrationMode("individual");
+                  }
+                }}
               >
-                <SelectTrigger id="game-mode">
+                <SelectTrigger id="game-format">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="individual">
-                    Individual (register with a partner)
-                  </SelectItem>
-                  <SelectItem value="team_only">
-                    Team-only (complete Team)
-                  </SelectItem>
+                  <SelectItem value="friendly_game">Friendly game</SelectItem>
+                  <SelectItem value="americano">Americano</SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
-                Format, public flag, and this mode cannot change after create.
+                Format cannot change after create. Americano has no Matches this
+                slice.
               </FieldDescription>
             </Field>
+
+            {format === "americano" ? (
+              <Field>
+                <FieldLabel htmlFor="game-players-allowed">
+                  Players allowed
+                </FieldLabel>
+                <Input
+                  id="game-players-allowed"
+                  type="number"
+                  min={4}
+                  step={4}
+                  value={playersAllowed}
+                  onChange={(event) => setPlayersAllowed(event.target.value)}
+                />
+                <FieldDescription>
+                  Multiple of 4, minimum 4. Team-only is not offered.
+                </FieldDescription>
+              </Field>
+            ) : (
+              <Field>
+                <FieldLabel htmlFor="game-mode">Registration</FieldLabel>
+                <Select
+                  value={registrationMode}
+                  onValueChange={(value) =>
+                    setRegistrationMode(value as RegistrationMode)
+                  }
+                >
+                  <SelectTrigger id="game-mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">
+                      Individual (register with a partner)
+                    </SelectItem>
+                    <SelectItem value="team_only">
+                      Team-only (complete Team)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  Format, public flag, and this mode cannot change after create.
+                </FieldDescription>
+              </Field>
+            )}
 
             <Field>
               <div className="flex items-center gap-2">

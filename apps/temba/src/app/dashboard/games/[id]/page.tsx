@@ -78,6 +78,17 @@ export default function GameHomePage({
   const [playersAllowed, setPlayersAllowed] = React.useState("4");
   const [teamsAllowed, setTeamsAllowed] = React.useState("2");
 
+  const registerSelf = api.games.register.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      await utils.games.byId.invalidate({ id });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
@@ -445,7 +456,9 @@ export default function GameHomePage({
               </h3>
               {data.matches.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  No Matches on this Game.
+                  {data.format === "americano"
+                    ? "Americano has no Matches this slice."
+                    : "No Matches on this Game."}
                 </p>
               ) : (
                 <ul className="divide-border border-border bg-card divide-y rounded-xl border">
@@ -490,7 +503,7 @@ export default function GameHomePage({
 
             <section className="space-y-3">
               <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                Registered
+                {data.format === "americano" ? "Player pool" : "Registered"}
               </h3>
               {data.gameTeams.length === 0 &&
               data.registeredPlayers.length === 0 ? (
@@ -642,7 +655,31 @@ export default function GameHomePage({
             ) : null}
 
             {(data.canRegister || data.canWaitlist) &&
-            data.registrationMode === "individual" ? (
+            data.format === "americano" ? (
+              <div className="border-border bg-card space-y-3 rounded-xl border p-6">
+                <h3 className="text-foreground text-lg font-medium">
+                  {data.canWaitlist ? "Join the waitlist" : "Join the pool"}
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Americano registration is individual. No Game team and no
+                  Match this slice.
+                </p>
+                <Button
+                  onClick={() => registerSelf.mutate({ gameId: id })}
+                  disabled={registerSelf.isPending}
+                >
+                  {registerSelf.isPending
+                    ? "Joining…"
+                    : data.canWaitlist
+                      ? "Join waitlist"
+                      : "Register"}
+                </Button>
+              </div>
+            ) : null}
+
+            {(data.canRegister || data.canWaitlist) &&
+            data.registrationMode === "individual" &&
+            data.format !== "americano" ? (
               <form
                 className="border-border bg-card space-y-4 rounded-xl border p-6"
                 onSubmit={(event) => {
