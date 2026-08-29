@@ -69,6 +69,31 @@ export function bothSlotsFilled(match: MatchRow) {
   return Boolean(match.slot1GameTeamId && match.slot2GameTeamId);
 }
 
+async function gameTeamHasTwoPlayers(database: DbClient, gameTeamId: string) {
+  const links = await database.query.gameTeamPlayers.findMany({
+    where: eq(gameTeamPlayers.gameTeamId, gameTeamId),
+    columns: { id: true },
+  });
+  return links.length === 2;
+}
+
+export async function bothSlottedTeamsComplete(
+  database: DbClient,
+  match: MatchRow,
+) {
+  if (
+    !bothSlotsFilled(match) ||
+    !match.slot1GameTeamId ||
+    !match.slot2GameTeamId
+  ) {
+    return false;
+  }
+  return (
+    (await gameTeamHasTwoPlayers(database, match.slot1GameTeamId)) &&
+    (await gameTeamHasTwoPlayers(database, match.slot2GameTeamId))
+  );
+}
+
 export async function userIsOnMatchSlots(
   database: DbClient,
   match: MatchRow,
@@ -195,10 +220,11 @@ export async function scoreMatchSet(
   scores: { slot1GamesWon: number; slot2GamesWon: number },
 ) {
   await assertMayWriteSets(database, game, match, userId, organizer);
-  if (!bothSlotsFilled(match)) {
+  if (!(await bothSlottedTeamsComplete(database, match))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Fill both Match slots before entering games won",
+      message:
+        "Both Match slots need complete Game teams before entering games won",
     });
   }
   const set = await database.query.matchSets.findFirst({
@@ -272,6 +298,13 @@ export async function completeMatch(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "This Match is already completed",
+    });
+  }
+  if (!(await bothSlottedTeamsComplete(database, match))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Both Match slots need complete Game teams before completing the Match",
     });
   }
   if (!organizer) {

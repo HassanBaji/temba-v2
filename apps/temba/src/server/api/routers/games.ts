@@ -57,6 +57,7 @@ import { listAssignableCourts } from "~/server/games/courts";
 import {
   addMatchSet,
   bothSlotsFilled,
+  bothSlottedTeamsComplete,
   completeMatch as markMatchCompleted,
   matchOutcome,
   removeMatchSet,
@@ -678,45 +679,50 @@ export const gamesRouter = createTRPCRouter({
           createdAt: row.createdAt,
           name: row.user?.name ?? row.team?.name ?? "Waitlisted",
         })),
-        matches: matchRows.map((match) => {
-          const onSides =
-            Boolean(match.slot1GameTeamId) &&
-            Boolean(match.slot2GameTeamId) &&
-            (myGameTeamIds.has(match.slot1GameTeamId ?? "") ||
-              myGameTeamIds.has(match.slot2GameTeamId ?? ""));
-          const frozen =
-            match.status === "completed" || match.status === "cancelled";
-          const canWriteSets =
-            !frozen && game.format !== "americano" && (organizer || onSides);
-          const outcome = matchOutcome(match.sets);
-          return {
-            id: match.id,
-            startTime: match.startTime,
-            endTime: match.endTime,
-            durationInMinutes: match.durationInMinutes,
-            status: match.status,
-            courtId: match.courtId,
-            courtName: match.court?.name ?? null,
-            slot1GameTeamId: match.slot1GameTeamId,
-            slot2GameTeamId: match.slot2GameTeamId,
-            bothSlotsFilled: bothSlotsFilled(match),
-            canAddSet: canWriteSets && (organizer || onSides),
-            canScoreSets:
-              canWriteSets && bothSlotsFilled(match) && (organizer || onSides),
-            canComplete:
-              !frozen &&
-              game.format !== "americano" &&
-              (organizer || onSides) &&
-              match.sets.length > 0,
-            outcome,
-            sets: match.sets.map((set) => ({
-              id: set.id,
-              slot1GamesWon: set.slot1GamesWon,
-              slot2GamesWon: set.slot2GamesWon,
-              wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
-            })),
-          };
-        }),
+        matches: await Promise.all(
+          matchRows.map(async (match) => {
+            const onSides =
+              Boolean(match.slot1GameTeamId) &&
+              Boolean(match.slot2GameTeamId) &&
+              (myGameTeamIds.has(match.slot1GameTeamId ?? "") ||
+                myGameTeamIds.has(match.slot2GameTeamId ?? ""));
+            const frozen =
+              match.status === "completed" || match.status === "cancelled";
+            const canWriteSets =
+              !frozen && game.format !== "americano" && (organizer || onSides);
+            const sidesComplete = await bothSlottedTeamsComplete(ctx.db, match);
+            const outcome = matchOutcome(match.sets);
+            return {
+              id: match.id,
+              startTime: match.startTime,
+              endTime: match.endTime,
+              durationInMinutes: match.durationInMinutes,
+              status: match.status,
+              courtId: match.courtId,
+              courtName: match.court?.name ?? null,
+              slot1GameTeamId: match.slot1GameTeamId,
+              slot2GameTeamId: match.slot2GameTeamId,
+              bothSlotsFilled: bothSlotsFilled(match),
+              bothSidesComplete: sidesComplete,
+              canAddSet: canWriteSets && (organizer || onSides),
+              canScoreSets:
+                canWriteSets && sidesComplete && (organizer || onSides),
+              canComplete:
+                !frozen &&
+                game.format !== "americano" &&
+                (organizer || onSides) &&
+                sidesComplete &&
+                match.sets.length > 0,
+              outcome,
+              sets: match.sets.map((set) => ({
+                id: set.id,
+                slot1GamesWon: set.slot1GamesWon,
+                slot2GamesWon: set.slot2GamesWon,
+                wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
+              })),
+            };
+          }),
+        ),
         gameTeams: teamRows.map((row) => ({
           id: row.id,
           teamId: row.teamId,

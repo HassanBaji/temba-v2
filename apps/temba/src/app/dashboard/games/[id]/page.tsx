@@ -994,11 +994,13 @@ export default function GameHomePage({
                               </Button>
                             ) : null}
                           </div>
-                          {!match.bothSlotsFilled &&
+                          {(!match.bothSidesComplete ||
+                            !match.bothSlotsFilled) &&
                           match.status !== "completed" ? (
                             <p className="text-muted-foreground text-sm">
-                              Scoring is frozen until both slots have Game
-                              teams.
+                              Scoring is frozen until both slots have complete
+                              Game teams (two Positions). Set shells can still
+                              be added.
                             </p>
                           ) : null}
                         </div>
