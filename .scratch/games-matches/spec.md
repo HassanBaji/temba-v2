@@ -258,4 +258,20 @@ Glossary: Root `CONTEXT.md` (Game, Match, Set, Game team, Americano, Friendly to
 
 Settled grilling: `.scratch/games-matches/decisions.md`.
 
-Do not implement until an implementer / orchestrator is asked to run tickets. Tickets are not in this file; publish with `/to-tickets` after this spec is accepted.
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/games-matches/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-35 Game/Match rename migration + Game lists](https://linear.app/temba-app/issue/TEM-35/gamematch-rename-migration-game-lists) | — |
+| 2 | [TEM-36 Friendly game create + register + Game home](https://linear.app/temba-app/issue/TEM-36/friendly-game-create-register-game-home) | TEM-35 |
+| 3 | [TEM-37 Waitlist FIFO + open/full/closed + leave](https://linear.app/temba-app/issue/TEM-37/waitlist-fifo-openfullclosed-leave) | TEM-36 |
+| 4 | [TEM-38 Organizer kick + reopen + cancel + cap/window edit](https://linear.app/temba-app/issue/TEM-38/organizer-kick-reopen-cancel-capwindow-edit) | TEM-37 |
+| 5 | [TEM-39 Americano create + player pool](https://linear.app/temba-app/issue/TEM-39/americano-create-player-pool) | TEM-37 |
+| 6 | [TEM-40 Friendly tournament + add Matches + Courts](https://linear.app/temba-app/issue/TEM-40/friendly-tournament-add-matches-courts) | TEM-37 |
+| 7 | [TEM-41 Sets + Match complete](https://linear.app/temba-app/issue/TEM-41/sets-match-complete) | TEM-36, TEM-40 |
+| 8 | [TEM-42 Game Lookup invite + Invite link](https://linear.app/temba-app/issue/TEM-42/game-lookup-invite-invite-link) | TEM-37 |
+| 9 | [TEM-43 Soft-archive Club Group Game rules](https://linear.app/temba-app/issue/TEM-43/soft-archive-club-group-game-rules) | TEM-38, TEM-42 |
+
+Frontier: **TEM-35** only. Do not implement until an implementer / orchestrator is asked to run the tickets in order.
