@@ -55,7 +55,7 @@ export default function VenuesPage() {
         </Button>
       }
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         <Section
           title="Requests"
           description="Approve sets the Community live Venue pointer. Reject is silent and does not admit Users."

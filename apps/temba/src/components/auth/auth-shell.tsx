@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { Card } from "~/components/ui/card";
+import { pageGutterX } from "~/lib/page-layout";
+import { cn } from "~/lib/utils";
 
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
@@ -30,7 +32,12 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </p>
       </aside>
 
-      <div className="flex flex-col items-center justify-center px-4 py-10 md:px-6">
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center py-10",
+          pageGutterX,
+        )}
+      >
         <div className="mb-8 text-center lg:hidden">
           <Link
             href="/"

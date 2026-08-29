@@ -228,7 +228,7 @@ export default function TeamHomePage({
             size="lg"
           />
           <div className="min-w-0 flex-1 space-y-2">
-            <h1 className="text-h2 lg:text-h1 font-bold tracking-[-0.02em]">
+            <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
               {displayName}
             </h1>
             <div className="flex flex-wrap items-center gap-2">

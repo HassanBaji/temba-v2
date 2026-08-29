@@ -1,10 +1,17 @@
 import Link from "next/link";
 
 import { Card } from "~/components/ui/card";
+import { pageGutterX } from "~/lib/page-layout";
+import { cn } from "~/lib/utils";
 
 export function InviteShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-background flex min-h-svh items-center justify-center px-4 py-10 md:px-6">
+    <div
+      className={cn(
+        "bg-background flex min-h-svh items-center justify-center py-10",
+        pageGutterX,
+      )}
+    >
       <div className="mx-auto w-full max-w-[var(--container-content)] space-y-6">
         <div className="text-center">
           <Link

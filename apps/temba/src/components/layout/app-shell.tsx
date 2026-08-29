@@ -7,6 +7,7 @@ import { BottomNav } from "~/components/layout/bottom-nav";
 import { MobileTopBarFromPath } from "~/components/layout/mobile-top-bar";
 import { PageHeader } from "~/components/layout/page-header";
 import { SidebarProvider } from "~/components/ui/sidebar";
+import { pageGutterX } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 export function AppShell({
@@ -34,13 +35,14 @@ export function AppShell({
         } as CSSProperties
       }
     >
-      <div className="flex min-h-svh w-full">
+      <div className="flex min-h-svh w-full min-w-0 overflow-x-clip">
         <AppRail />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileTopBarFromPath title={title} />
           <main
             className={cn(
-              "mx-auto w-full flex-1 px-4 py-4 md:px-6 md:py-6",
+              "mx-auto w-full min-w-0 flex-1 py-4 md:py-6",
+              pageGutterX,
               "pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-6",
               width === "wide"
                 ? "max-w-[var(--container-wide)]"

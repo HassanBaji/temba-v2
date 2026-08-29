@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { pageGutterX } from "~/lib/page-layout";
+import { cn } from "~/lib/utils";
+
 export function MobileTopBar({
   title,
   backHref,
@@ -15,7 +18,12 @@ export function MobileTopBar({
   action?: ReactNode;
 }) {
   return (
-    <header className="border-border bg-background sticky top-0 z-40 flex min-h-11 items-center gap-2 border-b px-3 py-2 lg:hidden">
+    <header
+      className={cn(
+        "border-border bg-background sticky top-0 z-40 flex min-h-11 items-center gap-2 border-b py-2 lg:hidden",
+        pageGutterX,
+      )}
+    >
       {backHref ? (
         <Link
           href={backHref}

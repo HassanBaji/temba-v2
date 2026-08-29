@@ -26,6 +26,7 @@ import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { isNotFoundError } from "~/lib/is-not-found-error";
+import { stickyAsideClass } from "~/lib/page-layout";
 import { api } from "~/trpc/react";
 
 export default function GroupHomePage({
@@ -357,7 +358,7 @@ export default function GroupHomePage({
     <Tabs defaultValue="standing" className="gap-4">
       <TabsList
         variant="line"
-        className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full justify-start rounded-none lg:top-0"
+        className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
       >
         <TabsTrigger
           value="standing"
@@ -427,7 +428,7 @@ export default function GroupHomePage({
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_17.5rem]">
           <div className="min-w-0 space-y-6 lg:hidden">{standingStrip}</div>
           <div className="min-w-0">{tabs}</div>
-          <aside className="hidden space-y-4 lg:sticky lg:top-6 lg:block">
+          <aside className={stickyAsideClass}>
             {standingStrip}
             {communityCard}
             {staffCard}

@@ -103,7 +103,7 @@ export default function HomePage() {
             <p className="text-meta text-muted-foreground">Hi, {firstName}</p>
           ) : null}
 
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.62fr)_minmax(0,1fr)]">
+          <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.62fr)_minmax(0,1fr)]">
             <div className="space-y-6">
               {hero ? (
                 <Card variant="elevated" className="p-0">

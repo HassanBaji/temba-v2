@@ -321,7 +321,7 @@ export default function VenueHomePage({
         )
       }
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         {data.archivedAt ? (
           <SoftArchiveBanner heading="This Venue is Soft-archived">
             It is hidden from the Community request catalog. You can still edit

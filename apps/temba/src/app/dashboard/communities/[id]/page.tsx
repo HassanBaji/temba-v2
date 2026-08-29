@@ -30,6 +30,7 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isNotFoundError } from "~/lib/is-not-found-error";
+import { stickyAsideClass } from "~/lib/page-layout";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
@@ -452,7 +453,7 @@ export default function CommunityHomePage({
             <Tabs defaultValue="groups" className="gap-4">
               <TabsList
                 variant="line"
-                className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full justify-start rounded-none lg:top-0"
+                className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
               >
                 <TabsTrigger
                   value="groups"
@@ -580,7 +581,7 @@ export default function CommunityHomePage({
               ) : null}
             </Tabs>
           </div>
-          <aside className="hidden space-y-4 lg:sticky lg:top-6 lg:block">
+          <aside className={stickyAsideClass}>
             {venueBlock}
             {memberCountCard}
             {staffCard}

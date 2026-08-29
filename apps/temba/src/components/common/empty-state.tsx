@@ -21,7 +21,7 @@ export function EmptyState({
       role="status"
       aria-live="polite"
       className={cn(
-        "mx-auto flex w-full max-w-[var(--container-content)] flex-col items-center gap-3 py-12 text-center",
+        "mx-auto flex w-full max-w-md flex-col items-center gap-3 py-12 text-center",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function EmptyState({
       <h2 className="text-title font-semibold">{title}</h2>
       <p className="text-body text-muted-foreground">{description}</p>
       {action ? (
-        <div className="w-full sm:w-auto [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:justify-center [&_button]:min-h-11">
+        <div className="[&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:justify-center [&_button]:min-h-11">
           {action}
         </div>
       ) : null}

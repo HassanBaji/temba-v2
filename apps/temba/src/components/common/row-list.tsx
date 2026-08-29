@@ -37,8 +37,8 @@ export function ListRow({
 } & Omit<React.ComponentProps<"div">, "title" | "children">) {
   const navigates = asChild;
   const rowClass = cn(
-    "flex min-h-16 min-w-11 w-full gap-3 px-4 py-3 outline-none",
-    "flex-col min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between",
+    "flex min-h-16 w-full min-w-0 items-center gap-3 px-4 py-3 outline-none",
+    "flex-row justify-between",
     "focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "[[data-variant=raised]_&]:focus-visible:ring-offset-surface-raised",
     navigates
@@ -56,11 +56,7 @@ export function ListRow({
           <p className="text-meta text-muted-foreground truncate">{meta}</p>
         ) : null}
       </div>
-      {trailing ? (
-        <div className="min-w-0 min-[390px]:ml-auto min-[390px]:shrink-0">
-          {trailing}
-        </div>
-      ) : null}
+      {trailing ? <div className="shrink-0">{trailing}</div> : null}
       {navigates ? (
         <ChevronRight
           aria-hidden="true"

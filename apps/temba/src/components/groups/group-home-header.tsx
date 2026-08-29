@@ -30,10 +30,10 @@ export function GroupHomeHeader({
     <header className="flex items-start gap-3">
       <EntityMonogram name={name} size="lg" />
       <div className="min-w-0 flex-1 space-y-2">
-        <h1 className="text-h2 lg:text-h1 font-bold tracking-[-0.02em]">
+        <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
           {name}
         </h1>
-        <p className="text-meta text-muted-foreground">{meta}</p>
+        <p className="text-meta text-muted-foreground truncate">{meta}</p>
         <div className="flex flex-wrap items-center gap-2">
           {sport ? <SportBadge sport={sport} /> : null}
           <GroupTypeBadge isLoose={isLoose} type={type} />

@@ -74,7 +74,7 @@ export default function TeamsIndexPage() {
       ) : null}
 
       {!isEmpty && teams.data ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {pending.data && pending.data.length > 0 ? (
             <Section title="Pending invites">
               <RowList>

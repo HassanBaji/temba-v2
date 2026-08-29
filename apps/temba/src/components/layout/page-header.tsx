@@ -16,12 +16,12 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+        "flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h1 className="text-h2 lg:text-h1 font-bold tracking-[-0.02em]">
+        <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
           {title}
         </h1>
         {description ? (
