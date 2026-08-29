@@ -19,6 +19,8 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
+import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -30,8 +32,14 @@ import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import { Field, FieldError, FieldLabel } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { isNotFoundError } from "~/lib/is-not-found-error";
+import {
+  fieldErrorMessage,
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
 function isForbiddenError(error: unknown) {
@@ -79,7 +87,7 @@ export default function TeamHomePage({
       await utils.teams.byId.invalidate({ id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -123,7 +131,7 @@ export default function TeamHomePage({
       setLinkOpen(false);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -374,90 +382,23 @@ export default function TeamHomePage({
                 invitee accepts on Invites. Lookup invites do not expire.
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
-            <div className="space-y-6 px-4 pb-4 md:px-0 md:pb-0">
-              <form
-                className="flex flex-col gap-3 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const formData = new FormData(event.currentTarget);
-                  const queryValue = formData.get("query");
-                  if (typeof queryValue !== "string") {
-                    return;
-                  }
-                  const query = queryValue.trim();
-                  if (!query) {
-                    return;
-                  }
-                  inviteInApp.mutate({ teamId: id, query });
-                  event.currentTarget.reset();
-                }}
-              >
-                <Input
-                  name="query"
-                  type="text"
-                  required
-                  placeholder="Username, email, or phone"
-                  className="min-h-11 flex-1"
-                />
-                <Button
-                  type="submit"
-                  className="min-h-11"
-                  disabled={inviteInApp.isPending}
-                >
-                  {inviteInApp.isPending ? "Sending…" : "Send Lookup invite"}
-                </Button>
-              </form>
-              {data.unusedInvite ? (
-                <div className="flex min-h-16 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-lead font-semibold">
-                      {data.unusedInvite.user.name}
-                    </p>
-                    <p className="text-meta text-muted-foreground">
-                      {data.unusedInvite.user.email}
-                    </p>
-                  </div>
-                  <Button
-                    className="min-h-11"
-                    variant="outline"
-                    onClick={() =>
-                      revokeInvite.mutate({
-                        inviteId: data.unusedInvite!.id,
-                      })
-                    }
-                    disabled={revokeInvite.isPending}
-                  >
-                    {revokeInvite.isPending ? "Revoking…" : "Revoke"}
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-body text-muted-foreground">
-                  No unused Lookup invites.
-                </p>
-              )}
-              <div className="space-y-3">
-                <h3 className="text-title font-semibold">Invite link</h3>
-                <p className="text-body text-muted-foreground">
-                  Each copy mints a new 6-hour token. Older copied URLs stay
-                  live until each expires.
-                </p>
-                {inviteLink.data ? (
-                  <p className="text-meta text-muted-foreground break-all">
-                    Newest: {inviteLink.data.inviteUrl}
-                  </p>
-                ) : (
-                  <p className="text-body text-muted-foreground">
-                    No live Invite link. Copy to mint one.
-                  </p>
-                )}
-                <Button
-                  className="min-h-11"
-                  onClick={() => createInviteLink.mutate({ teamId: id })}
-                  disabled={createInviteLink.isPending}
-                >
-                  {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
-                </Button>
-              </div>
+            <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
+              <LookupInvitePanel
+                description="Look up an existing User by username, email, or phone. The invitee accepts on Invites. Lookup invites do not expire."
+                lookupInvites={data.unusedInvite ? [data.unusedInvite] : []}
+                sendPending={inviteInApp.isPending}
+                revokePending={revokeInvite.isPending}
+                sendError={inviteInApp.error}
+                onSendLookup={(query) =>
+                  inviteInApp.mutate({ teamId: id, query })
+                }
+                onRevokeLookup={(inviteId) => revokeInvite.mutate({ inviteId })}
+              />
+              <InviteLinkPanel
+                inviteUrl={inviteLink.data?.inviteUrl}
+                copyPending={createInviteLink.isPending}
+                onCopy={() => createInviteLink.mutate({ teamId: id })}
+              />
             </div>
           </ResponsiveDialogContent>
         </ResponsiveDialog>
@@ -479,6 +420,9 @@ export default function TeamHomePage({
               className="space-y-4 px-4 pb-4 md:px-0 md:pb-0"
               onSubmit={(event) => {
                 event.preventDefault();
+                if (requestLink.isPending) {
+                  return;
+                }
                 const formData = new FormData(event.currentTarget);
                 const communityIdValue = formData.get("communityId");
                 if (typeof communityIdValue !== "string" || !communityIdValue) {
@@ -490,30 +434,46 @@ export default function TeamHomePage({
                 });
               }}
             >
-              <label className="sr-only" htmlFor="team-link-community">
-                Community
-              </label>
-              <select
-                id="team-link-community"
-                name="communityId"
-                required
-                className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  Select a Community
-                </option>
-                {communities.data
-                  ?.filter((community) => !community.archivedAt)
-                  .map((community) => (
-                    <option key={community.id} value={community.id}>
-                      {community.name}
-                    </option>
-                  ))}
-              </select>
+              <FormErrorSummary
+                message={globalFormErrorMessage(requestLink.error)}
+              />
+              <Field>
+                <FieldLabel htmlFor="team-link-community">Community</FieldLabel>
+                <select
+                  id="team-link-community"
+                  name="communityId"
+                  required
+                  className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
+                  defaultValue=""
+                  aria-invalid={
+                    fieldErrorMessage(requestLink.error, "communityId")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    fieldErrorMessage(requestLink.error, "communityId")
+                      ? "team-link-community-error"
+                      : undefined
+                  }
+                >
+                  <option value="" disabled>
+                    Select a Community
+                  </option>
+                  {communities.data
+                    ?.filter((community) => !community.archivedAt)
+                    .map((community) => (
+                      <option key={community.id} value={community.id}>
+                        {community.name}
+                      </option>
+                    ))}
+                </select>
+                <FieldError id="team-link-community-error">
+                  {fieldErrorMessage(requestLink.error, "communityId")}
+                </FieldError>
+              </Field>
               <Button
                 type="submit"
-                className="min-h-11 w-full"
+                className="w-full"
                 disabled={requestLink.isPending}
               >
                 {requestLink.isPending ? "Requesting…" : "Request link"}

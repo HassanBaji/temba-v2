@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
+import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
@@ -50,12 +51,14 @@ export function CommunityLinkVenueDialog({
         </ResponsiveDialogHeader>
 
         <div className="space-y-4 px-4 pb-4 md:px-0 md:pb-0">
-          <Input
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Search live Venues by name, city, or country"
-            className="min-h-11"
-          />
+          <Field>
+            <FieldLabel htmlFor="venue-search">Search Venues</FieldLabel>
+            <Input
+              id="venue-search"
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+            />
+          </Field>
           {isLoading ? <Skeleton className="h-16 w-full" /> : null}
           {errorMessage ? (
             <p className="text-destructive text-body">{errorMessage}</p>

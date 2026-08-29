@@ -10,6 +10,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { RequestRow } from "~/components/invites/request-row";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -91,40 +92,19 @@ export default function VenuesPage() {
                   rejectLink.isPending &&
                   rejectLink.variables?.requestId === request.id;
                 return (
-                  <li
+                  <RequestRow
                     key={request.id}
-                    className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-lead truncate font-semibold">
-                        {request.community.name}
-                      </p>
-                      <p className="text-meta text-muted-foreground truncate">
-                        Venue link request for {request.venue.name}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        className="min-h-11"
-                        onClick={() =>
-                          approveLink.mutate({ requestId: request.id })
-                        }
-                        disabled={approvePending || rejectLink.isPending}
-                      >
-                        {approvePending ? "Approving…" : "Approve"}
-                      </Button>
-                      <Button
-                        className="min-h-11"
-                        variant="outline"
-                        onClick={() =>
-                          rejectLink.mutate({ requestId: request.id })
-                        }
-                        disabled={rejectPending || approveLink.isPending}
-                      >
-                        {rejectPending ? "Rejecting…" : "Reject"}
-                      </Button>
-                    </div>
-                  </li>
+                    title={request.community.name}
+                    meta={`Venue link request for ${request.venue.name}`}
+                    approvePending={approvePending}
+                    rejectPending={rejectPending}
+                    onApprove={() =>
+                      approveLink.mutate({ requestId: request.id })
+                    }
+                    onReject={() =>
+                      rejectLink.mutate({ requestId: request.id })
+                    }
+                  />
                 );
               })}
             </ul>

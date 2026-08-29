@@ -18,10 +18,18 @@ import { Button } from "~/components/ui/button";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import {
+  fieldErrorMessage,
+  focusFormFailure,
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
@@ -78,6 +86,8 @@ export default function VenueHomePage({
   const [logoError, setLogoError] = React.useState<string | null>(null);
   const [deleteCourtId, setDeleteCourtId] = React.useState<string | null>(null);
   const [clearLogoOpen, setClearLogoOpen] = React.useState(false);
+  const detailsSummaryRef = React.useRef<HTMLDivElement>(null);
+  const courtSummaryRef = React.useRef<HTMLDivElement>(null);
   const [archiveOpen, setArchiveOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -112,7 +122,18 @@ export default function VenueHomePage({
       await utils.venues.list.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
+      focusFormFailure(
+        error,
+        {
+          name: "venue-name",
+          city: "venue-city",
+          country: "venue-country",
+          latitude: "venue-latitude",
+          longitude: "venue-longitude",
+        },
+        detailsSummaryRef.current,
+      );
     },
   });
 
@@ -123,7 +144,12 @@ export default function VenueHomePage({
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
+      focusFormFailure(
+        error,
+        { name: "new-court-name" },
+        courtSummaryRef.current,
+      );
     },
   });
 
@@ -133,7 +159,7 @@ export default function VenueHomePage({
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -151,7 +177,8 @@ export default function VenueHomePage({
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
+      setLogoError(error.message);
     },
   });
 
@@ -183,6 +210,9 @@ export default function VenueHomePage({
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (updateVenue.isPending) {
+      return;
+    }
     updateVenue.mutate({
       id,
       name,
@@ -195,6 +225,9 @@ export default function VenueHomePage({
 
   function onAddCourt(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (addCourt.isPending) {
+      return;
+    }
     addCourt.mutate({ venueId: id, name: newCourtName });
   }
 
@@ -324,71 +357,135 @@ export default function VenueHomePage({
 
         <Section title="Details">
           <form onSubmit={onSubmit} className="space-y-6">
+            <FormErrorSummary
+              ref={detailsSummaryRef}
+              message={globalFormErrorMessage(updateVenue.error)}
+            />
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="venue-name">Name</FieldLabel>
                 <Input
                   id="venue-name"
-                  className="min-h-11"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   required
                   maxLength={255}
+                  aria-invalid={
+                    fieldErrorMessage(updateVenue.error, "name")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    fieldErrorMessage(updateVenue.error, "name")
+                      ? "venue-name-error"
+                      : undefined
+                  }
                 />
+                <FieldError id="venue-name-error">
+                  {fieldErrorMessage(updateVenue.error, "name")}
+                </FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="venue-city">City</FieldLabel>
                 <Input
                   id="venue-city"
-                  className="min-h-11"
                   value={city}
                   onChange={(event) => setCity(event.target.value)}
                   required
                   maxLength={255}
+                  aria-invalid={
+                    fieldErrorMessage(updateVenue.error, "city")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    fieldErrorMessage(updateVenue.error, "city")
+                      ? "venue-city-error"
+                      : undefined
+                  }
                 />
+                <FieldError id="venue-city-error">
+                  {fieldErrorMessage(updateVenue.error, "city")}
+                </FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="venue-country">Country</FieldLabel>
                 <Input
                   id="venue-country"
-                  className="min-h-11"
                   value={country}
                   onChange={(event) => setCountry(event.target.value)}
                   required
                   maxLength={255}
+                  aria-invalid={
+                    fieldErrorMessage(updateVenue.error, "country")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    fieldErrorMessage(updateVenue.error, "country")
+                      ? "venue-country-error"
+                      : undefined
+                  }
                 />
+                <FieldError id="venue-country-error">
+                  {fieldErrorMessage(updateVenue.error, "country")}
+                </FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="venue-latitude">Latitude</FieldLabel>
                 <Input
                   id="venue-latitude"
-                  className="min-h-11"
                   type="number"
                   step="any"
                   min={-90}
                   max={90}
                   value={latitude}
                   onChange={(event) => setLatitude(event.target.value)}
-                  placeholder="Optional"
+                  aria-invalid={
+                    fieldErrorMessage(updateVenue.error, "latitude")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    fieldErrorMessage(updateVenue.error, "latitude")
+                      ? "venue-latitude-error"
+                      : "venue-latitude-help"
+                  }
                 />
-                <FieldDescription>Optional. Range −90 to 90.</FieldDescription>
+                <FieldDescription id="venue-latitude-help">
+                  Optional. Range −90 to 90. Blank persists as null.
+                </FieldDescription>
+                <FieldError id="venue-latitude-error">
+                  {fieldErrorMessage(updateVenue.error, "latitude")}
+                </FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="venue-longitude">Longitude</FieldLabel>
                 <Input
                   id="venue-longitude"
-                  className="min-h-11"
                   type="number"
                   step="any"
                   min={-180}
                   max={180}
                   value={longitude}
                   onChange={(event) => setLongitude(event.target.value)}
-                  placeholder="Optional"
+                  aria-invalid={
+                    fieldErrorMessage(updateVenue.error, "longitude")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    fieldErrorMessage(updateVenue.error, "longitude")
+                      ? "venue-longitude-error"
+                      : "venue-longitude-help"
+                  }
                 />
-                <FieldDescription>
-                  Optional. Range −180 to 180.
+                <FieldDescription id="venue-longitude-help">
+                  Optional. Range −180 to 180. Blank persists as null.
                 </FieldDescription>
+                <FieldError id="venue-longitude-error">
+                  {fieldErrorMessage(updateVenue.error, "longitude")}
+                </FieldError>
               </Field>
             </FieldGroup>
             <div className="flex items-center gap-3">
@@ -435,15 +532,7 @@ export default function VenueHomePage({
               }}
               disabled={uploadLogo.isPending || clearLogo.isPending}
             />
-            {logoError ? (
-              <p
-                id="venue-logo-error"
-                role="alert"
-                className="text-destructive text-meta"
-              >
-                {logoError}
-              </p>
-            ) : null}
+            <FieldError id="venue-logo-error">{logoError}</FieldError>
           </Field>
           {data.logoImageUrl ? (
             <Button
@@ -462,29 +551,38 @@ export default function VenueHomePage({
           title="Courts"
           description="A Venue may have zero Courts. Names are unique on this Venue after trim and case-fold."
         >
-          <form
-            onSubmit={onAddCourt}
-            className="flex flex-col gap-3 sm:flex-row"
-          >
-            <label className="sr-only" htmlFor="new-court-name">
-              New Court name
-            </label>
-            <Input
-              id="new-court-name"
-              className="min-h-11 min-w-48 flex-1"
-              value={newCourtName}
-              onChange={(event) => setNewCourtName(event.target.value)}
-              placeholder="Court 1"
-              required
-              maxLength={255}
+          <form onSubmit={onAddCourt} className="space-y-3">
+            <FormErrorSummary
+              ref={courtSummaryRef}
+              message={globalFormErrorMessage(addCourt.error)}
             />
-            <Button
-              type="submit"
-              className="min-h-11"
-              disabled={addCourt.isPending}
-            >
-              {addCourt.isPending ? "Adding…" : "Add Court"}
-            </Button>
+            <Field>
+              <FieldLabel htmlFor="new-court-name">Court name</FieldLabel>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <Input
+                  id="new-court-name"
+                  className="min-w-48 flex-1"
+                  value={newCourtName}
+                  onChange={(event) => setNewCourtName(event.target.value)}
+                  required
+                  maxLength={255}
+                  aria-invalid={
+                    fieldErrorMessage(addCourt.error, "name") ? true : undefined
+                  }
+                  aria-describedby={
+                    fieldErrorMessage(addCourt.error, "name")
+                      ? "new-court-name-error"
+                      : undefined
+                  }
+                />
+                <Button type="submit" disabled={addCourt.isPending}>
+                  {addCourt.isPending ? "Adding…" : "Add Court"}
+                </Button>
+              </div>
+              <FieldError id="new-court-name-error">
+                {fieldErrorMessage(addCourt.error, "name")}
+              </FieldError>
+            </Field>
           </form>
 
           {data.courts.length === 0 ? (
@@ -498,22 +596,42 @@ export default function VenueHomePage({
                   key={court.id}
                   className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center"
                 >
-                  <label className="sr-only" htmlFor={`court-name-${court.id}`}>
-                    Court name {court.name}
-                  </label>
-                  <Input
-                    id={`court-name-${court.id}`}
-                    className="min-h-11 flex-1"
-                    value={courtNames[court.id] ?? court.name}
-                    onChange={(event) =>
-                      setCourtNames((current) => ({
-                        ...current,
-                        [court.id]: event.target.value,
-                      }))
-                    }
-                    maxLength={255}
-                    required
-                  />
+                  <Field className="flex-1">
+                    <FieldLabel htmlFor={`court-name-${court.id}`}>
+                      Name
+                    </FieldLabel>
+                    <Input
+                      id={`court-name-${court.id}`}
+                      value={courtNames[court.id] ?? court.name}
+                      onChange={(event) =>
+                        setCourtNames((current) => ({
+                          ...current,
+                          [court.id]: event.target.value,
+                        }))
+                      }
+                      maxLength={255}
+                      required
+                      aria-invalid={
+                        renameCourt.error &&
+                        renameCourt.variables?.id === court.id &&
+                        fieldErrorMessage(renameCourt.error, "name")
+                          ? true
+                          : undefined
+                      }
+                      aria-describedby={
+                        renameCourt.error &&
+                        renameCourt.variables?.id === court.id
+                          ? `court-name-${court.id}-error`
+                          : undefined
+                      }
+                    />
+                    <FieldError id={`court-name-${court.id}-error`}>
+                      {renameCourt.error &&
+                      renameCourt.variables?.id === court.id
+                        ? fieldErrorMessage(renameCourt.error, "name")
+                        : undefined}
+                    </FieldError>
+                  </Field>
                   <div className="flex gap-2">
                     <Button
                       type="button"

@@ -5,6 +5,7 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RoleBadge } from "~/components/temba/role-badge";
 import { ErrorState } from "~/components/common/error-state";
+import { FieldLabel } from "~/components/ui/field";
 import { Skeleton } from "~/components/ui/skeleton";
 
 type Member = {
@@ -102,9 +103,7 @@ export function CommunityMembersTab({
               trailing={
                 canManageRoles ? (
                   <div className="min-w-0">
-                    <label className="sr-only" htmlFor={selectId}>
-                      Role for {name}
-                    </label>
+                    <FieldLabel htmlFor={selectId}>Role</FieldLabel>
                     <select
                       id={selectId}
                       aria-label={`Role for ${name}`}

@@ -17,9 +17,11 @@ import { Button } from "~/components/ui/button";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import {
   Select,
@@ -30,6 +32,11 @@ import {
 } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
+import {
+  fieldErrorMessage,
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 
 function formatWhen(value: Date | string | null | undefined) {
   if (!value) {
@@ -126,7 +133,7 @@ export default function GameHomePage({
       await utils.users.home.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -138,7 +145,7 @@ export default function GameHomePage({
       await utils.users.home.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -151,7 +158,7 @@ export default function GameHomePage({
       await utils.users.home.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -162,7 +169,7 @@ export default function GameHomePage({
       await utils.users.home.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -172,7 +179,7 @@ export default function GameHomePage({
       await utils.games.byId.invalidate({ id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -188,7 +195,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -198,7 +205,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -208,7 +215,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -218,7 +225,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -230,7 +237,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -240,7 +247,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -250,7 +257,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -266,7 +273,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -276,7 +283,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -286,7 +293,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -296,7 +303,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -306,7 +313,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -316,7 +323,7 @@ export default function GameHomePage({
       await refreshGame();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -327,7 +334,7 @@ export default function GameHomePage({
       await utils.games.listLookupInvites.invalidate({ gameId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -337,7 +344,7 @@ export default function GameHomePage({
       await utils.games.listLookupInvites.invalidate({ gameId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -348,7 +355,7 @@ export default function GameHomePage({
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -517,6 +524,9 @@ export default function GameHomePage({
                   className="space-y-3"
                   onSubmit={(event) => {
                     event.preventDefault();
+                    if (updateWindow.isPending) {
+                      return;
+                    }
                     updateWindow.mutate({
                       gameId: id,
                       windowStart: parseOptionalDate(windowStart),
@@ -524,6 +534,9 @@ export default function GameHomePage({
                     });
                   }}
                 >
+                  <FormErrorSummary
+                    message={globalFormErrorMessage(updateWindow.error)}
+                  />
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field>
                       <FieldLabel htmlFor="edit-window-start">
@@ -652,87 +665,106 @@ export default function GameHomePage({
                       match.status !== "cancelled" &&
                       data.format === "friendly_tournament" ? (
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <Select
-                            value={match.courtId ?? "none"}
-                            onValueChange={(value) =>
-                              updateMatch.mutate({
-                                gameId: id,
-                                matchId: match.id,
-                                startTime: match.startTime,
-                                endTime: match.endTime,
-                                durationInMinutes: match.durationInMinutes,
-                                courtId: optionalSelectId(value),
-                                slot1GameTeamId: match.slot1GameTeamId,
-                                slot2GameTeamId: match.slot2GameTeamId,
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Court" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">No Court</SelectItem>
-                              {(courts.data ?? []).map((court) => (
-                                <SelectItem key={court.id} value={court.id}>
-                                  {court.venueName}: {court.name}
+                          <Field>
+                            <FieldLabel htmlFor={`match-${match.id}-court`}>
+                              Court
+                            </FieldLabel>
+                            <Select
+                              value={match.courtId ?? "none"}
+                              onValueChange={(value) =>
+                                updateMatch.mutate({
+                                  gameId: id,
+                                  matchId: match.id,
+                                  startTime: match.startTime,
+                                  endTime: match.endTime,
+                                  durationInMinutes: match.durationInMinutes,
+                                  courtId: optionalSelectId(value),
+                                  slot1GameTeamId: match.slot1GameTeamId,
+                                  slot2GameTeamId: match.slot2GameTeamId,
+                                })
+                              }
+                            >
+                              <SelectTrigger id={`match-${match.id}-court`}>
+                                <SelectValue placeholder="Court" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Court</SelectItem>
+                                {(courts.data ?? []).map((court) => (
+                                  <SelectItem key={court.id} value={court.id}>
+                                    {court.venueName}: {court.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor={`match-${match.id}-slot1`}>
+                              Slot 1
+                            </FieldLabel>
+                            <Select
+                              value={match.slot1GameTeamId ?? "none"}
+                              onValueChange={(value) =>
+                                updateMatch.mutate({
+                                  gameId: id,
+                                  matchId: match.id,
+                                  startTime: match.startTime,
+                                  endTime: match.endTime,
+                                  durationInMinutes: match.durationInMinutes,
+                                  courtId: match.courtId,
+                                  slot1GameTeamId: optionalSelectId(value),
+                                  slot2GameTeamId: match.slot2GameTeamId,
+                                })
+                              }
+                            >
+                              <SelectTrigger id={`match-${match.id}-slot1`}>
+                                <SelectValue placeholder="Slot 1" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  Slot 1 empty
                                 </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            value={match.slot1GameTeamId ?? "none"}
-                            onValueChange={(value) =>
-                              updateMatch.mutate({
-                                gameId: id,
-                                matchId: match.id,
-                                startTime: match.startTime,
-                                endTime: match.endTime,
-                                durationInMinutes: match.durationInMinutes,
-                                courtId: match.courtId,
-                                slot1GameTeamId: optionalSelectId(value),
-                                slot2GameTeamId: match.slot2GameTeamId,
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Slot 1" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Slot 1 empty</SelectItem>
-                              {data.gameTeams.map((side) => (
-                                <SelectItem key={side.id} value={side.id}>
-                                  {gameTeamLabel(side)}
+                                {data.gameTeams.map((side) => (
+                                  <SelectItem key={side.id} value={side.id}>
+                                    {gameTeamLabel(side)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor={`match-${match.id}-slot2`}>
+                              Slot 2
+                            </FieldLabel>
+                            <Select
+                              value={match.slot2GameTeamId ?? "none"}
+                              onValueChange={(value) =>
+                                updateMatch.mutate({
+                                  gameId: id,
+                                  matchId: match.id,
+                                  startTime: match.startTime,
+                                  endTime: match.endTime,
+                                  durationInMinutes: match.durationInMinutes,
+                                  courtId: match.courtId,
+                                  slot1GameTeamId: match.slot1GameTeamId,
+                                  slot2GameTeamId: optionalSelectId(value),
+                                })
+                              }
+                            >
+                              <SelectTrigger id={`match-${match.id}-slot2`}>
+                                <SelectValue placeholder="Slot 2" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  Slot 2 empty
                                 </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            value={match.slot2GameTeamId ?? "none"}
-                            onValueChange={(value) =>
-                              updateMatch.mutate({
-                                gameId: id,
-                                matchId: match.id,
-                                startTime: match.startTime,
-                                endTime: match.endTime,
-                                durationInMinutes: match.durationInMinutes,
-                                courtId: match.courtId,
-                                slot1GameTeamId: match.slot1GameTeamId,
-                                slot2GameTeamId: optionalSelectId(value),
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Slot 2" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Slot 2 empty</SelectItem>
-                              {data.gameTeams.map((side) => (
-                                <SelectItem key={side.id} value={side.id}>
-                                  {gameTeamLabel(side)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                                {data.gameTeams.map((side) => (
+                                  <SelectItem key={side.id} value={side.id}>
+                                    {gameTeamLabel(side)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
                         </div>
                       ) : null}
                       {data.isOrganizer &&
@@ -788,43 +820,57 @@ export default function GameHomePage({
                                     <p className="text-muted-foreground w-12 text-sm">
                                       Set {index + 1}
                                     </p>
-                                    <Input
-                                      type="number"
-                                      min={0}
-                                      className="w-20"
-                                      value={scores.slot1}
-                                      disabled={!match.canScoreSets}
-                                      aria-label={`Set ${index + 1} slot 1 games`}
-                                      onChange={(event) =>
-                                        setSetScores((current) => ({
-                                          ...current,
-                                          [set.id]: {
-                                            slot1: event.target.value,
-                                            slot2: scores.slot2,
-                                          },
-                                        }))
-                                      }
-                                    />
+                                    <Field>
+                                      <FieldLabel
+                                        htmlFor={`set-${set.id}-slot1`}
+                                      >
+                                        Slot 1 games
+                                      </FieldLabel>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        id={`set-${set.id}-slot1`}
+                                        className="w-20"
+                                        value={scores.slot1}
+                                        disabled={!match.canScoreSets}
+                                        onChange={(event) =>
+                                          setSetScores((current) => ({
+                                            ...current,
+                                            [set.id]: {
+                                              slot1: event.target.value,
+                                              slot2: scores.slot2,
+                                            },
+                                          }))
+                                        }
+                                      />
+                                    </Field>
                                     <span className="text-muted-foreground text-sm">
                                       –
                                     </span>
-                                    <Input
-                                      type="number"
-                                      min={0}
-                                      className="w-20"
-                                      value={scores.slot2}
-                                      disabled={!match.canScoreSets}
-                                      aria-label={`Set ${index + 1} slot 2 games`}
-                                      onChange={(event) =>
-                                        setSetScores((current) => ({
-                                          ...current,
-                                          [set.id]: {
-                                            slot1: scores.slot1,
-                                            slot2: event.target.value,
-                                          },
-                                        }))
-                                      }
-                                    />
+                                    <Field>
+                                      <FieldLabel
+                                        htmlFor={`set-${set.id}-slot2`}
+                                      >
+                                        Slot 2 games
+                                      </FieldLabel>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        id={`set-${set.id}-slot2`}
+                                        className="w-20"
+                                        value={scores.slot2}
+                                        disabled={!match.canScoreSets}
+                                        onChange={(event) =>
+                                          setSetScores((current) => ({
+                                            ...current,
+                                            [set.id]: {
+                                              slot1: scores.slot1,
+                                              slot2: event.target.value,
+                                            },
+                                          }))
+                                        }
+                                      />
+                                    </Field>
                                     {set.wins ? (
                                       <p className="text-muted-foreground text-sm">
                                         {set.wins.slot1SetWins === 0 &&
@@ -939,6 +985,9 @@ export default function GameHomePage({
                   className="border-border bg-card space-y-4 rounded-xl border p-6"
                   onSubmit={(event) => {
                     event.preventDefault();
+                    if (addMatch.isPending) {
+                      return;
+                    }
                     addMatch.mutate({
                       gameId: id,
                       startTime: parseOptionalDate(matchStart),
@@ -954,6 +1003,9 @@ export default function GameHomePage({
                   }}
                 >
                   <h4 className="text-foreground font-medium">Add Match</h4>
+                  <FormErrorSummary
+                    message={globalFormErrorMessage(addMatch.error)}
+                  />
                   <p className="text-muted-foreground text-sm">
                     Allowed while open, full, closed, or Soft-archived. Sides
                     and Court are optional.
@@ -992,12 +1044,12 @@ export default function GameHomePage({
                       />
                     </Field>
                     <Field>
-                      <FieldLabel>Court</FieldLabel>
+                      <FieldLabel htmlFor="match-court">Court</FieldLabel>
                       <Select
                         value={matchCourtId}
                         onValueChange={setMatchCourtId}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="match-court">
                           <SelectValue placeholder="Court" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1011,9 +1063,9 @@ export default function GameHomePage({
                       </Select>
                     </Field>
                     <Field>
-                      <FieldLabel>Slot 1</FieldLabel>
+                      <FieldLabel htmlFor="match-slot1">Slot 1</FieldLabel>
                       <Select value={matchSlot1} onValueChange={setMatchSlot1}>
-                        <SelectTrigger>
+                        <SelectTrigger id="match-slot1">
                           <SelectValue placeholder="Slot 1" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1027,9 +1079,9 @@ export default function GameHomePage({
                       </Select>
                     </Field>
                     <Field>
-                      <FieldLabel>Slot 2</FieldLabel>
+                      <FieldLabel htmlFor="match-slot2">Slot 2</FieldLabel>
                       <Select value={matchSlot2} onValueChange={setMatchSlot2}>
-                        <SelectTrigger>
+                        <SelectTrigger id="match-slot2">
                           <SelectValue placeholder="Slot 2" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1233,6 +1285,9 @@ export default function GameHomePage({
                 className="border-border bg-card space-y-4 rounded-xl border p-6"
                 onSubmit={(event) => {
                   event.preventDefault();
+                  if (registerWithPartner.isPending) {
+                    return;
+                  }
                   registerWithPartner.mutate({
                     gameId: id,
                     partnerQuery,
@@ -1244,6 +1299,9 @@ export default function GameHomePage({
                     ? "Join waitlist with a partner"
                     : "Register with a partner"}
                 </h3>
+                <FormErrorSummary
+                  message={globalFormErrorMessage(registerWithPartner.error)}
+                />
                 <FieldGroup>
                   <Field>
                     <FieldLabel htmlFor="partner-query">Partner</FieldLabel>
@@ -1251,12 +1309,33 @@ export default function GameHomePage({
                       id="partner-query"
                       value={partnerQuery}
                       onChange={(event) => setPartnerQuery(event.target.value)}
-                      placeholder="Username, email, or phone"
                       required
+                      aria-invalid={
+                        fieldErrorMessage(
+                          registerWithPartner.error,
+                          "partnerQuery",
+                        )
+                          ? true
+                          : undefined
+                      }
+                      aria-describedby={
+                        fieldErrorMessage(
+                          registerWithPartner.error,
+                          "partnerQuery",
+                        )
+                          ? "partner-query-error"
+                          : undefined
+                      }
                     />
                     <FieldDescription>
                       Lookup an existing User. You both must be allowed to join.
                     </FieldDescription>
+                    <FieldError id="partner-query-error">
+                      {fieldErrorMessage(
+                        registerWithPartner.error,
+                        "partnerQuery",
+                      )}
+                    </FieldError>
                   </Field>
                 </FieldGroup>
                 <Button type="submit" disabled={registerWithPartner.isPending}>
@@ -1334,21 +1413,40 @@ export default function GameHomePage({
                     className="flex flex-wrap items-end gap-2"
                     onSubmit={(event) => {
                       event.preventDefault();
+                      if (sendLookupInvite.isPending) {
+                        return;
+                      }
                       sendLookupInvite.mutate({
                         gameId: id,
                         query: lookupQuery,
                       });
                     }}
                   >
+                    <FormErrorSummary
+                      className="w-full"
+                      message={globalFormErrorMessage(sendLookupInvite.error)}
+                    />
                     <Field className="min-w-56 flex-1">
                       <FieldLabel htmlFor="game-lookup-query">User</FieldLabel>
                       <Input
                         id="game-lookup-query"
                         value={lookupQuery}
                         onChange={(event) => setLookupQuery(event.target.value)}
-                        placeholder="Username, email, or phone"
                         required
+                        aria-invalid={
+                          fieldErrorMessage(sendLookupInvite.error, "query")
+                            ? true
+                            : undefined
+                        }
+                        aria-describedby={
+                          fieldErrorMessage(sendLookupInvite.error, "query")
+                            ? "game-lookup-query-error"
+                            : undefined
+                        }
                       />
+                      <FieldError id="game-lookup-query-error">
+                        {fieldErrorMessage(sendLookupInvite.error, "query")}
+                      </FieldError>
                     </Field>
                     <Button type="submit" disabled={sendLookupInvite.isPending}>
                       {sendLookupInvite.isPending

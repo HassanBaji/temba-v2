@@ -1,9 +1,11 @@
+"use client";
+
 import { Inbox } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { Button } from "~/components/ui/button";
+import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Section } from "~/components/layout/section";
 
@@ -29,10 +31,10 @@ export function CommunityRequestsTab({
   teamLoading,
   teamError,
   onRetryTeam,
-  approveJoinPending,
-  rejectJoinPending,
-  approveTeamPending,
-  rejectTeamPending,
+  approveJoinPendingId,
+  rejectJoinPendingId,
+  approveTeamPendingId,
+  rejectTeamPendingId,
   onApproveJoin,
   onRejectJoin,
   onApproveTeam,
@@ -48,16 +50,15 @@ export function CommunityRequestsTab({
   teamLoading: boolean;
   teamError?: string;
   onRetryTeam: () => void;
-  approveJoinPending: boolean;
-  rejectJoinPending: boolean;
-  approveTeamPending: boolean;
-  rejectTeamPending: boolean;
+  approveJoinPendingId?: string;
+  rejectJoinPendingId?: string;
+  approveTeamPendingId?: string;
+  rejectTeamPendingId?: string;
   onApproveJoin: (requestId: string) => void;
   onRejectJoin: (requestId: string) => void;
   onApproveTeam: (requestId: string) => void;
   onRejectTeam: (requestId: string) => void;
 }) {
-  const joinBusy = approveJoinPending || rejectJoinPending;
   const hasJoin = canManageJoinRequests;
   const hasTeam = canManageTeamLinks;
   const joinEmpty = hasJoin && joinRequests?.length === 0;
@@ -94,40 +95,20 @@ export function CommunityRequestsTab({
               {joinRequests.map((request) => {
                 const name = request.user.name ?? "User";
                 return (
-                  <li
+                  <RequestRow
                     key={request.id}
-                    className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <UserAvatar name={name} size="lg" />
-                      <div className="min-w-0">
-                        <p className="text-lead truncate font-semibold">
-                          {name}
-                        </p>
-                        <p className="text-meta text-muted-foreground truncate">
-                          Community join request
-                          {request.user.email ? ` · ${request.user.email}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        className="min-h-11"
-                        onClick={() => onApproveJoin(request.id)}
-                        disabled={joinBusy}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        className="min-h-11"
-                        variant="outline"
-                        onClick={() => onRejectJoin(request.id)}
-                        disabled={joinBusy}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </li>
+                    leading={<UserAvatar name={name} size="lg" />}
+                    title={name}
+                    meta={
+                      request.user.email
+                        ? `Community join request · ${request.user.email}`
+                        : "Community join request"
+                    }
+                    approvePending={approveJoinPendingId === request.id}
+                    rejectPending={rejectJoinPendingId === request.id}
+                    onApprove={() => onApproveJoin(request.id)}
+                    onReject={() => onRejectJoin(request.id)}
+                  />
                 );
               })}
             </ul>
@@ -153,36 +134,15 @@ export function CommunityRequestsTab({
               {teamLinkRequests.map((request) => {
                 const requester = request.requestedBy.name ?? "User";
                 return (
-                  <li
+                  <RequestRow
                     key={request.id}
-                    className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-lead truncate font-semibold">
-                        {request.team.displayName}
-                      </p>
-                      <p className="text-meta text-muted-foreground truncate">
-                        Team link request from {requester}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        className="min-h-11"
-                        onClick={() => onApproveTeam(request.id)}
-                        disabled={approveTeamPending}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        className="min-h-11"
-                        variant="outline"
-                        onClick={() => onRejectTeam(request.id)}
-                        disabled={rejectTeamPending}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </li>
+                    title={request.team.displayName}
+                    meta={`Team link request from ${requester}`}
+                    approvePending={approveTeamPendingId === request.id}
+                    rejectPending={rejectTeamPendingId === request.id}
+                    onApprove={() => onApproveTeam(request.id)}
+                    onReject={() => onRejectTeam(request.id)}
+                  />
                 );
               })}
             </ul>

@@ -7,18 +7,30 @@ import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import {
+  fieldErrorMessage,
+  focusFormFailure,
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
+
+const FIELD_IDS = { name: "team-name" };
 
 export default function NewTeamPage() {
   const router = useRouter();
   const utils = api.useUtils();
+  const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
 
   const createTeam = api.teams.create.useMutation({
@@ -28,12 +40,18 @@ export default function NewTeamPage() {
       router.push(`/dashboard/teams/${team.id}`);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
+      focusFormFailure(error, FIELD_IDS, summaryRef.current);
     },
   });
 
+  const nameError = fieldErrorMessage(createTeam.error, "name");
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createTeam.isPending) {
+      return;
+    }
     createTeam.mutate({
       name: name.trim().length > 0 ? name.trim() : undefined,
       sport: "padel",
@@ -45,11 +63,12 @@ export default function NewTeamPage() {
       title="Create Team"
       description="Start an unattached padel partnership. You become the first member and can invite a partner later."
     >
-      <div className="mx-auto w-full max-w-lg space-y-6">
-        <form
-          onSubmit={onSubmit}
-          className="border-border bg-card space-y-6 rounded-xl border p-6"
-        >
+      <Card variant="outlined" className="w-full">
+        <form onSubmit={onSubmit} className="space-y-6">
+          <FormErrorSummary
+            ref={summaryRef}
+            message={globalFormErrorMessage(createTeam.error)}
+          />
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="team-name">Name (optional)</FieldLabel>
@@ -57,12 +76,14 @@ export default function NewTeamPage() {
                 id="team-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Team name"
                 maxLength={255}
+                aria-invalid={nameError ? true : undefined}
+                aria-describedby={nameError ? "team-name-error" : undefined}
               />
               <FieldDescription>
                 If you leave this blank, the Team home uses member names.
               </FieldDescription>
+              <FieldError id="team-name-error">{nameError}</FieldError>
             </Field>
           </FieldGroup>
 
@@ -75,7 +96,7 @@ export default function NewTeamPage() {
             </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </DashboardShell>
   );
 }

@@ -30,6 +30,7 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isNotFoundError } from "~/lib/is-not-found-error";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({
@@ -103,7 +104,7 @@ export default function CommunityHomePage({
       await utils.communities.listLookupInvites.invalidate({ communityId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
   const revokeLookupInvite = api.communities.revokeLookupInvite.useMutation({
@@ -190,7 +191,7 @@ export default function CommunityHomePage({
       setCreateGroupOpen(false);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -203,7 +204,7 @@ export default function CommunityHomePage({
       setCreateGroupOpen(false);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -542,10 +543,26 @@ export default function CommunityHomePage({
                     onRetryTeam={() => {
                       void teamLinkRequests.refetch();
                     }}
-                    approveJoinPending={approveJoinRequest.isPending}
-                    rejectJoinPending={rejectJoinRequest.isPending}
-                    approveTeamPending={approveTeamLink.isPending}
-                    rejectTeamPending={rejectTeamLink.isPending}
+                    approveJoinPendingId={
+                      approveJoinRequest.isPending
+                        ? approveJoinRequest.variables?.requestId
+                        : undefined
+                    }
+                    rejectJoinPendingId={
+                      rejectJoinRequest.isPending
+                        ? rejectJoinRequest.variables?.requestId
+                        : undefined
+                    }
+                    approveTeamPendingId={
+                      approveTeamLink.isPending
+                        ? approveTeamLink.variables?.requestId
+                        : undefined
+                    }
+                    rejectTeamPendingId={
+                      rejectTeamLink.isPending
+                        ? rejectTeamLink.variables?.requestId
+                        : undefined
+                    }
                     onApproveJoin={(requestId) =>
                       approveJoinRequest.mutate({ requestId })
                     }
@@ -620,6 +637,7 @@ export default function CommunityHomePage({
         sendPending={sendLookupInvite.isPending}
         revokePending={revokeLookupInvite.isPending}
         copyPending={createInviteLink.isPending}
+        sendError={sendLookupInvite.error}
         onSendLookup={(query) =>
           sendLookupInvite.mutate({ communityId: id, query })
         }
@@ -634,6 +652,8 @@ export default function CommunityHomePage({
           pending={createClubPending}
           publicPending={createClubPublic.isPending}
           privatePending={createClubPrivate.isPending}
+          publicError={createClubPublic.error}
+          privateError={createClubPrivate.error}
           onCreatePublic={(name) =>
             createClubPublic.mutate({
               communityId: id,

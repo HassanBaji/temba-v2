@@ -24,6 +24,7 @@ import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api } from "~/trpc/react";
 
@@ -127,7 +128,7 @@ export default function GroupHomePage({
       await utils.groups.listLookupInvites.invalidate({ groupId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -472,6 +473,7 @@ export default function GroupHomePage({
         sendPending={sendLookupInvite.isPending}
         revokePending={revokeLookupInvite.isPending}
         copyPending={createInviteLink.isPending}
+        sendError={sendLookupInvite.error}
         onSendLookup={(query) =>
           sendLookupInvite.mutate({ groupId: id, query })
         }

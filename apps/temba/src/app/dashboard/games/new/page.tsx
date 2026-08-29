@@ -7,13 +7,16 @@ import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import {
   Select,
@@ -23,6 +26,12 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { api } from "~/trpc/react";
+import {
+  fieldErrorMessage,
+  focusFormFailure,
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 
 type RegistrationMode = "individual" | "team_only";
 type GameFormat = "friendly_game" | "americano" | "friendly_tournament";
@@ -43,6 +52,7 @@ function NewGameForm() {
   const searchParams = useSearchParams();
   const groupId = searchParams.get("groupId") ?? undefined;
 
+  const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
   const [format, setFormat] = React.useState<GameFormat>("friendly_game");
   const [isPublic, setIsPublic] = React.useState(false);
@@ -65,12 +75,27 @@ function NewGameForm() {
       router.push(`/dashboard/games/${game.id}`);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
+      focusFormFailure(
+        error,
+        {
+          name: "game-name",
+          format: "game-format",
+          playersAllowed: "game-players-allowed",
+          teamsAllowed: "game-teams-allowed",
+          windowStart: "game-window-start",
+          windowEnd: "game-window-end",
+        },
+        summaryRef.current,
+      );
     },
   });
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createGame.isPending) {
+      return;
+    }
     createGame.mutate({
       name: name.trim().length > 0 ? name.trim() : undefined,
       groupId,
@@ -101,11 +126,12 @@ function NewGameForm() {
           : "Padel only. Friendly game creates one Match with caps 4 / 2. Americano is a player pool with no Matches. Friendly tournament starts with zero Matches; add them on Game home. This Game has no Group. You are the organizer."
       }
     >
-      <div className="mx-auto w-full max-w-lg space-y-6">
-        <form
-          onSubmit={onSubmit}
-          className="border-border bg-card space-y-6 rounded-xl border p-6"
-        >
+      <Card variant="outlined" className="w-full">
+        <form onSubmit={onSubmit} className="space-y-6">
+          <FormErrorSummary
+            ref={summaryRef}
+            message={globalFormErrorMessage(createGame.error)}
+          />
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="game-name">Name (optional)</FieldLabel>
@@ -113,9 +139,18 @@ function NewGameForm() {
                 id="game-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Friday night"
-                maxLength={255}
+                aria-invalid={
+                  fieldErrorMessage(createGame.error, "name") ? true : undefined
+                }
+                aria-describedby={
+                  fieldErrorMessage(createGame.error, "name")
+                    ? "game-name-error"
+                    : undefined
+                }
               />
+              <FieldError id="game-name-error">
+                {fieldErrorMessage(createGame.error, "name")}
+              </FieldError>
             </Field>
 
             <Field>
@@ -163,6 +198,9 @@ function NewGameForm() {
                 <FieldDescription>
                   Multiple of 4, minimum 4. Team-only is not offered.
                 </FieldDescription>
+                <FieldError id="game-players-allowed-error">
+                  {fieldErrorMessage(createGame.error, "playersAllowed")}
+                </FieldError>
               </Field>
             ) : (
               <>
@@ -210,6 +248,9 @@ function NewGameForm() {
                     <FieldDescription>
                       Multiple of 4, minimum 4.
                     </FieldDescription>
+                    <FieldError id="game-players-allowed-error">
+                      {fieldErrorMessage(createGame.error, "playersAllowed")}
+                    </FieldError>
                   </Field>
                 ) : null}
                 {format === "friendly_tournament" &&
@@ -228,6 +269,9 @@ function NewGameForm() {
                     <FieldDescription>
                       Minimum 2 complete Teams.
                     </FieldDescription>
+                    <FieldError id="game-teams-allowed-error">
+                      {fieldErrorMessage(createGame.error, "teamsAllowed")}
+                    </FieldError>
                   </Field>
                 ) : null}
               </>
@@ -289,7 +333,7 @@ function NewGameForm() {
             </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </DashboardShell>
   );
 }
