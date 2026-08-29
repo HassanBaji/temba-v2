@@ -24,10 +24,6 @@ export function BottomNav() {
       }}
     >
       {APP_NAV_SLOTS.map((item) => {
-        if (item.slot === "games" && !SHOW_GAMES_NAV_ITEM) {
-          return <div key={item.slot} aria-hidden="true" />;
-        }
-
         const active = isNavItemActive(pathname, item);
         const Icon = item.icon;
 

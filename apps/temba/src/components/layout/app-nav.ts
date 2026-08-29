@@ -57,9 +57,7 @@ export const APP_NAV_SLOTS: AppNavItem[] = [
 ];
 
 export function visibleAppNavItems() {
-  return APP_NAV_SLOTS.filter(
-    (item) => item.slot !== "games" || SHOW_GAMES_NAV_ITEM,
-  );
+  return APP_NAV_SLOTS;
 }
 
 export function isNavItemActive(pathname: string, item: AppNavItem) {
