@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { ratings } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { userHasRatedMatch } from "~/server/ratings/has-rated-match";
 import {
   initialRatingFromChoice,
   youRatingViewFromState,
@@ -28,16 +29,16 @@ export async function selfDeclareRating(
   sport: "padel" | "football",
   choice: SelfDeclareChoice,
 ): Promise<YouRatingView> {
-  const existing = await database.query.ratings.findFirst({
-    where: and(eq(ratings.userId, userId), eq(ratings.sport, sport)),
-  });
-
-  if (existing?.lastRatedAt) {
+  if (await userHasRatedMatch(database, userId, sport)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You cannot declare a Level after a Rated Match",
     });
   }
+
+  const existing = await database.query.ratings.findFirst({
+    where: and(eq(ratings.userId, userId), eq(ratings.sport, sport)),
+  });
 
   if (existing) {
     throw new TRPCError({
@@ -74,6 +75,12 @@ export async function selfDeclareRating(
     return youRatingViewFromState(created);
   } catch (error) {
     if (isUniqueViolation(error)) {
+      if (await userHasRatedMatch(database, userId, sport)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You cannot declare a Level after a Rated Match",
+        });
+      }
       throw new TRPCError({
         code: "CONFLICT",
         message: "You have already declared a Level",

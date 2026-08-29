@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { groupSports } from "./group-enums";
+import { matches } from "./matches";
 import { user } from "./user";
 
 export const ratingLevelBands = pgEnum("rating_level_band", [
@@ -66,5 +67,45 @@ export const ratingRelations = relations(ratings, ({ one }) => ({
   user: one(user, {
     fields: [ratings.userId],
     references: [user.id],
+  }),
+}));
+
+export const ratingEvents = pgTable(
+  "rating_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .references(() => user.id, { onDelete: "cascade" })
+      .notNull(),
+    sport: groupSports().notNull(),
+    matchId: uuid("match_id")
+      .references(() => matches.id, { onDelete: "cascade" })
+      .notNull(),
+    outcomeScore: doublePrecision("outcome_score").notNull(),
+    weight: doublePrecision("weight").notNull(),
+    muBefore: doublePrecision("mu_before").notNull(),
+    phiBefore: doublePrecision("phi_before").notNull(),
+    sigmaBefore: doublePrecision("sigma_before").notNull(),
+    muAfter: doublePrecision("mu_after").notNull(),
+    phiAfter: doublePrecision("phi_after").notNull(),
+    sigmaAfter: doublePrecision("sigma_after").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    uniqueUserMatch: unique("rating_events_user_id_match_id_unique").on(
+      table.userId,
+      table.matchId,
+    ),
+  }),
+);
+
+export const ratingEventRelations = relations(ratingEvents, ({ one }) => ({
+  user: one(user, {
+    fields: [ratingEvents.userId],
+    references: [user.id],
+  }),
+  match: one(matches, {
+    fields: [ratingEvents.matchId],
+    references: [matches.id],
   }),
 }));

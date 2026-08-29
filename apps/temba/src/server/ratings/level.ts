@@ -120,6 +120,73 @@ export function bandFromLevel(level: number): LevelBand {
   return "D3";
 }
 
+/** Equal-width 0.7 bands as hundredths of Level, for hysteresis comparisons. */
+const BAND_LOWER_HUNDREDTHS: Record<LevelBand, number> = {
+  D3: 0,
+  D2: 70,
+  D1: 140,
+  C3: 210,
+  C2: 280,
+  C1: 350,
+  B3: 420,
+  B2: 490,
+  B1: 560,
+  A: 630,
+};
+
+const BAND_UPPER_HUNDREDTHS: Record<LevelBand, number> = {
+  D3: 70,
+  D2: 140,
+  D1: 210,
+  C3: 280,
+  C2: 350,
+  C1: 420,
+  B3: 490,
+  B2: 560,
+  B1: 630,
+  A: 700,
+};
+
+const HYSTERESIS_HUNDREDTHS = 10;
+
+function levelToHundredths(level: number): number {
+  return Math.round(clampLevel(level) * 100 + 1e-8);
+}
+
+/**
+ * Keep the stored Level band until continuous Level crosses the neighbouring
+ * boundary by +0.10 (up) or −0.10 (down). Then take the new band from the
+ * strict table (may skip intermediate labels on a large jump).
+ */
+export function bandWithHysteresis(
+  level: number,
+  storedBand: LevelBand,
+): LevelBand {
+  const strict = bandFromLevel(level);
+  if (strict === storedBand) {
+    return storedBand;
+  }
+
+  const hundredths = levelToHundredths(level);
+  const storedIndex = LEVEL_BANDS.indexOf(storedBand);
+  const strictIndex = LEVEL_BANDS.indexOf(strict);
+
+  if (strictIndex > storedIndex) {
+    if (
+      hundredths >=
+      BAND_UPPER_HUNDREDTHS[storedBand] + HYSTERESIS_HUNDREDTHS
+    ) {
+      return strict;
+    }
+    return storedBand;
+  }
+
+  if (hundredths <= BAND_LOWER_HUNDREDTHS[storedBand] - HYSTERESIS_HUNDREDTHS) {
+    return strict;
+  }
+  return storedBand;
+}
+
 export function isProvisional(phi: number): boolean {
   return phi > PROVISIONAL_PHI_THRESHOLD;
 }

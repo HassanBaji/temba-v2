@@ -653,7 +653,8 @@ export const gamesRouter = createTRPCRouter({
               !frozen &&
               game.format !== "americano" &&
               (organizer || onSides) &&
-              match.sets.length > 0,
+              match.sets.length > 0 &&
+              outcome.result !== "none",
             outcome,
             sets: match.sets.map((set) => ({
               id: set.id,

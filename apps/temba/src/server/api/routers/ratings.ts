@@ -5,6 +5,7 @@ import { GroupSportEnum, ratings } from "@repo/db";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { userHasRatedMatch } from "~/server/ratings/has-rated-match";
 import {
   SELF_DECLARE_CHOICES,
   youRatingViewFromState,
@@ -31,7 +32,11 @@ export const ratingsRouter = createTRPCRouter({
     if (!row) {
       return {
         rating: null,
-        canSelfDeclare: true,
+        canSelfDeclare: !(await userHasRatedMatch(
+          ctx.db,
+          appUser.id,
+          GroupSportEnum.PADEL,
+        )),
       };
     }
 

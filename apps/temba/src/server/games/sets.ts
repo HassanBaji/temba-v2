@@ -11,6 +11,7 @@ import {
 
 import { type db } from "~/server/db";
 import { type GameRow } from "~/server/games/access";
+import { applyRatedMatch } from "~/server/ratings/apply-rated-match";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -289,18 +290,54 @@ export async function completeMatch(
       });
     }
   }
-  const sets = await database.query.matchSets.findMany({
-    where: eq(matchSets.matchId, match.id),
-    columns: { id: true },
-  });
-  if (sets.length === 0) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Add at least one Set before completing the Match",
+  await database.transaction(async (tx) => {
+    const [locked] = await tx
+      .select()
+      .from(matches)
+      .where(eq(matches.id, match.id))
+      .for("update");
+    if (!locked) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Match not found",
+      });
+    }
+    if (locked.status === MatchStatusEnum.CANCELLED) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Cannot complete a cancelled Match",
+      });
+    }
+    if (locked.status === MatchStatusEnum.COMPLETED) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "This Match is already completed",
+      });
+    }
+
+    const sets = await tx.query.matchSets.findMany({
+      where: eq(matchSets.matchId, locked.id),
+      columns: { slot1GamesWon: true, slot2GamesWon: true },
     });
-  }
-  await database
-    .update(matches)
-    .set({ status: MatchStatusEnum.COMPLETED, updatedAt: new Date() })
-    .where(eq(matches.id, match.id));
+    if (sets.length === 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Add at least one Set before completing the Match",
+      });
+    }
+    const outcome = matchOutcome(sets);
+    if (outcome.result === "none") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Score at least one Set before completing the Match",
+      });
+    }
+
+    await tx
+      .update(matches)
+      .set({ status: MatchStatusEnum.COMPLETED, updatedAt: new Date() })
+      .where(eq(matches.id, locked.id));
+
+    await applyRatedMatch(tx, game, locked, outcome.result);
+  });
 }
