@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>UI audit harness</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #18181b; font: 12px/1.4 ui-sans-serif, system-ui, sans-serif; color: #fafafa; }
+      #wrap { display: flex; align-items: flex-start; gap: 16px; padding: 16px; }
+      .frame { background: #27272a; border-radius: 8px; padding: 8px; }
+      .frame > h2 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #a1a1aa; }
+      iframe { border: 0; display: block; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <div id="wrap"></div>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const paths = (params.get("path") || "/dashboard").split(",");
+      const widths = (params.get("w") || "390").split(",").map(Number);
+      const height = Number(params.get("h") || 900);
+      const wrap = document.getElementById("wrap");
+      for (const path of paths) {
+        for (const w of widths) {
+          const box = document.createElement("div");
+          box.className = "frame";
+          const label = document.createElement("h2");
+          label.textContent = w + "px \u00b7 " + path;
+          const f = document.createElement("iframe");
+          f.src = path;
+          f.width = w;
+          f.height = height;
+          box.append(label, f);
+          wrap.append(box);
+        }
+      }
+    </script>
+  </body>
+</html>
