@@ -1,11 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  gameInviteLinks,
+  gameMemberInvites,
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
@@ -70,7 +72,22 @@ import {
   leaveWaitlistEntry,
 } from "~/server/games/waitlist";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
+import {
+  inviteLinkExpiresAt,
+  isInviteLinkLive,
+} from "~/server/invites/invite-link-expiry";
 import { resolveLookupUser } from "~/server/invites/resolve-lookup-user";
+import {
+  createOpaqueToken,
+  gameInviteLinkUrl,
+  getAppOrigin,
+} from "~/server/invites/tokens";
+import {
+  admitIndividualUser,
+  assertGameInviteDoorsOpen,
+  assertInviteeAllowedOnGame,
+  recordTeamInviteLinkConsent,
+} from "~/server/games/invites";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
@@ -1259,6 +1276,374 @@ export const gamesRouter = createTRPCRouter({
       const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
       await markMatchCompleted(ctx.db, game, match, appUser.id, organizer);
       return { ok: true as const };
+    }),
+
+  sendLookupInvite: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        query: z.string().trim().min(1).max(255),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await assertGameInviteDoorsOpen(ctx.db, game);
+      if (game.registrationMode === "team_only") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Team-only Games do not use Lookup invites",
+        });
+      }
+      const invitee = await resolveLookupUser(ctx.db, input.query);
+      if (invitee.id === appUser.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You cannot Lookup-invite yourself",
+        });
+      }
+      await assertInviteeAllowedOnGame(ctx.db, game, invitee.id);
+      if (await userAlreadyOnGame(ctx.db, game.id, invitee.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "That User is already registered on this Game",
+        });
+      }
+      const existing = await ctx.db.query.gameMemberInvites.findFirst({
+        where: and(
+          eq(gameMemberInvites.gameId, game.id),
+          eq(gameMemberInvites.userId, invitee.id),
+          isNull(gameMemberInvites.acceptedAt),
+          isNull(gameMemberInvites.revokedAt),
+        ),
+      });
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "An unused Lookup invite already exists for this User",
+        });
+      }
+      const [created] = await ctx.db
+        .insert(gameMemberInvites)
+        .values({
+          gameId: game.id,
+          userId: invitee.id,
+          invitedBy: appUser.id,
+        })
+        .returning();
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Lookup invite",
+        });
+      }
+      return {
+        id: created.id,
+        gameId: created.gameId,
+        userId: created.userId,
+        createdAt: created.createdAt,
+      };
+    }),
+
+  listLookupInvites: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      const rows = await ctx.db.query.gameMemberInvites.findMany({
+        where: and(
+          eq(gameMemberInvites.gameId, game.id),
+          isNull(gameMemberInvites.acceptedAt),
+          isNull(gameMemberInvites.revokedAt),
+        ),
+        with: {
+          user: true,
+        },
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        createdAt: row.createdAt,
+        user: {
+          id: row.user.id,
+          name: row.user.name,
+          email: row.user.email,
+        },
+      }));
+    }),
+
+  revokeLookupInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const invite = await ctx.db.query.gameMemberInvites.findFirst({
+        where: eq(gameMemberInvites.id, input.inviteId),
+      });
+      if (!invite) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup invite not found",
+        });
+      }
+      const game = await requireGame(ctx.db, invite.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      if (invite.acceptedAt) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Accepted Lookup invites cannot be revoked",
+        });
+      }
+      if (invite.revokedAt) {
+        return { ok: true as const };
+      }
+      await ctx.db
+        .update(gameMemberInvites)
+        .set({ revokedAt: new Date(), updatedAt: new Date() })
+        .where(eq(gameMemberInvites.id, invite.id));
+      return { ok: true as const };
+    }),
+
+  pendingLookupInvites: protectedProcedure.query(async ({ ctx }) => {
+    const appUser = await resolveAppUser();
+    const rows = await ctx.db.query.gameMemberInvites.findMany({
+      where: and(
+        eq(gameMemberInvites.userId, appUser.id),
+        isNull(gameMemberInvites.acceptedAt),
+        isNull(gameMemberInvites.revokedAt),
+      ),
+      with: {
+        game: {
+          columns: { id: true, name: true },
+        },
+        invitedBy: {
+          columns: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: (table, { desc }) => [desc(table.createdAt)],
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      gameId: row.gameId,
+      gameName: row.game.name ?? "Untitled Game",
+      invitedBy: {
+        id: row.invitedBy.id,
+        name: row.invitedBy.name,
+        email: row.invitedBy.email,
+      },
+      createdAt: row.createdAt,
+    }));
+  }),
+
+  acceptLookupInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const invite = await ctx.db.query.gameMemberInvites.findFirst({
+        where: eq(gameMemberInvites.id, input.inviteId),
+      });
+      if (!invite || invite.acceptedAt || invite.revokedAt) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup invite is not available",
+        });
+      }
+      if (invite.userId !== appUser.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invite is for a different User",
+        });
+      }
+      const game = await requireGame(ctx.db, invite.gameId);
+      await assertGameInviteDoorsOpen(ctx.db, game);
+      await assertInviteeAllowedOnGame(ctx.db, game, appUser.id);
+
+      const result = await ctx.db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(gameMemberInvites)
+          .set({ acceptedAt: new Date(), updatedAt: new Date() })
+          .where(
+            and(
+              eq(gameMemberInvites.id, invite.id),
+              isNull(gameMemberInvites.acceptedAt),
+              isNull(gameMemberInvites.revokedAt),
+            ),
+          )
+          .returning();
+        if (!updated) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Lookup invite is no longer available",
+          });
+        }
+        return admitIndividualUser(tx, game, appUser.id);
+      });
+
+      return {
+        ok: true as const,
+        gameId: game.id,
+        waitlisted: result.waitlisted,
+      };
+    }),
+
+  getInviteLink: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      const newest = await ctx.db.query.gameInviteLinks.findFirst({
+        where: and(
+          eq(gameInviteLinks.gameId, game.id),
+          gt(gameInviteLinks.expiresAt, new Date()),
+        ),
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      });
+      if (!newest) {
+        return null;
+      }
+      return {
+        id: newest.id,
+        inviteUrl: gameInviteLinkUrl(getAppOrigin(ctx.headers), newest.token),
+        createdAt: newest.createdAt,
+        expiresAt: newest.expiresAt,
+      };
+    }),
+
+  createInviteLink: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await assertGameInviteDoorsOpen(ctx.db, game);
+      const createdAt = new Date();
+      const [created] = await ctx.db
+        .insert(gameInviteLinks)
+        .values({
+          gameId: game.id,
+          createdBy: appUser.id,
+          token: createOpaqueToken(),
+          createdAt,
+          expiresAt: inviteLinkExpiresAt(createdAt),
+        })
+        .returning();
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Invite link",
+        });
+      }
+      return {
+        id: created.id,
+        inviteUrl: gameInviteLinkUrl(getAppOrigin(ctx.headers), created.token),
+        createdAt: created.createdAt,
+        expiresAt: created.expiresAt,
+      };
+    }),
+
+  previewInviteLink: publicProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .query(async ({ ctx, input }) => {
+      const link = await ctx.db.query.gameInviteLinks.findFirst({
+        where: eq(gameInviteLinks.token, input.token),
+        with: {
+          game: {
+            columns: {
+              id: true,
+              name: true,
+              cancelledAt: true,
+              registrationClosedAt: true,
+              windowEnd: true,
+              groupId: true,
+            },
+            with: {
+              group: {
+                columns: { communityId: true },
+                with: {
+                  community: { columns: { archivedAt: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!link || !isInviteLinkLive(link.expiresAt)) {
+        return { status: "invalid" as const };
+      }
+      const game = link.game;
+      if (game.cancelledAt) {
+        return { status: "unavailable" as const };
+      }
+      if (game.group?.community?.archivedAt) {
+        return { status: "unavailable" as const };
+      }
+      return {
+        status: "ready" as const,
+        gameName: game.name ?? "Untitled Game",
+      };
+    }),
+
+  acceptInviteLink: protectedProcedure
+    .input(z.object({ token: z.string().min(1).max(64) }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const link = await ctx.db.query.gameInviteLinks.findFirst({
+        where: eq(gameInviteLinks.token, input.token),
+      });
+      if (!link || !isInviteLinkLive(link.expiresAt)) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invite link is invalid or expired",
+        });
+      }
+      const game = await requireGame(ctx.db, link.gameId);
+      await assertGameInviteDoorsOpen(ctx.db, game);
+      await assertInviteeAllowedOnGame(ctx.db, game, appUser.id);
+
+      if (await userAlreadyOnGame(ctx.db, game.id, appUser.id)) {
+        return {
+          gameId: game.id,
+          outcome: "already" as const,
+          waitlisted: false as const,
+        };
+      }
+
+      if (game.registrationMode === "team_only") {
+        const result = await ctx.db.transaction(async (tx) => {
+          return recordTeamInviteLinkConsent(tx, {
+            game,
+            linkId: link.id,
+            userId: appUser.id,
+          });
+        });
+        if (result.outcome === "waiting_for_partner") {
+          return {
+            gameId: game.id,
+            outcome: "waiting_for_partner" as const,
+            waitlisted: false as const,
+          };
+        }
+        return {
+          gameId: game.id,
+          outcome: result.waitlisted
+            ? ("waitlisted" as const)
+            : ("registered" as const),
+          waitlisted: result.waitlisted,
+        };
+      }
+
+      const result = await ctx.db.transaction(async (tx) => {
+        return admitIndividualUser(tx, game, appUser.id);
+      });
+      return {
+        gameId: game.id,
+        outcome: result.waitlisted
+          ? ("waitlisted" as const)
+          : ("registered" as const),
+        waitlisted: result.waitlisted,
+      };
     }),
 
   getSecretMessage: protectedProcedure.query(() => {

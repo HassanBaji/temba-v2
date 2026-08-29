@@ -111,6 +111,7 @@ export default function GameHomePage({
   const [setScores, setSetScores] = React.useState<
     Record<string, { slot1: string; slot2: string }>
   >({});
+  const [lookupQuery, setLookupQuery] = React.useState("");
 
   const registerSelf = api.games.register.useMutation({
     onSuccess: async (result) => {
@@ -313,6 +314,38 @@ export default function GameHomePage({
     },
   });
 
+  const sendLookupInvite = api.games.sendLookupInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Lookup invite sent");
+      setLookupQuery("");
+      await utils.games.listLookupInvites.invalidate({ gameId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const revokeLookupInvite = api.games.revokeLookupInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Lookup invite revoked");
+      await utils.games.listLookupInvites.invalidate({ gameId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const createInviteLink = api.games.createInviteLink.useMutation({
+    onSuccess: async (result) => {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success("Invite link copied");
+      await utils.games.getInviteLink.invalidate({ gameId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const data = game.data;
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
   const courts = api.games.listCourts.useQuery(
@@ -322,6 +355,18 @@ export default function GameHomePage({
         data?.isOrganizer && data.format === "friendly_tournament",
       ),
     },
+  );
+  const lookupInvites = api.games.listLookupInvites.useQuery(
+    { gameId: id },
+    {
+      enabled: Boolean(
+        data?.isOrganizer && data.registrationMode !== "team_only",
+      ),
+    },
+  );
+  const inviteLink = api.games.getInviteLink.useQuery(
+    { gameId: id },
+    { enabled: Boolean(data?.isOrganizer) },
   );
 
   React.useEffect(() => {
@@ -1262,6 +1307,103 @@ export default function GameHomePage({
                   </>
                 )}
               </form>
+            ) : null}
+
+            {data.isOrganizer &&
+            data.registrationMode !== "team_only" &&
+            !data.cancelledAt ? (
+              <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+                <div>
+                  <h3 className="text-foreground text-lg font-medium">
+                    Lookup invite
+                  </h3>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Existing User only. They accept on Invites. Team-only Games
+                    do not offer Lookup.
+                  </p>
+                </div>
+                <form
+                  className="flex flex-wrap items-end gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    sendLookupInvite.mutate({
+                      gameId: id,
+                      query: lookupQuery,
+                    });
+                  }}
+                >
+                  <Field className="min-w-56 flex-1">
+                    <FieldLabel htmlFor="game-lookup-query">User</FieldLabel>
+                    <Input
+                      id="game-lookup-query"
+                      value={lookupQuery}
+                      onChange={(event) => setLookupQuery(event.target.value)}
+                      placeholder="Username, email, or phone"
+                      required
+                    />
+                  </Field>
+                  <Button type="submit" disabled={sendLookupInvite.isPending}>
+                    {sendLookupInvite.isPending
+                      ? "Sending…"
+                      : "Send Lookup invite"}
+                  </Button>
+                </form>
+                {lookupInvites.data && lookupInvites.data.length > 0 ? (
+                  <ul className="divide-border divide-y">
+                    {lookupInvites.data.map((invite) => (
+                      <li
+                        key={invite.id}
+                        className="flex flex-wrap items-center justify-between gap-2 py-2"
+                      >
+                        <p className="text-sm">
+                          {invite.user.name} ({invite.user.email})
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            revokeLookupInvite.mutate({ inviteId: invite.id })
+                          }
+                          disabled={revokeLookupInvite.isPending}
+                        >
+                          Revoke
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ) : null}
+
+            {data.isOrganizer && !data.cancelledAt ? (
+              <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+                <div>
+                  <h3 className="text-foreground text-lg font-medium">
+                    Invite link
+                  </h3>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Each copy mints a new 6-hour token. Older copied URLs stay
+                    live until each expires. There is no rotate or revoke.
+                    Team-only links need both partners to accept.
+                  </p>
+                </div>
+                {inviteLink.data ? (
+                  <p className="text-muted-foreground break-all text-sm">
+                    Newest: {inviteLink.data.inviteUrl}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    No live Invite link. Copy to mint one.
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  onClick={() => createInviteLink.mutate({ gameId: id })}
+                  disabled={createInviteLink.isPending}
+                >
+                  {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
+                </Button>
+              </section>
             ) : null}
           </>
         ) : null}

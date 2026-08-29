@@ -13,6 +13,7 @@ export default function InvitesPage() {
   const communityInvites = api.communities.pendingLookupInvites.useQuery();
   const groupInvites = api.groups.pendingLookupInvites.useQuery();
   const teamInvites = api.teams.pendingInvites.useQuery();
+  const gameInvites = api.games.pendingLookupInvites.useQuery();
 
   const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
     onSuccess: async () => {
@@ -48,12 +49,28 @@ export default function InvitesPage() {
     },
   });
 
+  const acceptGame = api.games.acceptLookupInvite.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined Game waitlist" : "Joined Game");
+      await utils.games.pendingLookupInvites.invalidate();
+      await utils.games.byId.invalidate({ id: result.gameId });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const isLoading =
     communityInvites.isLoading ||
     groupInvites.isLoading ||
-    teamInvites.isLoading;
+    teamInvites.isLoading ||
+    gameInvites.isLoading;
   const error =
-    communityInvites.error ?? groupInvites.error ?? teamInvites.error;
+    communityInvites.error ??
+    groupInvites.error ??
+    teamInvites.error ??
+    gameInvites.error;
   const items = [
     ...(communityInvites.data ?? []).map((invite) => ({
       kind: "community" as const,
@@ -76,12 +93,22 @@ export default function InvitesPage() {
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
     })),
+    ...(gameInvites.data ?? []).map((invite) => ({
+      kind: "game" as const,
+      id: invite.id,
+      title: invite.gameName,
+      invitedBy: invite.invitedBy,
+      createdAt: invite.createdAt,
+    })),
   ].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   const acceptPending =
-    acceptCommunity.isPending || acceptGroup.isPending || acceptTeam.isPending;
+    acceptCommunity.isPending ||
+    acceptGroup.isPending ||
+    acceptTeam.isPending ||
+    acceptGame.isPending;
 
   return (
     <DashboardShell title="Invites">
@@ -141,6 +168,10 @@ export default function InvitesPage() {
                     }
                     if (invite.kind === "group") {
                       acceptGroup.mutate({ inviteId: invite.id });
+                      return;
+                    }
+                    if (invite.kind === "game") {
+                      acceptGame.mutate({ inviteId: invite.id });
                       return;
                     }
                     acceptTeam.mutate({ inviteId: invite.id });
