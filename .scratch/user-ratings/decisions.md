@@ -1,6 +1,6 @@
 # User ratings (Glicko-2) — settled decisions
 
-Status: spec published — `.scratch/user-ratings/spec.md` (ready-for-agent). Tickets via `/to-tickets`.
+Status: spec published — `.scratch/user-ratings/spec.md` (ready-for-agent). Tickets: [TEM-73](https://linear.app/temba-app/issue/TEM-73/self-declare-level-on-you) → [TEM-74](https://linear.app/temba-app/issue/TEM-74/update-ratings-when-a-match-completes) → [TEM-75](https://linear.app/temba-app/issue/TEM-75/idle-rd-inflation-on-you-and-before-updates).
 
 ## Settled (round 1)
 

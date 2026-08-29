@@ -2,6 +2,8 @@
 
 Status: ready-for-agent
 
+Tickets (Linear, `ready-for-agent`): [TEM-73](https://linear.app/temba-app/issue/TEM-73/self-declare-level-on-you) Self-declare Level on You → [TEM-74](https://linear.app/temba-app/issue/TEM-74/update-ratings-when-a-match-completes) Update Ratings when a Match completes → [TEM-75](https://linear.app/temba-app/issue/TEM-75/idle-rd-inflation-on-you-and-before-updates) Idle RD inflation on You and before updates.
+
 ## Problem Statement
 
 Users who play padel on Temba have no durable skill signal. After Friendly games and Friendly tournaments they can record Sets and complete Matches, but nothing moves: there is no Level, no confidence, and no way to place yourself on a ladder others recognise (Playtomic-style 0–7 / D3…A). Without a global, sport-keyed Rating, matchmaking and discovery stay guesswork, and the redesign’s Level chips and Standing skill story stay blocked.
