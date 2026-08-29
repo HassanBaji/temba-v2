@@ -979,10 +979,10 @@ export const gamesRouter = createTRPCRouter({
       }
 
       const userCount = await registeredUserCount(ctx.db, game.id);
-      const atCap =
-        userCount + 2 > (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED);
+      const full =
+        userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED);
 
-      if (atCap) {
+      if (full) {
         await ctx.db.transaction(async (tx) => {
           await enqueueWaitlistUser(tx, game.id, appUser.id);
           await enqueueWaitlistUser(tx, game.id, partner.id);
