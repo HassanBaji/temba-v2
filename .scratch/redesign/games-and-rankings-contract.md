@@ -10,7 +10,7 @@ This branch already contains Games, Matches, Sets, Waitlist, and Game invites (T
 
 **.scratch/redesign/spec.md` Open question 5** — TEM-69 Games-half ownership. **Unresolved.** Recommendation: fold the Game card and Game home visual contract into [TEM-36](https://linear.app/temba-app/issue/TEM-36/friendly-game-create-register-game-home) so Game home is built once rather than built and then restyled. TEM-69 remains the design-contract document TEM-36 references.
 
-**.scratch/redesign/spec.md` Open question 6** — Rankings scope. **Unresolved.** The rankings half currently spans four separable products (per-User rating or level, cross-Group ranking, Standing movement over time, player profile). Recommendation: split them, grill each separately, and schedule nothing until Sets and Match completion (TEM-41) have shipped.
+**.scratch/redesign/spec.md` Open question 6** — Rankings scope. **Resolved for product (1).** Per-User Rating / Level / Level band is specified in `.scratch/user-ratings/spec.md` (ADR-0009). Leaderboards, Standing movement history, and full profile remain deferred follow-ons.
 
 ---
 
@@ -114,11 +114,11 @@ Do not flip the flag in this ticket.
 
 ---
 
-# Part 2 — Rankings contract (not buildable)
+# Part 2 — Rankings contract
 
-**Nothing in this part is scheduled.** No `--level-*` token may be added to `apps/temba/src/styles/globals.css` until rankings schema exists. No level, rating, or ELO exists in the schema today. `game_players.self_performance_rating` was a leftover integer that **TEM-35 dropped** (`DROP COLUMN` in `0020_game_parent_and_matches.sql`); it was neither written nor read as a ranking. Do not revive it as a skill level.
+**Product (1) is specified** in `.scratch/user-ratings/spec.md` (ADR-0009): per-User Glicko-2 Rating, Level 0.0–7.0, Level band D3…A, Provisional, You-page surface. Do not revive `game_players.self_performance_rating` (dropped in TEM-35). Counters in padel-teams / games-matches stay zero; Rating is a separate write on Match complete.
 
-`.scratch/padel-teams/spec.md` and `.scratch/games-matches/spec.md` both deliberately leave User, Group, and Team counters at zero. Rankings depend on Sets and Match completion from TEM-41. Rankings work requires its **own grilled spec** and probably an ADR before scheduling.
+**Still not buildable from this file alone:** leaderboards, Standing movement history, FormBadge, and the Level 1–5 chip ramp below (superseded for product labels by D3…A — see user-ratings spec). No `--level-*` tokens for the old 1–5 ramp.
 
 ## 2.1 Four candidate products (none exists)
 

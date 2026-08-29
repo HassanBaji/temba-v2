@@ -175,3 +175,23 @@ _Avoid_: player (when you mean someone waitlisted), guest
 **User**:
 A person with a Temba account.
 _Avoid_: player (when you mean User), member (when you mean the Community role)
+
+**Rating**:
+A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.
+_Avoid_: ELO, Elo, player rating (when you mean this entity), rank (that is leaderboard position)
+
+**Level**:
+The continuous 0.0–7.0 skill face derived from a Rating’s μ (one decimal in the App).
+_Avoid_: rank, ELO, Level band (that is the discrete label)
+
+**Level band**:
+The discrete skill label D3–D2–D1–C3–C2–C1–B3–B2–B1–A (A highest) derived from Level with hysteresis.
+_Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO
+
+**Provisional**:
+UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling).
+_Avoid_: unranked, unrated (a User may already have a Level)
+
+**Rated Match**:
+A completed, non-cancelled Match that produced rating events for the Users on its two Game teams.
+_Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)

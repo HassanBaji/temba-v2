@@ -1,6 +1,6 @@
 # User ratings (Glicko-2) — settled decisions
 
-Status: grilling complete — awaiting `/to-spec` (no `spec.md` yet). Tickets via `/to-tickets` only after an approved spec.
+Status: spec published — `.scratch/user-ratings/spec.md` (ready-for-agent). Tickets via `/to-tickets`.
 
 ## Settled (round 1)
 
