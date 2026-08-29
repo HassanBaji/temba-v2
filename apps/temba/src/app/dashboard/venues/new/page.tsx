@@ -14,19 +14,8 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import { parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
-
-function parseOptionalCoord(value: string): number | null {
-  const trimmed = value.trim();
-  if (trimmed === "") {
-    return null;
-  }
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed)) {
-    return null;
-  }
-  return parsed;
-}
 
 export default function NewVenuePage() {
   const router = useRouter();

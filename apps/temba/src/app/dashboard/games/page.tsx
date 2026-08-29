@@ -6,18 +6,8 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { formatGameStart } from "~/lib/format-game-start";
 import { api } from "~/trpc/react";
-
-function formatGameStart(startTime: Date | string) {
-  const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export default function GamesHubPage() {
   const pickup = api.games.listPublicPickup.useQuery();
