@@ -17,6 +17,7 @@ import {
   type ClassicGlicko,
   type ClassicGlickoOpponent,
 } from "~/server/ratings/glicko2";
+import { applyIdleInflation } from "~/server/ratings/idle";
 import {
   bandWithHysteresis,
   initialRatingFromChoice,
@@ -255,7 +256,8 @@ async function persistRatedUser(args: {
 /**
  * Rate the four Users on a completed Match. Skips when the Match is not a
  * Rated Match (cancelled Game, missing sides, not four Users). Idempotent per
- * User+Match. Idle RD inflation is a later ticket — φ is not grown here.
+ * User+Match. Idle RD inflation runs per User from lastRatedAt before
+ * composites and the Glicko step.
  */
 export async function applyRatedMatch(
   database: DbClient,
@@ -298,12 +300,20 @@ export async function applyRatedMatch(
   });
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
 
+  const now = new Date();
   const stateByUser = new Map<string, RatingGlickoState>();
   for (const userId of userIds) {
-    stateByUser.set(userId, snapshotState(rowByUser.get(userId)));
+    const row = rowByUser.get(userId);
+    const snapped = snapshotState(row);
+    const inflated = applyIdleInflation(snapped, row?.lastRatedAt, now);
+    stateByUser.set(userId, {
+      mu: inflated.mu,
+      phi: inflated.phi,
+      sigma: inflated.sigma,
+      levelBand: snapped.levelBand,
+    });
   }
 
-  const now = new Date();
   const slot1Composite = compositeOpponent(
     ratingStateForUser(stateByUser, slots.slot1[0]),
     ratingStateForUser(stateByUser, slots.slot1[1]),

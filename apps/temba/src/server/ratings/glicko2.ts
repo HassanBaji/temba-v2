@@ -113,6 +113,20 @@ function newSigma(
 }
 
 /**
+ * One Glicko-2 empty period (Glickman): the player did not compete.
+ * μ and σ stay the same; φ grows as sqrt(φ² + σ²) on the Glicko-2 scale,
+ * then is converted back to classic φ (× 173.7178).
+ */
+export function glicko2EmptyPeriod(player: ClassicGlicko): ClassicGlicko {
+  const p = toGlicko2Scale(player);
+  return fromGlicko2Scale({
+    mu: p.mu,
+    phi: Math.sqrt(p.phi * p.phi + p.sigma * p.sigma),
+    sigma: p.sigma,
+  });
+}
+
+/**
  * One Glicko-2 rating period against a single opponent (the doubles composite).
  * `score` is 1 (win), 0 (loss), or 0.5 (draw).
  */
