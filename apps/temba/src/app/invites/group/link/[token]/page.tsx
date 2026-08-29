@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 
-import { AcceptGroupInviteLink } from "~/components/invites/accept-group-invite-link";
+import { AcceptInviteFlow } from "~/components/invites/accept-invite-flow";
 import { InviteShell } from "~/components/invites/invite-shell";
 import { groupInviteLinkPath } from "~/lib/invite-paths";
 
@@ -15,7 +15,8 @@ export default async function GroupInviteLinkPage({
 
   return (
     <InviteShell>
-      <AcceptGroupInviteLink
+      <AcceptInviteFlow
+        kind="group"
         token={token}
         isSignedIn={Boolean(userId)}
         returnPath={returnPath}

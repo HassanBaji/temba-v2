@@ -1,13 +1,10 @@
 import { randomBytes } from "node:crypto";
 
 import {
-  communityEmailInvitePath,
   communityInviteLinkPath,
-  groupEmailInvitePath,
-  groupInviteLinkPath,
-  teamEmailInvitePath,
-  teamInviteLinkPath,
   gameInviteLinkPath,
+  groupInviteLinkPath,
+  teamInviteLinkPath,
 } from "~/lib/invite-paths";
 
 export function createOpaqueToken() {
@@ -23,24 +20,12 @@ export function getAppOrigin(headers: Headers) {
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
-export function communityEmailInviteUrl(origin: string, token: string) {
-  return `${origin}${communityEmailInvitePath(token)}`;
-}
-
 export function communityInviteLinkUrl(origin: string, token: string) {
   return `${origin}${communityInviteLinkPath(token)}`;
 }
 
-export function groupEmailInviteUrl(origin: string, token: string) {
-  return `${origin}${groupEmailInvitePath(token)}`;
-}
-
 export function groupInviteLinkUrl(origin: string, token: string) {
   return `${origin}${groupInviteLinkPath(token)}`;
-}
-
-export function teamEmailInviteUrl(origin: string, token: string) {
-  return `${origin}${teamEmailInvitePath(token)}`;
 }
 
 export function teamInviteLinkUrl(origin: string, token: string) {
@@ -56,11 +41,8 @@ export function normalizeInviteEmail(email: string) {
 }
 
 export {
-  communityEmailInvitePath,
   communityInviteLinkPath,
-  groupEmailInvitePath,
-  groupInviteLinkPath,
-  teamEmailInvitePath,
-  teamInviteLinkPath,
   gameInviteLinkPath,
+  groupInviteLinkPath,
+  teamInviteLinkPath,
 };

@@ -1,15 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
+import { notFound } from "next/navigation";
+import { use, useRef, useState } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+} from "~/components/common/action-menu";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { ErrorState } from "~/components/common/error-state";
+import { CommunityCreateGroupDialog } from "~/components/communities/community-create-group-dialog";
+import { CommunityGroupsTab } from "~/components/communities/community-groups-tab";
+import { CommunityHomeHeader } from "~/components/communities/community-home-header";
+import { CommunityHomeSkeleton } from "~/components/communities/community-home-skeleton";
+import { CommunityInvitesDialog } from "~/components/communities/community-invites-dialog";
+import { CommunityLinkVenueDialog } from "~/components/communities/community-link-venue-dialog";
+import { CommunityMembersTab } from "~/components/communities/community-members-tab";
+import { CommunityRequestsTab } from "~/components/communities/community-requests-tab";
+import { CommunityTeamsTab } from "~/components/communities/community-teams-tab";
+import { CommunityVenueBlock } from "~/components/communities/community-venue-block";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Badge } from "~/components/ui/badge";
+import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
+import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Skeleton } from "~/components/ui/skeleton";
+import { Badge } from "~/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { isNotFoundError } from "~/lib/is-not-found-error";
+import { stickyAsideClass } from "~/lib/page-layout";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({
@@ -19,6 +41,15 @@ export default function CommunityHomePage({
 }) {
   const { id } = use(params);
   const utils = api.useUtils();
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [linkVenueOpen, setLinkVenueOpen] = useState(false);
+  const [venueQuery, setVenueQuery] = React.useState("");
+
   const community = api.communities.byId.useQuery({ id });
 
   const joinRequests = api.communities.listJoinRequests.useQuery(
@@ -74,7 +105,7 @@ export default function CommunityHomePage({
       await utils.communities.listLookupInvites.invalidate({ communityId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
   const revokeLookupInvite = api.communities.revokeLookupInvite.useMutation({
@@ -129,7 +160,6 @@ export default function CommunityHomePage({
     },
   });
 
-  const [venueQuery, setVenueQuery] = React.useState("");
   const liveVenues = api.communities.searchLiveVenues.useQuery(
     { communityId: id, query: venueQuery },
     { enabled: Boolean(community.data?.canRequestVenueLink) },
@@ -139,6 +169,7 @@ export default function CommunityHomePage({
     onSuccess: async () => {
       toast.success("Venue link requested");
       await utils.communities.byId.invalidate({ id });
+      setLinkVenueOpen(false);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -150,9 +181,6 @@ export default function CommunityHomePage({
       toast.success("Venue unlinked");
       await utils.communities.byId.invalidate({ id });
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
   const createClubPublic = api.groups.createClubPublic.useMutation({
@@ -161,9 +189,10 @@ export default function CommunityHomePage({
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.groups.mine.invalidate();
+      setCreateGroupOpen(false);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -173,9 +202,10 @@ export default function CommunityHomePage({
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.groups.mine.invalidate();
+      setCreateGroupOpen(false);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -186,9 +216,6 @@ export default function CommunityHomePage({
       await utils.communities.mine.invalidate();
       await utils.groups.mine.invalidate();
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
   const softArchive = api.communities.softArchive.useMutation({
@@ -197,9 +224,6 @@ export default function CommunityHomePage({
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message);
     },
   });
 
@@ -235,7 +259,7 @@ export default function CommunityHomePage({
   const isPublic = community.data?.type === "public";
   const isLive = !community.data?.archivedAt;
   const isMember = Boolean(community.data?.membership);
-  const joinStatus = community.data?.joinRequest?.status;
+  const joinStatus = community.data?.joinRequest?.status ?? null;
   const canRequestJoin =
     isPublic && isLive && !isMember && joinStatus !== "pending";
   const createClubPending =
@@ -246,815 +270,423 @@ export default function CommunityHomePage({
     community.data.canLeave === false &&
     !community.data.linkedTeamBlocksLeave;
   const linkedTeamBlocksLeave = Boolean(community.data?.linkedTeamBlocksLeave);
-  const archivePending = softArchive.isPending || unarchive.isPending;
+
+  if (isNotFoundError(community.error)) {
+    notFound();
+  }
+
+  if (community.isLoading) {
+    return (
+      <DashboardShell title="Community" width="wide" hidePageHeader>
+        <CommunityHomeSkeleton />
+      </DashboardShell>
+    );
+  }
+
+  if (community.error) {
+    return (
+      <DashboardShell title="Community" width="wide" hidePageHeader>
+        <ErrorState
+          title="Community could not be loaded"
+          message={community.error.message}
+          onRetry={() => {
+            void community.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  if (!community.data) {
+    return (
+      <DashboardShell title="Community" width="wide" hidePageHeader>
+        <ErrorState
+          title="Community could not be loaded"
+          onRetry={() => {
+            void community.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  const data = community.data;
+  const communityName = data.name ?? "Community";
+  const canManageInvites =
+    data.canManageLookupInvites || data.canManageInviteLinks;
+  const showRequestsTab = data.canManageJoinRequests || data.canManageTeamLinks;
+  const requestCount =
+    (joinRequests.data?.length ?? 0) + (teamLinkRequests.data?.length ?? 0);
+
+  const headerActions = (
+    <>
+      {canRequestJoin ? (
+        <Button
+          className="min-h-11"
+          onClick={() => requestJoin.mutate({ communityId: id })}
+          disabled={requestJoin.isPending}
+        >
+          {requestJoin.isPending ? "Requesting…" : "Request to join"}
+        </Button>
+      ) : null}
+      <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
+        <ActionMenuItem asChild>
+          <Link href="/dashboard/communities">All Communities</Link>
+        </ActionMenuItem>
+        {canManageInvites ? (
+          <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+            Manage invites
+          </ActionMenuItem>
+        ) : null}
+        {data.canUnarchive ? (
+          <ActionMenuItem
+            onSelect={() => unarchive.mutate({ communityId: id })}
+          >
+            Unarchive
+          </ActionMenuItem>
+        ) : null}
+        {isMember || data.canSoftArchive ? <ActionMenuSeparator /> : null}
+        {isMember ? (
+          <ActionMenuItem
+            variant="destructive"
+            onSelect={() => setLeaveOpen(true)}
+          >
+            Leave Community
+          </ActionMenuItem>
+        ) : null}
+        {data.canSoftArchive ? (
+          <ActionMenuItem
+            variant="destructive"
+            onSelect={() => setArchiveOpen(true)}
+          >
+            Soft-archive
+          </ActionMenuItem>
+        ) : null}
+      </ActionMenu>
+    </>
+  );
+
+  const venueBlock = isMember ? (
+    <CommunityVenueBlock
+      venue={data.venue}
+      venueLinkRequest={data.venueLinkRequest}
+      canUnlinkVenue={data.canUnlinkVenue}
+      canRequestVenueLink={data.canRequestVenueLink}
+      canManageVenueLink={data.canManageVenueLink}
+      onUnlink={() => setUnlinkOpen(true)}
+      onLinkVenue={() => setLinkVenueOpen(true)}
+    />
+  ) : null;
+
+  const memberCountCard =
+    isMember && members.data ? (
+      <Card variant="raised">
+        <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
+          Members
+        </p>
+        <p className="text-lead font-semibold tabular-nums">
+          {members.data.length}
+        </p>
+      </Card>
+    ) : null;
+
+  const staffCard =
+    data.canCreateClubGroup || canManageInvites ? (
+      <Card variant="raised" className="gap-2">
+        <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
+          Actions
+        </p>
+        {data.canCreateClubGroup ? (
+          <Button
+            type="button"
+            className="min-h-11 w-full"
+            onClick={() => setCreateGroupOpen(true)}
+          >
+            Create Club Group
+          </Button>
+        ) : null}
+        {canManageInvites ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full"
+            onClick={() => setInvitesOpen(true)}
+          >
+            Manage invites
+          </Button>
+        ) : null}
+      </Card>
+    ) : null;
 
   return (
-    <DashboardShell title={community.data?.name ?? "Community"}>
+    <DashboardShell title={communityName} width="wide" hidePageHeader>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            {community.isLoading ? (
-              <>
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-72" />
-              </>
-            ) : null}
+        <CommunityHomeHeader
+          name={communityName}
+          type={data.type}
+          sports={data.sports}
+          role={data.membership?.role ?? null}
+          isArchived={!isLive}
+          joinStatus={!isMember ? joinStatus : null}
+          logoImageUrl={data.venue?.logoImageUrl}
+          actions={headerActions}
+        />
 
-            {community.error ? (
-              <p className="text-destructive text-sm">
-                {community.error.message}
-              </p>
-            ) : null}
-
-            {community.data ? (
-              <>
-                <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                  {community.data.name}
-                </h2>
-                <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span className="capitalize">{community.data.type}</span>
-                  {!isLive ? <span>· Soft-archived</span> : null}
-                  {community.data.membership ? (
-                    <span>· Your role: {community.data.membership.role}</span>
-                  ) : null}
-                  {!community.data.membership &&
-                  isLive &&
-                  joinStatus === "pending" ? (
-                    <span>· Join request pending</span>
-                  ) : null}
-                  {!community.data.membership &&
-                  isLive &&
-                  joinStatus === "rejected" ? (
-                    <span>· Join request rejected</span>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {community.data.sports.map((sport) => (
-                    <Badge key={sport} variant="secondary">
-                      {sport}
-                    </Badge>
-                  ))}
-                  {!isLive ? <Badge variant="outline">Archived</Badge> : null}
-                </div>
-              </>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {canRequestJoin ? (
-              <Button
-                onClick={() => requestJoin.mutate({ communityId: id })}
-                disabled={requestJoin.isPending}
-              >
-                {joinStatus === "rejected"
-                  ? requestJoin.isPending
-                    ? "Requesting…"
-                    : "Request again"
-                  : requestJoin.isPending
-                    ? "Requesting…"
-                    : "Request to join"}
-              </Button>
-            ) : null}
-            {isPublic && isLive && !isMember && joinStatus === "pending" ? (
-              <Button variant="secondary" disabled>
-                Request pending
-              </Button>
-            ) : null}
-            {community.data?.canSoftArchive ? (
-              <Button
-                variant="outline"
-                onClick={() => softArchive.mutate({ communityId: id })}
-                disabled={archivePending}
-              >
-                {softArchive.isPending ? "Archiving…" : "Soft-archive"}
-              </Button>
-            ) : null}
-            {community.data?.canUnarchive ? (
-              <Button
-                onClick={() => unarchive.mutate({ communityId: id })}
-                disabled={archivePending}
-              >
-                {unarchive.isPending ? "Unarchiving…" : "Unarchive"}
-              </Button>
-            ) : null}
-            {isMember ? (
-              <Button
-                variant="outline"
-                onClick={() => leaveCommunity.mutate({ communityId: id })}
-                disabled={leaveCommunity.isPending || !community.data?.canLeave}
-                title={
-                  linkedTeamBlocksLeave
-                    ? "Unlink or dissolve the linked Team first"
-                    : isLastOwnerBlockedLeave
-                      ? "The last Owner cannot leave until another Owner is promoted"
-                      : undefined
-                }
-              >
-                {leaveCommunity.isPending ? "Leaving…" : "Leave Community"}
-              </Button>
-            ) : null}
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/communities">Communities</Link>
-            </Button>
-          </div>
-        </div>
-
-        {community.data && !isLive && !isMember ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              This Community is Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              It is not open for new joins, requests, or invites. Members can
-              still open history and Games. This is not a missing page.
-            </p>
-          </section>
+        {!isLive && !isMember ? (
+          <SoftArchiveBanner heading="This Community is Soft-archived">
+            It is not open for new joins, requests, or invites. Members can
+            still open history and Games. This is not a missing page.
+          </SoftArchiveBanner>
         ) : null}
 
-        {community.data && !isLive && isMember ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Club Groups stay attached. You can still open Groups and see
-              history and Games. New joins, requests, Lookup invites, and Invite
-              links are paused until an Owner or Admin unarchives.
-            </p>
-          </section>
+        {!isLive && isMember ? (
+          <SoftArchiveBanner heading="Soft-archived">
+            Club Groups stay attached. You can still open Groups and see history
+            and Games. New joins, requests, Lookup invites, and Invite links are
+            paused until an Owner or Admin unarchives.
+          </SoftArchiveBanner>
         ) : null}
 
-        {community.data?.membership ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">Venue</h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Where this Community plays. Members see the linked place only.
-              </p>
-            </div>
-
-            {community.data.venue ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-start gap-4">
-                  {community.data.venue.logoImageUrl ? (
-                    // Public catalog URL (ADR-0006); not a signed URL.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={community.data.venue.logoImageUrl}
-                      alt={`${community.data.venue.name} logo`}
-                      className="border-border h-16 w-16 rounded-md border object-cover"
-                    />
-                  ) : null}
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-foreground font-medium">
-                        {community.data.venue.name}
-                      </p>
-                      {community.data.venue.archivedAt ? (
-                        <Badge variant="outline">Venue Soft-archived</Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      {community.data.venue.city},{" "}
-                      {community.data.venue.country}
-                    </p>
-                  </div>
-                </div>
-                {community.data.venue.courts.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No Courts.</p>
-                ) : (
-                  <ul className="text-muted-foreground list-inside list-disc text-sm">
-                    {community.data.venue.courts.map((court) => (
-                      <li key={court.id}>{court.name}</li>
-                    ))}
-                  </ul>
-                )}
-                {community.data.canUnlinkVenue ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={unlinkVenue.isPending}
-                    onClick={() => unlinkVenue.mutate({ communityId: id })}
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_17.5rem]">
+          <div className="min-w-0 space-y-6 lg:hidden">{venueBlock}</div>
+          <div className="min-w-0">
+            <Tabs defaultValue="groups" className="gap-4">
+              <TabsList
+                variant="line"
+                className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
+              >
+                <TabsTrigger
+                  value="groups"
+                  className="min-h-11 min-w-11 flex-none px-3"
+                >
+                  Groups
+                </TabsTrigger>
+                {isMember ? (
+                  <TabsTrigger
+                    value="teams"
+                    className="min-h-11 min-w-11 flex-none px-3"
                   >
-                    {unlinkVenue.isPending ? "Unlinking…" : "Unlink Venue"}
-                  </Button>
+                    Teams
+                  </TabsTrigger>
                 ) : null}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                This Community is not linked to a Venue.
-              </p>
-            )}
-
-            {community.data.canManageVenueLink &&
-            community.data.venueLinkRequest?.status === "pending" ? (
-              <p className="text-muted-foreground text-sm">
-                Venue link request pending for{" "}
-                {community.data.venueLinkRequest.venue.name} (
-                {community.data.venueLinkRequest.venue.city},{" "}
-                {community.data.venueLinkRequest.venue.country}).
-              </p>
-            ) : null}
-
-            {community.data.canManageVenueLink &&
-            community.data.venueLinkRequest?.status === "rejected" &&
-            !community.data.venue ? (
-              <p className="text-muted-foreground text-sm">
-                Last Venue link request for{" "}
-                {community.data.venueLinkRequest.venue.name} was rejected. You
-                may request again.
-              </p>
-            ) : null}
-
-            {community.data.canRequestVenueLink ? (
-              <div className="space-y-3">
-                <Input
-                  value={venueQuery}
-                  onChange={(event) => setVenueQuery(event.target.value)}
-                  placeholder="Search live Venues by name, city, or country"
+                {isMember ? (
+                  <TabsTrigger
+                    value="members"
+                    className="min-h-11 min-w-11 flex-none px-3"
+                  >
+                    Members
+                  </TabsTrigger>
+                ) : null}
+                {showRequestsTab ? (
+                  <TabsTrigger
+                    value="requests"
+                    className="min-h-11 min-w-11 flex-none gap-2 px-3"
+                  >
+                    Requests
+                    {requestCount > 0 ? (
+                      <Badge variant="secondary" size="sm">
+                        {requestCount}
+                      </Badge>
+                    ) : null}
+                  </TabsTrigger>
+                ) : null}
+              </TabsList>
+              <TabsContent value="groups">
+                <CommunityGroupsTab
+                  groups={data.groups}
+                  canCreateClubGroup={data.canCreateClubGroup}
+                  onCreate={() => setCreateGroupOpen(true)}
                 />
-                {liveVenues.isLoading ? (
-                  <Skeleton className="h-16 w-full" />
-                ) : null}
-                {liveVenues.error ? (
-                  <p className="text-destructive text-sm">
-                    {liveVenues.error.message}
-                  </p>
-                ) : null}
-                {liveVenues.data?.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">
-                    No live Venues match.
-                  </p>
-                ) : null}
-                {liveVenues.data && liveVenues.data.length > 0 ? (
-                  <ul className="divide-border border-border divide-y rounded-lg border">
-                    {liveVenues.data.map((venue) => (
-                      <li
-                        key={venue.id}
-                        className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div>
-                          <p className="text-foreground font-medium">
-                            {venue.name}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {venue.city}, {venue.country}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          disabled={requestVenueLink.isPending}
-                          onClick={() =>
-                            requestVenueLink.mutate({
-                              communityId: id,
-                              venueId: venue.id,
-                            })
-                          }
-                        >
-                          Request link
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
-        {community.data ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">Groups</h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Club Groups stay inside this Community. Public Groups are open
-                to Community members with no extra request.
-              </p>
-            </div>
-
-            {community.data.groups.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                This Community has no Groups yet.
-              </p>
-            ) : (
-              <ul className="divide-border border-border divide-y rounded-lg border">
-                {community.data.groups.map((group) => (
-                  <li
-                    key={group.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-foreground font-medium">
-                        {group.name ?? "Untitled Group"}
-                      </p>
-                      <div className="text-muted-foreground flex flex-wrap gap-2 text-sm">
-                        <span className="capitalize">{group.type}</span>
-                        {group.sport ? <span>· {group.sport}</span> : null}
-                        {group.isMember ? <span>· Joined</span> : null}
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={`/dashboard/groups/${group.id}`}>Open</Link>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {community.data.canCreateClubGroup ? (
-              <div className="space-y-4">
-                <form
-                  className="border-border space-y-3 rounded-lg border p-4"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const formData = new FormData(event.currentTarget);
-                    const nameValue = formData.get("name");
-                    if (typeof nameValue !== "string") {
-                      return;
+              </TabsContent>
+              {isMember ? (
+                <TabsContent value="teams">
+                  <CommunityTeamsTab teams={data.teams} />
+                </TabsContent>
+              ) : null}
+              {isMember ? (
+                <TabsContent value="members">
+                  <CommunityMembersTab
+                    members={members.data}
+                    isLoading={members.isLoading}
+                    errorMessage={members.error?.message}
+                    onRetry={() => {
+                      void members.refetch();
+                    }}
+                    viewerUserId={viewerUserId}
+                    canManageRoles={data.canManageRoles}
+                    rolePending={setMemberRole.isPending}
+                    onRoleChange={(userId, role) =>
+                      setMemberRole.mutate({
+                        communityId: id,
+                        userId,
+                        role,
+                      })
                     }
-                    const name = nameValue.trim();
-                    if (!name) {
-                      return;
+                    linkedTeamBlocksLeave={linkedTeamBlocksLeave}
+                    isLastOwnerBlockedLeave={isLastOwnerBlockedLeave}
+                  />
+                </TabsContent>
+              ) : null}
+              {showRequestsTab ? (
+                <TabsContent value="requests">
+                  <CommunityRequestsTab
+                    canManageJoinRequests={data.canManageJoinRequests}
+                    canManageTeamLinks={data.canManageTeamLinks}
+                    joinRequests={joinRequests.data}
+                    joinLoading={joinRequests.isLoading}
+                    joinError={joinRequests.error?.message}
+                    onRetryJoin={() => {
+                      void joinRequests.refetch();
+                    }}
+                    teamLinkRequests={teamLinkRequests.data}
+                    teamLoading={teamLinkRequests.isLoading}
+                    teamError={teamLinkRequests.error?.message}
+                    onRetryTeam={() => {
+                      void teamLinkRequests.refetch();
+                    }}
+                    approveJoinPendingId={
+                      approveJoinRequest.isPending
+                        ? approveJoinRequest.variables?.requestId
+                        : undefined
                     }
-                    createClubPublic.mutate({
-                      communityId: id,
-                      name,
-                      sport: "padel",
-                    });
-                    event.currentTarget.reset();
-                  }}
-                >
-                  <h4 className="text-foreground font-medium">
-                    Create Club Group Public
-                  </h4>
-                  <p className="text-muted-foreground text-sm">
-                    Owner or Admin only. Open to Community members. You join as
-                    a Group member.
-                  </p>
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <Input
-                      name="name"
-                      required
-                      maxLength={255}
-                      placeholder="Group name"
-                      className="flex-1"
-                    />
-                    <Button type="submit" disabled={createClubPending}>
-                      {createClubPublic.isPending ? "Creating…" : "Create"}
-                    </Button>
-                  </div>
-                </form>
-
-                <form
-                  className="border-border space-y-3 rounded-lg border p-4"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const formData = new FormData(event.currentTarget);
-                    const nameValue = formData.get("name");
-                    if (typeof nameValue !== "string") {
-                      return;
+                    rejectJoinPendingId={
+                      rejectJoinRequest.isPending
+                        ? rejectJoinRequest.variables?.requestId
+                        : undefined
                     }
-                    const name = nameValue.trim();
-                    if (!name) {
-                      return;
+                    approveTeamPendingId={
+                      approveTeamLink.isPending
+                        ? approveTeamLink.variables?.requestId
+                        : undefined
                     }
-                    createClubPrivate.mutate({
-                      communityId: id,
-                      name,
-                      sport: "padel",
-                    });
-                    event.currentTarget.reset();
-                  }}
-                >
-                  <h4 className="text-foreground font-medium">
-                    Create Club Group Private
-                  </h4>
-                  <p className="text-muted-foreground text-sm">
-                    Owner or Admin can send Lookup invites and copy Invite
-                    links. The Group creator may Lookup existing Members only.
-                  </p>
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <Input
-                      name="name"
-                      required
-                      maxLength={255}
-                      placeholder="Group name"
-                      className="flex-1"
-                    />
-                    <Button type="submit" disabled={createClubPending}>
-                      {createClubPrivate.isPending ? "Creating…" : "Create"}
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
-        {community.data?.membership ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">Teams</h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Partnerships linked to this Community. Members can open a linked
-                Team&apos;s stats.
-              </p>
-            </div>
-
-            {community.data.teams.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                This Community has no linked Teams yet.
-              </p>
-            ) : (
-              <ul className="divide-border border-border divide-y rounded-lg border">
-                {community.data.teams.map((team) => (
-                  <li
-                    key={team.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-foreground font-medium">
-                        {team.displayName}
-                      </p>
-                      <p className="text-muted-foreground text-sm capitalize">
-                        {team.sport}
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={`/dashboard/teams/${team.id}`}>Open</Link>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ) : null}
-
-        {community.data?.canManageTeamLinks ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Team link requests
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Owner or Admin approve or reject. Approve auto-admits any seat
-                who is not yet a Community Member, then attaches the Team.
-              </p>
-            </div>
-
-            {teamLinkRequests.isLoading ? (
-              <Skeleton className="h-16 w-full" />
-            ) : null}
-
-            {teamLinkRequests.error ? (
-              <p className="text-destructive text-sm">
-                {teamLinkRequests.error.message}
-              </p>
-            ) : null}
-
-            {teamLinkRequests.data?.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No pending Team link requests.
-              </p>
-            ) : null}
-
-            {teamLinkRequests.data && teamLinkRequests.data.length > 0 ? (
-              <ul className="divide-border border-border divide-y rounded-lg border">
-                {teamLinkRequests.data.map((request) => (
-                  <li
-                    key={request.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-foreground font-medium">
-                        {request.team.displayName}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {request.requestedBy.name} · {request.team.sport}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          approveTeamLink.mutate({ requestId: request.id })
-                        }
-                        disabled={approveTeamLink.isPending}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          rejectTeamLink.mutate({ requestId: request.id })
-                        }
-                        disabled={rejectTeamLink.isPending}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
-
-        {isMember ? (
-          <section className="border-border bg-card rounded-xl border p-6">
-            <h3 className="text-foreground text-lg font-medium">Members</h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              {community.data?.canManageRoles
-                ? "Owners can promote or demote members. Multiple Owners are allowed. The last Owner cannot leave or self-demote."
-                : "Only Owners can change roles. Admins cannot promote, demote, or change Owner-ship."}
-            </p>
-
-            {linkedTeamBlocksLeave ? (
-              <p className="mt-2 text-sm text-amber-200/90">
-                Leave is refused while you sit on a Team linked to this
-                Community. Unlink or dissolve the Team first.
-              </p>
-            ) : null}
-
-            {isLastOwnerBlockedLeave ? (
-              <p className="mt-2 text-sm text-amber-200/90">
-                You are the last Owner. Promote someone else before leaving or
-                demoting yourself. Leaving does not Soft-archive this Community.
-              </p>
-            ) : null}
-
-            {members.isLoading ? (
-              <div className="mt-4 space-y-3">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-            ) : null}
-
-            {members.error ? (
-              <p className="text-destructive mt-4 text-sm">
-                {members.error.message}
-              </p>
-            ) : null}
-
-            {members.data && members.data.length > 0 ? (
-              <ul className="divide-border border-border mt-4 divide-y rounded-lg border">
-                {members.data.map((member) => {
-                  const isSelf = member.user.id === viewerUserId;
-                  return (
-                    <li
-                      key={member.id}
-                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-foreground font-medium">
-                          {member.user.name}
-                          {isSelf ? (
-                            <span className="text-muted-foreground ml-2 text-sm font-normal">
-                              (you)
-                            </span>
-                          ) : null}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          {member.user.email}
-                        </p>
-                      </div>
-                      {community.data?.canManageRoles ? (
-                        <select
-                          className="border-input bg-background text-foreground h-9 rounded-md border px-3 text-sm capitalize"
-                          value={member.role}
-                          disabled={setMemberRole.isPending}
-                          onChange={(event) => {
-                            const role = event.target.value;
-                            if (
-                              role !== "owner" &&
-                              role !== "admin" &&
-                              role !== "member"
-                            ) {
-                              return;
-                            }
-                            if (role === member.role) {
-                              return;
-                            }
-                            setMemberRole.mutate({
-                              communityId: id,
-                              userId: member.user.id,
-                              role,
-                            });
-                          }}
-                        >
-                          <option value="owner">owner</option>
-                          <option value="admin">admin</option>
-                          <option value="member">member</option>
-                        </select>
-                      ) : (
-                        <span className="text-muted-foreground text-sm capitalize">
-                          {member.role}
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
-
-        {community.data?.canManageJoinRequests ? (
-          <section className="border-border bg-card rounded-xl border p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              Join requests
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Approve to admit as Member, reject to refuse (they may
-              re-request), or leave pending to ignore.
-            </p>
-
-            {joinRequests.isLoading ? (
-              <div className="mt-4 space-y-3">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-            ) : null}
-
-            {joinRequests.error ? (
-              <p className="text-destructive mt-4 text-sm">
-                {joinRequests.error.message}
-              </p>
-            ) : null}
-
-            {joinRequests.data?.length === 0 ? (
-              <p className="text-muted-foreground mt-4 text-sm">
-                No pending requests.
-              </p>
-            ) : null}
-
-            {joinRequests.data && joinRequests.data.length > 0 ? (
-              <ul className="divide-border border-border mt-4 divide-y rounded-lg border">
-                {joinRequests.data.map((request) => (
-                  <li
-                    key={request.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-foreground font-medium">
-                        {request.user.name}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {request.user.email}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          approveJoinRequest.mutate({ requestId: request.id })
-                        }
-                        disabled={
-                          approveJoinRequest.isPending ||
-                          rejectJoinRequest.isPending
-                        }
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          rejectJoinRequest.mutate({ requestId: request.id })
-                        }
-                        disabled={
-                          approveJoinRequest.isPending ||
-                          rejectJoinRequest.isPending
-                        }
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
-
-        {community.data?.type === "public" ? (
-          <p className="text-muted-foreground text-xs">
-            Community Public uses request-to-join. Owner or Admin can also send
-            a Lookup invite or copy an Invite link. There is no Email invite.
-            Invite link admits immediately and skips the request queue.
-          </p>
-        ) : null}
-
-        {community.data?.canManageLookupInvites ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Lookup invite
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Owner and Admin can look up an existing User by username, email,
-                or phone and send a Lookup invite. The invitee accepts on
-                Invites. Lookup invites do not expire.
-              </p>
-            </div>
-
-            <form
-              className="flex flex-col gap-3 sm:flex-row"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const formData = new FormData(event.currentTarget);
-                const queryValue = formData.get("query");
-                if (typeof queryValue !== "string") {
-                  return;
-                }
-                const query = queryValue.trim();
-                if (!query) {
-                  return;
-                }
-                sendLookupInvite.mutate({ communityId: id, query });
-                event.currentTarget.reset();
-              }}
-            >
-              <Input
-                name="query"
-                type="text"
-                required
-                placeholder="Username, email, or phone"
-                className="flex-1"
-              />
-              <Button type="submit" disabled={sendLookupInvite.isPending}>
-                {sendLookupInvite.isPending ? "Sending…" : "Send Lookup invite"}
-              </Button>
-            </form>
-
-            {lookupInvites.data?.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No unused Lookup invites.
-              </p>
-            ) : null}
-            {lookupInvites.data && lookupInvites.data.length > 0 ? (
-              <ul className="divide-border border-border divide-y rounded-lg border">
-                {lookupInvites.data.map((invite) => (
-                  <li
-                    key={invite.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-foreground font-medium">
-                        {invite.user.name}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {invite.user.email}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        revokeLookupInvite.mutate({ inviteId: invite.id })
-                      }
-                      disabled={revokeLookupInvite.isPending}
-                    >
-                      Revoke
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
-
-        {community.data?.canManageInviteLinks ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Invite link
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Each copy mints a new 6-hour token. Older copied URLs stay live
-                until each expires. There is no rotate or revoke.
-              </p>
-            </div>
-            {inviteLink.data ? (
-              <p className="text-muted-foreground break-all text-sm">
-                Newest: {inviteLink.data.inviteUrl}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                No live Invite link. Copy to mint one.
-              </p>
-            )}
-            <Button
-              size="sm"
-              onClick={() => createInviteLink.mutate({ communityId: id })}
-              disabled={createInviteLink.isPending}
-            >
-              {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
-            </Button>
-          </section>
-        ) : null}
+                    rejectTeamPendingId={
+                      rejectTeamLink.isPending
+                        ? rejectTeamLink.variables?.requestId
+                        : undefined
+                    }
+                    onApproveJoin={(requestId) =>
+                      approveJoinRequest.mutate({ requestId })
+                    }
+                    onRejectJoin={(requestId) =>
+                      rejectJoinRequest.mutate({ requestId })
+                    }
+                    onApproveTeam={(requestId) =>
+                      approveTeamLink.mutate({ requestId })
+                    }
+                    onRejectTeam={(requestId) =>
+                      rejectTeamLink.mutate({ requestId })
+                    }
+                  />
+                </TabsContent>
+              ) : null}
+            </Tabs>
+          </div>
+          <aside className={stickyAsideClass}>
+            {venueBlock}
+            {memberCountCard}
+            {staffCard}
+          </aside>
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        title={`Leave ${communityName}?`}
+        description="You will leave this Community and its Club Groups. Cancelling does nothing."
+        confirmLabel="Leave Community"
+        pending={leaveCommunity.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await leaveCommunity.mutateAsync({ communityId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        title={`Soft-archive ${communityName}?`}
+        description="New joins, requests, and invites pause until an Owner or Admin unarchives. Cancelling does nothing."
+        confirmLabel="Soft-archive"
+        pending={softArchive.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await softArchive.mutateAsync({ communityId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={unlinkOpen}
+        onOpenChange={setUnlinkOpen}
+        title={data.venue ? `Unlink ${data.venue.name}?` : "Unlink Venue?"}
+        description="This Community will no longer be linked to that Venue. Cancelling does nothing."
+        confirmLabel="Unlink Venue"
+        pending={unlinkVenue.isPending}
+        onConfirm={async () => {
+          await unlinkVenue.mutateAsync({ communityId: id });
+        }}
+      />
+
+      <CommunityInvitesDialog
+        open={invitesOpen}
+        onOpenChange={setInvitesOpen}
+        restoreFocusRef={menuTriggerRef}
+        canManageLookupInvites={data.canManageLookupInvites}
+        canManageInviteLinks={data.canManageInviteLinks}
+        lookupInvites={lookupInvites.data}
+        inviteUrl={inviteLink.data?.inviteUrl}
+        sendPending={sendLookupInvite.isPending}
+        revokePending={revokeLookupInvite.isPending}
+        copyPending={createInviteLink.isPending}
+        sendError={sendLookupInvite.error}
+        onSendLookup={(query) =>
+          sendLookupInvite.mutate({ communityId: id, query })
+        }
+        onRevokeLookup={(inviteId) => revokeLookupInvite.mutate({ inviteId })}
+        onCopyInviteLink={() => createInviteLink.mutate({ communityId: id })}
+      />
+
+      {data.canCreateClubGroup ? (
+        <CommunityCreateGroupDialog
+          open={createGroupOpen}
+          onOpenChange={setCreateGroupOpen}
+          pending={createClubPending}
+          publicPending={createClubPublic.isPending}
+          privatePending={createClubPrivate.isPending}
+          publicError={createClubPublic.error}
+          privateError={createClubPrivate.error}
+          onCreatePublic={(name) =>
+            createClubPublic.mutate({
+              communityId: id,
+              name,
+              sport: "padel",
+            })
+          }
+          onCreatePrivate={(name) =>
+            createClubPrivate.mutate({
+              communityId: id,
+              name,
+              sport: "padel",
+            })
+          }
+        />
+      ) : null}
+
+      {data.canRequestVenueLink ? (
+        <CommunityLinkVenueDialog
+          open={linkVenueOpen}
+          onOpenChange={setLinkVenueOpen}
+          query={venueQuery}
+          onQueryChange={setVenueQuery}
+          venues={liveVenues.data}
+          isLoading={liveVenues.isLoading}
+          errorMessage={liveVenues.error?.message}
+          pending={requestVenueLink.isPending}
+          onRequest={(venueId) =>
+            requestVenueLink.mutate({ communityId: id, venueId })
+          }
+        />
+      ) : null}
     </DashboardShell>
   );
 }

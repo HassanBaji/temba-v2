@@ -1,27 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { use } from "react";
+import { notFound, useRouter } from "next/navigation";
+import { use, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+} from "~/components/common/action-menu";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { ErrorState } from "~/components/common/error-state";
+import { StatStrip } from "~/components/common/stat-strip";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Badge } from "~/components/ui/badge";
+import { GroupGamesTab } from "~/components/groups/group-games-tab";
+import { GroupHomeHeader } from "~/components/groups/group-home-header";
+import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
+import { GroupInvitesDialog } from "~/components/groups/group-invites-dialog";
+import { GroupMembersTab } from "~/components/groups/group-members-tab";
+import { GroupStandingTab } from "~/components/groups/group-standing-tab";
+import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
+import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Skeleton } from "~/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { isNotFoundError } from "~/lib/is-not-found-error";
+import { stickyAsideClass } from "~/lib/page-layout";
 import { api } from "~/trpc/react";
-
-function formatGameStart(startTime: Date | string) {
-  const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export default function GroupHomePage({
   params,
@@ -31,6 +37,11 @@ export default function GroupHomePage({
   const { id } = use(params);
   const router = useRouter();
   const utils = api.useUtils();
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
+
   const group = api.groups.byId.useQuery({ id });
 
   const lookupInvites = api.groups.listLookupInvites.useQuery(
@@ -85,9 +96,6 @@ export default function GroupHomePage({
         await utils.communities.mine.invalidate();
       }
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
   const deleteGroup = api.groups.delete.useMutation({
@@ -101,9 +109,6 @@ export default function GroupHomePage({
         return;
       }
       router.push("/dashboard/groups");
-    },
-    onError: (error) => {
-      toast.error(error.message);
     },
   });
 
@@ -124,7 +129,7 @@ export default function GroupHomePage({
       await utils.groups.listLookupInvites.invalidate({ groupId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -156,529 +161,326 @@ export default function GroupHomePage({
     toast.success("Group URL copied");
   }
 
+  if (isNotFoundError(group.error)) {
+    notFound();
+  }
+
+  if (group.isLoading) {
+    return (
+      <DashboardShell title="Group" width="wide" hidePageHeader>
+        <GroupHomeSkeleton />
+      </DashboardShell>
+    );
+  }
+
+  if (group.error) {
+    return (
+      <DashboardShell title="Group" width="wide" hidePageHeader>
+        <ErrorState
+          title="Group could not be loaded"
+          message={group.error.message}
+          onRetry={() => {
+            void group.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  if (!group.data) {
+    return (
+      <DashboardShell title="Group" width="wide" hidePageHeader>
+        <ErrorState
+          title="Group could not be loaded"
+          onRetry={() => {
+            void group.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  const data = group.data;
+  const groupName = data.name ?? "Group";
+  const canManageInvites =
+    data.canManageLookupInvites || data.canManageInviteLinks;
+  const showMenu =
+    data.community != null ||
+    data.canCreateGame ||
+    (data.isLoose && data.type === "public") ||
+    canManageInvites ||
+    data.membership != null ||
+    data.canDelete;
+
+  const headerActions = (
+    <>
+      {data.canJoin ? (
+        <Button className="min-h-11" onClick={onJoin} disabled={joinPending}>
+          {joinPending ? "Joining…" : "Join"}
+        </Button>
+      ) : null}
+      {showMenu ? (
+        <ActionMenu triggerRef={menuTriggerRef} label="Group actions">
+          {data.community ? (
+            <ActionMenuItem asChild>
+              <Link href={`/dashboard/communities/${data.community.id}`}>
+                Open {data.community.name}
+              </Link>
+            </ActionMenuItem>
+          ) : null}
+          {data.community ? (
+            <ActionMenuItem asChild>
+              <Link href="/dashboard/communities">All Communities</Link>
+            </ActionMenuItem>
+          ) : null}
+          {data.canCreateGame ? (
+            <ActionMenuItem asChild>
+              <Link href={`/dashboard/games/new?groupId=${id}`}>
+                Create Game
+              </Link>
+            </ActionMenuItem>
+          ) : null}
+          {data.isLoose && data.type === "public" ? (
+            <ActionMenuItem onSelect={() => void copyGroupUrl()}>
+              Copy Group URL
+            </ActionMenuItem>
+          ) : null}
+          {canManageInvites ? (
+            <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+              Manage invites
+            </ActionMenuItem>
+          ) : null}
+          {data.membership || data.canDelete ? <ActionMenuSeparator /> : null}
+          {data.membership ? (
+            <ActionMenuItem
+              variant="destructive"
+              onSelect={() => setLeaveOpen(true)}
+            >
+              Leave Group
+            </ActionMenuItem>
+          ) : null}
+          {data.canDelete ? (
+            <ActionMenuItem
+              variant="destructive"
+              onSelect={() => setDeleteOpen(true)}
+            >
+              Delete Group
+            </ActionMenuItem>
+          ) : null}
+        </ActionMenu>
+      ) : null}
+    </>
+  );
+
+  const standingStrip = data.membership ? (
+    <StatStrip
+      items={[
+        {
+          label: "Position",
+          value:
+            data.membership.standingPosition != null
+              ? `#${data.membership.standingPosition} of ${data.standing.memberCount}`
+              : `— of ${data.standing.memberCount}`,
+        },
+        { label: "Sets won", value: data.membership.totalSetsWon },
+        { label: "Points won", value: data.membership.totalPointsWon },
+        { label: "Games played", value: data.totalGamesPlayed },
+      ]}
+    />
+  ) : null;
+
+  const communityCard = data.community ? (
+    <Card variant="raised">
+      <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
+        Community
+      </p>
+      <p className="text-lead font-semibold">{data.community.name}</p>
+      <Button asChild variant="outline" className="min-h-11 w-full">
+        <Link href={`/dashboard/communities/${data.community.id}`}>
+          Open {data.community.name}
+        </Link>
+      </Button>
+    </Card>
+  ) : null;
+
+  const staffCard =
+    data.canCreateGame || canManageInvites ? (
+      <Card variant="raised" className="gap-2">
+        <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
+          Actions
+        </p>
+        {data.canCreateGame ? (
+          <Button asChild className="min-h-11 w-full">
+            <Link href={`/dashboard/games/new?groupId=${id}`}>Create Game</Link>
+          </Button>
+        ) : null}
+        {canManageInvites ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full"
+            onClick={() => setInvitesOpen(true)}
+          >
+            Manage invites
+          </Button>
+        ) : null}
+      </Card>
+    ) : null;
+
+  const banners = (
+    <>
+      {data.isCommunityArchived && !data.communityMembership ? (
+        <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+          It is not open for join. Members of the Community can still open
+          history and Games. This is not a missing page.
+        </SoftArchiveBanner>
+      ) : null}
+
+      {data.isCommunityArchived && data.communityMembership ? (
+        <SoftArchiveBanner heading="Community Soft-archived">
+          This Club Group stays attached to its Community. You can still open it
+          and see history and Games while the Community is archived.
+        </SoftArchiveBanner>
+      ) : null}
+
+      {data.communityId &&
+      !data.communityMembership &&
+      !data.isCommunityArchived ? (
+        <p className="text-body text-muted-foreground">
+          You cannot join this Club Group until you are a member of its
+          Community.
+        </p>
+      ) : null}
+    </>
+  );
+
+  const tabs = (
+    <Tabs defaultValue="standing" className="gap-4">
+      <TabsList
+        variant="line"
+        className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
+      >
+        <TabsTrigger
+          value="standing"
+          className="min-h-11 min-w-11 flex-none px-3"
+        >
+          Standing
+        </TabsTrigger>
+        <TabsTrigger value="games" className="min-h-11 min-w-11 flex-none px-3">
+          Games
+        </TabsTrigger>
+        <TabsTrigger
+          value="members"
+          className="min-h-11 min-w-11 flex-none px-3"
+        >
+          Members
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent
+        value="standing"
+        className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+      >
+        <GroupStandingTab
+          isMember={Boolean(data.membership)}
+          leaderboard={data.standing.leaderboard}
+        />
+      </TabsContent>
+      <TabsContent
+        value="games"
+        className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+      >
+        <GroupGamesTab
+          upcomingGames={data.upcomingGames}
+          gameHistory={data.gameHistory}
+          groupName={groupName}
+          isCommunityArchived={data.isCommunityArchived}
+        />
+      </TabsContent>
+      <TabsContent
+        value="members"
+        className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+      >
+        <GroupMembersTab
+          members={data.standing.leaderboard.map((entry) => ({
+            userId: entry.userId,
+            name: entry.name ?? "Member",
+          }))}
+        />
+      </TabsContent>
+    </Tabs>
+  );
+
   return (
-    <DashboardShell title={group.data?.name ?? "Group"}>
+    <DashboardShell title={groupName} width="wide" hidePageHeader>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            {group.isLoading ? (
-              <>
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-72" />
-              </>
-            ) : null}
+        <GroupHomeHeader
+          name={groupName}
+          isLoose={data.isLoose}
+          type={data.type ?? null}
+          sport={data.sport ?? null}
+          communityName={data.community?.name ?? null}
+          isCommunityArchived={data.isCommunityArchived}
+          actions={headerActions}
+        />
 
-            {group.error ? (
-              <p className="text-destructive text-sm">{group.error.message}</p>
-            ) : null}
+        {banners}
 
-            {group.data ? (
-              <>
-                <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                  {group.data.name ?? "Untitled Group"}
-                </h2>
-                <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span className="capitalize">{group.data.type}</span>
-                  {group.data.sport ? <span>· {group.data.sport}</span> : null}
-                  {group.data.isLoose ? (
-                    <span>· Group outside a Community</span>
-                  ) : (
-                    <span>· Club Group</span>
-                  )}
-                  {group.data.isCommunityArchived ? (
-                    <span>· Community Soft-archived</span>
-                  ) : null}
-                  {group.data.membership ? (
-                    <span>· You are a member</span>
-                  ) : null}
-                  {!group.data.communityMembership &&
-                  group.data.communityId &&
-                  !group.data.isCommunityArchived ? (
-                    <span>· Not a Community member</span>
-                  ) : null}
-                </div>
-                {group.data.sport ? (
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">{group.data.sport}</Badge>
-                    <Badge variant="outline" className="capitalize">
-                      {group.data.type}
-                    </Badge>
-                    {group.data.isLoose ? (
-                      <Badge variant="outline">Outside a Community</Badge>
-                    ) : null}
-                    {group.data.isCommunityArchived ? (
-                      <Badge variant="outline">Archived</Badge>
-                    ) : null}
-                  </div>
-                ) : null}
-                {group.data.community ? (
-                  <p className="text-muted-foreground text-sm">
-                    Club Group in{" "}
-                    <Link
-                      href={`/dashboard/communities/${group.data.community.id}`}
-                      className="hover:text-foreground underline underline-offset-2"
-                    >
-                      {group.data.community.name}
-                    </Link>
-                  </p>
-                ) : null}
-                {group.data.isLoose && group.data.type === "public" ? (
-                  <p className="text-muted-foreground text-sm">
-                    Open-with-link: share the Group URL. The creator can also
-                    send a Lookup invite or copy an Invite link.
-                  </p>
-                ) : null}
-                {group.data.isLoose && group.data.type === "private" ? (
-                  <p className="text-muted-foreground text-sm">
-                    Private: Lookup invite and Invite link from the creator.
-                  </p>
-                ) : null}
-                {!group.data.isLoose && group.data.type === "public" ? (
-                  <p className="text-muted-foreground text-sm">
-                    Club Group Public: Community Members can join. Owner or
-                    Admin can also send a Lookup invite or copy an Invite link.
-                    The Group creator may Lookup existing Members only.
-                  </p>
-                ) : null}
-                {!group.data.isLoose && group.data.type === "private" ? (
-                  <p className="text-muted-foreground text-sm">
-                    Club Group Private: Owner or Admin can Lookup-invite any
-                    User or copy an Invite link (auto-admits as Member then
-                    joins). The Group creator may Lookup existing Members only
-                    and cannot mint Invite links.
-                  </p>
-                ) : null}
-              </>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {group.data?.canCreateGame ? (
-              <Button asChild>
-                <Link href={`/dashboard/games/new?groupId=${id}`}>
-                  Create Game
-                </Link>
-              </Button>
-            ) : null}
-            {group.data?.canJoin ? (
-              <Button onClick={onJoin} disabled={joinPending}>
-                {joinPending ? "Joining…" : "Join Group"}
-              </Button>
-            ) : null}
-            {group.data?.membership ? (
-              <Button
-                variant="outline"
-                onClick={() => leaveGroup.mutate({ groupId: id })}
-                disabled={leaveGroup.isPending}
-              >
-                {leaveGroup.isPending ? "Leaving…" : "Leave Group"}
-              </Button>
-            ) : null}
-            {group.data?.canDelete ? (
-              <Button
-                variant="outline"
-                onClick={() => deleteGroup.mutate({ groupId: id })}
-                disabled={deleteGroup.isPending}
-              >
-                {deleteGroup.isPending ? "Deleting…" : "Delete Group"}
-              </Button>
-            ) : null}
-            {group.data?.isLoose && group.data.type === "public" ? (
-              <Button variant="outline" onClick={copyGroupUrl}>
-                Copy Group URL
-              </Button>
-            ) : null}
-            {group.data?.communityId ? (
-              <>
-                <Button variant="outline" asChild>
-                  <Link
-                    href={`/dashboard/communities/${group.data.communityId}`}
-                  >
-                    Community
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/dashboard/communities">Communities</Link>
-                </Button>
-              </>
-            ) : group.data ? (
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/groups">Groups</Link>
-              </Button>
-            ) : null}
-          </div>
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_17.5rem]">
+          <div className="min-w-0 space-y-6 lg:hidden">{standingStrip}</div>
+          <div className="min-w-0">{tabs}</div>
+          <aside className={stickyAsideClass}>
+            {standingStrip}
+            {communityCard}
+            {staffCard}
+          </aside>
         </div>
-
-        {group.data?.isCommunityArchived && !group.data.communityMembership ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              This Club Group&apos;s Community is Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              It is not open for join. Members of the Community can still open
-              history and Games. This is not a missing page.
-            </p>
-          </section>
-        ) : null}
-
-        {group.data?.isCommunityArchived && group.data.communityMembership ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              Community Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              This Club Group stays attached to its Community. You can still
-              open it and see history and Games while the Community is archived.
-            </p>
-          </section>
-        ) : null}
-
-        {group.data?.communityId &&
-        !group.data.communityMembership &&
-        !group.data.isCommunityArchived ? (
-          <p className="text-muted-foreground text-sm">
-            You cannot join this Club Group until you are a member of its
-            Community.
-          </p>
-        ) : null}
-
-        {group.data ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Group stats
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Stored counters for this Group.
-            </p>
-            <dl className="border-border bg-card rounded-xl border">
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Games played</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {group.data.totalGamesPlayed}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        ) : null}
-
-        {group.data?.membership ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Your standing
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Your membership counters and position on this Group&apos;s
-              leaderboard (by sets won).
-            </p>
-            <dl className="border-border bg-card grid grid-cols-1 divide-y rounded-xl border md:grid-cols-4 md:divide-x md:divide-y-0">
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Position</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {group.data.membership.standingPosition != null
-                    ? `#${group.data.membership.standingPosition}`
-                    : "—"}
-                  <span className="text-muted-foreground ml-2 text-sm font-normal">
-                    of {group.data.standing.memberCount}
-                  </span>
-                </dd>
-              </div>
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Sets won</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {group.data.membership.totalSetsWon}
-                </dd>
-              </div>
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Points won</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {group.data.membership.totalPointsWon}
-                </dd>
-              </div>
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Games played</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {group.data.membership.totalGamesPlayed}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        ) : group.data ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Your standing
-            </h3>
-            <div className="border-border bg-card rounded-xl border px-4 py-6">
-              <p className="text-muted-foreground text-sm">
-                You are not a member of this Group, so you do not have a
-                standing position here. Join to appear on the leaderboard.
-              </p>
-            </div>
-          </section>
-        ) : null}
-
-        {group.data ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Standing leaderboard
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Members ordered by sets won, then points won, then Games played,
-              then name.
-            </p>
-
-            {group.data.standing.leaderboard.length === 0 ? (
-              <div className="border-border bg-card rounded-xl border px-4 py-6">
-                <p className="text-muted-foreground text-sm">
-                  No members yet. When people join this Group, their standing
-                  will show here with sets, points, and Games at zero until they
-                  play.
-                </p>
-              </div>
-            ) : (
-              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                {group.data.standing.leaderboard.map((entry) => (
-                  <li
-                    key={entry.userId}
-                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-foreground font-medium">
-                        <span className="text-muted-foreground mr-2 tabular-nums">
-                          #{entry.position}
-                        </span>
-                        {entry.name}
-                        {entry.isViewer ? (
-                          <span className="text-muted-foreground ml-2 text-sm font-normal">
-                            (you)
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {entry.totalSetsWon} sets · {entry.totalPointsWon}{" "}
-                        points · {entry.totalGamesPlayed} Games
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ) : null}
-
-        {group.data ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Upcoming Games
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              {group.data.isCommunityArchived
-                ? "Existing Games stay listed here, not on public pickup. Join, waitlist, and Game invites are closed while the Community is Soft-archived."
-                : "Upcoming Games for this Group, soonest first."}
-            </p>
-
-            {group.data.upcomingGames.length === 0 ? (
-              <div className="border-border bg-card rounded-xl border px-4 py-6">
-                <p className="text-muted-foreground text-sm">
-                  No upcoming Games scheduled for this Group. When a Game is set
-                  with a live window or Match, it will show up here.
-                </p>
-              </div>
-            ) : (
-              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                {group.data.upcomingGames.map((game) => (
-                  <li key={game.id}>
-                    <Link
-                      href={`/dashboard/games/${game.id}`}
-                      className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-foreground font-medium">
-                          {game.name ?? "Untitled Game"}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          {formatGameStart(game.startTime)}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {game.sport ? (
-                          <Badge variant="secondary" className="capitalize">
-                            {game.sport}
-                          </Badge>
-                        ) : null}
-                        <Badge variant="outline" className="capitalize">
-                          {game.format.replaceAll("_", " ")}
-                        </Badge>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ) : null}
-
-        {group.data ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Game history
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Past or cancelled Games for this Group, newest first.
-            </p>
-
-            {group.data.gameHistory.length === 0 ? (
-              <div className="border-border bg-card rounded-xl border px-4 py-6">
-                <p className="text-muted-foreground text-sm">
-                  No Game history yet. Finished, cancelled, or past-window Games
-                  for this Group will appear here.
-                </p>
-              </div>
-            ) : (
-              <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                {group.data.gameHistory.map((game) => (
-                  <li key={game.id}>
-                    <Link
-                      href={`/dashboard/games/${game.id}`}
-                      className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-foreground font-medium">
-                          {game.name ?? "Untitled Game"}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          {formatGameStart(game.startTime)}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {game.sport ? (
-                          <Badge variant="secondary" className="capitalize">
-                            {game.sport}
-                          </Badge>
-                        ) : null}
-                        <Badge variant="outline" className="capitalize">
-                          {game.cancelledAt
-                            ? "cancelled"
-                            : game.format.replaceAll("_", " ")}
-                        </Badge>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ) : null}
-
-        {group.data?.canManageLookupInvites ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Lookup invite
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                {group.data.isLoose
-                  ? "Only you can look up an existing User by username, email, or phone. The invitee accepts on Invites. Lookup invites do not expire."
-                  : "Owner or Admin can look up any existing User. Accept auto-admits them as Community Member then joins this Group. The Group creator may Lookup existing Members only. Invitees accept on Invites."}
-              </p>
-            </div>
-
-            <form
-              className="flex flex-col gap-3 sm:flex-row"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const formData = new FormData(event.currentTarget);
-                const queryValue = formData.get("query");
-                if (typeof queryValue !== "string") {
-                  return;
-                }
-                const query = queryValue.trim();
-                if (!query) {
-                  return;
-                }
-                sendLookupInvite.mutate({ groupId: id, query });
-                event.currentTarget.reset();
-              }}
-            >
-              <Input
-                name="query"
-                type="text"
-                required
-                placeholder="Username, email, or phone"
-                className="flex-1"
-              />
-              <Button type="submit" disabled={sendLookupInvite.isPending}>
-                {sendLookupInvite.isPending ? "Sending…" : "Send Lookup invite"}
-              </Button>
-            </form>
-
-            {lookupInvites.data?.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No unused Lookup invites.
-              </p>
-            ) : null}
-            {lookupInvites.data && lookupInvites.data.length > 0 ? (
-              <ul className="divide-border border-border divide-y rounded-lg border">
-                {lookupInvites.data.map((invite) => (
-                  <li
-                    key={invite.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-foreground font-medium">
-                        {invite.user.name}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {invite.user.email}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        revokeLookupInvite.mutate({ inviteId: invite.id })
-                      }
-                      disabled={revokeLookupInvite.isPending}
-                    >
-                      Revoke
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
-
-        {group.data?.canManageInviteLinks ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Invite link
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Each copy mints a new 6-hour token. Older copied URLs stay live
-                until each expires. There is no rotate or revoke. Distinct from
-                the Group URL.
-              </p>
-            </div>
-            {inviteLink.data ? (
-              <p className="text-muted-foreground break-all text-sm">
-                Newest: {inviteLink.data.inviteUrl}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                No live Invite link. Copy to mint one.
-              </p>
-            )}
-            <Button
-              size="sm"
-              onClick={() => createInviteLink.mutate({ groupId: id })}
-              disabled={createInviteLink.isPending}
-            >
-              {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
-            </Button>
-          </section>
-        ) : null}
       </div>
+
+      <ConfirmDialog
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        title={`Leave ${groupName}?`}
+        description="You will leave this Group. Cancelling does nothing."
+        confirmLabel="Leave Group"
+        pending={leaveGroup.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await leaveGroup.mutateAsync({ groupId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete ${groupName}?`}
+        description="This cannot be undone. Cancelling does nothing."
+        confirmLabel="Delete Group"
+        pending={deleteGroup.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await deleteGroup.mutateAsync({ groupId: id });
+        }}
+      />
+
+      <GroupInvitesDialog
+        open={invitesOpen}
+        onOpenChange={setInvitesOpen}
+        restoreFocusRef={menuTriggerRef}
+        isLoose={data.isLoose}
+        canManageLookupInvites={data.canManageLookupInvites}
+        canManageInviteLinks={data.canManageInviteLinks}
+        lookupInvites={lookupInvites.data}
+        inviteUrl={inviteLink.data?.inviteUrl}
+        sendPending={sendLookupInvite.isPending}
+        revokePending={revokeLookupInvite.isPending}
+        copyPending={createInviteLink.isPending}
+        sendError={sendLookupInvite.error}
+        onSendLookup={(query) =>
+          sendLookupInvite.mutate({ groupId: id, query })
+        }
+        onRevokeLookup={(inviteId) => revokeLookupInvite.mutate({ inviteId })}
+        onCopyInviteLink={() => createInviteLink.mutate({ groupId: id })}
+      />
     </DashboardShell>
   );
 }

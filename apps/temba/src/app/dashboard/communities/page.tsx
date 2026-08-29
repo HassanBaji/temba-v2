@@ -1,113 +1,135 @@
 "use client";
 
+import { Building2 } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "~/components/common/empty-state";
+import { EntityMonogram } from "~/components/common/entity-monogram";
+import { ErrorState } from "~/components/common/error-state";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
+import { GroupTypeBadge } from "~/components/temba/group-type-badge";
+import { RoleBadge } from "~/components/temba/role-badge";
+import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
+
+function CommunitiesListSkeleton() {
+  return (
+    <div aria-busy="true" className="space-y-4">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div key={index} className="bg-surface-raised space-y-0 rounded-lg p-4">
+          <div className="flex items-center gap-3 pb-3">
+            <Skeleton className="size-10 shrink-0 rounded-lg" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-5 w-40 max-w-full" />
+              <Skeleton className="h-3 w-32 max-w-full" />
+            </div>
+          </div>
+          <Skeleton className="h-16 w-full rounded-none" />
+          <Skeleton className="h-16 w-full rounded-none" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function CommunitiesPage() {
   const mine = api.communities.mine.useQuery();
 
   return (
-    <DashboardShell title="Communities">
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              Communities
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Communities you belong to, with every Club Group nested. Open a
-              Community or Group to go to its home.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/communities/new">Create Community</Link>
-          </Button>
-        </div>
+    <DashboardShell
+      title="Communities"
+      description="Communities you belong to, with every Club Group nested. Open a Community or Group to go to its home."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/communities/new">Create Community</Link>
+        </Button>
+      }
+    >
+      {mine.isLoading ? <CommunitiesListSkeleton /> : null}
 
-        {mine.isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : null}
+      {mine.error ? (
+        <ErrorState
+          title="Communities could not be loaded"
+          message={mine.error.message}
+          onRetry={() => {
+            void mine.refetch();
+          }}
+        />
+      ) : null}
 
-        {mine.error ? (
-          <p className="text-destructive text-sm">{mine.error.message}</p>
-        ) : null}
+      {mine.data?.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="No Communities yet"
+          description="Create a Community to organise Club Groups around a Venue."
+          action={
+            <Button asChild>
+              <Link href="/dashboard/communities/new">Create Community</Link>
+            </Button>
+          }
+        />
+      ) : null}
 
-        {mine.data?.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            You are not in any Communities yet.
-          </p>
-        ) : null}
-
-        {mine.data && mine.data.length > 0 ? (
-          <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-            {mine.data.map((community) => (
-              <li key={community.id}>
+      {mine.data && mine.data.length > 0 ? (
+        <ul className="space-y-4">
+          {mine.data.map((community) => (
+            <li key={community.id}>
+              <Card variant="raised" className="p-0">
                 <Link
                   href={`/dashboard/communities/${community.id}`}
-                  className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
+                  className="focus-visible:ring-ring/50 flex min-h-16 items-center gap-3 p-4 outline-none focus-visible:ring-[3px]"
                 >
-                  <div className="space-y-1">
-                    <p className="text-foreground font-medium">
+                  <EntityMonogram name={community.name} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lead truncate font-semibold">
                       {community.name}
                     </p>
-                    <p className="text-muted-foreground text-sm capitalize">
-                      {community.type} · {community.role}
-                      {community.archivedAt ? " · Soft-archived" : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {community.archivedAt ? (
-                      <Badge variant="outline">Soft-archived</Badge>
-                    ) : null}
-                    {community.sports.map((sport) => (
-                      <Badge key={sport} variant="secondary">
-                        {sport}
-                      </Badge>
-                    ))}
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <CommunityTypeBadge type={community.type} />
+                      <RoleBadge role={community.role} />
+                      {community.archivedAt ? (
+                        <Badge variant="outline">Soft-archived</Badge>
+                      ) : null}
+                    </div>
                   </div>
                 </Link>
-                <ul className="border-border divide-border divide-y border-t">
+                <RowList>
                   {community.groups.length === 0 ? (
-                    <li className="text-muted-foreground px-4 py-3 pl-8 text-sm">
-                      No Groups yet.
+                    <li className="text-muted-foreground text-meta min-h-16 px-4 py-3">
+                      No Groups yet
                     </li>
                   ) : (
                     community.groups.map((group) => (
-                      <li key={group.id}>
-                        <Link
-                          href={`/dashboard/groups/${group.id}`}
-                          className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-3 pl-8 transition sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="space-y-1">
-                            <p className="text-foreground font-medium">
-                              {group.name ?? "Untitled Group"}
-                            </p>
-                            <p className="text-muted-foreground text-sm capitalize">
-                              {group.type}
-                              {group.isMember ? " · Joined" : ""}
-                            </p>
+                      <ListRow
+                        key={group.id}
+                        asChild
+                        title={group.name ?? "Untitled Group"}
+                        meta={group.isMember ? "Joined" : undefined}
+                        trailing={
+                          <div className="flex flex-wrap items-center gap-2">
+                            <GroupTypeBadge isLoose={false} type={group.type} />
+                            {group.sport ? (
+                              <SportBadge sport={group.sport} />
+                            ) : null}
                           </div>
-                          {group.sport ? (
-                            <Badge variant="secondary">{group.sport}</Badge>
-                          ) : null}
-                        </Link>
-                      </li>
+                        }
+                      >
+                        <Link href={`/dashboard/groups/${group.id}`} />
+                      </ListRow>
                     ))
                   )}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+                </RowList>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </DashboardShell>
   );
 }

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 
-import { AcceptTeamInviteLink } from "~/components/invites/accept-team-invite-link";
+import { AcceptInviteFlow } from "~/components/invites/accept-invite-flow";
 import { InviteShell } from "~/components/invites/invite-shell";
 import { teamInviteLinkPath } from "~/lib/invite-paths";
 
@@ -15,7 +15,8 @@ export default async function TeamInviteLinkPage({
 
   return (
     <InviteShell>
-      <AcceptTeamInviteLink
+      <AcceptInviteFlow
+        kind="team"
         token={token}
         isSignedIn={Boolean(userId)}
         returnPath={returnPath}

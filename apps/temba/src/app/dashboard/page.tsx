@@ -1,193 +1,211 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
+import { Users } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "~/components/common/empty-state";
+import { ErrorState } from "~/components/common/error-state";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Badge } from "~/components/ui/badge";
+import { GameSummaryCard } from "~/components/games/game-summary-card";
+import { Section } from "~/components/layout/section";
+import { SportBadge } from "~/components/temba/sport-badge";
+import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
+import { formatRelativeDay } from "~/lib/format-game-start";
 import { api } from "~/trpc/react";
 
-function formatGameStart(startTime: Date | string) {
+function formatClock(startTime: Date | string) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
+  return date.toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
   });
 }
 
+function inviteWaitingCopy(count: number) {
+  return count === 1
+    ? "You have 1 invite waiting"
+    : `You have ${count} invites waiting`;
+}
+
+function HomeSkeleton() {
+  return (
+    <div aria-busy="true" className="space-y-6">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-40 w-full rounded-lg" />
+      <div className="space-y-0">
+        <Skeleton className="h-16 w-full rounded-none" />
+        <Skeleton className="h-16 w-full rounded-none" />
+      </div>
+      <Skeleton className="h-16 w-full" />
+    </div>
+  );
+}
+
 export default function HomePage() {
+  const { user } = useUser();
   const home = api.users.home.useQuery();
+  const invites = usePendingInviteCount();
+  const firstName = user?.firstName;
+
+  const upcoming = home.data?.upcomingGames ?? [];
+  const hero = upcoming[0];
+  const rest = upcoming.slice(1);
+  const restVisible = rest.slice(0, 5);
+  const hasMoreUpcoming = rest.length > 5;
+  const standing = home.data?.standing ?? [];
+  const isFullyEmpty =
+    Boolean(home.data) && upcoming.length === 0 && standing.length === 0;
 
   return (
-    <DashboardShell title="Home">
-      <div className="space-y-8">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              Home
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Your Games played, upcoming Games, memberships, and standing in
-              each Group.
-            </p>
+    <DashboardShell
+      title="Home"
+      description="When you next play, anything waiting, and where you stand."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/games/new">Create Game</Link>
+        </Button>
+      }
+      width="wide"
+    >
+      {home.isLoading ? <HomeSkeleton /> : null}
+
+      {home.error ? (
+        <ErrorState
+          title="Home could not be loaded"
+          message={home.error.message}
+          onRetry={() => {
+            void home.refetch();
+          }}
+        />
+      ) : null}
+
+      {home.data && isFullyEmpty ? (
+        <EmptyState
+          icon={Users}
+          title="You are not in any Groups yet"
+          description="Groups are where you play and where your Standing lives."
+          action={
+            <Button asChild>
+              <Link href="/dashboard/groups">Groups</Link>
+            </Button>
+          }
+        />
+      ) : null}
+
+      {home.data && !isFullyEmpty ? (
+        <div className="space-y-6">
+          {firstName ? (
+            <p className="text-meta text-muted-foreground">Hi, {firstName}</p>
+          ) : null}
+
+          <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.62fr)_minmax(0,1fr)]">
+            <div className="space-y-6">
+              {hero ? (
+                <Card variant="elevated" className="p-0">
+                  <Link
+                    href={`/dashboard/groups/${hero.groupId}`}
+                    className="focus-visible:ring-ring/50 flex min-h-11 flex-col gap-3 p-4 outline-none focus-visible:ring-[3px] md:grid md:grid-cols-[1fr_auto] md:items-end"
+                  >
+                    <div className="space-y-2">
+                      <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
+                        {formatRelativeDay(hero.startTime)}
+                      </p>
+                      <p className="text-display font-bold tracking-[-0.02em]">
+                        {formatClock(hero.startTime)}
+                      </p>
+                      <p className="text-lead font-semibold">
+                        {hero.name ?? "Untitled Game"}
+                      </p>
+                      <p className="text-meta text-muted-foreground">
+                        {hero.groupName ?? "Group"}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {hero.sport ? <SportBadge sport={hero.sport} /> : null}
+                      </div>
+                    </div>
+                  </Link>
+                </Card>
+              ) : null}
+
+              {restVisible.length > 0 ? (
+                <Section
+                  title="Upcoming"
+                  action={
+                    hasMoreUpcoming ? (
+                      <Button asChild variant="ghost">
+                        <Link href="/dashboard/games">See all</Link>
+                      </Button>
+                    ) : null
+                  }
+                >
+                  <RowList>
+                    {restVisible.map((game) => (
+                      <GameSummaryCard
+                        key={game.id}
+                        name={game.name}
+                        startTime={game.startTime}
+                        groupName={game.groupName}
+                        sport={game.sport}
+                        href={`/dashboard/groups/${game.groupId}`}
+                      />
+                    ))}
+                  </RowList>
+                </Section>
+              ) : null}
+            </div>
+
+            <div className="space-y-6">
+              {invites.showCount ? (
+                <Card variant="outlined" className="p-0">
+                  <Link
+                    href="/dashboard/invites"
+                    className="focus-visible:ring-ring/50 flex min-h-11 items-center justify-between gap-3 p-4 outline-none focus-visible:ring-[3px]"
+                  >
+                    <p className="text-lead font-semibold">
+                      {inviteWaitingCopy(invites.count)}
+                    </p>
+                    <span className="text-body text-brand font-semibold">
+                      Review
+                    </span>
+                  </Link>
+                </Card>
+              ) : null}
+
+              {standing.length > 0 ? (
+                <Section title="Your standing">
+                  <RowList>
+                    {standing.map((entry) => (
+                      <ListRow
+                        key={entry.groupId}
+                        asChild
+                        title={entry.groupName ?? "Untitled Group"}
+                        meta={`${entry.position} of ${entry.memberCount}`}
+                        trailing={
+                          <div className="flex items-center gap-2">
+                            {entry.sport ? (
+                              <SportBadge sport={entry.sport} />
+                            ) : null}
+                            <span className="text-lead font-semibold tabular-nums">
+                              #{entry.position} of {entry.memberCount}
+                            </span>
+                          </div>
+                        }
+                      >
+                        <Link href={`/dashboard/groups/${entry.groupId}`} />
+                      </ListRow>
+                    ))}
+                  </RowList>
+                </Section>
+              ) : null}
+            </div>
           </div>
-          <Button asChild>
-            <Link href="/dashboard/games/new">Create Game</Link>
-          </Button>
         </div>
-
-        {home.isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : null}
-
-        {home.error ? (
-          <p className="text-destructive text-sm">{home.error.message}</p>
-        ) : null}
-
-        {home.data ? (
-          <>
-            <section className="space-y-3">
-              <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                Overview
-              </h3>
-              <dl className="border-border bg-card grid grid-cols-1 divide-y rounded-xl border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                <div className="space-y-1 px-4 py-4">
-                  <dt className="text-muted-foreground text-sm">
-                    Games played
-                  </dt>
-                  <dd className="text-foreground text-2xl font-semibold tracking-tight">
-                    {home.data.gamesPlayed}
-                  </dd>
-                </div>
-                <div className="space-y-1 px-4 py-4">
-                  <dt className="text-muted-foreground text-sm">Communities</dt>
-                  <dd className="text-foreground text-2xl font-semibold tracking-tight">
-                    {home.data.communitiesCount}
-                  </dd>
-                </div>
-                <div className="space-y-1 px-4 py-4">
-                  <dt className="text-muted-foreground text-sm">Groups</dt>
-                  <dd className="text-foreground text-2xl font-semibold tracking-tight">
-                    {home.data.groupsCount}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                Upcoming Games
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                Upcoming Games from Groups you belong to, soonest first.
-              </p>
-
-              {home.data.upcomingGames.length === 0 ? (
-                <div className="border-border bg-card space-y-3 rounded-xl border px-4 py-6">
-                  <p className="text-muted-foreground text-sm">
-                    No upcoming Games in your Groups. When a Group schedules a
-                    Game, it will show up here.
-                  </p>
-                  <Button asChild size="sm">
-                    <Link href="/dashboard/groups">Groups</Link>
-                  </Button>
-                </div>
-              ) : (
-                <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                  {home.data.upcomingGames.map((game) => (
-                    <li key={game.id}>
-                      <Link
-                        href={`/dashboard/games/${game.id}`}
-                        className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-foreground font-medium">
-                            {game.name ?? "Untitled Game"}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {game.groupName ?? "Group"} ·{" "}
-                            {formatGameStart(game.startTime)}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {game.sport ? (
-                            <Badge variant="secondary" className="capitalize">
-                              {game.sport}
-                            </Badge>
-                          ) : null}
-                          <Badge variant="outline" className="capitalize">
-                            {game.format.replaceAll("_", " ")}
-                          </Badge>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                Standing
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                Your position on each Group&apos;s leaderboard (by sets won).
-              </p>
-
-              {home.data.standing.length === 0 ? (
-                <div className="border-border bg-card space-y-3 rounded-xl border px-4 py-6">
-                  <p className="text-muted-foreground text-sm">
-                    You are not in any Groups yet. Join or create one to see
-                    your standing on the leaderboard.
-                  </p>
-                  <Button asChild size="sm">
-                    <Link href="/dashboard/groups">Groups</Link>
-                  </Button>
-                </div>
-              ) : (
-                <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                  {home.data.standing.map((entry) => (
-                    <li key={entry.groupId}>
-                      <Link
-                        href={`/dashboard/groups/${entry.groupId}`}
-                        className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-foreground font-medium">
-                            {entry.groupName ?? "Untitled Group"}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {entry.position} of {entry.memberCount} on the
-                            leaderboard
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {entry.sport ? (
-                            <Badge variant="secondary" className="capitalize">
-                              {entry.sport}
-                            </Badge>
-                          ) : null}
-                          <span className="text-foreground text-sm font-medium tabular-nums">
-                            #{entry.position}
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
-        ) : null}
-      </div>
+      ) : null}
     </DashboardShell>
   );
 }
