@@ -15,22 +15,21 @@ import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import {
   fieldErrorMessage,
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
+import { cn } from "~/lib/utils";
 import { LEVEL_BANDS, type SelfDeclareChoice } from "~/server/ratings/level";
 
 const FIELD_IDS = { choice: "declare-level-choice" };
 
 const UNKNOWN_CHOICE = "unknown" as const;
+
+const CHOICES: { value: SelfDeclareChoice; label: string }[] = [
+  ...LEVEL_BANDS.map((band) => ({ value: band, label: band })),
+  { value: UNKNOWN_CHOICE, label: "I don’t know" },
+];
 
 export function DeclareLevelDialog({
   open,
@@ -101,33 +100,42 @@ export function DeclareLevelDialog({
               message={globalFormErrorMessage(error)}
             />
             <Field>
-              <FieldLabel htmlFor="declare-level-choice">Level band</FieldLabel>
-              <Select
-                // Nested modal Select portals fight Dialog/Drawer pointer capture;
-                // keep this Select non-modal so Level band options stay clickable.
-                modal={false}
-                value={choice}
-                onValueChange={(value) => setChoice(value as SelfDeclareChoice)}
+              <FieldLabel id="declare-level-choice-label">
+                Level band
+              </FieldLabel>
+              <div
+                id="declare-level-choice"
+                role="radiogroup"
+                aria-labelledby="declare-level-choice-label"
+                aria-invalid={choiceError ? true : undefined}
+                aria-describedby={
+                  choiceError ? "declare-level-choice-error" : undefined
+                }
+                className="grid grid-cols-3 gap-2 sm:grid-cols-4"
               >
-                <SelectTrigger
-                  id="declare-level-choice"
-                  className="w-full"
-                  aria-invalid={choiceError ? true : undefined}
-                  aria-describedby={
-                    choiceError ? "declare-level-choice-error" : undefined
-                  }
-                >
-                  <SelectValue placeholder="Choose a Level band" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEVEL_BANDS.map((band) => (
-                    <SelectItem key={band} value={band}>
-                      {band}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value={UNKNOWN_CHOICE}>I don’t know</SelectItem>
-                </SelectContent>
-              </Select>
+                {CHOICES.map((option) => {
+                  const selected = choice === option.value;
+                  return (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      variant={selected ? "default" : "outline"}
+                      className={cn(
+                        "min-h-11",
+                        option.value === UNKNOWN_CHOICE && "col-span-3 sm:col-span-4",
+                      )}
+                      disabled={pending}
+                      onClick={() => {
+                        setChoice(option.value);
+                      }}
+                    >
+                      {option.label}
+                    </Button>
+                  );
+                })}
+              </div>
               <FieldError id="declare-level-choice-error">
                 {choiceError}
               </FieldError>
