@@ -93,7 +93,7 @@ Retired as a product door. Do not send named invitations bound to an email addre
 _Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 
 **Invite link**:
-A door URL any authenticated User may use while that token is live. Each copy mints a new token that expires 6 hours after mint; older tokens stay valid until each expires. No rotate or revoke. Used on Community (Public and Private), every Group type, and incomplete Team.
+A door URL any authenticated User may use while that token is live. Each copy mints a new token that expires 6 hours after mint; older tokens stay valid until each expires. No rotate or revoke. Used on Community (Public and Private), every Group type, incomplete Team, and Game.
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Venue link**:
@@ -121,8 +121,8 @@ A Team with no Community link (unattached).
 _Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
-One side in a single Game (the `game_teams` row). Not a Team.
-_Avoid_: Team (when you mean a Game side), partnership
+One side on a Game: a complete Team or an ad-hoc pair of Users, reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
+_Avoid_: Team (when you mean a Game side), partnership, pair (when you mean this entity)
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
@@ -141,12 +141,36 @@ A Community role with no staff powers. Community membership is required to join 
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
 **Soft-archive**:
-A reversible hide. For a Community: hides it and its Club Groups together; Games are kept; Club Groups stay attached; refuse new joins, invites, Team→Community link requests and decisions, Venue link requests and decisions, and invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats and a live Venue link remain visible to those allowed to open the Community. For a Venue: hides it from the Community request catalog; refuse new Venue link requests and decisions; live Community Venue links stay; Members still see that Venue on Community home as history. Not a delete, not detaching Groups, and not unlinking a Venue.
+A reversible hide. For a Community: hides it and its Club Groups together; Games are kept; existing Club Group Games stay visible to those allowed to open the Community or Group and are excluded from public pickup; new Club Group Games are refused; register, waitlist, and Game Lookup/Invite link mint and accept behave as closed; organizers may still add Matches and assign Courts and cannot reopen while archived; Club Groups stay attached; refuse new joins, invites, Team→Community link requests and decisions, Venue link requests and decisions, and invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats and a live Venue link remain visible to those allowed to open the Community. For a Venue: hides it from the Community request catalog; refuse new Venue link requests and decisions; live Community Venue links stay; Members still see that Venue on Community home as history. Not a delete, not detaching Groups, and not unlinking a Venue.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-A match that may belong to a Group. Games do not belong to a Community directly.
-_Avoid_: session (when you mean Game), match (in code/docs; Game is the term)
+The parent event that contains one or more Matches. A Game may belong to a Group and does not belong to a Community directly.
+_Avoid_: Event (when you mean Game), session, match (that is a Match)
+
+**Match**:
+A playable contest with two sides that belongs to one Game.
+_Avoid_: Game (the parent event), session, fixture (when you mean a Match; not a separate entity)
+
+**Set**:
+A scored unit inside a Match, added after play. A Match may have any number of Sets. A Set may be drawn (equal games).
+_Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temba term)
+
+**Americano**:
+A Game format with individual-only registration and rotating partners across multiple Matches. Matches are generated after registration.
+_Avoid_: Friendly tournament, Friendly game, tournament, team-only (illegal on this format)
+
+**Friendly tournament**:
+A Game format with multiple Matches and the same sides on every Match. The organizer adds each Match by hand.
+_Avoid_: Americano, Friendly game, bracket (a later style of Friendly tournament)
+
+**Friendly game**:
+A Game format with exactly one Match, created with the Game.
+_Avoid_: Single, Friendly tournament, Americano
+
+**Waitlist**:
+The queue to join a Game after its cap is reached.
+_Avoid_: player (when you mean someone waitlisted), guest
 
 **User**:
 A person with a Temba account.
