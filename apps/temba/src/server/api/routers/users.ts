@@ -13,9 +13,9 @@ import {
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import {
-  EMPTY_PLAYER_STATS,
-  playerStatsFromCompletedMatches,
-} from "~/server/home/player-stats";
+  EMPTY_HOME_MATCH_STATS,
+  homeMatchStatsFromCompletedMatches,
+} from "~/server/home/match-stats";
 import {
   filterAndSortHomeUpcomingGames,
   gameListTime,
@@ -177,7 +177,7 @@ export const usersRouter = createTRPCRouter({
       ),
     ];
 
-    let stats = EMPTY_PLAYER_STATS;
+    let stats = EMPTY_HOME_MATCH_STATS;
     if (myGameTeamIds.length > 0) {
       const completedMatches = await ctx.db.query.matches.findMany({
         where: and(
@@ -203,7 +203,7 @@ export const usersRouter = createTRPCRouter({
           },
         },
       });
-      stats = playerStatsFromCompletedMatches(
+      stats = homeMatchStatsFromCompletedMatches(
         completedMatches.map((match) => ({
           slot1GameTeamId: match.slot1GameTeamId,
           slot2GameTeamId: match.slot2GameTeamId,

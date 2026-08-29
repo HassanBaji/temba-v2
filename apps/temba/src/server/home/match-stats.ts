@@ -1,34 +1,35 @@
 /**
- * Home player stats from completed Matches the User sat on:
- * Games played / Games won are completed Matches; Sets won are Set-wins
- * on those Matches. Cancelled Games do not count. Draws are played, not won.
+ * Home strip labels use "Games played / Games won / Sets won" (user-facing).
+ * Counts are completed Matches the User sat on via a Game team slot; Sets won
+ * are Set-wins on those Matches. Cancelled Games do not count. Draws are
+ * played, not won.
  */
 
 import { matchOutcome } from "~/server/games/sets";
 
-export type PlayerStatSet = {
+export type MatchSetScore = {
   slot1GamesWon: number | null;
   slot2GamesWon: number | null;
 };
 
-export type PlayerStatMatch = {
+type CompletedMatchForStats = {
   userSlot: 1 | 2;
-  sets: readonly PlayerStatSet[];
+  sets: readonly MatchSetScore[];
 };
 
-export type PlayerStats = {
+export type HomeMatchStats = {
   gamesPlayed: number;
   gamesWon: number;
   setsWon: number;
 };
 
-export const EMPTY_PLAYER_STATS: PlayerStats = {
+export const EMPTY_HOME_MATCH_STATS: HomeMatchStats = {
   gamesPlayed: 0,
   gamesWon: 0,
   setsWon: 0,
 };
 
-export function userSlotOnMatch(
+function userSlotOnMatch(
   match: {
     slot1GameTeamId: string | null;
     slot2GameTeamId: string | null;
@@ -45,9 +46,9 @@ export function userSlotOnMatch(
   return onSlot1 ? 1 : 2;
 }
 
-export function summarizePlayerStats(
-  matches: readonly PlayerStatMatch[],
-): PlayerStats {
+function summarizeCompletedMatchStats(
+  matches: readonly CompletedMatchForStats[],
+): HomeMatchStats {
   let gamesWon = 0;
   let setsWon = 0;
   for (const match of matches) {
@@ -71,16 +72,16 @@ export function summarizePlayerStats(
   };
 }
 
-export function playerStatsFromCompletedMatches(
+export function homeMatchStatsFromCompletedMatches(
   matches: readonly {
     slot1GameTeamId: string | null;
     slot2GameTeamId: string | null;
     gameCancelled: boolean;
-    sets: readonly PlayerStatSet[];
+    sets: readonly MatchSetScore[];
   }[],
   myGameTeamIds: ReadonlySet<string>,
-): PlayerStats {
-  const played: PlayerStatMatch[] = [];
+): HomeMatchStats {
+  const played: CompletedMatchForStats[] = [];
   for (const match of matches) {
     if (match.gameCancelled) {
       continue;
@@ -91,5 +92,5 @@ export function playerStatsFromCompletedMatches(
     }
     played.push({ userSlot, sets: match.sets });
   }
-  return summarizePlayerStats(played);
+  return summarizeCompletedMatchStats(played);
 }
