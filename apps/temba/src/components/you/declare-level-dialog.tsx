@@ -103,7 +103,7 @@ export function DeclareLevelDialog({
             <Field>
               <FieldLabel htmlFor="declare-level-choice">Level band</FieldLabel>
               <Select
-                value={choice === "" ? undefined : choice}
+                value={choice}
                 onValueChange={(value) => setChoice(value as SelfDeclareChoice)}
               >
                 <SelectTrigger
