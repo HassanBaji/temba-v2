@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
+import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
@@ -133,6 +134,17 @@ export default function GameHomePage({
   const registerSelf = api.games.register.useMutation({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      await utils.games.byId.invalidate({ id });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const registerSeat = api.games.registerSeat.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
       await utils.games.byId.invalidate({ id });
       await utils.users.home.invalidate();
     },
@@ -1113,10 +1125,95 @@ export default function GameHomePage({
             </Section>
 
             <Section
-              title={data.format === "americano" ? "Player pool" : "Registered"}
+              title={
+                data.format === "americano"
+                  ? "Player pool"
+                  : data.format === "friendly_game" &&
+                      data.registrationMode === "individual"
+                    ? "Sides"
+                    : "Registered"
+              }
             >
-              {data.gameTeams.length === 0 &&
-              data.registeredPlayers.length === 0 ? (
+              {data.format === "friendly_game" &&
+              data.registrationMode === "individual" ? (
+                <div className="space-y-4">
+                  <GameSeatGrid
+                    sides={data.sides}
+                    canJoinVacant={
+                      data.canRegister || data.canWaitlist || data.canPickSeat
+                    }
+                    joinLabel={
+                      data.canWaitlist && !data.canPickSeat
+                        ? "Join waitlist"
+                        : "Sit here"
+                    }
+                    joining={registerSeat.isPending}
+                    isOrganizer={data.isOrganizer}
+                    cancelled={Boolean(data.cancelledAt)}
+                    kickPending={kick.isPending}
+                    onJoin={(sideIndex, position) =>
+                      registerSeat.mutate({
+                        gameId: id,
+                        sideIndex,
+                        position,
+                      })
+                    }
+                    onKick={(userId) =>
+                      kick.mutate({
+                        gameId: id,
+                        userId,
+                      })
+                    }
+                  />
+                  {data.canPickSeat ? (
+                    <p className="text-muted-foreground text-sm">
+                      Pick a vacant Position to occupy a side.
+                    </p>
+                  ) : null}
+                  {data.unseatedPlayers.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-sm">
+                        These Users must pick a vacant Position before they
+                        occupy a side.
+                      </p>
+                      <RowList>
+                        {data.unseatedPlayers.map((player) => (
+                          <li
+                            key={player.id}
+                            className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
+                          >
+                            <p className="text-foreground font-medium">
+                              {player.name}
+                            </p>
+                            {data.isOrganizer && !data.cancelledAt ? (
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  kick.mutate({
+                                    gameId: id,
+                                    userId: player.id,
+                                  })
+                                }
+                                disabled={kick.isPending}
+                              >
+                                Kick
+                              </Button>
+                            ) : null}
+                          </li>
+                        ))}
+                      </RowList>
+                    </div>
+                  ) : null}
+                  {data.sides.every(
+                    (side) => side.left == null && side.right == null,
+                  ) && data.unseatedPlayers.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">
+                      Nobody is seated yet. Pick a vacant Position.
+                    </p>
+                  ) : null}
+                </div>
+              ) : data.gameTeams.length === 0 &&
+                data.registeredPlayers.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   Nobody is registered yet.
                 </p>

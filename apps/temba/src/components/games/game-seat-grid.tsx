@@ -1,0 +1,116 @@
+import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
+
+export type SeatSideView = {
+  sideIndex: number;
+  gameTeamId: string | null;
+  left: { userId: string; name: string } | null;
+  right: { userId: string; name: string } | null;
+};
+
+function SeatCell({
+  label,
+  occupant,
+  canJoin,
+  joinLabel,
+  joining,
+  isOrganizer,
+  kickPending,
+  onJoin,
+  onKick,
+}: {
+  label: string;
+  occupant: { userId: string; name: string } | null;
+  canJoin: boolean;
+  joinLabel: string;
+  joining: boolean;
+  isOrganizer: boolean;
+  kickPending: boolean;
+  onJoin: () => void;
+  onKick: (userId: string) => void;
+}) {
+  return (
+    <div className="border-border flex min-h-24 flex-col justify-between gap-2 rounded-md border p-3">
+      <p className="text-muted-foreground text-xs font-medium uppercase">
+        {label}
+      </p>
+      {occupant ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-foreground font-medium">{occupant.name}</p>
+          {isOrganizer ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onKick(occupant.userId)}
+              disabled={kickPending}
+            >
+              Kick
+            </Button>
+          ) : null}
+        </div>
+      ) : canJoin ? (
+        <Button onClick={onJoin} disabled={joining} variant="outline">
+          {joining ? "Joining…" : joinLabel}
+        </Button>
+      ) : (
+        <p className="text-muted-foreground text-sm">Vacant</p>
+      )}
+    </div>
+  );
+}
+
+export function GameSeatGrid({
+  sides,
+  canJoinVacant,
+  joinLabel,
+  joining,
+  isOrganizer,
+  cancelled,
+  kickPending,
+  onJoin,
+  onKick,
+}: {
+  sides: SeatSideView[];
+  canJoinVacant: boolean;
+  joinLabel: string;
+  joining: boolean;
+  isOrganizer: boolean;
+  cancelled: boolean;
+  kickPending: boolean;
+  onJoin: (sideIndex: number, position: "left" | "right") => void;
+  onKick: (userId: string) => void;
+}) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {sides.map((side) => (
+        <Card key={side.sideIndex} variant="outlined" className="space-y-3">
+          <h3 className="text-title font-medium">Slot {side.sideIndex}</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <SeatCell
+              label="Left"
+              occupant={side.left}
+              canJoin={canJoinVacant && !cancelled}
+              joinLabel={joinLabel}
+              joining={joining}
+              isOrganizer={isOrganizer && !cancelled}
+              kickPending={kickPending}
+              onJoin={() => onJoin(side.sideIndex, "left")}
+              onKick={onKick}
+            />
+            <SeatCell
+              label="Right"
+              occupant={side.right}
+              canJoin={canJoinVacant && !cancelled}
+              joinLabel={joinLabel}
+              joining={joining}
+              isOrganizer={isOrganizer && !cancelled}
+              kickPending={kickPending}
+              onJoin={() => onJoin(side.sideIndex, "right")}
+              onKick={onKick}
+            />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}

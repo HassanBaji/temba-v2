@@ -25,6 +25,7 @@ import {
   enqueueWaitlistTeam,
   enqueueWaitlistUser,
 } from "~/server/games/waitlist";
+import { isIndividualSeatGame } from "~/server/games/seats";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -98,6 +99,11 @@ export async function admitIndividualUser(
 
   const status = await getRegistrationStatus(database, game, now);
   if (status === "full") {
+    await enqueueWaitlistUser(database, game.id, userId);
+    return { waitlisted: true };
+  }
+
+  if (isIndividualSeatGame(game)) {
     await enqueueWaitlistUser(database, game.id, userId);
     return { waitlisted: true };
   }

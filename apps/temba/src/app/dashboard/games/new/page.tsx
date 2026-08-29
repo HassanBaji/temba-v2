@@ -216,9 +216,7 @@ function NewGameForm() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="individual">
-                        Individual (register with a partner)
-                      </SelectItem>
+                      <SelectItem value="individual">Individual</SelectItem>
                       <SelectItem value="team_only">
                         Team-only (complete Team)
                       </SelectItem>
