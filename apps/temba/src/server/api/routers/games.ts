@@ -77,8 +77,10 @@ import {
   insertIndividualPairOnVacantSide,
   isIndividualSeatGame,
   listGameSides,
+  moveToSeat,
   occupySeat,
   remainingCapacity,
+  sitsOnCompletedMatch,
 } from "~/server/games/seats";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
 import {
@@ -612,6 +614,23 @@ export const gamesRouter = createTRPCRouter({
         !isSeated &&
         registrationStatus !== "cancelled" &&
         registrationStatus !== "closed";
+      const hasVacantPosition = sides.some(
+        (side) => side.left == null || side.right == null,
+      );
+      let sitsCompleted = false;
+      if (isSeated) {
+        for (const teamId of myGameTeamIds) {
+          if (await sitsOnCompletedMatch(ctx.db, game.id, teamId)) {
+            sitsCompleted = true;
+            break;
+          }
+        }
+      }
+      const canMove =
+        isSeated &&
+        registrationStatus === "open" &&
+        hasVacantPosition &&
+        !sitsCompleted;
 
       return {
         id: game.id,
@@ -647,6 +666,7 @@ export const gamesRouter = createTRPCRouter({
           !alreadyOnGame &&
           !isWaitlisted,
         canPickSeat,
+        canMove,
         canLeave: alreadyOnGame || isWaitlisted,
         registeredUserCount: userCount,
         registeredTeamCount: teamCount,
@@ -847,6 +867,41 @@ export const gamesRouter = createTRPCRouter({
         await occupySeat(tx, game, appUser.id, input.sideIndex, input.position);
       });
       return { ok: true as const, waitlisted: false as const };
+    }),
+
+  moveSeat: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        sideIndex: z.number().int().min(1),
+        position: z.enum(["left", "right"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const now = new Date();
+
+      if (!isIndividualSeatGame(game)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Move a seat on an individual Friendly game or tournament",
+        });
+      }
+
+      await assertRegistrationOpen(ctx.db, game, now);
+      const status = await getRegistrationStatus(ctx.db, game, now);
+      if (status === "full") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "No vacant Position",
+        });
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        await moveToSeat(tx, game, appUser.id, input.sideIndex, input.position);
+      });
+      return { ok: true as const };
     }),
 
   registerWithPartner: protectedProcedure

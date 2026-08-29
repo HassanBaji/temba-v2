@@ -157,6 +157,17 @@ export default function GameHomePage({
     },
   });
 
+  const moveSeat = api.games.moveSeat.useMutation({
+    onSuccess: async () => {
+      toast.success("Moved");
+      await utils.games.byId.invalidate({ id });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
@@ -1154,11 +1165,20 @@ export default function GameHomePage({
                         : "Sit here"
                     }
                     joining={registerSeat.isPending}
+                    canMove={data.canMove}
+                    moving={moveSeat.isPending}
                     isOrganizer={data.isOrganizer}
                     cancelled={Boolean(data.cancelledAt)}
                     kickPending={kick.isPending}
                     onJoin={(sideIndex, position) =>
                       registerSeat.mutate({
+                        gameId: id,
+                        sideIndex,
+                        position,
+                      })
+                    }
+                    onMove={(sideIndex, position) =>
+                      moveSeat.mutate({
                         gameId: id,
                         sideIndex,
                         position,

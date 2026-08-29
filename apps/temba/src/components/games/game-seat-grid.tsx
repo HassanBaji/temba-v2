@@ -14,9 +14,12 @@ function SeatCell({
   canJoin,
   joinLabel,
   joining,
+  canMove,
+  moving,
   isOrganizer,
   kickPending,
   onJoin,
+  onMove,
   onKick,
 }: {
   label: string;
@@ -24,9 +27,12 @@ function SeatCell({
   canJoin: boolean;
   joinLabel: string;
   joining: boolean;
+  canMove: boolean;
+  moving: boolean;
   isOrganizer: boolean;
   kickPending: boolean;
   onJoin: () => void;
+  onMove: () => void;
   onKick: (userId: string) => void;
 }) {
   return (
@@ -48,6 +54,10 @@ function SeatCell({
             </Button>
           ) : null}
         </div>
+      ) : canMove ? (
+        <Button onClick={onMove} disabled={moving} variant="outline">
+          {moving ? "Moving…" : "Move here"}
+        </Button>
       ) : canJoin ? (
         <Button onClick={onJoin} disabled={joining} variant="outline">
           {joining ? "Joining…" : joinLabel}
@@ -64,20 +74,26 @@ export function GameSeatGrid({
   canJoinVacant,
   joinLabel,
   joining,
+  canMove,
+  moving,
   isOrganizer,
   cancelled,
   kickPending,
   onJoin,
+  onMove,
   onKick,
 }: {
   sides: SeatSideView[];
   canJoinVacant: boolean;
   joinLabel: string;
   joining: boolean;
+  canMove: boolean;
+  moving: boolean;
   isOrganizer: boolean;
   cancelled: boolean;
   kickPending: boolean;
   onJoin: (sideIndex: number, position: "left" | "right") => void;
+  onMove: (sideIndex: number, position: "left" | "right") => void;
   onKick: (userId: string) => void;
 }) {
   return (
@@ -92,9 +108,12 @@ export function GameSeatGrid({
               canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}
               joining={joining}
+              canMove={canMove && !cancelled}
+              moving={moving}
               isOrganizer={isOrganizer && !cancelled}
               kickPending={kickPending}
               onJoin={() => onJoin(side.sideIndex, "left")}
+              onMove={() => onMove(side.sideIndex, "left")}
               onKick={onKick}
             />
             <SeatCell
@@ -103,9 +122,12 @@ export function GameSeatGrid({
               canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}
               joining={joining}
+              canMove={canMove && !cancelled}
+              moving={moving}
               isOrganizer={isOrganizer && !cancelled}
               kickPending={kickPending}
               onJoin={() => onJoin(side.sideIndex, "right")}
+              onMove={() => onMove(side.sideIndex, "right")}
               onKick={onKick}
             />
           </div>

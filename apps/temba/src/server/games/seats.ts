@@ -1,7 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 
-import { gamePlayers, gameTeamPlayers, gameTeams, matches } from "@repo/db";
+import {
+  MatchStatusEnum,
+  gamePlayers,
+  gameTeamPlayers,
+  gameTeams,
+  matches,
+} from "@repo/db";
 
 import { type db } from "~/server/db";
 import {
@@ -373,4 +379,99 @@ export async function remainingCapacity(database: DbClient, game: GameRow) {
   const userCount = await registeredUserCount(database, game.id);
   const cap = game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED;
   return cap - userCount;
+}
+
+export async function sitsOnCompletedMatch(
+  database: DbClient,
+  gameId: string,
+  gameTeamId: string,
+) {
+  const completed = await database.query.matches.findFirst({
+    where: and(
+      eq(matches.gameId, gameId),
+      eq(matches.status, MatchStatusEnum.COMPLETED),
+      or(
+        eq(matches.slot1GameTeamId, gameTeamId),
+        eq(matches.slot2GameTeamId, gameTeamId),
+      ),
+    ),
+    columns: { id: true },
+  });
+  return Boolean(completed);
+}
+
+export async function moveToSeat(
+  database: Tx,
+  game: GameRow,
+  userId: string,
+  sideIndex: number,
+  position: SeatPosition,
+) {
+  const n = sideCount(game);
+  if (sideIndex < 1 || sideIndex > n) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "That side is not on this Game",
+    });
+  }
+
+  const player = await database.query.gamePlayers.findFirst({
+    where: and(eq(gamePlayers.gameId, game.id), eq(gamePlayers.userId, userId)),
+  });
+  if (!player) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "You are not seated on this Game",
+    });
+  }
+  const link = await database.query.gameTeamPlayers.findFirst({
+    where: eq(gameTeamPlayers.gamePlayerId, player.id),
+  });
+  if (!link) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "You are not seated on this Game",
+    });
+  }
+
+  const team = await database.query.gameTeams.findFirst({
+    where: eq(gameTeams.id, link.gameTeamId),
+    columns: { id: true, sideIndex: true },
+  });
+  if (team?.sideIndex === sideIndex && link.position === position) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "You are already in that Position",
+    });
+  }
+
+  if (await sitsOnCompletedMatch(database, game.id, link.gameTeamId)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You cannot move after sitting on a completed Match",
+    });
+  }
+
+  const destTeam = await database.query.gameTeams.findFirst({
+    where: and(
+      eq(gameTeams.gameId, game.id),
+      eq(gameTeams.sideIndex, sideIndex),
+    ),
+    columns: { id: true },
+  });
+  if (destTeam && (await occupantAt(database, destTeam.id, position))) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "That Position is occupied",
+    });
+  }
+
+  await database.delete(gameTeamPlayers).where(eq(gameTeamPlayers.id, link.id));
+  const remaining = await gameTeamPlayerCount(database, link.gameTeamId);
+  if (remaining === 0) {
+    await clearMatchSlotsForGameTeam(database, link.gameTeamId);
+    await database.delete(gameTeams).where(eq(gameTeams.id, link.gameTeamId));
+  }
+
+  await occupySeat(database, game, userId, sideIndex, position, player.id);
 }
