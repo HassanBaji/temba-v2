@@ -1,17 +1,56 @@
 "use client";
 
+import { Lock, Users } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { use } from "react";
+import { notFound, useRouter } from "next/navigation";
+import { use, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+} from "~/components/common/action-menu";
+import { AvatarStack } from "~/components/common/avatar-stack";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { EmptyState } from "~/components/common/empty-state";
+import { ErrorState } from "~/components/common/error-state";
+import { ListRow, RowList } from "~/components/common/row-list";
+import { StatStrip } from "~/components/common/stat-strip";
+import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { SPORT_LABELS, SportBadge } from "~/components/temba/sport-badge";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "~/components/common/responsive-dialog";
+import { DetailPageSkeleton } from "~/components/common/page-skeleton";
+import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Skeleton } from "~/components/ui/skeleton";
+import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api } from "~/trpc/react";
+
+function isForbiddenError(error: unknown) {
+  if (!error || typeof error !== "object" || !("data" in error)) {
+    return false;
+  }
+  const data = error.data;
+  if (!data || typeof data !== "object" || !("code" in data)) {
+    return false;
+  }
+  return data.code === "FORBIDDEN";
+}
+
+function winRate(gamesPlayed: number, wins: number) {
+  if (gamesPlayed === 0) {
+    return "—";
+  }
+  return `${Math.round((wins / gamesPlayed) * 100)}%`;
+}
 
 export default function TeamHomePage({
   params,
@@ -21,6 +60,12 @@ export default function TeamHomePage({
   const { id } = use(params);
   const router = useRouter();
   const utils = api.useUtils();
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const [dissolveOpen, setDissolveOpen] = useState(false);
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+
   const team = api.teams.byId.useQuery({ id });
 
   const inviteLink = api.teams.getInviteLink.useQuery(
@@ -65,9 +110,6 @@ export default function TeamHomePage({
       await utils.teams.mine.invalidate();
       router.push("/dashboard/teams");
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
   const communities = api.communities.mine.useQuery(undefined, {
@@ -78,6 +120,7 @@ export default function TeamHomePage({
     onSuccess: async () => {
       toast.success("Link request sent");
       await utils.teams.byId.invalidate({ id });
+      setLinkOpen(false);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -94,300 +137,292 @@ export default function TeamHomePage({
         await utils.communities.mine.invalidate();
       }
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
+  if (isNotFoundError(team.error)) {
+    notFound();
+  }
+
+  if (team.isLoading) {
+    return (
+      <DashboardShell title="Team" hidePageHeader>
+        <DetailPageSkeleton />
+      </DashboardShell>
+    );
+  }
+
+  if (isForbiddenError(team.error)) {
+    return (
+      <DashboardShell title="Team" hidePageHeader>
+        <EmptyState
+          icon={Lock}
+          title="You cannot open this Team"
+          description="Only Team members, members of a linked Community, or a pending invitee can open a Team home."
+          action={
+            <Button asChild>
+              <Link href="/dashboard/teams">Back to Teams</Link>
+            </Button>
+          }
+        />
+      </DashboardShell>
+    );
+  }
+
+  if (team.error) {
+    return (
+      <DashboardShell title="Team" hidePageHeader>
+        <ErrorState
+          title="Team could not be loaded"
+          message={team.error.message}
+          onRetry={() => {
+            void team.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  if (!team.data) {
+    return (
+      <DashboardShell title="Team" hidePageHeader>
+        <ErrorState
+          title="Team could not be loaded"
+          onRetry={() => {
+            void team.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  const data = team.data;
+  const displayName = data.displayName ?? "Team";
+  const people = data.members.map((member) => ({
+    name: member.name ?? "Member",
+  }));
+
   return (
-    <DashboardShell title={team.data?.displayName ?? "Team"}>
+    <DashboardShell title={displayName} hidePageHeader>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            {team.isLoading ? (
-              <>
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-72" />
-              </>
-            ) : null}
-
-            {team.error ? (
-              <p className="text-destructive text-sm">{team.error.message}</p>
-            ) : null}
-
-            {team.data ? (
-              <>
-                <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span>
-                    {team.data.sport in SPORT_LABELS
-                      ? SPORT_LABELS[
-                          team.data.sport as keyof typeof SPORT_LABELS
-                        ]
-                      : team.data.sport}
-                  </span>
-                  {team.data.isLoose ? (
-                    <span>· Unattached</span>
-                  ) : (
-                    <span>· Club Team</span>
-                  )}
-                  {team.data.membership ? (
-                    <span>· You are a member</span>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <SportBadge sport={team.data.sport} />
-                  {team.data.isLoose ? (
-                    <Badge variant="outline">Unattached</Badge>
-                  ) : (
-                    <Badge variant="outline">Club Team</Badge>
-                  )}
-                  {team.data.waitingForPartner ? (
-                    <Badge variant="outline">Waiting for partner</Badge>
-                  ) : null}
-                </div>
-                {team.data.community ? (
-                  <p className="text-muted-foreground text-sm">
-                    Linked to{" "}
-                    <Link
-                      href={`/dashboard/communities/${team.data.community.id}`}
-                      className="hover:text-foreground underline underline-offset-2"
-                    >
-                      {team.data.community.name}
-                    </Link>
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    This Team is not linked to a Community.
-                  </p>
-                )}
-              </>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {team.data?.canUnlink ? (
-              <Button
-                variant="outline"
-                onClick={() => unlink.mutate({ teamId: id })}
-                disabled={unlink.isPending}
-              >
-                {unlink.isPending ? "Unlinking…" : "Unlink Team"}
-              </Button>
-            ) : null}
-            {team.data?.canDissolve ? (
-              <Button
-                variant="outline"
-                onClick={() => dissolve.mutate({ teamId: id })}
-                disabled={dissolve.isPending}
-              >
-                {dissolve.isPending ? "Dissolving…" : "Dissolve Team"}
-              </Button>
-            ) : null}
-            {team.data ? (
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/teams">My Teams</Link>
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        {team.data ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Members
-            </h3>
-            <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-              {team.data.members.map((member) => (
-                <li
-                  key={member.id}
-                  className="flex flex-col gap-1 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <p className="text-foreground font-medium">
-                    {member.name}
-                    {member.isViewer ? (
-                      <span className="text-muted-foreground ml-2 text-sm font-normal">
-                        (you)
-                      </span>
-                    ) : null}
-                  </p>
-                  {member.isCreator ? (
-                    <Badge variant="outline">Creator</Badge>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-            {team.data.waitingForPartner ? (
-              <p className="text-muted-foreground text-sm">
-                Waiting for a partner. This Team is incomplete until a second
-                member joins.
-              </p>
-            ) : null}
-          </section>
+        {data.waitingForPartner && data.canInvite ? (
+          <Button
+            className="min-h-11 w-full sm:w-auto"
+            onClick={() => setInviteOpen(true)}
+          >
+            Invite your partner
+          </Button>
         ) : null}
 
-        {team.data ? (
-          <section className="space-y-3">
-            <h3 className="text-foreground text-lg font-semibold tracking-tight">
-              Team stats
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Stored partnership counters. They start at zero until Games
-              complete.
-            </p>
-            <dl className="border-border bg-card grid grid-cols-1 divide-y rounded-xl border md:grid-cols-3 md:divide-x md:divide-y-0">
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Games played</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {team.data.gamesPlayed}
-                </dd>
-              </div>
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Wins</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {team.data.wins}
-                </dd>
-              </div>
-              <div className="space-y-1 px-4 py-4">
-                <dt className="text-muted-foreground text-sm">Losses</dt>
-                <dd className="text-foreground text-2xl font-semibold tabular-nums tracking-tight">
-                  {team.data.losses}
-                </dd>
-              </div>
-            </dl>
-            {team.data.waitingForPartner ? (
-              <p className="text-muted-foreground text-sm">
-                Waiting for a partner — stats stay at zero until the Team is
-                full and Games are completed.
-              </p>
-            ) : null}
-          </section>
-        ) : null}
-
-        {team.data?.canRequestLink || team.data?.pendingLinkRequest ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Community link
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Full Teams can request a link to a Community. Owner or Admin
-                approve; missing members are auto-admitted.
-              </p>
+        <header className="flex items-start gap-3">
+          <AvatarStack
+            people={people}
+            openSeats={data.waitingForPartner ? 1 : 0}
+            size="lg"
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <h1 className="text-h2 lg:text-h1 font-bold tracking-[-0.02em]">
+              {displayName}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <SportBadge sport={data.sport} />
+              {data.isLoose ? (
+                <Badge variant="outline">Not linked to a Community</Badge>
+              ) : (
+                <Badge variant="outline">Club Team</Badge>
+              )}
+              {data.waitingForPartner ? (
+                <Badge variant="outline">Incomplete</Badge>
+              ) : null}
             </div>
-
-            {team.data.pendingLinkRequest ? (
-              <p className="text-muted-foreground text-sm">
-                Pending request to{" "}
-                <span className="text-foreground font-medium">
-                  {team.data.pendingLinkRequest.community.name}
-                </span>
-                .
+            {data.community ? (
+              <p className="text-meta text-muted-foreground">
+                Linked to{" "}
+                <Link
+                  href={`/dashboard/communities/${data.community.id}`}
+                  className="text-foreground underline underline-offset-2"
+                >
+                  {data.community.name}
+                </Link>
               </p>
             ) : null}
+          </div>
+          <div className="flex shrink-0 flex-nowrap items-center gap-1">
+            <ActionMenu triggerRef={menuTriggerRef} label="Team actions">
+              <ActionMenuItem asChild>
+                <Link href="/dashboard/teams">All Teams</Link>
+              </ActionMenuItem>
+              {data.canInvite ? (
+                <ActionMenuItem onSelect={() => setInviteOpen(true)}>
+                  Invite partner
+                </ActionMenuItem>
+              ) : null}
+              {data.canRequestLink ? (
+                <ActionMenuItem onSelect={() => setLinkOpen(true)}>
+                  Request Community link
+                </ActionMenuItem>
+              ) : null}
+              {data.canUnlink || data.canDissolve ? (
+                <ActionMenuSeparator />
+              ) : null}
+              {data.canUnlink ? (
+                <ActionMenuItem
+                  variant="destructive"
+                  onSelect={() => setUnlinkOpen(true)}
+                >
+                  Unlink from Community
+                </ActionMenuItem>
+              ) : null}
+              {data.canDissolve ? (
+                <ActionMenuItem
+                  variant="destructive"
+                  onSelect={() => setDissolveOpen(true)}
+                >
+                  Dissolve Team
+                </ActionMenuItem>
+              ) : null}
+            </ActionMenu>
+          </div>
+        </header>
 
-            {team.data.canRequestLink ? (
+        {data.waitingForPartner && !data.canInvite ? (
+          <p className="text-body text-muted-foreground">
+            Waiting for a partner. This Team is incomplete until a second member
+            joins.
+          </p>
+        ) : null}
+
+        {data.pendingLinkRequest ? (
+          <p className="text-body text-muted-foreground">
+            Pending request to {data.pendingLinkRequest.community.name}.
+          </p>
+        ) : null}
+
+        <StatStrip
+          items={[
+            { label: "Games played", value: data.gamesPlayed },
+            { label: "Wins", value: data.wins },
+            { label: "Losses", value: data.losses },
+            {
+              label: "Win rate",
+              value: winRate(data.gamesPlayed, data.wins),
+            },
+          ]}
+        />
+
+        <section className="space-y-3">
+          <h2 className="text-title font-semibold">Members</h2>
+          {data.members.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No members"
+              description="People on this Team will show up here."
+            />
+          ) : (
+            <RowList>
+              {data.members.map((member) => (
+                <ListRow
+                  key={member.id}
+                  leading={
+                    <UserAvatar name={member.name ?? "Member"} size="lg" />
+                  }
+                  title={member.name ?? "Member"}
+                  trailing={
+                    member.isCreator ? (
+                      <Badge variant="outline">Creator</Badge>
+                    ) : undefined
+                  }
+                />
+              ))}
+            </RowList>
+          )}
+        </section>
+      </div>
+
+      <ConfirmDialog
+        open={dissolveOpen}
+        onOpenChange={setDissolveOpen}
+        title={`Dissolve ${displayName}?`}
+        description="This cannot be undone. Cancelling does nothing."
+        confirmLabel="Dissolve Team"
+        pending={dissolve.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await dissolve.mutateAsync({ teamId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={unlinkOpen}
+        onOpenChange={setUnlinkOpen}
+        title={`Unlink ${displayName}?`}
+        description="This Team will no longer be linked to its Community. Cancelling does nothing."
+        confirmLabel="Unlink from Community"
+        pending={unlink.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await unlink.mutateAsync({ teamId: id });
+        }}
+      />
+
+      {data.canInvite ? (
+        <ResponsiveDialog open={inviteOpen} onOpenChange={setInviteOpen}>
+          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>Invite your partner</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
+                Look up an existing User by username, email, or phone. The
+                invitee accepts on Invites. Lookup invites do not expire.
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+            <div className="space-y-6 px-4 pb-4 md:px-0 md:pb-0">
               <form
                 className="flex flex-col gap-3 sm:flex-row"
                 onSubmit={(event) => {
                   event.preventDefault();
                   const formData = new FormData(event.currentTarget);
-                  const communityIdValue = formData.get("communityId");
-                  if (
-                    typeof communityIdValue !== "string" ||
-                    !communityIdValue
-                  ) {
+                  const queryValue = formData.get("query");
+                  if (typeof queryValue !== "string") {
                     return;
                   }
-                  requestLink.mutate({
-                    teamId: id,
-                    communityId: communityIdValue,
-                  });
+                  const query = queryValue.trim();
+                  if (!query) {
+                    return;
+                  }
+                  inviteInApp.mutate({ teamId: id, query });
+                  event.currentTarget.reset();
                 }}
               >
-                <select
-                  name="communityId"
+                <Input
+                  name="query"
+                  type="text"
                   required
-                  className="border-input bg-background text-foreground h-9 flex-1 rounded-md border px-3 text-sm"
-                  defaultValue=""
+                  placeholder="Username, email, or phone"
+                  className="min-h-11 flex-1"
+                />
+                <Button
+                  type="submit"
+                  className="min-h-11"
+                  disabled={inviteInApp.isPending}
                 >
-                  <option value="" disabled>
-                    Select a Community
-                  </option>
-                  {communities.data
-                    ?.filter((community) => !community.archivedAt)
-                    .map((community) => (
-                      <option key={community.id} value={community.id}>
-                        {community.name}
-                      </option>
-                    ))}
-                </select>
-                <Button type="submit" disabled={requestLink.isPending}>
-                  {requestLink.isPending ? "Requesting…" : "Request link"}
+                  {inviteInApp.isPending ? "Sending…" : "Send Lookup invite"}
                 </Button>
               </form>
-            ) : null}
-          </section>
-        ) : null}
-
-        {team.data?.canInvite ? (
-          <section className="border-border bg-card space-y-6 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Lookup invite
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Look up an existing User by username, email, or phone. The
-                invitee accepts on Invites. Lookup invites do not expire. A
-                pending Lookup invite and live Invite links may coexist.
-              </p>
-            </div>
-
-            <form
-              className="flex flex-col gap-3 sm:flex-row"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const formData = new FormData(event.currentTarget);
-                const queryValue = formData.get("query");
-                if (typeof queryValue !== "string") {
-                  return;
-                }
-                const query = queryValue.trim();
-                if (!query) {
-                  return;
-                }
-                inviteInApp.mutate({ teamId: id, query });
-                event.currentTarget.reset();
-              }}
-            >
-              <Input
-                name="query"
-                type="text"
-                required
-                placeholder="Username, email, or phone"
-                className="flex-1"
-              />
-              <Button type="submit" disabled={inviteInApp.isPending}>
-                {inviteInApp.isPending ? "Sending…" : "Send Lookup invite"}
-              </Button>
-            </form>
-
-            {team.data.unusedInvite ? (
-              <div className="divide-border border-border divide-y rounded-lg border">
-                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              {data.unusedInvite ? (
+                <div className="flex min-h-16 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-foreground font-medium">
-                      {team.data.unusedInvite.user.name}
+                    <p className="text-lead font-semibold">
+                      {data.unusedInvite.user.name}
                     </p>
-                    <p className="text-muted-foreground text-sm">
-                      {team.data.unusedInvite.user.email}
+                    <p className="text-meta text-muted-foreground">
+                      {data.unusedInvite.user.email}
                     </p>
                   </div>
                   <Button
-                    size="sm"
+                    className="min-h-11"
                     variant="outline"
                     onClick={() =>
                       revokeInvite.mutate({
-                        inviteId: team.data.unusedInvite!.id,
+                        inviteId: data.unusedInvite!.id,
                       })
                     }
                     disabled={revokeInvite.isPending}
@@ -395,46 +430,98 @@ export default function TeamHomePage({
                     {revokeInvite.isPending ? "Revoking…" : "Revoke"}
                   </Button>
                 </div>
+              ) : (
+                <p className="text-body text-muted-foreground">
+                  No unused Lookup invites.
+                </p>
+              )}
+              <div className="space-y-3">
+                <h3 className="text-title font-semibold">Invite link</h3>
+                <p className="text-body text-muted-foreground">
+                  Each copy mints a new 6-hour token. Older copied URLs stay
+                  live until each expires.
+                </p>
+                {inviteLink.data ? (
+                  <p className="text-meta text-muted-foreground break-all">
+                    Newest: {inviteLink.data.inviteUrl}
+                  </p>
+                ) : (
+                  <p className="text-body text-muted-foreground">
+                    No live Invite link. Copy to mint one.
+                  </p>
+                )}
+                <Button
+                  className="min-h-11"
+                  onClick={() => createInviteLink.mutate({ teamId: id })}
+                  disabled={createInviteLink.isPending}
+                >
+                  {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
+                </Button>
               </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                No unused Lookup invites.
-              </p>
-            )}
-          </section>
-        ) : null}
-
-        {team.data?.canInvite ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Invite link
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Each copy mints a new 6-hour token. Older copied URLs stay live
-                until each expires. There is no rotate or revoke. The first
-                successful accept fills the seat and kills leftover Team doors.
-              </p>
             </div>
-            {inviteLink.data ? (
-              <p className="text-muted-foreground break-all text-sm">
-                Newest: {inviteLink.data.inviteUrl}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                No live Invite link. Copy to mint one.
-              </p>
-            )}
-            <Button
-              size="sm"
-              onClick={() => createInviteLink.mutate({ teamId: id })}
-              disabled={createInviteLink.isPending}
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
+      ) : null}
+
+      {data.canRequestLink ? (
+        <ResponsiveDialog open={linkOpen} onOpenChange={setLinkOpen}>
+          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>
+                Request Community link
+              </ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
+                Full Teams can request a link to a Community. Owner or Admin
+                approve; missing members are auto-admitted.
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+            <form
+              className="space-y-4 px-4 pb-4 md:px-0 md:pb-0"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                const communityIdValue = formData.get("communityId");
+                if (typeof communityIdValue !== "string" || !communityIdValue) {
+                  return;
+                }
+                requestLink.mutate({
+                  teamId: id,
+                  communityId: communityIdValue,
+                });
+              }}
             >
-              {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
-            </Button>
-          </section>
-        ) : null}
-      </div>
+              <label className="sr-only" htmlFor="team-link-community">
+                Community
+              </label>
+              <select
+                id="team-link-community"
+                name="communityId"
+                required
+                className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  Select a Community
+                </option>
+                {communities.data
+                  ?.filter((community) => !community.archivedAt)
+                  .map((community) => (
+                    <option key={community.id} value={community.id}>
+                      {community.name}
+                    </option>
+                  ))}
+              </select>
+              <Button
+                type="submit"
+                className="min-h-11 w-full"
+                disabled={requestLink.isPending}
+              >
+                {requestLink.isPending ? "Requesting…" : "Request link"}
+              </Button>
+            </form>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
+      ) : null}
     </DashboardShell>
   );
 }

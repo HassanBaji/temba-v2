@@ -13,25 +13,32 @@ export type AvatarStackPerson = {
 
 export function AvatarStack({
   people,
+  openSeats = 0,
   size = "default",
   surface = "background",
   className,
 }: {
   people: AvatarStackPerson[];
+  openSeats?: number;
   size?: "sm" | "default" | "lg";
   surface?: "background" | "raised";
   className?: string;
 }) {
   const visible = people.slice(0, VISIBLE_COUNT);
   const overflow = people.length - visible.length;
+  const total = people.length + openSeats;
   const ringClass =
     surface === "raised"
       ? "*:data-[slot=avatar]:ring-surface-raised"
       : "*:data-[slot=avatar]:ring-background";
+  const placeholderSize =
+    size === "lg" ? "size-10" : size === "sm" ? "size-6" : "size-8";
+  const placeholderRing =
+    surface === "raised" ? "ring-surface-raised" : "ring-background";
 
   return (
     <AvatarGroup
-      aria-label={`${people.length} ${people.length === 1 ? "person" : "people"}`}
+      aria-label={`${total} ${total === 1 ? "person" : "people"}`}
       className={cn(ringClass, className)}
     >
       {visible.map((person, index) => (
@@ -42,6 +49,19 @@ export function AvatarStack({
           size={size}
         />
       ))}
+      {openSeats > 0
+        ? Array.from({ length: openSeats }).map((_, index) => (
+            <span
+              key={`open-${index}`}
+              aria-hidden="true"
+              className={cn(
+                "border-muted-foreground/50 bg-background shrink-0 rounded-full border-2 border-dashed ring-2",
+                placeholderSize,
+                placeholderRing,
+              )}
+            />
+          ))
+        : null}
       {overflow > 0 ? (
         <AvatarGroupCount
           className={

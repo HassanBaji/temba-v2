@@ -1,76 +1,155 @@
 "use client";
 
+import { Users } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
+import { AvatarStack } from "~/components/common/avatar-stack";
+import { EmptyState } from "~/components/common/empty-state";
+import { ErrorState } from "~/components/common/error-state";
+import { ListPageSkeleton } from "~/components/common/page-skeleton";
+import { ListRow, RowList } from "~/components/common/row-list";
+import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { SportBadge } from "~/components/temba/sport-badge";
+import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Skeleton } from "~/components/ui/skeleton";
+import { teamAvatarPeople } from "~/lib/team-avatar-people";
 import { api } from "~/trpc/react";
 
 export default function TeamsIndexPage() {
+  const utils = api.useUtils();
   const teams = api.teams.mine.useQuery();
+  const pending = api.teams.pendingInvites.useQuery();
+  const acceptTeam = api.teams.acceptInAppInvite.useMutation({
+    onSuccess: async () => {
+      toast.success("Joined Team");
+      await utils.teams.pendingInvites.invalidate();
+      await utils.teams.mine.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const isEmpty =
+    !teams.isLoading &&
+    !pending.isLoading &&
+    (teams.data?.length ?? 0) === 0 &&
+    (pending.data?.length ?? 0) === 0;
 
   return (
     <DashboardShell
-      title="My Teams"
-      description="Partnerships you sit on. Open one to go to its home. Pending Lookup invites are on Invites."
+      title="Teams"
+      description="Partnerships you play as"
       action={
         <Button asChild>
           <Link href="/dashboard/teams/new">Create Team</Link>
         </Button>
       }
     >
-      <div className="space-y-8">
-        {teams.isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : null}
+      {teams.isLoading ? <ListPageSkeleton rows={4} /> : null}
 
-        {teams.error ? (
-          <p className="text-destructive text-sm">{teams.error.message}</p>
-        ) : null}
+      {teams.error ? (
+        <ErrorState
+          title="Teams could not be loaded"
+          message={teams.error.message}
+          onRetry={() => {
+            void teams.refetch();
+          }}
+        />
+      ) : null}
 
-        {teams.data?.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            You are not on any Teams yet.
-          </p>
-        ) : null}
+      {isEmpty ? (
+        <EmptyState
+          icon={Users}
+          title="No Teams yet"
+          description="A Team is a lasting partnership with one other player."
+          action={
+            <Button asChild>
+              <Link href="/dashboard/teams/new">Create Team</Link>
+            </Button>
+          }
+        />
+      ) : null}
 
-        {teams.data && teams.data.length > 0 ? (
-          <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-            {teams.data.map((team) => (
-              <li key={team.id}>
-                <Link
-                  href={`/dashboard/teams/${team.id}`}
-                  className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="space-y-1">
-                    <p className="text-foreground font-medium">
-                      {team.displayName}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {team.community ? team.community.name : "Unattached"}
-                      {team.incomplete ? " · Waiting for partner" : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {team.community ? (
-                      <Badge variant="outline">Club Team</Badge>
-                    ) : (
-                      <Badge variant="outline">Unattached</Badge>
-                    )}
-                    {team.sport ? <SportBadge sport={team.sport} /> : null}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+      {!isEmpty && teams.data ? (
+        <div className="space-y-8">
+          {pending.data && pending.data.length > 0 ? (
+            <Section title="Pending invites">
+              <RowList>
+                {pending.data.map((invite) => {
+                  const accepting =
+                    acceptTeam.isPending &&
+                    acceptTeam.variables?.inviteId === invite.id;
+                  return (
+                    <ListRow
+                      key={invite.id}
+                      leading={
+                        <UserAvatar
+                          name={invite.invitedBy.name ?? "Member"}
+                          size="lg"
+                        />
+                      }
+                      title={invite.displayName}
+                      meta={`Invite from ${invite.invitedBy.name}`}
+                      trailing={
+                        <Button
+                          className="min-h-11"
+                          disabled={accepting}
+                          onClick={() =>
+                            acceptTeam.mutate({ inviteId: invite.id })
+                          }
+                        >
+                          {accepting ? "Accepting…" : "Accept"}
+                        </Button>
+                      }
+                    />
+                  );
+                })}
+              </RowList>
+            </Section>
+          ) : null}
+
+          {teams.data.length > 0 ? (
+            <RowList>
+              {teams.data.map((team) => {
+                const people = teamAvatarPeople(
+                  team.displayName,
+                  team.memberCount,
+                  team.incomplete,
+                );
+                return (
+                  <ListRow
+                    key={team.id}
+                    asChild
+                    leading={
+                      <AvatarStack
+                        people={people}
+                        openSeats={team.incomplete ? 1 : 0}
+                        size="lg"
+                      />
+                    }
+                    title={team.displayName}
+                    meta={
+                      team.community
+                        ? `Club Team · ${team.community.name}`
+                        : "Not linked to a Community"
+                    }
+                    trailing={
+                      team.incomplete ? (
+                        <Badge variant="outline">Incomplete</Badge>
+                      ) : undefined
+                    }
+                  >
+                    <Link href={`/dashboard/teams/${team.id}`} />
+                  </ListRow>
+                );
+              })}
+            </RowList>
+          ) : null}
+        </div>
+      ) : null}
     </DashboardShell>
   );
 }
