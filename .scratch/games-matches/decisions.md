@@ -43,7 +43,7 @@ Status: spec published — `.scratch/games-matches/spec.md` (ready-for-agent). T
 22. Each Set stores **games won per side**, including a **games-draw**. Unequal games → 1 Set-win; equal games → 0 Set-wins both. Match winner = most Set-wins; tie = Match draw. Complete once ≥1 Set (then freeze).
 23. A Match has two ordered slots. Organizer may add a **Set shell** with empty slots; **nobody** may enter or edit games-won until **both** slots have Game teams. Leave/kick clears a slot; Sets stay; scoring frozen until both slots filled again.
 24. Invites never widen a non-public Group Game. Groupless non-public = invite-only. Pending Team does not occupy cap.
-25. Individual non-Americano: register with a partner as an ad-hoc Game team. Friendly game = two such sides.
+25. Individual non-Americano: register with a partner as an ad-hoc Game team. Friendly game = two such sides. **Superseded for individual Friendly game / tournament** by `.scratch/individual-game-seats/decisions.md` (solo seat-join + Position). Americano and team-only unchanged.
 
 ## ADR / glossary
 
