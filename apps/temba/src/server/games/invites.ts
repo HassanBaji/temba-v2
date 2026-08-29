@@ -25,7 +25,13 @@ import {
   enqueueWaitlistTeam,
   enqueueWaitlistUser,
 } from "~/server/games/waitlist";
-import { isIndividualSeatGame } from "~/server/games/seats";
+import {
+  isIndividualSeatGame,
+  listGameSides,
+  occupySeat,
+  type SeatPosition,
+  vacantPositionsFromSides,
+} from "~/server/games/seats";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -76,6 +82,7 @@ export async function admitIndividualUser(
   game: GameRow,
   userId: string,
   now = new Date(),
+  seat?: { sideIndex: number; position: SeatPosition },
 ): Promise<{ waitlisted: boolean }> {
   if (await userAlreadyOnGame(database, game.id, userId)) {
     throw new TRPCError({
@@ -98,12 +105,25 @@ export async function admitIndividualUser(
   }
 
   const status = await getRegistrationStatus(database, game, now);
-  if (status === "full") {
-    await enqueueWaitlistUser(database, game.id, userId);
-    return { waitlisted: true };
+  if (isIndividualSeatGame(game)) {
+    const vacant = vacantPositionsFromSides(
+      await listGameSides(database, game),
+    );
+    if (status === "full" || vacant.length === 0) {
+      await enqueueWaitlistUser(database, game.id, userId);
+      return { waitlisted: true };
+    }
+    if (!seat) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Pick a vacant Position",
+      });
+    }
+    await occupySeat(database, game, userId, seat.sideIndex, seat.position);
+    return { waitlisted: false };
   }
 
-  if (isIndividualSeatGame(game)) {
+  if (status === "full") {
     await enqueueWaitlistUser(database, game.id, userId);
     return { waitlisted: true };
   }

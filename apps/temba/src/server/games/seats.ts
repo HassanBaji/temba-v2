@@ -33,6 +33,19 @@ export type GameSide = {
   right: SeatOccupant | null;
 };
 
+export function vacantPositionsFromSides(sides: GameSide[]) {
+  const vacant: { sideIndex: number; position: SeatPosition }[] = [];
+  for (const side of sides) {
+    if (side.left == null) {
+      vacant.push({ sideIndex: side.sideIndex, position: "left" });
+    }
+    if (side.right == null) {
+      vacant.push({ sideIndex: side.sideIndex, position: "right" });
+    }
+  }
+  return vacant;
+}
+
 export function isIndividualSeatGame(game: GameRow) {
   return (
     game.registrationMode === "individual" &&

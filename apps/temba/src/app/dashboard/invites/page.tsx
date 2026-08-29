@@ -1,6 +1,7 @@
 "use client";
 
 import { Inbox } from "lucide-react";
+import * as React from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
@@ -9,6 +10,10 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import {
+  InviteSeatPicker,
+  parseSeatKey,
+} from "~/components/games/invite-seat-picker";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
@@ -81,6 +86,8 @@ export default function InvitesPage() {
     },
   });
 
+  const [gameSeats, setGameSeats] = React.useState<Record<string, string>>({});
+
   const isLoading =
     communityInvites.isLoading ||
     groupInvites.isLoading ||
@@ -98,6 +105,8 @@ export default function InvitesPage() {
       title: invite.communityName,
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
+      needsSeatPick: false,
+      vacantSeats: [] as { sideIndex: number; position: "left" | "right" }[],
     })),
     ...(groupInvites.data ?? []).map((invite) => ({
       kind: "group" as const,
@@ -105,6 +114,8 @@ export default function InvitesPage() {
       title: invite.groupName ?? "Untitled Group",
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
+      needsSeatPick: false,
+      vacantSeats: [] as { sideIndex: number; position: "left" | "right" }[],
     })),
     ...(teamInvites.data ?? []).map((invite) => ({
       kind: "team" as const,
@@ -112,6 +123,8 @@ export default function InvitesPage() {
       title: invite.displayName,
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
+      needsSeatPick: false,
+      vacantSeats: [] as { sideIndex: number; position: "left" | "right" }[],
     })),
     ...(gameInvites.data ?? []).map((invite) => ({
       kind: "game" as const,
@@ -119,6 +132,8 @@ export default function InvitesPage() {
       title: invite.gameName,
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
+      needsSeatPick: invite.needsSeatPick,
+      vacantSeats: invite.vacantSeats,
     })),
   ].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -149,6 +164,20 @@ export default function InvitesPage() {
       return;
     }
     if (kind === "game") {
+      const invite = items.find((row) => row.kind === "game" && row.id === id);
+      if (invite?.needsSeatPick && invite.vacantSeats.length > 0) {
+        const seat = parseSeatKey(gameSeats[id] ?? "");
+        if (!seat) {
+          toast.error("Pick a vacant Position");
+          return;
+        }
+        acceptGame.mutate({
+          inviteId: id,
+          sideIndex: seat.sideIndex,
+          position: seat.position,
+        });
+        return;
+      }
       acceptGame.mutate({ inviteId: id });
       return;
     }
@@ -197,6 +226,19 @@ export default function InvitesPage() {
                 trailing={
                   <div className="flex flex-wrap items-center gap-2">
                     <InviteKindBadge kind={invite.kind} />
+                    {invite.kind === "game" && invite.needsSeatPick ? (
+                      <InviteSeatPicker
+                        id={`invite-seat-${invite.id}`}
+                        vacantSeats={invite.vacantSeats}
+                        value={gameSeats[invite.id] ?? ""}
+                        onChange={(value) =>
+                          setGameSeats((current) => ({
+                            ...current,
+                            [invite.id]: value,
+                          }))
+                        }
+                      />
+                    ) : null}
                     <Button
                       className="min-h-11"
                       disabled={pending}

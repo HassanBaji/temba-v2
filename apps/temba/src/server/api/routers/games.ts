@@ -81,6 +81,7 @@ import {
   occupySeat,
   remainingCapacity,
   sitsOnCompletedMatch,
+  vacantPositionsFromSides,
 } from "~/server/games/seats";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
 import {
@@ -1600,21 +1601,37 @@ export const gamesRouter = createTRPCRouter({
       },
       orderBy: (table, { desc }) => [desc(table.createdAt)],
     });
-    return rows.map((row) => ({
-      id: row.id,
-      gameId: row.gameId,
-      gameName: row.game.name ?? "Untitled Game",
-      invitedBy: {
-        id: row.invitedBy.id,
-        name: row.invitedBy.name,
-        email: row.invitedBy.email,
-      },
-      createdAt: row.createdAt,
-    }));
+    const mapped = [];
+    for (const row of rows) {
+      const game = await requireGame(ctx.db, row.gameId);
+      const needsSeatPick = isIndividualSeatGame(game);
+      mapped.push({
+        id: row.id,
+        gameId: row.gameId,
+        gameName: row.game.name ?? "Untitled Game",
+        invitedBy: {
+          id: row.invitedBy.id,
+          name: row.invitedBy.name,
+          email: row.invitedBy.email,
+        },
+        createdAt: row.createdAt,
+        needsSeatPick,
+        vacantSeats: needsSeatPick
+          ? vacantPositionsFromSides(await listGameSides(ctx.db, game))
+          : [],
+      });
+    }
+    return mapped;
   }),
 
   acceptLookupInvite: protectedProcedure
-    .input(z.object({ inviteId: z.string().uuid() }))
+    .input(
+      z.object({
+        inviteId: z.string().uuid(),
+        sideIndex: z.number().int().min(1).optional(),
+        position: z.enum(["left", "right"]).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
       const invite = await ctx.db.query.gameMemberInvites.findFirst({
@@ -1654,7 +1671,15 @@ export const gamesRouter = createTRPCRouter({
             message: "Lookup invite is no longer available",
           });
         }
-        return admitIndividualUser(tx, game, appUser.id);
+        return admitIndividualUser(
+          tx,
+          game,
+          appUser.id,
+          new Date(),
+          input.sideIndex != null && input.position
+            ? { sideIndex: input.sideIndex, position: input.position }
+            : undefined,
+        );
       });
 
       return {
@@ -1756,14 +1781,26 @@ export const gamesRouter = createTRPCRouter({
       if (game.group?.community?.archivedAt) {
         return { status: "unavailable" as const };
       }
+      const gameRow = await requireGame(ctx.db, game.id);
+      const needsSeatPick = isIndividualSeatGame(gameRow);
       return {
         status: "ready" as const,
         gameName: game.name ?? "Untitled Game",
+        needsSeatPick,
+        vacantSeats: needsSeatPick
+          ? vacantPositionsFromSides(await listGameSides(ctx.db, gameRow))
+          : [],
       };
     }),
 
   acceptInviteLink: protectedProcedure
-    .input(z.object({ token: z.string().min(1).max(64) }))
+    .input(
+      z.object({
+        token: z.string().min(1).max(64),
+        sideIndex: z.number().int().min(1).optional(),
+        position: z.enum(["left", "right"]).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
       const link = await ctx.db.query.gameInviteLinks.findFirst({
@@ -1812,7 +1849,15 @@ export const gamesRouter = createTRPCRouter({
       }
 
       const result = await ctx.db.transaction(async (tx) => {
-        return admitIndividualUser(tx, game, appUser.id);
+        return admitIndividualUser(
+          tx,
+          game,
+          appUser.id,
+          new Date(),
+          input.sideIndex != null && input.position
+            ? { sideIndex: input.sideIndex, position: input.position }
+            : undefined,
+        );
       });
       return {
         gameId: game.id,

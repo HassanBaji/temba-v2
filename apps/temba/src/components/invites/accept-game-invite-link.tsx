@@ -6,6 +6,10 @@ import * as React from "react";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { toast } from "sonner";
 
+import {
+  InviteSeatPicker,
+  parseSeatKey,
+} from "~/components/games/invite-seat-picker";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
@@ -20,6 +24,7 @@ export function AcceptGameInviteLink({
   returnPath: string;
 }) {
   const router = useRouter();
+  const [seatValue, setSeatValue] = React.useState("");
   const preview = api.games.previewInviteLink.useQuery({ token });
   const accept = api.games.acceptInviteLink.useMutation({
     onSuccess: (result) => {
@@ -41,6 +46,12 @@ export function AcceptGameInviteLink({
     },
   });
 
+  const needsSeatPick =
+    preview.data?.status === "ready" && preview.data.needsSeatPick;
+  const vacantSeats =
+    preview.data?.status === "ready" ? preview.data.vacantSeats : [];
+  const waitlistOnly = needsSeatPick && vacantSeats.length === 0;
+
   React.useEffect(() => {
     if (!isSignedIn) {
       return;
@@ -51,8 +62,31 @@ export function AcceptGameInviteLink({
     if (accept.isPending || accept.isSuccess || accept.isError) {
       return;
     }
+    if (preview.data.needsSeatPick && preview.data.vacantSeats.length > 0) {
+      return;
+    }
     accept.mutate({ token });
-  }, [accept, isSignedIn, preview.data?.status, token]);
+  }, [accept, isSignedIn, preview.data, token]);
+
+  function onJoin() {
+    if (accept.isPending) {
+      return;
+    }
+    if (needsSeatPick && vacantSeats.length > 0) {
+      const seat = parseSeatKey(seatValue);
+      if (!seat) {
+        toast.error("Pick a vacant Position");
+        return;
+      }
+      accept.mutate({
+        token,
+        sideIndex: seat.sideIndex,
+        position: seat.position,
+      });
+      return;
+    }
+    accept.mutate({ token });
+  }
 
   if (preview.isLoading) {
     return (
@@ -143,13 +177,40 @@ export function AcceptGameInviteLink({
     );
   }
 
+  if (needsSeatPick && vacantSeats.length > 0 && !accept.isSuccess) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-title font-semibold">
+            Join{" "}
+            {preview.data?.status === "ready" ? preview.data.gameName : "Game"}
+          </h1>
+          <p className="text-body text-muted-foreground">
+            Pick a vacant Position to sit, or this accept will be refused if
+            that seat is taken.
+          </p>
+        </div>
+        <InviteSeatPicker
+          vacantSeats={vacantSeats}
+          value={seatValue}
+          onChange={setSeatValue}
+        />
+        <Button onClick={onJoin} disabled={accept.isPending}>
+          {accept.isPending ? "Joining…" : "Accept"}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <h1 className="text-title font-semibold">
         Joining {preview.data?.gameName ?? "Game"}…
       </h1>
       <p className="text-body text-muted-foreground">
-        Accepting the Invite link as the signed-in User.
+        {waitlistOnly
+          ? "No vacant Position. Joining the waitlist."
+          : "Accepting the Invite link as the signed-in User."}
       </p>
     </div>
   );
