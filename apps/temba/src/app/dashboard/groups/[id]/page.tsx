@@ -170,9 +170,6 @@ export default function GroupHomePage({
 
             {group.data ? (
               <>
-                <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                  {group.data.name ?? "Untitled Group"}
-                </h2>
                 <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
                   <span>
                     {group.data.type === "public" ||

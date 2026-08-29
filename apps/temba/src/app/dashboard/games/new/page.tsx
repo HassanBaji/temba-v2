@@ -93,22 +93,15 @@ function NewGameForm() {
   }
 
   return (
-    <DashboardShell title="Create Game">
+    <DashboardShell
+      title="Create Game"
+      description={
+        groupId
+          ? "Padel only. Friendly game creates one Match with caps 4 / 2. Americano is a player pool with no Matches. Friendly tournament starts with zero Matches; add them on Game home. This Game belongs to the Group you opened it from."
+          : "Padel only. Friendly game creates one Match with caps 4 / 2. Americano is a player pool with no Matches. Friendly tournament starts with zero Matches; add them on Game home. This Game has no Group. You are the organizer."
+      }
+    >
       <div className="mx-auto w-full max-w-lg space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Game
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Padel only. Friendly game creates one Match with caps 4 / 2.
-            Americano is a player pool with no Matches. Friendly tournament
-            starts with zero Matches; add them on Game home.
-            {groupId
-              ? " This Game belongs to the Group you opened it from."
-              : " This Game has no Group. You are the organizer."}
-          </p>
-        </div>
-
         <form
           onSubmit={onSubmit}
           className="border-border bg-card space-y-6 rounded-xl border p-6"

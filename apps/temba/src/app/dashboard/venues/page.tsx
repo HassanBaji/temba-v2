@@ -37,23 +37,16 @@ export default function VenuesPage() {
   });
 
   return (
-    <DashboardShell title="Venues">
+    <DashboardShell
+      title="Venues"
+      description="Physical sites in the catalog, including Soft-archived Venues. Create a Venue before any Community claims it."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/venues/new">Create Venue</Link>
+        </Button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              Venues
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Physical sites in the catalog, including Soft-archived Venues.
-              Create a Venue before any Community claims it.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/venues/new">Create Venue</Link>
-          </Button>
-        </div>
-
         <section className="border-border bg-card space-y-4 rounded-xl border p-6">
           <div>
             <h3 className="text-foreground text-lg font-medium">

@@ -117,9 +117,6 @@ export default function TeamHomePage({
 
             {team.data ? (
               <>
-                <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                  {team.data.displayName}
-                </h2>
                 <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
                   <span>
                     {team.data.sport in SPORT_LABELS

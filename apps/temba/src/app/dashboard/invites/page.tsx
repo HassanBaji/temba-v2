@@ -111,17 +111,11 @@ export default function InvitesPage() {
     acceptGame.isPending;
 
   return (
-    <DashboardShell title="Invites">
+    <DashboardShell
+      title="Invites"
+      description="Unused Lookup invites addressed to you. Accept here to join."
+    >
       <div className="space-y-8">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Invites
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Unused Lookup invites addressed to you. Accept here to join.
-          </p>
-        </div>
-
         {isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-20 w-full" />

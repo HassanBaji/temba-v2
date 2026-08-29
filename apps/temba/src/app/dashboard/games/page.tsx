@@ -13,22 +13,16 @@ export default function GamesHubPage() {
   const pickup = api.games.listPublicPickup.useQuery();
 
   return (
-    <DashboardShell title="Games">
+    <DashboardShell
+      title="Games"
+      description="Public pickup Games, and a groupless Friendly game you organize."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/games/new">Create Game</Link>
+        </Button>
+      }
+    >
       <div className="space-y-8">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              Games
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Public pickup Games, and a groupless Friendly game you organize.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/games/new">Create Game</Link>
-          </Button>
-        </div>
-
         {pickup.isLoading ? <Skeleton className="h-32 w-full" /> : null}
 
         {pickup.error ? (

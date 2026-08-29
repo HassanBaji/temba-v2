@@ -273,9 +273,6 @@ export default function CommunityHomePage({
 
             {community.data ? (
               <>
-                <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                  {community.data.name}
-                </h2>
                 <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
                   <CommunityTypeBadge type={community.data.type} />
                   {!isLive ? <span>· Soft-archived</span> : null}

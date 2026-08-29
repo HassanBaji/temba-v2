@@ -13,22 +13,16 @@ export default function GroupsIndexPage() {
   const groups = api.groups.mine.useQuery();
 
   return (
-    <DashboardShell title="Groups">
+    <DashboardShell
+      title="Groups"
+      description="Groups you are a member of. Open one to go to its home."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/groups/new">Create Group</Link>
+        </Button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              Groups
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Groups you are a member of. Open one to go to its home.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/groups/new">Create Group</Link>
-          </Button>
-        </div>
-
         {groups.isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-20 w-full" />

@@ -216,22 +216,16 @@ export default function VenueHomePage({
   }
 
   return (
-    <DashboardShell title="Venue">
+    <DashboardShell
+      title={venue.data?.name ?? "Venue"}
+      description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
+    >
       <div className="mx-auto w-full max-w-2xl space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                {venue.data?.name ?? "Venue"}
-              </h2>
-              {venue.data?.archivedAt ? (
-                <Badge variant="outline">Soft-archived</Badge>
-              ) : null}
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Edit name, city, country, and optional coordinates. Courts are
-              named playing surfaces on this Venue.
-            </p>
+            {venue.data?.archivedAt ? (
+              <Badge variant="outline">Soft-archived</Badge>
+            ) : null}
           </div>
           {venue.data ? (
             <div className="flex flex-wrap gap-2">

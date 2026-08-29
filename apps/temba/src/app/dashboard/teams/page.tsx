@@ -13,23 +13,16 @@ export default function TeamsIndexPage() {
   const teams = api.teams.mine.useQuery();
 
   return (
-    <DashboardShell title="My Teams">
+    <DashboardShell
+      title="My Teams"
+      description="Partnerships you sit on. Open one to go to its home. Pending Lookup invites are on Invites."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/teams/new">Create Team</Link>
+        </Button>
+      }
+    >
       <div className="space-y-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              My Teams
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Partnerships you sit on. Open one to go to its home. Pending
-              Lookup invites are on Invites.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/teams/new">Create Team</Link>
-          </Button>
-        </div>
-
         {teams.isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-20 w-full" />

@@ -16,23 +16,16 @@ export default function CommunitiesPage() {
   const mine = api.communities.mine.useQuery();
 
   return (
-    <DashboardShell title="Communities">
+    <DashboardShell
+      title="Communities"
+      description="Communities you belong to, with every Club Group nested. Open a Community or Group to go to its home."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/communities/new">Create Community</Link>
+        </Button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              Communities
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Communities you belong to, with every Club Group nested. Open a
-              Community or Group to go to its home.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/communities/new">Create Community</Link>
-          </Button>
-        </div>
-
         {mine.isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-20 w-full" />

@@ -49,18 +49,11 @@ export default function NewVenuePage() {
   }
 
   return (
-    <DashboardShell title="Create Venue">
+    <DashboardShell
+      title="Create Venue"
+      description="A physical site starts with no Courts. Name, city, and country are required."
+    >
       <div className="mx-auto w-full max-w-lg space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Venue
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            A physical site starts with no Courts. Name, city, and country are
-            required.
-          </p>
-        </div>
-
         <form
           onSubmit={onSubmit}
           className="border-border bg-card space-y-6 rounded-xl border p-6"

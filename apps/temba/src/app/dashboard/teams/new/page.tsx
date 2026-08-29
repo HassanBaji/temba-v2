@@ -41,18 +41,11 @@ export default function NewTeamPage() {
   }
 
   return (
-    <DashboardShell title="Create Team">
+    <DashboardShell
+      title="Create Team"
+      description="Start an unattached padel partnership. You become the first member and can invite a partner later."
+    >
       <div className="mx-auto w-full max-w-lg space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Team
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Start an unattached padel partnership. You become the first member
-            and can invite a partner later.
-          </p>
-        </div>
-
         <form
           onSubmit={onSubmit}
           className="border-border bg-card space-y-6 rounded-xl border p-6"

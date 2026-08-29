@@ -1,6 +1,6 @@
 "use client";
 
-import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton, Show } from "@clerk/nextjs";
 
 import { Button } from "~/components/ui/button";
 
@@ -16,9 +16,6 @@ export function AuthHeaderControls() {
         <SignUpButton mode="redirect">
           <Button size="sm">Sign up</Button>
         </SignUpButton>
-      </Show>
-      <Show when="signed-in">
-        <UserButton />
       </Show>
     </div>
   );

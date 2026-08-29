@@ -65,19 +65,11 @@ export default function NewLooseGroupPage() {
   }
 
   return (
-    <DashboardShell title="Create Group">
+    <DashboardShell
+      title="Create Group"
+      description="A squad outside any Community. Public joins via the Group URL; Private uses Lookup invites and 6-hour Invite links. You become a Group member."
+    >
       <div className="mx-auto w-full max-w-lg space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Group
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            A squad outside any Community. Public joins via the Group URL;
-            Private uses Lookup invites and 6-hour Invite links. You become a
-            Group member.
-          </p>
-        </div>
-
         <form
           onSubmit={onSubmit}
           className="border-border bg-card space-y-6 rounded-xl border p-6"

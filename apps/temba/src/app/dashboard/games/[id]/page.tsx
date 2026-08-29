@@ -402,7 +402,7 @@ export default function GameHomePage({
   }, [data]);
 
   return (
-    <DashboardShell title="Game">
+    <DashboardShell title={data?.name ?? "Game"}>
       <div className="space-y-8">
         {game.isLoading ? (
           <div className="space-y-3">
@@ -420,9 +420,6 @@ export default function GameHomePage({
             <div className="space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                    {data.name ?? "Untitled Game"}
-                  </h2>
                   {data.groupId ? (
                     <p className="text-muted-foreground text-sm">
                       On Group{" "}

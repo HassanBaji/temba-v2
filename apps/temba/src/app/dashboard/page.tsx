@@ -14,23 +14,17 @@ export default function HomePage() {
   const home = api.users.home.useQuery();
 
   return (
-    <DashboardShell title="Home">
+    <DashboardShell
+      title="Home"
+      description="Your Games played, upcoming Games, memberships, and standing in each Group."
+      action={
+        <Button asChild>
+          <Link href="/dashboard/games/new">Create Game</Link>
+        </Button>
+      }
+      width="wide"
+    >
       <div className="space-y-8">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-              Home
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Your Games played, upcoming Games, memberships, and standing in
-              each Group.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/games/new">Create Game</Link>
-          </Button>
-        </div>
-
         {home.isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-24 w-full" />

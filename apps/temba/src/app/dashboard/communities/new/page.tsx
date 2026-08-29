@@ -52,17 +52,11 @@ export default function NewCommunityPage() {
   }
 
   return (
-    <DashboardShell title="Create Community">
+    <DashboardShell
+      title="Create Community"
+      description="You become the Owner. Groups are optional."
+    >
       <div className="mx-auto w-full max-w-lg space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Community
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            You become the Owner. Groups are optional.
-          </p>
-        </div>
-
         <form
           onSubmit={onSubmit}
           className="border-border bg-card space-y-6 rounded-xl border p-6"
