@@ -105,6 +105,39 @@ function slotLabel(
   return side ? gameTeamLabel(side) : "empty";
 }
 
+function matchSeatSides(
+  sides: {
+    sideIndex: number;
+    gameTeamId: string | null;
+    left: { userId: string; name: string } | null;
+    right: { userId: string; name: string } | null;
+  }[],
+  slot1GameTeamId: string | null,
+  slot2GameTeamId: string | null,
+) {
+  function fromSlot(
+    gameTeamId: string | null,
+    index: number,
+  ): {
+    sideIndex: number;
+    gameTeamId: string | null;
+    left: { userId: string; name: string } | null;
+    right: { userId: string; name: string } | null;
+  } {
+    const found = sides.find((side) => side.gameTeamId === gameTeamId);
+    if (found) {
+      return { ...found, sideIndex: index };
+    }
+    return {
+      sideIndex: index,
+      gameTeamId,
+      left: null,
+      right: null,
+    };
+  }
+  return [fromSlot(slot1GameTeamId, 1), fromSlot(slot2GameTeamId, 2)];
+}
+
 export default function GameHomePage({
   params,
 }: {
@@ -652,6 +685,9 @@ export default function GameHomePage({
                         />
                         <FieldDescription>
                           Multiple of 4, not below the current registered count.
+                          {data.format === "friendly_tournament"
+                            ? " Lowering is refused if a seated side would be above the new N. Empty high-index placeholders may disappear."
+                            : null}
                         </FieldDescription>
                       </Field>
                     )}
@@ -694,6 +730,29 @@ export default function GameHomePage({
                           : " · no Court"}
                         {` · slot 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · slot 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
                       </p>
+                      {data.registrationMode === "individual" &&
+                      data.format !== "americano" ? (
+                        <GameSeatGrid
+                          sides={matchSeatSides(
+                            data.sides,
+                            match.slot1GameTeamId,
+                            match.slot2GameTeamId,
+                          )}
+                          canJoinVacant={false}
+                          joinLabel="Sit here"
+                          joining={false}
+                          canMove={false}
+                          moving={false}
+                          isOrganizer={false}
+                          cancelled={Boolean(data.cancelledAt)}
+                          kickPending={false}
+                          onJoin={() => undefined}
+                          onMove={() => undefined}
+                          onKick={() => undefined}
+                          sideNoun="Slot"
+                          readOnly
+                        />
+                      ) : null}
                       {data.isOrganizer &&
                       !data.cancelledAt &&
                       match.status !== "cancelled" &&
@@ -1147,14 +1206,13 @@ export default function GameHomePage({
               title={
                 data.format === "americano"
                   ? "Player pool"
-                  : data.format === "friendly_game" &&
-                      data.registrationMode === "individual"
+                  : data.registrationMode === "individual"
                     ? "Sides"
                     : "Registered"
               }
             >
-              {data.format === "friendly_game" &&
-              data.registrationMode === "individual" ? (
+              {data.registrationMode === "individual" &&
+              data.format !== "americano" ? (
                 <div className="space-y-4">
                   <GameSeatGrid
                     sides={data.sides}
@@ -1191,6 +1249,9 @@ export default function GameHomePage({
                         gameId: id,
                         userId,
                       })
+                    }
+                    sideNoun={
+                      data.format === "friendly_tournament" ? "Side" : "Slot"
                     }
                   />
                   {data.canPickSeat ? (

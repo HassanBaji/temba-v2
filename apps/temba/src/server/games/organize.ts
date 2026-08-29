@@ -13,6 +13,7 @@ import {
   registeredUserCount,
 } from "~/server/games/access";
 import { leaveRegisteredSeat } from "~/server/games/waitlist";
+import { highestOccupiedSideIndex } from "~/server/games/seats";
 import {
   assertCourtAssignable,
   assertGameTeamOnGame,
@@ -283,6 +284,17 @@ export async function updateGameCaps(
       code: "BAD_REQUEST",
       message: "Cannot lower cap below the current registered count",
     });
+  }
+  if (game.format === "friendly_tournament") {
+    const nextN = Math.floor(nextPlayers / 2);
+    const highest = await highestOccupiedSideIndex(database, game.id);
+    if (highest != null && highest > nextN) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
+          "Cannot lower cap below the highest occupied side. Empty high-index placeholders may disappear; occupied ones may not.",
+      });
+    }
   }
   await database
     .update(games)

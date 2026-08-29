@@ -67,6 +67,23 @@ export function otherPosition(position: SeatPosition): SeatPosition {
   return position === "left" ? "right" : "left";
 }
 
+export async function highestOccupiedSideIndex(
+  database: DbClient,
+  gameId: string,
+) {
+  const teams = await database.query.gameTeams.findMany({
+    where: eq(gameTeams.gameId, gameId),
+    columns: { sideIndex: true },
+  });
+  const indexes = teams
+    .map((row) => row.sideIndex)
+    .filter((value): value is number => value != null);
+  if (indexes.length === 0) {
+    return null;
+  }
+  return Math.max(...indexes);
+}
+
 export async function firstFullyVacantSideIndex(
   database: DbClient,
   game: GameRow,

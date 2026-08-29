@@ -82,6 +82,8 @@ export function GameSeatGrid({
   onJoin,
   onMove,
   onKick,
+  sideNoun = "Slot",
+  readOnly = false,
 }: {
   sides: SeatSideView[];
   canJoinVacant: boolean;
@@ -95,22 +97,26 @@ export function GameSeatGrid({
   onJoin: (sideIndex: number, position: "left" | "right") => void;
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onKick: (userId: string) => void;
+  sideNoun?: string;
+  readOnly?: boolean;
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {sides.map((side) => (
         <Card key={side.sideIndex} variant="outlined" className="space-y-3">
-          <h3 className="text-title font-medium">Slot {side.sideIndex}</h3>
+          <h3 className="text-title font-medium">
+            {sideNoun} {side.sideIndex}
+          </h3>
           <div className="grid grid-cols-2 gap-3">
             <SeatCell
               label="Left"
               occupant={side.left}
-              canJoin={canJoinVacant && !cancelled}
+              canJoin={!readOnly && canJoinVacant && !cancelled}
               joinLabel={joinLabel}
               joining={joining}
-              canMove={canMove && !cancelled}
+              canMove={!readOnly && canMove && !cancelled}
               moving={moving}
-              isOrganizer={isOrganizer && !cancelled}
+              isOrganizer={!readOnly && isOrganizer && !cancelled}
               kickPending={kickPending}
               onJoin={() => onJoin(side.sideIndex, "left")}
               onMove={() => onMove(side.sideIndex, "left")}
@@ -119,12 +125,12 @@ export function GameSeatGrid({
             <SeatCell
               label="Right"
               occupant={side.right}
-              canJoin={canJoinVacant && !cancelled}
+              canJoin={!readOnly && canJoinVacant && !cancelled}
               joinLabel={joinLabel}
               joining={joining}
-              canMove={canMove && !cancelled}
+              canMove={!readOnly && canMove && !cancelled}
               moving={moving}
-              isOrganizer={isOrganizer && !cancelled}
+              isOrganizer={!readOnly && isOrganizer && !cancelled}
               kickPending={kickPending}
               onJoin={() => onJoin(side.sideIndex, "right")}
               onMove={() => onMove(side.sideIndex, "right")}
