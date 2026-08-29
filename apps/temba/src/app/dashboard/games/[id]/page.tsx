@@ -108,6 +108,9 @@ export default function GameHomePage({
   const [matchCourtId, setMatchCourtId] = React.useState("none");
   const [matchSlot1, setMatchSlot1] = React.useState("none");
   const [matchSlot2, setMatchSlot2] = React.useState("none");
+  const [setScores, setSetScores] = React.useState<
+    Record<string, { slot1: string; slot2: string }>
+  >({});
 
   const registerSelf = api.games.register.useMutation({
     onSuccess: async (result) => {
@@ -270,6 +273,46 @@ export default function GameHomePage({
     },
   });
 
+  const addSet = api.games.addSet.useMutation({
+    onSuccess: async () => {
+      toast.success("Set added");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const scoreSet = api.games.scoreSet.useMutation({
+    onSuccess: async () => {
+      toast.success("Set saved");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const removeSet = api.games.removeSet.useMutation({
+    onSuccess: async () => {
+      toast.success("Set removed");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const completeMatch = api.games.completeMatch.useMutation({
+    onSuccess: async () => {
+      toast.success("Match completed");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const data = game.data;
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
   const courts = api.games.listCourts.useQuery(
@@ -295,6 +338,16 @@ export default function GameHomePage({
     setWindowEnd(toDatetimeLocalValue(data.windowEnd));
     setPlayersAllowed(String(data.playersAllowed ?? 4));
     setTeamsAllowed(String(data.teamsAllowed ?? 2));
+    const nextScores: Record<string, { slot1: string; slot2: string }> = {};
+    for (const match of data.matches) {
+      for (const set of match.sets) {
+        nextScores[set.id] = {
+          slot1: set.slot1GamesWon == null ? "" : String(set.slot1GamesWon),
+          slot2: set.slot2GamesWon == null ? "" : String(set.slot2GamesWon),
+        };
+      }
+    }
+    setSetScores(nextScores);
   }, [data]);
 
   return (
@@ -652,6 +705,179 @@ export default function GameHomePage({
                             ? "Cancel Match (cancels Game)"
                             : "Cancel Match"}
                         </Button>
+                      ) : null}
+                      {data.format !== "americano" ? (
+                        <div className="space-y-3">
+                          <p className="text-foreground text-sm font-medium">
+                            Sets
+                            {match.outcome.result === "draw"
+                              ? " · Match draw"
+                              : match.outcome.result === "slot1"
+                                ? " · Slot 1 leads"
+                                : match.outcome.result === "slot2"
+                                  ? " · Slot 2 leads"
+                                  : " · no result yet"}
+                            {` · ${match.outcome.slot1SetWins}–${match.outcome.slot2SetWins} Set-wins`}
+                          </p>
+                          {match.sets.length === 0 ? (
+                            <p className="text-muted-foreground text-sm">
+                              No Sets. Organizer can add a shell before sides
+                              exist.
+                            </p>
+                          ) : (
+                            <ul className="space-y-3">
+                              {match.sets.map((set, index) => {
+                                const scores = setScores[set.id] ?? {
+                                  slot1: "",
+                                  slot2: "",
+                                };
+                                return (
+                                  <li
+                                    key={set.id}
+                                    className="flex flex-wrap items-end gap-2"
+                                  >
+                                    <p className="text-muted-foreground w-12 text-sm">
+                                      Set {index + 1}
+                                    </p>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      className="w-20"
+                                      value={scores.slot1}
+                                      disabled={!match.canScoreSets}
+                                      aria-label={`Set ${index + 1} slot 1 games`}
+                                      onChange={(event) =>
+                                        setSetScores((current) => ({
+                                          ...current,
+                                          [set.id]: {
+                                            slot1: event.target.value,
+                                            slot2: scores.slot2,
+                                          },
+                                        }))
+                                      }
+                                    />
+                                    <span className="text-muted-foreground text-sm">
+                                      –
+                                    </span>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      className="w-20"
+                                      value={scores.slot2}
+                                      disabled={!match.canScoreSets}
+                                      aria-label={`Set ${index + 1} slot 2 games`}
+                                      onChange={(event) =>
+                                        setSetScores((current) => ({
+                                          ...current,
+                                          [set.id]: {
+                                            slot1: scores.slot1,
+                                            slot2: event.target.value,
+                                          },
+                                        }))
+                                      }
+                                    />
+                                    {set.wins ? (
+                                      <p className="text-muted-foreground text-sm">
+                                        {set.wins.slot1SetWins === 0 &&
+                                        set.wins.slot2SetWins === 0
+                                          ? "Set draw"
+                                          : `${set.wins.slot1SetWins}–${set.wins.slot2SetWins}`}
+                                      </p>
+                                    ) : (
+                                      <p className="text-muted-foreground text-sm">
+                                        Shell
+                                      </p>
+                                    )}
+                                    {match.canScoreSets ? (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => {
+                                          if (
+                                            scores.slot1.trim().length === 0 ||
+                                            scores.slot2.trim().length === 0
+                                          ) {
+                                            toast.error(
+                                              "Enter games won for both slots",
+                                            );
+                                            return;
+                                          }
+                                          scoreSet.mutate({
+                                            gameId: id,
+                                            matchId: match.id,
+                                            setId: set.id,
+                                            slot1GamesWon: Number(scores.slot1),
+                                            slot2GamesWon: Number(scores.slot2),
+                                          });
+                                        }}
+                                        disabled={scoreSet.isPending}
+                                      >
+                                        Save
+                                      </Button>
+                                    ) : null}
+                                    {match.canAddSet ? (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                          removeSet.mutate({
+                                            gameId: id,
+                                            matchId: match.id,
+                                            setId: set.id,
+                                          })
+                                        }
+                                        disabled={removeSet.isPending}
+                                      >
+                                        Remove
+                                      </Button>
+                                    ) : null}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            {match.canAddSet ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  addSet.mutate({
+                                    gameId: id,
+                                    matchId: match.id,
+                                  })
+                                }
+                                disabled={addSet.isPending}
+                              >
+                                Add Set
+                              </Button>
+                            ) : null}
+                            {match.canComplete ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() =>
+                                  completeMatch.mutate({
+                                    gameId: id,
+                                    matchId: match.id,
+                                  })
+                                }
+                                disabled={completeMatch.isPending}
+                              >
+                                Complete Match
+                              </Button>
+                            ) : null}
+                          </div>
+                          {!match.bothSlotsFilled &&
+                          match.status !== "completed" ? (
+                            <p className="text-muted-foreground text-sm">
+                              Scoring is frozen until both slots have Game
+                              teams.
+                            </p>
+                          ) : null}
+                        </div>
                       ) : null}
                     </li>
                   ))}

@@ -53,6 +53,16 @@ import {
 } from "~/server/games/organize";
 import { listAssignableCourts } from "~/server/games/courts";
 import {
+  addMatchSet,
+  bothSlotsFilled,
+  completeMatch as markMatchCompleted,
+  matchOutcome,
+  removeMatchSet,
+  requireMatchOnGame,
+  scoreMatchSet,
+  setWinsForGames,
+} from "~/server/games/sets";
+import {
   assignFriendlyMatchSlots,
   enqueueWaitlistTeam,
   enqueueWaitlistUser,
@@ -449,6 +459,9 @@ export const gamesRouter = createTRPCRouter({
           court: {
             columns: { id: true, name: true },
           },
+          sets: {
+            orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+          },
         },
         orderBy: (table, { asc }) => [asc(table.createdAt)],
       });
@@ -544,6 +557,14 @@ export const gamesRouter = createTRPCRouter({
         }
       }
 
+      const myGameTeamIds = new Set(
+        teamRows
+          .filter((row) =>
+            row.players.some((link) => link.gamePlayer.user?.id === appUser.id),
+          )
+          .map((row) => row.id),
+      );
+
       return {
         id: game.id,
         name: game.name,
@@ -586,17 +607,45 @@ export const gamesRouter = createTRPCRouter({
           createdAt: row.createdAt,
           name: row.user?.name ?? row.team?.name ?? "Waitlisted",
         })),
-        matches: matchRows.map((match) => ({
-          id: match.id,
-          startTime: match.startTime,
-          endTime: match.endTime,
-          durationInMinutes: match.durationInMinutes,
-          status: match.status,
-          courtId: match.courtId,
-          courtName: match.court?.name ?? null,
-          slot1GameTeamId: match.slot1GameTeamId,
-          slot2GameTeamId: match.slot2GameTeamId,
-        })),
+        matches: matchRows.map((match) => {
+          const onSides =
+            Boolean(match.slot1GameTeamId) &&
+            Boolean(match.slot2GameTeamId) &&
+            (myGameTeamIds.has(match.slot1GameTeamId ?? "") ||
+              myGameTeamIds.has(match.slot2GameTeamId ?? ""));
+          const frozen =
+            match.status === "completed" || match.status === "cancelled";
+          const canWriteSets =
+            !frozen && game.format !== "americano" && (organizer || onSides);
+          const outcome = matchOutcome(match.sets);
+          return {
+            id: match.id,
+            startTime: match.startTime,
+            endTime: match.endTime,
+            durationInMinutes: match.durationInMinutes,
+            status: match.status,
+            courtId: match.courtId,
+            courtName: match.court?.name ?? null,
+            slot1GameTeamId: match.slot1GameTeamId,
+            slot2GameTeamId: match.slot2GameTeamId,
+            bothSlotsFilled: bothSlotsFilled(match),
+            canAddSet: canWriteSets && (organizer || onSides),
+            canScoreSets:
+              canWriteSets && bothSlotsFilled(match) && (organizer || onSides),
+            canComplete:
+              !frozen &&
+              game.format !== "americano" &&
+              (organizer || onSides) &&
+              match.sets.length > 0,
+            outcome,
+            sets: match.sets.map((set) => ({
+              id: set.id,
+              slot1GamesWon: set.slot1GamesWon,
+              slot2GamesWon: set.slot2GamesWon,
+              wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
+            })),
+          };
+        }),
         gameTeams: teamRows.map((row) => ({
           id: row.id,
           teamId: row.teamId,
@@ -1117,6 +1166,98 @@ export const gamesRouter = createTRPCRouter({
           slot2GameTeamId: input.slot2GameTeamId ?? null,
         });
       });
+      return { ok: true as const };
+    }),
+
+  addSet: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        matchId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
+      const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
+      const created = await addMatchSet(
+        ctx.db,
+        game,
+        match,
+        appUser.id,
+        organizer,
+      );
+      return { id: created.id };
+    }),
+
+  scoreSet: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        matchId: z.string().uuid(),
+        setId: z.string().uuid(),
+        slot1GamesWon: z.number().int().nonnegative(),
+        slot2GamesWon: z.number().int().nonnegative(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
+      const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
+      await scoreMatchSet(
+        ctx.db,
+        game,
+        match,
+        input.setId,
+        appUser.id,
+        organizer,
+        {
+          slot1GamesWon: input.slot1GamesWon,
+          slot2GamesWon: input.slot2GamesWon,
+        },
+      );
+      return { ok: true as const };
+    }),
+
+  removeSet: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        matchId: z.string().uuid(),
+        setId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
+      const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
+      await removeMatchSet(
+        ctx.db,
+        game,
+        match,
+        input.setId,
+        appUser.id,
+        organizer,
+      );
+      return { ok: true as const };
+    }),
+
+  completeMatch: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        matchId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
+      const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
+      await markMatchCompleted(ctx.db, game, match, appUser.id, organizer);
       return { ok: true as const };
     }),
 
