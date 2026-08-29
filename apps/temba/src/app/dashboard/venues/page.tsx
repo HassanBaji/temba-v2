@@ -1,12 +1,18 @@
 "use client";
 
+import { Building2, Inbox } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
+import { EmptyState } from "~/components/common/empty-state";
+import { EntityMonogram } from "~/components/common/entity-monogram";
+import { ErrorState } from "~/components/common/error-state";
+import { ListPageSkeleton } from "~/components/common/page-skeleton";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
 export default function VenuesPage() {
@@ -36,6 +42,8 @@ export default function VenuesPage() {
     },
   });
 
+  const requestCount = pendingLinks.data?.length ?? 0;
+
   return (
     <DashboardShell
       title="Venues"
@@ -46,111 +54,127 @@ export default function VenuesPage() {
         </Button>
       }
     >
-      <div className="space-y-6">
-        <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-          <div>
-            <h3 className="text-foreground text-lg font-medium">
-              Pending Venue link requests
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Approve sets the Community live Venue pointer. Reject is silent
-              and does not admit Users.
-            </p>
-          </div>
-
-          {pendingLinks.isLoading ? <Skeleton className="h-16 w-full" /> : null}
+      <div className="space-y-8">
+        <Section
+          title="Requests"
+          description="Approve sets the Community live Venue pointer. Reject is silent and does not admit Users."
+          action={
+            requestCount > 0 ? (
+              <Badge variant="secondary">{requestCount}</Badge>
+            ) : null
+          }
+        >
+          {pendingLinks.isLoading ? <ListPageSkeleton rows={2} /> : null}
           {pendingLinks.error ? (
-            <p className="text-destructive text-sm">
-              {pendingLinks.error.message}
-            </p>
+            <ErrorState
+              title="Requests could not be loaded"
+              message={pendingLinks.error.message}
+              onRetry={() => {
+                void pendingLinks.refetch();
+              }}
+            />
           ) : null}
           {pendingLinks.data?.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              No pending Venue link requests.
-            </p>
+            <EmptyState
+              icon={Inbox}
+              title="No pending requests"
+              description="Venue link requests from Communities will show up here."
+            />
           ) : null}
           {pendingLinks.data && pendingLinks.data.length > 0 ? (
-            <ul className="divide-border border-border divide-y rounded-lg border">
-              {pendingLinks.data.map((request) => (
-                <li
-                  key={request.id}
-                  className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-foreground font-medium">
-                      {request.community.name}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {request.requestedBy.name} · {request.venue.name} ·{" "}
-                      {request.createdAt.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        approveLink.mutate({ requestId: request.id })
-                      }
-                      disabled={approveLink.isPending || rejectLink.isPending}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        rejectLink.mutate({ requestId: request.id })
-                      }
-                      disabled={approveLink.isPending || rejectLink.isPending}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                </li>
-              ))}
+            <ul className="divide-border divide-y overflow-hidden rounded-lg border">
+              {pendingLinks.data.map((request) => {
+                const approvePending =
+                  approveLink.isPending &&
+                  approveLink.variables?.requestId === request.id;
+                const rejectPending =
+                  rejectLink.isPending &&
+                  rejectLink.variables?.requestId === request.id;
+                return (
+                  <li
+                    key={request.id}
+                    className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-lead truncate font-semibold">
+                        {request.community.name}
+                      </p>
+                      <p className="text-meta text-muted-foreground truncate">
+                        Venue link request for {request.venue.name}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        className="min-h-11"
+                        onClick={() =>
+                          approveLink.mutate({ requestId: request.id })
+                        }
+                        disabled={approvePending || rejectLink.isPending}
+                      >
+                        {approvePending ? "Approving…" : "Approve"}
+                      </Button>
+                      <Button
+                        className="min-h-11"
+                        variant="outline"
+                        onClick={() =>
+                          rejectLink.mutate({ requestId: request.id })
+                        }
+                        disabled={rejectPending || approveLink.isPending}
+                      >
+                        {rejectPending ? "Rejecting…" : "Reject"}
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
-        </section>
+        </Section>
 
-        {venues.isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : null}
+        {venues.isLoading ? <ListPageSkeleton rows={4} /> : null}
 
         {venues.error ? (
-          <p className="text-destructive text-sm">{venues.error.message}</p>
+          <ErrorState
+            title="Venues could not be loaded"
+            message={venues.error.message}
+            onRetry={() => {
+              void venues.refetch();
+            }}
+          />
         ) : null}
 
         {venues.data?.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No Venues yet. Create one to start the catalog.
-          </p>
+          <EmptyState
+            icon={Building2}
+            title="No Venues yet"
+            description="Create a Venue to start the catalog."
+            action={
+              <Button asChild>
+                <Link href="/dashboard/venues/new">Create Venue</Link>
+              </Button>
+            }
+          />
         ) : null}
 
         {venues.data && venues.data.length > 0 ? (
-          <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+          <RowList>
             {venues.data.map((venue) => (
-              <li key={venue.id}>
-                <Link
-                  href={`/dashboard/venues/${venue.id}`}
-                  className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="space-y-1">
-                    <p className="text-foreground font-medium">{venue.name}</p>
-                    <p className="text-muted-foreground text-sm">
-                      {venue.city}, {venue.country}
-                      {venue.archivedAt ? " · Soft-archived" : ""}
-                    </p>
-                  </div>
-                  {venue.archivedAt ? (
+              <ListRow
+                key={venue.id}
+                asChild
+                leading={<EntityMonogram name={venue.name} size="lg" />}
+                title={venue.name}
+                meta={`${venue.city}, ${venue.country}`}
+                trailing={
+                  venue.archivedAt ? (
                     <Badge variant="outline">Soft-archived</Badge>
-                  ) : null}
-                </Link>
-              </li>
+                  ) : undefined
+                }
+              >
+                <Link href={`/dashboard/venues/${venue.id}`} />
+              </ListRow>
             ))}
-          </ul>
+          </RowList>
         ) : null}
       </div>
     </DashboardShell>

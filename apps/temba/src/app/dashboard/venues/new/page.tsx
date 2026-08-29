@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -53,11 +54,8 @@ export default function NewVenuePage() {
       title="Create Venue"
       description="A physical site starts with no Courts. Name, city, and country are required."
     >
-      <div className="mx-auto w-full max-w-lg space-y-6">
-        <form
-          onSubmit={onSubmit}
-          className="border-border bg-card space-y-6 rounded-xl border p-6"
-        >
+      <Card variant="outlined" className="mx-auto w-full max-w-lg">
+        <form onSubmit={onSubmit} className="space-y-6">
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="venue-name">Name</FieldLabel>
@@ -127,15 +125,19 @@ export default function NewVenuePage() {
           </FieldGroup>
 
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={createVenue.isPending}>
+            <Button
+              type="submit"
+              className="min-h-11"
+              disabled={createVenue.isPending}
+            >
               {createVenue.isPending ? "Creating…" : "Create Venue"}
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" className="min-h-11" asChild>
               <Link href="/dashboard/venues">Cancel</Link>
             </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </DashboardShell>
   );
 }

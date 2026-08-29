@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { ErrorState } from "~/components/common/error-state";
+import { ListRow, RowList } from "~/components/common/row-list";
+import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { Section } from "~/components/layout/section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -16,7 +22,7 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { Skeleton } from "~/components/ui/skeleton";
+import { isNotFoundError } from "~/lib/is-not-found-error";
 import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
 
@@ -69,6 +75,10 @@ export default function VenueHomePage({
   const [courtNames, setCourtNames] = React.useState<Record<string, string>>(
     {},
   );
+  const [logoError, setLogoError] = React.useState<string | null>(null);
+  const [deleteCourtId, setDeleteCourtId] = React.useState<string | null>(null);
+  const [clearLogoOpen, setClearLogoOpen] = React.useState(false);
+  const [archiveOpen, setArchiveOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!venue.data || hydratedId === venue.data.id) {
@@ -132,14 +142,12 @@ export default function VenueHomePage({
       toast.success("Court deleted");
       await utils.venues.byId.invalidate({ id });
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
   const uploadLogo = api.venues.uploadLogo.useMutation({
     onSuccess: async () => {
       toast.success("Logo saved");
+      setLogoError(null);
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -152,9 +160,6 @@ export default function VenueHomePage({
       toast.success("Logo cleared");
       await utils.venues.byId.invalidate({ id });
     },
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
   const softArchive = api.venues.softArchive.useMutation({
@@ -162,9 +167,6 @@ export default function VenueHomePage({
       toast.success("Venue Soft-archived");
       await utils.venues.byId.invalidate({ id });
       await utils.venues.list.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message);
     },
   });
 
@@ -204,54 +206,90 @@ export default function VenueHomePage({
     }
     const contentType = asLogoContentType(file.type);
     if (!contentType) {
-      toast.error("Logo must be a JPEG, PNG, or WebP image");
+      setLogoError("Logo must be a JPEG, PNG, or WebP image");
       return;
     }
     if (file.size > LOGO_MAX_BYTES) {
-      toast.error("Logo must be at most 2 MB");
+      setLogoError("Logo must be at most 2 MB");
       return;
     }
+    setLogoError(null);
     const dataBase64 = await fileToBase64(file);
     uploadLogo.mutate({ venueId: id, contentType, dataBase64 });
   }
 
+  if (isNotFoundError(venue.error)) {
+    notFound();
+  }
+
+  if (venue.isLoading) {
+    return (
+      <DashboardShell title="Venue">
+        <DetailPageSkeleton />
+      </DashboardShell>
+    );
+  }
+
+  if (venue.error) {
+    return (
+      <DashboardShell title="Venue">
+        <ErrorState
+          title="Venue could not be loaded"
+          message={venue.error.message}
+          onRetry={() => {
+            void venue.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  if (!venue.data) {
+    return (
+      <DashboardShell title="Venue">
+        <ErrorState
+          title="Venue could not be loaded"
+          onRetry={() => {
+            void venue.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  const data = venue.data;
+  const venueName = data.name;
+  const deleteCourtName =
+    data.courts.find((court) => court.id === deleteCourtId)?.name ?? "Court";
+
   return (
     <DashboardShell
-      title={venue.data?.name ?? "Venue"}
+      title={venueName}
       description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
+      action={
+        data.archivedAt ? (
+          <Button
+            type="button"
+            className="min-h-11"
+            onClick={() => unarchive.mutate({ id })}
+            disabled={unarchive.isPending}
+          >
+            {unarchive.isPending ? "Unarchiving…" : "Unarchive"}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setArchiveOpen(true)}
+          >
+            Soft-archive
+          </Button>
+        )
+      }
     >
-      <div className="mx-auto w-full max-w-2xl space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-1">
-            {venue.data?.archivedAt ? (
-              <Badge variant="outline">Soft-archived</Badge>
-            ) : null}
-          </div>
-          {venue.data ? (
-            <div className="flex flex-wrap gap-2">
-              {venue.data.archivedAt ? (
-                <Button
-                  type="button"
-                  onClick={() => unarchive.mutate({ id })}
-                  disabled={unarchive.isPending || softArchive.isPending}
-                >
-                  {unarchive.isPending ? "Unarchiving…" : "Unarchive"}
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => softArchive.mutate({ id })}
-                  disabled={softArchive.isPending || unarchive.isPending}
-                >
-                  {softArchive.isPending ? "Archiving…" : "Soft-archive"}
-                </Button>
-              )}
-            </div>
-          ) : null}
-        </div>
-
-        {venue.data?.archivedAt ? (
+      <div className="space-y-8">
+        {data.archivedAt ? (
           <SoftArchiveBanner heading="This Venue is Soft-archived">
             It is hidden from the Community request catalog. You can still edit
             fields, Courts, and logo. Unarchive to restore it to the live
@@ -259,253 +297,297 @@ export default function VenueHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        {venue.data ? (
-          <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-            <div>
-              <h3 className="text-foreground text-lg font-medium">
-                Linked Communities
-              </h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Communities that currently have a live Venue link. Sharing a
-                Venue does not change membership.
-              </p>
-            </div>
-            {venue.data.linkedCommunities.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No Communities are live-linked to this Venue.
-              </p>
-            ) : (
-              <ul className="divide-border border-border divide-y rounded-lg border">
-                {venue.data.linkedCommunities.map((community) => (
-                  <li
-                    key={community.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-                  >
-                    <p className="text-foreground font-medium">
-                      {community.name}
-                    </p>
-                    {community.archivedAt ? (
+        <Section
+          title="Linked Communities"
+          description="Communities that currently have a live Venue link. Sharing a Venue does not change membership."
+        >
+          {data.linkedCommunities.length === 0 ? (
+            <p className="text-body text-muted-foreground">
+              No Communities are live-linked to this Venue.
+            </p>
+          ) : (
+            <RowList>
+              {data.linkedCommunities.map((community) => (
+                <ListRow
+                  key={community.id}
+                  title={community.name}
+                  trailing={
+                    community.archivedAt ? (
                       <Badge variant="outline">Soft-archived</Badge>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ) : null}
-
-        {venue.isLoading ? <Skeleton className="h-64 w-full" /> : null}
-
-        {venue.error ? (
-          <p className="text-destructive text-sm">{venue.error.message}</p>
-        ) : null}
-
-        {venue.data ? (
-          <>
-            <form
-              onSubmit={onSubmit}
-              className="border-border bg-card space-y-6 rounded-xl border p-6"
-            >
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="venue-name">Name</FieldLabel>
-                  <Input
-                    id="venue-name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    required
-                    maxLength={255}
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="venue-city">City</FieldLabel>
-                  <Input
-                    id="venue-city"
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
-                    required
-                    maxLength={255}
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="venue-country">Country</FieldLabel>
-                  <Input
-                    id="venue-country"
-                    value={country}
-                    onChange={(event) => setCountry(event.target.value)}
-                    required
-                    maxLength={255}
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="venue-latitude">Latitude</FieldLabel>
-                  <Input
-                    id="venue-latitude"
-                    type="number"
-                    step="any"
-                    min={-90}
-                    max={90}
-                    value={latitude}
-                    onChange={(event) => setLatitude(event.target.value)}
-                    placeholder="Optional"
-                  />
-                  <FieldDescription>
-                    Optional. Range −90 to 90.
-                  </FieldDescription>
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="venue-longitude">Longitude</FieldLabel>
-                  <Input
-                    id="venue-longitude"
-                    type="number"
-                    step="any"
-                    min={-180}
-                    max={180}
-                    value={longitude}
-                    onChange={(event) => setLongitude(event.target.value)}
-                    placeholder="Optional"
-                  />
-                  <FieldDescription>
-                    Optional. Range −180 to 180.
-                  </FieldDescription>
-                </Field>
-              </FieldGroup>
-
-              <div className="flex items-center gap-3">
-                <Button type="submit" disabled={updateVenue.isPending}>
-                  {updateVenue.isPending ? "Saving…" : "Save"}
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/dashboard/venues">Back to Venues</Link>
-                </Button>
-              </div>
-            </form>
-
-            <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-              <div className="space-y-1">
-                <h3 className="text-foreground text-lg font-medium">Logo</h3>
-                <p className="text-muted-foreground text-sm">
-                  Optional. JPEG, PNG, or WebP, at most 2 MB. Display uses the
-                  public URL.
-                </p>
-              </div>
-
-              {venue.data.logoImageUrl ? (
-                // Public catalog URL (ADR-0006); not a signed URL.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={venue.data.logoImageUrl}
-                  alt={`${venue.data.name} logo`}
-                  className="border-border h-24 w-24 rounded-md border object-cover"
+                    ) : undefined
+                  }
                 />
-              ) : (
-                <p className="text-muted-foreground text-sm">No logo yet.</p>
-              )}
+              ))}
+            </RowList>
+          )}
+        </Section>
 
-              <div className="flex flex-wrap items-center gap-3">
+        <Section title="Details">
+          <form onSubmit={onSubmit} className="space-y-6">
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="venue-name">Name</FieldLabel>
                 <Input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => {
-                    void onLogoFileChange(event);
-                  }}
-                  disabled={uploadLogo.isPending || clearLogo.isPending}
-                />
-                {venue.data.logoImageUrl ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={clearLogo.isPending || uploadLogo.isPending}
-                    onClick={() => clearLogo.mutate({ venueId: id })}
-                  >
-                    {clearLogo.isPending ? "Clearing…" : "Clear logo"}
-                  </Button>
-                ) : null}
-              </div>
-            </section>
-
-            <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-              <div className="space-y-1">
-                <h3 className="text-foreground text-lg font-medium">Courts</h3>
-                <p className="text-muted-foreground text-sm">
-                  A Venue may have zero Courts. Names are unique on this Venue
-                  after trim and case-fold.
-                </p>
-              </div>
-
-              <form onSubmit={onAddCourt} className="flex flex-wrap gap-3">
-                <Input
-                  value={newCourtName}
-                  onChange={(event) => setNewCourtName(event.target.value)}
-                  placeholder="Court 1"
+                  id="venue-name"
+                  className="min-h-11"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
                   required
                   maxLength={255}
-                  className="min-w-48 flex-1"
                 />
-                <Button type="submit" disabled={addCourt.isPending}>
-                  {addCourt.isPending ? "Adding…" : "Add Court"}
-                </Button>
-              </form>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="venue-city">City</FieldLabel>
+                <Input
+                  id="venue-city"
+                  className="min-h-11"
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                  required
+                  maxLength={255}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="venue-country">Country</FieldLabel>
+                <Input
+                  id="venue-country"
+                  className="min-h-11"
+                  value={country}
+                  onChange={(event) => setCountry(event.target.value)}
+                  required
+                  maxLength={255}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="venue-latitude">Latitude</FieldLabel>
+                <Input
+                  id="venue-latitude"
+                  className="min-h-11"
+                  type="number"
+                  step="any"
+                  min={-90}
+                  max={90}
+                  value={latitude}
+                  onChange={(event) => setLatitude(event.target.value)}
+                  placeholder="Optional"
+                />
+                <FieldDescription>Optional. Range −90 to 90.</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="venue-longitude">Longitude</FieldLabel>
+                <Input
+                  id="venue-longitude"
+                  className="min-h-11"
+                  type="number"
+                  step="any"
+                  min={-180}
+                  max={180}
+                  value={longitude}
+                  onChange={(event) => setLongitude(event.target.value)}
+                  placeholder="Optional"
+                />
+                <FieldDescription>
+                  Optional. Range −180 to 180.
+                </FieldDescription>
+              </Field>
+            </FieldGroup>
+            <div className="flex items-center gap-3">
+              <Button
+                type="submit"
+                className="min-h-11"
+                disabled={updateVenue.isPending}
+              >
+                {updateVenue.isPending ? "Saving…" : "Save"}
+              </Button>
+              <Button variant="outline" className="min-h-11" asChild>
+                <Link href="/dashboard/venues">Back to Venues</Link>
+              </Button>
+            </div>
+          </form>
+        </Section>
 
-              {venue.data.courts.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  No Courts yet. This Venue can stay empty.
-                </p>
-              ) : (
-                <ul className="divide-border border-border divide-y rounded-lg border">
-                  {venue.data.courts.map((court) => (
-                    <li
-                      key={court.id}
-                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center"
+        <Section
+          title="Logo"
+          description="Optional. JPEG, PNG, or WebP, at most 2 MB. Display uses the public URL."
+        >
+          {data.logoImageUrl ? (
+            // Public catalog URL (ADR-0006); not a signed URL.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={data.logoImageUrl}
+              alt={`${data.name} logo`}
+              className="size-24 rounded-lg object-cover"
+            />
+          ) : (
+            <p className="text-body text-muted-foreground">No logo yet.</p>
+          )}
+          <Field>
+            <FieldLabel htmlFor="venue-logo">Upload logo</FieldLabel>
+            <Input
+              id="venue-logo"
+              className="min-h-11"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-invalid={logoError ? true : undefined}
+              aria-describedby={logoError ? "venue-logo-error" : undefined}
+              onChange={(event) => {
+                void onLogoFileChange(event);
+              }}
+              disabled={uploadLogo.isPending || clearLogo.isPending}
+            />
+            {logoError ? (
+              <p
+                id="venue-logo-error"
+                role="alert"
+                className="text-destructive text-meta"
+              >
+                {logoError}
+              </p>
+            ) : null}
+          </Field>
+          {data.logoImageUrl ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              disabled={clearLogo.isPending || uploadLogo.isPending}
+              onClick={() => setClearLogoOpen(true)}
+            >
+              Clear logo
+            </Button>
+          ) : null}
+        </Section>
+
+        <Section
+          title="Courts"
+          description="A Venue may have zero Courts. Names are unique on this Venue after trim and case-fold."
+        >
+          <form
+            onSubmit={onAddCourt}
+            className="flex flex-col gap-3 sm:flex-row"
+          >
+            <label className="sr-only" htmlFor="new-court-name">
+              New Court name
+            </label>
+            <Input
+              id="new-court-name"
+              className="min-h-11 min-w-48 flex-1"
+              value={newCourtName}
+              onChange={(event) => setNewCourtName(event.target.value)}
+              placeholder="Court 1"
+              required
+              maxLength={255}
+            />
+            <Button
+              type="submit"
+              className="min-h-11"
+              disabled={addCourt.isPending}
+            >
+              {addCourt.isPending ? "Adding…" : "Add Court"}
+            </Button>
+          </form>
+
+          {data.courts.length === 0 ? (
+            <p className="text-body text-muted-foreground">
+              No Courts yet. This Venue can stay empty.
+            </p>
+          ) : (
+            <RowList>
+              {data.courts.map((court) => (
+                <li
+                  key={court.id}
+                  className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center"
+                >
+                  <label className="sr-only" htmlFor={`court-name-${court.id}`}>
+                    Court name {court.name}
+                  </label>
+                  <Input
+                    id={`court-name-${court.id}`}
+                    className="min-h-11 flex-1"
+                    value={courtNames[court.id] ?? court.name}
+                    onChange={(event) =>
+                      setCourtNames((current) => ({
+                        ...current,
+                        [court.id]: event.target.value,
+                      }))
+                    }
+                    maxLength={255}
+                    required
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      disabled={renameCourt.isPending}
+                      onClick={() =>
+                        renameCourt.mutate({
+                          id: court.id,
+                          name: courtNames[court.id] ?? court.name,
+                        })
+                      }
                     >
-                      <Input
-                        value={courtNames[court.id] ?? court.name}
-                        onChange={(event) =>
-                          setCourtNames((current) => ({
-                            ...current,
-                            [court.id]: event.target.value,
-                          }))
-                        }
-                        maxLength={255}
-                        required
-                        aria-label={`Court name ${court.name}`}
-                        className="flex-1"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={renameCourt.isPending}
-                          onClick={() =>
-                            renameCourt.mutate({
-                              id: court.id,
-                              name: courtNames[court.id] ?? court.name,
-                            })
-                          }
-                        >
-                          Rename
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={deleteCourt.isPending}
-                          onClick={() => deleteCourt.mutate({ id: court.id })}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
-        ) : null}
+                      Rename
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      disabled={deleteCourt.isPending}
+                      onClick={() => setDeleteCourtId(court.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </RowList>
+          )}
+        </Section>
       </div>
+
+      <ConfirmDialog
+        open={deleteCourtId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteCourtId(null);
+          }
+        }}
+        title={`Delete ${deleteCourtName}?`}
+        description="This cannot be undone. Cancelling does nothing."
+        confirmLabel="Delete Court"
+        pending={deleteCourt.isPending}
+        onConfirm={async () => {
+          if (!deleteCourtId) {
+            return;
+          }
+          await deleteCourt.mutateAsync({ id: deleteCourtId });
+        }}
+      />
+
+      <ConfirmDialog
+        open={clearLogoOpen}
+        onOpenChange={setClearLogoOpen}
+        title={`Clear logo for ${venueName}?`}
+        description="The current logo will be removed. Cancelling does nothing."
+        confirmLabel="Clear logo"
+        pending={clearLogo.isPending}
+        onConfirm={async () => {
+          await clearLogo.mutateAsync({ venueId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        title={`Soft-archive ${venueName}?`}
+        description="It is hidden from the Community request catalog. Live Community links stay. Cancelling does nothing."
+        confirmLabel="Soft-archive Venue"
+        pending={softArchive.isPending}
+        onConfirm={async () => {
+          await softArchive.mutateAsync({ id });
+        }}
+      />
     </DashboardShell>
   );
 }
