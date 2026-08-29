@@ -1,6 +1,6 @@
 # Games and Matches — settled decisions
 
-Status: grilling in progress — Rounds 1–6 settled; Round 7 (two confirmations) open.
+Status: grilling complete — shared understanding recap awaiting user confirm before `/to-spec`.
 
 ## Settled (round 1)
 
@@ -40,12 +40,11 @@ Status: grilling in progress — Rounds 1–6 settled; Round 7 (two confirmation
 
 ## Settled (round 6)
 
-22. Each Set stores **games won per side**, including a **games-draw** (equal games). Match winner = most Sets won; equal Set-wins = Match draw; complete once ≥1 Set (then freeze). How a drawn Set counts toward Set-wins is Q31.
-23. Organizer may add Sets with empty sides; players only when both sides exist. Slot model is Q30.
+22. Each Set stores **games won per side**, including a **games-draw**. Unequal games → 1 Set-win; equal games → 0 Set-wins both. Match winner = most Set-wins; tie = Match draw. Complete once ≥1 Set (then freeze).
+23. A Match has two ordered slots. Organizer may add a **Set shell** with empty slots; **nobody** may enter or edit games-won until **both** slots have Game teams. Leave/kick clears a slot; Sets stay; scoring frozen until both slots filled again.
 24. Invites never widen a non-public Group Game. Groupless non-public = invite-only. Pending Team does not occupy cap.
 25. Individual non-Americano: register with a partner as an ad-hoc Game team. Friendly game = two such sides.
 
-## Open (round 7)
+## ADR / glossary
 
-- Match side slots vs empty-side Sets (Q30)
-- Drawn Set → 0 Set-wins each vs other count (Q31)
+ADR-0008 records the Game→Match rename. Glossary: Game, Match, Set (may be drawn), Game team, Americano, Friendly tournament, Friendly game, Waitlist; Invite link includes Game; Soft-archive includes Club Group Games.

@@ -153,7 +153,7 @@ A playable contest with two sides that belongs to one Game.
 _Avoid_: Game (the parent event), session, fixture (when you mean a Match; not a separate entity)
 
 **Set**:
-A scored unit inside a Match, added after play. A Match may have any number of Sets.
+A scored unit inside a Match, added after play. A Match may have any number of Sets. A Set may be drawn (equal games).
 _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temba term)
 
 **Americano**:
