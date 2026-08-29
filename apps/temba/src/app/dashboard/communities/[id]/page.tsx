@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
 import { GroupTypeBadge } from "~/components/temba/group-type-badge";
@@ -15,6 +17,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
+import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({
@@ -253,18 +256,23 @@ export default function CommunityHomePage({
   const linkedTeamBlocksLeave = Boolean(community.data?.linkedTeamBlocksLeave);
   const archivePending = softArchive.isPending || unarchive.isPending;
 
+  if (isNotFoundError(community.error)) {
+    notFound();
+  }
+
+  if (community.isLoading) {
+    return (
+      <DashboardShell title="Community">
+        <DetailPageSkeleton />
+      </DashboardShell>
+    );
+  }
+
   return (
     <DashboardShell title={community.data?.name ?? "Community"}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
-            {community.isLoading ? (
-              <>
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-72" />
-              </>
-            ) : null}
-
             {community.error ? (
               <p className="text-destructive text-sm">
                 {community.error.message}

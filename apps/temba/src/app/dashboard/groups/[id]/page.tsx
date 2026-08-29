@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { use } from "react";
 import { toast } from "sonner";
 
+import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { COMMUNITY_TYPE_LABELS } from "~/components/temba/community-type-badge";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
@@ -15,8 +16,8 @@ import { GameFormatBadge } from "~/components/temba/typed-labels";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Skeleton } from "~/components/ui/skeleton";
 import { formatGameStart } from "~/lib/format-game-start";
+import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api } from "~/trpc/react";
 
 export default function GroupHomePage({
@@ -152,18 +153,23 @@ export default function GroupHomePage({
     toast.success("Group URL copied");
   }
 
+  if (isNotFoundError(group.error)) {
+    notFound();
+  }
+
+  if (group.isLoading) {
+    return (
+      <DashboardShell title="Group">
+        <DetailPageSkeleton />
+      </DashboardShell>
+    );
+  }
+
   return (
     <DashboardShell title={group.data?.name ?? "Group"}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
-            {group.isLoading ? (
-              <>
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-72" />
-              </>
-            ) : null}
-
             {group.error ? (
               <p className="text-destructive text-sm">{group.error.message}</p>
             ) : null}
