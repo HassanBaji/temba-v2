@@ -7,6 +7,7 @@ import {
   groupInviteLinkPath,
   teamEmailInvitePath,
   teamInviteLinkPath,
+  gameInviteLinkPath,
 } from "~/lib/invite-paths";
 
 export function createOpaqueToken() {
@@ -46,6 +47,10 @@ export function teamInviteLinkUrl(origin: string, token: string) {
   return `${origin}${teamInviteLinkPath(token)}`;
 }
 
+export function gameInviteLinkUrl(origin: string, token: string) {
+  return `${origin}${gameInviteLinkPath(token)}`;
+}
+
 export function normalizeInviteEmail(email: string) {
   return email.trim().toLowerCase();
 }
@@ -57,4 +62,5 @@ export {
   groupInviteLinkPath,
   teamEmailInvitePath,
   teamInviteLinkPath,
+  gameInviteLinkPath,
 };

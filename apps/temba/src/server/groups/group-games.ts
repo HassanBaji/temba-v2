@@ -1,28 +1,23 @@
 /**
- * Group detail Games lists (TEM-10).
- * Upcoming: same pending/confirmed + startTime >= now rules as Home, scoped to one Group.
- * Soft-archived Club Groups are not filtered here — Group membership / page access decides visibility.
- * History: startTime before now, or status completed/cancelled; newest first; capped.
+ * Group detail Games lists (TEM-10 / TEM-35).
+ * Upcoming: live parent Games scoped to one Group (not Match rows).
+ * Soft-archived Club Group Games stay listed (TEM-43). Group membership /
+ * page access decides visibility. Public pickup excludes them.
+ * History: cancelled, or not live; newest first; capped.
  * Games with null groupId never match a Group id filter.
  */
 
 import {
-  HOME_UPCOMING_GAME_STATUSES,
   filterAndSortHomeUpcomingGames,
+  gameListTime,
+  isGameLive,
   isHomeUpcomingGame,
-  type HomeUpcomingGameCandidate,
+  type GameListCandidate,
 } from "~/server/home/upcoming-games";
 
-export { HOME_UPCOMING_GAME_STATUSES };
-
-export const GROUP_GAME_HISTORY_STATUSES = ["completed", "cancelled"] as const;
-
-export type GroupGameHistoryStatus =
-  (typeof GROUP_GAME_HISTORY_STATUSES)[number];
+export type GroupGameCandidate = GameListCandidate;
 
 export const GROUP_GAME_HISTORY_LIMIT = 20;
-
-export type GroupGameCandidate = HomeUpcomingGameCandidate;
 
 export function isGroupUpcomingGame(
   game: GroupGameCandidate,
@@ -40,12 +35,6 @@ export function filterAndSortGroupUpcomingGames<T extends GroupGameCandidate>(
   return filterAndSortHomeUpcomingGames(games, new Set([groupId]), now);
 }
 
-export function isGroupGameHistoryStatus(
-  status: string | null,
-): status is GroupGameHistoryStatus {
-  return status === "completed" || status === "cancelled";
-}
-
 /** Whether a Game row belongs in this Group's history list. */
 export function isGroupGameHistory(
   game: GroupGameCandidate,
@@ -55,10 +44,7 @@ export function isGroupGameHistory(
   if (game.groupId === null || game.groupId !== groupId) {
     return false;
   }
-  if (isGroupGameHistoryStatus(game.status)) {
-    return true;
-  }
-  return game.startTime.getTime() < now.getTime();
+  return !isGameLive(game, now);
 }
 
 export function filterAndSortGroupGameHistory<T extends GroupGameCandidate>(
@@ -69,6 +55,6 @@ export function filterAndSortGroupGameHistory<T extends GroupGameCandidate>(
 ): T[] {
   return games
     .filter((game) => isGroupGameHistory(game, groupId, now))
-    .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
+    .sort((a, b) => gameListTime(b).getTime() - gameListTime(a).getTime())
     .slice(0, limit);
 }

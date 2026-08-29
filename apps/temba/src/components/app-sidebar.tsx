@@ -8,6 +8,7 @@ import {
   IconHome,
   IconMail,
   IconMapPin,
+  IconTrophy,
   IconUsers,
   IconUsersGroup,
 } from "@tabler/icons-react";
@@ -28,6 +29,11 @@ const navMain = [
     title: "Home",
     url: "/dashboard",
     icon: IconHome,
+  },
+  {
+    title: "Games",
+    url: "/dashboard/games",
+    icon: IconTrophy,
   },
   {
     title: "Groups",

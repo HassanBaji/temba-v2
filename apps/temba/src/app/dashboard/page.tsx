@@ -25,14 +25,19 @@ export default function HomePage() {
   return (
     <DashboardShell title="Home">
       <div className="space-y-8">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Home
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Your Games played, upcoming Games, memberships, and standing in each
-            Group.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
+              Home
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Your Games played, upcoming Games, memberships, and standing in
+              each Group.
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/dashboard/games/new">Create Game</Link>
+          </Button>
         </div>
 
         {home.isLoading ? (
@@ -82,15 +87,14 @@ export default function HomePage() {
                 Upcoming Games
               </h3>
               <p className="text-muted-foreground text-sm">
-                Pending and confirmed Games from Groups you belong to, soonest
-                first.
+                Upcoming Games from Groups you belong to, soonest first.
               </p>
 
               {home.data.upcomingGames.length === 0 ? (
                 <div className="border-border bg-card space-y-3 rounded-xl border px-4 py-6">
                   <p className="text-muted-foreground text-sm">
                     No upcoming Games in your Groups. When a Group schedules a
-                    pending or confirmed Game, it will show up here.
+                    Game, it will show up here.
                   </p>
                   <Button asChild size="sm">
                     <Link href="/dashboard/groups">Groups</Link>
@@ -101,7 +105,7 @@ export default function HomePage() {
                   {home.data.upcomingGames.map((game) => (
                     <li key={game.id}>
                       <Link
-                        href={`/dashboard/groups/${game.groupId}`}
+                        href={`/dashboard/games/${game.id}`}
                         className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="space-y-1">
@@ -120,7 +124,7 @@ export default function HomePage() {
                             </Badge>
                           ) : null}
                           <Badge variant="outline" className="capitalize">
-                            {game.status}
+                            {game.format.replaceAll("_", " ")}
                           </Badge>
                         </div>
                       </Link>

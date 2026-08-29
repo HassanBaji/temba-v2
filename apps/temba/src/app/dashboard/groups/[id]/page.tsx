@@ -253,6 +253,13 @@ export default function GroupHomePage({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {group.data?.canCreateGame ? (
+              <Button asChild>
+                <Link href={`/dashboard/games/new?groupId=${id}`}>
+                  Create Game
+                </Link>
+              </Button>
+            ) : null}
             {group.data?.canJoin ? (
               <Button onClick={onJoin} disabled={joinPending}>
                 {joinPending ? "Joining…" : "Join Group"}
@@ -464,42 +471,45 @@ export default function GroupHomePage({
               Upcoming Games
             </h3>
             <p className="text-muted-foreground text-sm">
-              Pending and confirmed Games for this Group, soonest first.
+              {group.data.isCommunityArchived
+                ? "Existing Games stay listed here, not on public pickup. Join, waitlist, and Game invites are closed while the Community is Soft-archived."
+                : "Upcoming Games for this Group, soonest first."}
             </p>
 
             {group.data.upcomingGames.length === 0 ? (
               <div className="border-border bg-card rounded-xl border px-4 py-6">
                 <p className="text-muted-foreground text-sm">
-                  No upcoming Games scheduled for this Group. When a pending or
-                  confirmed Game is set with a start time from now on, it will
-                  show up here.
+                  No upcoming Games scheduled for this Group. When a Game is set
+                  with a live window or Match, it will show up here.
                 </p>
               </div>
             ) : (
               <ul className="divide-border border-border bg-card divide-y rounded-xl border">
                 {group.data.upcomingGames.map((game) => (
-                  <li
-                    key={game.id}
-                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-foreground font-medium">
-                        {game.name ?? "Untitled Game"}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {formatGameStart(game.startTime)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {game.sport ? (
-                        <Badge variant="secondary" className="capitalize">
-                          {game.sport}
+                  <li key={game.id}>
+                    <Link
+                      href={`/dashboard/games/${game.id}`}
+                      className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-foreground font-medium">
+                          {game.name ?? "Untitled Game"}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {formatGameStart(game.startTime)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {game.sport ? (
+                          <Badge variant="secondary" className="capitalize">
+                            {game.sport}
+                          </Badge>
+                        ) : null}
+                        <Badge variant="outline" className="capitalize">
+                          {game.format.replaceAll("_", " ")}
                         </Badge>
-                      ) : null}
-                      <Badge variant="outline" className="capitalize">
-                        {game.status}
-                      </Badge>
-                    </div>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -513,43 +523,45 @@ export default function GroupHomePage({
               Game history
             </h3>
             <p className="text-muted-foreground text-sm">
-              Past, completed, or cancelled Games for this Group, newest first.
+              Past or cancelled Games for this Group, newest first.
             </p>
 
             {group.data.gameHistory.length === 0 ? (
               <div className="border-border bg-card rounded-xl border px-4 py-6">
                 <p className="text-muted-foreground text-sm">
-                  No Game history yet. Finished, cancelled, or past-start Games
+                  No Game history yet. Finished, cancelled, or past-window Games
                   for this Group will appear here.
                 </p>
               </div>
             ) : (
               <ul className="divide-border border-border bg-card divide-y rounded-xl border">
                 {group.data.gameHistory.map((game) => (
-                  <li
-                    key={game.id}
-                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-foreground font-medium">
-                        {game.name ?? "Untitled Game"}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {formatGameStart(game.startTime)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {game.sport ? (
-                        <Badge variant="secondary" className="capitalize">
-                          {game.sport}
-                        </Badge>
-                      ) : null}
-                      {game.status ? (
+                  <li key={game.id}>
+                    <Link
+                      href={`/dashboard/games/${game.id}`}
+                      className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-foreground font-medium">
+                          {game.name ?? "Untitled Game"}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {formatGameStart(game.startTime)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {game.sport ? (
+                          <Badge variant="secondary" className="capitalize">
+                            {game.sport}
+                          </Badge>
+                        ) : null}
                         <Badge variant="outline" className="capitalize">
-                          {game.status}
+                          {game.cancelledAt
+                            ? "cancelled"
+                            : game.format.replaceAll("_", " ")}
                         </Badge>
-                      ) : null}
-                    </div>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
