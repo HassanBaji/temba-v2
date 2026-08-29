@@ -121,8 +121,12 @@ A Team with no Community link (unattached).
 _Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
-One side on a Game: a complete Team or an ad-hoc pair of Users, reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
-_Avoid_: Team (when you mean a Game side), partnership, pair (when you mean this entity)
+One side on a Game: a complete Team, an ad-hoc pair of Users, or one User occupying one of two Positions until a second User takes the other Position. Reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
+_Avoid_: Team (when you mean a Game side), partnership, pair (when you mean this entity), Court (the 2v2 seat diagram is not a Court)
+
+**Position**:
+Left or right on a Game team, from that side facing the net. Distinct from a Match slot and from a Court.
+_Avoid_: Court, slot (when you mean this), seat (when you mean this)
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
