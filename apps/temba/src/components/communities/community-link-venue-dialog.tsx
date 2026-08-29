@@ -1,5 +1,6 @@
 "use client";
 
+import { RowList } from "~/components/common/row-list";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -69,7 +70,7 @@ export function CommunityLinkVenueDialog({
             </p>
           ) : null}
           {venues && venues.length > 0 ? (
-            <ul className="divide-border divide-y">
+            <RowList>
               {venues.map((venue) => (
                 <li
                   key={venue.id}
@@ -90,7 +91,7 @@ export function CommunityLinkVenueDialog({
                   </Button>
                 </li>
               ))}
-            </ul>
+            </RowList>
           ) : null}
         </div>
       </ResponsiveDialogContent>

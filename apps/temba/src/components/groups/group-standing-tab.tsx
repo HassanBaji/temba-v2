@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { RowList } from "~/components/common/row-list";
 import { LeaderboardRow } from "~/components/groups/leaderboard-row";
 
 export function GroupStandingTab({
@@ -39,7 +40,7 @@ export function GroupStandingTab({
   }
 
   return (
-    <ul className="divide-border divide-y overflow-hidden rounded-lg border">
+    <RowList>
       {leaderboard.map((entry) => (
         <LeaderboardRow
           key={entry.userId}
@@ -51,6 +52,6 @@ export function GroupStandingTab({
           isViewer={entry.isViewer}
         />
       ))}
-    </ul>
+    </RowList>
   );
 }

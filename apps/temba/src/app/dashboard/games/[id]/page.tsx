@@ -5,13 +5,17 @@ import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { ErrorState } from "~/components/common/error-state";
+import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
 import {
   GameFormatBadge,
   GameRegistrationModeBadge,
   GameRegistrationStatusBadge,
 } from "~/components/temba/typed-labels";
+import { Card } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -419,7 +423,13 @@ export default function GameHomePage({
         ) : null}
 
         {game.error ? (
-          <p className="text-destructive text-sm">{game.error.message}</p>
+          <ErrorState
+            title="Game could not be loaded"
+            message={game.error.message}
+            onRetry={() => {
+              void game.refetch();
+            }}
+          />
         ) : null}
 
         {data ? (
@@ -476,10 +486,8 @@ export default function GameHomePage({
             </div>
 
             {data.isOrganizer && !data.cancelledAt ? (
-              <section className="border-border bg-card space-y-4 rounded-xl border p-6">
-                <h3 className="text-foreground text-lg font-medium">
-                  Organizer
-                </h3>
+              <Card variant="outlined" className="space-y-4">
+                <h3 className="text-title font-medium">Organizer</h3>
                 <p className="text-muted-foreground text-sm">
                   Format, public, and registration mode cannot change.
                 </p>
@@ -627,13 +635,10 @@ export default function GameHomePage({
                     Friendly game caps stay 4 players / 2 Teams.
                   </p>
                 )}
-              </section>
+              </Card>
             ) : null}
 
-            <section className="space-y-3">
-              <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                Matches
-              </h3>
+            <Section title="Matches">
               {data.matches.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   {data.format === "americano"
@@ -643,15 +648,15 @@ export default function GameHomePage({
                       : "No Matches on this Game."}
                 </p>
               ) : (
-                <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                <RowList>
                   {data.matches.map((match) => (
                     <li key={match.id} className="space-y-3 px-4 py-4">
                       <p className="text-foreground font-medium">
                         {formatWhen(match.startTime)} –{" "}
                         {formatWhen(match.endTime)}
                       </p>
-                      <p className="text-muted-foreground text-sm capitalize">
-                        {match.status ?? "pending"}
+                      <p className="text-muted-foreground text-sm">
+                        {(match.status ?? "pending").replaceAll("_", " ")}
                         {match.durationInMinutes
                           ? ` · ${match.durationInMinutes} min`
                           : ""}
@@ -773,7 +778,6 @@ export default function GameHomePage({
                       data.format !== "americano" ? (
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() =>
                             cancelMatch.mutate({
                               gameId: id,
@@ -886,7 +890,6 @@ export default function GameHomePage({
                                     {match.canScoreSets ? (
                                       <Button
                                         type="button"
-                                        size="sm"
                                         onClick={() => {
                                           if (
                                             scores.slot1.trim().length === 0 ||
@@ -914,7 +917,6 @@ export default function GameHomePage({
                                       <Button
                                         type="button"
                                         variant="outline"
-                                        size="sm"
                                         onClick={() =>
                                           removeSet.mutate({
                                             gameId: id,
@@ -937,7 +939,6 @@ export default function GameHomePage({
                               <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
                                 onClick={() =>
                                   addSet.mutate({
                                     gameId: id,
@@ -952,7 +953,6 @@ export default function GameHomePage({
                             {match.canComplete ? (
                               <Button
                                 type="button"
-                                size="sm"
                                 onClick={() =>
                                   completeMatch.mutate({
                                     gameId: id,
@@ -976,143 +976,152 @@ export default function GameHomePage({
                       ) : null}
                     </li>
                   ))}
-                </ul>
+                </RowList>
               )}
               {data.isOrganizer &&
               !data.cancelledAt &&
               data.format === "friendly_tournament" ? (
-                <form
-                  className="border-border bg-card space-y-4 rounded-xl border p-6"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (addMatch.isPending) {
-                      return;
-                    }
-                    addMatch.mutate({
-                      gameId: id,
-                      startTime: parseOptionalDate(matchStart),
-                      endTime: parseOptionalDate(matchEnd),
-                      durationInMinutes:
-                        matchDuration.trim().length === 0
-                          ? null
-                          : Number(matchDuration),
-                      courtId: optionalSelectId(matchCourtId),
-                      slot1GameTeamId: optionalSelectId(matchSlot1),
-                      slot2GameTeamId: optionalSelectId(matchSlot2),
-                    });
-                  }}
-                >
-                  <h4 className="text-foreground font-medium">Add Match</h4>
-                  <FormErrorSummary
-                    message={globalFormErrorMessage(addMatch.error)}
-                  />
-                  <p className="text-muted-foreground text-sm">
-                    Allowed while open, full, closed, or Soft-archived. Sides
-                    and Court are optional.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel htmlFor="match-start">Start</FieldLabel>
-                      <Input
-                        id="match-start"
-                        type="datetime-local"
-                        value={matchStart}
-                        onChange={(event) => setMatchStart(event.target.value)}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="match-end">End</FieldLabel>
-                      <Input
-                        id="match-end"
-                        type="datetime-local"
-                        value={matchEnd}
-                        onChange={(event) => setMatchEnd(event.target.value)}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="match-duration">
-                        Duration (minutes)
-                      </FieldLabel>
-                      <Input
-                        id="match-duration"
-                        type="number"
-                        min={0}
-                        value={matchDuration}
-                        onChange={(event) =>
-                          setMatchDuration(event.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="match-court">Court</FieldLabel>
-                      <Select
-                        value={matchCourtId}
-                        onValueChange={setMatchCourtId}
-                      >
-                        <SelectTrigger id="match-court">
-                          <SelectValue placeholder="Court" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Court</SelectItem>
-                          {(courts.data ?? []).map((court) => (
-                            <SelectItem key={court.id} value={court.id}>
-                              {court.venueName}: {court.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="match-slot1">Slot 1</FieldLabel>
-                      <Select value={matchSlot1} onValueChange={setMatchSlot1}>
-                        <SelectTrigger id="match-slot1">
-                          <SelectValue placeholder="Slot 1" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Empty</SelectItem>
-                          {data.gameTeams.map((side) => (
-                            <SelectItem key={side.id} value={side.id}>
-                              {gameTeamLabel(side)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="match-slot2">Slot 2</FieldLabel>
-                      <Select value={matchSlot2} onValueChange={setMatchSlot2}>
-                        <SelectTrigger id="match-slot2">
-                          <SelectValue placeholder="Slot 2" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Empty</SelectItem>
-                          {data.gameTeams.map((side) => (
-                            <SelectItem key={side.id} value={side.id}>
-                              {gameTeamLabel(side)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-                  <Button type="submit" disabled={addMatch.isPending}>
-                    {addMatch.isPending ? "Adding…" : "Add Match"}
-                  </Button>
-                </form>
+                <Card variant="outlined">
+                  <form
+                    className="space-y-4"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (addMatch.isPending) {
+                        return;
+                      }
+                      addMatch.mutate({
+                        gameId: id,
+                        startTime: parseOptionalDate(matchStart),
+                        endTime: parseOptionalDate(matchEnd),
+                        durationInMinutes:
+                          matchDuration.trim().length === 0
+                            ? null
+                            : Number(matchDuration),
+                        courtId: optionalSelectId(matchCourtId),
+                        slot1GameTeamId: optionalSelectId(matchSlot1),
+                        slot2GameTeamId: optionalSelectId(matchSlot2),
+                      });
+                    }}
+                  >
+                    <h4 className="text-title font-medium">Add Match</h4>
+                    <FormErrorSummary
+                      message={globalFormErrorMessage(addMatch.error)}
+                    />
+                    <p className="text-muted-foreground text-sm">
+                      Allowed while open, full, closed, or Soft-archived. Sides
+                      and Court are optional.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field>
+                        <FieldLabel htmlFor="match-start">Start</FieldLabel>
+                        <Input
+                          id="match-start"
+                          type="datetime-local"
+                          value={matchStart}
+                          onChange={(event) =>
+                            setMatchStart(event.target.value)
+                          }
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="match-end">End</FieldLabel>
+                        <Input
+                          id="match-end"
+                          type="datetime-local"
+                          value={matchEnd}
+                          onChange={(event) => setMatchEnd(event.target.value)}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="match-duration">
+                          Duration (minutes)
+                        </FieldLabel>
+                        <Input
+                          id="match-duration"
+                          type="number"
+                          min={0}
+                          value={matchDuration}
+                          onChange={(event) =>
+                            setMatchDuration(event.target.value)
+                          }
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="match-court">Court</FieldLabel>
+                        <Select
+                          value={matchCourtId}
+                          onValueChange={setMatchCourtId}
+                        >
+                          <SelectTrigger id="match-court">
+                            <SelectValue placeholder="Court" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No Court</SelectItem>
+                            {(courts.data ?? []).map((court) => (
+                              <SelectItem key={court.id} value={court.id}>
+                                {court.venueName}: {court.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="match-slot1">Slot 1</FieldLabel>
+                        <Select
+                          value={matchSlot1}
+                          onValueChange={setMatchSlot1}
+                        >
+                          <SelectTrigger id="match-slot1">
+                            <SelectValue placeholder="Slot 1" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Empty</SelectItem>
+                            {data.gameTeams.map((side) => (
+                              <SelectItem key={side.id} value={side.id}>
+                                {gameTeamLabel(side)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="match-slot2">Slot 2</FieldLabel>
+                        <Select
+                          value={matchSlot2}
+                          onValueChange={setMatchSlot2}
+                        >
+                          <SelectTrigger id="match-slot2">
+                            <SelectValue placeholder="Slot 2" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Empty</SelectItem>
+                            {data.gameTeams.map((side) => (
+                              <SelectItem key={side.id} value={side.id}>
+                                {gameTeamLabel(side)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+                    <Button type="submit" disabled={addMatch.isPending}>
+                      {addMatch.isPending ? "Adding…" : "Add Match"}
+                    </Button>
+                  </form>
+                </Card>
               ) : null}
-            </section>
+            </Section>
 
-            <section className="space-y-3">
-              <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                {data.format === "americano" ? "Player pool" : "Registered"}
-              </h3>
+            <Section
+              title={data.format === "americano" ? "Player pool" : "Registered"}
+            >
               {data.gameTeams.length === 0 &&
               data.registeredPlayers.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   Nobody is registered yet.
                 </p>
               ) : (
-                <ul className="divide-border border-border bg-card divide-y rounded-xl border">
+                <RowList>
                   {data.gameTeams.map((side) => {
                     const firstMember = side.members[0];
                     return (
@@ -1132,7 +1141,6 @@ export default function GameHomePage({
                         firstMember ? (
                           <Button
                             variant="outline"
-                            size="sm"
                             onClick={() =>
                               kick.mutate({
                                 gameId: id,
@@ -1167,7 +1175,6 @@ export default function GameHomePage({
                         {data.isOrganizer && !data.cancelledAt ? (
                           <Button
                             variant="outline"
-                            size="sm"
                             onClick={() =>
                               kick.mutate({
                                 gameId: id,
@@ -1181,20 +1188,17 @@ export default function GameHomePage({
                         ) : null}
                       </li>
                     ))}
-                </ul>
+                </RowList>
               )}
-            </section>
+            </Section>
 
-            <section className="space-y-3">
-              <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                Waitlist
-              </h3>
+            <Section title="Waitlist">
               {data.waitlist.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   Waitlist is empty.
                 </p>
               ) : (
-                <ol className="divide-border border-border bg-card divide-y rounded-xl border">
+                <RowList aria-label="Waitlist">
                   {data.waitlist.map((entry, index) => (
                     <li
                       key={entry.id}
@@ -1206,7 +1210,6 @@ export default function GameHomePage({
                       {data.isOrganizer && !data.cancelledAt ? (
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() =>
                             kick.mutate({
                               gameId: id,
@@ -1220,9 +1223,9 @@ export default function GameHomePage({
                       ) : null}
                     </li>
                   ))}
-                </ol>
+                </RowList>
               )}
-            </section>
+            </Section>
             {data.isRegistered ? (
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-muted-foreground text-sm">
@@ -1257,8 +1260,8 @@ export default function GameHomePage({
 
             {(data.canRegister || data.canWaitlist) &&
             data.format === "americano" ? (
-              <div className="border-border bg-card space-y-3 rounded-xl border p-6">
-                <h3 className="text-foreground text-lg font-medium">
+              <Card variant="outlined" className="space-y-3">
+                <h3 className="text-title font-medium">
                   {data.canWaitlist ? "Join the waitlist" : "Join the pool"}
                 </h3>
                 <p className="text-muted-foreground text-sm">
@@ -1275,131 +1278,139 @@ export default function GameHomePage({
                       ? "Join waitlist"
                       : "Register"}
                 </Button>
-              </div>
+              </Card>
             ) : null}
 
             {(data.canRegister || data.canWaitlist) &&
             data.registrationMode === "individual" &&
             data.format !== "americano" ? (
-              <form
-                className="border-border bg-card space-y-4 rounded-xl border p-6"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (registerWithPartner.isPending) {
-                    return;
-                  }
-                  registerWithPartner.mutate({
-                    gameId: id,
-                    partnerQuery,
-                  });
-                }}
-              >
-                <h3 className="text-foreground text-lg font-medium">
-                  {data.canWaitlist
-                    ? "Join waitlist with a partner"
-                    : "Register with a partner"}
-                </h3>
-                <FormErrorSummary
-                  message={globalFormErrorMessage(registerWithPartner.error)}
-                />
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="partner-query">Partner</FieldLabel>
-                    <Input
-                      id="partner-query"
-                      value={partnerQuery}
-                      onChange={(event) => setPartnerQuery(event.target.value)}
-                      required
-                      aria-invalid={
-                        fieldErrorMessage(
+              <Card variant="outlined">
+                <form
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (registerWithPartner.isPending) {
+                      return;
+                    }
+                    registerWithPartner.mutate({
+                      gameId: id,
+                      partnerQuery,
+                    });
+                  }}
+                >
+                  <h3 className="text-title font-medium">
+                    {data.canWaitlist
+                      ? "Join waitlist with a partner"
+                      : "Register with a partner"}
+                  </h3>
+                  <FormErrorSummary
+                    message={globalFormErrorMessage(registerWithPartner.error)}
+                  />
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="partner-query">Partner</FieldLabel>
+                      <Input
+                        id="partner-query"
+                        value={partnerQuery}
+                        onChange={(event) =>
+                          setPartnerQuery(event.target.value)
+                        }
+                        required
+                        aria-invalid={
+                          fieldErrorMessage(
+                            registerWithPartner.error,
+                            "partnerQuery",
+                          )
+                            ? true
+                            : undefined
+                        }
+                        aria-describedby={
+                          fieldErrorMessage(
+                            registerWithPartner.error,
+                            "partnerQuery",
+                          )
+                            ? "partner-query-error"
+                            : undefined
+                        }
+                      />
+                      <FieldDescription>
+                        Lookup an existing User. You both must be allowed to
+                        join.
+                      </FieldDescription>
+                      <FieldError id="partner-query-error">
+                        {fieldErrorMessage(
                           registerWithPartner.error,
                           "partnerQuery",
-                        )
-                          ? true
-                          : undefined
-                      }
-                      aria-describedby={
-                        fieldErrorMessage(
-                          registerWithPartner.error,
-                          "partnerQuery",
-                        )
-                          ? "partner-query-error"
-                          : undefined
-                      }
-                    />
-                    <FieldDescription>
-                      Lookup an existing User. You both must be allowed to join.
-                    </FieldDescription>
-                    <FieldError id="partner-query-error">
-                      {fieldErrorMessage(
-                        registerWithPartner.error,
-                        "partnerQuery",
-                      )}
-                    </FieldError>
-                  </Field>
-                </FieldGroup>
-                <Button type="submit" disabled={registerWithPartner.isPending}>
-                  {registerWithPartner.isPending ? "Registering…" : "Register"}
-                </Button>
-              </form>
+                        )}
+                      </FieldError>
+                    </Field>
+                  </FieldGroup>
+                  <Button
+                    type="submit"
+                    disabled={registerWithPartner.isPending}
+                  >
+                    {registerWithPartner.isPending
+                      ? "Registering…"
+                      : "Register"}
+                  </Button>
+                </form>
+              </Card>
             ) : null}
 
             {(data.canRegister || data.canWaitlist) &&
             data.registrationMode === "team_only" ? (
-              <form
-                className="border-border bg-card space-y-4 rounded-xl border p-6"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (teamId.length === 0) {
-                    toast.error("Pick a complete Team");
-                    return;
-                  }
-                  registerTeam.mutate({ gameId: id, teamId });
-                }}
-              >
-                <h3 className="text-foreground text-lg font-medium">
-                  Register a Team
-                </h3>
-                {data.eligibleTeams.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">
-                    You need a complete Team whose both partners are allowed on
-                    this Game.
-                  </p>
-                ) : (
-                  <>
-                    <Field>
-                      <FieldLabel htmlFor="team-id">Team</FieldLabel>
-                      <Select value={teamId} onValueChange={setTeamId}>
-                        <SelectTrigger id="team-id">
-                          <SelectValue placeholder="Select a Team" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {data.eligibleTeams.map((team) => (
-                            <SelectItem key={team.id} value={team.id}>
-                              {team.name} ({team.memberNames.join(" / ")})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Button type="submit" disabled={registerTeam.isPending}>
-                      {registerTeam.isPending
-                        ? "Registering…"
-                        : "Register Team"}
-                    </Button>
-                  </>
-                )}
-              </form>
+              <Card variant="outlined">
+                <form
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (teamId.length === 0) {
+                      toast.error("Pick a complete Team");
+                      return;
+                    }
+                    registerTeam.mutate({ gameId: id, teamId });
+                  }}
+                >
+                  <h3 className="text-title font-medium">Register a Team</h3>
+                  {data.eligibleTeams.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">
+                      You need a complete Team whose both partners are allowed
+                      on this Game.
+                    </p>
+                  ) : (
+                    <>
+                      <Field>
+                        <FieldLabel htmlFor="team-id">Team</FieldLabel>
+                        <Select value={teamId} onValueChange={setTeamId}>
+                          <SelectTrigger id="team-id">
+                            <SelectValue placeholder="Select a Team" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {data.eligibleTeams.map((team) => (
+                              <SelectItem key={team.id} value={team.id}>
+                                {team.name} ({team.memberNames.join(" / ")})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Button type="submit" disabled={registerTeam.isPending}>
+                        {registerTeam.isPending
+                          ? "Registering…"
+                          : "Register Team"}
+                      </Button>
+                    </>
+                  )}
+                </form>
+              </Card>
             ) : null}
 
             {data.isOrganizer &&
             data.registrationMode !== "team_only" &&
             !data.cancelledAt ? (
-              <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+              <Card variant="outlined" className="space-y-4">
                 <div>
-                  <h3 className="text-foreground text-lg font-medium">
-                    Lookup invite
-                  </h3>
+                  <h3 className="text-title font-medium">Lookup invite</h3>
                   <p className="text-muted-foreground mt-2 text-sm">
                     Existing User only. They accept on Invites. Team-only Games
                     do not offer Lookup.
@@ -1456,7 +1467,7 @@ export default function GameHomePage({
                   </form>
                 )}
                 {lookupInvites.data && lookupInvites.data.length > 0 ? (
-                  <ul className="divide-border divide-y">
+                  <RowList>
                     {lookupInvites.data.map((invite) => (
                       <li
                         key={invite.id}
@@ -1467,7 +1478,6 @@ export default function GameHomePage({
                         </p>
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() =>
                             revokeLookupInvite.mutate({ inviteId: invite.id })
                           }
@@ -1477,17 +1487,15 @@ export default function GameHomePage({
                         </Button>
                       </li>
                     ))}
-                  </ul>
+                  </RowList>
                 ) : null}
-              </section>
+              </Card>
             ) : null}
 
             {data.isOrganizer && !data.cancelledAt && !data.joinFrozen ? (
-              <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+              <Card variant="outlined" className="space-y-4">
                 <div>
-                  <h3 className="text-foreground text-lg font-medium">
-                    Invite link
-                  </h3>
+                  <h3 className="text-title font-medium">Invite link</h3>
                   <p className="text-muted-foreground mt-2 text-sm">
                     Each copy mints a new 6-hour token. Older copied URLs stay
                     live until each expires. There is no rotate or revoke.
@@ -1504,13 +1512,12 @@ export default function GameHomePage({
                   </p>
                 )}
                 <Button
-                  size="sm"
                   onClick={() => createInviteLink.mutate({ gameId: id })}
                   disabled={createInviteLink.isPending}
                 >
                   {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
                 </Button>
-              </section>
+              </Card>
             ) : null}
           </>
         ) : null}

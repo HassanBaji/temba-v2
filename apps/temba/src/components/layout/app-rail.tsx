@@ -27,6 +27,8 @@ export function AppRail() {
       collapsible="none"
       className="hidden border-r lg:flex"
       style={{ width: "var(--rail-width)" }}
+      role="navigation"
+      aria-label="Primary"
     >
       <SidebarHeader>
         <SidebarMenu>

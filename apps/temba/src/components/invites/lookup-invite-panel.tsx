@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { RowList } from "~/components/common/row-list";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
@@ -99,7 +100,7 @@ export function LookupInvitePanel({
         </p>
       ) : null}
       {lookupInvites && lookupInvites.length > 0 ? (
-        <ul className="divide-border divide-y">
+        <RowList>
           {lookupInvites.map((invite) => (
             <li
               key={invite.id}
@@ -122,7 +123,7 @@ export function LookupInvitePanel({
               </Button>
             </li>
           ))}
-        </ul>
+        </RowList>
       ) : null}
     </section>
   );

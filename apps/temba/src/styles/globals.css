@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "@clerk/ui/themes/shadcn.css";
-/* @import "tw-animate-css"; */
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -194,5 +194,21 @@
   }
   body {
     @apply bg-background text-body text-foreground font-sans antialiased;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 100ms !important;
+    transition-property: opacity !important;
+    transform: none !important;
   }
 }

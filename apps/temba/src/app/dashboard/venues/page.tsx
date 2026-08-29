@@ -83,7 +83,7 @@ export default function VenuesPage() {
             />
           ) : null}
           {pendingLinks.data && pendingLinks.data.length > 0 ? (
-            <ul className="divide-border divide-y overflow-hidden rounded-lg border">
+            <RowList>
               {pendingLinks.data.map((request) => {
                 const approvePending =
                   approveLink.isPending &&
@@ -107,7 +107,7 @@ export default function VenuesPage() {
                   />
                 );
               })}
-            </ul>
+            </RowList>
           ) : null}
         </Section>
 

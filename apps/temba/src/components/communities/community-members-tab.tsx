@@ -107,7 +107,7 @@ export function CommunityMembersTab({
                     <select
                       id={selectId}
                       aria-label={`Role for ${name}`}
-                      className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 rounded-md border px-3 text-sm capitalize outline-none focus-visible:ring-[3px]"
+                      className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
                       value={member.role}
                       disabled={rolePending}
                       onChange={(event) => {
@@ -125,9 +125,9 @@ export function CommunityMembersTab({
                         onRoleChange(member.user.id, role);
                       }}
                     >
-                      <option value="owner">owner</option>
-                      <option value="admin">admin</option>
-                      <option value="member">member</option>
+                      <option value="owner">Owner</option>
+                      <option value="admin">Admin</option>
+                      <option value="member">Member</option>
                     </select>
                   </div>
                 ) : (

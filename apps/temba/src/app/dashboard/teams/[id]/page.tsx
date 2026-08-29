@@ -29,6 +29,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
+import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -317,8 +318,7 @@ export default function TeamHomePage({
           ]}
         />
 
-        <section className="space-y-3">
-          <h2 className="text-title font-semibold">Members</h2>
+        <Section title="Members">
           {data.members.length === 0 ? (
             <EmptyState
               icon={Users}
@@ -343,7 +343,7 @@ export default function TeamHomePage({
               ))}
             </RowList>
           )}
-        </section>
+        </Section>
       </div>
 
       <ConfirmDialog

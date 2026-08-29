@@ -4,6 +4,7 @@ import { Inbox } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
+import { RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -91,7 +92,7 @@ export function CommunityRequestsTab({
             />
           ) : null}
           {joinRequests && joinRequests.length > 0 ? (
-            <ul className="divide-border divide-y overflow-hidden rounded-lg border">
+            <RowList>
               {joinRequests.map((request) => {
                 const name = request.user.name ?? "User";
                 return (
@@ -111,7 +112,7 @@ export function CommunityRequestsTab({
                   />
                 );
               })}
-            </ul>
+            </RowList>
           ) : null}
         </Section>
       ) : null}
@@ -130,7 +131,7 @@ export function CommunityRequestsTab({
             />
           ) : null}
           {teamLinkRequests && teamLinkRequests.length > 0 ? (
-            <ul className="divide-border divide-y overflow-hidden rounded-lg border">
+            <RowList>
               {teamLinkRequests.map((request) => {
                 const requester = request.requestedBy.name ?? "User";
                 return (
@@ -145,7 +146,7 @@ export function CommunityRequestsTab({
                   />
                 );
               })}
-            </ul>
+            </RowList>
           ) : null}
         </Section>
       ) : null}
