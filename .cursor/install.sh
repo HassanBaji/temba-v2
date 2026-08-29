@@ -57,22 +57,6 @@ is_usable_clerk_secret() {
   return 0
 }
 
-if is_usable_clerk_secret "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}"; then
-  set_env_kv apps/temba/.env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
-elif [ -n "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" ]; then
-  echo "warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
-fi
-if is_usable_clerk_secret "${CLERK_SECRET_KEY:-}"; then
-  set_env_kv apps/temba/.env CLERK_SECRET_KEY "$CLERK_SECRET_KEY"
-elif [ -n "${CLERK_SECRET_KEY:-}" ]; then
-  echo "warning: CLERK_SECRET_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
-fi
-
-# Supabase Storage (Venue logos). Sync when Cloud secrets are present so env
-# validation can require URL, write key, and bucket name (ADR-0006).
-# Empty .env.example values fail validation; if Cloud secrets are absent,
-# write syntactically valid placeholders so /login can render. Live logo
-# upload still needs real keys.
 env_value_empty() {
   local file="$1" key="$2"
   local line value
@@ -83,6 +67,27 @@ env_value_empty() {
   [ -z "$value" ]
 }
 
+if is_usable_clerk_secret "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}"; then
+  set_env_kv apps/temba/.env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
+elif [ -n "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" ]; then
+  echo "warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
+fi
+if is_usable_clerk_secret "${CLERK_SECRET_KEY:-}"; then
+  set_env_kv apps/temba/.env CLERK_SECRET_KEY "$CLERK_SECRET_KEY"
+elif [ -n "${CLERK_SECRET_KEY:-}" ]; then
+  echo "warning: CLERK_SECRET_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
+fi
+if [ -n "${CLERK_WEBHOOK_SIGNING_SECRET:-}" ]; then
+  set_env_kv apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET "$CLERK_WEBHOOK_SIGNING_SECRET"
+elif env_value_empty apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET; then
+  set_env_kv apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET "whsec_cloud-agent-build-only-not-a-real-key"
+fi
+
+# Supabase Storage (Venue logos). Sync when Cloud secrets are present so env
+# validation can require URL, write key, and bucket name (ADR-0006).
+# Empty .env.example values fail validation; if Cloud secrets are absent,
+# write syntactically valid placeholders so /login can render. Live logo
+# upload still needs real keys.
 if [ -n "${SUPABASE_URL:-}" ]; then
   set_env_kv apps/temba/.env SUPABASE_URL "$SUPABASE_URL"
 elif env_value_empty apps/temba/.env SUPABASE_URL; then

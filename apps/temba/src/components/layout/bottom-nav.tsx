@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import {
-  APP_NAV_SLOTS,
-  SHOW_GAMES_NAV_ITEM,
   isNavItemActive,
+  visibleAppNavItems,
 } from "~/components/layout/app-nav";
 import { cn } from "~/lib/utils";
 
@@ -23,7 +22,7 @@ export function BottomNav() {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {APP_NAV_SLOTS.map((item) => {
+      {visibleAppNavItems().map((item) => {
         const active = isNavItemActive(pathname, item);
         const Icon = item.icon;
 

@@ -1,6 +1,6 @@
 {
-  "id": "86ff028f-090a-498e-8585-ab5e8cad953b",
-  "prevId": "633eccf2-f215-4716-9003-c4a5f868699e",
+  "id": "3ce25dc6-5fac-4e4c-8456-21177b41e9af",
+  "prevId": "86ff028f-090a-498e-8585-ab5e8cad953b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3772,6 +3772,12 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
+        "clerk_id": {
+          "name": "clerk_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -3847,7 +3853,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_clerk_id_idx": {
+          "name": "user_clerk_id_idx",
+          "columns": [
+            {
+              "expression": "clerk_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {

@@ -10,6 +10,7 @@ type GroupGame = {
   name: string | null;
   startTime: Date | string;
   sport: string | null;
+  format: string;
   cancelledAt: Date | string | null;
 };
 
@@ -63,6 +64,9 @@ export function GroupGamesTab({
                 startTime={game.startTime}
                 groupName={groupName}
                 sport={game.sport}
+                format={game.format}
+                cancelled={Boolean(game.cancelledAt)}
+                href={`/dashboard/games/${game.id}`}
               />
             ))}
           </RowList>
@@ -86,7 +90,9 @@ export function GroupGamesTab({
                 startTime={game.startTime}
                 groupName={groupName}
                 sport={game.sport}
+                format={game.format}
                 cancelled={Boolean(game.cancelledAt)}
+                href={`/dashboard/games/${game.id}`}
               />
             ))}
           </RowList>
