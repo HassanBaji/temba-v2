@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -257,16 +258,11 @@ export default function VenueHomePage({
         </div>
 
         {venue.data?.archivedAt ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              This Venue is Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              It is hidden from the Community request catalog. You can still
-              edit fields, Courts, and logo. Unarchive to restore it to the live
-              catalog. Live Community links stay.
-            </p>
-          </section>
+          <SoftArchiveBanner heading="This Venue is Soft-archived">
+            It is hidden from the Community request catalog. You can still edit
+            fields, Courts, and logo. Unarchive to restore it to the live
+            catalog. Live Community links stay.
+          </SoftArchiveBanner>
         ) : null}
 
         {venue.data ? (

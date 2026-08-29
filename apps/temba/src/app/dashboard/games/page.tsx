@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Badge } from "~/components/ui/badge";
+import { GameFormatBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { formatGameStart } from "~/lib/format-game-start";
@@ -62,9 +62,7 @@ export default function GamesHubPage() {
                           {formatGameStart(game.startTime)}
                         </p>
                       </div>
-                      <Badge variant="outline" className="capitalize">
-                        {game.format.replaceAll("_", " ")}
-                      </Badge>
+                      <GameFormatBadge format={game.format} />
                     </Link>
                   </li>
                 ))}

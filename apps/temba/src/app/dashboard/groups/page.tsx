@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -68,9 +69,7 @@ export default function GroupsIndexPage() {
                     {group.community?.archivedAt ? (
                       <Badge variant="outline">Soft-archived</Badge>
                     ) : null}
-                    {group.sport ? (
-                      <Badge variant="secondary">{group.sport}</Badge>
-                    ) : null}
+                    {group.sport ? <SportBadge sport={group.sport} /> : null}
                   </div>
                 </Link>
               </li>

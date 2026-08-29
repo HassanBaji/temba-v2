@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -69,11 +70,7 @@ export default function TeamsIndexPage() {
                     ) : (
                       <Badge variant="outline">Unattached</Badge>
                     )}
-                    {team.sport ? (
-                      <Badge variant="secondary" className="capitalize">
-                        {team.sport}
-                      </Badge>
-                    ) : null}
+                    {team.sport ? <SportBadge sport={team.sport} /> : null}
                   </div>
                 </Link>
               </li>

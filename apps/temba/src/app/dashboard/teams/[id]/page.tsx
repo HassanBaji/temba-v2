@@ -6,6 +6,7 @@ import { use } from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { SPORT_LABELS, SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -120,7 +121,13 @@ export default function TeamHomePage({
                   {team.data.displayName}
                 </h2>
                 <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span className="capitalize">{team.data.sport}</span>
+                  <span>
+                    {team.data.sport in SPORT_LABELS
+                      ? SPORT_LABELS[
+                          team.data.sport as keyof typeof SPORT_LABELS
+                        ]
+                      : team.data.sport}
+                  </span>
                   {team.data.isLoose ? (
                     <span>· Unattached</span>
                   ) : (
@@ -131,9 +138,7 @@ export default function TeamHomePage({
                   ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="capitalize">
-                    {team.data.sport}
-                  </Badge>
+                  <SportBadge sport={team.data.sport} />
                   {team.data.isLoose ? (
                     <Badge variant="outline">Unattached</Badge>
                   ) : (

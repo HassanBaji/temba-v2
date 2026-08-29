@@ -3,7 +3,8 @@
 import Link from "next/link";
 
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Badge } from "~/components/ui/badge";
+import { SportBadge } from "~/components/temba/sport-badge";
+import { GameFormatBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { formatGameStart } from "~/lib/format-game-start";
@@ -109,13 +110,9 @@ export default function HomePage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {game.sport ? (
-                            <Badge variant="secondary" className="capitalize">
-                              {game.sport}
-                            </Badge>
+                            <SportBadge sport={game.sport} />
                           ) : null}
-                          <Badge variant="outline" className="capitalize">
-                            {game.format.replaceAll("_", " ")}
-                          </Badge>
+                          <GameFormatBadge format={game.format} />
                         </div>
                       </Link>
                     </li>
@@ -161,9 +158,7 @@ export default function HomePage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {entry.sport ? (
-                            <Badge variant="secondary" className="capitalize">
-                              {entry.sport}
-                            </Badge>
+                            <SportBadge sport={entry.sport} />
                           ) : null}
                           <span className="text-foreground text-sm font-medium tabular-nums">
                             #{entry.position}

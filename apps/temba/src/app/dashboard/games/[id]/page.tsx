@@ -6,6 +6,12 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { SportBadge } from "~/components/temba/sport-badge";
+import {
+  GameFormatBadge,
+  GameRegistrationModeBadge,
+  GameRegistrationStatusBadge,
+} from "~/components/temba/typed-labels";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -434,25 +440,17 @@ export default function GameHomePage({
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="capitalize">
-                    {data.format.replaceAll("_", " ")}
-                  </Badge>
-                  <Badge variant="outline" className="capitalize">
-                    {data.registrationMode.replaceAll("_", " ")}
-                  </Badge>
+                  <GameFormatBadge format={data.format} />
+                  <GameRegistrationModeBadge mode={data.registrationMode} />
                   {data.isPublic ? (
                     <Badge variant="outline">Public</Badge>
                   ) : (
                     <Badge variant="outline">Not public</Badge>
                   )}
-                  <Badge variant="outline" className="capitalize">
-                    {data.registrationStatus}
-                  </Badge>
-                  {data.sport ? (
-                    <Badge variant="secondary" className="capitalize">
-                      {data.sport}
-                    </Badge>
-                  ) : null}
+                  <GameRegistrationStatusBadge
+                    status={data.registrationStatus}
+                  />
+                  {data.sport ? <SportBadge sport={data.sport} /> : null}
                 </div>
               </div>
               <p className="text-muted-foreground text-sm">

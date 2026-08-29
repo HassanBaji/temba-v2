@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Badge } from "~/components/ui/badge";
+import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
@@ -151,9 +151,7 @@ export default function InvitesPage() {
                     <p className="text-foreground font-medium">
                       {invite.title}
                     </p>
-                    <Badge variant="outline" className="capitalize">
-                      {invite.kind}
-                    </Badge>
+                    <InviteKindBadge kind={invite.kind} />
                   </div>
                   <p className="text-muted-foreground text-sm">
                     From {invite.invitedBy.name} ({invite.invitedBy.email})

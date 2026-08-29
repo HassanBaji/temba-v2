@@ -6,6 +6,11 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
+import { GroupTypeBadge } from "~/components/temba/group-type-badge";
+import { RoleBadge } from "~/components/temba/role-badge";
+import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
+import { SPORT_LABELS } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -272,10 +277,13 @@ export default function CommunityHomePage({
                   {community.data.name}
                 </h2>
                 <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span className="capitalize">{community.data.type}</span>
+                  <CommunityTypeBadge type={community.data.type} />
                   {!isLive ? <span>· Soft-archived</span> : null}
                   {community.data.membership ? (
-                    <span>· Your role: {community.data.membership.role}</span>
+                    <span>
+                      · Your role:{" "}
+                      <RoleBadge role={community.data.membership.role} />
+                    </span>
                   ) : null}
                   {!community.data.membership &&
                   isLive &&
@@ -360,28 +368,18 @@ export default function CommunityHomePage({
         </div>
 
         {community.data && !isLive && !isMember ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              This Community is Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              It is not open for new joins, requests, or invites. Members can
-              still open history and Games. This is not a missing page.
-            </p>
-          </section>
+          <SoftArchiveBanner heading="This Community is Soft-archived">
+            It is not open for new joins, requests, or invites. Members can
+            still open history and Games. This is not a missing page.
+          </SoftArchiveBanner>
         ) : null}
 
         {community.data && !isLive && isMember ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Club Groups stay attached. You can still open Groups and see
-              history and Games. New joins, requests, Lookup invites, and Invite
-              links are paused until an Owner or Admin unarchives.
-            </p>
-          </section>
+          <SoftArchiveBanner heading="Soft-archived">
+            Club Groups stay attached. You can still open Groups and see history
+            and Games. New joins, requests, Lookup invites, and Invite links are
+            paused until an Owner or Admin unarchives.
+          </SoftArchiveBanner>
         ) : null}
 
         {community.data?.membership ? (
@@ -548,8 +546,17 @@ export default function CommunityHomePage({
                         {group.name ?? "Untitled Group"}
                       </p>
                       <div className="text-muted-foreground flex flex-wrap gap-2 text-sm">
-                        <span className="capitalize">{group.type}</span>
-                        {group.sport ? <span>· {group.sport}</span> : null}
+                        <GroupTypeBadge isLoose={false} type={group.type} />
+                        {group.sport ? (
+                          <span>
+                            ·{" "}
+                            {group.sport in SPORT_LABELS
+                              ? SPORT_LABELS[
+                                  group.sport as keyof typeof SPORT_LABELS
+                                ]
+                              : group.sport}
+                          </span>
+                        ) : null}
                         {group.isMember ? <span>· Joined</span> : null}
                       </div>
                     </div>

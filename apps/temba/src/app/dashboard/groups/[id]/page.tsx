@@ -6,6 +6,12 @@ import { use } from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { COMMUNITY_TYPE_LABELS } from "~/components/temba/community-type-badge";
+import { GameStatusBadge } from "~/components/temba/game-status-badge";
+import { GroupTypeBadge } from "~/components/temba/group-type-badge";
+import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
+import { SPORT_LABELS, SportBadge } from "~/components/temba/sport-badge";
+import { GameFormatBadge } from "~/components/temba/typed-labels";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -168,8 +174,22 @@ export default function GroupHomePage({
                   {group.data.name ?? "Untitled Group"}
                 </h2>
                 <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span className="capitalize">{group.data.type}</span>
-                  {group.data.sport ? <span>· {group.data.sport}</span> : null}
+                  <span>
+                    {group.data.type === "public" ||
+                    group.data.type === "private"
+                      ? COMMUNITY_TYPE_LABELS[group.data.type]
+                      : (group.data.type ?? "")}
+                  </span>
+                  {group.data.sport ? (
+                    <span>
+                      ·{" "}
+                      {group.data.sport in SPORT_LABELS
+                        ? SPORT_LABELS[
+                            group.data.sport as keyof typeof SPORT_LABELS
+                          ]
+                        : group.data.sport}
+                    </span>
+                  ) : null}
                   {group.data.isLoose ? (
                     <span>· Group outside a Community</span>
                   ) : (
@@ -189,13 +209,11 @@ export default function GroupHomePage({
                 </div>
                 {group.data.sport ? (
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">{group.data.sport}</Badge>
-                    <Badge variant="outline" className="capitalize">
-                      {group.data.type}
-                    </Badge>
-                    {group.data.isLoose ? (
-                      <Badge variant="outline">Outside a Community</Badge>
-                    ) : null}
+                    <SportBadge sport={group.data.sport} />
+                    <GroupTypeBadge
+                      isLoose={group.data.isLoose}
+                      type={group.data.type}
+                    />
                     {group.data.isCommunityArchived ? (
                       <Badge variant="outline">Archived</Badge>
                     ) : null}
@@ -300,27 +318,17 @@ export default function GroupHomePage({
         </div>
 
         {group.data?.isCommunityArchived && !group.data.communityMembership ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              This Club Group&apos;s Community is Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              It is not open for join. Members of the Community can still open
-              history and Games. This is not a missing page.
-            </p>
-          </section>
+          <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+            It is not open for join. Members of the Community can still open
+            history and Games. This is not a missing page.
+          </SoftArchiveBanner>
         ) : null}
 
         {group.data?.isCommunityArchived && group.data.communityMembership ? (
-          <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <h3 className="text-foreground text-lg font-medium">
-              Community Soft-archived
-            </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              This Club Group stays attached to its Community. You can still
-              open it and see history and Games while the Community is archived.
-            </p>
-          </section>
+          <SoftArchiveBanner heading="Community Soft-archived">
+            This Club Group stays attached to its Community. You can still open
+            it and see history and Games while the Community is archived.
+          </SoftArchiveBanner>
         ) : null}
 
         {group.data?.communityId &&
@@ -490,14 +498,8 @@ export default function GroupHomePage({
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {game.sport ? (
-                          <Badge variant="secondary" className="capitalize">
-                            {game.sport}
-                          </Badge>
-                        ) : null}
-                        <Badge variant="outline" className="capitalize">
-                          {game.format.replaceAll("_", " ")}
-                        </Badge>
+                        {game.sport ? <SportBadge sport={game.sport} /> : null}
+                        <GameFormatBadge format={game.format} />
                       </div>
                     </Link>
                   </li>
@@ -540,16 +542,12 @@ export default function GroupHomePage({
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {game.sport ? (
-                          <Badge variant="secondary" className="capitalize">
-                            {game.sport}
-                          </Badge>
-                        ) : null}
-                        <Badge variant="outline" className="capitalize">
-                          {game.cancelledAt
-                            ? "cancelled"
-                            : game.format.replaceAll("_", " ")}
-                        </Badge>
+                        {game.sport ? <SportBadge sport={game.sport} /> : null}
+                        {game.cancelledAt ? (
+                          <GameStatusBadge status="cancelled" />
+                        ) : (
+                          <GameFormatBadge format={game.format} />
+                        )}
                       </div>
                     </Link>
                   </li>

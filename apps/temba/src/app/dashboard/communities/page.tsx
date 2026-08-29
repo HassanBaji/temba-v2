@@ -3,6 +3,10 @@
 import Link from "next/link";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
+import { GroupTypeBadge } from "~/components/temba/group-type-badge";
+import { RoleBadge } from "~/components/temba/role-badge";
+import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -58,19 +62,17 @@ export default function CommunitiesPage() {
                     <p className="text-foreground font-medium">
                       {community.name}
                     </p>
-                    <p className="text-muted-foreground text-sm capitalize">
-                      {community.type} · {community.role}
-                      {community.archivedAt ? " · Soft-archived" : ""}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CommunityTypeBadge type={community.type} />
+                      <RoleBadge role={community.role} />
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {community.archivedAt ? (
                       <Badge variant="outline">Soft-archived</Badge>
                     ) : null}
                     {community.sports.map((sport) => (
-                      <Badge key={sport} variant="secondary">
-                        {sport}
-                      </Badge>
+                      <SportBadge key={sport} sport={sport} />
                     ))}
                   </div>
                 </Link>
@@ -90,13 +92,10 @@ export default function CommunitiesPage() {
                             <p className="text-foreground font-medium">
                               {group.name ?? "Untitled Group"}
                             </p>
-                            <p className="text-muted-foreground text-sm capitalize">
-                              {group.type}
-                              {group.isMember ? " · Joined" : ""}
-                            </p>
+                            <GroupTypeBadge isLoose={false} type={group.type} />
                           </div>
                           {group.sport ? (
-                            <Badge variant="secondary">{group.sport}</Badge>
+                            <SportBadge sport={group.sport} />
                           ) : null}
                         </Link>
                       </li>
