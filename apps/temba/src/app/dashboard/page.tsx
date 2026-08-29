@@ -108,7 +108,7 @@ export default function HomePage() {
               {hero ? (
                 <Card variant="elevated" className="p-0">
                   <Link
-                    href={`/dashboard/groups/${hero.groupId}`}
+                    href={`/dashboard/games/${hero.id}`}
                     className="focus-visible:ring-ring/50 flex min-h-11 flex-col gap-3 p-4 outline-none focus-visible:ring-[3px] md:grid md:grid-cols-[1fr_auto] md:items-end"
                   >
                     <div className="space-y-2">
@@ -122,7 +122,7 @@ export default function HomePage() {
                         {hero.name ?? "Untitled Game"}
                       </p>
                       <p className="text-meta text-muted-foreground">
-                        {hero.groupName ?? "Group"}
+                        {hero.groupName ?? "Pickup"}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {hero.sport ? <SportBadge sport={hero.sport} /> : null}
@@ -151,7 +151,8 @@ export default function HomePage() {
                         startTime={game.startTime}
                         groupName={game.groupName}
                         sport={game.sport}
-                        href={`/dashboard/groups/${game.groupId}`}
+                        format={game.format}
+                        href={`/dashboard/games/${game.id}`}
                       />
                     ))}
                   </RowList>

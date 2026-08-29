@@ -7,9 +7,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-/** Flip to true when Game home ships as a primary destination. */
-export const SHOW_GAMES_NAV_ITEM = false;
-
 export type AppNavItem = {
   title: string;
   href: string;

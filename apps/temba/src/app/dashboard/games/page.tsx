@@ -6,12 +6,11 @@ import Link from "next/link";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
-import { ListRow, RowList } from "~/components/common/row-list";
+import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Section } from "~/components/layout/section";
-import { GameFormatBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
-import { formatGameStart } from "~/lib/format-game-start";
 import { api } from "~/trpc/react";
 
 export default function GamesHubPage() {
@@ -50,15 +49,15 @@ export default function GamesHubPage() {
           ) : (
             <RowList>
               {pickup.data.map((game) => (
-                <ListRow
+                <GameSummaryCard
                   key={game.id}
-                  asChild
-                  title={game.name ?? "Untitled Game"}
-                  meta={`${game.groupName ?? "Groupless"} · ${formatGameStart(game.startTime)}`}
-                  trailing={<GameFormatBadge format={game.format} />}
-                >
-                  <Link href={`/dashboard/games/${game.id}`} />
-                </ListRow>
+                  name={game.name}
+                  startTime={game.startTime}
+                  groupName={game.groupName}
+                  sport={game.sport}
+                  format={game.format}
+                  href={`/dashboard/games/${game.id}`}
+                />
               ))}
             </RowList>
           )}
