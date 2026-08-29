@@ -1,18 +1,39 @@
 "use client";
 
+import { Inbox } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "~/components/common/empty-state";
+import { ErrorState } from "~/components/common/error-state";
+import { ListPageSkeleton } from "~/components/common/page-skeleton";
+import { ListRow, RowList } from "~/components/common/row-list";
+import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Badge } from "~/components/ui/badge";
+import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
-import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
+
+function inviteMeta(
+  kind: "community" | "group" | "team" | "game",
+  name: string,
+) {
+  const label =
+    kind === "community"
+      ? "Community"
+      : kind === "group"
+        ? "Group"
+        : kind === "team"
+          ? "Team"
+          : "Game";
+  return `${label} invite from ${name}`;
+}
 
 export default function InvitesPage() {
   const utils = api.useUtils();
   const communityInvites = api.communities.pendingLookupInvites.useQuery();
   const groupInvites = api.groups.pendingLookupInvites.useQuery();
   const teamInvites = api.teams.pendingInvites.useQuery();
+  const gameInvites = api.games.pendingLookupInvites.useQuery();
 
   const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
     onSuccess: async () => {
@@ -48,12 +69,28 @@ export default function InvitesPage() {
     },
   });
 
+  const acceptGame = api.games.acceptLookupInvite.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined Game waitlist" : "Joined Game");
+      await utils.games.pendingLookupInvites.invalidate();
+      await utils.games.byId.invalidate({ id: result.gameId });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const isLoading =
     communityInvites.isLoading ||
     groupInvites.isLoading ||
-    teamInvites.isLoading;
+    teamInvites.isLoading ||
+    gameInvites.isLoading;
   const error =
-    communityInvites.error ?? groupInvites.error ?? teamInvites.error;
+    communityInvites.error ??
+    groupInvites.error ??
+    teamInvites.error ??
+    gameInvites.error;
   const items = [
     ...(communityInvites.data ?? []).map((invite) => ({
       kind: "community" as const,
@@ -76,84 +113,104 @@ export default function InvitesPage() {
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
     })),
+    ...(gameInvites.data ?? []).map((invite) => ({
+      kind: "game" as const,
+      id: invite.id,
+      title: invite.gameName,
+      invitedBy: invite.invitedBy,
+      createdAt: invite.createdAt,
+    })),
   ].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const acceptPending =
-    acceptCommunity.isPending || acceptGroup.isPending || acceptTeam.isPending;
+  function isRowPending(kind: string, id: string) {
+    if (kind === "community") {
+      return (
+        acceptCommunity.isPending && acceptCommunity.variables?.inviteId === id
+      );
+    }
+    if (kind === "group") {
+      return acceptGroup.isPending && acceptGroup.variables?.inviteId === id;
+    }
+    if (kind === "game") {
+      return acceptGame.isPending && acceptGame.variables?.inviteId === id;
+    }
+    return acceptTeam.isPending && acceptTeam.variables?.inviteId === id;
+  }
+
+  function onAccept(kind: (typeof items)[number]["kind"], id: string) {
+    if (kind === "community") {
+      acceptCommunity.mutate({ inviteId: id });
+      return;
+    }
+    if (kind === "group") {
+      acceptGroup.mutate({ inviteId: id });
+      return;
+    }
+    if (kind === "game") {
+      acceptGame.mutate({ inviteId: id });
+      return;
+    }
+    acceptTeam.mutate({ inviteId: id });
+  }
 
   return (
-    <DashboardShell title="Invites">
-      <div className="space-y-8">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Invites
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Unused Lookup invites addressed to you. Accept here to join.
-          </p>
-        </div>
+    <DashboardShell
+      title="Invites"
+      description="Unused Lookup invites addressed to you. Accept here to join."
+    >
+      {isLoading ? <ListPageSkeleton rows={4} /> : null}
 
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : null}
+      {error ? (
+        <ErrorState
+          title="Invites could not be loaded"
+          message={error.message}
+          onRetry={() => {
+            void communityInvites.refetch();
+            void groupInvites.refetch();
+            void teamInvites.refetch();
+            void gameInvites.refetch();
+          }}
+        />
+      ) : null}
 
-        {error ? (
-          <p className="text-destructive text-sm">{error.message}</p>
-        ) : null}
+      {!isLoading && !error && items.length === 0 ? (
+        <EmptyState
+          icon={Inbox}
+          title="Nothing waiting"
+          description="Lookup invites to Communities, Groups and Teams show up here."
+        />
+      ) : null}
 
-        {!isLoading && !error && items.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            You have no unused Lookup invites.
-          </p>
-        ) : null}
-
-        {items.length > 0 ? (
-          <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-            {items.map((invite) => (
-              <li
+      {items.length > 0 ? (
+        <RowList>
+          {items.map((invite) => {
+            const pending = isRowPending(invite.kind, invite.id);
+            const inviterName = invite.invitedBy.name ?? "Someone";
+            return (
+              <ListRow
                 key={`${invite.kind}-${invite.id}`}
-                className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="space-y-1">
+                leading={<UserAvatar name={inviterName} size="lg" />}
+                title={invite.title}
+                meta={inviteMeta(invite.kind, inviterName)}
+                trailing={
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-foreground font-medium">
-                      {invite.title}
-                    </p>
-                    <Badge variant="outline" className="capitalize">
-                      {invite.kind}
-                    </Badge>
+                    <InviteKindBadge kind={invite.kind} />
+                    <Button
+                      className="min-h-11"
+                      disabled={pending}
+                      onClick={() => onAccept(invite.kind, invite.id)}
+                    >
+                      {pending ? "Accepting…" : "Accept"}
+                    </Button>
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    From {invite.invitedBy.name} ({invite.invitedBy.email})
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (invite.kind === "community") {
-                      acceptCommunity.mutate({ inviteId: invite.id });
-                      return;
-                    }
-                    if (invite.kind === "group") {
-                      acceptGroup.mutate({ inviteId: invite.id });
-                      return;
-                    }
-                    acceptTeam.mutate({ inviteId: invite.id });
-                  }}
-                  disabled={acceptPending}
-                >
-                  {acceptPending ? "Accepting…" : "Accept"}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+                }
+              />
+            );
+          })}
+        </RowList>
+      ) : null}
     </DashboardShell>
   );
 }

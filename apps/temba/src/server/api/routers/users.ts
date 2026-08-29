@@ -1,16 +1,18 @@
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import {
   communityMembers,
   games,
-  GameStatusEnum,
   groupMembers,
   type GroupSportEnum,
 } from "@repo/db";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { HOME_UPCOMING_GAME_STATUSES } from "~/server/home/upcoming-games";
+import {
+  filterAndSortHomeUpcomingGames,
+  gameListTime,
+} from "~/server/home/upcoming-games";
 import {
   sortStandingMembers,
   standingPosition,
@@ -97,15 +99,16 @@ export const usersRouter = createTRPCRouter({
         : await ctx.db.query.games.findMany({
             where: and(
               inArray(games.groupId, groupIds),
-              inArray(games.status, [...HOME_UPCOMING_GAME_STATUSES]),
-              gte(games.startTime, now),
+              isNull(games.cancelledAt),
             ),
             columns: {
               id: true,
               name: true,
-              startTime: true,
-              endTime: true,
-              status: true,
+              windowStart: true,
+              windowEnd: true,
+              cancelledAt: true,
+              createdAt: true,
+              format: true,
               sport: true,
               groupId: true,
             },
@@ -116,11 +119,20 @@ export const usersRouter = createTRPCRouter({
                   name: true,
                 },
               },
+              matches: {
+                columns: {
+                  startTime: true,
+                  status: true,
+                },
+              },
             },
-            orderBy: (table, { asc }) => [asc(table.startTime)],
           });
 
-    const upcomingGames = upcomingGameRows.flatMap((game) => {
+    const upcomingGames = filterAndSortHomeUpcomingGames(
+      upcomingGameRows,
+      new Set(groupIds),
+      now,
+    ).flatMap((game) => {
       if (game.groupId === null) {
         return [];
       }
@@ -128,11 +140,10 @@ export const usersRouter = createTRPCRouter({
         {
           id: game.id,
           name: game.name,
-          startTime: game.startTime,
-          endTime: game.endTime,
-          status: (game.status ?? GameStatusEnum.PENDING) as
-            | "pending"
-            | "confirmed",
+          startTime: gameListTime(game),
+          windowStart: game.windowStart,
+          windowEnd: game.windowEnd,
+          format: game.format,
           sport: game.sport,
           groupId: game.groupId,
           groupName: game.group?.name ?? null,

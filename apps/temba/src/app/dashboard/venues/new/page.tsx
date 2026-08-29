@@ -6,31 +6,38 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import {
+  fieldErrorMessage,
+  focusFormFailure,
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
+import { parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
 
-function parseOptionalCoord(value: string): number | null {
-  const trimmed = value.trim();
-  if (trimmed === "") {
-    return null;
-  }
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed)) {
-    return null;
-  }
-  return parsed;
-}
+const FIELD_IDS = {
+  name: "venue-name",
+  city: "venue-city",
+  country: "venue-country",
+  latitude: "venue-latitude",
+  longitude: "venue-longitude",
+};
 
 export default function NewVenuePage() {
   const router = useRouter();
   const utils = api.useUtils();
+  const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
   const [city, setCity] = React.useState("");
   const [country, setCountry] = React.useState("");
@@ -44,12 +51,16 @@ export default function NewVenuePage() {
       router.push(`/dashboard/venues/${venue.id}`);
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
+      focusFormFailure(error, FIELD_IDS, summaryRef.current);
     },
   });
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createVenue.isPending) {
+      return;
+    }
     createVenue.mutate({
       name,
       city,
@@ -59,23 +70,19 @@ export default function NewVenuePage() {
     });
   }
 
-  return (
-    <DashboardShell title="Create Venue">
-      <div className="mx-auto w-full max-w-lg space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Create a Venue
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            A physical site starts with no Courts. Name, city, and country are
-            required.
-          </p>
-        </div>
+  const error = createVenue.error;
 
-        <form
-          onSubmit={onSubmit}
-          className="border-border bg-card space-y-6 rounded-xl border p-6"
-        >
+  return (
+    <DashboardShell
+      title="Create Venue"
+      description="A physical site starts with no Courts. Name, city, and country are required."
+    >
+      <Card variant="outlined" className="w-full">
+        <form onSubmit={onSubmit} className="space-y-6">
+          <FormErrorSummary
+            ref={summaryRef}
+            message={globalFormErrorMessage(error)}
+          />
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="venue-name">Name</FieldLabel>
@@ -83,10 +90,20 @@ export default function NewVenuePage() {
                 id="venue-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Club house name"
                 required
                 maxLength={255}
+                aria-invalid={
+                  fieldErrorMessage(error, "name") ? true : undefined
+                }
+                aria-describedby={
+                  fieldErrorMessage(error, "name")
+                    ? "venue-name-error"
+                    : undefined
+                }
               />
+              <FieldError id="venue-name-error">
+                {fieldErrorMessage(error, "name")}
+              </FieldError>
             </Field>
 
             <Field>
@@ -95,10 +112,20 @@ export default function NewVenuePage() {
                 id="venue-city"
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
-                placeholder="Lisbon"
                 required
                 maxLength={255}
+                aria-invalid={
+                  fieldErrorMessage(error, "city") ? true : undefined
+                }
+                aria-describedby={
+                  fieldErrorMessage(error, "city")
+                    ? "venue-city-error"
+                    : undefined
+                }
               />
+              <FieldError id="venue-city-error">
+                {fieldErrorMessage(error, "city")}
+              </FieldError>
             </Field>
 
             <Field>
@@ -107,10 +134,20 @@ export default function NewVenuePage() {
                 id="venue-country"
                 value={country}
                 onChange={(event) => setCountry(event.target.value)}
-                placeholder="Portugal"
                 required
                 maxLength={255}
+                aria-invalid={
+                  fieldErrorMessage(error, "country") ? true : undefined
+                }
+                aria-describedby={
+                  fieldErrorMessage(error, "country")
+                    ? "venue-country-error"
+                    : undefined
+                }
               />
+              <FieldError id="venue-country-error">
+                {fieldErrorMessage(error, "country")}
+              </FieldError>
             </Field>
 
             <Field>
@@ -123,9 +160,21 @@ export default function NewVenuePage() {
                 max={90}
                 value={latitude}
                 onChange={(event) => setLatitude(event.target.value)}
-                placeholder="Optional"
+                aria-invalid={
+                  fieldErrorMessage(error, "latitude") ? true : undefined
+                }
+                aria-describedby={
+                  fieldErrorMessage(error, "latitude")
+                    ? "venue-latitude-error"
+                    : "venue-latitude-help"
+                }
               />
-              <FieldDescription>Optional. Range −90 to 90.</FieldDescription>
+              <FieldDescription id="venue-latitude-help">
+                Optional. Range −90 to 90. Blank persists as null.
+              </FieldDescription>
+              <FieldError id="venue-latitude-error">
+                {fieldErrorMessage(error, "latitude")}
+              </FieldError>
             </Field>
 
             <Field>
@@ -138,9 +187,21 @@ export default function NewVenuePage() {
                 max={180}
                 value={longitude}
                 onChange={(event) => setLongitude(event.target.value)}
-                placeholder="Optional"
+                aria-invalid={
+                  fieldErrorMessage(error, "longitude") ? true : undefined
+                }
+                aria-describedby={
+                  fieldErrorMessage(error, "longitude")
+                    ? "venue-longitude-error"
+                    : "venue-longitude-help"
+                }
               />
-              <FieldDescription>Optional. Range −180 to 180.</FieldDescription>
+              <FieldDescription id="venue-longitude-help">
+                Optional. Range −180 to 180. Blank persists as null.
+              </FieldDescription>
+              <FieldError id="venue-longitude-error">
+                {fieldErrorMessage(error, "longitude")}
+              </FieldError>
             </Field>
           </FieldGroup>
 
@@ -153,7 +214,7 @@ export default function NewVenuePage() {
             </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </DashboardShell>
   );
 }

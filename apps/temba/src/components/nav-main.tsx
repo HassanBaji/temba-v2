@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type Icon } from "@tabler/icons-react";
+import { type LucideIcon } from "lucide-react";
 
 import {
   SidebarGroup,
@@ -17,7 +17,7 @@ export function NavMain({
   items: {
     title: string;
     url: string;
-    icon?: Icon;
+    icon?: LucideIcon;
   }[];
 }) {
   return (
@@ -28,7 +28,9 @@ export function NavMain({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton tooltip={item.title} asChild>
                 <Link href={item.url}>
-                  {item.icon && <item.icon />}
+                  {item.icon ? (
+                    <item.icon strokeWidth={1.75} aria-hidden="true" />
+                  ) : null}
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>

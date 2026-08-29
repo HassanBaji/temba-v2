@@ -4,13 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import { UserButton, useUser } from "@clerk/nextjs";
 import {
-  IconBuildingCommunity,
-  IconHome,
-  IconMail,
-  IconMapPin,
-  IconUsers,
-  IconUsersGroup,
-} from "@tabler/icons-react";
+  Building2,
+  CalendarDays,
+  House,
+  Mail,
+  MapPin,
+  UserRound,
+  Users,
+} from "lucide-react";
 
 import { NavMain } from "~/components/nav-main";
 import {
@@ -27,34 +28,39 @@ const navMain = [
   {
     title: "Home",
     url: "/dashboard",
-    icon: IconHome,
+    icon: House,
+  },
+  {
+    title: "Games",
+    url: "/dashboard/games",
+    icon: CalendarDays,
   },
   {
     title: "Groups",
     url: "/dashboard/groups",
-    icon: IconUsersGroup,
+    icon: Users,
   },
   {
     title: "Teams",
     url: "/dashboard/teams",
-    icon: IconUsers,
+    icon: UserRound,
   },
   {
     title: "Communities",
     url: "/dashboard/communities",
-    icon: IconBuildingCommunity,
+    icon: Building2,
   },
   {
     title: "Invites",
     url: "/dashboard/invites",
-    icon: IconMail,
+    icon: Mail,
   },
 ];
 
 const venuesNav = {
   title: "Venues",
   url: "/dashboard/venues",
-  icon: IconMapPin,
+  icon: MapPin,
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
