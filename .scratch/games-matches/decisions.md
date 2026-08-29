@@ -1,6 +1,6 @@
 # Games and Matches — settled decisions
 
-Status: grilling complete — shared understanding recap awaiting user confirm before `/to-spec`.
+Status: spec published — `.scratch/games-matches/spec.md` (ready-for-agent). Tickets via `/to-tickets`.
 
 ## Settled (round 1)
 
