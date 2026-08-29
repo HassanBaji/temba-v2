@@ -5,6 +5,7 @@ import { shadcn } from "@clerk/ui/themes";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
+import { ThemeProvider } from "~/components/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
@@ -19,18 +20,33 @@ const geist = Geist({
   variable: "--font-geist-sans",
 });
 
+const clerkAppearance = {
+  theme: shadcn,
+  variables: {
+    colorPrimary: "#0000FF",
+    colorPrimaryForeground: "#FFFFFF",
+  },
+} as const;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable}`}>
-      <body>
-        <ClerkProvider appearance={{ theme: shadcn }}>
-          <TRPCReactProvider>
-            {children}
-            <Toaster />
-          </TRPCReactProvider>
-        </ClerkProvider>
+    <html lang="en" className={geist.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <ClerkProvider appearance={clerkAppearance}>
+            <TRPCReactProvider>
+              {children}
+              <Toaster />
+            </TRPCReactProvider>
+          </ClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
