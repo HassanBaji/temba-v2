@@ -166,6 +166,20 @@ export async function isGameOrganizer(
   return isGroupMember(database, group.id, userId);
 }
 
+export async function assertGameOrganizer(
+  database: DbClient,
+  game: GameRow,
+  userId: string,
+) {
+  if (await isGameOrganizer(database, game, userId)) {
+    return;
+  }
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "Only an organizer can do that",
+  });
+}
+
 export async function userPassesJoinGate(
   database: DbClient,
   game: GameRow,

@@ -26,17 +26,29 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import {
   FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
+  assertGameOrganizer,
   assertMayCreateGameOnGroup,
   assertRegistrationOpen,
   assertUserPassesJoinGate,
   canViewGame,
   getRegistrationStatus,
+  isClubGroupGameJoinFrozen,
   isGameOrganizer,
   registeredGameTeamCount,
   registeredUserCount,
   requireGame,
   userPassesJoinGate,
 } from "~/server/games/access";
+import {
+  cancelGame,
+  cancelMatch,
+  closeRegistration,
+  kickRegisteredUser,
+  kickWaitlistEntry,
+  reopenRegistration,
+  updateGameCaps,
+  updateGameWindow,
+} from "~/server/games/organize";
 import {
   assignFriendlyMatchSlots,
   enqueueWaitlistTeam,
@@ -467,9 +479,11 @@ export const gamesRouter = createTRPCRouter({
         teamsAllowed: game.teamsAllowed,
         sport: game.sport,
         cancelledAt: game.cancelledAt,
+        registrationClosedAt: game.registrationClosedAt,
         createdBy: game.createdBy,
         createdAt: game.createdAt,
         isOrganizer: organizer,
+        joinFrozen: await isClubGroupGameJoinFrozen(ctx.db, game),
         isRegistered: alreadyOnGame,
         isWaitlisted,
         registrationStatus,
@@ -756,6 +770,145 @@ export const gamesRouter = createTRPCRouter({
       const appUser = await resolveAppUser();
       await requireGame(ctx.db, input.gameId);
       await leaveWaitlistEntry(ctx.db, input.gameId, appUser.id);
+      return { ok: true as const };
+    }),
+
+  kick: protectedProcedure
+    .input(
+      z
+        .object({
+          gameId: z.string().uuid(),
+          userId: z.string().uuid().optional(),
+          waitlistId: z.string().uuid().optional(),
+        })
+        .refine(
+          (value) => Boolean(value.userId) !== Boolean(value.waitlistId),
+          { message: "Kick a registered User or a waitlist entry" },
+        ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      if (input.waitlistId) {
+        await kickWaitlistEntry(ctx.db, game.id, input.waitlistId);
+        return { ok: true as const };
+      }
+      if (!input.userId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Kick a registered User or a waitlist entry",
+        });
+      }
+      const userId = input.userId;
+      await ctx.db.transaction(async (tx) => {
+        await kickRegisteredUser(tx, game, userId);
+      });
+      return { ok: true as const };
+    }),
+
+  closeRegistration: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await closeRegistration(ctx.db, game);
+      return { ok: true as const };
+    }),
+
+  reopenRegistration: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await reopenRegistration(ctx.db, game);
+      return { ok: true as const };
+    }),
+
+  cancel: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await ctx.db.transaction(async (tx) => {
+        await cancelGame(tx, game);
+      });
+      return { ok: true as const };
+    }),
+
+  cancelMatch: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        matchId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      const result = await ctx.db.transaction(async (tx) => {
+        return cancelMatch(tx, game, input.matchId);
+      });
+      return result;
+    }),
+
+  updateWindow: protectedProcedure
+    .input(
+      z
+        .object({
+          gameId: z.string().uuid(),
+          windowStart: z.coerce.date().nullable(),
+          windowEnd: z.coerce.date().nullable(),
+        })
+        .refine(
+          (value) => Boolean(value.windowStart) === Boolean(value.windowEnd),
+          { message: "Window start and end must be set together" },
+        )
+        .refine(
+          (value) =>
+            !value.windowStart ||
+            !value.windowEnd ||
+            value.windowEnd.getTime() >= value.windowStart.getTime(),
+          { message: "Window end must be at or after window start" },
+        ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await ctx.db.transaction(async (tx) => {
+        await updateGameWindow(tx, game, input.windowStart, input.windowEnd);
+      });
+      return { ok: true as const };
+    }),
+
+  updateCaps: protectedProcedure
+    .input(
+      z
+        .object({
+          gameId: z.string().uuid(),
+          playersAllowed: z.number().int().optional(),
+          teamsAllowed: z.number().int().optional(),
+        })
+        .refine(
+          (value) =>
+            value.playersAllowed !== undefined ||
+            value.teamsAllowed !== undefined,
+          { message: "Set players allowed or teams allowed" },
+        ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await updateGameCaps(ctx.db, game, {
+        playersAllowed: input.playersAllowed,
+        teamsAllowed: input.teamsAllowed,
+      });
       return { ok: true as const };
     }),
 

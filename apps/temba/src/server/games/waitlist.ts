@@ -257,6 +257,7 @@ export async function leaveRegisteredSeat(
   database: Tx,
   game: GameRow,
   userId: string,
+  notRegisteredMessage = "You are not registered on this Game",
 ) {
   const player = await database.query.gamePlayers.findFirst({
     where: and(eq(gamePlayers.gameId, game.id), eq(gamePlayers.userId, userId)),
@@ -264,7 +265,7 @@ export async function leaveRegisteredSeat(
   if (!player) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are not registered on this Game",
+      message: notRegisteredMessage,
     });
   }
 

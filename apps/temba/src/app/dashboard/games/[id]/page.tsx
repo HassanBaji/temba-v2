@@ -39,6 +39,29 @@ function formatWhen(value: Date | string | null | undefined) {
   });
 }
 
+function toDatetimeLocalValue(value: Date | string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function parseOptionalDate(value: string) {
+  if (value.trim().length === 0) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date;
+}
+
 export default function GameHomePage({
   params,
 }: {
@@ -50,6 +73,10 @@ export default function GameHomePage({
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
   const [teamId, setTeamId] = React.useState<string>("");
+  const [windowStart, setWindowStart] = React.useState("");
+  const [windowEnd, setWindowEnd] = React.useState("");
+  const [playersAllowed, setPlayersAllowed] = React.useState("4");
+  const [teamsAllowed, setTeamsAllowed] = React.useState("2");
 
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
@@ -97,6 +124,84 @@ export default function GameHomePage({
     },
   });
 
+  async function refreshGame() {
+    await utils.games.byId.invalidate({ id });
+    await utils.users.home.invalidate();
+    await utils.games.listPublicPickup.invalidate();
+  }
+
+  const kick = api.games.kick.useMutation({
+    onSuccess: async () => {
+      toast.success("Removed");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const closeRegistration = api.games.closeRegistration.useMutation({
+    onSuccess: async () => {
+      toast.success("Registration closed");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const reopenRegistration = api.games.reopenRegistration.useMutation({
+    onSuccess: async () => {
+      toast.success("Registration reopened");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const cancelGame = api.games.cancel.useMutation({
+    onSuccess: async () => {
+      toast.success("Game cancelled");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const cancelMatch = api.games.cancelMatch.useMutation({
+    onSuccess: async (result) => {
+      toast.success(
+        result.cancelledGame ? "Game cancelled" : "Match cancelled",
+      );
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateWindow = api.games.updateWindow.useMutation({
+    onSuccess: async () => {
+      toast.success("Window updated");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateCaps = api.games.updateCaps.useMutation({
+    onSuccess: async () => {
+      toast.success("Cap updated");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const data = game.data;
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
 
@@ -105,6 +210,16 @@ export default function GameHomePage({
       setTeamId(firstEligibleTeam);
     }
   }, [firstEligibleTeam, teamId.length]);
+
+  React.useEffect(() => {
+    if (!data) {
+      return;
+    }
+    setWindowStart(toDatetimeLocalValue(data.windowStart));
+    setWindowEnd(toDatetimeLocalValue(data.windowEnd));
+    setPlayersAllowed(String(data.playersAllowed ?? 4));
+    setTeamsAllowed(String(data.teamsAllowed ?? 2));
+  }, [data]);
 
   return (
     <DashboardShell title="Game">
@@ -176,6 +291,154 @@ export default function GameHomePage({
               </p>
             </div>
 
+            {data.isOrganizer && !data.cancelledAt ? (
+              <section className="border-border bg-card space-y-4 rounded-xl border p-6">
+                <h3 className="text-foreground text-lg font-medium">
+                  Organizer
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Format, public, and registration mode cannot change.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {data.registrationClosedAt ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => reopenRegistration.mutate({ gameId: id })}
+                      disabled={reopenRegistration.isPending || data.joinFrozen}
+                    >
+                      {reopenRegistration.isPending
+                        ? "Reopening…"
+                        : "Reopen registration"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => closeRegistration.mutate({ gameId: id })}
+                      disabled={closeRegistration.isPending}
+                    >
+                      {closeRegistration.isPending
+                        ? "Closing…"
+                        : "Close registration"}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => cancelGame.mutate({ gameId: id })}
+                    disabled={cancelGame.isPending}
+                  >
+                    {cancelGame.isPending ? "Cancelling…" : "Cancel Game"}
+                  </Button>
+                </div>
+                {data.joinFrozen ? (
+                  <p className="text-muted-foreground text-sm">
+                    This Club Group’s Community is Soft-archived. Join doors
+                    stay closed; reopen is refused.
+                  </p>
+                ) : null}
+                <form
+                  className="space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    updateWindow.mutate({
+                      gameId: id,
+                      windowStart: parseOptionalDate(windowStart),
+                      windowEnd: parseOptionalDate(windowEnd),
+                    });
+                  }}
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field>
+                      <FieldLabel htmlFor="edit-window-start">
+                        Window start
+                      </FieldLabel>
+                      <Input
+                        id="edit-window-start"
+                        type="datetime-local"
+                        value={windowStart}
+                        onChange={(event) => setWindowStart(event.target.value)}
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="edit-window-end">
+                        Window end
+                      </FieldLabel>
+                      <Input
+                        id="edit-window-end"
+                        type="datetime-local"
+                        value={windowEnd}
+                        onChange={(event) => setWindowEnd(event.target.value)}
+                      />
+                    </Field>
+                  </div>
+                  <Button type="submit" disabled={updateWindow.isPending}>
+                    {updateWindow.isPending ? "Saving…" : "Save window"}
+                  </Button>
+                </form>
+                {data.format !== "friendly_game" ? (
+                  <form
+                    className="space-y-3"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (data.registrationMode === "team_only") {
+                        updateCaps.mutate({
+                          gameId: id,
+                          teamsAllowed: Number(teamsAllowed),
+                        });
+                        return;
+                      }
+                      updateCaps.mutate({
+                        gameId: id,
+                        playersAllowed: Number(playersAllowed),
+                      });
+                    }}
+                  >
+                    {data.registrationMode === "team_only" ? (
+                      <Field>
+                        <FieldLabel htmlFor="edit-teams-allowed">
+                          Teams allowed
+                        </FieldLabel>
+                        <Input
+                          id="edit-teams-allowed"
+                          type="number"
+                          min={2}
+                          value={teamsAllowed}
+                          onChange={(event) =>
+                            setTeamsAllowed(event.target.value)
+                          }
+                        />
+                      </Field>
+                    ) : (
+                      <Field>
+                        <FieldLabel htmlFor="edit-players-allowed">
+                          Players allowed
+                        </FieldLabel>
+                        <Input
+                          id="edit-players-allowed"
+                          type="number"
+                          min={4}
+                          step={4}
+                          value={playersAllowed}
+                          onChange={(event) =>
+                            setPlayersAllowed(event.target.value)
+                          }
+                        />
+                        <FieldDescription>
+                          Multiple of 4, not below the current registered count.
+                        </FieldDescription>
+                      </Field>
+                    )}
+                    <Button type="submit" disabled={updateCaps.isPending}>
+                      {updateCaps.isPending ? "Saving…" : "Save cap"}
+                    </Button>
+                  </form>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    Friendly game caps stay 4 players / 2 Teams.
+                  </p>
+                )}
+              </section>
+            ) : null}
+
             <section className="space-y-3">
               <h3 className="text-foreground text-lg font-semibold tracking-tight">
                 Match
@@ -199,6 +462,26 @@ export default function GameHomePage({
                           : ""}
                         {` · slot 1 ${match.slot1GameTeamId ? "filled" : "empty"} · slot 2 ${match.slot2GameTeamId ? "filled" : "empty"}`}
                       </p>
+                      {data.isOrganizer &&
+                      !data.cancelledAt &&
+                      match.status !== "cancelled" &&
+                      data.format !== "americano" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            cancelMatch.mutate({
+                              gameId: id,
+                              matchId: match.id,
+                            })
+                          }
+                          disabled={cancelMatch.isPending}
+                        >
+                          {data.format === "friendly_game"
+                            ? "Cancel Match (cancels Game)"
+                            : "Cancel Match"}
+                        </Button>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -216,17 +499,40 @@ export default function GameHomePage({
                 </p>
               ) : (
                 <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                  {data.gameTeams.map((side) => (
-                    <li key={side.id} className="px-4 py-4">
-                      <p className="text-foreground font-medium">
-                        {side.members.length > 0
-                          ? side.members
-                              .map((member) => member.name)
-                              .join(" / ")
-                          : (side.name ?? "Game team")}
-                      </p>
-                    </li>
-                  ))}
+                  {data.gameTeams.map((side) => {
+                    const firstMember = side.members[0];
+                    return (
+                      <li
+                        key={side.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
+                      >
+                        <p className="text-foreground font-medium">
+                          {side.members.length > 0
+                            ? side.members
+                                .map((member) => member.name)
+                                .join(" / ")
+                            : (side.name ?? "Game team")}
+                        </p>
+                        {data.isOrganizer &&
+                        !data.cancelledAt &&
+                        firstMember ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              kick.mutate({
+                                gameId: id,
+                                userId: firstMember.id,
+                              })
+                            }
+                            disabled={kick.isPending}
+                          >
+                            Kick
+                          </Button>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                   {data.registeredPlayers
                     .filter(
                       (player) =>
@@ -237,10 +543,28 @@ export default function GameHomePage({
                         ),
                     )
                     .map((player) => (
-                      <li key={player.id} className="px-4 py-4">
+                      <li
+                        key={player.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
+                      >
                         <p className="text-foreground font-medium">
                           {player.name}
                         </p>
+                        {data.isOrganizer && !data.cancelledAt ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              kick.mutate({
+                                gameId: id,
+                                userId: player.id,
+                              })
+                            }
+                            disabled={kick.isPending}
+                          >
+                            Kick
+                          </Button>
+                        ) : null}
                       </li>
                     ))}
                 </ul>
@@ -258,10 +582,28 @@ export default function GameHomePage({
               ) : (
                 <ol className="divide-border border-border bg-card divide-y rounded-xl border">
                   {data.waitlist.map((entry, index) => (
-                    <li key={entry.id} className="px-4 py-4">
+                    <li
+                      key={entry.id}
+                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
+                    >
                       <p className="text-foreground font-medium">
                         {index + 1}. {entry.name}
                       </p>
+                      {data.isOrganizer && !data.cancelledAt ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            kick.mutate({
+                              gameId: id,
+                              waitlistId: entry.id,
+                            })
+                          }
+                          disabled={kick.isPending}
+                        >
+                          Kick
+                        </Button>
+                      ) : null}
                     </li>
                   ))}
                 </ol>
