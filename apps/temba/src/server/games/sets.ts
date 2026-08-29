@@ -33,7 +33,9 @@ export function setWinsForGames(
   return { slot1SetWins: 0, slot2SetWins: 1 };
 }
 
-export function matchOutcome(sets: readonly SetRow[]): {
+export function matchOutcome(
+  sets: readonly Pick<SetRow, "slot1GamesWon" | "slot2GamesWon">[],
+): {
   slot1SetWins: number;
   slot2SetWins: number;
   result: "slot1" | "slot2" | "draw" | "none";

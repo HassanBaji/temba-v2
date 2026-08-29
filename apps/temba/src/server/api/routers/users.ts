@@ -1,14 +1,21 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
 import {
   communityMembers,
+  gamePlayers,
   games,
   groupMembers,
+  MatchStatusEnum,
+  matches,
   type GroupSportEnum,
 } from "@repo/db";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import {
+  EMPTY_PLAYER_STATS,
+  playerStatsFromCompletedMatches,
+} from "~/server/home/player-stats";
 import {
   filterAndSortHomeUpcomingGames,
   gameListTime,
@@ -21,9 +28,11 @@ import {
 export const usersRouter = createTRPCRouter({
   /**
    * Home metrics, upcoming Games, and per-Group standing for the signed-in User.
-   * Upcoming Games are membership-scoped only (no public pickup); Soft-archived
-   * Club Group Games still appear. Standing position is among that Group's
-   * members only — not a global rank.
+   * Stats (Games played / Games won / Sets won) are completed Matches the User
+   * sat on, including zeros when they have not played. Upcoming Games are
+   * membership-scoped only (no public pickup); Soft-archived Club Group Games
+   * still appear. Standing position is among that Group's members only — not a
+   * global rank.
    */
   home: protectedProcedure.query(async ({ ctx }) => {
     const appUser = await resolveAppUser();
@@ -151,8 +160,64 @@ export const usersRouter = createTRPCRouter({
       ];
     });
 
+    const myPlayerRows = await ctx.db.query.gamePlayers.findMany({
+      where: eq(gamePlayers.userId, appUser.id),
+      columns: { id: true },
+      with: {
+        gameTeamPlayers: {
+          columns: { gameTeamId: true },
+        },
+      },
+    });
+    const myGameTeamIds = [
+      ...new Set(
+        myPlayerRows.flatMap((row) =>
+          row.gameTeamPlayers.map((link) => link.gameTeamId),
+        ),
+      ),
+    ];
+
+    let stats = EMPTY_PLAYER_STATS;
+    if (myGameTeamIds.length > 0) {
+      const completedMatches = await ctx.db.query.matches.findMany({
+        where: and(
+          eq(matches.status, MatchStatusEnum.COMPLETED),
+          or(
+            inArray(matches.slot1GameTeamId, myGameTeamIds),
+            inArray(matches.slot2GameTeamId, myGameTeamIds),
+          ),
+        ),
+        columns: {
+          slot1GameTeamId: true,
+          slot2GameTeamId: true,
+        },
+        with: {
+          game: {
+            columns: { cancelledAt: true },
+          },
+          sets: {
+            columns: {
+              slot1GamesWon: true,
+              slot2GamesWon: true,
+            },
+          },
+        },
+      });
+      stats = playerStatsFromCompletedMatches(
+        completedMatches.map((match) => ({
+          slot1GameTeamId: match.slot1GameTeamId,
+          slot2GameTeamId: match.slot2GameTeamId,
+          gameCancelled: match.game?.cancelledAt != null,
+          sets: match.sets,
+        })),
+        new Set(myGameTeamIds),
+      );
+    }
+
     return {
-      gamesPlayed: appUser.numberOfGamesPlayed,
+      gamesPlayed: stats.gamesPlayed,
+      gamesWon: stats.gamesWon,
+      setsWon: stats.setsWon,
       communitiesCount: communityMemberships.length,
       groupsCount: myGroupMemberships.length,
       upcomingGames,
