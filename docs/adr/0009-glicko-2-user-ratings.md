@@ -1,0 +1,5 @@
+# Glicko-2 for per-User sport Ratings
+
+Users need a durable padel skill signal after Matches complete. Elo hides uncertainty; TrueSkill fits teams but is heavier than we need for a User-only ladder; running Glicko on the 0–7 face would invent non-standard parameters. **Glicko-2 on the classic scale** (μ₀ ≈ 1500, φ₀ ≈ 350, σ₀ ≈ 0.06, τ ≈ 0.5), mapped linearly to Level 0–7, gives a Rating, a confidence story (Provisional from φ), and a Playtomic-like face without a second algorithm.
+
+**Considered Options**: Elo; TrueSkill; Glicko with μ on 0–7; Team-rated doubles. Rejected: Elo has no RD; TrueSkill and Team ratings over-scope a User Level product; Level-native Glicko leaves the published literature. Doubles uses one outcome vs mean opponent μ/φ (partner ignored). Club Group Matches apply the full step; Loose Group and groupless blend at weight 0.5. Idle empty periods every 30 days inflate φ (cap 350). Details: `.scratch/user-ratings/spec.md`.

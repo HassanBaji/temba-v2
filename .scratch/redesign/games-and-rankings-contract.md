@@ -2,7 +2,7 @@
 
 Status: artefact only. This file ships no route, no page, no player-facing component, and no navigation item.
 
-Owner of Game product behaviour: `.scratch/games-matches/spec.md`. Where this contract and that spec disagree, **that spec wins**. This file is the visual and interaction contract those tickets build to, plus a rankings placeholder that is **not buildable** until it has its own grilled spec and probably an ADR.
+Owner of Game product behaviour: `.scratch/games-matches/spec.md`. Where this contract and that spec disagree, **that spec wins**. Owner of per-User Rating / Level: `.scratch/user-ratings/spec.md` (ADR-0009). This file remains the Games visual contract plus deferred rankings surfaces (leaderboards, Standing history, FormBadge).
 
 This branch already contains Games, Matches, Sets, Waitlist, and Game invites (TEM-35–TEM-43). The redesign spec was written immediately before that merge. Inspect the repository; do not re-specify Game create, registration, Waitlist, Match, Set, Game team, Game Lookup invite, Game Invite link, or public pickup.
 
@@ -10,7 +10,7 @@ This branch already contains Games, Matches, Sets, Waitlist, and Game invites (T
 
 **.scratch/redesign/spec.md` Open question 5** — TEM-69 Games-half ownership. **Unresolved.** Recommendation: fold the Game card and Game home visual contract into [TEM-36](https://linear.app/temba-app/issue/TEM-36/friendly-game-create-register-game-home) so Game home is built once rather than built and then restyled. TEM-69 remains the design-contract document TEM-36 references.
 
-**.scratch/redesign/spec.md` Open question 6** — Rankings scope. **Unresolved.** The rankings half currently spans four separable products (per-User rating or level, cross-Group ranking, Standing movement over time, player profile). Recommendation: split them, grill each separately, and schedule nothing until Sets and Match completion (TEM-41) have shipped.
+**.scratch/redesign/spec.md` Open question 6** — Rankings scope. **Resolved for product (1).** Per-User Rating / Level / Level band is specified in `.scratch/user-ratings/spec.md` (ADR-0009). Leaderboards, Standing movement history, and full profile remain deferred follow-ons.
 
 ---
 
@@ -114,22 +114,22 @@ Do not flip the flag in this ticket.
 
 ---
 
-# Part 2 — Rankings contract (not buildable)
+# Part 2 — Rankings contract
 
-**Nothing in this part is scheduled.** No `--level-*` token may be added to `apps/temba/src/styles/globals.css` until rankings schema exists. No level, rating, or ELO exists in the schema today. `game_players.self_performance_rating` was a leftover integer that **TEM-35 dropped** (`DROP COLUMN` in `0020_game_parent_and_matches.sql`); it was neither written nor read as a ranking. Do not revive it as a skill level.
+**Product (1) is specified** in `.scratch/user-ratings/spec.md` (ADR-0009): per-User Glicko-2 Rating, Level 0.0–7.0, Level band D3…A, Provisional, You-page surface. Do not revive `game_players.self_performance_rating` (dropped in TEM-35). Counters in padel-teams / games-matches stay zero; Rating is a separate write on Match complete.
 
-`.scratch/padel-teams/spec.md` and `.scratch/games-matches/spec.md` both deliberately leave User, Group, and Team counters at zero. Rankings depend on Sets and Match completion from TEM-41. Rankings work requires its **own grilled spec** and probably an ADR before scheduling.
+**Still not buildable from this file alone:** leaderboards, Standing movement history, FormBadge, and the Level 1–5 chip ramp below (superseded for product labels by D3…A — see user-ratings spec). No `--level-*` tokens for the old 1–5 ramp.
 
-## 2.1 Four candidate products (none exists)
+## 2.1 Four candidate products
 
-| Product | Would need (none of this exists) |
+| Product | Status |
 |---|---|
-| Per-User rating or level | Table e.g. `user_ratings` (`user_id`, `sport`, `rating` numeric, `level` smallint 1–5, `updated_at`). Procedure e.g. `users.rating`. Write path after completed Matches. |
-| Cross-Group ranking | Table e.g. `sport_rankings` or a query over `user_ratings` with positions. Procedure e.g. `users.leaderboard`. Attribution rules (which Games count) are unspecified. |
-| Standing movement over time | Table e.g. `standing_snapshots` (`group_id`, `user_id`, `position`, `captured_at`) or an event log. Procedure e.g. `groups.standingHistory`. Home's ▲2 / ▼1 needs this. |
-| Player profile | Procedure e.g. `users.profile` aggregating rating, form, Groups, Teams. No profile route is in this redesign. |
+| Per-User rating or level | **Specified** — `.scratch/user-ratings/spec.md` (Glicko-2, Level 0–7, D3…A). Not implemented from this contract file. |
+| Cross-Group ranking | Deferred — no spec |
+| Standing movement over time | Deferred — no spec (rating events are not Standing UI) |
+| Player profile | Deferred — You shows Level only in user-ratings; no full profile |
 
-Do not implement any of those tables, columns, or procedures here.
+Do not implement leaderboards, Standing history, or profile aggregation from this contract.
 
 ## 2.2 Level and rank ramp (artefact values only)
 
