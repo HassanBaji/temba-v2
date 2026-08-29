@@ -66,8 +66,8 @@ export function AcceptGameInviteLink({
   if (preview.data?.status === "invalid") {
     return (
       <div className="space-y-3">
-        <h1 className="text-xl font-semibold text-white">Invite unavailable</h1>
-        <p className="text-sm text-white/70">
+        <h1 className="text-title font-semibold">Invite unavailable</h1>
+        <p className="text-body text-muted-foreground">
           This Invite link is invalid or expired.
         </p>
         <Button variant="outline" asChild>
@@ -80,8 +80,8 @@ export function AcceptGameInviteLink({
   if (preview.data?.status === "unavailable") {
     return (
       <div className="space-y-3">
-        <h1 className="text-xl font-semibold text-white">Invite unavailable</h1>
-        <p className="text-sm text-white/70">
+        <h1 className="text-title font-semibold">Invite unavailable</h1>
+        <p className="text-body text-muted-foreground">
           This Game cannot accept Invite links right now.
         </p>
       </div>
@@ -92,20 +92,22 @@ export function AcceptGameInviteLink({
     return (
       <div className="space-y-4">
         <div className="space-y-2">
-          <h1 className="text-xl font-semibold text-white">
+          <h1 className="text-title font-semibold">
             Join {preview.data?.gameName ?? "Game"}
           </h1>
-          <p className="text-sm text-white/70">
+          <p className="text-body text-muted-foreground">
             Sign in or sign up with Clerk to join. Opening this URL does not log
             anyone in without Clerk.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button>Sign in</Button>
+            <Button className="min-h-11">Sign in</Button>
           </SignInButton>
           <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button variant="outline">Sign up</Button>
+            <Button variant="outline" className="min-h-11">
+              Sign up
+            </Button>
           </SignUpButton>
         </div>
       </div>
@@ -115,10 +117,8 @@ export function AcceptGameInviteLink({
   if (accept.data?.outcome === "waiting_for_partner") {
     return (
       <div className="space-y-3">
-        <h1 className="text-xl font-semibold text-white">
-          Waiting for your partner
-        </h1>
-        <p className="text-sm text-white/70">
+        <h1 className="text-title font-semibold">Waiting for your partner</h1>
+        <p className="text-body text-muted-foreground">
           This Team-only Game registers the Team only after both partners
           accept. Pending does not occupy a seat or the waitlist.
         </p>
@@ -132,8 +132,10 @@ export function AcceptGameInviteLink({
   if (accept.isError) {
     return (
       <div className="space-y-3">
-        <h1 className="text-xl font-semibold text-white">Could not join</h1>
-        <p className="text-sm text-white/70">{accept.error.message}</p>
+        <h1 className="text-title font-semibold">Could not join</h1>
+        <p className="text-body text-muted-foreground">
+          {accept.error.message}
+        </p>
         <Button variant="outline" asChild>
           <Link href="/dashboard">Go to dashboard</Link>
         </Button>
@@ -143,10 +145,10 @@ export function AcceptGameInviteLink({
 
   return (
     <div className="space-y-3">
-      <h1 className="text-xl font-semibold text-white">
+      <h1 className="text-title font-semibold">
         Joining {preview.data?.gameName ?? "Game"}…
       </h1>
-      <p className="text-sm text-white/70">
+      <p className="text-body text-muted-foreground">
         Accepting the Invite link as the signed-in User.
       </p>
     </div>
