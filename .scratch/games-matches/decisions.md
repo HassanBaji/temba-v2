@@ -1,6 +1,6 @@
 # Games and Matches — settled decisions
 
-Status: grilling in progress — Rounds 1–5 settled; Round 6 open.
+Status: grilling in progress — Rounds 1–6 settled; Round 7 (two confirmations) open.
 
 ## Settled (round 1)
 
@@ -38,9 +38,14 @@ Status: grilling in progress — Rounds 1–5 settled; Round 6 open.
 20. Organizer kick = same as self-leave.
 21. Reopen closed (not cancelled, not archived). Soft-archive existing Club Group Games: visible, join doors closed, organizers may still schedule, cannot reopen.
 
-## Open (round 6)
+## Settled (round 6)
 
-- Set payload (games-won vs winner only), draw, Match complete
-- When Sets may be added (both sides required?)
-- Invite fallout: groupless non-public, pending Team slot
-- Individual Friendly game: pairs vs four solo Users
+22. Each Set stores **games won per side**, including a **games-draw** (equal games). Match winner = most Sets won; equal Set-wins = Match draw; complete once ≥1 Set (then freeze). How a drawn Set counts toward Set-wins is Q31.
+23. Organizer may add Sets with empty sides; players only when both sides exist. Slot model is Q30.
+24. Invites never widen a non-public Group Game. Groupless non-public = invite-only. Pending Team does not occupy cap.
+25. Individual non-Americano: register with a partner as an ad-hoc Game team. Friendly game = two such sides.
+
+## Open (round 7)
+
+- Match side slots vs empty-side Sets (Q30)
+- Drawn Set → 0 Set-wins each vs other count (Q31)
