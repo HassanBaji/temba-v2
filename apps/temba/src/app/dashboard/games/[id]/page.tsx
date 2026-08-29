@@ -62,6 +62,31 @@ function parseOptionalDate(value: string) {
   return date;
 }
 
+function optionalSelectId(value: string) {
+  return value === "none" || value.length === 0 ? null : value;
+}
+
+function gameTeamLabel(side: {
+  members: { name: string }[];
+  name: string | null;
+}) {
+  if (side.members.length > 0) {
+    return side.members.map((member) => member.name).join(" / ");
+  }
+  return side.name ?? "Game team";
+}
+
+function slotLabel(
+  sides: { id: string; members: { name: string }[]; name: string | null }[],
+  gameTeamId: string | null,
+) {
+  if (!gameTeamId) {
+    return "empty";
+  }
+  const side = sides.find((row) => row.id === gameTeamId);
+  return side ? gameTeamLabel(side) : "empty";
+}
+
 export default function GameHomePage({
   params,
 }: {
@@ -77,6 +102,12 @@ export default function GameHomePage({
   const [windowEnd, setWindowEnd] = React.useState("");
   const [playersAllowed, setPlayersAllowed] = React.useState("4");
   const [teamsAllowed, setTeamsAllowed] = React.useState("2");
+  const [matchStart, setMatchStart] = React.useState("");
+  const [matchEnd, setMatchEnd] = React.useState("");
+  const [matchDuration, setMatchDuration] = React.useState("");
+  const [matchCourtId, setMatchCourtId] = React.useState("none");
+  const [matchSlot1, setMatchSlot1] = React.useState("none");
+  const [matchSlot2, setMatchSlot2] = React.useState("none");
 
   const registerSelf = api.games.register.useMutation({
     onSuccess: async (result) => {
@@ -213,8 +244,42 @@ export default function GameHomePage({
     },
   });
 
+  const addMatch = api.games.addMatch.useMutation({
+    onSuccess: async () => {
+      toast.success("Match added");
+      setMatchStart("");
+      setMatchEnd("");
+      setMatchDuration("");
+      setMatchCourtId("none");
+      setMatchSlot1("none");
+      setMatchSlot2("none");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateMatch = api.games.updateMatch.useMutation({
+    onSuccess: async () => {
+      toast.success("Match updated");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const data = game.data;
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
+  const courts = api.games.listCourts.useQuery(
+    { gameId: id },
+    {
+      enabled: Boolean(
+        data?.isOrganizer && data.format === "friendly_tournament",
+      ),
+    },
+  );
 
   React.useEffect(() => {
     if (firstEligibleTeam && teamId.length === 0) {
@@ -452,18 +517,20 @@ export default function GameHomePage({
 
             <section className="space-y-3">
               <h3 className="text-foreground text-lg font-semibold tracking-tight">
-                Match
+                Matches
               </h3>
               {data.matches.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   {data.format === "americano"
                     ? "Americano has no Matches this slice."
-                    : "No Matches on this Game."}
+                    : data.format === "friendly_tournament"
+                      ? "No Matches yet. Organizers can add them anytime."
+                      : "No Matches on this Game."}
                 </p>
               ) : (
                 <ul className="divide-border border-border bg-card divide-y rounded-xl border">
                   {data.matches.map((match) => (
-                    <li key={match.id} className="space-y-1 px-4 py-4">
+                    <li key={match.id} className="space-y-3 px-4 py-4">
                       <p className="text-foreground font-medium">
                         {formatWhen(match.startTime)} –{" "}
                         {formatWhen(match.endTime)}
@@ -473,8 +540,99 @@ export default function GameHomePage({
                         {match.durationInMinutes
                           ? ` · ${match.durationInMinutes} min`
                           : ""}
-                        {` · slot 1 ${match.slot1GameTeamId ? "filled" : "empty"} · slot 2 ${match.slot2GameTeamId ? "filled" : "empty"}`}
+                        {match.courtName
+                          ? ` · ${match.courtName}`
+                          : " · no Court"}
+                        {` · slot 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · slot 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
                       </p>
+                      {data.isOrganizer &&
+                      !data.cancelledAt &&
+                      match.status !== "cancelled" &&
+                      data.format === "friendly_tournament" ? (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Select
+                            value={match.courtId ?? "none"}
+                            onValueChange={(value) =>
+                              updateMatch.mutate({
+                                gameId: id,
+                                matchId: match.id,
+                                startTime: match.startTime,
+                                endTime: match.endTime,
+                                durationInMinutes: match.durationInMinutes,
+                                courtId: optionalSelectId(value),
+                                slot1GameTeamId: match.slot1GameTeamId,
+                                slot2GameTeamId: match.slot2GameTeamId,
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Court" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No Court</SelectItem>
+                              {(courts.data ?? []).map((court) => (
+                                <SelectItem key={court.id} value={court.id}>
+                                  {court.venueName}: {court.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={match.slot1GameTeamId ?? "none"}
+                            onValueChange={(value) =>
+                              updateMatch.mutate({
+                                gameId: id,
+                                matchId: match.id,
+                                startTime: match.startTime,
+                                endTime: match.endTime,
+                                durationInMinutes: match.durationInMinutes,
+                                courtId: match.courtId,
+                                slot1GameTeamId: optionalSelectId(value),
+                                slot2GameTeamId: match.slot2GameTeamId,
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Slot 1" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Slot 1 empty</SelectItem>
+                              {data.gameTeams.map((side) => (
+                                <SelectItem key={side.id} value={side.id}>
+                                  {gameTeamLabel(side)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={match.slot2GameTeamId ?? "none"}
+                            onValueChange={(value) =>
+                              updateMatch.mutate({
+                                gameId: id,
+                                matchId: match.id,
+                                startTime: match.startTime,
+                                endTime: match.endTime,
+                                durationInMinutes: match.durationInMinutes,
+                                courtId: match.courtId,
+                                slot1GameTeamId: match.slot1GameTeamId,
+                                slot2GameTeamId: optionalSelectId(value),
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Slot 2" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Slot 2 empty</SelectItem>
+                              {data.gameTeams.map((side) => (
+                                <SelectItem key={side.id} value={side.id}>
+                                  {gameTeamLabel(side)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : null}
                       {data.isOrganizer &&
                       !data.cancelledAt &&
                       match.status !== "cancelled" &&
@@ -499,6 +657,122 @@ export default function GameHomePage({
                   ))}
                 </ul>
               )}
+              {data.isOrganizer &&
+              !data.cancelledAt &&
+              data.format === "friendly_tournament" ? (
+                <form
+                  className="border-border bg-card space-y-4 rounded-xl border p-6"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    addMatch.mutate({
+                      gameId: id,
+                      startTime: parseOptionalDate(matchStart),
+                      endTime: parseOptionalDate(matchEnd),
+                      durationInMinutes:
+                        matchDuration.trim().length === 0
+                          ? null
+                          : Number(matchDuration),
+                      courtId: optionalSelectId(matchCourtId),
+                      slot1GameTeamId: optionalSelectId(matchSlot1),
+                      slot2GameTeamId: optionalSelectId(matchSlot2),
+                    });
+                  }}
+                >
+                  <h4 className="text-foreground font-medium">Add Match</h4>
+                  <p className="text-muted-foreground text-sm">
+                    Allowed while open, full, or closed. Sides and Court are
+                    optional.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field>
+                      <FieldLabel htmlFor="match-start">Start</FieldLabel>
+                      <Input
+                        id="match-start"
+                        type="datetime-local"
+                        value={matchStart}
+                        onChange={(event) => setMatchStart(event.target.value)}
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="match-end">End</FieldLabel>
+                      <Input
+                        id="match-end"
+                        type="datetime-local"
+                        value={matchEnd}
+                        onChange={(event) => setMatchEnd(event.target.value)}
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="match-duration">
+                        Duration (minutes)
+                      </FieldLabel>
+                      <Input
+                        id="match-duration"
+                        type="number"
+                        min={0}
+                        value={matchDuration}
+                        onChange={(event) =>
+                          setMatchDuration(event.target.value)
+                        }
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Court</FieldLabel>
+                      <Select
+                        value={matchCourtId}
+                        onValueChange={setMatchCourtId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Court" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Court</SelectItem>
+                          {(courts.data ?? []).map((court) => (
+                            <SelectItem key={court.id} value={court.id}>
+                              {court.venueName}: {court.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field>
+                      <FieldLabel>Slot 1</FieldLabel>
+                      <Select value={matchSlot1} onValueChange={setMatchSlot1}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Slot 1" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Empty</SelectItem>
+                          {data.gameTeams.map((side) => (
+                            <SelectItem key={side.id} value={side.id}>
+                              {gameTeamLabel(side)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field>
+                      <FieldLabel>Slot 2</FieldLabel>
+                      <Select value={matchSlot2} onValueChange={setMatchSlot2}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Slot 2" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Empty</SelectItem>
+                          {data.gameTeams.map((side) => (
+                            <SelectItem key={side.id} value={side.id}>
+                              {gameTeamLabel(side)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
+                  <Button type="submit" disabled={addMatch.isPending}>
+                    {addMatch.isPending ? "Adding…" : "Add Match"}
+                  </Button>
+                </form>
+              ) : null}
             </section>
 
             <section className="space-y-3">

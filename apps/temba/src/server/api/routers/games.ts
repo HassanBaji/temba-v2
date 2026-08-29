@@ -40,6 +40,7 @@ import {
   userPassesJoinGate,
 } from "~/server/games/access";
 import {
+  addTournamentMatch,
   cancelGame,
   cancelMatch,
   closeRegistration,
@@ -48,7 +49,9 @@ import {
   reopenRegistration,
   updateGameCaps,
   updateGameWindow,
+  updateTournamentMatch,
 } from "~/server/games/organize";
+import { listAssignableCourts } from "~/server/games/courts";
 import {
   assignFriendlyMatchSlots,
   enqueueWaitlistTeam,
@@ -63,7 +66,11 @@ import { type db } from "~/server/db";
 type DbClient = typeof db;
 
 const registrationModeSchema = z.enum(["individual", "team_only"]);
-const createFormatSchema = z.enum(["friendly_game", "americano"]);
+const createFormatSchema = z.enum([
+  "friendly_game",
+  "americano",
+  "friendly_tournament",
+]);
 
 async function requireGroup(database: DbClient, groupId: string) {
   const group = await database.query.groups.findFirst({
@@ -252,6 +259,7 @@ export const gamesRouter = createTRPCRouter({
           format: createFormatSchema.default("friendly_game"),
           registrationMode: registrationModeSchema,
           playersAllowed: z.number().int().optional(),
+          teamsAllowed: z.number().int().optional(),
           windowStart: z.coerce.date().optional(),
           windowEnd: z.coerce.date().optional(),
         })
@@ -284,6 +292,22 @@ export const gamesRouter = createTRPCRouter({
             message:
               "Americano players allowed must be a multiple of 4, minimum 4",
           },
+        )
+        .refine(
+          (value) => {
+            if (value.format !== "friendly_tournament") {
+              return true;
+            }
+            if (value.registrationMode === "team_only") {
+              return (value.teamsAllowed ?? 0) >= 2;
+            }
+            const cap = value.playersAllowed;
+            return cap != null && cap >= 4 && cap % 4 === 0;
+          },
+          {
+            message:
+              "Tournament cap must be players allowed ×4 (min 4) or teams allowed ≥ 2",
+          },
         ),
     )
     .mutation(async ({ ctx, input }) => {
@@ -304,27 +328,46 @@ export const gamesRouter = createTRPCRouter({
             )
           : null;
       const isAmericano = input.format === "americano";
+      const isTournament = input.format === "friendly_tournament";
+      const formatEnum = isAmericano
+        ? GameFormatEnum.AMERICANO
+        : isTournament
+          ? GameFormatEnum.FRIENDLY_TOURNAMENT
+          : GameFormatEnum.FRIENDLY_GAME;
+      const registrationMode =
+        isAmericano || input.registrationMode !== "team_only"
+          ? GameRegistrationModeEnum.INDIVIDUAL
+          : GameRegistrationModeEnum.TEAM_ONLY;
+      const playersAllowed = isAmericano
+        ? (input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
+        : isTournament &&
+            registrationMode === GameRegistrationModeEnum.INDIVIDUAL
+          ? (input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
+          : isTournament
+            ? null
+            : FRIENDLY_PLAYERS_ALLOWED;
+      const teamsAllowed = isAmericano
+        ? null
+        : isTournament &&
+            registrationMode === GameRegistrationModeEnum.TEAM_ONLY
+          ? (input.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)
+          : isTournament
+            ? null
+            : FRIENDLY_TEAMS_ALLOWED;
 
       const created = await ctx.db.transaction(async (tx) => {
         const [game] = await tx
           .insert(games)
           .values({
             name: input.name && input.name.length > 0 ? input.name : null,
-            format: isAmericano
-              ? GameFormatEnum.AMERICANO
-              : GameFormatEnum.FRIENDLY_GAME,
-            registrationMode:
-              !isAmericano && input.registrationMode === "team_only"
-                ? GameRegistrationModeEnum.TEAM_ONLY
-                : GameRegistrationModeEnum.INDIVIDUAL,
+            format: formatEnum,
+            registrationMode,
             groupId: input.groupId ?? null,
             isPublic: input.isPublic,
             windowStart,
             windowEnd,
-            playersAllowed: isAmericano
-              ? (input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
-              : FRIENDLY_PLAYERS_ALLOWED,
-            teamsAllowed: isAmericano ? null : FRIENDLY_TEAMS_ALLOWED,
+            playersAllowed,
+            teamsAllowed,
             sport: GameSportEnum.PADEL,
             createdBy: appUser.id,
           })
@@ -337,7 +380,7 @@ export const gamesRouter = createTRPCRouter({
           });
         }
 
-        if (isAmericano) {
+        if (isAmericano || isTournament) {
           return { game, matchId: null as string | null };
         }
 
@@ -402,6 +445,11 @@ export const gamesRouter = createTRPCRouter({
 
       const matchRows = await ctx.db.query.matches.findMany({
         where: eq(matches.gameId, game.id),
+        with: {
+          court: {
+            columns: { id: true, name: true },
+          },
+        },
         orderBy: (table, { asc }) => [asc(table.createdAt)],
       });
 
@@ -545,6 +593,7 @@ export const gamesRouter = createTRPCRouter({
           durationInMinutes: match.durationInMinutes,
           status: match.status,
           courtId: match.courtId,
+          courtName: match.court?.name ?? null,
           slot1GameTeamId: match.slot1GameTeamId,
           slot2GameTeamId: match.slot2GameTeamId,
         })),
@@ -638,10 +687,13 @@ export const gamesRouter = createTRPCRouter({
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
 
-      if (game.format !== "friendly_game") {
+      if (
+        game.format !== "friendly_game" &&
+        game.format !== "friendly_tournament"
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Register with a partner on a Friendly game",
+          message: "Register with a partner on a Friendly game or tournament",
         });
       }
       if (game.registrationMode !== "individual") {
@@ -692,7 +744,8 @@ export const gamesRouter = createTRPCRouter({
       const teamCount = await registeredGameTeamCount(ctx.db, game.id);
       const atCap =
         userCount + 2 > (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED) ||
-        teamCount >= FRIENDLY_TEAMS_ALLOWED;
+        (game.format === "friendly_game" &&
+          teamCount >= FRIENDLY_TEAMS_ALLOWED);
 
       if (atCap) {
         await ctx.db.transaction(async (tx) => {
@@ -709,7 +762,9 @@ export const gamesRouter = createTRPCRouter({
           userIds: [appUser.id, partner.id],
           teamId: null,
         });
-        await assignFriendlyMatchSlots(tx, game.id);
+        if (game.format === "friendly_game") {
+          await assignFriendlyMatchSlots(tx, game.id);
+        }
       });
 
       return { ok: true as const, waitlisted: false as const };
@@ -727,10 +782,13 @@ export const gamesRouter = createTRPCRouter({
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
 
-      if (game.format !== "friendly_game") {
+      if (
+        game.format !== "friendly_game" &&
+        game.format !== "friendly_tournament"
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Register a Team on a Friendly game",
+          message: "Register a Team on a Friendly game or tournament",
         });
       }
       if (game.registrationMode !== "team_only") {
@@ -827,7 +885,9 @@ export const gamesRouter = createTRPCRouter({
           userIds,
           teamId: team.id,
         });
-        await assignFriendlyMatchSlots(tx, game.id);
+        if (game.format === "friendly_game") {
+          await assignFriendlyMatchSlots(tx, game.id);
+        }
       });
 
       return { ok: true as const, waitlisted: false as const };
@@ -988,6 +1048,74 @@ export const gamesRouter = createTRPCRouter({
       await updateGameCaps(ctx.db, game, {
         playersAllowed: input.playersAllowed,
         teamsAllowed: input.teamsAllowed,
+      });
+      return { ok: true as const };
+    }),
+
+  listCourts: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      return listAssignableCourts(ctx.db, game);
+    }),
+
+  addMatch: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        startTime: z.coerce.date().nullable().optional(),
+        endTime: z.coerce.date().nullable().optional(),
+        durationInMinutes: z.number().int().nonnegative().nullable().optional(),
+        courtId: z.string().uuid().nullable().optional(),
+        slot1GameTeamId: z.string().uuid().nullable().optional(),
+        slot2GameTeamId: z.string().uuid().nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      const match = await ctx.db.transaction(async (tx) => {
+        return addTournamentMatch(tx, game, {
+          startTime: input.startTime ?? null,
+          endTime: input.endTime ?? null,
+          durationInMinutes: input.durationInMinutes ?? null,
+          courtId: input.courtId ?? null,
+          slot1GameTeamId: input.slot1GameTeamId ?? null,
+          slot2GameTeamId: input.slot2GameTeamId ?? null,
+        });
+      });
+      return match;
+    }),
+
+  updateMatch: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        matchId: z.string().uuid(),
+        startTime: z.coerce.date().nullable().optional(),
+        endTime: z.coerce.date().nullable().optional(),
+        durationInMinutes: z.number().int().nonnegative().nullable().optional(),
+        courtId: z.string().uuid().nullable().optional(),
+        slot1GameTeamId: z.string().uuid().nullable().optional(),
+        slot2GameTeamId: z.string().uuid().nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await ctx.db.transaction(async (tx) => {
+        await updateTournamentMatch(tx, game, input.matchId, {
+          startTime: input.startTime ?? null,
+          endTime: input.endTime ?? null,
+          durationInMinutes: input.durationInMinutes ?? null,
+          courtId: input.courtId ?? null,
+          slot1GameTeamId: input.slot1GameTeamId ?? null,
+          slot2GameTeamId: input.slot2GameTeamId ?? null,
+        });
       });
       return { ok: true as const };
     }),

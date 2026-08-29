@@ -25,7 +25,7 @@ import {
 import { api } from "~/trpc/react";
 
 type RegistrationMode = "individual" | "team_only";
-type GameFormat = "friendly_game" | "americano";
+type GameFormat = "friendly_game" | "americano" | "friendly_tournament";
 
 function parseOptionalDate(value: string) {
   if (value.trim().length === 0) {
@@ -49,6 +49,7 @@ function NewGameForm() {
   const [registrationMode, setRegistrationMode] =
     React.useState<RegistrationMode>("individual");
   const [playersAllowed, setPlayersAllowed] = React.useState("8");
+  const [teamsAllowed, setTeamsAllowed] = React.useState("4");
   const [windowStart, setWindowStart] = React.useState("");
   const [windowEnd, setWindowEnd] = React.useState("");
 
@@ -78,7 +79,14 @@ function NewGameForm() {
       registrationMode:
         format === "americano" ? "individual" : registrationMode,
       playersAllowed:
-        format === "americano" ? Number(playersAllowed) : undefined,
+        format === "americano" ||
+        (format === "friendly_tournament" && registrationMode === "individual")
+          ? Number(playersAllowed)
+          : undefined,
+      teamsAllowed:
+        format === "friendly_tournament" && registrationMode === "team_only"
+          ? Number(teamsAllowed)
+          : undefined,
       windowStart: parseOptionalDate(windowStart),
       windowEnd: parseOptionalDate(windowEnd),
     });
@@ -93,7 +101,8 @@ function NewGameForm() {
           </h2>
           <p className="text-muted-foreground text-sm">
             Padel only. Friendly game creates one Match with caps 4 / 2.
-            Americano is a player pool with no Matches.
+            Americano is a player pool with no Matches. Friendly tournament
+            starts with zero Matches; add them on Game home.
             {groupId
               ? " This Game belongs to the Group you opened it from."
               : " This Game has no Group. You are the organizer."}
@@ -134,6 +143,9 @@ function NewGameForm() {
                 <SelectContent>
                   <SelectItem value="friendly_game">Friendly game</SelectItem>
                   <SelectItem value="americano">Americano</SelectItem>
+                  <SelectItem value="friendly_tournament">
+                    Friendly tournament
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
@@ -160,30 +172,72 @@ function NewGameForm() {
                 </FieldDescription>
               </Field>
             ) : (
-              <Field>
-                <FieldLabel htmlFor="game-mode">Registration</FieldLabel>
-                <Select
-                  value={registrationMode}
-                  onValueChange={(value) =>
-                    setRegistrationMode(value as RegistrationMode)
-                  }
-                >
-                  <SelectTrigger id="game-mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">
-                      Individual (register with a partner)
-                    </SelectItem>
-                    <SelectItem value="team_only">
-                      Team-only (complete Team)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldDescription>
-                  Format, public flag, and this mode cannot change after create.
-                </FieldDescription>
-              </Field>
+              <>
+                <Field>
+                  <FieldLabel htmlFor="game-mode">Registration</FieldLabel>
+                  <Select
+                    value={registrationMode}
+                    onValueChange={(value) =>
+                      setRegistrationMode(value as RegistrationMode)
+                    }
+                  >
+                    <SelectTrigger id="game-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">
+                        Individual (register with a partner)
+                      </SelectItem>
+                      <SelectItem value="team_only">
+                        Team-only (complete Team)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldDescription>
+                    Format, public flag, and this mode cannot change after
+                    create.
+                  </FieldDescription>
+                </Field>
+                {format === "friendly_tournament" &&
+                registrationMode === "individual" ? (
+                  <Field>
+                    <FieldLabel htmlFor="game-players-allowed">
+                      Players allowed
+                    </FieldLabel>
+                    <Input
+                      id="game-players-allowed"
+                      type="number"
+                      min={4}
+                      step={4}
+                      value={playersAllowed}
+                      onChange={(event) =>
+                        setPlayersAllowed(event.target.value)
+                      }
+                    />
+                    <FieldDescription>
+                      Multiple of 4, minimum 4.
+                    </FieldDescription>
+                  </Field>
+                ) : null}
+                {format === "friendly_tournament" &&
+                registrationMode === "team_only" ? (
+                  <Field>
+                    <FieldLabel htmlFor="game-teams-allowed">
+                      Teams allowed
+                    </FieldLabel>
+                    <Input
+                      id="game-teams-allowed"
+                      type="number"
+                      min={2}
+                      value={teamsAllowed}
+                      onChange={(event) => setTeamsAllowed(event.target.value)}
+                    />
+                    <FieldDescription>
+                      Minimum 2 complete Teams.
+                    </FieldDescription>
+                  </Field>
+                ) : null}
+              </>
             )}
 
             <Field>
