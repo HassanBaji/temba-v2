@@ -72,6 +72,7 @@ import {
   leaveWaitlistEntry,
 } from "~/server/games/waitlist";
 import {
+  assertFullyVacantSide,
   firstFullyVacantSideIndex,
   insertIndividualPairOnVacantSide,
   isIndividualSeatGame,
@@ -853,6 +854,8 @@ export const gamesRouter = createTRPCRouter({
       z.object({
         gameId: z.string().uuid(),
         partnerQuery: z.string().trim().min(1),
+        sideIndex: z.number().int().min(1).optional(),
+        position: z.enum(["left", "right"]).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -932,14 +935,23 @@ export const gamesRouter = createTRPCRouter({
           message: "No fully vacant side; pick a seat",
         });
       }
+      if (input.sideIndex == null || input.position == null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Pick a vacant side and your Position",
+        });
+      }
+      const sideIndex = input.sideIndex;
+      const position = input.position;
+      await assertFullyVacantSide(ctx.db, game, sideIndex);
 
       await ctx.db.transaction(async (tx) => {
         await insertIndividualPairOnVacantSide(
           tx,
           game,
           [appUser.id, partner.id],
-          vacantSide,
-          "left",
+          sideIndex,
+          position,
         );
       });
 

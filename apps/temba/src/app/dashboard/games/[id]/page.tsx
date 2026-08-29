@@ -115,6 +115,10 @@ export default function GameHomePage({
   const game = api.games.byId.useQuery({ id });
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
+  const [partnerSide, setPartnerSide] = React.useState("");
+  const [partnerPosition, setPartnerPosition] = React.useState<
+    "left" | "right"
+  >("left");
   const [teamId, setTeamId] = React.useState<string>("");
   const [windowStart, setWindowStart] = React.useState("");
   const [windowEnd, setWindowEnd] = React.useState("");
@@ -157,6 +161,8 @@ export default function GameHomePage({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
       setPartnerQuery("");
+      setPartnerSide("");
+      setPartnerPosition("left");
       await utils.games.byId.invalidate({ id });
       await utils.users.home.invalidate();
     },
@@ -1389,9 +1395,30 @@ export default function GameHomePage({
                     if (registerWithPartner.isPending) {
                       return;
                     }
+                    const vacantSides = data.sides.filter(
+                      (side) => side.left == null && side.right == null,
+                    );
+                    if (data.canWaitlist) {
+                      registerWithPartner.mutate({
+                        gameId: id,
+                        partnerQuery,
+                      });
+                      return;
+                    }
+                    if (vacantSides.length === 0) {
+                      toast.error("No fully vacant side; pick a seat");
+                      return;
+                    }
+                    const sideIndex = Number(partnerSide);
+                    if (!Number.isInteger(sideIndex) || sideIndex < 1) {
+                      toast.error("Pick a vacant side and your Position");
+                      return;
+                    }
                     registerWithPartner.mutate({
                       gameId: id,
                       partnerQuery,
+                      sideIndex,
+                      position: partnerPosition,
                     });
                   }}
                 >
@@ -1400,10 +1427,73 @@ export default function GameHomePage({
                       ? "Join waitlist with a partner"
                       : "Register with a partner"}
                   </h3>
+                  <p className="text-muted-foreground text-sm">
+                    {data.canWaitlist
+                      ? "The Game is full. You both join the waitlist as separate rows and each promote alone."
+                      : data.sides.every(
+                            (side) => side.left != null || side.right != null,
+                          )
+                        ? "No fully vacant side. Pick a vacant Position instead."
+                        : "Take one fully vacant side. You pick left or right; your partner gets the other."}
+                  </p>
                   <FormErrorSummary
                     message={globalFormErrorMessage(registerWithPartner.error)}
                   />
                   <FieldGroup>
+                    {data.canWaitlist ? null : (
+                      <>
+                        <Field>
+                          <FieldLabel htmlFor="partner-side">Side</FieldLabel>
+                          <Select
+                            value={partnerSide}
+                            onValueChange={setPartnerSide}
+                          >
+                            <SelectTrigger id="partner-side">
+                              <SelectValue placeholder="Vacant side" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {data.sides
+                                .filter(
+                                  (side) =>
+                                    side.left == null && side.right == null,
+                                )
+                                .map((side) => (
+                                  <SelectItem
+                                    key={side.sideIndex}
+                                    value={String(side.sideIndex)}
+                                  >
+                                    {data.format === "friendly_game"
+                                      ? `Slot ${side.sideIndex}`
+                                      : `Side ${side.sideIndex}`}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <FieldDescription>
+                            Refused if that side already has anyone.
+                          </FieldDescription>
+                        </Field>
+                        <Field>
+                          <FieldLabel htmlFor="partner-position">
+                            Your Position
+                          </FieldLabel>
+                          <Select
+                            value={partnerPosition}
+                            onValueChange={(value) =>
+                              setPartnerPosition(value as "left" | "right")
+                            }
+                          >
+                            <SelectTrigger id="partner-position">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="left">Left</SelectItem>
+                              <SelectItem value="right">Right</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      </>
+                    )}
                     <Field>
                       <FieldLabel htmlFor="partner-query">Partner</FieldLabel>
                       <Input
@@ -1444,11 +1534,19 @@ export default function GameHomePage({
                   </FieldGroup>
                   <Button
                     type="submit"
-                    disabled={registerWithPartner.isPending}
+                    disabled={
+                      registerWithPartner.isPending ||
+                      (data.canRegister &&
+                        data.sides.every(
+                          (side) => side.left != null || side.right != null,
+                        ))
+                    }
                   >
                     {registerWithPartner.isPending
                       ? "Registering…"
-                      : "Register"}
+                      : data.canWaitlist
+                        ? "Join waitlist"
+                        : "Register"}
                   </Button>
                 </form>
               </Card>

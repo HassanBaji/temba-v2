@@ -70,6 +70,33 @@ export async function firstFullyVacantSideIndex(
   return null;
 }
 
+export async function assertFullyVacantSide(
+  database: DbClient,
+  game: GameRow,
+  sideIndex: number,
+) {
+  const n = sideCount(game);
+  if (sideIndex < 1 || sideIndex > n) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "That side is not on this Game",
+    });
+  }
+  const team = await database.query.gameTeams.findFirst({
+    where: and(
+      eq(gameTeams.gameId, game.id),
+      eq(gameTeams.sideIndex, sideIndex),
+    ),
+    columns: { id: true },
+  });
+  if (team) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "That side already has a User",
+    });
+  }
+}
+
 async function requirePlayerUser(
   database: DbClient,
   gamePlayerId: string,
@@ -285,6 +312,7 @@ export async function insertIndividualPairOnVacantSide(
   sideIndex: number,
   callerPosition: SeatPosition,
 ) {
+  await assertFullyVacantSide(database, game, sideIndex);
   const partnerPosition = otherPosition(callerPosition);
   await occupySeat(database, game, userIds[0], sideIndex, callerPosition);
   await occupySeat(database, game, userIds[1], sideIndex, partnerPosition);
