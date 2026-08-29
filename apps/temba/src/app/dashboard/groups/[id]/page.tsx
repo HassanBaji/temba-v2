@@ -253,6 +253,13 @@ export default function GroupHomePage({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {group.data?.canCreateGame ? (
+              <Button asChild>
+                <Link href={`/dashboard/games/new?groupId=${id}`}>
+                  Create Game
+                </Link>
+              </Button>
+            ) : null}
             {group.data?.canJoin ? (
               <Button onClick={onJoin} disabled={joinPending}>
                 {joinPending ? "Joining…" : "Join Group"}
@@ -477,28 +484,30 @@ export default function GroupHomePage({
             ) : (
               <ul className="divide-border border-border bg-card divide-y rounded-xl border">
                 {group.data.upcomingGames.map((game) => (
-                  <li
-                    key={game.id}
-                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-foreground font-medium">
-                        {game.name ?? "Untitled Game"}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {formatGameStart(game.startTime)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {game.sport ? (
-                        <Badge variant="secondary" className="capitalize">
-                          {game.sport}
+                  <li key={game.id}>
+                    <Link
+                      href={`/dashboard/games/${game.id}`}
+                      className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-foreground font-medium">
+                          {game.name ?? "Untitled Game"}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {formatGameStart(game.startTime)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {game.sport ? (
+                          <Badge variant="secondary" className="capitalize">
+                            {game.sport}
+                          </Badge>
+                        ) : null}
+                        <Badge variant="outline" className="capitalize">
+                          {game.format.replaceAll("_", " ")}
                         </Badge>
-                      ) : null}
-                      <Badge variant="outline" className="capitalize">
-                        {game.format.replaceAll("_", " ")}
-                      </Badge>
-                    </div>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -525,30 +534,32 @@ export default function GroupHomePage({
             ) : (
               <ul className="divide-border border-border bg-card divide-y rounded-xl border">
                 {group.data.gameHistory.map((game) => (
-                  <li
-                    key={game.id}
-                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-foreground font-medium">
-                        {game.name ?? "Untitled Game"}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {formatGameStart(game.startTime)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {game.sport ? (
-                        <Badge variant="secondary" className="capitalize">
-                          {game.sport}
+                  <li key={game.id}>
+                    <Link
+                      href={`/dashboard/games/${game.id}`}
+                      className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-foreground font-medium">
+                          {game.name ?? "Untitled Game"}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {formatGameStart(game.startTime)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {game.sport ? (
+                          <Badge variant="secondary" className="capitalize">
+                            {game.sport}
+                          </Badge>
+                        ) : null}
+                        <Badge variant="outline" className="capitalize">
+                          {game.cancelledAt
+                            ? "cancelled"
+                            : game.format.replaceAll("_", " ")}
                         </Badge>
-                      ) : null}
-                      <Badge variant="outline" className="capitalize">
-                        {game.cancelledAt
-                          ? "cancelled"
-                          : game.format.replaceAll("_", " ")}
-                      </Badge>
-                    </div>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>

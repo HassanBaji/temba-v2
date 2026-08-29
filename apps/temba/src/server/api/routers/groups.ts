@@ -18,6 +18,7 @@ import {
 } from "@repo/db";
 
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { mayCreateGameOnGroup } from "~/server/games/access";
 import { resolveLookupUser } from "~/server/invites/resolve-lookup-user";
 import {
   inviteLinkExpiresAt,
@@ -658,6 +659,11 @@ export const groupsRouter = createTRPCRouter({
         group,
         callerId: appUser.id,
       });
+      const canCreateGame = await mayCreateGameOnGroup(
+        ctx.db,
+        group,
+        appUser.id,
+      );
 
       const memberRows = await ctx.db.query.groupMembers.findMany({
         where: eq(groupMembers.groupId, group.id),
@@ -797,6 +803,7 @@ export const groupsRouter = createTRPCRouter({
         canManageLookupInvites,
         canManageInviteLinks,
         canDelete,
+        canCreateGame,
         memberUserIds,
         hasInviteLink: canManageInviteLinks,
       };

@@ -25,14 +25,19 @@ export default function HomePage() {
   return (
     <DashboardShell title="Home">
       <div className="space-y-8">
-        <div className="space-y-1">
-          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-            Home
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Your Games played, upcoming Games, memberships, and standing in each
-            Group.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-foreground text-2xl font-semibold tracking-tight">
+              Home
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Your Games played, upcoming Games, memberships, and standing in
+              each Group.
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/dashboard/games/new">Create Game</Link>
+          </Button>
         </div>
 
         {home.isLoading ? (
@@ -100,7 +105,7 @@ export default function HomePage() {
                   {home.data.upcomingGames.map((game) => (
                     <li key={game.id}>
                       <Link
-                        href={`/dashboard/groups/${game.groupId}`}
+                        href={`/dashboard/games/${game.id}`}
                         className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-4 transition sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="space-y-1">
