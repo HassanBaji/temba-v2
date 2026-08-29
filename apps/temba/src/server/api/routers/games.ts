@@ -9,6 +9,7 @@ import {
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
+  gameWaitlist,
   games,
   groups,
   matches,
@@ -29,14 +30,20 @@ import {
   assertRegistrationOpen,
   assertUserPassesJoinGate,
   canViewGame,
-  isClubGroupGameJoinFrozen,
+  getRegistrationStatus,
   isGameOrganizer,
-  isRegistrationOpen,
   registeredGameTeamCount,
   registeredUserCount,
   requireGame,
   userPassesJoinGate,
 } from "~/server/games/access";
+import {
+  assignFriendlyMatchSlots,
+  enqueueWaitlistTeam,
+  enqueueWaitlistUser,
+  leaveRegisteredSeat,
+  leaveWaitlistEntry,
+} from "~/server/games/waitlist";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
 import { resolveLookupUser } from "~/server/invites/resolve-lookup-user";
 import { type db } from "~/server/db";
@@ -70,30 +77,19 @@ async function userAlreadyOnGame(
   return Boolean(row);
 }
 
-async function assignFriendlyMatchSlots(
-  database: Parameters<Parameters<typeof db.transaction>[0]>[0],
+async function userAlreadyWaitlisted(
+  database: DbClient,
   gameId: string,
+  userId: string,
 ) {
-  const match = await database.query.matches.findFirst({
-    where: eq(matches.gameId, gameId),
+  const row = await database.query.gameWaitlist.findFirst({
+    where: and(
+      eq(gameWaitlist.gameId, gameId),
+      eq(gameWaitlist.userId, userId),
+    ),
     columns: { id: true },
   });
-  if (!match) {
-    return;
-  }
-  const sides = await database.query.gameTeams.findMany({
-    where: eq(gameTeams.gameId, gameId),
-    columns: { id: true },
-    orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
-  });
-  await database
-    .update(matches)
-    .set({
-      slot1GameTeamId: sides[0]?.id ?? null,
-      slot2GameTeamId: sides[1]?.id ?? null,
-      updatedAt: new Date(),
-    })
-    .where(eq(matches.id, match.id));
+  return Boolean(row);
 }
 
 async function insertGamePlayersAndTeam(args: {
@@ -351,13 +347,15 @@ export const gamesRouter = createTRPCRouter({
       );
       const userCount = await registeredUserCount(ctx.db, game.id);
       const teamCount = await registeredGameTeamCount(ctx.db, game.id);
-      const open = isRegistrationOpen(game, now);
-      const joinFrozen = await isClubGroupGameJoinFrozen(ctx.db, game);
-      const underCap =
-        game.registrationMode === "team_only"
-          ? teamCount < (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)
-          : userCount < (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED) &&
-            teamCount < FRIENDLY_TEAMS_ALLOWED;
+      const registrationStatus = await getRegistrationStatus(ctx.db, game, now);
+      const waitlistRows = await ctx.db.query.gameWaitlist.findMany({
+        where: eq(gameWaitlist.gameId, game.id),
+        with: {
+          user: { columns: { id: true, name: true } },
+          team: { columns: { id: true, name: true } },
+        },
+        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+      });
 
       const matchRows = await ctx.db.query.matches.findMany({
         where: eq(matches.gameId, game.id),
@@ -385,6 +383,16 @@ export const gamesRouter = createTRPCRouter({
         orderBy: (table, { asc }) => [asc(table.createdAt)],
       });
 
+      const playerRows = await ctx.db.query.gamePlayers.findMany({
+        where: eq(gamePlayers.gameId, game.id),
+        with: {
+          user: {
+            columns: { id: true, name: true },
+          },
+        },
+        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+      });
+
       const group = game.groupId
         ? await ctx.db.query.groups.findFirst({
             where: eq(groups.id, game.groupId),
@@ -397,11 +405,13 @@ export const gamesRouter = createTRPCRouter({
         columns: { teamId: true },
       });
       const myTeamIds = memberships.map((row) => row.teamId);
+      const isWaitlisted = waitlistRows.some(
+        (row) =>
+          row.userId === appUser.id ||
+          (row.teamId !== null && myTeamIds.includes(row.teamId)),
+      );
       const eligibleTeams = [];
-      if (
-        game.registrationMode === "team_only" &&
-        myTeamIds.length > 0
-      ) {
+      if (game.registrationMode === "team_only" && myTeamIds.length > 0) {
         const memberRows = await ctx.db.query.teamMembers.findMany({
           where: inArray(teamMembers.teamId, myTeamIds),
           with: {
@@ -461,15 +471,28 @@ export const gamesRouter = createTRPCRouter({
         createdAt: game.createdAt,
         isOrganizer: organizer,
         isRegistered: alreadyOnGame,
+        isWaitlisted,
+        registrationStatus,
         canRegister:
-          open &&
-          underCap &&
+          registrationStatus === "open" &&
           passesGate &&
           !alreadyOnGame &&
-          !game.cancelledAt &&
-          !joinFrozen,
+          !isWaitlisted,
+        canWaitlist:
+          registrationStatus === "full" &&
+          passesGate &&
+          !alreadyOnGame &&
+          !isWaitlisted,
+        canLeave: alreadyOnGame || isWaitlisted,
         registeredUserCount: userCount,
         registeredTeamCount: teamCount,
+        waitlist: waitlistRows.map((row) => ({
+          id: row.id,
+          userId: row.userId,
+          teamId: row.teamId,
+          createdAt: row.createdAt,
+          name: row.user?.name ?? row.team?.name ?? "Waitlisted",
+        })),
         matches: matchRows.map((match) => ({
           id: match.id,
           startTime: match.startTime,
@@ -495,6 +518,16 @@ export const gamesRouter = createTRPCRouter({
               : [],
           ),
         })),
+        registeredPlayers: playerRows.flatMap((row) =>
+          row.user
+            ? [
+                {
+                  id: row.user.id,
+                  name: row.user.name,
+                },
+              ]
+            : [],
+        ),
         eligibleTeams,
       };
     }),
@@ -548,17 +581,31 @@ export const gamesRouter = createTRPCRouter({
           message: "That User is already registered on this Game",
         });
       }
+      if (await userAlreadyWaitlisted(ctx.db, game.id, appUser.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already on the waitlist",
+        });
+      }
+      if (await userAlreadyWaitlisted(ctx.db, game.id, partner.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "That User is already on the waitlist",
+        });
+      }
 
       const userCount = await registeredUserCount(ctx.db, game.id);
       const teamCount = await registeredGameTeamCount(ctx.db, game.id);
-      if (
+      const atCap =
         userCount + 2 > (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED) ||
-        teamCount >= FRIENDLY_TEAMS_ALLOWED
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "This Game is full",
+        teamCount >= FRIENDLY_TEAMS_ALLOWED;
+
+      if (atCap) {
+        await ctx.db.transaction(async (tx) => {
+          await enqueueWaitlistUser(tx, game.id, appUser.id);
+          await enqueueWaitlistUser(tx, game.id, partner.id);
         });
+        return { ok: true as const, waitlisted: true as const };
       }
 
       await ctx.db.transaction(async (tx) => {
@@ -571,7 +618,7 @@ export const gamesRouter = createTRPCRouter({
         await assignFriendlyMatchSlots(tx, game.id);
       });
 
-      return { ok: true as const };
+      return { ok: true as const, waitlisted: false as const };
     }),
 
   registerTeam: protectedProcedure
@@ -645,6 +692,20 @@ export const gamesRouter = createTRPCRouter({
         });
       }
 
+      const alreadyWaitlistedTeam = await ctx.db.query.gameWaitlist.findFirst({
+        where: and(
+          eq(gameWaitlist.gameId, game.id),
+          eq(gameWaitlist.teamId, team.id),
+        ),
+        columns: { id: true },
+      });
+      if (alreadyWaitlistedTeam) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "That Team is already on the waitlist",
+        });
+      }
+
       for (const member of members) {
         if (await userAlreadyOnGame(ctx.db, game.id, member.userId)) {
           throw new TRPCError({
@@ -656,10 +717,8 @@ export const gamesRouter = createTRPCRouter({
 
       const teamCount = await registeredGameTeamCount(ctx.db, game.id);
       if (teamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "This Game is full",
-        });
+        await enqueueWaitlistTeam(ctx.db, game.id, team.id);
+        return { ok: true as const, waitlisted: true as const };
       }
 
       const userIds = members.map((member) => member.userId) as [
@@ -677,6 +736,26 @@ export const gamesRouter = createTRPCRouter({
         await assignFriendlyMatchSlots(tx, game.id);
       });
 
+      return { ok: true as const, waitlisted: false as const };
+    }),
+
+  leave: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await ctx.db.transaction(async (tx) => {
+        await leaveRegisteredSeat(tx, game, appUser.id);
+      });
+      return { ok: true as const };
+    }),
+
+  leaveWaitlist: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      await requireGame(ctx.db, input.gameId);
+      await leaveWaitlistEntry(ctx.db, input.gameId, appUser.id);
       return { ok: true as const };
     }),
 

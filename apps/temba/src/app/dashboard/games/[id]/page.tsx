@@ -52,8 +52,8 @@ export default function GameHomePage({
   const [teamId, setTeamId] = React.useState<string>("");
 
   const registerWithPartner = api.games.registerWithPartner.useMutation({
-    onSuccess: async () => {
-      toast.success("Registered");
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
       setPartnerQuery("");
       await utils.games.byId.invalidate({ id });
       await utils.users.home.invalidate();
@@ -64,10 +64,33 @@ export default function GameHomePage({
   });
 
   const registerTeam = api.games.registerTeam.useMutation({
-    onSuccess: async () => {
-      toast.success("Team registered");
+    onSuccess: async (result) => {
+      toast.success(
+        result.waitlisted ? "Team joined waitlist" : "Team registered",
+      );
       await utils.games.byId.invalidate({ id });
       await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const leaveGame = api.games.leave.useMutation({
+    onSuccess: async () => {
+      toast.success("Left Game");
+      await utils.games.byId.invalidate({ id });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const leaveWaitlist = api.games.leaveWaitlist.useMutation({
+    onSuccess: async () => {
+      toast.success("Left waitlist");
+      await utils.games.byId.invalidate({ id });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -133,6 +156,9 @@ export default function GameHomePage({
                   ) : (
                     <Badge variant="outline">Not public</Badge>
                   )}
+                  <Badge variant="outline" className="capitalize">
+                    {data.registrationStatus}
+                  </Badge>
                   {data.sport ? (
                     <Badge variant="secondary" className="capitalize">
                       {data.sport}
@@ -171,6 +197,7 @@ export default function GameHomePage({
                         {match.durationInMinutes
                           ? ` · ${match.durationInMinutes} min`
                           : ""}
+                        {` · slot 1 ${match.slot1GameTeamId ? "filled" : "empty"} · slot 2 ${match.slot2GameTeamId ? "filled" : "empty"}`}
                       </p>
                     </li>
                   ))}
@@ -182,7 +209,8 @@ export default function GameHomePage({
               <h3 className="text-foreground text-lg font-semibold tracking-tight">
                 Registered
               </h3>
-              {data.gameTeams.length === 0 ? (
+              {data.gameTeams.length === 0 &&
+              data.registeredPlayers.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   Nobody is registered yet.
                 </p>
@@ -199,17 +227,80 @@ export default function GameHomePage({
                       </p>
                     </li>
                   ))}
+                  {data.registeredPlayers
+                    .filter(
+                      (player) =>
+                        !data.gameTeams.some((side) =>
+                          side.members.some(
+                            (member) => member.id === player.id,
+                          ),
+                        ),
+                    )
+                    .map((player) => (
+                      <li key={player.id} className="px-4 py-4">
+                        <p className="text-foreground font-medium">
+                          {player.name}
+                        </p>
+                      </li>
+                    ))}
                 </ul>
               )}
             </section>
 
+            <section className="space-y-3">
+              <h3 className="text-foreground text-lg font-semibold tracking-tight">
+                Waitlist
+              </h3>
+              {data.waitlist.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Waitlist is empty.
+                </p>
+              ) : (
+                <ol className="divide-border border-border bg-card divide-y rounded-xl border">
+                  {data.waitlist.map((entry, index) => (
+                    <li key={entry.id} className="px-4 py-4">
+                      <p className="text-foreground font-medium">
+                        {index + 1}. {entry.name}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
             {data.isRegistered ? (
-              <p className="text-muted-foreground text-sm">
-                You are registered on this Game.
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-muted-foreground text-sm">
+                  You are registered on this Game.
+                </p>
+                {data.canLeave ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => leaveGame.mutate({ gameId: id })}
+                    disabled={leaveGame.isPending}
+                  >
+                    {leaveGame.isPending ? "Leaving…" : "Leave Game"}
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
 
-            {data.canRegister && data.registrationMode === "individual" ? (
+            {data.isWaitlisted ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-muted-foreground text-sm">
+                  You are on the waitlist.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => leaveWaitlist.mutate({ gameId: id })}
+                  disabled={leaveWaitlist.isPending}
+                >
+                  {leaveWaitlist.isPending ? "Leaving…" : "Leave waitlist"}
+                </Button>
+              </div>
+            ) : null}
+
+            {(data.canRegister || data.canWaitlist) &&
+            data.registrationMode === "individual" ? (
               <form
                 className="border-border bg-card space-y-4 rounded-xl border p-6"
                 onSubmit={(event) => {
@@ -221,7 +312,9 @@ export default function GameHomePage({
                 }}
               >
                 <h3 className="text-foreground text-lg font-medium">
-                  Register with a partner
+                  {data.canWaitlist
+                    ? "Join waitlist with a partner"
+                    : "Register with a partner"}
                 </h3>
                 <FieldGroup>
                   <Field>
@@ -244,7 +337,8 @@ export default function GameHomePage({
               </form>
             ) : null}
 
-            {data.canRegister && data.registrationMode === "team_only" ? (
+            {(data.canRegister || data.canWaitlist) &&
+            data.registrationMode === "team_only" ? (
               <form
                 className="border-border bg-card space-y-4 rounded-xl border p-6"
                 onSubmit={(event) => {

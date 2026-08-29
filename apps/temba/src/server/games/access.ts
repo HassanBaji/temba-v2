@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import {
   communities,
@@ -8,13 +8,15 @@ import {
   gamePlayers,
   games,
   gameTeams,
+  gameWaitlist,
   groupMembers,
   groups,
+  teamMembers,
 } from "@repo/db";
 
 import { type db } from "~/server/db";
 
-type DbClient = typeof db;
+type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export const FRIENDLY_PLAYERS_ALLOWED = 4;
 export const FRIENDLY_TEAMS_ALLOWED = 2;
@@ -214,6 +216,35 @@ export async function canViewGame(
     return true;
   }
 
+  const waitlisted = await database.query.gameWaitlist.findFirst({
+    where: and(
+      eq(gameWaitlist.gameId, game.id),
+      eq(gameWaitlist.userId, userId),
+    ),
+    columns: { id: true },
+  });
+  if (waitlisted) {
+    return true;
+  }
+
+  const memberships = await database.query.teamMembers.findMany({
+    where: eq(teamMembers.userId, userId),
+    columns: { teamId: true },
+  });
+  const teamIds = memberships.map((row) => row.teamId);
+  if (teamIds.length > 0) {
+    const teamWaitlisted = await database.query.gameWaitlist.findFirst({
+      where: and(
+        eq(gameWaitlist.gameId, game.id),
+        inArray(gameWaitlist.teamId, teamIds),
+      ),
+      columns: { id: true },
+    });
+    if (teamWaitlisted) {
+      return true;
+    }
+  }
+
   if (game.isPublic) {
     if (game.groupId) {
       const community = await clubCommunity(database, game.groupId);
@@ -277,6 +308,39 @@ export async function assertRegistrationOpen(
       });
     }
   }
+}
+
+export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
+
+export async function getRegistrationStatus(
+  database: DbClient,
+  game: GameRow,
+  now: Date,
+): Promise<RegistrationStatus> {
+  if (game.cancelledAt) {
+    return "cancelled";
+  }
+  if (
+    !isRegistrationOpen(game, now) ||
+    (await isClubGroupGameJoinFrozen(database, game))
+  ) {
+    return "closed";
+  }
+  const userCount = await registeredUserCount(database, game.id);
+  const teamCount = await registeredGameTeamCount(database, game.id);
+  if (game.registrationMode === "team_only") {
+    if (teamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
+      return "full";
+    }
+    return "open";
+  }
+  if (userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)) {
+    return "full";
+  }
+  if (game.format === "friendly_game" && teamCount >= FRIENDLY_TEAMS_ALLOWED) {
+    return "full";
+  }
+  return "open";
 }
 
 export async function registeredUserCount(database: DbClient, gameId: string) {
