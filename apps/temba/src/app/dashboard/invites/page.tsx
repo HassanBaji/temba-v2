@@ -1,7 +1,6 @@
 "use client";
 
 import { Inbox } from "lucide-react";
-import * as React from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
@@ -10,10 +9,7 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
-import {
-  InviteSeatPicker,
-  parseSeatKey,
-} from "~/components/games/invite-seat-picker";
+import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
@@ -83,10 +79,9 @@ export default function InvitesPage() {
     },
     onError: (error) => {
       toast.error(error.message);
+      void gameInvites.refetch();
     },
   });
-
-  const [gameSeats, setGameSeats] = React.useState<Record<string, string>>({});
 
   const isLoading =
     communityInvites.isLoading ||
@@ -105,8 +100,6 @@ export default function InvitesPage() {
       title: invite.communityName,
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
-      needsSeatPick: false,
-      vacantSeats: [] as { sideIndex: number; position: "left" | "right" }[],
     })),
     ...(groupInvites.data ?? []).map((invite) => ({
       kind: "group" as const,
@@ -114,8 +107,6 @@ export default function InvitesPage() {
       title: invite.groupName ?? "Untitled Group",
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
-      needsSeatPick: false,
-      vacantSeats: [] as { sideIndex: number; position: "left" | "right" }[],
     })),
     ...(teamInvites.data ?? []).map((invite) => ({
       kind: "team" as const,
@@ -123,8 +114,6 @@ export default function InvitesPage() {
       title: invite.displayName,
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
-      needsSeatPick: false,
-      vacantSeats: [] as { sideIndex: number; position: "left" | "right" }[],
     })),
     ...(gameInvites.data ?? []).map((invite) => ({
       kind: "game" as const,
@@ -133,6 +122,8 @@ export default function InvitesPage() {
       invitedBy: invite.invitedBy,
       createdAt: invite.createdAt,
       needsSeatPick: invite.needsSeatPick,
+      format: invite.format,
+      sides: invite.sides,
       vacantSeats: invite.vacantSeats,
     })),
   ].sort(
@@ -164,20 +155,6 @@ export default function InvitesPage() {
       return;
     }
     if (kind === "game") {
-      const invite = items.find((row) => row.kind === "game" && row.id === id);
-      if (invite?.needsSeatPick && invite.vacantSeats.length > 0) {
-        const seat = parseSeatKey(gameSeats[id] ?? "");
-        if (!seat) {
-          toast.error("Pick a vacant Position");
-          return;
-        }
-        acceptGame.mutate({
-          inviteId: id,
-          sideIndex: seat.sideIndex,
-          position: seat.position,
-        });
-        return;
-      }
       acceptGame.mutate({ inviteId: id });
       return;
     }
@@ -217,6 +194,69 @@ export default function InvitesPage() {
           {items.map((invite) => {
             const pending = isRowPending(invite.kind, invite.id);
             const inviterName = invite.invitedBy.name ?? "Someone";
+            if (
+              invite.kind === "game" &&
+              invite.needsSeatPick &&
+              invite.sides
+            ) {
+              const waitlistOnly = invite.vacantSeats.length === 0;
+              return (
+                <li
+                  key={`${invite.kind}-${invite.id}`}
+                  className="space-y-3 px-4 py-4"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <UserAvatar name={inviterName} size="lg" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lead truncate font-semibold">
+                        {invite.title}
+                      </p>
+                      <p className="text-meta text-muted-foreground truncate">
+                        {inviteMeta(invite.kind, inviterName)}
+                      </p>
+                    </div>
+                    <InviteKindBadge kind={invite.kind} />
+                  </div>
+                  <p className="text-body text-muted-foreground">
+                    {waitlistOnly
+                      ? "No vacant Position. Occupied seats show who is already registered."
+                      : "Occupied seats show who is already registered. Pick a vacant Position to sit."}
+                  </p>
+                  <GameSeatGrid
+                    sides={invite.sides}
+                    canJoinVacant={!waitlistOnly}
+                    joinLabel="Sit here"
+                    joining={pending}
+                    canMove={false}
+                    moving={false}
+                    isOrganizer={false}
+                    cancelled={false}
+                    kickPending={false}
+                    onJoin={(sideIndex, position) =>
+                      acceptGame.mutate({
+                        inviteId: invite.id,
+                        sideIndex,
+                        position,
+                      })
+                    }
+                    onMove={() => undefined}
+                    onKick={() => undefined}
+                    sideNoun={
+                      invite.format === "friendly_tournament" ? "Side" : "Slot"
+                    }
+                  />
+                  {waitlistOnly ? (
+                    <Button
+                      className="min-h-11"
+                      disabled={pending}
+                      onClick={() => onAccept("game", invite.id)}
+                    >
+                      {pending ? "Joining…" : "Join waitlist"}
+                    </Button>
+                  ) : null}
+                </li>
+              );
+            }
             return (
               <ListRow
                 key={`${invite.kind}-${invite.id}`}
@@ -226,19 +266,6 @@ export default function InvitesPage() {
                 trailing={
                   <div className="flex flex-wrap items-center gap-2">
                     <InviteKindBadge kind={invite.kind} />
-                    {invite.kind === "game" && invite.needsSeatPick ? (
-                      <InviteSeatPicker
-                        id={`invite-seat-${invite.id}`}
-                        vacantSeats={invite.vacantSeats}
-                        value={gameSeats[invite.id] ?? ""}
-                        onChange={(value) =>
-                          setGameSeats((current) => ({
-                            ...current,
-                            [invite.id]: value,
-                          }))
-                        }
-                      />
-                    ) : null}
                     <Button
                       className="min-h-11"
                       disabled={pending}

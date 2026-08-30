@@ -14,7 +14,7 @@ export default async function GameInviteLinkPage({
   const returnPath = gameInviteLinkPath(token);
 
   return (
-    <InviteShell>
+    <InviteShell wide>
       <AcceptGameInviteLink
         token={token}
         isSignedIn={Boolean(userId)}

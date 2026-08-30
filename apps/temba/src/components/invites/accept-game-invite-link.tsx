@@ -6,10 +6,7 @@ import * as React from "react";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { toast } from "sonner";
 
-import {
-  InviteSeatPicker,
-  parseSeatKey,
-} from "~/components/games/invite-seat-picker";
+import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
@@ -24,7 +21,6 @@ export function AcceptGameInviteLink({
   returnPath: string;
 }) {
   const router = useRouter();
-  const [seatValue, setSeatValue] = React.useState("");
   const preview = api.games.previewInviteLink.useQuery({ token });
   const accept = api.games.acceptInviteLink.useMutation({
     onSuccess: (result) => {
@@ -43,14 +39,16 @@ export function AcceptGameInviteLink({
     },
     onError: (error) => {
       toast.error(error.message);
+      void preview.refetch();
     },
   });
 
-  const needsSeatPick =
-    preview.data?.status === "ready" && preview.data.needsSeatPick;
-  const vacantSeats =
-    preview.data?.status === "ready" ? preview.data.vacantSeats : [];
+  const ready = preview.data?.status === "ready" ? preview.data : undefined;
+  const needsSeatPick = Boolean(ready?.needsSeatPick);
+  const sides = ready?.sides ?? [];
+  const vacantSeats = ready?.vacantSeats ?? [];
   const waitlistOnly = needsSeatPick && vacantSeats.length === 0;
+  const sideNoun = ready?.format === "friendly_tournament" ? "Side" : "Slot";
 
   React.useEffect(() => {
     if (!isSignedIn) {
@@ -62,27 +60,25 @@ export function AcceptGameInviteLink({
     if (accept.isPending || accept.isSuccess || accept.isError) {
       return;
     }
-    if (preview.data.needsSeatPick && preview.data.vacantSeats.length > 0) {
+    if (preview.data.needsSeatPick) {
       return;
     }
     accept.mutate({ token });
   }, [accept, isSignedIn, preview.data, token]);
 
-  function onJoin() {
+  function onJoinSeat(sideIndex: number, position: "left" | "right") {
     if (accept.isPending) {
       return;
     }
-    if (needsSeatPick && vacantSeats.length > 0) {
-      const seat = parseSeatKey(seatValue);
-      if (!seat) {
-        toast.error("Pick a vacant Position");
-        return;
-      }
-      accept.mutate({
-        token,
-        sideIndex: seat.sideIndex,
-        position: seat.position,
-      });
+    accept.mutate({
+      token,
+      sideIndex,
+      position,
+    });
+  }
+
+  function onJoinWaitlist() {
+    if (accept.isPending) {
       return;
     }
     accept.mutate({ token });
@@ -122,32 +118,6 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (!isSignedIn) {
-    return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">
-            Join {preview.data?.gameName ?? "Game"}
-          </h1>
-          <p className="text-body text-muted-foreground">
-            Sign in or sign up with Clerk to join. Opening this URL does not log
-            anyone in without Clerk.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button className="min-h-11">Sign in</Button>
-          </SignInButton>
-          <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button variant="outline" className="min-h-11">
-              Sign up
-            </Button>
-          </SignUpButton>
-        </div>
-      </div>
-    );
-  }
-
   if (accept.data?.outcome === "waiting_for_partner") {
     return (
       <div className="space-y-3">
@@ -177,27 +147,81 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (needsSeatPick && vacantSeats.length > 0 && !accept.isSuccess) {
+  if (needsSeatPick && !accept.isSuccess) {
     return (
       <div className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
-            Join{" "}
-            {preview.data?.status === "ready" ? preview.data.gameName : "Game"}
+            Join {ready?.gameName ?? "Game"}
           </h1>
           <p className="text-body text-muted-foreground">
-            Pick a vacant Position to sit, or this accept will be refused if
-            that seat is taken.
+            {isSignedIn
+              ? waitlistOnly
+                ? "No vacant Position. Occupied seats show who is already registered. Accept to join the waitlist."
+                : "Occupied seats show who is already registered. Pick a vacant Position to sit."
+              : "Occupied seats show who is already registered. Sign in or sign up with Clerk to pick a vacant Position."}
           </p>
         </div>
-        <InviteSeatPicker
-          vacantSeats={vacantSeats}
-          value={seatValue}
-          onChange={setSeatValue}
+        <GameSeatGrid
+          sides={sides}
+          canJoinVacant={isSignedIn && !waitlistOnly}
+          joinLabel="Sit here"
+          joining={accept.isPending}
+          canMove={false}
+          moving={false}
+          isOrganizer={false}
+          cancelled={false}
+          kickPending={false}
+          onJoin={onJoinSeat}
+          onMove={() => undefined}
+          onKick={() => undefined}
+          sideNoun={sideNoun}
+          readOnly={!isSignedIn}
         />
-        <Button onClick={onJoin} disabled={accept.isPending}>
-          {accept.isPending ? "Joining…" : "Accept"}
-        </Button>
+        {isSignedIn ? (
+          waitlistOnly ? (
+            <Button onClick={onJoinWaitlist} disabled={accept.isPending}>
+              {accept.isPending ? "Joining…" : "Join waitlist"}
+            </Button>
+          ) : null
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
+              <Button className="min-h-11">Sign in</Button>
+            </SignInButton>
+            <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
+              <Button variant="outline" className="min-h-11">
+                Sign up
+              </Button>
+            </SignUpButton>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-title font-semibold">
+            Join {ready?.gameName ?? "Game"}
+          </h1>
+          <p className="text-body text-muted-foreground">
+            Sign in or sign up with Clerk to join. Opening this URL does not log
+            anyone in without Clerk.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
+            <Button className="min-h-11">Sign in</Button>
+          </SignInButton>
+          <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
+            <Button variant="outline" className="min-h-11">
+              Sign up
+            </Button>
+          </SignUpButton>
+        </div>
       </div>
     );
   }
@@ -205,12 +229,10 @@ export function AcceptGameInviteLink({
   return (
     <div className="space-y-3">
       <h1 className="text-title font-semibold">
-        Joining {preview.data?.gameName ?? "Game"}…
+        Joining {ready?.gameName ?? "Game"}…
       </h1>
       <p className="text-body text-muted-foreground">
-        {waitlistOnly
-          ? "No vacant Position. Joining the waitlist."
-          : "Accepting the Invite link as the signed-in User."}
+        Accepting the Invite link as the signed-in User.
       </p>
     </div>
   );

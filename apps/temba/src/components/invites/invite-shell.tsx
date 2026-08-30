@@ -4,7 +4,13 @@ import { Card } from "~/components/ui/card";
 import { pageGutterX } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
-export function InviteShell({ children }: { children: React.ReactNode }) {
+export function InviteShell({
+  children,
+  wide = false,
+}: {
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
   return (
     <div
       className={cn(
@@ -24,7 +30,13 @@ export function InviteShell({ children }: { children: React.ReactNode }) {
             Sign in with Clerk to continue. Temba does not log you in itself.
           </p>
         </div>
-        <Card variant="elevated" className="mx-auto w-full max-w-md">
+        <Card
+          variant="elevated"
+          className={cn(
+            "mx-auto w-full",
+            wide ? "max-w-[var(--container-content)]" : "max-w-md",
+          )}
+        >
           {children}
         </Card>
       </div>
