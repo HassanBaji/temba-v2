@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { ratings } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { userHasRatedMatch } from "~/server/ratings/has-rated-match";
 import {
   initialRatingFromChoice,
@@ -13,15 +14,6 @@ import {
 } from "~/server/ratings/level";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
-}
 
 export async function selfDeclareRating(
   database: DbClient,
