@@ -96,39 +96,6 @@ function slotLabel(
   return side ? gameTeamLabel(side) : "empty";
 }
 
-function matchSeatSides(
-  sides: {
-    sideIndex: number;
-    gameTeamId: string | null;
-    left: { userId: string; name: string } | null;
-    right: { userId: string; name: string } | null;
-  }[],
-  slot1GameTeamId: string | null,
-  slot2GameTeamId: string | null,
-) {
-  function fromSlot(
-    gameTeamId: string | null,
-    index: number,
-  ): {
-    sideIndex: number;
-    gameTeamId: string | null;
-    left: { userId: string; name: string } | null;
-    right: { userId: string; name: string } | null;
-  } {
-    const found = sides.find((side) => side.gameTeamId === gameTeamId);
-    if (found) {
-      return { ...found, sideIndex: index };
-    }
-    return {
-      sideIndex: index,
-      gameTeamId,
-      left: null,
-      right: null,
-    };
-  }
-  return [fromSlot(slot1GameTeamId, 1), fromSlot(slot2GameTeamId, 2)];
-}
-
 export default function GameHomePage({
   params,
 }: {
@@ -726,31 +693,11 @@ export default function GameHomePage({
                         {match.courtName
                           ? ` · ${match.courtName}`
                           : " · no Court"}
-                        {` · slot 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · slot 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
+                        {data.format === "friendly_game" &&
+                        data.registrationMode === "individual"
+                          ? null
+                          : ` · Team 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · Team 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
                       </p>
-                      {data.registrationMode === "individual" &&
-                      data.format !== "americano" ? (
-                        <GameSeatGrid
-                          sides={matchSeatSides(
-                            data.sides,
-                            match.slot1GameTeamId,
-                            match.slot2GameTeamId,
-                          )}
-                          canJoinVacant={false}
-                          joinLabel="Sit here"
-                          joining={false}
-                          canMove={false}
-                          moving={false}
-                          isOrganizer={false}
-                          cancelled={Boolean(data.cancelledAt)}
-                          kickPending={false}
-                          onJoin={() => undefined}
-                          onMove={() => undefined}
-                          onKick={() => undefined}
-                          sideNoun="Slot"
-                          readOnly
-                        />
-                      ) : null}
                       {data.isOrganizer &&
                       !data.cancelledAt &&
                       match.status !== "cancelled" &&
@@ -790,7 +737,7 @@ export default function GameHomePage({
                           </Field>
                           <Field>
                             <FieldLabel htmlFor={`match-${match.id}-slot1`}>
-                              Slot 1
+                              Team 1
                             </FieldLabel>
                             <Select
                               value={match.slot1GameTeamId ?? "none"}
@@ -808,11 +755,11 @@ export default function GameHomePage({
                               }
                             >
                               <SelectTrigger id={`match-${match.id}-slot1`}>
-                                <SelectValue placeholder="Slot 1" />
+                                <SelectValue placeholder="Team 1" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">
-                                  Slot 1 empty
+                                  Team 1 empty
                                 </SelectItem>
                                 {data.gameTeams.map((side) => (
                                   <SelectItem key={side.id} value={side.id}>
@@ -824,7 +771,7 @@ export default function GameHomePage({
                           </Field>
                           <Field>
                             <FieldLabel htmlFor={`match-${match.id}-slot2`}>
-                              Slot 2
+                              Team 2
                             </FieldLabel>
                             <Select
                               value={match.slot2GameTeamId ?? "none"}
@@ -842,11 +789,11 @@ export default function GameHomePage({
                               }
                             >
                               <SelectTrigger id={`match-${match.id}-slot2`}>
-                                <SelectValue placeholder="Slot 2" />
+                                <SelectValue placeholder="Team 2" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">
-                                  Slot 2 empty
+                                  Team 2 empty
                                 </SelectItem>
                                 {data.gameTeams.map((side) => (
                                   <SelectItem key={side.id} value={side.id}>
@@ -884,9 +831,9 @@ export default function GameHomePage({
                             {match.outcome.result === "draw"
                               ? " · Match draw"
                               : match.outcome.result === "slot1"
-                                ? " · Slot 1 leads"
+                                ? " · Team 1 leads"
                                 : match.outcome.result === "slot2"
-                                  ? " · Slot 2 leads"
+                                  ? " · Team 2 leads"
                                   : " · no result yet"}
                             {` · ${match.outcome.slot1SetWins}–${match.outcome.slot2SetWins} Set-wins`}
                           </p>
@@ -914,7 +861,7 @@ export default function GameHomePage({
                                       <FieldLabel
                                         htmlFor={`set-${set.id}-slot1`}
                                       >
-                                        Slot 1 games
+                                        Team 1 games
                                       </FieldLabel>
                                       <Input
                                         type="number"
@@ -941,7 +888,7 @@ export default function GameHomePage({
                                       <FieldLabel
                                         htmlFor={`set-${set.id}-slot2`}
                                       >
-                                        Slot 2 games
+                                        Team 2 games
                                       </FieldLabel>
                                       <Input
                                         type="number"
@@ -982,7 +929,7 @@ export default function GameHomePage({
                                             scores.slot2.trim().length === 0
                                           ) {
                                             toast.error(
-                                              "Enter games won for both slots",
+                                              "Enter games won for both teams",
                                             );
                                             return;
                                           }
@@ -1055,9 +1002,8 @@ export default function GameHomePage({
                             !match.bothSlotsFilled) &&
                           match.status !== "completed" ? (
                             <p className="text-muted-foreground text-sm">
-                              Scoring is frozen until both slots have complete
-                              Game teams (two Positions). Set shells can still
-                              be added.
+                              Scoring is frozen until both teams have two
+                              Positions. Set shells can still be added.
                             </p>
                           ) : null}
                         </div>
@@ -1154,13 +1100,13 @@ export default function GameHomePage({
                         </Select>
                       </Field>
                       <Field>
-                        <FieldLabel htmlFor="match-slot1">Slot 1</FieldLabel>
+                        <FieldLabel htmlFor="match-slot1">Team 1</FieldLabel>
                         <Select
                           value={matchSlot1}
                           onValueChange={setMatchSlot1}
                         >
                           <SelectTrigger id="match-slot1">
-                            <SelectValue placeholder="Slot 1" />
+                            <SelectValue placeholder="Team 1" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">Empty</SelectItem>
@@ -1173,13 +1119,13 @@ export default function GameHomePage({
                         </Select>
                       </Field>
                       <Field>
-                        <FieldLabel htmlFor="match-slot2">Slot 2</FieldLabel>
+                        <FieldLabel htmlFor="match-slot2">Team 2</FieldLabel>
                         <Select
                           value={matchSlot2}
                           onValueChange={setMatchSlot2}
                         >
                           <SelectTrigger id="match-slot2">
-                            <SelectValue placeholder="Slot 2" />
+                            <SelectValue placeholder="Team 2" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">Empty</SelectItem>
@@ -1249,7 +1195,7 @@ export default function GameHomePage({
                       })
                     }
                     sideNoun={
-                      data.format === "friendly_tournament" ? "Side" : "Slot"
+                      data.format === "friendly_tournament" ? "Side" : "Team"
                     }
                   />
                   {data.canPickSeat ? (
@@ -1562,7 +1508,7 @@ export default function GameHomePage({
                                     value={String(side.sideIndex)}
                                   >
                                     {data.format === "friendly_game"
-                                      ? `Slot ${side.sideIndex}`
+                                      ? `Team ${side.sideIndex}`
                                       : `Side ${side.sideIndex}`}
                                   </SelectItem>
                                 ))}

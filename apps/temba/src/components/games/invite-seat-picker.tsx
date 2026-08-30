@@ -53,7 +53,7 @@ export function InviteSeatPicker({
       <SelectContent>
         {vacantSeats.map((seat) => (
           <SelectItem key={seatKey(seat)} value={seatKey(seat)}>
-            Slot {seat.sideIndex} {seat.position}
+            Team {seat.sideIndex} {seat.position}
           </SelectItem>
         ))}
       </SelectContent>
