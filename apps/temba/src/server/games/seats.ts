@@ -331,13 +331,35 @@ export async function occupySeat(
       if (!isUniqueViolation(error)) {
         throw error;
       }
+      const existing = await database.query.gameTeams.findFirst({
+        where: and(
+          eq(gameTeams.gameId, game.id),
+          eq(gameTeams.sideIndex, sideIndex),
+        ),
+      });
+      if (!existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "That Position is occupied",
+        });
+      }
+      team = existing;
+    }
+    if (game.format === "friendly_game") {
+      await setFriendlyMatchSlotForSide(database, game.id, sideIndex, team.id);
+    }
+    const count = await gameTeamPlayerCount(database, team.id);
+    if (count >= 2) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "That side already has two Users",
+      });
+    }
+    if (await occupantAt(database, team.id, position)) {
       throw new TRPCError({
         code: "CONFLICT",
         message: "That Position is occupied",
       });
-    }
-    if (game.format === "friendly_game") {
-      await setFriendlyMatchSlotForSide(database, game.id, sideIndex, team.id);
     }
   }
 
