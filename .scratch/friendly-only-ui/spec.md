@@ -1,4 +1,4 @@
-Status: draft
+Status: ready-for-agent
 
 ## Problem Statement
 
@@ -227,4 +227,15 @@ The games-matches spec (`.scratch/games-matches/spec.md`) remains the contract f
 
 Locked decisions (not a further grill): App create always Friendly game, no format field, no one-option picker; strip Americano / Friendly tournament create copy; keep Individual vs Team-only and caps 4 / 2; existing other-format rows stay listed and openable; hide Add Match, Americano pool-register, non–Friendly-game cap form, Add Set, Remove Set, and format badges; Friendly game `games.create` inserts three Set shells for all callers with no opt-out; add Match still zero Sets; historical Friendly game organizer ensure-3 via add Set; no migration; no ensure-on-get; no ensure-3 on tournament; Complete Match and scoring rules unchanged; tRPC still accepts hidden formats and Set writes; amend games-matches; no new ADR.
 
-Do not create Linear tickets until this spec is approved. Do not implement until an implementer is asked to run those tickets.
+Tickets (labelled `ready-for-agent`):
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-87 Create Game is Friendly-only](https://linear.app/temba-app/issue/TEM-87/create-game-is-friendly-only) | — |
+| 2 | [TEM-88 Game home hides Match and Set factory](https://linear.app/temba-app/issue/TEM-88/game-home-hides-match-and-set-factory) | TEM-87 |
+
+Do not implement until an implementer is asked to run them. Work the frontier: **TEM-87** only.
+
+## Comments
+
+- Spec approved. Tickets published as TEM-87 (create + three Set shells) and TEM-88 (Game home factory hide + ensure-3), with TEM-87 blocking TEM-88.
