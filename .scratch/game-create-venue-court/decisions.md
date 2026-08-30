@@ -1,6 +1,6 @@
 # Game create Venue and Court — settled decisions
 
-Status: spec published — `.scratch/game-create-venue-court/spec.md` (ready-for-agent). Tickets via `/to-tickets`.
+Status: spec published — `.scratch/game-create-venue-court/spec.md` (ready-for-agent). Tickets: TEM-91, TEM-92, TEM-93. Frontier TEM-91.
 
 ## Settled (round 1)
 

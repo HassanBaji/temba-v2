@@ -251,4 +251,14 @@ Settled grilling: `.scratch/game-create-venue-court/decisions.md`.
 
 Create Game on current `dev` already has no Format select (friendly-only-ui). Implementers add Venue/Court and must not reintroduce a Format select.
 
-Next step after this spec is approved: `/to-tickets` (Linear implementation tickets, local spec stays here). Do not implement from this file until tickets exist and an implementer is asked to run them.
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/game-create-venue-court/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-91 Friendly game create: required Venue, optional Court](https://linear.app/temba-app/issue/TEM-91/friendly-game-create-required-venue-optional-court) | — |
+| 2 | [TEM-92 Friendly Game home Court editor follows Game Venue](https://linear.app/temba-app/issue/TEM-92/friendly-game-home-court-editor-follows-game-venue) | TEM-91 |
+| 3 | [TEM-93 Americano and Friendly tournament Courts on the Game](https://linear.app/temba-app/issue/TEM-93/americano-and-friendly-tournament-courts-on-the-game) | TEM-91, TEM-92 |
+
+Frontier: **TEM-91** only. Do not implement until an implementer / orchestrator is asked to run the tickets in order.
