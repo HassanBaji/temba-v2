@@ -14,9 +14,11 @@ import {
   gameWaitlist,
   games,
   groups,
+  groupMembers,
   matches,
   teamMembers,
   teams,
+  user,
 } from "@repo/db";
 
 import {
@@ -40,6 +42,7 @@ import {
   registeredUserCount,
   requireGame,
   userPassesJoinGate,
+  type GameRow,
 } from "~/server/games/access";
 import {
   addTournamentMatch,
@@ -89,7 +92,7 @@ import {
   inviteLinkExpiresAt,
   isInviteLinkLive,
 } from "~/server/invites/invite-link-expiry";
-import { resolveLookupUser } from "~/server/invites/resolve-lookup-user";
+import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 import {
   createOpaqueToken,
   gameInviteLinkUrl,
@@ -149,7 +152,158 @@ async function userAlreadyWaitlisted(
     ),
     columns: { id: true },
   });
-  return Boolean(row);
+  if (row) {
+    return true;
+  }
+
+  const teamRows = await database.query.gameWaitlist.findMany({
+    where: and(eq(gameWaitlist.gameId, gameId), isNull(gameWaitlist.userId)),
+    columns: { teamId: true },
+  });
+  const teamIds = teamRows
+    .map((entry) => entry.teamId)
+    .filter((teamId): teamId is string => Boolean(teamId));
+  if (teamIds.length === 0) {
+    return false;
+  }
+
+  const membership = await database.query.teamMembers.findFirst({
+    where: and(
+      eq(teamMembers.userId, userId),
+      inArray(teamMembers.teamId, teamIds),
+    ),
+    columns: { id: true },
+  });
+  return Boolean(membership);
+}
+
+async function gameHideRegisteredWaitlistedSelf(
+  database: DbClient,
+  gameId: string,
+  selfId: string,
+) {
+  const players = await database.query.gamePlayers.findMany({
+    where: eq(gamePlayers.gameId, gameId),
+    columns: { userId: true },
+  });
+  const waitlist = await database.query.gameWaitlist.findMany({
+    where: eq(gameWaitlist.gameId, gameId),
+    columns: { userId: true, teamId: true },
+  });
+  const waitlistTeamIds = waitlist
+    .map((row) => row.teamId)
+    .filter((teamId): teamId is string => Boolean(teamId));
+  const waitlistTeamMembers =
+    waitlistTeamIds.length === 0
+      ? []
+      : await database.query.teamMembers.findMany({
+          where: inArray(teamMembers.teamId, waitlistTeamIds),
+          columns: { userId: true },
+        });
+
+  return [
+    selfId,
+    ...players.map((row) => row.userId),
+    ...waitlist
+      .map((row) => row.userId)
+      .filter((userId): userId is string => Boolean(userId)),
+    ...waitlistTeamMembers.map((row) => row.userId),
+  ].filter((userId): userId is string => Boolean(userId));
+}
+
+async function gameLookupHideUserIds(
+  database: DbClient,
+  gameId: string,
+  selfId: string,
+) {
+  const unusedInvites = await database.query.gameMemberInvites.findMany({
+    where: and(
+      eq(gameMemberInvites.gameId, gameId),
+      isNull(gameMemberInvites.acceptedAt),
+      isNull(gameMemberInvites.revokedAt),
+    ),
+    columns: { userId: true },
+  });
+
+  return [
+    ...(await gameHideRegisteredWaitlistedSelf(database, gameId, selfId)),
+    ...unusedInvites.map((row) => row.userId),
+  ];
+}
+
+async function searchUsersForGamePicker(
+  database: DbClient,
+  game: { groupId: string | null; isPublic: boolean },
+  args: { query: string; excludeUserIds: string[] },
+) {
+  if (game.groupId && !game.isPublic) {
+    const members = await database.query.groupMembers.findMany({
+      where: eq(groupMembers.groupId, game.groupId),
+      columns: { userId: true },
+    });
+    return searchLookupUsers(database, {
+      query: args.query,
+      excludeUserIds: args.excludeUserIds,
+      includeUserIds: members.map((row) => row.userId),
+    });
+  }
+
+  if (game.groupId && game.isPublic) {
+    const members = await database.query.groupMembers.findMany({
+      where: eq(groupMembers.groupId, game.groupId),
+      columns: { userId: true },
+    });
+    return searchLookupUsers(database, {
+      query: args.query,
+      excludeUserIds: args.excludeUserIds,
+      boostUserIds: members.map((row) => row.userId),
+      boostCue: "Group member",
+    });
+  }
+
+  return searchLookupUsers(database, {
+    query: args.query,
+    excludeUserIds: args.excludeUserIds,
+  });
+}
+
+async function assertCanRegisterWithPartner(
+  database: DbClient,
+  game: GameRow,
+  userId: string,
+  now: Date,
+) {
+  if (
+    game.format !== "friendly_game" &&
+    game.format !== "friendly_tournament"
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Register with a partner on a Friendly game or tournament",
+    });
+  }
+  if (game.registrationMode !== "individual") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This Game is team-only; register a complete Team",
+    });
+  }
+
+  await assertRegistrationOpen(database, game, now);
+  await assertUserPassesJoinGate(database, game, userId);
+
+  if (await userAlreadyOnGame(database, game.id, userId)) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "You are already registered on this Game",
+    });
+  }
+  if (await userAlreadyWaitlisted(database, game.id, userId)) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "You are already on the waitlist",
+    });
+  }
 }
 
 async function insertGamePlayersAndTeam(args: {
@@ -922,11 +1076,42 @@ export const gamesRouter = createTRPCRouter({
       return { ok: true as const };
     }),
 
+  searchPartnerUsers: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        query: z.string().trim().max(255),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const now = new Date();
+      await assertCanRegisterWithPartner(ctx.db, game, appUser.id, now);
+
+      const excludeUserIds = await gameHideRegisteredWaitlistedSelf(
+        ctx.db,
+        game.id,
+        appUser.id,
+      );
+
+      // Groupless non-public: only the organizer passes the join gate, and
+      // the organizer is already excluded as self.
+      if (!game.isPublic && !game.groupId) {
+        return [];
+      }
+
+      return searchUsersForGamePicker(ctx.db, game, {
+        query: input.query,
+        excludeUserIds,
+      });
+    }),
+
   registerWithPartner: protectedProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
-        partnerQuery: z.string().trim().min(1),
+        partnerUserId: z.string().uuid(),
         sideIndex: z.number().int().min(1).optional(),
         position: z.enum(["left", "right"]).optional(),
       }),
@@ -935,27 +1120,18 @@ export const gamesRouter = createTRPCRouter({
       const appUser = await resolveAppUser();
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
+      await assertCanRegisterWithPartner(ctx.db, game, appUser.id, now);
 
-      if (
-        game.format !== "friendly_game" &&
-        game.format !== "friendly_tournament"
-      ) {
+      const partner = await ctx.db.query.user.findFirst({
+        where: eq(user.id, input.partnerUserId),
+        columns: { id: true },
+      });
+      if (!partner) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Register with a partner on a Friendly game or tournament",
+          message: "User not found",
         });
       }
-      if (game.registrationMode !== "individual") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This Game is team-only; register a complete Team",
-        });
-      }
-
-      await assertRegistrationOpen(ctx.db, game, now);
-      await assertUserPassesJoinGate(ctx.db, game, appUser.id);
-
-      const partner = await resolveLookupUser(ctx.db, input.partnerQuery);
       if (partner.id === appUser.id) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -964,22 +1140,10 @@ export const gamesRouter = createTRPCRouter({
       }
       await assertUserPassesJoinGate(ctx.db, game, partner.id);
 
-      if (await userAlreadyOnGame(ctx.db, game.id, appUser.id)) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You are already registered on this Game",
-        });
-      }
       if (await userAlreadyOnGame(ctx.db, game.id, partner.id)) {
         throw new TRPCError({
           code: "CONFLICT",
           message: "That User is already registered on this Game",
-        });
-      }
-      if (await userAlreadyWaitlisted(ctx.db, game.id, appUser.id)) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You are already on the waitlist",
         });
       }
       if (await userAlreadyWaitlisted(ctx.db, game.id, partner.id)) {
@@ -1473,11 +1637,42 @@ export const gamesRouter = createTRPCRouter({
       return { ok: true as const };
     }),
 
+  searchLookupUsers: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        query: z.string().trim().max(255),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await assertGameInviteDoorsOpen(ctx.db, game);
+      if (game.registrationMode === "team_only") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Team-only Games do not use Lookup invites",
+        });
+      }
+
+      const excludeUserIds = await gameLookupHideUserIds(
+        ctx.db,
+        game.id,
+        appUser.id,
+      );
+
+      return searchUsersForGamePicker(ctx.db, game, {
+        query: input.query,
+        excludeUserIds,
+      });
+    }),
+
   sendLookupInvite: protectedProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
-        query: z.string().trim().min(1).max(255),
+        userIds: z.array(z.string().uuid()).min(1).max(20),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -1491,54 +1686,116 @@ export const gamesRouter = createTRPCRouter({
           message: "Team-only Games do not use Lookup invites",
         });
       }
-      const invitee = await resolveLookupUser(ctx.db, input.query);
-      if (invitee.id === appUser.id) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You cannot Lookup-invite yourself",
-        });
-      }
-      await assertInviteeAllowedOnGame(ctx.db, game, invitee.id);
-      if (await userAlreadyOnGame(ctx.db, game.id, invitee.id)) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "That User is already registered on this Game",
-        });
-      }
-      const existing = await ctx.db.query.gameMemberInvites.findFirst({
-        where: and(
-          eq(gameMemberInvites.gameId, game.id),
-          eq(gameMemberInvites.userId, invitee.id),
-          isNull(gameMemberInvites.acceptedAt),
-          isNull(gameMemberInvites.revokedAt),
-        ),
+
+      const uniqueIds = [...new Set(input.userIds)];
+      const targets = await ctx.db.query.user.findMany({
+        where: inArray(user.id, uniqueIds),
+        columns: {
+          id: true,
+          name: true,
+        },
       });
-      if (existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "An unused Lookup invite already exists for this User",
+      const targetsById = new Map(targets.map((row) => [row.id, row]));
+
+      const sent: {
+        id: string;
+        gameId: string;
+        userId: string;
+        createdAt: Date;
+      }[] = [];
+      const refused: { name: string; message: string }[] = [];
+
+      for (const userId of uniqueIds) {
+        const target = targetsById.get(userId);
+        if (!target) {
+          refused.push({ name: "Unknown User", message: "User not found" });
+          continue;
+        }
+
+        if (target.id === appUser.id) {
+          refused.push({
+            name: target.name,
+            message: "You cannot Lookup-invite yourself",
+          });
+          continue;
+        }
+
+        try {
+          await assertInviteeAllowedOnGame(ctx.db, game, target.id);
+        } catch (error) {
+          refused.push({
+            name: target.name,
+            message:
+              error instanceof TRPCError
+                ? error.message
+                : "Only Group members can use invites on this Game",
+          });
+          continue;
+        }
+
+        if (await userAlreadyOnGame(ctx.db, game.id, target.id)) {
+          refused.push({
+            name: target.name,
+            message: "That User is already registered on this Game",
+          });
+          continue;
+        }
+
+        if (await userAlreadyWaitlisted(ctx.db, game.id, target.id)) {
+          refused.push({
+            name: target.name,
+            message: "That User is already on the waitlist",
+          });
+          continue;
+        }
+
+        const existing = await ctx.db.query.gameMemberInvites.findFirst({
+          where: and(
+            eq(gameMemberInvites.gameId, game.id),
+            eq(gameMemberInvites.userId, target.id),
+            isNull(gameMemberInvites.acceptedAt),
+            isNull(gameMemberInvites.revokedAt),
+          ),
         });
+        if (existing) {
+          refused.push({
+            name: target.name,
+            message: "An unused Lookup invite already exists for this User",
+          });
+          continue;
+        }
+
+        try {
+          const [created] = await ctx.db
+            .insert(gameMemberInvites)
+            .values({
+              gameId: game.id,
+              userId: target.id,
+              invitedBy: appUser.id,
+            })
+            .returning();
+          if (!created) {
+            refused.push({
+              name: target.name,
+              message: "Failed to create Lookup invite",
+            });
+            continue;
+          }
+          sent.push({
+            id: created.id,
+            gameId: created.gameId,
+            userId: created.userId,
+            createdAt: created.createdAt,
+          });
+        } catch {
+          refused.push({
+            name: target.name,
+            message: "An unused Lookup invite already exists for this User",
+          });
+        }
       }
-      const [created] = await ctx.db
-        .insert(gameMemberInvites)
-        .values({
-          gameId: game.id,
-          userId: invitee.id,
-          invitedBy: appUser.id,
-        })
-        .returning();
-      if (!created) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create Lookup invite",
-        });
-      }
-      return {
-        id: created.id,
-        gameId: created.gameId,
-        userId: created.userId,
-        createdAt: created.createdAt,
-      };
+
+      return { sent, refused };
     }),
 
   listLookupInvites: protectedProcedure

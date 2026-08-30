@@ -85,8 +85,8 @@ A Loose Group that is not listed; joinable by Lookup invite or Invite link from 
 _Avoid_: secret Loose Group
 
 **Lookup invite**:
-An in-app invitation to one existing User, found by searching username, email, or phone. The invitee must accept. Staff who may send may revoke unused Lookup invites.
-_Avoid_: Email invite, User directory, phone invite, magic link, Invite link
+An in-app invitation to an existing User, chosen from a searchable list of Users the sender is allowed to invite. The invitee must accept. Staff who may send may revoke unused Lookup invites. Community, Group, and Game allow selecting more than one User per send; incomplete Team allows one.
+_Avoid_: Email invite, phone invite, magic link, Invite link, User directory (there is no global directory page; search is the send door only)
 
 **Email invite**:
 Retired as a product door. Do not send named invitations bound to an email address. Leftover Email invite URLs must not admit.

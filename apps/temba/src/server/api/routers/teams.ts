@@ -13,6 +13,7 @@ import {
   teamMemberInvites,
   teamMembers,
   teams,
+  user,
   type GroupSportEnum,
 } from "@repo/db";
 
@@ -27,7 +28,7 @@ import {
   inviteLinkExpiresAt,
   isInviteLinkLive,
 } from "~/server/invites/invite-link-expiry";
-import { resolveLookupUser } from "~/server/invites/resolve-lookup-user";
+import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 import {
   createOpaqueToken,
   getAppOrigin,
@@ -560,11 +561,37 @@ export const teamsRouter = createTRPCRouter({
       };
     }),
 
+  searchLookupUsers: protectedProcedure
+    .input(
+      z.object({
+        teamId: z.string().uuid(),
+        query: z.string().trim().max(255),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const { team, memberRows } = await requireIncompleteTeamCreator(
+        ctx.db,
+        input.teamId,
+        appUser.id,
+      );
+      const unusedLookup = await unusedInviteForTeam(ctx.db, team.id);
+
+      return searchLookupUsers(ctx.db, {
+        query: input.query,
+        excludeUserIds: [
+          appUser.id,
+          ...memberRows.map((row) => row.userId),
+          ...(unusedLookup ? [unusedLookup.userId] : []),
+        ],
+      });
+    }),
+
   inviteInApp: protectedProcedure
     .input(
       z.object({
         teamId: z.string().uuid(),
-        query: z.string().trim().min(1).max(255),
+        userId: z.string().uuid(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -575,7 +602,20 @@ export const teamsRouter = createTRPCRouter({
         appUser.id,
       );
 
-      const invitee = await resolveLookupUser(ctx.db, input.query);
+      const invitee = await ctx.db.query.user.findFirst({
+        where: eq(user.id, input.userId),
+        columns: {
+          id: true,
+          name: true,
+        },
+      });
+
+      if (!invitee) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User not found",
+        });
+      }
 
       if (invitee.id === appUser.id) {
         throw new TRPCError({

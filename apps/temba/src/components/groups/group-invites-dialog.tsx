@@ -11,6 +11,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
+import type { LookupUserOption } from "~/components/invites/lookup-user-select";
 
 type LookupInvite = {
   id: string;
@@ -30,6 +31,11 @@ export function GroupInvitesDialog({
   revokePending,
   copyPending,
   sendError,
+  searchQuery,
+  onSearchQueryChange,
+  searchResults,
+  searchPending,
+  refused,
   onSendLookup,
   onRevokeLookup,
   onCopyInviteLink,
@@ -46,7 +52,12 @@ export function GroupInvitesDialog({
   revokePending: boolean;
   copyPending: boolean;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
-  onSendLookup: (query: string) => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
+  searchResults: LookupUserOption[] | undefined;
+  searchPending?: boolean;
+  refused?: { name: string; message: string }[] | null;
+  onSendLookup: (userIds: string[]) => void;
   onRevokeLookup: (inviteId: string) => void;
   onCopyInviteLink: () => void;
 }) {
@@ -65,14 +76,19 @@ export function GroupInvitesDialog({
             <LookupInvitePanel
               description={
                 isLoose
-                  ? "Only you can look up an existing User by username, email, or phone. The invitee accepts on Invites. Lookup invites do not expire."
-                  : "Owner or Admin can look up any existing User. Accept auto-admits them as Community Member then joins this Group. The Group creator may Lookup existing Members only. Invitees accept on Invites."
+                  ? "Only you can search existing Users and send Lookup invites. The invitee accepts on Invites. Lookup invites do not expire."
+                  : "Owner or Admin can search any existing User. Accept auto-admits them as Community Member then joins this Group. The Group creator may invite existing Members only. Invitees accept on Invites."
               }
               lookupInvites={lookupInvites}
               sendPending={sendPending}
               revokePending={revokePending}
               sendError={sendError}
-              onSendLookup={onSendLookup}
+              searchQuery={searchQuery}
+              onSearchQueryChange={onSearchQueryChange}
+              searchResults={searchResults}
+              searchPending={searchPending}
+              refused={refused}
+              onSendUserIds={onSendLookup}
               onRevokeLookup={onRevokeLookup}
             />
           ) : null}

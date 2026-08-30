@@ -48,6 +48,10 @@ export default function CommunityHomePage({
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [linkVenueOpen, setLinkVenueOpen] = useState(false);
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupRefused, setLookupRefused] = useState<
+    { name: string; message: string }[] | null
+  >(null);
   const [venueQuery, setVenueQuery] = React.useState("");
 
   const community = api.communities.byId.useQuery({ id });
@@ -98,11 +102,27 @@ export default function CommunityHomePage({
     { communityId: id },
     { enabled: Boolean(community.data?.canManageLookupInvites) },
   );
+  const lookupSearch = api.communities.searchLookupUsers.useQuery(
+    { communityId: id, query: lookupQuery },
+    {
+      enabled: invitesOpen && Boolean(community.data?.canManageLookupInvites),
+    },
+  );
 
   const sendLookupInvite = api.communities.sendLookupInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Lookup invite sent");
+    onSuccess: async (result) => {
+      setLookupRefused(result.refused);
+      if (result.sent.length > 0) {
+        toast.success(
+          result.sent.length === 1
+            ? "Lookup invite sent"
+            : `${result.sent.length} Lookup invites sent`,
+        );
+      }
       await utils.communities.listLookupInvites.invalidate({ communityId: id });
+      await utils.communities.searchLookupUsers.invalidate({
+        communityId: id,
+      });
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -629,7 +649,13 @@ export default function CommunityHomePage({
 
       <CommunityInvitesDialog
         open={invitesOpen}
-        onOpenChange={setInvitesOpen}
+        onOpenChange={(next) => {
+          setInvitesOpen(next);
+          if (!next) {
+            setLookupQuery("");
+            setLookupRefused(null);
+          }
+        }}
         restoreFocusRef={menuTriggerRef}
         canManageLookupInvites={data.canManageLookupInvites}
         canManageInviteLinks={data.canManageInviteLinks}
@@ -639,8 +665,13 @@ export default function CommunityHomePage({
         revokePending={revokeLookupInvite.isPending}
         copyPending={createInviteLink.isPending}
         sendError={sendLookupInvite.error}
-        onSendLookup={(query) =>
-          sendLookupInvite.mutate({ communityId: id, query })
+        searchQuery={lookupQuery}
+        onSearchQueryChange={setLookupQuery}
+        searchResults={lookupSearch.data}
+        searchPending={lookupSearch.isFetching}
+        refused={lookupRefused}
+        onSendLookup={(userIds) =>
+          sendLookupInvite.mutate({ communityId: id, userIds })
         }
         onRevokeLookup={(inviteId) => revokeLookupInvite.mutate({ inviteId })}
         onCopyInviteLink={() => createInviteLink.mutate({ communityId: id })}

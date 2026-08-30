@@ -3,10 +3,13 @@
 import * as React from "react";
 
 import { RowList } from "~/components/common/row-list";
+import {
+  LookupUserSelect,
+  type LookupUserOption,
+} from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -24,7 +27,14 @@ export function LookupInvitePanel({
   sendPending,
   revokePending,
   sendError,
-  onSendLookup,
+  searchQuery,
+  onSearchQueryChange,
+  searchResults,
+  searchPending,
+  refused,
+  selection = "multiple",
+  canSend = true,
+  onSendUserIds,
   onRevokeLookup,
 }: {
   description: React.ReactNode;
@@ -32,21 +42,43 @@ export function LookupInvitePanel({
   sendPending: boolean;
   revokePending: boolean;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
-  onSendLookup: (query: string) => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
+  searchResults: LookupUserOption[] | undefined;
+  searchPending?: boolean;
+  refused?: { name: string; message: string }[] | null;
+  selection?: "multiple" | "single";
+  canSend?: boolean;
+  onSendUserIds: (userIds: string[]) => void;
   onRevokeLookup: (inviteId: string) => void;
 }) {
   const queryId = React.useId();
   const queryErrorId = `${queryId}-error`;
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const queryError = fieldErrorMessage(sendError, "query");
+  const queryError = fieldErrorMessage(
+    sendError,
+    selection === "single" ? "userId" : "userIds",
+  );
   const formError = globalFormErrorMessage(sendError);
+  const [selected, setSelected] = React.useState<LookupUserOption[]>([]);
 
   React.useEffect(() => {
     if (!sendError) {
       return;
     }
-    focusFormFailure(sendError, { query: queryId }, summaryRef.current);
+    focusFormFailure(
+      sendError,
+      { userIds: queryId, userId: queryId },
+      summaryRef.current,
+    );
   }, [sendError, queryId]);
+
+  React.useEffect(() => {
+    if (sendPending || refused == null) {
+      return;
+    }
+    setSelected([]);
+  }, [sendPending, refused]);
 
   return (
     <section className="space-y-4">
@@ -55,45 +87,50 @@ export function LookupInvitePanel({
         <p className="text-body text-muted-foreground mt-1">{description}</p>
       </div>
       <FormErrorSummary ref={summaryRef} message={formError} />
-      <form
-        className="space-y-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (sendPending) {
-            return;
-          }
-          const formData = new FormData(event.currentTarget);
-          const queryValue = formData.get("query");
-          if (typeof queryValue !== "string") {
-            return;
-          }
-          const query = queryValue.trim();
-          if (!query) {
-            return;
-          }
-          onSendLookup(query);
-          event.currentTarget.reset();
-        }}
-      >
-        <Field>
-          <FieldLabel htmlFor={queryId}>Username, email, or phone</FieldLabel>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <Input
+      {refused && refused.length > 0 ? (
+        <ul className="text-destructive space-y-1 text-sm">
+          {refused.map((item) => (
+            <li key={`${item.name}-${item.message}`}>
+              {item.name}: {item.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {canSend ? (
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (sendPending || selected.length === 0) {
+              return;
+            }
+            onSendUserIds(selected.map((row) => row.id));
+          }}
+        >
+          <Field>
+            <FieldLabel htmlFor={queryId}>
+              {selection === "single" ? "User" : "Users"}
+            </FieldLabel>
+            <LookupUserSelect
               id={queryId}
-              name="query"
-              type="text"
-              required
-              className="flex-1"
-              aria-invalid={queryError ? true : undefined}
-              aria-describedby={queryError ? queryErrorId : undefined}
+              query={searchQuery}
+              onQueryChange={onSearchQueryChange}
+              options={searchResults}
+              selected={selected}
+              onSelectedChange={setSelected}
+              selection={selection}
+              pending={searchPending}
+              disabled={sendPending}
+              error={Boolean(queryError)}
+              describedBy={queryError ? queryErrorId : undefined}
             />
-            <Button type="submit" disabled={sendPending}>
-              {sendPending ? "Sending…" : "Send Lookup invite"}
-            </Button>
-          </div>
-          <FieldError id={queryErrorId}>{queryError}</FieldError>
-        </Field>
-      </form>
+            <FieldError id={queryErrorId}>{queryError}</FieldError>
+          </Field>
+          <Button type="submit" disabled={sendPending || selected.length === 0}>
+            {sendPending ? "Sending…" : "Send Lookup invite"}
+          </Button>
+        </form>
+      ) : null}
       {lookupInvites?.length === 0 ? (
         <p className="text-body text-muted-foreground">
           No unused Lookup invites.
