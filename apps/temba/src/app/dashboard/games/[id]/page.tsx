@@ -346,7 +346,9 @@ export default function GameHomePage({
     { gameId: id },
     {
       enabled: Boolean(
-        data?.isOrganizer && data.format === "friendly_tournament",
+        data?.isOrganizer &&
+          (data.format === "friendly_tournament" ||
+            data.format === "friendly_game"),
       ),
     },
   );
@@ -643,7 +645,8 @@ export default function GameHomePage({
                       {data.isOrganizer &&
                       !data.cancelledAt &&
                       match.status !== "cancelled" &&
-                      data.format === "friendly_tournament" ? (
+                      (data.format === "friendly_tournament" ||
+                        data.format === "friendly_game") ? (
                         <div className="grid gap-3 sm:grid-cols-2">
                           <Field>
                             <FieldLabel htmlFor={`match-${match.id}-court`}>
@@ -651,18 +654,27 @@ export default function GameHomePage({
                             </FieldLabel>
                             <Select
                               value={match.courtId ?? "none"}
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
+                                const courtId = optionalSelectId(value);
+                                if (data.format === "friendly_game") {
+                                  updateMatch.mutate({
+                                    gameId: id,
+                                    matchId: match.id,
+                                    courtId,
+                                  });
+                                  return;
+                                }
                                 updateMatch.mutate({
                                   gameId: id,
                                   matchId: match.id,
                                   startTime: match.startTime,
                                   endTime: match.endTime,
                                   durationInMinutes: match.durationInMinutes,
-                                  courtId: optionalSelectId(value),
+                                  courtId,
                                   slot1GameTeamId: match.slot1GameTeamId,
                                   slot2GameTeamId: match.slot2GameTeamId,
-                                })
-                              }
+                                });
+                              }}
                             >
                               <SelectTrigger id={`match-${match.id}-court`}>
                                 <SelectValue placeholder="Court" />
@@ -677,74 +689,80 @@ export default function GameHomePage({
                               </SelectContent>
                             </Select>
                           </Field>
-                          <Field>
-                            <FieldLabel htmlFor={`match-${match.id}-slot1`}>
-                              Team 1
-                            </FieldLabel>
-                            <Select
-                              value={match.slot1GameTeamId ?? "none"}
-                              onValueChange={(value) =>
-                                updateMatch.mutate({
-                                  gameId: id,
-                                  matchId: match.id,
-                                  startTime: match.startTime,
-                                  endTime: match.endTime,
-                                  durationInMinutes: match.durationInMinutes,
-                                  courtId: match.courtId,
-                                  slot1GameTeamId: optionalSelectId(value),
-                                  slot2GameTeamId: match.slot2GameTeamId,
-                                })
-                              }
-                            >
-                              <SelectTrigger id={`match-${match.id}-slot1`}>
-                                <SelectValue placeholder="Team 1" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">
-                                  Team 1 empty
-                                </SelectItem>
-                                {data.gameTeams.map((side) => (
-                                  <SelectItem key={side.id} value={side.id}>
-                                    {gameTeamLabel(side)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                          <Field>
-                            <FieldLabel htmlFor={`match-${match.id}-slot2`}>
-                              Team 2
-                            </FieldLabel>
-                            <Select
-                              value={match.slot2GameTeamId ?? "none"}
-                              onValueChange={(value) =>
-                                updateMatch.mutate({
-                                  gameId: id,
-                                  matchId: match.id,
-                                  startTime: match.startTime,
-                                  endTime: match.endTime,
-                                  durationInMinutes: match.durationInMinutes,
-                                  courtId: match.courtId,
-                                  slot1GameTeamId: match.slot1GameTeamId,
-                                  slot2GameTeamId: optionalSelectId(value),
-                                })
-                              }
-                            >
-                              <SelectTrigger id={`match-${match.id}-slot2`}>
-                                <SelectValue placeholder="Team 2" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">
-                                  Team 2 empty
-                                </SelectItem>
-                                {data.gameTeams.map((side) => (
-                                  <SelectItem key={side.id} value={side.id}>
-                                    {gameTeamLabel(side)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
+                          {data.format === "friendly_tournament" ? (
+                            <>
+                              <Field>
+                                <FieldLabel htmlFor={`match-${match.id}-slot1`}>
+                                  Team 1
+                                </FieldLabel>
+                                <Select
+                                  value={match.slot1GameTeamId ?? "none"}
+                                  onValueChange={(value) =>
+                                    updateMatch.mutate({
+                                      gameId: id,
+                                      matchId: match.id,
+                                      startTime: match.startTime,
+                                      endTime: match.endTime,
+                                      durationInMinutes:
+                                        match.durationInMinutes,
+                                      courtId: match.courtId,
+                                      slot1GameTeamId: optionalSelectId(value),
+                                      slot2GameTeamId: match.slot2GameTeamId,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger id={`match-${match.id}-slot1`}>
+                                    <SelectValue placeholder="Team 1" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">
+                                      Team 1 empty
+                                    </SelectItem>
+                                    {data.gameTeams.map((side) => (
+                                      <SelectItem key={side.id} value={side.id}>
+                                        {gameTeamLabel(side)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </Field>
+                              <Field>
+                                <FieldLabel htmlFor={`match-${match.id}-slot2`}>
+                                  Team 2
+                                </FieldLabel>
+                                <Select
+                                  value={match.slot2GameTeamId ?? "none"}
+                                  onValueChange={(value) =>
+                                    updateMatch.mutate({
+                                      gameId: id,
+                                      matchId: match.id,
+                                      startTime: match.startTime,
+                                      endTime: match.endTime,
+                                      durationInMinutes:
+                                        match.durationInMinutes,
+                                      courtId: match.courtId,
+                                      slot1GameTeamId: match.slot1GameTeamId,
+                                      slot2GameTeamId: optionalSelectId(value),
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger id={`match-${match.id}-slot2`}>
+                                    <SelectValue placeholder="Team 2" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">
+                                      Team 2 empty
+                                    </SelectItem>
+                                    {data.gameTeams.map((side) => (
+                                      <SelectItem key={side.id} value={side.id}>
+                                        {gameTeamLabel(side)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </Field>
+                            </>
+                          ) : null}
                         </div>
                       ) : null}
                       {data.isOrganizer &&

@@ -55,8 +55,8 @@ import {
   kickWaitlistEntry,
   reopenRegistration,
   updateGameCaps,
+  updateGameMatch,
   updateGameWindow,
-  updateTournamentMatch,
 } from "~/server/games/organize";
 import { listAssignableCourts } from "~/server/games/courts";
 import {
@@ -1616,13 +1616,13 @@ export const gamesRouter = createTRPCRouter({
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await ctx.db.transaction(async (tx) => {
-        await updateTournamentMatch(tx, game, input.matchId, {
-          startTime: input.startTime ?? null,
-          endTime: input.endTime ?? null,
-          durationInMinutes: input.durationInMinutes ?? null,
-          courtId: input.courtId ?? null,
-          slot1GameTeamId: input.slot1GameTeamId ?? null,
-          slot2GameTeamId: input.slot2GameTeamId ?? null,
+        await updateGameMatch(tx, game, input.matchId, {
+          startTime: input.startTime,
+          endTime: input.endTime,
+          durationInMinutes: input.durationInMinutes,
+          courtId: input.courtId,
+          slot1GameTeamId: input.slot1GameTeamId,
+          slot2GameTeamId: input.slot2GameTeamId,
         });
       });
       return { ok: true as const };

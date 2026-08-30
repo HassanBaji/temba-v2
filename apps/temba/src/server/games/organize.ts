@@ -433,3 +433,97 @@ export async function updateTournamentMatch(
     .set({ ...values, updatedAt: new Date() })
     .where(eq(matches.id, match.id));
 }
+
+export type MatchUpdateInput = {
+  startTime?: Date | null;
+  endTime?: Date | null;
+  durationInMinutes?: number | null;
+  courtId?: string | null;
+  slot1GameTeamId?: string | null;
+  slot2GameTeamId?: string | null;
+};
+
+function hasTimesOrSlots(input: MatchUpdateInput) {
+  return (
+    input.startTime !== undefined ||
+    input.endTime !== undefined ||
+    input.durationInMinutes !== undefined ||
+    input.slot1GameTeamId !== undefined ||
+    input.slot2GameTeamId !== undefined
+  );
+}
+
+export async function updateFriendlyGameMatchCourt(
+  database: Tx,
+  game: GameRow,
+  matchId: string,
+  courtId: string | null,
+) {
+  if (game.cancelledAt) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Cannot edit a Match on a cancelled Game",
+    });
+  }
+  if (game.format !== "friendly_game") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Court-only Match edit is for Friendly game",
+    });
+  }
+
+  const match = await database.query.matches.findFirst({
+    where: eq(matches.id, matchId),
+  });
+  if (!match || match.gameId !== game.id) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Match not found",
+    });
+  }
+  if (match.status === MatchStatusEnum.CANCELLED) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Cannot edit a cancelled Match",
+    });
+  }
+  if (courtId) {
+    await assertCourtAssignable(database, game, courtId);
+  }
+  await database
+    .update(matches)
+    .set({ courtId, updatedAt: new Date() })
+    .where(eq(matches.id, match.id));
+}
+
+export async function updateGameMatch(
+  database: Tx,
+  game: GameRow,
+  matchId: string,
+  input: MatchUpdateInput,
+) {
+  if (game.format === "friendly_game") {
+    if (hasTimesOrSlots(input)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Cannot change times or slots on a Friendly game",
+      });
+    }
+    await updateFriendlyGameMatchCourt(
+      database,
+      game,
+      matchId,
+      input.courtId ?? null,
+    );
+    return;
+  }
+
+  await updateTournamentMatch(database, game, matchId, {
+    startTime: input.startTime ?? null,
+    endTime: input.endTime ?? null,
+    durationInMinutes: input.durationInMinutes ?? null,
+    courtId: input.courtId ?? null,
+    slot1GameTeamId: input.slot1GameTeamId ?? null,
+    slot2GameTeamId: input.slot2GameTeamId ?? null,
+  });
+}
