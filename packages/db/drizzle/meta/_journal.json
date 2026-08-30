@@ -162,6 +162,20 @@
       "when": 1788015770012,
       "tag": "0022_user_clerk_id",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788022842095,
+      "tag": "0023_ratings",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788023842658,
+      "tag": "0024_typical_betty_ross",
+      "breakpoints": true
     }
   ]
 }

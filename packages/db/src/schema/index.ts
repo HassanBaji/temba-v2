@@ -1,6 +1,7 @@
 export * from "./account";
 export * from "./session";
 export * from "./user";
+export * from "./ratings";
 export * from "./verification";
 export * from "./venues";
 export * from "./courts";

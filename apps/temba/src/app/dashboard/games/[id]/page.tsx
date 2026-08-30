@@ -191,6 +191,7 @@ export default function GameHomePage({
     await utils.games.byId.invalidate({ id });
     await utils.users.home.invalidate();
     await utils.games.listPublicPickup.invalidate();
+    await utils.ratings.me.invalidate();
   }
 
   const kick = api.games.kick.useMutation({
