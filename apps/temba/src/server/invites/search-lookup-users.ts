@@ -21,6 +21,7 @@ export type LookupUserSearchRow = {
   username: string | null;
   email: string | null;
   phoneNumber: string | null;
+  cue: string | null;
 };
 
 export function classifyLookupQuery(raw: string): ClassifiedLookupQuery {
@@ -68,6 +69,7 @@ export function presentLookupUserRow(
     phoneNumber: string | null;
   },
   classified: ClassifiedLookupQuery,
+  cue: string | null = null,
 ): LookupUserSearchRow {
   return {
     id: row.id,
@@ -75,7 +77,42 @@ export function presentLookupUserRow(
     username: row.username,
     email: classified.emailLike ? row.email : null,
     phoneNumber: classified.phoneLike ? row.phoneNumber : null,
+    cue,
   };
+}
+
+async function queryLookupUsers(
+  database: DbClient,
+  args: {
+    textFilter: ReturnType<typeof lookupUserTextFilter>;
+    excludeUserIds: string[];
+    includeUserIds: string[] | null;
+    limit: number;
+  },
+) {
+  if (args.includeUserIds?.length === 0 || args.limit <= 0) {
+    return [];
+  }
+
+  return database.query.user.findMany({
+    where: and(
+      args.includeUserIds
+        ? inArray(user.id, args.includeUserIds)
+        : args.excludeUserIds.length > 0
+          ? notInArray(user.id, args.excludeUserIds)
+          : undefined,
+      args.textFilter,
+    ),
+    columns: {
+      id: true,
+      name: true,
+      username: true,
+      email: true,
+      phoneNumber: true,
+    },
+    orderBy: (table, { asc }) => [asc(table.name), asc(table.username)],
+    limit: args.limit,
+  });
 }
 
 export async function searchLookupUsers(
@@ -84,6 +121,8 @@ export async function searchLookupUsers(
     query: string;
     excludeUserIds: string[];
     includeUserIds?: string[];
+    boostUserIds?: string[];
+    boostCue?: string;
   },
 ): Promise<LookupUserSearchRow[]> {
   const classified = classifyLookupQuery(args.query);
@@ -99,23 +138,46 @@ export async function searchLookupUsers(
     return [];
   }
 
-  const rows = await database.query.user.findMany({
-    where: and(
-      includeUserIds
-        ? inArray(user.id, includeUserIds)
-        : excludeUserIds.length > 0
-          ? notInArray(user.id, excludeUserIds)
-          : undefined,
+  const boostUserIds = [...new Set(args.boostUserIds ?? [])].filter((id) => {
+    if (excludeUserIds.includes(id)) {
+      return false;
+    }
+    if (includeUserIds && !includeUserIds.includes(id)) {
+      return false;
+    }
+    return true;
+  });
+
+  if (boostUserIds.length > 0) {
+    const boostedRows = await queryLookupUsers(database, {
       textFilter,
-    ),
-    columns: {
-      id: true,
-      name: true,
-      username: true,
-      email: true,
-      phoneNumber: true,
-    },
-    orderBy: (table, { asc }) => [asc(table.name), asc(table.username)],
+      excludeUserIds,
+      includeUserIds: boostUserIds,
+      limit: LOOKUP_USER_SEARCH_LIMIT,
+    });
+    const boosted = boostedRows.map((row) =>
+      presentLookupUserRow(row, classified, args.boostCue ?? null),
+    );
+    const remaining = LOOKUP_USER_SEARCH_LIMIT - boosted.length;
+    if (remaining <= 0) {
+      return boosted;
+    }
+    const otherRows = await queryLookupUsers(database, {
+      textFilter,
+      excludeUserIds: [...excludeUserIds, ...boostUserIds],
+      includeUserIds,
+      limit: remaining,
+    });
+    return [
+      ...boosted,
+      ...otherRows.map((row) => presentLookupUserRow(row, classified)),
+    ];
+  }
+
+  const rows = await queryLookupUsers(database, {
+    textFilter,
+    excludeUserIds,
+    includeUserIds,
     limit: LOOKUP_USER_SEARCH_LIMIT,
   });
 

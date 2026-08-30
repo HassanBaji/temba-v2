@@ -9,6 +9,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
+import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
 import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
@@ -126,6 +127,9 @@ export default function GameHomePage({
     Record<string, { slot1: string; slot2: string }>
   >({});
   const [lookupQuery, setLookupQuery] = React.useState("");
+  const [lookupRefused, setLookupRefused] = React.useState<
+    { name: string; message: string }[] | null
+  >(null);
 
   const registerSelf = api.games.register.useMutation({
     onSuccess: async (result) => {
@@ -354,10 +358,17 @@ export default function GameHomePage({
   });
 
   const sendLookupInvite = api.games.sendLookupInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Lookup invite sent");
-      setLookupQuery("");
+    onSuccess: async (result) => {
+      setLookupRefused(result.refused);
+      if (result.sent.length > 0) {
+        toast.success(
+          result.sent.length === 1
+            ? "Lookup invite sent"
+            : `${result.sent.length} Lookup invites sent`,
+        );
+      }
       await utils.games.listLookupInvites.invalidate({ gameId: id });
+      await utils.games.searchLookupUsers.invalidate({ gameId: id });
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -402,6 +413,16 @@ export default function GameHomePage({
         data?.isOrganizer && data.registrationMode !== "team_only",
       ),
     },
+  );
+  const canSendGameLookup = Boolean(
+    data?.isOrganizer &&
+      data.registrationMode !== "team_only" &&
+      !data.cancelledAt &&
+      !data.joinFrozen,
+  );
+  const lookupSearch = api.games.searchLookupUsers.useQuery(
+    { gameId: id, query: lookupQuery },
+    { enabled: canSendGameLookup },
   );
   const inviteLink = api.games.getInviteLink.useQuery(
     { gameId: id },
@@ -1645,87 +1666,30 @@ export default function GameHomePage({
             {data.isOrganizer &&
             data.registrationMode !== "team_only" &&
             !data.cancelledAt ? (
-              <Card variant="outlined" className="space-y-4">
-                <div>
-                  <h3 className="text-title font-medium">Lookup invite</h3>
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    Existing User only. They accept on Invites. Team-only Games
-                    do not offer Lookup.
-                    {data.joinFrozen
-                      ? " Mint is refused while the Community is Soft-archived."
-                      : ""}
-                  </p>
-                </div>
-                {data.joinFrozen ? null : (
-                  <form
-                    className="flex flex-wrap items-end gap-2"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (sendLookupInvite.isPending) {
-                        return;
-                      }
-                      sendLookupInvite.mutate({
-                        gameId: id,
-                        query: lookupQuery,
-                      });
-                    }}
-                  >
-                    <FormErrorSummary
-                      className="w-full"
-                      message={globalFormErrorMessage(sendLookupInvite.error)}
-                    />
-                    <Field className="min-w-56 flex-1">
-                      <FieldLabel htmlFor="game-lookup-query">User</FieldLabel>
-                      <Input
-                        id="game-lookup-query"
-                        value={lookupQuery}
-                        onChange={(event) => setLookupQuery(event.target.value)}
-                        required
-                        aria-invalid={
-                          fieldErrorMessage(sendLookupInvite.error, "query")
-                            ? true
-                            : undefined
-                        }
-                        aria-describedby={
-                          fieldErrorMessage(sendLookupInvite.error, "query")
-                            ? "game-lookup-query-error"
-                            : undefined
-                        }
-                      />
-                      <FieldError id="game-lookup-query-error">
-                        {fieldErrorMessage(sendLookupInvite.error, "query")}
-                      </FieldError>
-                    </Field>
-                    <Button type="submit" disabled={sendLookupInvite.isPending}>
-                      {sendLookupInvite.isPending
-                        ? "Sending…"
-                        : "Send Lookup invite"}
-                    </Button>
-                  </form>
-                )}
-                {lookupInvites.data && lookupInvites.data.length > 0 ? (
-                  <RowList>
-                    {lookupInvites.data.map((invite) => (
-                      <li
-                        key={invite.id}
-                        className="flex flex-wrap items-center justify-between gap-2 py-2"
-                      >
-                        <p className="text-sm">
-                          {invite.user.name} ({invite.user.email})
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            revokeLookupInvite.mutate({ inviteId: invite.id })
-                          }
-                          disabled={revokeLookupInvite.isPending}
-                        >
-                          Revoke
-                        </Button>
-                      </li>
-                    ))}
-                  </RowList>
-                ) : null}
+              <Card variant="outlined">
+                <LookupInvitePanel
+                  description={
+                    data.joinFrozen
+                      ? "Lookup invite is paused while the Community is Soft-archived."
+                      : "Organizers can search existing Users and send Lookup invites. The invitee accepts on Invites. Team-only Games do not offer Lookup."
+                  }
+                  lookupInvites={lookupInvites.data}
+                  sendPending={sendLookupInvite.isPending}
+                  revokePending={revokeLookupInvite.isPending}
+                  sendError={sendLookupInvite.error}
+                  searchQuery={lookupQuery}
+                  onSearchQueryChange={setLookupQuery}
+                  searchResults={lookupSearch.data}
+                  searchPending={lookupSearch.isFetching}
+                  refused={lookupRefused}
+                  canSend={!data.joinFrozen}
+                  onSendUserIds={(userIds) =>
+                    sendLookupInvite.mutate({ gameId: id, userIds })
+                  }
+                  onRevokeLookup={(inviteId) =>
+                    revokeLookupInvite.mutate({ inviteId })
+                  }
+                />
               </Card>
             ) : null}
 

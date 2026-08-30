@@ -33,6 +33,7 @@ export function LookupInvitePanel({
   searchPending,
   refused,
   selection = "multiple",
+  canSend = true,
   onSendUserIds,
   onRevokeLookup,
 }: {
@@ -47,6 +48,7 @@ export function LookupInvitePanel({
   searchPending?: boolean;
   refused?: { name: string; message: string }[] | null;
   selection?: "multiple" | "single";
+  canSend?: boolean;
   onSendUserIds: (userIds: string[]) => void;
   onRevokeLookup: (inviteId: string) => void;
 }) {
@@ -94,39 +96,41 @@ export function LookupInvitePanel({
           ))}
         </ul>
       ) : null}
-      <form
-        className="space-y-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (sendPending || selected.length === 0) {
-            return;
-          }
-          onSendUserIds(selected.map((row) => row.id));
-        }}
-      >
-        <Field>
-          <FieldLabel htmlFor={queryId}>
-            {selection === "single" ? "User" : "Users"}
-          </FieldLabel>
-          <LookupUserSelect
-            id={queryId}
-            query={searchQuery}
-            onQueryChange={onSearchQueryChange}
-            options={searchResults}
-            selected={selected}
-            onSelectedChange={setSelected}
-            selection={selection}
-            pending={searchPending}
-            disabled={sendPending}
-            error={Boolean(queryError)}
-            describedBy={queryError ? queryErrorId : undefined}
-          />
-          <FieldError id={queryErrorId}>{queryError}</FieldError>
-        </Field>
-        <Button type="submit" disabled={sendPending || selected.length === 0}>
-          {sendPending ? "Sending…" : "Send Lookup invite"}
-        </Button>
-      </form>
+      {canSend ? (
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (sendPending || selected.length === 0) {
+              return;
+            }
+            onSendUserIds(selected.map((row) => row.id));
+          }}
+        >
+          <Field>
+            <FieldLabel htmlFor={queryId}>
+              {selection === "single" ? "User" : "Users"}
+            </FieldLabel>
+            <LookupUserSelect
+              id={queryId}
+              query={searchQuery}
+              onQueryChange={onSearchQueryChange}
+              options={searchResults}
+              selected={selected}
+              onSelectedChange={setSelected}
+              selection={selection}
+              pending={searchPending}
+              disabled={sendPending}
+              error={Boolean(queryError)}
+              describedBy={queryError ? queryErrorId : undefined}
+            />
+            <FieldError id={queryErrorId}>{queryError}</FieldError>
+          </Field>
+          <Button type="submit" disabled={sendPending || selected.length === 0}>
+            {sendPending ? "Sending…" : "Send Lookup invite"}
+          </Button>
+        </form>
+      ) : null}
       {lookupInvites?.length === 0 ? (
         <p className="text-body text-muted-foreground">
           No unused Lookup invites.
