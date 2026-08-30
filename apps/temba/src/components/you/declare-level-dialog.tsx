@@ -20,7 +20,7 @@ import {
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
 import { cn } from "~/lib/utils";
-import { LEVEL_BANDS, type SelfDeclareChoice } from "~/server/ratings/level";
+import { LEVEL_BANDS, type SelfDeclareChoice } from "~/lib/level-bands";
 
 const FIELD_IDS = { choice: "declare-level-choice" };
 
@@ -124,7 +124,8 @@ export function DeclareLevelDialog({
                       variant={selected ? "default" : "outline"}
                       className={cn(
                         "min-h-11",
-                        option.value === UNKNOWN_CHOICE && "col-span-3 sm:col-span-4",
+                        option.value === UNKNOWN_CHOICE &&
+                          "col-span-3 sm:col-span-4",
                       )}
                       disabled={pending}
                       onClick={() => {

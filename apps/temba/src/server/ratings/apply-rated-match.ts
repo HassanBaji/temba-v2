@@ -11,6 +11,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { type GameRow } from "~/server/games/access";
 import {
   glicko2Step,
@@ -49,15 +50,6 @@ type SlotUsers = {
   slot1: [string, string];
   slot2: [string, string];
 };
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
-}
 
 function ratingSportFromGame(sport: GameRow["sport"]): "padel" | "football" {
   return sport === GroupSportEnum.FOOTBALL
