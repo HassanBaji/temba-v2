@@ -810,8 +810,8 @@ export const gamesRouter = createTRPCRouter({
     .input(
       z.object({
         gameId: z.string().uuid(),
-        sideIndex: z.number().int().min(1),
-        position: z.enum(["left", "right"]),
+        sideIndex: z.number().int().min(1).optional(),
+        position: z.enum(["left", "right"]).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -846,13 +846,21 @@ export const gamesRouter = createTRPCRouter({
             message: "You are already registered on this Game",
           });
         }
+        if (input.sideIndex == null || input.position == null) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Pick a vacant Position",
+          });
+        }
+        const leftoverSideIndex = input.sideIndex;
+        const leftoverPosition = input.position;
         await ctx.db.transaction(async (tx) => {
           await occupySeat(
             tx,
             game,
             appUser.id,
-            input.sideIndex,
-            input.position,
+            leftoverSideIndex,
+            leftoverPosition,
             existingPlayer.id,
           );
         });
@@ -871,8 +879,17 @@ export const gamesRouter = createTRPCRouter({
         return { ok: true as const, waitlisted: true as const };
       }
 
+      if (input.sideIndex == null || input.position == null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Pick a vacant Position",
+        });
+      }
+      const sideIndex = input.sideIndex;
+      const position = input.position;
+
       await ctx.db.transaction(async (tx) => {
-        await occupySeat(tx, game, appUser.id, input.sideIndex, input.position);
+        await occupySeat(tx, game, appUser.id, sideIndex, position);
       });
       return { ok: true as const, waitlisted: false as const };
     }),
@@ -979,16 +996,20 @@ export const gamesRouter = createTRPCRouter({
         });
       }
 
-      const userCount = await registeredUserCount(ctx.db, game.id);
-      const full =
-        userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED);
+      const remaining = await remainingCapacity(ctx.db, game);
 
-      if (full) {
+      if (remaining <= 0) {
         await ctx.db.transaction(async (tx) => {
           await enqueueWaitlistUser(tx, game.id, appUser.id);
           await enqueueWaitlistUser(tx, game.id, partner.id);
         });
         return { ok: true as const, waitlisted: true as const };
+      }
+      if (remaining < 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Not enough seats; pick a seat",
+        });
       }
 
       const vacantSide = await firstFullyVacantSideIndex(ctx.db, game);

@@ -1468,6 +1468,24 @@ export default function GameHomePage({
               </Card>
             ) : null}
 
+            {data.canWaitlist &&
+            data.registrationMode === "individual" &&
+            data.format !== "americano" ? (
+              <Card variant="outlined" className="space-y-3">
+                <h3 className="text-title font-medium">Join the waitlist</h3>
+                <p className="text-muted-foreground text-sm">
+                  The Game is full. Join the waitlist alone. You promote into a
+                  vacated Position.
+                </p>
+                <Button
+                  onClick={() => registerSeat.mutate({ gameId: id })}
+                  disabled={registerSeat.isPending}
+                >
+                  {registerSeat.isPending ? "Joining…" : "Join waitlist"}
+                </Button>
+              </Card>
+            ) : null}
+
             {(data.canRegister || data.canWaitlist) &&
             data.registrationMode === "individual" &&
             data.format !== "americano" ? (

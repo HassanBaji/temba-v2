@@ -20,6 +20,7 @@ import {
   userPassesJoinGate,
 } from "~/server/games/access";
 import {
+  firstVacantPosition,
   isIndividualSeatGame,
   occupySeat,
   type SeatPosition,
@@ -318,7 +319,9 @@ export async function leaveRegisteredSeat(
       notRegisteredMessage,
     );
     if (!game.cancelledAt) {
-      await promoteWaitlist(database, game, vacated ?? undefined);
+      const target =
+        vacated ?? (await firstVacantPosition(database, game)) ?? undefined;
+      await promoteWaitlist(database, game, target);
     }
     return;
   }
