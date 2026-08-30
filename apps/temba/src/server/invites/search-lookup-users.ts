@@ -1,4 +1,4 @@
-import { and, ilike, notInArray, or, sql } from "drizzle-orm";
+import { and, ilike, inArray, notInArray, or, sql } from "drizzle-orm";
 
 import { user } from "@repo/db";
 
@@ -83,17 +83,29 @@ export async function searchLookupUsers(
   args: {
     query: string;
     excludeUserIds: string[];
+    includeUserIds?: string[];
   },
 ): Promise<LookupUserSearchRow[]> {
   const classified = classifyLookupQuery(args.query);
   const textFilter = lookupUserTextFilter(classified);
   const excludeUserIds = [...new Set(args.excludeUserIds)];
+  const includeUserIds = args.includeUserIds
+    ? [...new Set(args.includeUserIds)].filter(
+        (id) => !excludeUserIds.includes(id),
+      )
+    : null;
+
+  if (includeUserIds?.length === 0) {
+    return [];
+  }
 
   const rows = await database.query.user.findMany({
     where: and(
-      excludeUserIds.length > 0
-        ? notInArray(user.id, excludeUserIds)
-        : undefined,
+      includeUserIds
+        ? inArray(user.id, includeUserIds)
+        : excludeUserIds.length > 0
+          ? notInArray(user.id, excludeUserIds)
+          : undefined,
       textFilter,
     ),
     columns: {

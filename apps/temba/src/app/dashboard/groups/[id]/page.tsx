@@ -41,12 +41,22 @@ export default function GroupHomePage({
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupRefused, setLookupRefused] = useState<
+    { name: string; message: string }[] | null
+  >(null);
 
   const group = api.groups.byId.useQuery({ id });
 
   const lookupInvites = api.groups.listLookupInvites.useQuery(
     { groupId: id },
     { enabled: Boolean(group.data?.canManageLookupInvites) },
+  );
+  const lookupSearch = api.groups.searchLookupUsers.useQuery(
+    { groupId: id, query: lookupQuery },
+    {
+      enabled: invitesOpen && Boolean(group.data?.canManageLookupInvites),
+    },
   );
 
   const inviteLink = api.groups.getInviteLink.useQuery(
@@ -124,9 +134,17 @@ export default function GroupHomePage({
   });
 
   const sendLookupInvite = api.groups.sendLookupInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Lookup invite sent");
+    onSuccess: async (result) => {
+      setLookupRefused(result.refused);
+      if (result.sent.length > 0) {
+        toast.success(
+          result.sent.length === 1
+            ? "Lookup invite sent"
+            : `${result.sent.length} Lookup invites sent`,
+        );
+      }
       await utils.groups.listLookupInvites.invalidate({ groupId: id });
+      await utils.groups.searchLookupUsers.invalidate({ groupId: id });
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -464,7 +482,13 @@ export default function GroupHomePage({
 
       <GroupInvitesDialog
         open={invitesOpen}
-        onOpenChange={setInvitesOpen}
+        onOpenChange={(next) => {
+          setInvitesOpen(next);
+          if (!next) {
+            setLookupQuery("");
+            setLookupRefused(null);
+          }
+        }}
         restoreFocusRef={menuTriggerRef}
         isLoose={data.isLoose}
         canManageLookupInvites={data.canManageLookupInvites}
@@ -475,8 +499,13 @@ export default function GroupHomePage({
         revokePending={revokeLookupInvite.isPending}
         copyPending={createInviteLink.isPending}
         sendError={sendLookupInvite.error}
-        onSendLookup={(query) =>
-          sendLookupInvite.mutate({ groupId: id, query })
+        searchQuery={lookupQuery}
+        onSearchQueryChange={setLookupQuery}
+        searchResults={lookupSearch.data}
+        searchPending={lookupSearch.isFetching}
+        refused={lookupRefused}
+        onSendLookup={(userIds) =>
+          sendLookupInvite.mutate({ groupId: id, userIds })
         }
         onRevokeLookup={(inviteId) => revokeLookupInvite.mutate({ inviteId })}
         onCopyInviteLink={() => createInviteLink.mutate({ groupId: id })}
