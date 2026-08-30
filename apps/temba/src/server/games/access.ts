@@ -71,7 +71,6 @@ async function clubCommunity(database: DbClient, groupId: string) {
 }
 
 type GroupForOrganize = {
-  id: string;
   communityId: string | null;
   createdBy: string;
 };
@@ -91,8 +90,19 @@ async function isCommunityStaff(
   return isStaffRole(membership?.role);
 }
 
+async function clubCommunityIsArchived(
+  database: DbClient,
+  communityId: string,
+) {
+  const community = await database.query.communities.findFirst({
+    where: eq(communities.id, communityId),
+    columns: { archivedAt: true },
+  });
+  return Boolean(community?.archivedAt);
+}
+
 /** Group creator, or Community Owner/Admin on a Club Group. */
-export async function mayOrganizeGroupGames(
+async function mayOrganizeGroupGames(
   database: DbClient,
   group: GroupForOrganize,
   userId: string,
@@ -111,14 +121,11 @@ export async function mayCreateGameOnGroup(
   group: typeof groups.$inferSelect,
   userId: string,
 ) {
-  if (group.communityId) {
-    const community = await database.query.communities.findFirst({
-      where: eq(communities.id, group.communityId),
-      columns: { archivedAt: true },
-    });
-    if (community?.archivedAt) {
-      return false;
-    }
+  if (
+    group.communityId &&
+    (await clubCommunityIsArchived(database, group.communityId))
+  ) {
+    return false;
   }
 
   return mayOrganizeGroupGames(database, group, userId);
@@ -129,18 +136,15 @@ export async function assertMayCreateGameOnGroup(
   group: typeof groups.$inferSelect,
   userId: string,
 ) {
-  if (group.communityId) {
-    const community = await database.query.communities.findFirst({
-      where: eq(communities.id, group.communityId),
-      columns: { archivedAt: true },
+  if (
+    group.communityId &&
+    (await clubCommunityIsArchived(database, group.communityId))
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Cannot create a Club Group Game while the Community is archived",
     });
-    if (community?.archivedAt) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message:
-          "Cannot create a Club Group Game while the Community is archived",
-      });
-    }
   }
 
   if (await mayOrganizeGroupGames(database, group, userId)) {
@@ -166,7 +170,7 @@ export async function isGameOrganizer(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { id: true, communityId: true, createdBy: true },
+    columns: { communityId: true, createdBy: true },
   });
   if (!group) {
     return false;
