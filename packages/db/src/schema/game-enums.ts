@@ -20,6 +20,8 @@ export const gameRegistrationModes = pgEnum("game_registration_mode", [
   "team_only",
 ]);
 
+export const gamePositions = pgEnum("game_position", ["left", "right"]);
+
 export enum MatchStatusEnum {
   PENDING = "pending",
   CONFIRMED = "confirmed",
@@ -44,4 +46,9 @@ export enum GameFormatEnum {
 export enum GameRegistrationModeEnum {
   INDIVIDUAL = "individual",
   TEAM_ONLY = "team_only",
+}
+
+export enum GamePositionEnum {
+  LEFT = "left",
+  RIGHT = "right",
 }

@@ -57,6 +57,7 @@ import { listAssignableCourts } from "~/server/games/courts";
 import {
   addMatchSet,
   bothSlotsFilled,
+  bothSlottedTeamsComplete,
   completeMatch as markMatchCompleted,
   matchOutcome,
   removeMatchSet,
@@ -71,6 +72,18 @@ import {
   leaveRegisteredSeat,
   leaveWaitlistEntry,
 } from "~/server/games/waitlist";
+import {
+  assertFullyVacantSide,
+  firstFullyVacantSideIndex,
+  insertIndividualPairOnVacantSide,
+  isIndividualSeatGame,
+  listGameSides,
+  moveToSeat,
+  occupySeat,
+  remainingCapacity,
+  sitsOnCompletedMatch,
+  vacantPositionsFromSides,
+} from "~/server/games/seats";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
 import {
   inviteLinkExpiresAt,
@@ -582,6 +595,45 @@ export const gamesRouter = createTRPCRouter({
           .map((row) => row.id),
       );
 
+      const seatedUserIds = new Set(
+        teamRows.flatMap((row) =>
+          row.players.flatMap((link) =>
+            link.gamePlayer.user?.id ? [link.gamePlayer.user.id] : [],
+          ),
+        ),
+      );
+      const isSeated = seatedUserIds.has(appUser.id);
+      const unseatedPlayers = playerRows.flatMap((row) =>
+        row.user && !seatedUserIds.has(row.user.id)
+          ? [{ id: row.user.id, name: row.user.name }]
+          : [],
+      );
+      const sides = isIndividualSeatGame(game)
+        ? await listGameSides(ctx.db, game)
+        : [];
+      const canPickSeat =
+        alreadyOnGame &&
+        !isSeated &&
+        registrationStatus !== "cancelled" &&
+        registrationStatus !== "closed";
+      const hasVacantPosition = sides.some(
+        (side) => side.left == null || side.right == null,
+      );
+      let sitsCompleted = false;
+      if (isSeated) {
+        for (const teamId of myGameTeamIds) {
+          if (await sitsOnCompletedMatch(ctx.db, game.id, teamId)) {
+            sitsCompleted = true;
+            break;
+          }
+        }
+      }
+      const canMove =
+        isSeated &&
+        registrationStatus === "open" &&
+        hasVacantPosition &&
+        !sitsCompleted;
+
       return {
         id: game.id,
         name: game.name,
@@ -602,6 +654,7 @@ export const gamesRouter = createTRPCRouter({
         isOrganizer: organizer,
         joinFrozen: await isClubGroupGameJoinFrozen(ctx.db, game),
         isRegistered: alreadyOnGame,
+        isSeated,
         isWaitlisted,
         registrationStatus,
         canRegister:
@@ -614,6 +667,8 @@ export const gamesRouter = createTRPCRouter({
           passesGate &&
           !alreadyOnGame &&
           !isWaitlisted,
+        canPickSeat,
+        canMove,
         canLeave: alreadyOnGame || isWaitlisted,
         registeredUserCount: userCount,
         registeredTeamCount: teamCount,
@@ -624,61 +679,70 @@ export const gamesRouter = createTRPCRouter({
           createdAt: row.createdAt,
           name: row.user?.name ?? row.team?.name ?? "Waitlisted",
         })),
-        matches: matchRows.map((match) => {
-          const onSides =
-            Boolean(match.slot1GameTeamId) &&
-            Boolean(match.slot2GameTeamId) &&
-            (myGameTeamIds.has(match.slot1GameTeamId ?? "") ||
-              myGameTeamIds.has(match.slot2GameTeamId ?? ""));
-          const frozen =
-            match.status === "completed" || match.status === "cancelled";
-          const canWriteSets =
-            !frozen && game.format !== "americano" && (organizer || onSides);
-          const outcome = matchOutcome(match.sets);
-          return {
-            id: match.id,
-            startTime: match.startTime,
-            endTime: match.endTime,
-            durationInMinutes: match.durationInMinutes,
-            status: match.status,
-            courtId: match.courtId,
-            courtName: match.court?.name ?? null,
-            slot1GameTeamId: match.slot1GameTeamId,
-            slot2GameTeamId: match.slot2GameTeamId,
-            bothSlotsFilled: bothSlotsFilled(match),
-            canAddSet: canWriteSets && (organizer || onSides),
-            canScoreSets:
-              canWriteSets && bothSlotsFilled(match) && (organizer || onSides),
-            canComplete:
-              !frozen &&
-              game.format !== "americano" &&
-              (organizer || onSides) &&
-              match.sets.length > 0 &&
-              outcome.result !== "none",
-            outcome,
-            sets: match.sets.map((set) => ({
-              id: set.id,
-              slot1GamesWon: set.slot1GamesWon,
-              slot2GamesWon: set.slot2GamesWon,
-              wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
-            })),
-          };
-        }),
+        matches: await Promise.all(
+          matchRows.map(async (match) => {
+            const onSides =
+              Boolean(match.slot1GameTeamId) &&
+              Boolean(match.slot2GameTeamId) &&
+              (myGameTeamIds.has(match.slot1GameTeamId ?? "") ||
+                myGameTeamIds.has(match.slot2GameTeamId ?? ""));
+            const frozen =
+              match.status === "completed" || match.status === "cancelled";
+            const canWriteSets =
+              !frozen && game.format !== "americano" && (organizer || onSides);
+            const sidesComplete = await bothSlottedTeamsComplete(ctx.db, match);
+            const outcome = matchOutcome(match.sets);
+            return {
+              id: match.id,
+              startTime: match.startTime,
+              endTime: match.endTime,
+              durationInMinutes: match.durationInMinutes,
+              status: match.status,
+              courtId: match.courtId,
+              courtName: match.court?.name ?? null,
+              slot1GameTeamId: match.slot1GameTeamId,
+              slot2GameTeamId: match.slot2GameTeamId,
+              bothSlotsFilled: bothSlotsFilled(match),
+              bothSidesComplete: sidesComplete,
+              canAddSet: canWriteSets && (organizer || onSides),
+              canScoreSets:
+                canWriteSets && sidesComplete && (organizer || onSides),
+              canComplete:
+                !frozen &&
+                game.format !== "americano" &&
+                (organizer || onSides) &&
+                sidesComplete &&
+                match.sets.length > 0 &&
+                outcome.result !== "none",
+              outcome,
+              sets: match.sets.map((set) => ({
+                id: set.id,
+                slot1GamesWon: set.slot1GamesWon,
+                slot2GamesWon: set.slot2GamesWon,
+                wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
+              })),
+            };
+          }),
+        ),
         gameTeams: teamRows.map((row) => ({
           id: row.id,
           teamId: row.teamId,
           name: row.name,
+          sideIndex: row.sideIndex,
           members: row.players.flatMap((link) =>
             link.gamePlayer.user
               ? [
                   {
                     id: link.gamePlayer.user.id,
                     name: link.gamePlayer.user.name,
+                    position: link.position,
                   },
                 ]
               : [],
           ),
         })),
+        sides,
+        unseatedPlayers,
         registeredPlayers: playerRows.flatMap((row) =>
           row.user
             ? [
@@ -742,11 +806,119 @@ export const gamesRouter = createTRPCRouter({
       return { ok: true as const, waitlisted: false as const };
     }),
 
+  registerSeat: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        sideIndex: z.number().int().min(1),
+        position: z.enum(["left", "right"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const now = new Date();
+
+      if (!isIndividualSeatGame(game)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Pick a seat on an individual Friendly game or tournament",
+        });
+      }
+
+      await assertRegistrationOpen(ctx.db, game, now);
+      await assertUserPassesJoinGate(ctx.db, game, appUser.id);
+
+      const existingPlayer = await ctx.db.query.gamePlayers.findFirst({
+        where: and(
+          eq(gamePlayers.gameId, game.id),
+          eq(gamePlayers.userId, appUser.id),
+        ),
+      });
+      if (existingPlayer) {
+        const seated = await ctx.db.query.gameTeamPlayers.findFirst({
+          where: eq(gameTeamPlayers.gamePlayerId, existingPlayer.id),
+          columns: { id: true },
+        });
+        if (seated) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "You are already registered on this Game",
+          });
+        }
+        await ctx.db.transaction(async (tx) => {
+          await occupySeat(
+            tx,
+            game,
+            appUser.id,
+            input.sideIndex,
+            input.position,
+            existingPlayer.id,
+          );
+        });
+        return { ok: true as const, waitlisted: false as const };
+      }
+
+      if (await userAlreadyWaitlisted(ctx.db, game.id, appUser.id)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already on the waitlist",
+        });
+      }
+
+      if ((await remainingCapacity(ctx.db, game)) <= 0) {
+        await enqueueWaitlistUser(ctx.db, game.id, appUser.id);
+        return { ok: true as const, waitlisted: true as const };
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        await occupySeat(tx, game, appUser.id, input.sideIndex, input.position);
+      });
+      return { ok: true as const, waitlisted: false as const };
+    }),
+
+  moveSeat: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        sideIndex: z.number().int().min(1),
+        position: z.enum(["left", "right"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      const game = await requireGame(ctx.db, input.gameId);
+      const now = new Date();
+
+      if (!isIndividualSeatGame(game)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Move a seat on an individual Friendly game or tournament",
+        });
+      }
+
+      await assertRegistrationOpen(ctx.db, game, now);
+      const status = await getRegistrationStatus(ctx.db, game, now);
+      if (status === "full") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "No vacant Position",
+        });
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        await moveToSeat(tx, game, appUser.id, input.sideIndex, input.position);
+      });
+      return { ok: true as const };
+    }),
+
   registerWithPartner: protectedProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
         partnerQuery: z.string().trim().min(1),
+        sideIndex: z.number().int().min(1).optional(),
+        position: z.enum(["left", "right"]).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -808,13 +980,10 @@ export const gamesRouter = createTRPCRouter({
       }
 
       const userCount = await registeredUserCount(ctx.db, game.id);
-      const teamCount = await registeredGameTeamCount(ctx.db, game.id);
-      const atCap =
-        userCount + 2 > (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED) ||
-        (game.format === "friendly_game" &&
-          teamCount >= FRIENDLY_TEAMS_ALLOWED);
+      const full =
+        userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED);
 
-      if (atCap) {
+      if (full) {
         await ctx.db.transaction(async (tx) => {
           await enqueueWaitlistUser(tx, game.id, appUser.id);
           await enqueueWaitlistUser(tx, game.id, partner.id);
@@ -822,16 +991,31 @@ export const gamesRouter = createTRPCRouter({
         return { ok: true as const, waitlisted: true as const };
       }
 
-      await ctx.db.transaction(async (tx) => {
-        await insertGamePlayersAndTeam({
-          tx,
-          gameId: game.id,
-          userIds: [appUser.id, partner.id],
-          teamId: null,
+      const vacantSide = await firstFullyVacantSideIndex(ctx.db, game);
+      if (vacantSide == null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No fully vacant side; pick a seat",
         });
-        if (game.format === "friendly_game") {
-          await assignFriendlyMatchSlots(tx, game.id);
-        }
+      }
+      if (input.sideIndex == null || input.position == null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Pick a vacant side and your Position",
+        });
+      }
+      const sideIndex = input.sideIndex;
+      const position = input.position;
+      await assertFullyVacantSide(ctx.db, game, sideIndex);
+
+      await ctx.db.transaction(async (tx) => {
+        await insertIndividualPairOnVacantSide(
+          tx,
+          game,
+          [appUser.id, partner.id],
+          sideIndex,
+          position,
+        );
       });
 
       return { ok: true as const, waitlisted: false as const };
@@ -861,7 +1045,7 @@ export const gamesRouter = createTRPCRouter({
       if (game.registrationMode !== "team_only") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "This Game is individual; register with a partner",
+          message: "This Game is individual",
         });
       }
 
@@ -1424,21 +1608,37 @@ export const gamesRouter = createTRPCRouter({
       },
       orderBy: (table, { desc }) => [desc(table.createdAt)],
     });
-    return rows.map((row) => ({
-      id: row.id,
-      gameId: row.gameId,
-      gameName: row.game.name ?? "Untitled Game",
-      invitedBy: {
-        id: row.invitedBy.id,
-        name: row.invitedBy.name,
-        email: row.invitedBy.email,
-      },
-      createdAt: row.createdAt,
-    }));
+    const mapped = [];
+    for (const row of rows) {
+      const game = await requireGame(ctx.db, row.gameId);
+      const needsSeatPick = isIndividualSeatGame(game);
+      mapped.push({
+        id: row.id,
+        gameId: row.gameId,
+        gameName: row.game.name ?? "Untitled Game",
+        invitedBy: {
+          id: row.invitedBy.id,
+          name: row.invitedBy.name,
+          email: row.invitedBy.email,
+        },
+        createdAt: row.createdAt,
+        needsSeatPick,
+        vacantSeats: needsSeatPick
+          ? vacantPositionsFromSides(await listGameSides(ctx.db, game))
+          : [],
+      });
+    }
+    return mapped;
   }),
 
   acceptLookupInvite: protectedProcedure
-    .input(z.object({ inviteId: z.string().uuid() }))
+    .input(
+      z.object({
+        inviteId: z.string().uuid(),
+        sideIndex: z.number().int().min(1).optional(),
+        position: z.enum(["left", "right"]).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
       const invite = await ctx.db.query.gameMemberInvites.findFirst({
@@ -1478,7 +1678,15 @@ export const gamesRouter = createTRPCRouter({
             message: "Lookup invite is no longer available",
           });
         }
-        return admitIndividualUser(tx, game, appUser.id);
+        return admitIndividualUser(
+          tx,
+          game,
+          appUser.id,
+          new Date(),
+          input.sideIndex != null && input.position
+            ? { sideIndex: input.sideIndex, position: input.position }
+            : undefined,
+        );
       });
 
       return {
@@ -1580,14 +1788,26 @@ export const gamesRouter = createTRPCRouter({
       if (game.group?.community?.archivedAt) {
         return { status: "unavailable" as const };
       }
+      const gameRow = await requireGame(ctx.db, game.id);
+      const needsSeatPick = isIndividualSeatGame(gameRow);
       return {
         status: "ready" as const,
         gameName: game.name ?? "Untitled Game",
+        needsSeatPick,
+        vacantSeats: needsSeatPick
+          ? vacantPositionsFromSides(await listGameSides(ctx.db, gameRow))
+          : [],
       };
     }),
 
   acceptInviteLink: protectedProcedure
-    .input(z.object({ token: z.string().min(1).max(64) }))
+    .input(
+      z.object({
+        token: z.string().min(1).max(64),
+        sideIndex: z.number().int().min(1).optional(),
+        position: z.enum(["left", "right"]).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
       const link = await ctx.db.query.gameInviteLinks.findFirst({
@@ -1636,7 +1856,15 @@ export const gamesRouter = createTRPCRouter({
       }
 
       const result = await ctx.db.transaction(async (tx) => {
-        return admitIndividualUser(tx, game, appUser.id);
+        return admitIndividualUser(
+          tx,
+          game,
+          appUser.id,
+          new Date(),
+          input.sideIndex != null && input.position
+            ? { sideIndex: input.sideIndex, position: input.position }
+            : undefined,
+        );
       });
       return {
         gameId: game.id,

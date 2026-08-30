@@ -19,6 +19,12 @@ import {
   registeredUserCount,
   userPassesJoinGate,
 } from "~/server/games/access";
+import {
+  isIndividualSeatGame,
+  occupySeat,
+  type SeatPosition,
+  vacateSeat,
+} from "~/server/games/seats";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -174,11 +180,56 @@ async function teamIsCompleteAndAllowed(
   return members;
 }
 
-export async function promoteWaitlist(database: Tx, game: GameRow) {
+export async function promoteWaitlist(
+  database: Tx,
+  game: GameRow,
+  vacated?: { sideIndex: number; position: SeatPosition },
+) {
   const entries = await database.query.gameWaitlist.findMany({
     where: eq(gameWaitlist.gameId, game.id),
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
   });
+
+  if (isIndividualSeatGame(game)) {
+    if (!vacated) {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.userId) {
+        continue;
+      }
+      const already = await database.query.gamePlayers.findFirst({
+        where: and(
+          eq(gamePlayers.gameId, game.id),
+          eq(gamePlayers.userId, entry.userId),
+        ),
+        columns: { id: true },
+      });
+      if (already) {
+        await database
+          .delete(gameWaitlist)
+          .where(eq(gameWaitlist.id, entry.id));
+        continue;
+      }
+      if (!(await userPassesJoinGate(database, game, entry.userId))) {
+        continue;
+      }
+      const userCount = await registeredUserCount(database, game.id);
+      if (userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)) {
+        break;
+      }
+      await occupySeat(
+        database,
+        game,
+        entry.userId,
+        vacated.sideIndex,
+        vacated.position,
+      );
+      await database.delete(gameWaitlist).where(eq(gameWaitlist.id, entry.id));
+      return;
+    }
+    return;
+  }
 
   for (const entry of entries) {
     if (entry.userId) {
@@ -259,6 +310,19 @@ export async function leaveRegisteredSeat(
   userId: string,
   notRegisteredMessage = "You are not registered on this Game",
 ) {
+  if (isIndividualSeatGame(game)) {
+    const vacated = await vacateSeat(
+      database,
+      game,
+      userId,
+      notRegisteredMessage,
+    );
+    if (!game.cancelledAt) {
+      await promoteWaitlist(database, game, vacated ?? undefined);
+    }
+    return;
+  }
+
   const player = await database.query.gamePlayers.findFirst({
     where: and(eq(gamePlayers.gameId, game.id), eq(gamePlayers.userId, userId)),
   });

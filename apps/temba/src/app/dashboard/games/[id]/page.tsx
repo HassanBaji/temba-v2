@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
+import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
@@ -104,6 +105,39 @@ function slotLabel(
   return side ? gameTeamLabel(side) : "empty";
 }
 
+function matchSeatSides(
+  sides: {
+    sideIndex: number;
+    gameTeamId: string | null;
+    left: { userId: string; name: string } | null;
+    right: { userId: string; name: string } | null;
+  }[],
+  slot1GameTeamId: string | null,
+  slot2GameTeamId: string | null,
+) {
+  function fromSlot(
+    gameTeamId: string | null,
+    index: number,
+  ): {
+    sideIndex: number;
+    gameTeamId: string | null;
+    left: { userId: string; name: string } | null;
+    right: { userId: string; name: string } | null;
+  } {
+    const found = sides.find((side) => side.gameTeamId === gameTeamId);
+    if (found) {
+      return { ...found, sideIndex: index };
+    }
+    return {
+      sideIndex: index,
+      gameTeamId,
+      left: null,
+      right: null,
+    };
+  }
+  return [fromSlot(slot1GameTeamId, 1), fromSlot(slot2GameTeamId, 2)];
+}
+
 export default function GameHomePage({
   params,
 }: {
@@ -114,6 +148,10 @@ export default function GameHomePage({
   const game = api.games.byId.useQuery({ id });
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
+  const [partnerSide, setPartnerSide] = React.useState("");
+  const [partnerPosition, setPartnerPosition] = React.useState<
+    "left" | "right"
+  >("left");
   const [teamId, setTeamId] = React.useState<string>("");
   const [windowStart, setWindowStart] = React.useState("");
   const [windowEnd, setWindowEnd] = React.useState("");
@@ -141,10 +179,34 @@ export default function GameHomePage({
     },
   });
 
+  const registerSeat = api.games.registerSeat.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      await utils.games.byId.invalidate({ id });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const moveSeat = api.games.moveSeat.useMutation({
+    onSuccess: async () => {
+      toast.success("Moved");
+      await utils.games.byId.invalidate({ id });
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
       setPartnerQuery("");
+      setPartnerSide("");
+      setPartnerPosition("left");
       await utils.games.byId.invalidate({ id });
       await utils.users.home.invalidate();
     },
@@ -624,6 +686,9 @@ export default function GameHomePage({
                         />
                         <FieldDescription>
                           Multiple of 4, not below the current registered count.
+                          {data.format === "friendly_tournament"
+                            ? " Lowering is refused if a seated side would be above the new N. Empty high-index placeholders may disappear."
+                            : null}
                         </FieldDescription>
                       </Field>
                     )}
@@ -666,6 +731,29 @@ export default function GameHomePage({
                           : " · no Court"}
                         {` · slot 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · slot 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
                       </p>
+                      {data.registrationMode === "individual" &&
+                      data.format !== "americano" ? (
+                        <GameSeatGrid
+                          sides={matchSeatSides(
+                            data.sides,
+                            match.slot1GameTeamId,
+                            match.slot2GameTeamId,
+                          )}
+                          canJoinVacant={false}
+                          joinLabel="Sit here"
+                          joining={false}
+                          canMove={false}
+                          moving={false}
+                          isOrganizer={false}
+                          cancelled={Boolean(data.cancelledAt)}
+                          kickPending={false}
+                          onJoin={() => undefined}
+                          onMove={() => undefined}
+                          onKick={() => undefined}
+                          sideNoun="Slot"
+                          readOnly
+                        />
+                      ) : null}
                       {data.isOrganizer &&
                       !data.cancelledAt &&
                       match.status !== "cancelled" &&
@@ -966,11 +1054,13 @@ export default function GameHomePage({
                               </Button>
                             ) : null}
                           </div>
-                          {!match.bothSlotsFilled &&
+                          {(!match.bothSidesComplete ||
+                            !match.bothSlotsFilled) &&
                           match.status !== "completed" ? (
                             <p className="text-muted-foreground text-sm">
-                              Scoring is frozen until both slots have Game
-                              teams.
+                              Scoring is frozen until both slots have complete
+                              Game teams (two Positions). Set shells can still
+                              be added.
                             </p>
                           ) : null}
                         </div>
@@ -1114,10 +1204,106 @@ export default function GameHomePage({
             </Section>
 
             <Section
-              title={data.format === "americano" ? "Player pool" : "Registered"}
+              title={
+                data.format === "americano"
+                  ? "Player pool"
+                  : data.registrationMode === "individual"
+                    ? "Sides"
+                    : "Registered"
+              }
             >
-              {data.gameTeams.length === 0 &&
-              data.registeredPlayers.length === 0 ? (
+              {data.registrationMode === "individual" &&
+              data.format !== "americano" ? (
+                <div className="space-y-4">
+                  <GameSeatGrid
+                    sides={data.sides}
+                    canJoinVacant={
+                      data.canRegister || data.canWaitlist || data.canPickSeat
+                    }
+                    joinLabel={
+                      data.canWaitlist && !data.canPickSeat
+                        ? "Join waitlist"
+                        : "Sit here"
+                    }
+                    joining={registerSeat.isPending}
+                    canMove={data.canMove}
+                    moving={moveSeat.isPending}
+                    isOrganizer={data.isOrganizer}
+                    cancelled={Boolean(data.cancelledAt)}
+                    kickPending={kick.isPending}
+                    onJoin={(sideIndex, position) =>
+                      registerSeat.mutate({
+                        gameId: id,
+                        sideIndex,
+                        position,
+                      })
+                    }
+                    onMove={(sideIndex, position) =>
+                      moveSeat.mutate({
+                        gameId: id,
+                        sideIndex,
+                        position,
+                      })
+                    }
+                    onKick={(userId) =>
+                      kick.mutate({
+                        gameId: id,
+                        userId,
+                      })
+                    }
+                    sideNoun={
+                      data.format === "friendly_tournament" ? "Side" : "Slot"
+                    }
+                  />
+                  {data.canPickSeat ? (
+                    <p className="text-muted-foreground text-sm">
+                      Pick a vacant Position to occupy a side.
+                    </p>
+                  ) : null}
+                  {data.unseatedPlayers.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-sm">
+                        These Users must pick a vacant Position before they
+                        occupy a side.
+                      </p>
+                      <RowList>
+                        {data.unseatedPlayers.map((player) => (
+                          <li
+                            key={player.id}
+                            className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
+                          >
+                            <p className="text-foreground font-medium">
+                              {player.name}
+                            </p>
+                            {data.isOrganizer && !data.cancelledAt ? (
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  kick.mutate({
+                                    gameId: id,
+                                    userId: player.id,
+                                  })
+                                }
+                                disabled={kick.isPending}
+                              >
+                                Kick
+                              </Button>
+                            ) : null}
+                          </li>
+                        ))}
+                      </RowList>
+                    </div>
+                  ) : null}
+                  {data.sides.every(
+                    (side) => side.left == null && side.right == null,
+                  ) && data.unseatedPlayers.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">
+                      Nobody is seated yet. Pick a vacant Position.
+                    </p>
+                  ) : null}
+                </div>
+              ) : data.gameTeams.length === 0 &&
+                data.registeredPlayers.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   Nobody is registered yet.
                 </p>
@@ -1293,9 +1479,30 @@ export default function GameHomePage({
                     if (registerWithPartner.isPending) {
                       return;
                     }
+                    const vacantSides = data.sides.filter(
+                      (side) => side.left == null && side.right == null,
+                    );
+                    if (data.canWaitlist) {
+                      registerWithPartner.mutate({
+                        gameId: id,
+                        partnerQuery,
+                      });
+                      return;
+                    }
+                    if (vacantSides.length === 0) {
+                      toast.error("No fully vacant side; pick a seat");
+                      return;
+                    }
+                    const sideIndex = Number(partnerSide);
+                    if (!Number.isInteger(sideIndex) || sideIndex < 1) {
+                      toast.error("Pick a vacant side and your Position");
+                      return;
+                    }
                     registerWithPartner.mutate({
                       gameId: id,
                       partnerQuery,
+                      sideIndex,
+                      position: partnerPosition,
                     });
                   }}
                 >
@@ -1304,10 +1511,73 @@ export default function GameHomePage({
                       ? "Join waitlist with a partner"
                       : "Register with a partner"}
                   </h3>
+                  <p className="text-muted-foreground text-sm">
+                    {data.canWaitlist
+                      ? "The Game is full. You both join the waitlist as separate rows and each promote alone."
+                      : data.sides.every(
+                            (side) => side.left != null || side.right != null,
+                          )
+                        ? "No fully vacant side. Pick a vacant Position instead."
+                        : "Take one fully vacant side. You pick left or right; your partner gets the other."}
+                  </p>
                   <FormErrorSummary
                     message={globalFormErrorMessage(registerWithPartner.error)}
                   />
                   <FieldGroup>
+                    {data.canWaitlist ? null : (
+                      <>
+                        <Field>
+                          <FieldLabel htmlFor="partner-side">Side</FieldLabel>
+                          <Select
+                            value={partnerSide}
+                            onValueChange={setPartnerSide}
+                          >
+                            <SelectTrigger id="partner-side">
+                              <SelectValue placeholder="Vacant side" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {data.sides
+                                .filter(
+                                  (side) =>
+                                    side.left == null && side.right == null,
+                                )
+                                .map((side) => (
+                                  <SelectItem
+                                    key={side.sideIndex}
+                                    value={String(side.sideIndex)}
+                                  >
+                                    {data.format === "friendly_game"
+                                      ? `Slot ${side.sideIndex}`
+                                      : `Side ${side.sideIndex}`}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <FieldDescription>
+                            Refused if that side already has anyone.
+                          </FieldDescription>
+                        </Field>
+                        <Field>
+                          <FieldLabel htmlFor="partner-position">
+                            Your Position
+                          </FieldLabel>
+                          <Select
+                            value={partnerPosition}
+                            onValueChange={(value) =>
+                              setPartnerPosition(value as "left" | "right")
+                            }
+                          >
+                            <SelectTrigger id="partner-position">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="left">Left</SelectItem>
+                              <SelectItem value="right">Right</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      </>
+                    )}
                     <Field>
                       <FieldLabel htmlFor="partner-query">Partner</FieldLabel>
                       <Input
@@ -1348,11 +1618,19 @@ export default function GameHomePage({
                   </FieldGroup>
                   <Button
                     type="submit"
-                    disabled={registerWithPartner.isPending}
+                    disabled={
+                      registerWithPartner.isPending ||
+                      (data.canRegister &&
+                        data.sides.every(
+                          (side) => side.left != null || side.right != null,
+                        ))
+                    }
                   >
                     {registerWithPartner.isPending
                       ? "Registering…"
-                      : "Register"}
+                      : data.canWaitlist
+                        ? "Join waitlist"
+                        : "Register"}
                   </Button>
                 </form>
               </Card>

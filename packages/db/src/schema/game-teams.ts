@@ -1,4 +1,5 @@
 import {
+  integer,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -23,6 +24,7 @@ export const gameTeams = pgTable(
       onDelete: "set null",
     }),
     name: varchar("name", { length: 255 }),
+    sideIndex: integer("side_index"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -30,6 +32,9 @@ export const gameTeams = pgTable(
     uniqueLiveTeam: uniqueIndex("game_teams_game_id_team_id_unique")
       .on(table.gameId, table.teamId)
       .where(sql`${table.teamId} is not null`),
+    uniqueLiveSide: uniqueIndex("game_teams_game_id_side_index_unique")
+      .on(table.gameId, table.sideIndex)
+      .where(sql`${table.sideIndex} is not null`),
   }),
 );
 

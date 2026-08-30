@@ -351,9 +351,6 @@ export async function getRegistrationStatus(
   if (userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)) {
     return "full";
   }
-  if (game.format === "friendly_game" && teamCount >= FRIENDLY_TEAMS_ALLOWED) {
-    return "full";
-  }
   return "open";
 }
 

@@ -176,6 +176,13 @@
       "when": 1788023842658,
       "tag": "0024_typical_betty_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788023843658,
+      "tag": "0025_familiar_meltdown",
+      "breakpoints": true
     }
   ]
 }
