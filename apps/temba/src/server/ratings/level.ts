@@ -1,26 +1,25 @@
+import { RATING_LEVEL_BAND_VALUES } from "@repo/db";
+
+import {
+  LEVEL_BANDS,
+  type LevelBand,
+  type SelfDeclareChoice,
+} from "~/lib/level-bands";
+
+export {
+  LEVEL_BANDS,
+  SELF_DECLARE_CHOICES,
+  type LevelBand,
+  type SelfDeclareChoice,
+} from "~/lib/level-bands";
+
 export const INITIAL_MU = 1500;
 export const INITIAL_PHI = 350;
 export const INITIAL_SIGMA = 0.06;
 export const PROVISIONAL_PHI_THRESHOLD = 200;
 
-export const LEVEL_BANDS = [
-  "D3",
-  "D2",
-  "D1",
-  "C3",
-  "C2",
-  "C1",
-  "B3",
-  "B2",
-  "B1",
-  "A",
-] as const;
-
-export type LevelBand = (typeof LEVEL_BANDS)[number];
-
-export type SelfDeclareChoice = LevelBand | "unknown";
-
-export const SELF_DECLARE_CHOICES = [...LEVEL_BANDS, "unknown"] as const;
+const _levelBandsMatchSchema: typeof LEVEL_BANDS = RATING_LEVEL_BAND_VALUES;
+void _levelBandsMatchSchema;
 
 /** Band midpoints (continuous Level) for a self-declared Level band. */
 export const BAND_MIDPOINTS: Record<LevelBand, number> = {

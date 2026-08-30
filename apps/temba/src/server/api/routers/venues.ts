@@ -11,6 +11,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { createTRPCRouter, operatorProcedure } from "~/server/api/trpc";
 import {
@@ -36,15 +37,6 @@ function coordToDecimal(value: number | null | undefined): string | null {
     return null;
   }
   return String(value);
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
 }
 
 async function venueIdentityTaken(

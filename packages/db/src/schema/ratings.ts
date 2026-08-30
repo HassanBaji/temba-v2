@@ -12,7 +12,7 @@ import { groupSports } from "./group-enums";
 import { matches } from "./matches";
 import { user } from "./user";
 
-export const ratingLevelBands = pgEnum("rating_level_band", [
+export const RATING_LEVEL_BAND_VALUES = [
   "D3",
   "D2",
   "D1",
@@ -23,7 +23,12 @@ export const ratingLevelBands = pgEnum("rating_level_band", [
   "B2",
   "B1",
   "A",
-]);
+] as const;
+
+export const ratingLevelBands = pgEnum(
+  "rating_level_band",
+  RATING_LEVEL_BAND_VALUES,
+);
 
 export enum RatingLevelBandEnum {
   D3 = "D3",

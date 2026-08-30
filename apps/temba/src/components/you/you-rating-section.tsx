@@ -15,7 +15,7 @@ import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { DeclareLevelDialog } from "~/components/you/declare-level-dialog";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { type SelfDeclareChoice } from "~/server/ratings/level";
+import { type SelfDeclareChoice } from "~/lib/level-bands";
 import { api } from "~/trpc/react";
 
 function YouLevelSkeleton() {
