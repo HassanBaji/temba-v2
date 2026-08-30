@@ -18,12 +18,9 @@ import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
-import {
-  GameRegistrationModeBadge,
-  GameRegistrationStatusBadge,
-} from "~/components/temba/typed-labels";
-import { Card } from "~/components/ui/card";
+import { GameRegistrationStatusBadge } from "~/components/temba/typed-labels";
 import { Badge } from "~/components/ui/badge";
+import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -48,7 +45,11 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import { parseRequiredGameWindow, splitGameWindow } from "~/lib/game-window";
+import {
+  formatGameWindowName,
+  parseRequiredGameWindow,
+  splitGameWindow,
+} from "~/lib/game-window";
 
 function formatWhen(value: Date | string | null | undefined) {
   if (!value) {
@@ -482,12 +483,6 @@ export default function GameHomePage({
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <GameRegistrationModeBadge mode={data.registrationMode} />
-                  {data.isPublic ? (
-                    <Badge variant="outline">Public</Badge>
-                  ) : (
-                    <Badge variant="outline">Not public</Badge>
-                  )}
                   <GameRegistrationStatusBadge
                     status={data.registrationStatus}
                   />
@@ -523,7 +518,7 @@ export default function GameHomePage({
               <Card variant="outlined" className="space-y-4">
                 <h3 className="text-title font-medium">Organizer</h3>
                 <p className="text-muted-foreground text-sm">
-                  Format, public, registration mode, and Venue cannot change.
+                  Venue cannot change.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {data.registrationClosedAt ? (
@@ -578,6 +573,11 @@ export default function GameHomePage({
                     }
                     updateWindow.mutate({
                       gameId: id,
+                      name: formatGameWindowName(
+                        windowDay,
+                        windowStartTime,
+                        windowFinishTime,
+                      ),
                       windowStart: gameWindow.windowStart,
                       windowEnd: gameWindow.windowEnd,
                     });

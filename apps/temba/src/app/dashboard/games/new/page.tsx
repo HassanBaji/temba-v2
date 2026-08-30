@@ -9,7 +9,6 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { Checkbox } from "~/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
@@ -18,7 +17,6 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -26,7 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { parseRequiredGameWindow } from "~/lib/game-window";
+import {
+  formatDateInputValue,
+  formatGameWindowName,
+  parseRequiredGameWindow,
+} from "~/lib/game-window";
 import { api } from "~/trpc/react";
 import {
   fieldErrorMessage,
@@ -34,8 +36,6 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-
-type RegistrationMode = "individual" | "team_only";
 
 function venueOptionLabel(venue: {
   name: string;
@@ -68,11 +68,7 @@ function NewGameForm() {
   const groupId = searchParams.get("groupId") ?? undefined;
 
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const [name, setName] = React.useState("");
-  const [isPublic, setIsPublic] = React.useState(false);
-  const [registrationMode, setRegistrationMode] =
-    React.useState<RegistrationMode>("individual");
-  const [day, setDay] = React.useState("");
+  const [day, setDay] = React.useState(() => formatDateInputValue(new Date()));
   const [startTime, setStartTime] = React.useState("");
   const [finishTime, setFinishTime] = React.useState("");
   const [venueId, setVenueId] = React.useState("");
@@ -114,7 +110,6 @@ function NewGameForm() {
       focusFormFailure(
         error,
         {
-          name: "game-name",
           venueId: "game-venue",
           courtId: "game-court",
           windowStart: "game-window-start",
@@ -138,11 +133,11 @@ function NewGameForm() {
       return;
     }
     createGame.mutate({
-      name: name.trim().length > 0 ? name.trim() : undefined,
+      name: formatGameWindowName(day, startTime, finishTime),
       groupId,
-      isPublic,
+      isPublic: false,
       format: "friendly_game",
-      registrationMode,
+      registrationMode: "individual",
       windowStart: gameWindow.windowStart,
       windowEnd: gameWindow.windowEnd,
       venueId,
@@ -172,26 +167,6 @@ function NewGameForm() {
             }
           />
           <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="game-name">Name (optional)</FieldLabel>
-              <Input
-                id="game-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                aria-invalid={
-                  fieldErrorMessage(createGame.error, "name") ? true : undefined
-                }
-                aria-describedby={
-                  fieldErrorMessage(createGame.error, "name")
-                    ? "game-name-error"
-                    : undefined
-                }
-              />
-              <FieldError id="game-name-error">
-                {fieldErrorMessage(createGame.error, "name")}
-              </FieldError>
-            </Field>
-
             <Field>
               <FieldLabel htmlFor="game-venue">Venue</FieldLabel>
               <Select
@@ -268,43 +243,6 @@ function NewGameForm() {
               <FieldError id="game-court-error">
                 {fieldErrorMessage(createGame.error, "courtId")}
               </FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="game-mode">Registration</FieldLabel>
-              <Select
-                value={registrationMode}
-                onValueChange={(value) =>
-                  setRegistrationMode(value as RegistrationMode)
-                }
-              >
-                <SelectTrigger id="game-mode">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="individual">Individual</SelectItem>
-                  <SelectItem value="team_only">
-                    Team-only (complete Team)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldDescription>
-                Individual seats 4 players; Team-only seats 2 Teams. Public flag
-                and this mode cannot change after create.
-              </FieldDescription>
-            </Field>
-
-            <Field>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="game-public"
-                  checked={isPublic}
-                  onCheckedChange={(checked) => setIsPublic(checked === true)}
-                />
-                <FieldLabel htmlFor="game-public" className="font-normal">
-                  Public (anyone signed in can register)
-                </FieldLabel>
-              </div>
             </Field>
 
             <GameWindowFields
