@@ -11,6 +11,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
+import type { LookupUserOption } from "~/components/invites/lookup-user-select";
 
 type LookupInvite = {
   id: string;
@@ -29,6 +30,11 @@ export function CommunityInvitesDialog({
   revokePending,
   copyPending,
   sendError,
+  searchQuery,
+  onSearchQueryChange,
+  searchResults,
+  searchPending,
+  refused,
   onSendLookup,
   onRevokeLookup,
   onCopyInviteLink,
@@ -44,7 +50,12 @@ export function CommunityInvitesDialog({
   revokePending: boolean;
   copyPending: boolean;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
-  onSendLookup: (query: string) => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
+  searchResults: LookupUserOption[] | undefined;
+  searchPending?: boolean;
+  refused?: { name: string; message: string }[] | null;
+  onSendLookup: (userIds: string[]) => void;
   onRevokeLookup: (inviteId: string) => void;
   onCopyInviteLink: () => void;
 }) {
@@ -61,12 +72,17 @@ export function CommunityInvitesDialog({
         <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
           {canManageLookupInvites ? (
             <LookupInvitePanel
-              description="Owner and Admin can look up an existing User by username, email, or phone and send a Lookup invite. The invitee accepts on Invites. Lookup invites do not expire."
+              description="Owner and Admin can search existing Users and send Lookup invites. The invitee accepts on Invites. Lookup invites do not expire."
               lookupInvites={lookupInvites}
               sendPending={sendPending}
               revokePending={revokePending}
               sendError={sendError}
-              onSendLookup={onSendLookup}
+              searchQuery={searchQuery}
+              onSearchQueryChange={onSearchQueryChange}
+              searchResults={searchResults}
+              searchPending={searchPending}
+              refused={refused}
+              onSendUserIds={onSendLookup}
               onRevokeLookup={onRevokeLookup}
             />
           ) : null}
