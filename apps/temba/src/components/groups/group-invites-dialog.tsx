@@ -79,7 +79,6 @@ export function GroupInvitesDialog({
 
           {canManageInviteLinks ? (
             <InviteLinkPanel
-              description="Each copy mints a new 6-hour token. Older copied URLs stay live until each expires. There is no rotate or revoke. Distinct from the Group URL."
               inviteUrl={inviteUrl}
               copyPending={copyPending}
               onCopy={onCopyInviteLink}
