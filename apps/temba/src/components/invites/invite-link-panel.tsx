@@ -13,9 +13,10 @@ export function InviteLinkPanel({
   onCopy: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="flex items-center gap-3">
       <Button
         type="button"
+        className="shrink-0"
         onClick={() => {
           if (copyPending) {
             return;
@@ -30,7 +31,7 @@ export function InviteLinkPanel({
         readOnly
         value={inviteUrl ?? ""}
         aria-label="Invite link"
-        className="flex-1"
+        className="min-w-0 flex-1"
       />
     </div>
   );
