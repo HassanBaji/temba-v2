@@ -693,10 +693,7 @@ export default function GameHomePage({
                         {match.courtName
                           ? ` · ${match.courtName}`
                           : " · no Court"}
-                        {data.format === "friendly_game" &&
-                        data.registrationMode === "individual"
-                          ? null
-                          : ` · Team 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · Team 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
+                        {` · Team 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · Team 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
                       </p>
                       {data.isOrganizer &&
                       !data.cancelledAt &&
