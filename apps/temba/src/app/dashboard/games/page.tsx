@@ -7,6 +7,7 @@ import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { RowList } from "~/components/common/row-list";
+import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Section } from "~/components/layout/section";
@@ -15,15 +16,18 @@ import { api } from "~/trpc/react";
 
 export default function GamesHubPage() {
   const pickup = api.games.listPublicPickup.useQuery();
+  const { hasCreateAccess } = useCreateAccess();
 
   return (
     <DashboardShell
       title="Games"
       description="Public pickup Games, and a groupless Friendly game you organize."
       action={
-        <Button asChild>
-          <Link href="/dashboard/games/new">Create Game</Link>
-        </Button>
+        hasCreateAccess ? (
+          <Button asChild>
+            <Link href="/dashboard/games/new">Create Game</Link>
+          </Button>
+        ) : undefined
       }
     >
       {pickup.isLoading ? <ListPageSkeleton rows={4} /> : null}
