@@ -1095,6 +1095,12 @@ export const gamesRouter = createTRPCRouter({
         appUser.id,
       );
 
+      // Groupless non-public: only the organizer passes the join gate, and
+      // the organizer is already excluded as self.
+      if (!game.isPublic && !game.groupId) {
+        return [];
+      }
+
       return searchUsersForGamePicker(ctx.db, game, {
         query: input.query,
         excludeUserIds,
