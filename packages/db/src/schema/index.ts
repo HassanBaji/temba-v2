@@ -9,6 +9,7 @@ export * from "./coach";
 export * from "./coaching-session";
 export * from "./game-enums";
 export * from "./games";
+export * from "./game-courts";
 export * from "./matches";
 export * from "./game-players";
 export * from "./game-teams";

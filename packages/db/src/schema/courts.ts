@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { venues } from "./venues";
+import { gameCourts } from "./game-courts";
 import { matches } from "./matches";
 
 /**
@@ -40,4 +41,5 @@ export const courtRelations = relations(courts, ({ one, many }) => ({
     references: [venues.id],
   }),
   matches: many(matches),
+  gameCourts: many(gameCourts),
 }));
