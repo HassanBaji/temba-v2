@@ -82,8 +82,7 @@ export function GameSeatGrid({
   onJoin,
   onMove,
   onKick,
-  sideNoun = "Slot",
-  readOnly = false,
+  sideNoun = "Team",
 }: {
   sides: SeatSideView[];
   canJoinVacant: boolean;
@@ -98,7 +97,6 @@ export function GameSeatGrid({
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onKick: (userId: string) => void;
   sideNoun?: string;
-  readOnly?: boolean;
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -111,12 +109,12 @@ export function GameSeatGrid({
             <SeatCell
               label="Left"
               occupant={side.left}
-              canJoin={!readOnly && canJoinVacant && !cancelled}
+              canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}
               joining={joining}
-              canMove={!readOnly && canMove && !cancelled}
+              canMove={canMove && !cancelled}
               moving={moving}
-              isOrganizer={!readOnly && isOrganizer && !cancelled}
+              isOrganizer={isOrganizer && !cancelled}
               kickPending={kickPending}
               onJoin={() => onJoin(side.sideIndex, "left")}
               onMove={() => onMove(side.sideIndex, "left")}
@@ -125,12 +123,12 @@ export function GameSeatGrid({
             <SeatCell
               label="Right"
               occupant={side.right}
-              canJoin={!readOnly && canJoinVacant && !cancelled}
+              canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}
               joining={joining}
-              canMove={!readOnly && canMove && !cancelled}
+              canMove={canMove && !cancelled}
               moving={moving}
-              isOrganizer={!readOnly && isOrganizer && !cancelled}
+              isOrganizer={isOrganizer && !cancelled}
               kickPending={kickPending}
               onJoin={() => onJoin(side.sideIndex, "right")}
               onMove={() => onMove(side.sideIndex, "right")}
