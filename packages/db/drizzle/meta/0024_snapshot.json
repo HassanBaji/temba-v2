@@ -1,6 +1,6 @@
 {
-  "id": "540c1ef6-02b4-4983-851b-68fd814107f0",
-  "prevId": "3ce25dc6-5fac-4e4c-8456-21177b41e9af",
+  "id": "fd0bd51e-866e-4010-83bf-838608f7eefe",
+  "prevId": "540c1ef6-02b4-4983-851b-68fd814107f0",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -329,6 +329,136 @@
           "nullsNotDistinct": false,
           "columns": [
             "phone_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rating_events": {
+      "name": "rating_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sport": {
+          "name": "sport",
+          "type": "group_sport",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome_score": {
+          "name": "outcome_score",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight": {
+          "name": "weight",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mu_before": {
+          "name": "mu_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phi_before": {
+          "name": "phi_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sigma_before": {
+          "name": "sigma_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mu_after": {
+          "name": "mu_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phi_after": {
+          "name": "phi_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sigma_after": {
+          "name": "sigma_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rating_events_user_id_user_id_fk": {
+          "name": "rating_events_user_id_user_id_fk",
+          "tableFrom": "rating_events",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "rating_events_match_id_matches_id_fk": {
+          "name": "rating_events_match_id_matches_id_fk",
+          "tableFrom": "rating_events",
+          "tableTo": "matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rating_events_user_id_match_id_unique": {
+          "name": "rating_events_user_id_match_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "match_id"
           ]
         }
       },

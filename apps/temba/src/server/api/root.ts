@@ -1,6 +1,7 @@
 import { communitiesRouter } from "~/server/api/routers/communities";
 import { gamesRouter } from "~/server/api/routers/games";
 import { groupsRouter } from "~/server/api/routers/groups";
+import { ratingsRouter } from "~/server/api/routers/ratings";
 import { teamsRouter } from "~/server/api/routers/teams";
 import { usersRouter } from "~/server/api/routers/users";
 import { venuesRouter } from "~/server/api/routers/venues";
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   communities: communitiesRouter,
   games: gamesRouter,
   groups: groupsRouter,
+  ratings: ratingsRouter,
   teams: teamsRouter,
   users: usersRouter,
   venues: venuesRouter,

@@ -10,6 +10,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
+import { YouRatingSection } from "~/components/you/you-rating-section";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 
 function YouPageSkeleton({ showOperator }: { showOperator: boolean }) {
@@ -66,6 +67,8 @@ export default function YouPage() {
           </div>
           <UserButton />
         </div>
+
+        <YouRatingSection />
 
         <RowList>
           <ListRow
