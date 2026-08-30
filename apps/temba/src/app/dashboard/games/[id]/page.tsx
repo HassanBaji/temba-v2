@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
+import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
@@ -1790,30 +1791,12 @@ export default function GameHomePage({
             ) : null}
 
             {data.isOrganizer && !data.cancelledAt && !data.joinFrozen ? (
-              <Card variant="outlined" className="space-y-4">
-                <div>
-                  <h3 className="text-title font-medium">Invite link</h3>
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    Each copy mints a new 6-hour token. Older copied URLs stay
-                    live until each expires. There is no rotate or revoke.
-                    Team-only links need both partners to accept.
-                  </p>
-                </div>
-                {inviteLink.data ? (
-                  <p className="text-muted-foreground break-all text-sm">
-                    Newest: {inviteLink.data.inviteUrl}
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No live Invite link. Copy to mint one.
-                  </p>
-                )}
-                <Button
-                  onClick={() => createInviteLink.mutate({ gameId: id })}
-                  disabled={createInviteLink.isPending}
-                >
-                  {createInviteLink.isPending ? "Copying…" : "Copy Invite link"}
-                </Button>
+              <Card variant="outlined">
+                <InviteLinkPanel
+                  inviteUrl={inviteLink.data?.inviteUrl}
+                  copyPending={createInviteLink.isPending}
+                  onCopy={() => createInviteLink.mutate({ gameId: id })}
+                />
               </Card>
             ) : null}
           </>

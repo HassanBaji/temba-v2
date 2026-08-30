@@ -1,33 +1,19 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 
 export function InviteLinkPanel({
-  description = "Each copy mints a new 6-hour token. Older copied URLs stay live until each expires. There is no rotate or revoke.",
   inviteUrl,
   copyPending,
   onCopy,
 }: {
-  description?: string;
   inviteUrl: string | null | undefined;
   copyPending: boolean;
   onCopy: () => void;
 }) {
   return (
-    <section className="space-y-4">
-      <div>
-        <h3 className="text-title font-semibold">Invite link</h3>
-        <p className="text-body text-muted-foreground mt-1">{description}</p>
-      </div>
-      {inviteUrl ? (
-        <p className="text-meta text-muted-foreground break-all">
-          Newest: {inviteUrl}
-        </p>
-      ) : (
-        <p className="text-body text-muted-foreground">
-          No live Invite link. Copy to mint one.
-        </p>
-      )}
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <Button
         type="button"
         onClick={() => {
@@ -38,8 +24,17 @@ export function InviteLinkPanel({
         }}
         disabled={copyPending}
       >
-        {copyPending ? "Copying…" : "Copy Invite link"}
+        {copyPending ? "Copying…" : "Copy link"}
       </Button>
-    </section>
+      <Input
+        readOnly
+        value={inviteUrl ?? ""}
+        aria-label="Invite link"
+        className="flex-1"
+        onFocus={(event) => {
+          event.currentTarget.select();
+        }}
+      />
+    </div>
   );
 }
