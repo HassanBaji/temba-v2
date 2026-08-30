@@ -500,6 +500,14 @@ export default function GameHomePage({
                   : `${data.registeredUserCount} / ${data.playersAllowed ?? 4} players`}
                 .
               </p>
+              {data.venue ? (
+                <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+                  <span>Venue {data.venue.name}</span>
+                  {data.venue.archivedAt ? (
+                    <Badge variant="outline">Soft-archived</Badge>
+                  ) : null}
+                </p>
+              ) : null}
               {data.joinFrozen && !data.cancelledAt ? (
                 <p className="text-muted-foreground text-sm">
                   This Club Group’s Community is Soft-archived. Register,
@@ -513,7 +521,7 @@ export default function GameHomePage({
               <Card variant="outlined" className="space-y-4">
                 <h3 className="text-title font-medium">Organizer</h3>
                 <p className="text-muted-foreground text-sm">
-                  Format, public, and registration mode cannot change.
+                  Format, public, registration mode, and Venue cannot change.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {data.registrationClosedAt ? (

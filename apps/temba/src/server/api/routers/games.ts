@@ -20,6 +20,7 @@ import {
   teamMembers,
   teams,
   user,
+  venues,
 } from "@repo/db";
 
 import {
@@ -58,6 +59,10 @@ import {
   updateTournamentMatch,
 } from "~/server/games/organize";
 import { listAssignableCourts } from "~/server/games/courts";
+import {
+  assertGameCreateVenueAndCourt,
+  listVenuesForGameCreate,
+} from "~/server/games/venue";
 import {
   addMatchSet,
   bothSlotsFilled,
@@ -444,6 +449,17 @@ export const gamesRouter = createTRPCRouter({
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }),
 
+  listCreateVenues: protectedProcedure
+    .input(z.object({ groupId: z.string().uuid().optional() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser();
+      if (input.groupId) {
+        const group = await requireGroup(ctx.db, input.groupId);
+        await assertMayCreateGameOnGroup(ctx.db, group, appUser.id);
+      }
+      return listVenuesForGameCreate(ctx.db, input.groupId);
+    }),
+
   create: protectedProcedure
     .input(
       z
@@ -457,6 +473,9 @@ export const gamesRouter = createTRPCRouter({
           teamsAllowed: z.number().int().optional(),
           windowStart: z.coerce.date(),
           windowEnd: z.coerce.date(),
+          venueId: z.string().uuid({ message: "Pick a Venue" }),
+          courtId: z.string().uuid().nullable().optional(),
+          courtIds: z.array(z.string().uuid()).optional(),
         })
         .refine(
           (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
@@ -499,7 +518,26 @@ export const gamesRouter = createTRPCRouter({
             message:
               "Tournament cap must be players allowed ×4 (min 4) or teams allowed ≥ 2",
           },
-        ),
+        )
+        .superRefine((value, ctx) => {
+          if (
+            value.format === "friendly_game" &&
+            value.courtIds !== undefined
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Friendly game does not accept courtIds",
+              path: ["courtIds"],
+            });
+          }
+          if (value.format !== "friendly_game" && value.courtId) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "courtId is only for Friendly game",
+              path: ["courtId"],
+            });
+          }
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
@@ -508,6 +546,12 @@ export const gamesRouter = createTRPCRouter({
         const group = await requireGroup(ctx.db, input.groupId);
         await assertMayCreateGameOnGroup(ctx.db, group, appUser.id);
       }
+
+      await assertGameCreateVenueAndCourt(ctx.db, {
+        groupId: input.groupId,
+        venueId: input.venueId,
+        courtId: input.courtId,
+      });
 
       const windowStart = input.windowStart;
       const windowEnd = input.windowEnd;
@@ -551,6 +595,7 @@ export const gamesRouter = createTRPCRouter({
             format: formatEnum,
             registrationMode,
             groupId: input.groupId ?? null,
+            venueId: input.venueId,
             isPublic: input.isPublic,
             windowStart,
             windowEnd,
@@ -576,6 +621,7 @@ export const gamesRouter = createTRPCRouter({
           .insert(matches)
           .values({
             gameId: game.id,
+            courtId: input.courtId ?? null,
             startTime: windowStart,
             endTime: windowEnd,
             durationInMinutes,
@@ -698,6 +744,17 @@ export const gamesRouter = createTRPCRouter({
           })
         : null;
 
+      const venue = await ctx.db.query.venues.findFirst({
+        where: eq(venues.id, game.venueId),
+        columns: {
+          id: true,
+          name: true,
+          city: true,
+          country: true,
+          archivedAt: true,
+        },
+      });
+
       const memberships = await ctx.db.query.teamMembers.findMany({
         where: eq(teamMembers.userId, appUser.id),
         columns: { teamId: true },
@@ -806,6 +863,15 @@ export const gamesRouter = createTRPCRouter({
         isPublic: game.isPublic,
         groupId: game.groupId,
         groupName: group?.name ?? null,
+        venueId: game.venueId,
+        venue: venue
+          ? {
+              name: venue.name,
+              city: venue.city,
+              country: venue.country,
+              archivedAt: venue.archivedAt,
+            }
+          : null,
         windowStart: game.windowStart,
         windowEnd: game.windowEnd,
         playersAllowed: game.playersAllowed,

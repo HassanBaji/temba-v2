@@ -12,9 +12,9 @@ import { courts } from "./courts";
 import { communities } from "./communities";
 
 /**
- * Venue is the evolved leftover courts table (same id space). Coach and
- * coaching-session foreign keys stay on this row (ADR-0007). Match.courtId
- * points at Court, not Venue (ADR-0008).
+ * Venue is the evolved leftover courts table (same id space). Game.venueId,
+ * coach, and coaching-session foreign keys stay on this row (ADR-0007).
+ * Match.courtId points at Court, not Venue (ADR-0008).
  */
 export const venues = pgTable(
   "venues",
