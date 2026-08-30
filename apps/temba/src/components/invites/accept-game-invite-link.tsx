@@ -133,7 +133,7 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (accept.isError) {
+  if (accept.isError && !needsSeatPick) {
     return (
       <div className="space-y-3">
         <h1 className="text-title font-semibold">Could not join</h1>
