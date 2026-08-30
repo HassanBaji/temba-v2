@@ -16,7 +16,7 @@ function asDate(value: Date | string | null | undefined): Date | null {
   return date;
 }
 
-export function toDateInputValue(value: Date | string | null | undefined) {
+function toDateInputValue(value: Date | string | null | undefined) {
   const date = asDate(value);
   if (!date) {
     return "";
@@ -24,7 +24,7 @@ export function toDateInputValue(value: Date | string | null | undefined) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-export function toTimeInputValue(value: Date | string | null | undefined) {
+function toTimeInputValue(value: Date | string | null | undefined) {
   const date = asDate(value);
   if (!date) {
     return "";
@@ -32,10 +32,7 @@ export function toTimeInputValue(value: Date | string | null | undefined) {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function combineDateAndTime(
-  day: string,
-  time: string,
-): Date | undefined {
+function combineDateAndTime(day: string, time: string): Date | undefined {
   const dateMatch = DATE_PATTERN.exec(day.trim());
   const timeMatch = TIME_PATTERN.exec(time.trim());
   if (!dateMatch || !timeMatch) {
@@ -55,7 +52,15 @@ export function combineDateAndTime(
     minutes,
     seconds,
   );
-  if (Number.isNaN(combined.getTime())) {
+  if (
+    Number.isNaN(combined.getTime()) ||
+    combined.getFullYear() !== year ||
+    combined.getMonth() !== month - 1 ||
+    combined.getDate() !== dayOfMonth ||
+    combined.getHours() !== hours ||
+    combined.getMinutes() !== minutes ||
+    combined.getSeconds() !== seconds
+  ) {
     return undefined;
   }
   return combined;
@@ -65,7 +70,7 @@ export function parseRequiredGameWindow(
   day: string,
   startTime: string,
   finishTime: string,
-) {
+): { windowStart: Date; windowEnd: Date } | undefined {
   const windowStart = combineDateAndTime(day, startTime);
   const windowEnd = combineDateAndTime(day, finishTime);
   if (!windowStart || !windowEnd) {
@@ -77,7 +82,7 @@ export function parseRequiredGameWindow(
 export function splitGameWindow(
   windowStart: Date | string | null | undefined,
   windowEnd: Date | string | null | undefined,
-) {
+): { day: string; startTime: string; finishTime: string } {
   const start = asDate(windowStart);
   const end = asDate(windowEnd);
   const daySource = start ?? end;

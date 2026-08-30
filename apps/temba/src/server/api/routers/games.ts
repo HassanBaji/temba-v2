@@ -305,7 +305,10 @@ export const gamesRouter = createTRPCRouter({
         })
         .refine(
           (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
-          { message: "Finish time must be at or after start time" },
+          {
+            message: "Finish time must be at or after start time",
+            path: ["windowEnd"],
+          },
         )
         .refine(
           (value) =>
@@ -1268,7 +1271,10 @@ export const gamesRouter = createTRPCRouter({
         })
         .refine(
           (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
-          { message: "Finish time must be at or after start time" },
+          {
+            message: "Finish time must be at or after start time",
+            path: ["windowEnd"],
+          },
         ),
     )
     .mutation(async ({ ctx, input }) => {

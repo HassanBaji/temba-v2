@@ -16,7 +16,6 @@ export function GameWindowFields({
   onDayChange,
   onStartTimeChange,
   onFinishTimeChange,
-  dayError,
   startError,
   finishError,
 }: {
@@ -29,7 +28,6 @@ export function GameWindowFields({
   onDayChange: (value: string) => void;
   onStartTimeChange: (value: string) => void;
   onFinishTimeChange: (value: string) => void;
-  dayError?: string;
   startError?: string;
   finishError?: string;
 }) {
@@ -43,12 +41,8 @@ export function GameWindowFields({
           value={day}
           onChange={(event) => onDayChange(event.target.value)}
           required
-          aria-invalid={dayError ? true : undefined}
-          aria-describedby={
-            dayError ? `${dayId}-error` : `${dayId}-description`
-          }
+          aria-describedby={`${dayId}-description`}
         />
-        <FieldError id={`${dayId}-error`}>{dayError}</FieldError>
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field>

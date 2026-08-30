@@ -294,7 +294,6 @@ function NewGameForm() {
               onDayChange={setDay}
               onStartTimeChange={setStartTime}
               onFinishTimeChange={setFinishTime}
-              dayError={fieldErrorMessage(createGame.error, "day")}
               startError={fieldErrorMessage(createGame.error, "windowStart")}
               finishError={fieldErrorMessage(createGame.error, "windowEnd")}
             />
