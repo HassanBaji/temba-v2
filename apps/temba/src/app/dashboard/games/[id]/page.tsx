@@ -10,6 +10,10 @@ import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
+import {
+  LookupUserSelect,
+  type LookupUserOption,
+} from "~/components/invites/lookup-user-select";
 import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
@@ -107,6 +111,9 @@ export default function GameHomePage({
   const game = api.games.byId.useQuery({ id });
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
+  const [selectedPartner, setSelectedPartner] = React.useState<
+    LookupUserOption[]
+  >([]);
   const [partnerSide, setPartnerSide] = React.useState("");
   const [partnerPosition, setPartnerPosition] = React.useState<
     "left" | "right"
@@ -168,9 +175,11 @@ export default function GameHomePage({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
       setPartnerQuery("");
+      setSelectedPartner([]);
       setPartnerSide("");
       setPartnerPosition("left");
       await utils.games.byId.invalidate({ id });
+      await utils.games.searchPartnerUsers.invalidate({ gameId: id });
       await utils.users.home.invalidate();
     },
     onError: (error) => {
@@ -423,6 +432,16 @@ export default function GameHomePage({
   const lookupSearch = api.games.searchLookupUsers.useQuery(
     { gameId: id, query: lookupQuery },
     { enabled: canSendGameLookup },
+  );
+  const canPartnerPick = Boolean(
+    data &&
+      (data.canRegister || data.canWaitlist) &&
+      data.registrationMode === "individual" &&
+      data.format !== "americano",
+  );
+  const partnerSearch = api.games.searchPartnerUsers.useQuery(
+    { gameId: id, query: partnerQuery },
+    { enabled: canPartnerPick },
   );
   const inviteLink = api.games.getInviteLink.useQuery(
     { gameId: id },
@@ -1462,9 +1481,13 @@ export default function GameHomePage({
                       (side) => side.left == null && side.right == null,
                     );
                     if (data.canWaitlist) {
+                      const partnerUserId = selectedPartner[0]?.id;
+                      if (!partnerUserId) {
+                        return;
+                      }
                       registerWithPartner.mutate({
                         gameId: id,
-                        partnerQuery,
+                        partnerUserId,
                       });
                       return;
                     }
@@ -1477,9 +1500,13 @@ export default function GameHomePage({
                       toast.error("Pick a vacant side and your Position");
                       return;
                     }
+                    const partnerUserId = selectedPartner[0]?.id;
+                    if (!partnerUserId) {
+                      return;
+                    }
                     registerWithPartner.mutate({
                       gameId: id,
-                      partnerQuery,
+                      partnerUserId,
                       sideIndex,
                       position: partnerPosition,
                     });
@@ -1559,38 +1586,39 @@ export default function GameHomePage({
                     )}
                     <Field>
                       <FieldLabel htmlFor="partner-query">Partner</FieldLabel>
-                      <Input
+                      <LookupUserSelect
                         id="partner-query"
-                        value={partnerQuery}
-                        onChange={(event) =>
-                          setPartnerQuery(event.target.value)
-                        }
-                        required
-                        aria-invalid={
+                        query={partnerQuery}
+                        onQueryChange={setPartnerQuery}
+                        options={partnerSearch.data}
+                        selected={selectedPartner}
+                        onSelectedChange={setSelectedPartner}
+                        selection="single"
+                        pending={partnerSearch.isFetching}
+                        disabled={registerWithPartner.isPending}
+                        error={Boolean(
                           fieldErrorMessage(
                             registerWithPartner.error,
-                            "partnerQuery",
-                          )
-                            ? true
-                            : undefined
-                        }
-                        aria-describedby={
+                            "partnerUserId",
+                          ),
+                        )}
+                        describedBy={
                           fieldErrorMessage(
                             registerWithPartner.error,
-                            "partnerQuery",
+                            "partnerUserId",
                           )
                             ? "partner-query-error"
                             : undefined
                         }
                       />
                       <FieldDescription>
-                        Lookup an existing User. You both must be allowed to
-                        join.
+                        Pick an existing User. You both register or waitlist
+                        immediately.
                       </FieldDescription>
                       <FieldError id="partner-query-error">
                         {fieldErrorMessage(
                           registerWithPartner.error,
-                          "partnerQuery",
+                          "partnerUserId",
                         )}
                       </FieldError>
                     </Field>
@@ -1599,6 +1627,7 @@ export default function GameHomePage({
                     type="submit"
                     disabled={
                       registerWithPartner.isPending ||
+                      selectedPartner.length === 0 ||
                       (data.canRegister &&
                         data.sides.every(
                           (side) => side.left != null || side.right != null,
