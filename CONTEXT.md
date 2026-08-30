@@ -37,11 +37,11 @@ A club people belong to. It may contain many Groups and many Teams, may link to 
 _Avoid_: Workspace, club, org, server, workspace (when you mean Community)
 
 **Venue**:
-A physical facility: one addressable site with a name, location, and Courts. Not a Community, not a legal entity, not a brand. A Community may link to at most one Venue; a Venue may be linked by many Communities.
+A physical facility: one addressable site with a name, location, and Courts. Not a Community, not a legal entity, not a brand. A Community may link to at most one Venue; a Venue may be linked by many Communities. Every Game points at exactly one Venue.
 _Avoid_: club (that is the avoided synonym for Community), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
 
 **Court**:
-A named playing surface that belongs to one Venue.
+A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment.
 _Avoid_: Venue, pitch, field, club (when you mean this entity)
 
 **Group**:
@@ -145,11 +145,11 @@ A Community role with no staff powers. Community membership is required to join 
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
 **Soft-archive**:
-A reversible hide. For a Community: hides it and its Club Groups together; Games are kept; existing Club Group Games stay visible to those allowed to open the Community or Group and are excluded from public pickup; new Club Group Games are refused; register, waitlist, and Game Lookup/Invite link mint and accept behave as closed; organizers may still add Matches and assign Courts and cannot reopen while archived; Club Groups stay attached; refuse new joins, invites, Team→Community link requests and decisions, Venue link requests and decisions, and invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats and a live Venue link remain visible to those allowed to open the Community. For a Venue: hides it from the Community request catalog; refuse new Venue link requests and decisions; live Community Venue links stay; Members still see that Venue on Community home as history. Not a delete, not detaching Groups, and not unlinking a Venue.
+A reversible hide. For a Community: hides it and its Club Groups together; Games are kept; existing Club Group Games stay visible to those allowed to open the Community or Group and are excluded from public pickup; new Club Group Games are refused; register, waitlist, and Game Lookup/Invite link mint and accept behave as closed; organizers may still add Matches and assign Courts and cannot reopen while archived; Club Groups stay attached; refuse new joins, invites, Team→Community link requests and decisions, Venue link requests and decisions, and invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats and a live Venue link remain visible to those allowed to open the Community. For a Venue: hides it from the Community request catalog and from unlocked Game create; refuse new Venue link requests and decisions; refuse new Court assign on Games whose Venue is that site (skip/clear still allowed); live Community Venue links stay; a Club Group whose only linked Venue is Soft-archived may still create a Game there with skip Court and cannot pick another Venue; Members still see that Venue on Community home as history. Not a delete, not detaching Groups, and not unlinking a Venue.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A Game may belong to a Group and does not belong to a Community directly. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator.
+The parent event that contains one or more Matches. A Game may belong to a Group and does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Match**:

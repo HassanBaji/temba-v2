@@ -78,11 +78,11 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 31. As an organizer, I want to assign or change a Match’s Game teams later, so that empty Matches can be filled.
 
-32. As an organizer assigning a Court on a Club Group Game, I want only Courts on the Community’s linked Venue, so that club play stays on the club site. No Venue link means I cannot pick a Court (the Match may still exist).
+32. As an organizer assigning a Court on a Club Group Game, I want only Courts on the Community’s linked Venue, so that club play stays on the club site. No Venue link means I cannot pick a Court (the Match may still exist). **Amended:** `.scratch/game-create-venue-court/spec.md` — Venue is required at create; an unlinked Club Group picks any live Venue; after create, Courts follow Game.venueId.
 
-33. As an organizer of a Loose Group or groupless Game, I want to pick any Court on a live Operator Venue or skip Court, so that pickup can use the catalog.
+33. As an organizer of a Loose Group or groupless Game, I want to pick any Court on a live Operator Venue or skip Court, so that pickup can use the catalog. **Amended:** Venue is required first; Court stays optional on that Venue. `.scratch/game-create-venue-court/spec.md`.
 
-34. As an organizer, I want assigning a Court on an archived Venue to be refused, so that hidden sites are not scheduled.
+34. As an organizer, I want assigning a Court on an archived Venue to be refused, so that hidden sites are not scheduled. **Amended:** locked Club Group create on a Soft-archived linked Venue is still allowed with skip Court; new Court assign after create is refused. `.scratch/game-create-venue-court/spec.md`.
 
 35. As an organizer, I want to cancel a Friendly tournament Match without cancelling the Game, so that one head-to-head can die.
 
@@ -154,7 +154,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 - **Rename (ADR-0008).** Today’s contest table becomes **Match**. A new parent table is **Game**. Do not keep the contest as Game internally. Group delete “has Games” means parent Games. Home upcoming, Group upcoming/history, and public pickup read **Games**, not Matches. If leftover contest rows exist, wrap each as a Friendly game plus one Match rather than dropping them.
 
-- **Game** (conceptual): id; optional name; format (`friendly_game` | `americano` | `friendly_tournament`); registration mode (`individual` | `team_only`); optional `groupId` (restrict on Group delete; null = groupless); `isPublic`; optional window start/end; `playersAllowed` / `teamsAllowed` (Friendly game forced 4 / 2; Americano individual-only and playersAllowed ×4 min 4; tournament as grilled); sport (padel | football; App always padel); `createdBy`; `cancelledAt`; `registrationClosedAt` (null = not organizer-closed); timestamps. Derive **open / full / closed**: cancelled is its own dead state; else closed if `registrationClosedAt` set, or the Game window has ended, or the Club Group’s Community is Soft-archived; else full if registered count ≥ cap; else open. Organizer reopen clears `registrationClosedAt` and is allowed even after the window ended (not when cancelled or Soft-archived). Format, public, and mode immutable.
+- **Game** (conceptual): id; optional name; format (`friendly_game` | `americano` | `friendly_tournament`); registration mode (`individual` | `team_only`); optional `groupId` (restrict on Group delete; null = groupless); `isPublic`; optional window start/end; `playersAllowed` / `teamsAllowed` (Friendly game forced 4 / 2; Americano individual-only and playersAllowed ×4 min 4; tournament as grilled); sport (padel | football; App always padel); `createdBy`; `cancelledAt`; `registrationClosedAt` (null = not organizer-closed); timestamps. Derive **open / full / closed**: cancelled is its own dead state; else closed if `registrationClosedAt` set, or the Game window has ended, or the Club Group’s Community is Soft-archived; else full if registered count ≥ cap; else open. Organizer reopen clears `registrationClosedAt` and is allowed even after the window ended (not when cancelled or Soft-archived). Format, public, and mode immutable. **Amended:** required `venueId` and optional Courts on the Game at create — `.scratch/game-create-venue-court/spec.md`. `venueId` is immutable with format, public, and mode.
 
 - **Registered count:** Americano = Users in the pool. Individual Friendly game / tournament = Users on the Game (paired or solo) toward players allowed; Game teams occupy sides (Friendly game max two). Team-only = registered Game teams (complete Teams). Waitlist is not in the count.
 
@@ -184,7 +184,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 - **Game home authorization:** same visibility set as lists, plus Invite-link accept. Soft-archived Club Group Games stay open to that set (not pickup).
 
-- **UI:** Create Game (from Group home and a hub/groupless entry) has no format picker and always submits Friendly game; no one-option picker; copy does not name Americano or Friendly tournament. Keep Individual vs Team-only on create. Game home (register, waitlist, organizer controls, Matches, Sets, invites) has no Add Match, no Add Set, no Remove Set, no Americano pool-register card, no non–Friendly-game cap form, and no format badge. Keep score / Save / Complete Match and other typed labels. Match detail or inline on Game home for slots/Court/Sets; Home and Group and pickup cards are Games. Reuse existing primitives. No visual redesign. Copy newest Game Invite link like other entities. Padel-only lock unchanged. Friendly-only UI lock: `.scratch/friendly-only-ui/spec.md`.
+- **UI:** Create Game (from Group home and a hub/groupless entry) has no format picker and always submits Friendly game; no one-option picker; copy does not name Americano or Friendly tournament. Keep Individual vs Team-only on create. **Amended:** required Venue Select and optional Court Select — `.scratch/game-create-venue-court/spec.md`. Game home (register, waitlist, organizer controls, Matches, Sets, invites) has no Add Match, no Add Set, no Remove Set, no Americano pool-register card, no non–Friendly-game cap form, and no format badge. Keep score / Save / Complete Match and other typed labels. Match detail or inline on Game home for slots/Court/Sets; Home and Group and pickup cards are Games. Reuse existing primitives. No visual redesign. Copy newest Game Invite link like other entities. Padel-only lock unchanged. Friendly-only UI lock: `.scratch/friendly-only-ui/spec.md`.
 
 - **Counters:** Do not increment User, Group member, Group, or Team stored counters when a Match completes or Sets are saved.
 
@@ -214,7 +214,7 @@ If you implement this spec, you implement these seams:
 - open / full / closed; waitlist FIFO unbounded; leave and kick promote; pending Team invite does not occupy cap
 - Close and reopen (not cancelled, not archived); window ended still reopenable
 - Tournament add Match (tRPC): anytime, optional sides and Court; leave clears slot; Sets remain. App has no Add Match
-- Court: Club Group linked Venue only; Loose/groupless live catalog or skip; archived Venue refused
+- Court: Club Group linked Venue only; Loose/groupless live catalog or skip; archived Venue refused. **Amended:** `.scratch/game-create-venue-court/spec.md` — required Venue at create; unlinked Club Group uses the live catalog; after create, Courts follow Game.venueId
 - Cancel Match vs cancel Game (Friendly game only-Match = cancel Game)
 - Game Lookup + Invite link token rules; team-only Lookup refused; team-only link needs both consents
 - Invites never auto-join Group or Community; closed and Soft-archive refuse mint/accept
@@ -261,6 +261,8 @@ Settled grilling: `.scratch/games-matches/decisions.md`.
 **Amended:** Stories 15–16 and Decision 25 (partner required; solo does not occupy a side) are superseded for individual Friendly game and Friendly tournament by `.scratch/individual-game-seats/spec.md` (solo seat-join, left/right Position, 2v2 display). Americano and team-only in this spec are unchanged.
 
 **Amended:** App format picker, Add Match, Add Set, Remove Set, Americano pool-register, non–Friendly-game cap form, and format badges are locked by `.scratch/friendly-only-ui/spec.md`. Friendly game create inserts three Set shells. tRPC stories for Americano, Friendly tournament, add Match, and add Set remain as crafted-client paths.
+
+**Amended:** Stories 32–34 (Court assign keyed off Community Venue link; no link → no Court) are superseded for create and later assign by `.scratch/game-create-venue-court/spec.md` (required Venue on every Game, locked when the Club Group has a Venue link, unlocked live catalog otherwise, later Courts follow Game.venueId). Court on Match stays optional.
 
 ## Implementation tickets (Linear)
 
