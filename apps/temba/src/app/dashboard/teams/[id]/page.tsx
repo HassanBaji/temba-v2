@@ -73,6 +73,10 @@ export default function TeamHomePage({
   const [dissolveOpen, setDissolveOpen] = useState(false);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupRefused, setLookupRefused] = useState<
+    { name: string; message: string }[] | null
+  >(null);
   const [linkOpen, setLinkOpen] = useState(false);
 
   const team = api.teams.byId.useQuery({ id });
@@ -81,11 +85,17 @@ export default function TeamHomePage({
     { teamId: id },
     { enabled: Boolean(team.data?.canInvite) },
   );
+  const lookupSearch = api.teams.searchLookupUsers.useQuery(
+    { teamId: id, query: lookupQuery },
+    { enabled: inviteOpen && Boolean(team.data?.canInvite) },
+  );
 
   const inviteInApp = api.teams.inviteInApp.useMutation({
     onSuccess: async () => {
+      setLookupRefused([]);
       toast.success("Lookup invite sent");
       await utils.teams.byId.invalidate({ id });
+      await utils.teams.searchLookupUsers.invalidate({ teamId: id });
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -373,25 +383,45 @@ export default function TeamHomePage({
       />
 
       {data.canInvite ? (
-        <ResponsiveDialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <ResponsiveDialog
+          open={inviteOpen}
+          onOpenChange={(next) => {
+            setInviteOpen(next);
+            if (!next) {
+              setLookupQuery("");
+              setLookupRefused(null);
+            }
+          }}
+        >
           <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
             <ResponsiveDialogHeader>
               <ResponsiveDialogTitle>Invite your partner</ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
-                Look up an existing User by username, email, or phone. The
-                invitee accepts on Invites. Lookup invites do not expire.
+                Search existing Users and send a Lookup invite for the open
+                seat. The invitee accepts on Invites. Lookup invites do not
+                expire.
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
               <LookupInvitePanel
-                description="Look up an existing User by username, email, or phone. The invitee accepts on Invites. Lookup invites do not expire."
+                description="Pick one existing User for the open seat. The invitee accepts on Invites. Lookup invites do not expire."
                 lookupInvites={data.unusedInvite ? [data.unusedInvite] : []}
                 sendPending={inviteInApp.isPending}
                 revokePending={revokeInvite.isPending}
                 sendError={inviteInApp.error}
-                onSendLookup={(query) =>
-                  inviteInApp.mutate({ teamId: id, query })
-                }
+                searchQuery={lookupQuery}
+                onSearchQueryChange={setLookupQuery}
+                searchResults={lookupSearch.data}
+                searchPending={lookupSearch.isFetching}
+                refused={lookupRefused}
+                selection="single"
+                onSendUserIds={(userIds) => {
+                  const userId = userIds[0];
+                  if (!userId) {
+                    return;
+                  }
+                  inviteInApp.mutate({ teamId: id, userId });
+                }}
                 onRevokeLookup={(inviteId) => revokeInvite.mutate({ inviteId })}
               />
               <InviteLinkPanel
