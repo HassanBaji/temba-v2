@@ -1622,6 +1622,7 @@ export const gamesRouter = createTRPCRouter({
     for (const row of rows) {
       const game = await requireGame(ctx.db, row.gameId);
       const needsSeatPick = isIndividualSeatGame(game);
+      const sides = needsSeatPick ? await listGameSides(ctx.db, game) : [];
       mapped.push({
         id: row.id,
         gameId: row.gameId,
@@ -1633,9 +1634,14 @@ export const gamesRouter = createTRPCRouter({
         },
         createdAt: row.createdAt,
         needsSeatPick,
-        vacantSeats: needsSeatPick
-          ? vacantPositionsFromSides(await listGameSides(ctx.db, game))
-          : [],
+        format: game.format,
+        registrationStatus: await getRegistrationStatus(
+          ctx.db,
+          game,
+          new Date(),
+        ),
+        sides,
+        vacantSeats: vacantPositionsFromSides(sides),
       });
     }
     return mapped;
@@ -1800,13 +1806,19 @@ export const gamesRouter = createTRPCRouter({
       }
       const gameRow = await requireGame(ctx.db, game.id);
       const needsSeatPick = isIndividualSeatGame(gameRow);
+      const sides = needsSeatPick ? await listGameSides(ctx.db, gameRow) : [];
       return {
         status: "ready" as const,
         gameName: game.name ?? "Untitled Game",
+        format: gameRow.format,
+        registrationStatus: await getRegistrationStatus(
+          ctx.db,
+          gameRow,
+          new Date(),
+        ),
         needsSeatPick,
-        vacantSeats: needsSeatPick
-          ? vacantPositionsFromSides(await listGameSides(ctx.db, gameRow))
-          : [],
+        sides,
+        vacantSeats: vacantPositionsFromSides(sides),
       };
     }),
 
