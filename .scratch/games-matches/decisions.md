@@ -18,7 +18,7 @@ Status: spec published — `.scratch/games-matches/spec.md` (ready-for-agent). T
 
 ## Settled (round 3)
 
-9. Organizers: Club Group = Owner/Admin; Loose Group = any member; groupless = creator. Soft-archive: refuse new Club Group Games.
+9. Organizers: Club Group = Owner/Admin or Group creator; Loose Group = Group creator only; groupless = creator. Soft-archive: refuse new Club Group Games.
 10. Public is a real join door. Non-public Group Game = Group members only. Team-only: both partners must be allowed as individuals.
 11. Individual Friendly tournament: register with a partner as an ad-hoc **Game team**.
 12. Courts: Club Group = linked Venue only; Loose/groupless = any live Operator Venue.

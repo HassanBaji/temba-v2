@@ -149,7 +149,7 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A Game may belong to a Group and does not belong to a Community directly.
+The parent event that contains one or more Matches. A Game may belong to a Group and does not belong to a Community directly. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Match**:

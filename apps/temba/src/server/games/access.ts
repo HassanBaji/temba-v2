@@ -70,6 +70,42 @@ async function clubCommunity(database: DbClient, groupId: string) {
   return community ?? null;
 }
 
+type GroupForOrganize = {
+  id: string;
+  communityId: string | null;
+  createdBy: string;
+};
+
+async function isCommunityStaff(
+  database: DbClient,
+  communityId: string,
+  userId: string,
+) {
+  const membership = await database.query.communityMembers.findFirst({
+    where: and(
+      eq(communityMembers.communityId, communityId),
+      eq(communityMembers.userId, userId),
+    ),
+    columns: { role: true },
+  });
+  return isStaffRole(membership?.role);
+}
+
+/** Group creator, or Community Owner/Admin on a Club Group. */
+export async function mayOrganizeGroupGames(
+  database: DbClient,
+  group: GroupForOrganize,
+  userId: string,
+) {
+  if (group.createdBy === userId) {
+    return true;
+  }
+  if (!group.communityId) {
+    return false;
+  }
+  return isCommunityStaff(database, group.communityId, userId);
+}
+
 export async function mayCreateGameOnGroup(
   database: DbClient,
   group: typeof groups.$inferSelect,
@@ -83,17 +119,9 @@ export async function mayCreateGameOnGroup(
     if (community?.archivedAt) {
       return false;
     }
-    const membership = await database.query.communityMembers.findFirst({
-      where: and(
-        eq(communityMembers.communityId, group.communityId),
-        eq(communityMembers.userId, userId),
-      ),
-      columns: { role: true },
-    });
-    return isStaffRole(membership?.role);
   }
 
-  return isGroupMember(database, group.id, userId);
+  return mayOrganizeGroupGames(database, group, userId);
 }
 
 export async function assertMayCreateGameOnGroup(
@@ -113,28 +141,18 @@ export async function assertMayCreateGameOnGroup(
           "Cannot create a Club Group Game while the Community is archived",
       });
     }
-    const membership = await database.query.communityMembers.findFirst({
-      where: and(
-        eq(communityMembers.communityId, group.communityId),
-        eq(communityMembers.userId, userId),
-      ),
-      columns: { role: true },
-    });
-    if (!isStaffRole(membership?.role)) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Only Owner or Admin can create a Club Group Game",
-      });
-    }
+  }
+
+  if (await mayOrganizeGroupGames(database, group, userId)) {
     return;
   }
 
-  if (!(await isGroupMember(database, group.id, userId))) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You must be a Group member to create a Game on this Group",
-    });
-  }
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: group.communityId
+      ? "Only Owner, Admin, or the Group creator can create a Club Group Game"
+      : "Only the Group creator can create a Game on this Group",
+  });
 }
 
 export async function isGameOrganizer(
@@ -148,22 +166,12 @@ export async function isGameOrganizer(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { id: true, communityId: true },
+    columns: { id: true, communityId: true, createdBy: true },
   });
   if (!group) {
     return false;
   }
-  if (group.communityId) {
-    const membership = await database.query.communityMembers.findFirst({
-      where: and(
-        eq(communityMembers.communityId, group.communityId),
-        eq(communityMembers.userId, userId),
-      ),
-      columns: { role: true },
-    });
-    return isStaffRole(membership?.role);
-  }
-  return isGroupMember(database, group.id, userId);
+  return mayOrganizeGroupGames(database, group, userId);
 }
 
 export async function assertGameOrganizer(
