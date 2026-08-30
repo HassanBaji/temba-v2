@@ -250,3 +250,17 @@ Shipped Lookup invite send/revoke/accept and Invite link (invite-lookup-and-link
 Amends `.scratch/invite-lookup-and-link/spec.md` (story 16; Out of Scope directory / prefix search) and `CONTEXT.md` Lookup invite. Amends `.scratch/games-matches/spec.md` Game Lookup **choice UI** and `.scratch/individual-game-seats/spec.md` partner **identity** (`partnerQuery` → selected User id). Does not replace those specs. Does not reopen Invite link, Team size, pair uniqueness, or ADR-0005.
 
 Settled grilling Q1–Q21 (Q11 override: partner picker in scope with Team-like single-select; Q12–Q16 and Q17–Q21 as recommended). Locked defaults: page/batch 20; chips + checklist; partial success; identical typeahead contract for Lookup and partner; Lookup search = send matrix; partner search = register-with-partner; no “User picker” glossary term.
+
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/invite-lookup-picker/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-82 Community Lookup invite picker](https://linear.app/temba-app/issue/TEM-82/community-lookup-invite-picker) | — |
+| 2 | [TEM-83 Group Lookup invite picker](https://linear.app/temba-app/issue/TEM-83/group-lookup-invite-picker) | TEM-82 |
+| 3 | [TEM-84 Incomplete Team Lookup invite picker](https://linear.app/temba-app/issue/TEM-84/incomplete-team-lookup-invite-picker) | TEM-82 |
+| 4 | [TEM-85 Game Lookup invite picker](https://linear.app/temba-app/issue/TEM-85/game-lookup-invite-picker) | TEM-82 |
+| 5 | [TEM-86 Game partner pick](https://linear.app/temba-app/issue/TEM-86/game-partner-pick) | TEM-85 |
+
+Frontier: **TEM-82** only. Do not implement until an implementer / orchestrator is asked to run the tickets in order.
