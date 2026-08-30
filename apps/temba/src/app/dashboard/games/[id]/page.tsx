@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
+import { GameWindowFields } from "~/components/games/game-window-fields";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -43,6 +44,7 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import { parseRequiredGameWindow, splitGameWindow } from "~/lib/game-window";
 
 function formatWhen(value: Date | string | null | undefined) {
   if (!value) {
@@ -56,18 +58,6 @@ function formatWhen(value: Date | string | null | undefined) {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function toDatetimeLocalValue(value: Date | string | null | undefined) {
-  if (!value) {
-    return "";
-  }
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function parseOptionalDate(value: string) {
@@ -154,8 +144,9 @@ export default function GameHomePage({
     "left" | "right"
   >("left");
   const [teamId, setTeamId] = React.useState<string>("");
-  const [windowStart, setWindowStart] = React.useState("");
-  const [windowEnd, setWindowEnd] = React.useState("");
+  const [windowDay, setWindowDay] = React.useState("");
+  const [windowStartTime, setWindowStartTime] = React.useState("");
+  const [windowFinishTime, setWindowFinishTime] = React.useState("");
   const [playersAllowed, setPlayersAllowed] = React.useState("4");
   const [teamsAllowed, setTeamsAllowed] = React.useState("2");
   const [matchStart, setMatchStart] = React.useState("");
@@ -460,8 +451,10 @@ export default function GameHomePage({
     if (!data) {
       return;
     }
-    setWindowStart(toDatetimeLocalValue(data.windowStart));
-    setWindowEnd(toDatetimeLocalValue(data.windowEnd));
+    const gameWindow = splitGameWindow(data.windowStart, data.windowEnd);
+    setWindowDay(gameWindow.day);
+    setWindowStartTime(gameWindow.startTime);
+    setWindowFinishTime(gameWindow.finishTime);
     setPlayersAllowed(String(data.playersAllowed ?? 4));
     setTeamsAllowed(String(data.teamsAllowed ?? 2));
     const nextScores: Record<string, { slot1: string; slot2: string }> = {};
@@ -599,40 +592,43 @@ export default function GameHomePage({
                     if (updateWindow.isPending) {
                       return;
                     }
+                    const gameWindow = parseRequiredGameWindow(
+                      windowDay,
+                      windowStartTime,
+                      windowFinishTime,
+                    );
+                    if (!gameWindow) {
+                      return;
+                    }
                     updateWindow.mutate({
                       gameId: id,
-                      windowStart: parseOptionalDate(windowStart),
-                      windowEnd: parseOptionalDate(windowEnd),
+                      windowStart: gameWindow.windowStart,
+                      windowEnd: gameWindow.windowEnd,
                     });
                   }}
                 >
                   <FormErrorSummary
                     message={globalFormErrorMessage(updateWindow.error)}
                   />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel htmlFor="edit-window-start">
-                        Window start
-                      </FieldLabel>
-                      <Input
-                        id="edit-window-start"
-                        type="datetime-local"
-                        value={windowStart}
-                        onChange={(event) => setWindowStart(event.target.value)}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="edit-window-end">
-                        Window end
-                      </FieldLabel>
-                      <Input
-                        id="edit-window-end"
-                        type="datetime-local"
-                        value={windowEnd}
-                        onChange={(event) => setWindowEnd(event.target.value)}
-                      />
-                    </Field>
-                  </div>
+                  <GameWindowFields
+                    dayId="edit-window-day"
+                    startId="edit-window-start"
+                    finishId="edit-window-finish"
+                    day={windowDay}
+                    startTime={windowStartTime}
+                    finishTime={windowFinishTime}
+                    onDayChange={setWindowDay}
+                    onStartTimeChange={setWindowStartTime}
+                    onFinishTimeChange={setWindowFinishTime}
+                    startError={fieldErrorMessage(
+                      updateWindow.error,
+                      "windowStart",
+                    )}
+                    finishError={fieldErrorMessage(
+                      updateWindow.error,
+                      "windowEnd",
+                    )}
+                  />
                   <Button type="submit" disabled={updateWindow.isPending}>
                     {updateWindow.isPending ? "Saving…" : "Save window"}
                   </Button>

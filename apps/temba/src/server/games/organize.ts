@@ -176,8 +176,8 @@ export async function reopenRegistration(
 export async function updateGameWindow(
   database: Tx,
   game: GameRow,
-  windowStart: Date | null,
-  windowEnd: Date | null,
+  windowStart: Date,
+  windowEnd: Date,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
@@ -185,16 +185,10 @@ export async function updateGameWindow(
       message: "Cannot edit a cancelled Game",
     });
   }
-  if (Boolean(windowStart) !== Boolean(windowEnd)) {
+  if (windowEnd.getTime() < windowStart.getTime()) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Window start and end must be set together",
-    });
-  }
-  if (windowStart && windowEnd && windowEnd.getTime() < windowStart.getTime()) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Window end must be at or after window start",
+      message: "Finish time must be at or after start time",
     });
   }
 
@@ -205,13 +199,10 @@ export async function updateGameWindow(
     .where(eq(games.id, game.id));
 
   if (game.format === "friendly_game") {
-    const durationInMinutes =
-      windowStart && windowEnd
-        ? Math.max(
-            0,
-            Math.round((windowEnd.getTime() - windowStart.getTime()) / 60000),
-          )
-        : null;
+    const durationInMinutes = Math.max(
+      0,
+      Math.round((windowEnd.getTime() - windowStart.getTime()) / 60000),
+    );
     await database
       .update(matches)
       .set({

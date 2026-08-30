@@ -300,19 +300,15 @@ export const gamesRouter = createTRPCRouter({
           registrationMode: registrationModeSchema,
           playersAllowed: z.number().int().optional(),
           teamsAllowed: z.number().int().optional(),
-          windowStart: z.coerce.date().optional(),
-          windowEnd: z.coerce.date().optional(),
+          windowStart: z.coerce.date(),
+          windowEnd: z.coerce.date(),
         })
         .refine(
-          (value) => Boolean(value.windowStart) === Boolean(value.windowEnd),
-          { message: "Window start and end must be set together" },
-        )
-        .refine(
-          (value) =>
-            !value.windowStart ||
-            !value.windowEnd ||
-            value.windowEnd.getTime() >= value.windowStart.getTime(),
-          { message: "Window end must be at or after window start" },
+          (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
+          {
+            message: "Finish time must be at or after start time",
+            path: ["windowEnd"],
+          },
         )
         .refine(
           (value) =>
@@ -358,15 +354,12 @@ export const gamesRouter = createTRPCRouter({
         await assertMayCreateGameOnGroup(ctx.db, group, appUser.id);
       }
 
-      const windowStart = input.windowStart ?? null;
-      const windowEnd = input.windowEnd ?? null;
-      const durationInMinutes =
-        windowStart && windowEnd
-          ? Math.max(
-              0,
-              Math.round((windowEnd.getTime() - windowStart.getTime()) / 60000),
-            )
-          : null;
+      const windowStart = input.windowStart;
+      const windowEnd = input.windowEnd;
+      const durationInMinutes = Math.max(
+        0,
+        Math.round((windowEnd.getTime() - windowStart.getTime()) / 60000),
+      );
       const isAmericano = input.format === "americano";
       const isTournament = input.format === "friendly_tournament";
       const formatEnum = isAmericano
@@ -1273,19 +1266,15 @@ export const gamesRouter = createTRPCRouter({
       z
         .object({
           gameId: z.string().uuid(),
-          windowStart: z.coerce.date().nullable(),
-          windowEnd: z.coerce.date().nullable(),
+          windowStart: z.coerce.date(),
+          windowEnd: z.coerce.date(),
         })
         .refine(
-          (value) => Boolean(value.windowStart) === Boolean(value.windowEnd),
-          { message: "Window start and end must be set together" },
-        )
-        .refine(
-          (value) =>
-            !value.windowStart ||
-            !value.windowEnd ||
-            value.windowEnd.getTime() >= value.windowStart.getTime(),
-          { message: "Window end must be at or after window start" },
+          (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
+          {
+            message: "Finish time must be at or after start time",
+            path: ["windowEnd"],
+          },
         ),
     )
     .mutation(async ({ ctx, input }) => {

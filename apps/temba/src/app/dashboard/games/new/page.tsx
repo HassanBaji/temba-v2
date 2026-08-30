@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GameWindowFields } from "~/components/games/game-window-fields";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { parseRequiredGameWindow } from "~/lib/game-window";
 import { api } from "~/trpc/react";
 import {
   fieldErrorMessage,
@@ -35,17 +37,6 @@ import {
 
 type RegistrationMode = "individual" | "team_only";
 type GameFormat = "friendly_game" | "americano" | "friendly_tournament";
-
-function parseOptionalDate(value: string) {
-  if (value.trim().length === 0) {
-    return undefined;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-  return date;
-}
 
 function NewGameForm() {
   const router = useRouter();
@@ -60,8 +51,9 @@ function NewGameForm() {
     React.useState<RegistrationMode>("individual");
   const [playersAllowed, setPlayersAllowed] = React.useState("8");
   const [teamsAllowed, setTeamsAllowed] = React.useState("4");
-  const [windowStart, setWindowStart] = React.useState("");
-  const [windowEnd, setWindowEnd] = React.useState("");
+  const [day, setDay] = React.useState("");
+  const [startTime, setStartTime] = React.useState("");
+  const [finishTime, setFinishTime] = React.useState("");
 
   const utils = api.useUtils();
   const createGame = api.games.create.useMutation({
@@ -84,7 +76,7 @@ function NewGameForm() {
           playersAllowed: "game-players-allowed",
           teamsAllowed: "game-teams-allowed",
           windowStart: "game-window-start",
-          windowEnd: "game-window-end",
+          windowEnd: "game-window-finish",
         },
         summaryRef.current,
       );
@@ -94,6 +86,10 @@ function NewGameForm() {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (createGame.isPending) {
+      return;
+    }
+    const gameWindow = parseRequiredGameWindow(day, startTime, finishTime);
+    if (!gameWindow) {
       return;
     }
     createGame.mutate({
@@ -112,8 +108,8 @@ function NewGameForm() {
         format === "friendly_tournament" && registrationMode === "team_only"
           ? Number(teamsAllowed)
           : undefined,
-      windowStart: parseOptionalDate(windowStart),
-      windowEnd: parseOptionalDate(windowEnd),
+      windowStart: gameWindow.windowStart,
+      windowEnd: gameWindow.windowEnd,
     });
   }
 
@@ -288,32 +284,19 @@ function NewGameForm() {
               </div>
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="game-window-start">
-                Window start (optional)
-              </FieldLabel>
-              <Input
-                id="game-window-start"
-                type="datetime-local"
-                value={windowStart}
-                onChange={(event) => setWindowStart(event.target.value)}
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="game-window-end">
-                Window end (optional)
-              </FieldLabel>
-              <Input
-                id="game-window-end"
-                type="datetime-local"
-                value={windowEnd}
-                onChange={(event) => setWindowEnd(event.target.value)}
-              />
-              <FieldDescription>
-                Set both start and end, or leave both blank.
-              </FieldDescription>
-            </Field>
+            <GameWindowFields
+              dayId="game-window-day"
+              startId="game-window-start"
+              finishId="game-window-finish"
+              day={day}
+              startTime={startTime}
+              finishTime={finishTime}
+              onDayChange={setDay}
+              onStartTimeChange={setStartTime}
+              onFinishTimeChange={setFinishTime}
+              startError={fieldErrorMessage(createGame.error, "windowStart")}
+              finishError={fieldErrorMessage(createGame.error, "windowEnd")}
+            />
           </FieldGroup>
 
           <div className="flex items-center gap-3">
