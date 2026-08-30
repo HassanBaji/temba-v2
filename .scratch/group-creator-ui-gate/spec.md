@@ -213,3 +213,12 @@ Approving this spec approves that manual pass as sufficient for V1.
 - UI hide is a V1 speed choice. Adding server checks later is a new spec, not a surprise extension of this one.
 
 - Empty Communities copy is shared so flagged Users do not keep the old “Create a Community to organise…” sentence next to a button.
+
+Tickets (labelled `ready-for-agent`):
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-89 Gate hub Create Community, Create Group, and Create Game on Clerk groupCreator](https://linear.app/temba-app/issue/TEM-89/gate-hub-create-community-create-group-and-create-game-on-clerk) | — |
+| 2 | [TEM-90 AND groupCreator with Club Group and Group Game create UI](https://linear.app/temba-app/issue/TEM-90/and-groupcreator-with-club-group-and-group-game-create-ui) | TEM-89 |
+
+Do not implement until an implementer is asked to run them. Work the frontier: **TEM-89** only.

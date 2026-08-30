@@ -8,6 +8,7 @@ import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
+import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
@@ -16,15 +17,18 @@ import { api } from "~/trpc/react";
 
 export default function GroupsIndexPage() {
   const groups = api.groups.mine.useQuery();
+  const { hasCreateAccess } = useCreateAccess();
 
   return (
     <DashboardShell
       title="Groups"
       description="Groups you are a member of. Open one to go to its home."
       action={
-        <Button asChild>
-          <Link href="/dashboard/groups/new">Create Group</Link>
-        </Button>
+        hasCreateAccess ? (
+          <Button asChild>
+            <Link href="/dashboard/groups/new">Create Group</Link>
+          </Button>
+        ) : undefined
       }
     >
       {groups.isLoading ? <ListPageSkeleton rows={4} /> : null}
@@ -45,9 +49,11 @@ export default function GroupsIndexPage() {
           title="No Groups yet"
           description="Groups are where you play and where your Standing lives."
           action={
-            <Button asChild>
-              <Link href="/dashboard/groups/new">Create Group</Link>
-            </Button>
+            hasCreateAccess ? (
+              <Button asChild>
+                <Link href="/dashboard/groups/new">Create Group</Link>
+              </Button>
+            ) : undefined
           }
         />
       ) : null}

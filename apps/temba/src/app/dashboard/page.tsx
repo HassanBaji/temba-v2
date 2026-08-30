@@ -8,6 +8,7 @@ import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
+import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Section } from "~/components/layout/section";
@@ -50,6 +51,7 @@ function HomeSkeleton() {
 
 export default function HomePage() {
   const { user } = useUser();
+  const { hasCreateAccess } = useCreateAccess();
   const home = api.users.home.useQuery();
   const invites = usePendingInviteCount();
   const firstName = user?.firstName;
@@ -68,9 +70,11 @@ export default function HomePage() {
       title="Home"
       description="When you next play, anything waiting, and where you stand."
       action={
-        <Button asChild>
-          <Link href="/dashboard/games/new">Create Game</Link>
-        </Button>
+        hasCreateAccess ? (
+          <Button asChild>
+            <Link href="/dashboard/games/new">Create Game</Link>
+          </Button>
+        ) : undefined
       }
       width="wide"
     >

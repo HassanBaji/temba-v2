@@ -1,5 +1,7 @@
 Spec: `.scratch/group-creator-ui-gate/spec.md`
 
+Linear: [TEM-89](https://linear.app/temba-app/issue/TEM-89/gate-hub-create-community-create-group-and-create-game-on-clerk)
+
 # 01: Gate hub Create Community, Create Group, and Create Game on Clerk `groupCreator`
 
 **What to build:** Any authenticated User can still browse Home, Games, Groups, and Communities, and can still create a Team. Create Community, Create Group (Loose Group from the Groups hub), and Create Game (Home, Games hub, and the three `/new` create pages) are visible only when Clerk `publicMetadata.groupCreator` is `true`. A User without that flag who types a create URL sees a staff empty state, not a form. Grant stays in the Clerk dashboard. The App never shows the string `groupCreator`.

@@ -1,10 +1,12 @@
 Spec: `.scratch/group-creator-ui-gate/spec.md`
 
+Linear: [TEM-90](https://linear.app/temba-app/issue/TEM-90/and-groupcreator-with-club-group-and-group-game-create-ui)
+
 # 02: AND `groupCreator` with Club Group and Group Game create UI
 
 **What to build:** Create Club Group on Community home and Create Game on Group home follow the same Clerk `groupCreator` hide as hub create, without widening who may create. Owner or Admin of a live Community see Create Club Group only when the flag is `true` and `canCreateClubGroup` is already true. A Group creator, or Owner or Admin on a Club Group, see Create Game only when the flag is `true` and `canCreateGame` is already true. Other Community staff actions stay. Create procedures and those `canCreate*` values stay as they are.
 
-**Blocked by:** 01: Gate hub Create Community, Create Group, and Create Game on Clerk `groupCreator`
+**Blocked by:** [TEM-89](https://linear.app/temba-app/issue/TEM-89/gate-hub-create-community-create-group-and-create-game-on-clerk)
 
 **Status:** ready-for-agent
 

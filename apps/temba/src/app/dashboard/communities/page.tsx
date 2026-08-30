@@ -7,6 +7,7 @@ import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
+import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
 import { GroupTypeBadge } from "~/components/temba/group-type-badge";
@@ -40,15 +41,18 @@ function CommunitiesListSkeleton() {
 
 export default function CommunitiesPage() {
   const mine = api.communities.mine.useQuery();
+  const { hasCreateAccess } = useCreateAccess();
 
   return (
     <DashboardShell
       title="Communities"
       description="Communities you belong to, with every Club Group nested. Open a Community or Group to go to its home."
       action={
-        <Button asChild>
-          <Link href="/dashboard/communities/new">Create Community</Link>
-        </Button>
+        hasCreateAccess ? (
+          <Button asChild>
+            <Link href="/dashboard/communities/new">Create Community</Link>
+          </Button>
+        ) : undefined
       }
     >
       {mine.isLoading ? <CommunitiesListSkeleton /> : null}
@@ -67,11 +71,13 @@ export default function CommunitiesPage() {
         <EmptyState
           icon={Building2}
           title="No Communities yet"
-          description="Create a Community to organise Club Groups around a Venue."
+          description="Communities organise Club Groups around a Venue."
           action={
-            <Button asChild>
-              <Link href="/dashboard/communities/new">Create Community</Link>
-            </Button>
+            hasCreateAccess ? (
+              <Button asChild>
+                <Link href="/dashboard/communities/new">Create Community</Link>
+              </Button>
+            ) : undefined
           }
         />
       ) : null}
