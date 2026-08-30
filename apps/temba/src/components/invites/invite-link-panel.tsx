@@ -31,9 +31,6 @@ export function InviteLinkPanel({
         value={inviteUrl ?? ""}
         aria-label="Invite link"
         className="flex-1"
-        onFocus={(event) => {
-          event.currentTarget.select();
-        }}
       />
     </div>
   );
