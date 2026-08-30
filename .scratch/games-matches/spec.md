@@ -16,11 +16,11 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 ## User Stories
 
-1. As an Owner or Admin, I want to create a Friendly game on a Club Group with a name, public flag, individual or team-only, and an optional window, so that the Group has a Friday-night contest. The App stores padel. Creating the Game creates its one Match. Caps are forced: 4 players or 2 Teams.
+1. As an Owner, Admin, or that Club Group’s creator, I want to create a Friendly game on a Club Group with a name, public flag, individual or team-only, and an optional window, so that the Group has a Friday-night contest. The App stores padel. Creating the Game creates its one Match. Caps are forced: 4 players or 2 Teams.
 
-2. As a Member who is not Owner or Admin, I want creating a Club Group Game to be refused, so that Club play stays staff-run.
+2. As a Member who is not Owner, Admin, or that Club Group’s creator, I want creating a Club Group Game to be refused, so that Club play stays staff-run (or run by the squad’s creator).
 
-3. As a Loose Group member, I want to create a Game on that Group (any format), so that the people in the Group can organize play without Community staff.
+3. As the creator of a Loose Group, I want to create a Game on that Group (any format), so that the people in the Group can organize play without Community staff. As a Loose Group member who is not the creator, I want creating a Game, cancelling a Match, and kicking players to be refused.
 
 4. As an authenticated User, I want to create a groupless Game (public or not), so that I can run pickup or an invite-only event with no Group. I become the only organizer.
 
@@ -92,7 +92,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 38. As an organizer, I want to mint a Game Lookup invite and a Game Invite link, so that I can pull people in with the same token rules as Groups (Lookup: existing User, accept required, revoke unused; Invite link: new 6-hour token per copy, no revoke). No Email invite.
 
-39. As a Loose Group member who is not the Group creator, I want to mint Game invites if I may organize that Game, so that Game invite power follows Game organizers, not Loose Group creator-only links.
+39. As a User who may organize a Game, I want to mint Game invites, so that Game invite power follows Game organizers (Group creator; Club Group also Owner or Admin), not every Group member.
 
 40. As a User with a Game Lookup invite on an individual Game, I want to accept and register (or waitlist if full), so that accept is a real door.
 
@@ -176,7 +176,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 - **Invites:** New Game Lookup invite table (User-keyed, unused unique per Game+User, revoke unused, no 6h). New Game Invite link table (token, expiresAt = created + 6 hours, many live tokens, no revoke). Paths `/invites/game/email` are **not** added. Invite-shell pages: `/invites/game/lookup` is not a URL (accept on Invites dashboard); `/invites/game/link/[token]` for Invite link. Authorization to mint = Game organizers. Team-only: do not insert Lookup invites. Team-only Invite link: first accept creates a pending pair-consent that does not occupy cap; second accept registers or waitlists the Team; refuse if the clicker has no exactly-one eligible complete Team, or if the partner is not the other member of that Team. Soft-archived Club Group Game: refuse mint and accept. Non-public Group Game: refuse send/accept if invitee/clicker is not a Group member. Accept never inserts Community or Group membership.
 
-- **Organizer set:** Club Group Game: any Owner or Admin of that Community (not only `createdBy`). Loose Group Game: any current Group member. Groupless: `createdBy` only. Same people: create, close/reopen, kick, cancel Game/Match, add/edit tournament Matches, assign Courts, mint/revoke Lookup, mint Invite link, add Set shells, score when allowed, complete Match.
+- **Organizer set:** Club Group Game: any Owner or Admin of that Community, or that Group’s creator (not only `createdBy` on the Game). Loose Group Game: the Group creator only (not every member). Groupless: `createdBy` only. Same people: create, close/reopen, kick, cancel Game/Match, add/edit tournament Matches, assign Courts, mint/revoke Lookup, mint Invite link, add Set shells, score when allowed, complete Match.
 
 - **Join gate** on every register, waitlist, Lookup send/accept, Invite link accept: public → any authenticated User (individual) or any complete Team that is allowed (team-only). Non-public Group → Group members (both Team partners if team-only). Groupless non-public → organizer or successful invite only. Incomplete Teams never enter.
 
@@ -203,8 +203,8 @@ Highest seam (one): an authenticated User can create each Game format, fill regi
 If you implement this spec, you implement these seams:
 
 - Rename: lists and Group-delete talk about parent Games; leftover contest rows wrapped or absent
-- Create Friendly game (Club Group staff, Loose Group member, groupless): one Match, caps 4 / 2, App padel
-- Member cannot create Club Group Game; Soft-archive refuses new Club Group Games
+- Create Friendly game (Club Group staff or Group creator, Loose Group creator, groupless): one Match, caps 4 / 2, App padel
+- Member who is not staff or Group creator cannot create Club Group Game; Loose Group member who is not creator cannot create, cancel, or kick; Soft-archive refuses new Club Group Games
 - Create Americano: individual-only, no Matches, players allowed ×4
 - Create Friendly tournament: zero Matches, organizer cap
 - Format, public, mode immutable; cap raise/lower rules; window edit
