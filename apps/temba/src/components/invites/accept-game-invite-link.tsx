@@ -57,7 +57,7 @@ export function AcceptGameInviteLink({
   const canJoinVacant = isSignedIn && !joinFrozen && !waitlistOnly;
   const seatRaceError =
     needsSeatPick && accept.isError && accept.error.data?.code === "CONFLICT";
-  const sideNoun = ready?.format === "friendly_tournament" ? "Side" : "Slot";
+  const sideNoun = ready?.format === "friendly_tournament" ? "Side" : "Team";
 
   React.useEffect(() => {
     if (!isSignedIn) {
@@ -187,7 +187,6 @@ export function AcceptGameInviteLink({
           onMove={() => undefined}
           onKick={() => undefined}
           sideNoun={sideNoun}
-          readOnly={!isSignedIn || joinFrozen}
         />
         {isSignedIn ? (
           waitlistOnly ? (

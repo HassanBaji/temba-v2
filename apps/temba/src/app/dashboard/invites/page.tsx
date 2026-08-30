@@ -251,9 +251,8 @@ export default function InvitesPage() {
                     onMove={() => undefined}
                     onKick={() => undefined}
                     sideNoun={
-                      invite.format === "friendly_tournament" ? "Side" : "Slot"
+                      invite.format === "friendly_tournament" ? "Side" : "Team"
                     }
-                    readOnly={joinFrozen}
                   />
                   {waitlistOnly ? (
                     <Button
