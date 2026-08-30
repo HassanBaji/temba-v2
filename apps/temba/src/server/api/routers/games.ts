@@ -522,26 +522,13 @@ export const gamesRouter = createTRPCRouter({
         : isTournament
           ? GameFormatEnum.FRIENDLY_TOURNAMENT
           : GameFormatEnum.FRIENDLY_GAME;
-      const registrationMode =
-        isAmericano || input.registrationMode !== "team_only"
-          ? GameRegistrationModeEnum.INDIVIDUAL
-          : GameRegistrationModeEnum.TEAM_ONLY;
-      const playersAllowed = isAmericano
-        ? (input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
-        : isTournament &&
-            registrationMode === GameRegistrationModeEnum.INDIVIDUAL
+      const registrationMode = GameRegistrationModeEnum.INDIVIDUAL;
+      const playersAllowed =
+        isAmericano || isTournament
           ? (input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
-          : isTournament
-            ? null
-            : FRIENDLY_PLAYERS_ALLOWED;
-      const teamsAllowed = isAmericano
-        ? null
-        : isTournament &&
-            registrationMode === GameRegistrationModeEnum.TEAM_ONLY
-          ? (input.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)
-          : isTournament
-            ? null
-            : FRIENDLY_TEAMS_ALLOWED;
+          : FRIENDLY_PLAYERS_ALLOWED;
+      const teamsAllowed =
+        isAmericano || isTournament ? null : FRIENDLY_TEAMS_ALLOWED;
 
       const created = await ctx.db.transaction(async (tx) => {
         const [game] = await tx
@@ -551,7 +538,7 @@ export const gamesRouter = createTRPCRouter({
             format: formatEnum,
             registrationMode,
             groupId: input.groupId ?? null,
-            isPublic: input.isPublic,
+            isPublic: false,
             windowStart,
             windowEnd,
             playersAllowed,
@@ -1447,6 +1434,7 @@ export const gamesRouter = createTRPCRouter({
       z
         .object({
           gameId: z.string().uuid(),
+          name: z.string().trim().min(1).max(255),
           windowStart: z.coerce.date(),
           windowEnd: z.coerce.date(),
         })
@@ -1463,7 +1451,13 @@ export const gamesRouter = createTRPCRouter({
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await ctx.db.transaction(async (tx) => {
-        await updateGameWindow(tx, game, input.windowStart, input.windowEnd);
+        await updateGameWindow(
+          tx,
+          game,
+          input.windowStart,
+          input.windowEnd,
+          input.name,
+        );
       });
       return { ok: true as const };
     }),

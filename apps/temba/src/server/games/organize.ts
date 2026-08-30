@@ -178,6 +178,7 @@ export async function updateGameWindow(
   game: GameRow,
   windowStart: Date,
   windowEnd: Date,
+  name: string,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
@@ -195,7 +196,7 @@ export async function updateGameWindow(
   const now = new Date();
   await database
     .update(games)
-    .set({ windowStart, windowEnd, updatedAt: now })
+    .set({ windowStart, windowEnd, name, updatedAt: now })
     .where(eq(games.id, game.id));
 
   if (game.format === "friendly_game") {

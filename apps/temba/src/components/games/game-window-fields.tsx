@@ -11,26 +11,82 @@ import {
   FieldError,
   FieldLabel,
 } from "~/components/ui/field";
-import { Input } from "~/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
-import { formatDateInputValue, parseDateInputValue } from "~/lib/game-window";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
+  earliestGameWindowDay,
+  formatDateInputValue,
+  formatDayLabel,
+  formatTimeSlotLabel,
+  parseDateInputValue,
+  upcomingGameWindowTimeSlots,
+} from "~/lib/game-window";
 import { cn } from "~/lib/utils";
 
-function formatDayLabel(day: string) {
-  const date = parseDateInputValue(day);
-  if (!date) {
-    return null;
-  }
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+function TimeSlotSelect({
+  id,
+  value,
+  onChange,
+  error,
+  slots,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  slots: readonly string[];
+}) {
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+
+  return (
+    <>
+      <Select
+        value={slots.includes(value) ? value : undefined}
+        onValueChange={onChange}
+      >
+        <SelectTrigger
+          ref={triggerRef}
+          id={id}
+          className="w-full"
+          aria-required="true"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+        >
+          <SelectValue placeholder="Pick a time" />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          {slots.map((slot) => (
+            <SelectItem key={slot} value={slot}>
+              {formatTimeSlotLabel(slot)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <input
+        type="text"
+        value={value}
+        required
+        readOnly
+        tabIndex={-1}
+        className="sr-only"
+        aria-hidden="true"
+        onInvalid={(event) => {
+          event.preventDefault();
+          triggerRef.current?.focus();
+        }}
+      />
+    </>
+  );
 }
 
 export function GameWindowFields({
@@ -62,9 +118,19 @@ export function GameWindowFields({
   const dayButtonRef = React.useRef<HTMLButtonElement>(null);
   const selectedDay = parseDateInputValue(day);
   const dayLabel = formatDayLabel(day);
+  const now = new Date();
+  const earliestDay = React.useMemo(() => earliestGameWindowDay(), []);
+  const startSlots = upcomingGameWindowTimeSlots(day, now);
+  const finishSlots = startTime
+    ? startSlots.filter((slot) => slot >= startTime)
+    : startSlots;
   const [displayedMonth, setDisplayedMonth] = React.useState(
-    () => parseDateInputValue(day) ?? new Date(),
+    () => parseDateInputValue(day) ?? earliestDay,
   );
+  const calendarMonth =
+    displayedMonth.getTime() < earliestDay.getTime()
+      ? earliestDay
+      : displayedMonth;
 
   React.useEffect(() => {
     const next = parseDateInputValue(day);
@@ -72,6 +138,20 @@ export function GameWindowFields({
       setDisplayedMonth(next);
     }
   }, [day]);
+
+  React.useEffect(() => {
+    const slots = upcomingGameWindowTimeSlots(day);
+    if (startTime && !slots.includes(startTime)) {
+      onStartTimeChange("");
+    }
+    const nextFinishSlots =
+      startTime && slots.includes(startTime)
+        ? slots.filter((slot) => slot >= startTime)
+        : slots;
+    if (finishTime && !nextFinishSlots.includes(finishTime)) {
+      onFinishTimeChange("");
+    }
+  }, [day, finishTime, onFinishTimeChange, onStartTimeChange, startTime]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -101,7 +181,9 @@ export function GameWindowFields({
             <Calendar
               mode="single"
               selected={selectedDay}
-              month={displayedMonth}
+              month={calendarMonth}
+              startMonth={earliestDay}
+              disabled={{ before: earliestDay }}
               onMonthChange={setDisplayedMonth}
               onSelect={(next) => {
                 if (!next) {
@@ -131,37 +213,36 @@ export function GameWindowFields({
       <div className="grid gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor={startId}>Start time</FieldLabel>
-          <Input
+          <TimeSlotSelect
             id={startId}
-            type="time"
-            step={60}
             value={startTime}
-            onChange={(event) => onStartTimeChange(event.target.value)}
-            required
-            aria-invalid={startError ? true : undefined}
-            aria-describedby={startError ? `${startId}-error` : undefined}
+            onChange={(next) => {
+              onStartTimeChange(next);
+              if (finishTime && finishTime < next) {
+                onFinishTimeChange("");
+              }
+            }}
+            error={startError}
+            slots={startSlots}
           />
           <FieldError id={`${startId}-error`}>{startError}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor={finishId}>Finish time</FieldLabel>
-          <Input
+          <TimeSlotSelect
             id={finishId}
-            type="time"
-            step={60}
-            min={startTime || undefined}
             value={finishTime}
-            onChange={(event) => onFinishTimeChange(event.target.value)}
-            required
-            aria-invalid={finishError ? true : undefined}
-            aria-describedby={finishError ? `${finishId}-error` : undefined}
+            onChange={onFinishTimeChange}
+            error={finishError}
+            slots={finishSlots}
           />
           <FieldError id={`${finishId}-error`}>{finishError}</FieldError>
         </Field>
       </div>
       <FieldDescription id={`${dayId}-description`}>
-        Day, start time, and finish time are required. Both times are on the
-        selected day.
+        Day, start time, and finish time are required. Pick today or a later
+        day. Times are in 30-minute intervals; for today, only upcoming times
+        are listed.
       </FieldDescription>
     </div>
   );
