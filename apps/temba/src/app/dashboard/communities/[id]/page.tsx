@@ -23,6 +23,7 @@ import { CommunityMembersTab } from "~/components/communities/community-members-
 import { CommunityRequestsTab } from "~/components/communities/community-requests-tab";
 import { CommunityTeamsTab } from "~/components/communities/community-teams-tab";
 import { CommunityVenueBlock } from "~/components/communities/community-venue-block";
+import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Card } from "~/components/ui/card";
@@ -40,6 +41,7 @@ export default function CommunityHomePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -332,6 +334,7 @@ export default function CommunityHomePage({
 
   const data = community.data;
   const communityName = data.name ?? "Community";
+  const canShowCreateClubGroup = hasCreateAccess && data.canCreateClubGroup;
   const canManageInvites =
     data.canManageLookupInvites || data.canManageInviteLinks;
   const showRequestsTab = data.canManageJoinRequests || data.canManageTeamLinks;
@@ -411,12 +414,12 @@ export default function CommunityHomePage({
     ) : null;
 
   const staffCard =
-    data.canCreateClubGroup || canManageInvites ? (
+    canShowCreateClubGroup || canManageInvites ? (
       <Card variant="raised" className="gap-2">
         <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
           Actions
         </p>
-        {data.canCreateClubGroup ? (
+        {canShowCreateClubGroup ? (
           <Button
             type="button"
             className="min-h-11 w-full"
@@ -514,7 +517,7 @@ export default function CommunityHomePage({
               <TabsContent value="groups">
                 <CommunityGroupsTab
                   groups={data.groups}
-                  canCreateClubGroup={data.canCreateClubGroup}
+                  canCreateClubGroup={canShowCreateClubGroup}
                   onCreate={() => setCreateGroupOpen(true)}
                 />
               </TabsContent>
@@ -677,7 +680,7 @@ export default function CommunityHomePage({
         onCopyInviteLink={() => createInviteLink.mutate({ communityId: id })}
       />
 
-      {data.canCreateClubGroup ? (
+      {canShowCreateClubGroup ? (
         <CommunityCreateGroupDialog
           open={createGroupOpen}
           onOpenChange={setCreateGroupOpen}

@@ -13,6 +13,7 @@ import {
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { StatStrip } from "~/components/common/stat-strip";
+import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { GroupHomeHeader } from "~/components/groups/group-home-header";
@@ -35,6 +36,7 @@ export default function GroupHomePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { hasCreateAccess } = useCreateAccess();
   const router = useRouter();
   const utils = api.useUtils();
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -220,11 +222,12 @@ export default function GroupHomePage({
 
   const data = group.data;
   const groupName = data.name ?? "Group";
+  const canShowCreateGame = hasCreateAccess && data.canCreateGame;
   const canManageInvites =
     data.canManageLookupInvites || data.canManageInviteLinks;
   const showMenu =
     data.community != null ||
-    data.canCreateGame ||
+    canShowCreateGame ||
     (data.isLoose && data.type === "public") ||
     canManageInvites ||
     data.membership != null ||
@@ -251,7 +254,7 @@ export default function GroupHomePage({
               <Link href="/dashboard/communities">All Communities</Link>
             </ActionMenuItem>
           ) : null}
-          {data.canCreateGame ? (
+          {canShowCreateGame ? (
             <ActionMenuItem asChild>
               <Link href={`/dashboard/games/new?groupId=${id}`}>
                 Create Game
@@ -322,12 +325,12 @@ export default function GroupHomePage({
   ) : null;
 
   const staffCard =
-    data.canCreateGame || canManageInvites ? (
+    canShowCreateGame || canManageInvites ? (
       <Card variant="raised" className="gap-2">
         <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
           Actions
         </p>
-        {data.canCreateGame ? (
+        {canShowCreateGame ? (
           <Button asChild className="min-h-11 w-full">
             <Link href={`/dashboard/games/new?groupId=${id}`}>Create Game</Link>
           </Button>
