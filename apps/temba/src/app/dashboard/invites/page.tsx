@@ -123,6 +123,7 @@ export default function InvitesPage() {
       createdAt: invite.createdAt,
       needsSeatPick: invite.needsSeatPick,
       format: invite.format,
+      registrationStatus: invite.registrationStatus,
       sides: invite.sides,
       vacantSeats: invite.vacantSeats,
     })),
@@ -199,7 +200,13 @@ export default function InvitesPage() {
               invite.needsSeatPick &&
               invite.sides
             ) {
-              const waitlistOnly = invite.vacantSeats.length === 0;
+              const joinFrozen =
+                invite.registrationStatus === "closed" ||
+                invite.registrationStatus === "cancelled";
+              const waitlistOnly =
+                !joinFrozen &&
+                (invite.registrationStatus === "full" ||
+                  invite.vacantSeats.length === 0);
               return (
                 <li
                   key={`${invite.kind}-${invite.id}`}
@@ -218,19 +225,21 @@ export default function InvitesPage() {
                     <InviteKindBadge kind={invite.kind} />
                   </div>
                   <p className="text-body text-muted-foreground">
-                    {waitlistOnly
-                      ? "No vacant Position. Occupied seats show who is already registered."
-                      : "Occupied seats show who is already registered. Pick a vacant Position to sit."}
+                    {joinFrozen
+                      ? "Occupied seats show who is already registered. This Game is not open for registration."
+                      : waitlistOnly
+                        ? "No vacant Position. Occupied seats show who is already registered."
+                        : "Occupied seats show who is already registered. Pick a vacant Position to sit."}
                   </p>
                   <GameSeatGrid
                     sides={invite.sides}
-                    canJoinVacant={!waitlistOnly}
+                    canJoinVacant={!joinFrozen && !waitlistOnly}
                     joinLabel="Sit here"
                     joining={pending}
                     canMove={false}
                     moving={false}
                     isOrganizer={false}
-                    cancelled={false}
+                    cancelled={joinFrozen}
                     kickPending={false}
                     onJoin={(sideIndex, position) =>
                       acceptGame.mutate({
@@ -244,6 +253,7 @@ export default function InvitesPage() {
                     sideNoun={
                       invite.format === "friendly_tournament" ? "Side" : "Slot"
                     }
+                    readOnly={joinFrozen}
                   />
                   {waitlistOnly ? (
                     <Button

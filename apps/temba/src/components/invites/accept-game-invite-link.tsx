@@ -47,7 +47,16 @@ export function AcceptGameInviteLink({
   const needsSeatPick = Boolean(ready?.needsSeatPick);
   const sides = ready?.sides ?? [];
   const vacantSeats = ready?.vacantSeats ?? [];
-  const waitlistOnly = needsSeatPick && vacantSeats.length === 0;
+  const joinFrozen =
+    ready?.registrationStatus === "closed" ||
+    ready?.registrationStatus === "cancelled";
+  const waitlistOnly =
+    needsSeatPick &&
+    !joinFrozen &&
+    (ready?.registrationStatus === "full" || vacantSeats.length === 0);
+  const canJoinVacant = isSignedIn && !joinFrozen && !waitlistOnly;
+  const seatRaceError =
+    needsSeatPick && accept.isError && accept.error.data?.code === "CONFLICT";
   const sideNoun = ready?.format === "friendly_tournament" ? "Side" : "Slot";
 
   React.useEffect(() => {
@@ -133,7 +142,7 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (accept.isError && !needsSeatPick) {
+  if (accept.isError && !seatRaceError) {
     return (
       <div className="space-y-3">
         <h1 className="text-title font-semibold">Could not join</h1>
@@ -155,32 +164,38 @@ export function AcceptGameInviteLink({
             Join {ready?.gameName ?? "Game"}
           </h1>
           <p className="text-body text-muted-foreground">
-            {isSignedIn
-              ? waitlistOnly
-                ? "No vacant Position. Occupied seats show who is already registered. Accept to join the waitlist."
-                : "Occupied seats show who is already registered. Pick a vacant Position to sit."
-              : "Occupied seats show who is already registered. Sign in or sign up with Clerk to pick a vacant Position."}
+            {joinFrozen
+              ? "Occupied seats show who is already registered. This Game is not open for registration."
+              : isSignedIn
+                ? waitlistOnly
+                  ? "No vacant Position. Occupied seats show who is already registered. Accept to join the waitlist."
+                  : "Occupied seats show who is already registered. Pick a vacant Position to sit."
+                : "Occupied seats show who is already registered. Sign in or sign up with Clerk to pick a vacant Position."}
           </p>
         </div>
         <GameSeatGrid
           sides={sides}
-          canJoinVacant={isSignedIn && !waitlistOnly}
+          canJoinVacant={canJoinVacant}
           joinLabel="Sit here"
           joining={accept.isPending}
           canMove={false}
           moving={false}
           isOrganizer={false}
-          cancelled={false}
+          cancelled={joinFrozen}
           kickPending={false}
           onJoin={onJoinSeat}
           onMove={() => undefined}
           onKick={() => undefined}
           sideNoun={sideNoun}
-          readOnly={!isSignedIn}
+          readOnly={!isSignedIn || joinFrozen}
         />
         {isSignedIn ? (
           waitlistOnly ? (
-            <Button onClick={onJoinWaitlist} disabled={accept.isPending}>
+            <Button
+              className="min-h-11"
+              onClick={onJoinWaitlist}
+              disabled={accept.isPending}
+            >
               {accept.isPending ? "Joining…" : "Join waitlist"}
             </Button>
           ) : null

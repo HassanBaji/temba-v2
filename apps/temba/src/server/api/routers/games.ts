@@ -1635,6 +1635,11 @@ export const gamesRouter = createTRPCRouter({
         createdAt: row.createdAt,
         needsSeatPick,
         format: game.format,
+        registrationStatus: await getRegistrationStatus(
+          ctx.db,
+          game,
+          new Date(),
+        ),
         sides,
         vacantSeats: vacantPositionsFromSides(sides),
       });
@@ -1806,6 +1811,11 @@ export const gamesRouter = createTRPCRouter({
         status: "ready" as const,
         gameName: game.name ?? "Untitled Game",
         format: gameRow.format,
+        registrationStatus: await getRegistrationStatus(
+          ctx.db,
+          gameRow,
+          new Date(),
+        ),
         needsSeatPick,
         sides,
         vacantSeats: vacantPositionsFromSides(sides),
