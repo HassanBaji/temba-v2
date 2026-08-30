@@ -132,9 +132,9 @@ Approving this spec approves the Test seams in Testing Decisions. Glossary and A
 
 58. As an Owner or Admin of Community Public or Community Private, I want the same request path, so that type does not change how a place is claimed.
 
-59. As a developer of a later Game-create slice, I want Games, coaches, and coaching sessions to keep their required reference to the Venue row, so that this feature does not retarget named Courts.
+59. As a developer of a later Game-create slice, I want Games, coaches, and coaching sessions to keep their required reference to the Venue row, so that this feature does not retarget named Courts. **Amended:** that slice is `.scratch/game-create-venue-court/spec.md` (Game.venueId required; Match still optional Court; coach FKs stay on Venue).
 
-60. As a User of the App, I want no Game create or Game display in this feature, so that Venue catalog is not a match product.
+60. As a User of the App, I want no Game create or Game display in this feature, so that Venue catalog is not a match product. **Amended:** Game create Venue/Court is `.scratch/game-create-venue-court/spec.md`, not this spec.
 
 61. As an Operator, I want Clerk `publicMetadata.operator` to be the source of truth, so that bootstrap and revoke happen in the Clerk dashboard with no in-app grant.
 
@@ -247,3 +247,5 @@ Glossary: apply the Language patch in root CONTEXT.md in the same planning commi
 Locked v1 defaults (not a further grill): no Court cap; catalog search contains name/city/country; Operator queue shows Community name, requester, Venue, time; lat/lng Operator-only; Create Community name+type only; city and country trimmed free text; uniqueness (name, city, country) includes archived rows; silent reject.
 
 Next step after this spec is approved: `/to-tickets` (Linear implementation tickets, local spec stays here). Do not implement from this file until tickets exist and an implementer is asked to run them.
+
+**Amended:** Game create Venue and Court is `.scratch/game-create-venue-court/spec.md`. This venues spec still does not retarget Match at Venue or change the Operator catalog. Coach and coaching-session FKs stay on Venue.
