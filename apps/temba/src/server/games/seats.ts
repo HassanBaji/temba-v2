@@ -33,6 +33,15 @@ export type GameSide = {
   right: SeatOccupant | null;
 };
 
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
+}
+
 export function vacantPositionsFromSides(sides: GameSide[]) {
   const vacant: { sideIndex: number; position: SeatPosition }[] = [];
   for (const side of sides) {
@@ -44,6 +53,11 @@ export function vacantPositionsFromSides(sides: GameSide[]) {
     }
   }
   return vacant;
+}
+
+export async function firstVacantPosition(database: DbClient, game: GameRow) {
+  const vacant = vacantPositionsFromSides(await listGameSides(database, game));
+  return vacant[0] ?? null;
 }
 
 export function isIndividualSeatGame(game: GameRow) {
@@ -298,20 +312,30 @@ export async function occupySeat(
       });
     }
   } else {
-    const [created] = await database
-      .insert(gameTeams)
-      .values({
-        gameId: game.id,
-        sideIndex,
-      })
-      .returning();
-    if (!created) {
+    try {
+      const [created] = await database
+        .insert(gameTeams)
+        .values({
+          gameId: game.id,
+          sideIndex,
+        })
+        .returning();
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to register on this Game",
+        });
+      }
+      team = created;
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
       throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to register on this Game",
+        code: "CONFLICT",
+        message: "That Position is occupied",
       });
     }
-    team = created;
     if (game.format === "friendly_game") {
       await setFriendlyMatchSlotForSide(database, game.id, sideIndex, team.id);
     }
@@ -332,11 +356,21 @@ export async function occupySeat(
     playerId = player.id;
   }
 
-  await database.insert(gameTeamPlayers).values({
-    gameTeamId: team.id,
-    gamePlayerId: playerId,
-    position,
-  });
+  try {
+    await database.insert(gameTeamPlayers).values({
+      gameTeamId: team.id,
+      gamePlayerId: playerId,
+      position,
+    });
+  } catch (error) {
+    if (!isUniqueViolation(error)) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "That Position is occupied",
+    });
+  }
 
   return team;
 }
