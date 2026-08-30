@@ -19,7 +19,6 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
 import {
-  GameFormatBadge,
   GameRegistrationModeBadge,
   GameRegistrationStatusBadge,
 } from "~/components/temba/typed-labels";
@@ -65,16 +64,8 @@ function formatWhen(value: Date | string | null | undefined) {
   });
 }
 
-function parseOptionalDate(value: string) {
-  if (value.trim().length === 0) {
-    return null;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date;
-}
+const FRIENDLY_SET_SHELL_COUNT = 3;
+const friendlySetEnsureInFlight = new Set<string>();
 
 function optionalSelectId(value: string) {
   return value === "none" || value.length === 0 ? null : value;
@@ -122,14 +113,6 @@ export default function GameHomePage({
   const [windowDay, setWindowDay] = React.useState("");
   const [windowStartTime, setWindowStartTime] = React.useState("");
   const [windowFinishTime, setWindowFinishTime] = React.useState("");
-  const [playersAllowed, setPlayersAllowed] = React.useState("4");
-  const [teamsAllowed, setTeamsAllowed] = React.useState("2");
-  const [matchStart, setMatchStart] = React.useState("");
-  const [matchEnd, setMatchEnd] = React.useState("");
-  const [matchDuration, setMatchDuration] = React.useState("");
-  const [matchCourtId, setMatchCourtId] = React.useState("none");
-  const [matchSlot1, setMatchSlot1] = React.useState("none");
-  const [matchSlot2, setMatchSlot2] = React.useState("none");
   const [setScores, setSetScores] = React.useState<
     Record<string, { slot1: string; slot2: string }>
   >({});
@@ -137,17 +120,6 @@ export default function GameHomePage({
   const [lookupRefused, setLookupRefused] = React.useState<
     { name: string; message: string }[] | null
   >(null);
-
-  const registerSelf = api.games.register.useMutation({
-    onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
-      await utils.games.byId.invalidate({ id });
-      await utils.users.home.invalidate();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
@@ -289,32 +261,6 @@ export default function GameHomePage({
     },
   });
 
-  const updateCaps = api.games.updateCaps.useMutation({
-    onSuccess: async () => {
-      toast.success("Cap updated");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
-  const addMatch = api.games.addMatch.useMutation({
-    onSuccess: async () => {
-      toast.success("Match added");
-      setMatchStart("");
-      setMatchEnd("");
-      setMatchDuration("");
-      setMatchCourtId("none");
-      setMatchSlot1("none");
-      setMatchSlot2("none");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: async () => {
       toast.success("Match updated");
@@ -327,7 +273,6 @@ export default function GameHomePage({
 
   const addSet = api.games.addSet.useMutation({
     onSuccess: async () => {
-      toast.success("Set added");
       await refreshGame();
     },
     onError: (error) => {
@@ -338,16 +283,6 @@ export default function GameHomePage({
   const scoreSet = api.games.scoreSet.useMutation({
     onSuccess: async () => {
       toast.success("Set saved");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
-  const removeSet = api.games.removeSet.useMutation({
-    onSuccess: async () => {
-      toast.success("Set removed");
       await refreshGame();
     },
     onError: (error) => {
@@ -462,8 +397,6 @@ export default function GameHomePage({
     setWindowDay(gameWindow.day);
     setWindowStartTime(gameWindow.startTime);
     setWindowFinishTime(gameWindow.finishTime);
-    setPlayersAllowed(String(data.playersAllowed ?? 4));
-    setTeamsAllowed(String(data.teamsAllowed ?? 2));
     const nextScores: Record<string, { slot1: string; slot2: string }> = {};
     for (const match of data.matches) {
       for (const set of match.sets) {
@@ -475,6 +408,35 @@ export default function GameHomePage({
     }
     setSetScores(nextScores);
   }, [data]);
+
+  React.useEffect(() => {
+    if (!data?.isOrganizer || data.format !== "friendly_game") {
+      return;
+    }
+    for (const match of data.matches) {
+      if (match.status === "cancelled" || match.status === "completed") {
+        continue;
+      }
+      const need = FRIENDLY_SET_SHELL_COUNT - match.sets.length;
+      if (need <= 0) {
+        continue;
+      }
+      const key = `${id}:${match.id}`;
+      if (friendlySetEnsureInFlight.has(key)) {
+        continue;
+      }
+      friendlySetEnsureInFlight.add(key);
+      void (async () => {
+        try {
+          for (let i = 0; i < need; i++) {
+            await addSet.mutateAsync({ gameId: id, matchId: match.id });
+          }
+        } catch {
+          friendlySetEnsureInFlight.delete(key);
+        }
+      })();
+    }
+  }, [addSet, data, id]);
 
   return (
     <DashboardShell title={data?.name ?? "Game"}>
@@ -518,7 +480,6 @@ export default function GameHomePage({
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <GameFormatBadge format={data.format} />
                   <GameRegistrationModeBadge mode={data.registrationMode} />
                   {data.isPublic ? (
                     <Badge variant="outline">Public</Badge>
@@ -543,8 +504,7 @@ export default function GameHomePage({
                 <p className="text-muted-foreground text-sm">
                   This Club Group’s Community is Soft-archived. Register,
                   waitlist, Lookup, and Invite link mint and accept stay closed.
-                  Organizers can still add Matches and assign Courts. Reopen is
-                  refused.
+                  Reopen is refused.
                 </p>
               ) : null}
             </div>
@@ -588,8 +548,7 @@ export default function GameHomePage({
                 {data.joinFrozen ? (
                   <p className="text-muted-foreground text-sm">
                     Join doors stay closed while the Community is Soft-archived.
-                    Reopen is refused. Scheduling Matches and Courts still
-                    works.
+                    Reopen is refused.
                   </p>
                 ) : null}
                 <form
@@ -640,71 +599,11 @@ export default function GameHomePage({
                     {updateWindow.isPending ? "Saving…" : "Save window"}
                   </Button>
                 </form>
-                {data.format !== "friendly_game" ? (
-                  <form
-                    className="space-y-3"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (data.registrationMode === "team_only") {
-                        updateCaps.mutate({
-                          gameId: id,
-                          teamsAllowed: Number(teamsAllowed),
-                        });
-                        return;
-                      }
-                      updateCaps.mutate({
-                        gameId: id,
-                        playersAllowed: Number(playersAllowed),
-                      });
-                    }}
-                  >
-                    {data.registrationMode === "team_only" ? (
-                      <Field>
-                        <FieldLabel htmlFor="edit-teams-allowed">
-                          Teams allowed
-                        </FieldLabel>
-                        <Input
-                          id="edit-teams-allowed"
-                          type="number"
-                          min={2}
-                          value={teamsAllowed}
-                          onChange={(event) =>
-                            setTeamsAllowed(event.target.value)
-                          }
-                        />
-                      </Field>
-                    ) : (
-                      <Field>
-                        <FieldLabel htmlFor="edit-players-allowed">
-                          Players allowed
-                        </FieldLabel>
-                        <Input
-                          id="edit-players-allowed"
-                          type="number"
-                          min={4}
-                          step={4}
-                          value={playersAllowed}
-                          onChange={(event) =>
-                            setPlayersAllowed(event.target.value)
-                          }
-                        />
-                        <FieldDescription>
-                          Multiple of 4, not below the current registered count.
-                          {data.format === "friendly_tournament"
-                            ? " Lowering is refused if a seated side would be above the new N. Empty high-index placeholders may disappear."
-                            : null}
-                        </FieldDescription>
-                      </Field>
-                    )}
-                    <Button type="submit" disabled={updateCaps.isPending}>
-                      {updateCaps.isPending ? "Saving…" : "Save cap"}
-                    </Button>
-                  </form>
-                ) : (
+                {data.format === "friendly_game" ? (
                   <p className="text-muted-foreground text-sm">
                     Friendly game caps stay 4 players / 2 Teams.
                   </p>
-                )}
+                ) : null}
               </Card>
             ) : null}
 
@@ -713,9 +612,7 @@ export default function GameHomePage({
                 <p className="text-muted-foreground text-sm">
                   {data.format === "americano"
                     ? "Americano has no Matches this slice."
-                    : data.format === "friendly_tournament"
-                      ? "No Matches yet. Organizers can add them anytime."
-                      : "No Matches on this Game."}
+                    : "No Matches on this Game."}
                 </p>
               ) : (
                 <RowList>
@@ -876,8 +773,7 @@ export default function GameHomePage({
                           </p>
                           {match.sets.length === 0 ? (
                             <p className="text-muted-foreground text-sm">
-                              No Sets. Organizer can add a shell before sides
-                              exist.
+                              No Sets on this Match.
                             </p>
                           ) : (
                             <ul className="space-y-3">
@@ -983,43 +879,12 @@ export default function GameHomePage({
                                         Save
                                       </Button>
                                     ) : null}
-                                    {match.canAddSet ? (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() =>
-                                          removeSet.mutate({
-                                            gameId: id,
-                                            matchId: match.id,
-                                            setId: set.id,
-                                          })
-                                        }
-                                        disabled={removeSet.isPending}
-                                      >
-                                        Remove
-                                      </Button>
-                                    ) : null}
                                   </li>
                                 );
                               })}
                             </ul>
                           )}
                           <div className="flex flex-wrap gap-2">
-                            {match.canAddSet ? (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                  addSet.mutate({
-                                    gameId: id,
-                                    matchId: match.id,
-                                  })
-                                }
-                                disabled={addSet.isPending}
-                              >
-                                Add Set
-                              </Button>
-                            ) : null}
                             {match.canComplete ? (
                               <Button
                                 type="button"
@@ -1040,7 +905,7 @@ export default function GameHomePage({
                           match.status !== "completed" ? (
                             <p className="text-muted-foreground text-sm">
                               Scoring is frozen until both teams have two
-                              Positions. Set shells can still be added.
+                              Positions.
                             </p>
                           ) : null}
                         </div>
@@ -1049,138 +914,6 @@ export default function GameHomePage({
                   ))}
                 </RowList>
               )}
-              {data.isOrganizer &&
-              !data.cancelledAt &&
-              data.format === "friendly_tournament" ? (
-                <Card variant="outlined">
-                  <form
-                    className="space-y-4"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (addMatch.isPending) {
-                        return;
-                      }
-                      addMatch.mutate({
-                        gameId: id,
-                        startTime: parseOptionalDate(matchStart),
-                        endTime: parseOptionalDate(matchEnd),
-                        durationInMinutes:
-                          matchDuration.trim().length === 0
-                            ? null
-                            : Number(matchDuration),
-                        courtId: optionalSelectId(matchCourtId),
-                        slot1GameTeamId: optionalSelectId(matchSlot1),
-                        slot2GameTeamId: optionalSelectId(matchSlot2),
-                      });
-                    }}
-                  >
-                    <h4 className="text-title font-medium">Add Match</h4>
-                    <FormErrorSummary
-                      message={globalFormErrorMessage(addMatch.error)}
-                    />
-                    <p className="text-muted-foreground text-sm">
-                      Allowed while open, full, closed, or Soft-archived. Sides
-                      and Court are optional.
-                    </p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Field>
-                        <FieldLabel htmlFor="match-start">Start</FieldLabel>
-                        <Input
-                          id="match-start"
-                          type="datetime-local"
-                          value={matchStart}
-                          onChange={(event) =>
-                            setMatchStart(event.target.value)
-                          }
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="match-end">End</FieldLabel>
-                        <Input
-                          id="match-end"
-                          type="datetime-local"
-                          value={matchEnd}
-                          onChange={(event) => setMatchEnd(event.target.value)}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="match-duration">
-                          Duration (minutes)
-                        </FieldLabel>
-                        <Input
-                          id="match-duration"
-                          type="number"
-                          min={0}
-                          value={matchDuration}
-                          onChange={(event) =>
-                            setMatchDuration(event.target.value)
-                          }
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="match-court">Court</FieldLabel>
-                        <Select
-                          value={matchCourtId}
-                          onValueChange={setMatchCourtId}
-                        >
-                          <SelectTrigger id="match-court">
-                            <SelectValue placeholder="Court" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No Court</SelectItem>
-                            {(courts.data ?? []).map((court) => (
-                              <SelectItem key={court.id} value={court.id}>
-                                {court.venueName}: {court.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="match-slot1">Team 1</FieldLabel>
-                        <Select
-                          value={matchSlot1}
-                          onValueChange={setMatchSlot1}
-                        >
-                          <SelectTrigger id="match-slot1">
-                            <SelectValue placeholder="Team 1" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Empty</SelectItem>
-                            {data.gameTeams.map((side) => (
-                              <SelectItem key={side.id} value={side.id}>
-                                {gameTeamLabel(side)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="match-slot2">Team 2</FieldLabel>
-                        <Select
-                          value={matchSlot2}
-                          onValueChange={setMatchSlot2}
-                        >
-                          <SelectTrigger id="match-slot2">
-                            <SelectValue placeholder="Team 2" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Empty</SelectItem>
-                            {data.gameTeams.map((side) => (
-                              <SelectItem key={side.id} value={side.id}>
-                                {gameTeamLabel(side)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </div>
-                    <Button type="submit" disabled={addMatch.isPending}>
-                      {addMatch.isPending ? "Adding…" : "Add Match"}
-                    </Button>
-                  </form>
-                </Card>
-              ) : null}
             </Section>
 
             <Section
@@ -1423,29 +1156,6 @@ export default function GameHomePage({
                   {leaveWaitlist.isPending ? "Leaving…" : "Leave waitlist"}
                 </Button>
               </div>
-            ) : null}
-
-            {(data.canRegister || data.canWaitlist) &&
-            data.format === "americano" ? (
-              <Card variant="outlined" className="space-y-3">
-                <h3 className="text-title font-medium">
-                  {data.canWaitlist ? "Join the waitlist" : "Join the pool"}
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  Americano registration is individual. No Game team and no
-                  Match this slice.
-                </p>
-                <Button
-                  onClick={() => registerSelf.mutate({ gameId: id })}
-                  disabled={registerSelf.isPending}
-                >
-                  {registerSelf.isPending
-                    ? "Joining…"
-                    : data.canWaitlist
-                      ? "Join waitlist"
-                      : "Register"}
-                </Button>
-              </Card>
             ) : null}
 
             {data.canWaitlist &&

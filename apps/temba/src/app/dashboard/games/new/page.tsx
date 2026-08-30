@@ -36,7 +36,6 @@ import {
 } from "~/lib/form-mutation-error";
 
 type RegistrationMode = "individual" | "team_only";
-type GameFormat = "friendly_game" | "americano" | "friendly_tournament";
 
 function NewGameForm() {
   const router = useRouter();
@@ -45,12 +44,9 @@ function NewGameForm() {
 
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
-  const [format, setFormat] = React.useState<GameFormat>("friendly_game");
   const [isPublic, setIsPublic] = React.useState(false);
   const [registrationMode, setRegistrationMode] =
     React.useState<RegistrationMode>("individual");
-  const [playersAllowed, setPlayersAllowed] = React.useState("8");
-  const [teamsAllowed, setTeamsAllowed] = React.useState("4");
   const [day, setDay] = React.useState("");
   const [startTime, setStartTime] = React.useState("");
   const [finishTime, setFinishTime] = React.useState("");
@@ -72,9 +68,6 @@ function NewGameForm() {
         error,
         {
           name: "game-name",
-          format: "game-format",
-          playersAllowed: "game-players-allowed",
-          teamsAllowed: "game-teams-allowed",
           windowStart: "game-window-start",
           windowEnd: "game-window-finish",
         },
@@ -96,18 +89,8 @@ function NewGameForm() {
       name: name.trim().length > 0 ? name.trim() : undefined,
       groupId,
       isPublic,
-      format,
-      registrationMode:
-        format === "americano" ? "individual" : registrationMode,
-      playersAllowed:
-        format === "americano" ||
-        (format === "friendly_tournament" && registrationMode === "individual")
-          ? Number(playersAllowed)
-          : undefined,
-      teamsAllowed:
-        format === "friendly_tournament" && registrationMode === "team_only"
-          ? Number(teamsAllowed)
-          : undefined,
+      format: "friendly_game",
+      registrationMode,
       windowStart: gameWindow.windowStart,
       windowEnd: gameWindow.windowEnd,
     });
@@ -118,8 +101,8 @@ function NewGameForm() {
       title="Create Game"
       description={
         groupId
-          ? "Padel only. Friendly game creates one Match with caps 4 / 2. Americano is a player pool with no Matches. Friendly tournament starts with zero Matches; add them on Game home. This Game belongs to the Group you opened it from."
-          : "Padel only. Friendly game creates one Match with caps 4 / 2. Americano is a player pool with no Matches. Friendly tournament starts with zero Matches; add them on Game home. This Game has no Group. You are the organizer."
+          ? "Padel only. A Friendly game creates one Match with caps 4 / 2. This Game belongs to the Group you opened it from."
+          : "Padel only. A Friendly game creates one Match with caps 4 / 2. This Game has no Group. You are the organizer."
       }
     >
       <Card variant="outlined" className="w-full">
@@ -150,126 +133,28 @@ function NewGameForm() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="game-format">Format</FieldLabel>
+              <FieldLabel htmlFor="game-mode">Registration</FieldLabel>
               <Select
-                value={format}
-                onValueChange={(value) => {
-                  const next = value as GameFormat;
-                  setFormat(next);
-                  if (next === "americano") {
-                    setRegistrationMode("individual");
-                  }
-                }}
+                value={registrationMode}
+                onValueChange={(value) =>
+                  setRegistrationMode(value as RegistrationMode)
+                }
               >
-                <SelectTrigger id="game-format">
+                <SelectTrigger id="game-mode">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="friendly_game">Friendly game</SelectItem>
-                  <SelectItem value="americano">Americano</SelectItem>
-                  <SelectItem value="friendly_tournament">
-                    Friendly tournament
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="team_only">
+                    Team-only (complete Team)
                   </SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
-                Format cannot change after create. Americano has no Matches this
-                slice.
+                Individual seats 4 players; Team-only seats 2 Teams. Public flag
+                and this mode cannot change after create.
               </FieldDescription>
             </Field>
-
-            {format === "americano" ? (
-              <Field>
-                <FieldLabel htmlFor="game-players-allowed">
-                  Players allowed
-                </FieldLabel>
-                <Input
-                  id="game-players-allowed"
-                  type="number"
-                  min={4}
-                  step={4}
-                  value={playersAllowed}
-                  onChange={(event) => setPlayersAllowed(event.target.value)}
-                />
-                <FieldDescription>
-                  Multiple of 4, minimum 4. Team-only is not offered.
-                </FieldDescription>
-                <FieldError id="game-players-allowed-error">
-                  {fieldErrorMessage(createGame.error, "playersAllowed")}
-                </FieldError>
-              </Field>
-            ) : (
-              <>
-                <Field>
-                  <FieldLabel htmlFor="game-mode">Registration</FieldLabel>
-                  <Select
-                    value={registrationMode}
-                    onValueChange={(value) =>
-                      setRegistrationMode(value as RegistrationMode)
-                    }
-                  >
-                    <SelectTrigger id="game-mode">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="individual">Individual</SelectItem>
-                      <SelectItem value="team_only">
-                        Team-only (complete Team)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FieldDescription>
-                    Format, public flag, and this mode cannot change after
-                    create.
-                  </FieldDescription>
-                </Field>
-                {format === "friendly_tournament" &&
-                registrationMode === "individual" ? (
-                  <Field>
-                    <FieldLabel htmlFor="game-players-allowed">
-                      Players allowed
-                    </FieldLabel>
-                    <Input
-                      id="game-players-allowed"
-                      type="number"
-                      min={4}
-                      step={4}
-                      value={playersAllowed}
-                      onChange={(event) =>
-                        setPlayersAllowed(event.target.value)
-                      }
-                    />
-                    <FieldDescription>
-                      Multiple of 4, minimum 4.
-                    </FieldDescription>
-                    <FieldError id="game-players-allowed-error">
-                      {fieldErrorMessage(createGame.error, "playersAllowed")}
-                    </FieldError>
-                  </Field>
-                ) : null}
-                {format === "friendly_tournament" &&
-                registrationMode === "team_only" ? (
-                  <Field>
-                    <FieldLabel htmlFor="game-teams-allowed">
-                      Teams allowed
-                    </FieldLabel>
-                    <Input
-                      id="game-teams-allowed"
-                      type="number"
-                      min={2}
-                      value={teamsAllowed}
-                      onChange={(event) => setTeamsAllowed(event.target.value)}
-                    />
-                    <FieldDescription>
-                      Minimum 2 complete Teams.
-                    </FieldDescription>
-                    <FieldError id="game-teams-allowed-error">
-                      {fieldErrorMessage(createGame.error, "teamsAllowed")}
-                    </FieldError>
-                  </Field>
-                ) : null}
-              </>
-            )}
 
             <Field>
               <div className="flex items-center gap-2">

@@ -59,7 +59,6 @@ export default function GamesHubPage() {
                   startTime={game.startTime}
                   groupName={game.groupName}
                   sport={game.sport}
-                  format={game.format}
                   href={`/dashboard/games/${game.id}`}
                 />
               ))}
