@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
-import { courts, gameTeams, venues } from "@repo/db";
+import { courts, gameCourts, gameTeams, venues } from "@repo/db";
 
 import { type db } from "~/server/db";
 import { type GameRow } from "~/server/games/access";
@@ -15,14 +15,32 @@ async function venueForGame(database: DbClient, venueId: string) {
   });
 }
 
+async function recordedCourtIdsForGame(database: DbClient, gameId: string) {
+  const rows = await database.query.gameCourts.findMany({
+    where: eq(gameCourts.gameId, gameId),
+    columns: { courtId: true },
+  });
+  if (rows.length === 0) {
+    return null;
+  }
+  return rows.map((row) => row.courtId);
+}
+
 export async function listAssignableCourts(database: DbClient, game: GameRow) {
   const venue = await venueForGame(database, game.venueId);
   if (!venue || venue.archivedAt) {
     return [];
   }
 
+  const recordedCourtIds = await recordedCourtIdsForGame(database, game.id);
   const rows = await database.query.courts.findMany({
-    where: eq(courts.venueId, venue.id),
+    where:
+      recordedCourtIds == null
+        ? eq(courts.venueId, venue.id)
+        : and(
+            eq(courts.venueId, venue.id),
+            inArray(courts.id, recordedCourtIds),
+          ),
     columns: { id: true, name: true, venueId: true },
     orderBy: (table, { asc }) => [asc(table.name), asc(table.id)],
   });
@@ -67,6 +85,14 @@ export async function assertCourtAssignable(
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Court must belong to this Game's Venue",
+    });
+  }
+
+  const recordedCourtIds = await recordedCourtIdsForGame(database, game.id);
+  if (recordedCourtIds != null && !recordedCourtIds.includes(courtId)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Court must be one of the Courts recorded on this Game",
     });
   }
 }

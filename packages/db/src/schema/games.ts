@@ -13,6 +13,7 @@ import { groups } from "./groups";
 import { venues } from "./venues";
 import { gamePlayers } from "./game-players";
 import { gameTeams } from "./game-teams";
+import { gameCourts } from "./game-courts";
 import { matches } from "./matches";
 import { gameWaitlist } from "./game-waitlist";
 import { gameMemberInvites } from "./game-member-invites";
@@ -58,6 +59,7 @@ export const gameRelations = relations(games, ({ one, many }) => ({
   createdBy: one(user, { fields: [games.createdBy], references: [user.id] }),
   group: one(groups, { fields: [games.groupId], references: [groups.id] }),
   venue: one(venues, { fields: [games.venueId], references: [venues.id] }),
+  gameCourts: many(gameCourts),
   matches: many(matches),
   players: many(gamePlayers),
   teams: many(gameTeams),

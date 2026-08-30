@@ -6,6 +6,7 @@ import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  gameCourts,
   gameInviteLinks,
   gameMemberInvites,
   gamePlayers,
@@ -530,11 +531,21 @@ export const gamesRouter = createTRPCRouter({
               path: ["courtIds"],
             });
           }
-          if (value.format !== "friendly_game" && value.courtId) {
+          if (value.format !== "friendly_game" && value.courtId !== undefined) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               message: "courtId is only for Friendly game",
               path: ["courtId"],
+            });
+          }
+          if (
+            value.courtIds != null &&
+            new Set(value.courtIds).size !== value.courtIds.length
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Duplicate courtIds",
+              path: ["courtIds"],
             });
           }
         }),
@@ -551,6 +562,7 @@ export const gamesRouter = createTRPCRouter({
         groupId: input.groupId,
         venueId: input.venueId,
         courtId: input.courtId,
+        courtIds: input.courtIds,
       });
 
       const windowStart = input.windowStart;
@@ -614,6 +626,14 @@ export const gamesRouter = createTRPCRouter({
         }
 
         if (isAmericano || isTournament) {
+          if (input.courtIds && input.courtIds.length > 0) {
+            await tx.insert(gameCourts).values(
+              input.courtIds.map((courtId) => ({
+                gameId: game.id,
+                courtId,
+              })),
+            );
+          }
           return { game, matchId: null as string | null };
         }
 

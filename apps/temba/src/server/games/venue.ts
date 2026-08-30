@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq, isNull } from "drizzle-orm";
+import { eq, inArray, isNull } from "drizzle-orm";
 
 import { communities, courts, groups, venues } from "@repo/db";
 
@@ -157,6 +157,7 @@ export async function assertGameCreateVenueAndCourt(
     groupId: string | undefined;
     venueId: string;
     courtId: string | null | undefined;
+    courtIds?: string[];
   },
 ) {
   const context = await loadGameCreateVenueContext(database, input.groupId);
@@ -178,7 +179,10 @@ export async function assertGameCreateVenueAndCourt(
         message: "Venue not found",
       });
     }
-    if (venue.archivedAt && input.courtId) {
+    if (
+      venue.archivedAt &&
+      (input.courtId || (input.courtIds != null && input.courtIds.length > 0))
+    ) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "Skip Court when the linked Venue is Soft-archived",
@@ -209,21 +213,36 @@ export async function assertGameCreateVenueAndCourt(
     }
   }
 
-  if (!input.courtId) {
+  const courtIds = [
+    ...(input.courtId ? [input.courtId] : []),
+    ...(input.courtIds ?? []),
+  ];
+  if (courtIds.length === 0) {
     return;
   }
 
-  const court = await database.query.courts.findFirst({
-    where: eq(courts.id, input.courtId),
+  if (
+    input.courtIds != null &&
+    new Set(input.courtIds).size !== input.courtIds.length
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Duplicate courtIds",
+    });
+  }
+
+  const uniqueCourtIds = [...new Set(courtIds)];
+  const found = await database.query.courts.findMany({
+    where: inArray(courts.id, uniqueCourtIds),
     columns: { id: true, venueId: true },
   });
-  if (!court) {
+  if (found.length !== uniqueCourtIds.length) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Court not found",
     });
   }
-  if (court.venueId !== input.venueId) {
+  if (found.some((court) => court.venueId !== input.venueId)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Court must belong to the selected Venue",
