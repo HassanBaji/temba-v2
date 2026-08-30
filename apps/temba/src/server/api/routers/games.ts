@@ -15,6 +15,7 @@ import {
   games,
   groups,
   groupMembers,
+  matchSets,
   matches,
   teamMembers,
   teams,
@@ -585,6 +586,22 @@ export const gamesRouter = createTRPCRouter({
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to create Match",
+          });
+        }
+
+        const shells = await tx
+          .insert(matchSets)
+          .values([
+            { matchId: match.id },
+            { matchId: match.id },
+            { matchId: match.id },
+          ])
+          .returning({ id: matchSets.id });
+
+        if (shells.length !== 3) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create Set shells",
           });
         }
 
