@@ -1,3 +1,10 @@
+"use client";
+
+import * as React from "react";
+import { CalendarIcon } from "lucide-react";
+
+import { Calendar } from "~/components/ui/calendar";
+import { Button } from "~/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -5,6 +12,26 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import { formatDateInputValue, parseDateInputValue } from "~/lib/game-window";
+import { cn } from "~/lib/utils";
+
+function formatDayLabel(day: string) {
+  const date = parseDateInputValue(day);
+  if (!date) {
+    return null;
+  }
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export function GameWindowFields({
   dayId,
@@ -31,17 +58,74 @@ export function GameWindowFields({
   startError?: string;
   finishError?: string;
 }) {
+  const [dayOpen, setDayOpen] = React.useState(false);
+  const dayButtonRef = React.useRef<HTMLButtonElement>(null);
+  const selectedDay = parseDateInputValue(day);
+  const dayLabel = formatDayLabel(day);
+  const [displayedMonth, setDisplayedMonth] = React.useState(
+    () => parseDateInputValue(day) ?? new Date(),
+  );
+
+  React.useEffect(() => {
+    const next = parseDateInputValue(day);
+    if (next) {
+      setDisplayedMonth(next);
+    }
+  }, [day]);
+
   return (
     <div className="flex flex-col gap-3">
       <Field>
         <FieldLabel htmlFor={dayId}>Day</FieldLabel>
-        <Input
-          id={dayId}
-          type="date"
+        <Popover open={dayOpen} onOpenChange={setDayOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              ref={dayButtonRef}
+              id={dayId}
+              type="button"
+              variant="outline"
+              className={cn(
+                "h-11 min-h-11 w-full justify-start font-normal",
+                !dayLabel && "text-muted-foreground",
+              )}
+              aria-required="true"
+              aria-expanded={dayOpen}
+              aria-haspopup="dialog"
+              aria-describedby={`${dayId}-description`}
+            >
+              <CalendarIcon />
+              {dayLabel ?? "Pick a date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedDay}
+              month={displayedMonth}
+              onMonthChange={setDisplayedMonth}
+              onSelect={(next) => {
+                if (!next) {
+                  return;
+                }
+                onDayChange(formatDateInputValue(next));
+                setDayOpen(false);
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+        <input
+          type="text"
           value={day}
-          onChange={(event) => onDayChange(event.target.value)}
           required
-          aria-describedby={`${dayId}-description`}
+          readOnly
+          tabIndex={-1}
+          className="sr-only"
+          aria-hidden="true"
+          onInvalid={(event) => {
+            event.preventDefault();
+            setDayOpen(true);
+            dayButtonRef.current?.focus();
+          }}
         />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">

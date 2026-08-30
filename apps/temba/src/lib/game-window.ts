@@ -16,12 +16,36 @@ function asDate(value: Date | string | null | undefined): Date | null {
   return date;
 }
 
+export function formatDateInputValue(date: Date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function parseDateInputValue(day: string): Date | undefined {
+  const dateMatch = DATE_PATTERN.exec(day.trim());
+  if (!dateMatch) {
+    return undefined;
+  }
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const dayOfMonth = Number(dateMatch[3]);
+  const date = new Date(year, month - 1, dayOfMonth);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== dayOfMonth
+  ) {
+    return undefined;
+  }
+  return date;
+}
+
 function toDateInputValue(value: Date | string | null | undefined) {
   const date = asDate(value);
   if (!date) {
     return "";
   }
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return formatDateInputValue(date);
 }
 
 function toTimeInputValue(value: Date | string | null | undefined) {
