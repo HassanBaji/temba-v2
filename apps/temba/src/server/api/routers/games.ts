@@ -94,7 +94,10 @@ import {
   sitsOnCompletedMatch,
   vacantPositionsFromSides,
 } from "~/server/games/seats";
-import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
+import {
+  listMyGroupsHubRows,
+  listPublicHubRows,
+} from "~/server/games/hub-list-rows";
 import {
   inviteLinkExpiresAt,
   isInviteLinkLive,
@@ -371,83 +374,24 @@ export const gamesRouter = createTRPCRouter({
     }),
 
   /**
-   * Public pickup Games (parent events). Soft-archived Community Club Group
-   * Games are excluded; the Game `isPublic` row flag is not flipped.
-   * Groupless public Games are included.
+   * Games hub My Groups: live upcoming Games on Groups the signed-in User
+   * belongs to (same membership / live filter as Home upcoming, including
+   * Soft-archived Club Group Games).
+   */
+  listMyGroups: protectedProcedure.query(async ({ ctx }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listMyGroupsHubRows(ctx.db, appUser.id);
+  }),
+
+  /**
+   * Public pickup Games (parent events). Live `isPublic` Games only.
+   * Soft-archived Community Club Group Games are excluded; the Game
+   * `isPublic` row flag is not flipped. Groupless public Games are included.
+   * Games already listed on My Groups are excluded (My preferred).
    */
   listPublicPickup: protectedProcedure.query(async ({ ctx }) => {
-    const rows = await ctx.db.query.games.findMany({
-      where: and(eq(games.isPublic, true), isNull(games.cancelledAt)),
-      columns: {
-        id: true,
-        name: true,
-        isPublic: true,
-        groupId: true,
-        windowStart: true,
-        windowEnd: true,
-        cancelledAt: true,
-        createdAt: true,
-        format: true,
-        sport: true,
-      },
-      with: {
-        group: {
-          columns: {
-            id: true,
-            communityId: true,
-            name: true,
-          },
-          with: {
-            community: {
-              columns: {
-                archivedAt: true,
-              },
-            },
-          },
-        },
-        matches: {
-          columns: {
-            startTime: true,
-            status: true,
-          },
-        },
-      },
-    });
-
-    const now = new Date();
-
-    return rows
-      .filter(
-        (row) =>
-          row.cancelledAt == null && row.group?.community?.archivedAt == null,
-      )
-      .map((row) => {
-        const candidate = {
-          id: row.id,
-          groupId: row.groupId,
-          cancelledAt: row.cancelledAt,
-          windowStart: row.windowStart,
-          windowEnd: row.windowEnd,
-          createdAt: row.createdAt,
-          format: row.format,
-          matches: row.matches,
-        };
-        return {
-          id: row.id,
-          name: row.name,
-          isPublic: row.isPublic,
-          groupId: row.groupId,
-          groupName: row.group?.name ?? null,
-          startTime: gameListTime(candidate),
-          windowStart: row.windowStart,
-          windowEnd: row.windowEnd,
-          sport: row.sport,
-          format: row.format,
-          createdAt: row.createdAt,
-          live: isGameLive(candidate, now),
-        };
-      })
-      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    const appUser = await resolveAppUser(ctx.userId);
+    return listPublicHubRows(ctx.db, appUser.id);
   }),
 
   listCreateVenues: protectedProcedure

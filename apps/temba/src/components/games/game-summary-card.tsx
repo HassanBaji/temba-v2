@@ -3,7 +3,11 @@ import Link from "next/link";
 import { ListRow } from "~/components/common/row-list";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
-import { formatGameStart, formatRelativeDay } from "~/lib/format-game-start";
+import {
+  formatGameStart,
+  formatGameTimeWindow,
+  formatRelativeDay,
+} from "~/lib/format-game-start";
 
 export function GameSummaryCard({
   name,
@@ -12,6 +16,12 @@ export function GameSummaryCard({
   sport,
   href,
   cancelled = false,
+  venueName,
+  location,
+  occupancy,
+  windowStart,
+  windowEnd,
+  actionLabel,
 }: {
   name: string | null;
   startTime: Date | string;
@@ -19,30 +29,65 @@ export function GameSummaryCard({
   sport?: string | null;
   href?: string;
   cancelled?: boolean;
+  venueName?: string | null;
+  location?: string | null;
+  occupancy?: string | null;
+  windowStart?: Date | string | null;
+  windowEnd?: Date | string | null;
+  actionLabel?: string | null;
 }) {
-  const title = name ?? "Untitled Game";
-  const meta = [
-    formatRelativeDay(startTime),
-    formatGameStart(startTime),
-    groupName ?? "Pickup",
-  ]
-    .filter((part): part is string => Boolean(part))
-    .join(" · ");
+  const title = venueName ?? name ?? "Untitled Game";
+  const subtitle = venueName && name ? name : undefined;
+  const venueLed = Boolean(venueName);
+  const meta = venueLed
+    ? [
+        formatRelativeDay(startTime),
+        formatGameTimeWindow(windowStart, windowEnd, startTime),
+        occupancy,
+        location,
+      ]
+        .filter((part): part is string => Boolean(part))
+        .join(" · ")
+    : [
+        formatRelativeDay(startTime),
+        formatGameStart(startTime),
+        groupName ?? "Pickup",
+      ]
+        .filter((part): part is string => Boolean(part))
+        .join(" · ");
 
   const trailing = (
     <div className="flex flex-wrap items-center gap-2">
-      {sport ? <SportBadge sport={sport} /> : null}
+      {venueLed ? null : sport ? <SportBadge sport={sport} /> : null}
       {cancelled ? <GameStatusBadge status="cancelled" /> : null}
+      {actionLabel ? (
+        <span className="text-body text-brand font-semibold">
+          {actionLabel}
+        </span>
+      ) : null}
     </div>
   );
 
   if (href) {
     return (
-      <ListRow asChild title={title} meta={meta} trailing={trailing}>
+      <ListRow
+        asChild
+        title={title}
+        subtitle={subtitle}
+        meta={meta}
+        trailing={trailing}
+      >
         <Link href={href} />
       </ListRow>
     );
   }
 
-  return <ListRow title={title} meta={meta} trailing={trailing} />;
+  return (
+    <ListRow
+      title={title}
+      subtitle={subtitle}
+      meta={meta}
+      trailing={trailing}
+    />
+  );
 }

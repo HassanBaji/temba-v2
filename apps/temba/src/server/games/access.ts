@@ -338,22 +338,32 @@ export async function assertRegistrationOpen(
 
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
 
-export async function getRegistrationStatus(
-  database: DbClient,
-  game: GameRow,
+type RegistrationStatusGame = {
+  cancelledAt: Date | null;
+  registrationClosedAt: Date | null;
+  windowEnd: Date | null;
+  registrationMode: string;
+  playersAllowed: number | null;
+  teamsAllowed: number | null;
+};
+
+export function registrationStatusFromState(
+  game: RegistrationStatusGame,
   now: Date,
-): Promise<RegistrationStatus> {
+  userCount: number,
+  teamCount: number,
+  joinFrozen: boolean,
+): RegistrationStatus {
   if (game.cancelledAt) {
     return "cancelled";
   }
   if (
-    !isRegistrationOpen(game, now) ||
-    (await isClubGroupGameJoinFrozen(database, game))
+    game.registrationClosedAt != null ||
+    (game.windowEnd != null && game.windowEnd.getTime() < now.getTime()) ||
+    joinFrozen
   ) {
     return "closed";
   }
-  const userCount = await registeredUserCount(database, game.id);
-  const teamCount = await registeredGameTeamCount(database, game.id);
   if (game.registrationMode === "team_only") {
     if (teamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
       return "full";
@@ -364,6 +374,29 @@ export async function getRegistrationStatus(
     return "full";
   }
   return "open";
+}
+
+export async function getRegistrationStatus(
+  database: DbClient,
+  game: GameRow,
+  now: Date,
+): Promise<RegistrationStatus> {
+  if (game.cancelledAt) {
+    return "cancelled";
+  }
+  const joinFrozen = await isClubGroupGameJoinFrozen(database, game);
+  if (!isRegistrationOpen(game, now) || joinFrozen) {
+    return "closed";
+  }
+  const userCount = await registeredUserCount(database, game.id);
+  const teamCount = await registeredGameTeamCount(database, game.id);
+  return registrationStatusFromState(
+    game,
+    now,
+    userCount,
+    teamCount,
+    joinFrozen,
+  );
 }
 
 export async function registeredUserCount(database: DbClient, gameId: string) {
