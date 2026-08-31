@@ -32,6 +32,7 @@ import {
   refuseIfFrozen,
   throwCommitFailure,
 } from "~/server/soft-archive";
+import { liveVenuesWhere } from "~/server/soft-archive/adapter";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 import {
   inviteLinkExpiresAt,
@@ -2002,7 +2003,7 @@ export const communitiesRouter = createTRPCRouter({
       const query = input.query;
       const rows = await ctx.db.query.venues.findMany({
         where: and(
-          isNull(venues.archivedAt),
+          liveVenuesWhere(),
           query
             ? or(
                 ilike(venues.name, `%${query}%`),
@@ -2075,12 +2076,10 @@ export const communitiesRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
       }
 
-      if (venue.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot request a link to a Soft-archived Venue",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: venue.archivedAt }), "catalog", {
+        frozenMessage: "Cannot request a link to a Soft-archived Venue",
+        notFoundMessage: "Venue not found",
+      });
 
       const pending = await ctx.db.query.venueLinkRequests.findFirst({
         where: and(

@@ -1,4 +1,7 @@
 import { TRPCError } from "@trpc/server";
+import { isNull } from "drizzle-orm";
+
+import { venues } from "@repo/db";
 
 import type {
   CommitResult,
@@ -50,4 +53,9 @@ export function throwCommitFailure(
     code: "BAD_REQUEST",
     message: `${subjectLabel} is not Soft-archived`,
   });
+}
+
+/** Bulk live-Venue WHERE. Adapter-only; not a Soft-archive public export. */
+export function liveVenuesWhere() {
+  return isNull(venues.archivedAt);
 }
