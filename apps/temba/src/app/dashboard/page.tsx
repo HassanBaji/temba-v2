@@ -3,6 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { Users } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
@@ -17,8 +18,15 @@ import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { formatRelativeDay } from "~/lib/format-game-start";
-import { api } from "~/trpc/react";
+import {
+  gameSummaryPrimaryAction,
+  showsFriendlyRoster,
+} from "~/lib/game-summary-cta";
+import { api, type RouterOutputs } from "~/trpc/react";
+
+type HomeUpcomingGame = RouterOutputs["users"]["home"]["upcomingGames"][number];
 
 function formatClock(startTime: Date | string) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
@@ -26,6 +34,16 @@ function formatClock(startTime: Date | string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function occupancyLabel(
+  registeredUserCount: number,
+  playersAllowed: number | null,
+) {
+  if (playersAllowed != null) {
+    return `${registeredUserCount}/${playersAllowed} players`;
+  }
+  return null;
 }
 
 function inviteWaitingCopy(count: number) {
@@ -55,6 +73,63 @@ export default function HomePage() {
   const home = api.users.home.useQuery();
   const invites = usePendingInviteCount();
   const firstName = user?.firstName;
+  const utils = api.useUtils();
+
+  async function refreshLists() {
+    await Promise.all([
+      utils.users.home.invalidate(),
+      utils.games.listMyGroups.invalidate(),
+      utils.games.listPublicPickup.invalidate(),
+      utils.games.byId.invalidate(),
+    ]);
+  }
+
+  const registerSeat = api.games.registerSeat.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      await refreshLists();
+    },
+    onError: async (error) => {
+      toastGlobalFormError(error);
+      await refreshLists();
+    },
+  });
+
+  const register = api.games.register.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      await refreshLists();
+    },
+    onError: async (error) => {
+      toastGlobalFormError(error);
+      await refreshLists();
+    },
+  });
+
+  const pendingGameId =
+    (registerSeat.isPending ? registerSeat.variables?.gameId : null) ??
+    (register.isPending ? register.variables?.gameId : null) ??
+    null;
+
+  function onJoinSeat(
+    gameId: string,
+    sideIndex: number,
+    position: "left" | "right",
+  ) {
+    registerSeat.mutate({ gameId, sideIndex, position });
+  }
+
+  function onJoinWaitlist(game: HomeUpcomingGame) {
+    if (game.format === "americano") {
+      register.mutate({ gameId: game.id });
+      return;
+    }
+    registerSeat.mutate({ gameId: game.id });
+  }
+
+  function onRegister(gameId: string) {
+    register.mutate({ gameId });
+  }
 
   const upcoming = home.data?.upcomingGames ?? [];
   const hero = upcoming[0];
@@ -164,9 +239,34 @@ export default function HomePage() {
                           key={game.id}
                           name={game.name}
                           startTime={game.startTime}
-                          groupName={game.groupName}
-                          sport={game.sport}
+                          windowStart={game.windowStart}
+                          windowEnd={game.windowEnd}
+                          venueName={game.venue?.name}
+                          location={game.venue?.city ?? game.venue?.name}
+                          occupancy={occupancyLabel(
+                            game.registeredUserCount,
+                            game.playersAllowed,
+                          )}
+                          sides={
+                            showsFriendlyRoster(
+                              game.format,
+                              game.registrationMode,
+                            )
+                              ? game.sides
+                              : undefined
+                          }
+                          primaryAction={gameSummaryPrimaryAction(game)}
+                          actionPending={pendingGameId === game.id}
                           href={`/dashboard/games/${game.id}`}
+                          onJoinSeat={(sideIndex, position) => {
+                            onJoinSeat(game.id, sideIndex, position);
+                          }}
+                          onJoinWaitlist={() => {
+                            onJoinWaitlist(game);
+                          }}
+                          onRegister={() => {
+                            onRegister(game.id);
+                          }}
                         />
                       ))}
                     </RowList>
