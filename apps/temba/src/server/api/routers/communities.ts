@@ -27,6 +27,12 @@ import {
 import { type db } from "~/server/db";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import {
+  admit as admitCommunityMember,
+  leave as leaveCommunity,
+  throwAdmitFailure,
+  throwLeaveFailure,
+} from "~/server/community-membership";
+import {
   commit,
   consult,
   refuseIfFrozen,
@@ -270,11 +276,13 @@ export const communitiesRouter = createTRPCRouter({
           });
         }
 
-        await tx.insert(communityMembers).values({
-          communityId: created.id,
-          userId: appUser.id,
-          role: CommunityRoleEnum.OWNER,
-        });
+        throwAdmitFailure(
+          await admitCommunityMember(tx, {
+            communityId: created.id,
+            userId: appUser.id,
+            role: CommunityRoleEnum.OWNER,
+          }),
+        );
 
         await tx.insert(communitySports).values(
           uniqueSports.map((sport) => ({
@@ -698,84 +706,14 @@ export const communitiesRouter = createTRPCRouter({
       const appUser = await resolveAppUser();
       const community = await requireCommunity(ctx.db, input.communityId);
 
-      const membership = await requireMembership(
-        ctx.db,
-        community.id,
-        appUser.id,
-      );
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You are not a member of this Community",
-        });
-      }
-
-      const teamSeats = await ctx.db.query.teamMembers.findMany({
-        where: eq(teamMembers.userId, appUser.id),
-        columns: { teamId: true },
-      });
-      const linkedTeamIds = teamSeats.map((row) => row.teamId);
-      if (linkedTeamIds.length > 0) {
-        const linkedSeat = await ctx.db.query.teams.findFirst({
-          where: and(
-            eq(teams.communityId, community.id),
-            inArray(teams.id, linkedTeamIds),
-          ),
-          columns: { id: true },
-        });
-        if (linkedSeat) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "Leave Community is refused while you sit on a Team linked to this Community. Unlink or dissolve the Team first.",
-          });
-        }
-      }
-
-      const clubGroups = await ctx.db.query.groups.findMany({
-        where: eq(groups.communityId, community.id),
-        columns: { id: true },
-      });
-
       // Leave removes membership only — never Soft-archives the Community.
-      // Clears join-request history so Public members can re-request after leave.
       await ctx.db.transaction(async (tx) => {
-        if (membership.role === "owner") {
-          const owners = await lockOwnersForUpdate(tx, community.id);
-          if (owners.length <= 1) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message:
-                "The last Owner cannot leave until another Owner is promoted",
-            });
-          }
-        }
-
-        if (clubGroups.length > 0) {
-          await tx.delete(groupMembers).where(
-            and(
-              eq(groupMembers.userId, appUser.id),
-              inArray(
-                groupMembers.groupId,
-                clubGroups.map((group) => group.id),
-              ),
-            ),
-          );
-        }
-
-        await tx
-          .delete(communityMembers)
-          .where(eq(communityMembers.id, membership.id));
-
-        await tx
-          .delete(communityJoinRequests)
-          .where(
-            and(
-              eq(communityJoinRequests.communityId, community.id),
-              eq(communityJoinRequests.userId, appUser.id),
-            ),
-          );
+        throwLeaveFailure(
+          await leaveCommunity(tx, {
+            communityId: community.id,
+            userId: appUser.id,
+          }),
+        );
       });
 
       return {
@@ -1031,18 +969,13 @@ export const communitiesRouter = createTRPCRouter({
 
       await ctx.db.transaction(async (tx) => {
         for (const member of memberRows) {
-          const existing = await tx.query.communityMembers.findFirst({
-            where: and(
-              eq(communityMembers.communityId, request.communityId),
-              eq(communityMembers.userId, member.userId),
-            ),
+          const admitted = await admitCommunityMember(tx, {
+            communityId: request.communityId,
+            userId: member.userId,
+            role: CommunityRoleEnum.MEMBER,
           });
-          if (!existing) {
-            await tx.insert(communityMembers).values({
-              communityId: request.communityId,
-              userId: member.userId,
-              role: CommunityRoleEnum.MEMBER,
-            });
+          if (!admitted.ok && admitted.reason !== "already_member") {
+            throwAdmitFailure(admitted);
           }
         }
 
@@ -1404,19 +1337,13 @@ export const communitiesRouter = createTRPCRouter({
           });
         }
 
-        const existingMembership = await tx.query.communityMembers.findFirst({
-          where: and(
-            eq(communityMembers.communityId, community.id),
-            eq(communityMembers.userId, request.userId),
-          ),
+        const admitted = await admitCommunityMember(tx, {
+          communityId: community.id,
+          userId: request.userId,
+          role: CommunityRoleEnum.MEMBER,
         });
-
-        if (!existingMembership) {
-          await tx.insert(communityMembers).values({
-            communityId: community.id,
-            userId: request.userId,
-            role: CommunityRoleEnum.MEMBER,
-          });
+        if (!admitted.ok && admitted.reason !== "already_member") {
+          throwAdmitFailure(admitted);
         }
       });
 
@@ -1816,11 +1743,13 @@ export const communitiesRouter = createTRPCRouter({
           });
         }
 
-        await tx.insert(communityMembers).values({
-          communityId: community.id,
-          userId: appUser.id,
-          role: CommunityRoleEnum.MEMBER,
-        });
+        throwAdmitFailure(
+          await admitCommunityMember(tx, {
+            communityId: community.id,
+            userId: appUser.id,
+            role: CommunityRoleEnum.MEMBER,
+          }),
+        );
       });
 
       return {
@@ -1954,24 +1883,13 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      const [inserted] = await ctx.db
-        .insert(communityMembers)
-        .values({
+      throwAdmitFailure(
+        await admitCommunityMember(ctx.db, {
           communityId: community.id,
           userId: appUser.id,
           role: CommunityRoleEnum.MEMBER,
-        })
-        .onConflictDoNothing({
-          target: [communityMembers.communityId, communityMembers.userId],
-        })
-        .returning();
-
-      if (!inserted) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You are already a Member of this Community",
-        });
-      }
+        }),
+      );
 
       return {
         communityId: community.id,

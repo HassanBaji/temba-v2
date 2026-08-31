@@ -19,6 +19,10 @@ import {
 } from "@repo/db";
 
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import {
+  admit as admitCommunityMember,
+  throwAdmitFailure,
+} from "~/server/community-membership";
 import { mayCreateGameOnGroup } from "~/server/games/access";
 import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
@@ -1375,11 +1379,13 @@ export const groupsRouter = createTRPCRouter({
         }
 
         if (group.communityId && !communityMembership) {
-          await tx.insert(communityMembers).values({
-            communityId: group.communityId,
-            userId: appUser.id,
-            role: CommunityRoleEnum.MEMBER,
-          });
+          throwAdmitFailure(
+            await admitCommunityMember(tx, {
+              communityId: group.communityId,
+              userId: appUser.id,
+              role: CommunityRoleEnum.MEMBER,
+            }),
+          );
         }
 
         await tx.insert(groupMembers).values({
@@ -1548,11 +1554,13 @@ export const groupsRouter = createTRPCRouter({
 
       await ctx.db.transaction(async (tx) => {
         if (group.communityId && !communityMembership) {
-          await tx.insert(communityMembers).values({
-            communityId: group.communityId,
-            userId: appUser.id,
-            role: CommunityRoleEnum.MEMBER,
-          });
+          throwAdmitFailure(
+            await admitCommunityMember(tx, {
+              communityId: group.communityId,
+              userId: appUser.id,
+              role: CommunityRoleEnum.MEMBER,
+            }),
+          );
         }
 
         const [inserted] = await tx
