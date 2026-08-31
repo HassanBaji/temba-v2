@@ -8,7 +8,7 @@ Organizers creating a **Game** cannot record what it costs a person to occupy a 
 
 Ship optional **price per player** on Game in the DB Package and App.
 
-The organizer may enter it on Create Game (Friendly game in the App; any format on tRPC). Blank means unset. Zero means free. A positive whole amount is display-only. Organizers may set, change, or clear it after create. Viewers see it on Game home, `GameSummaryCard` lists, and the Home hero when it is set; unset Games omit it. Register, waitlist, and Game invites stay as they are. Price does not gate **Game admit**.
+The organizer may enter it on Create Game (Friendly game in the App; any format on tRPC). Blank means unset. Zero means free. A positive amount with up to two decimal places is display-only. Organizers may set, change, or clear it after create. Viewers see it on Game home, `GameSummaryCard` lists, and the Home hero when it is set; unset Games omit it. Register, waitlist, and Game invites stay as they are. Price does not gate **Game admit**.
 
 This amends games-matches (it excluded prices) and the redesign Games contract (it told implementers not to surface price). It does not replace those specs. It does not revive dropped contest price columns on **Match**.
 
@@ -24,15 +24,15 @@ Approving this spec approves the Test seams in Testing Decisions. Glossary edits
 
 4. As that organizer, I want to enter 0, so that I can say the Game is free.
 
-5. As that organizer, I want to enter a positive whole amount (for example 50), so that the Game shows that amount per person.
+5. As that organizer, I want to enter a positive amount with up to two decimal places (for example 50, 50.5, or 12.50), so that the Game can show cents, not only whole units.
 
 6. As that organizer, I want the Create Game label to be “Price per player”, so that copy matches the glossary and is not “fee”, “cost”, “entry fee”, or “registration price”.
 
-7. As that organizer, I want helper copy that the field is optional, whole currency units, blank means unset, zero means free, and Temba does not collect payment, so that I do not expect checkout.
+7. As that organizer, I want helper copy that the field is optional, allows up to two decimal places, blank means unset, zero means free, and Temba does not collect payment, so that I do not expect checkout or a currency symbol.
 
 8. As that organizer, I want the field among Venue, Court, and window, using the same Field / FieldLabel / FieldError pattern as Venue, so that Create Game stays one form.
 
-9. As that organizer, I want invalid input (negative, decimal, non-numeric, above 1_000_000) refused with a field error, so that junk amounts do not persist.
+9. As that organizer, I want invalid input (negative, non-numeric, more than two decimal places, above 1_000_000.00) refused with a field error, so that junk amounts do not persist.
 
 10. As that organizer, I want leaving the field blank still creating the Game, so that price cannot block Venue, Court, or window.
 
@@ -46,23 +46,23 @@ Approving this spec approves the Test seams in Testing Decisions. Glossary edits
 
 15. As an Owner or Admin of a Soft-archived Community, I want creating a new Club Group Game to still be refused.
 
-16. As a crafted client creating a Friendly game, Americano, or Friendly tournament, I want optional `pricePerPlayer` accepted on `games.create`, so that every format can carry the same display amount.
+16. As a crafted client creating a Friendly game, Americano, or Friendly tournament, I want optional `pricePerPlayerCents` accepted on `games.create`, so that every format can carry the same display amount in minor units.
 
-17. As a crafted client omitting `pricePerPlayer`, I want the Game stored with null, so that crafted create matches a blank App field.
+17. As a crafted client omitting `pricePerPlayerCents`, I want the Game stored with null, so that crafted create matches a blank App field.
 
-18. As a crafted client sending `pricePerPlayer: 0`, I want that stored as free.
+18. As a crafted client sending `pricePerPlayerCents: 0`, I want that stored as free.
 
-19. As a crafted client sending a negative number, a non-integer, or a value above 1_000_000, I want create refused.
+19. As a crafted client sending a negative number, a non-integer, or a value above 100_000_000 cents, I want create refused.
 
 20. As a crafted client sending team-only on a Friendly tournament, I want price per player still meaning per User occupying a seat, not per Team, so that a partnership of two Users is two amounts, not one.
 
-21. As a viewer of Game home, I want to see “Price per player 50” when the amount is 50, so that I know what occupying a seat costs before I join.
+21. As a viewer of Game home, I want to see “Price per player 50.00” when the amount is 50, and “Price per player 12.50” when the amount is 12.50, so that cents and whole amounts share one format and no currency symbol.
 
 22. As a viewer of Game home, I want to see “Price per player Free” when the amount is 0.
 
 23. As a viewer of Game home, I want no price line when the amount is unset, so that historical Games and skipped fields stay quiet.
 
-24. As a viewer of Home upcoming, public pickup, or Group Games, I want `GameSummaryCard` to append `50 / player` or `Free` in meta when set, and to omit that segment when unset, so that list cards stay thin unless there is a price.
+24. As a viewer of Home upcoming, public pickup, or Group Games, I want `GameSummaryCard` to append `50.00 / player`, `12.50 / player`, or `Free` in meta when set, and to omit that segment when unset, so that list cards stay thin unless there is a price.
 
 25. As a viewer of the Home next-Game hero, I want the same amount shown when set, so that the hero and the upcoming rows do not disagree.
 
@@ -76,23 +76,23 @@ Approving this spec approves the Test seams in Testing Decisions. Glossary edits
 
 30. As an organizer on Game home, I want to set, change, or clear price per player after create, so that I can fill it on Games created before this column and correct a typo without recreating the Game.
 
-31. As an organizer, I want that editor using the same Field pattern, with blank saving as unset, so that I can clear a price.
+31. As an organizer, I want that editor using the same Field pattern in major units (12.50, not 1250), with blank saving as unset, so that I can clear a price.
 
 32. As a User who is not an organizer, I want no price editor, so that only organizers change the amount.
 
 33. As an organizer, I want Venue still immutable and window still editable, so that this slice does not change those rules.
 
-34. As a caller of Game by-id, I want `pricePerPlayer` on the payload (`number` or `null`), so that Game home does not need a second query.
+34. As a caller of Game by-id, I want `pricePerPlayerCents` on the payload (`number` or `null`), so that Game home does not need a second query.
 
-35. As a caller of Home upcoming, public pickup, and Group Game lists, I want `pricePerPlayer` on each Game row, so that cards and the hero can render it.
+35. As a caller of Home upcoming, public pickup, and Group Game lists, I want `pricePerPlayerCents` on each Game row, so that cards and the hero can render it.
 
 36. As a User of a Game created before this column, I want that Game unset (null) until an organizer saves a price, so that we do not pretend old Games were free.
 
-37. As a developer migrating, I want a new nullable integer column with no default 0, so that existing rows stay unset.
+37. As a developer migrating, I want a new nullable integer cents column with no default 0, so that existing rows stay unset.
 
 38. As a developer, I want price stored on Game, not on Match, so that one parent event has one amount and dropped contest columns stay dead.
 
-39. As a User of the App, I want no checkout, no paid badge, no guest price, no currency picker, and no total for the Game, so that this slice stays display-only.
+39. As a User of the App, I want no checkout, no paid badge, no guest price, no currency picker, no currency symbol, and no total for the Game, so that this slice stays display-only.
 
 40. As a User on Create Game, I want no Format select and no reintroduction of Individual vs Team-only or public flag, so that this slice only adds price per player to the fields that already exist.
 
@@ -102,29 +102,31 @@ Approving this spec approves the Test seams in Testing Decisions. Glossary edits
 
 - Schema, migrations, and kit live in the DB Package. App tRPC and dashboard UI stay in the Temba App. No new Package. No money library. Follow existing Drizzle style: uuid PKs, timestamps. Do not edit existing migrations. Clerk remains the only identity provider. Who may create Games, join gates, Game admit, Waitlist, invites, Positions, padel-only UI, Friendly-only App create, Venue/Court rules, and Soft-archive stay as shipped.
 
-- **Game.pricePerPlayer** (`price_per_player`): nullable integer, whole currency units. Null = unset. 0 = free. Positive = display amount per User occupying a seat. No currency column. No `totalPrice`. Not on Match. Not on Game team.
+- **Game.pricePerPlayerCents** (`price_per_player_cents`): nullable integer, minor units (cents). Null = unset. 0 = free. Positive = display amount per User occupying a seat. No currency column. No `totalPrice`. Not on Match. Not on Game team. Do not use `numeric(10,2)`. Do not send major-unit floats over tRPC.
 
-- **Migration:** `ALTER TABLE games ADD COLUMN price_per_player integer;` nullable, no default, no backfill. Existing Games remain null. Do not fail if Games exist.
+- **Conversion:** 1 major unit = 100 cents. App Fields collect major-unit text (`50`, `50.5`, `12.50`) and convert to cents (`5000`, `5050`, `1250`) with integer arithmetic, not `Math.round(parseFloat * 100)` as the only guard. One helper parses optional major-unit input to cents (blank → omit/null, same idea as `parseOptionalCoord`). One helper formats cents for display.
 
-- **Create tRPC (`games.create`):** optional `pricePerPlayer`: integer, min 0, max 1_000_000. Omit or null → store null. Accepted on Friendly game, Americano, and Friendly tournament. Team-only does not change the unit (still per User). Do not change Venue/Court, format, caps, or `isPublic` behavior. App Create Game still sends Friendly game, individual, `isPublic: false`.
+- **Migration:** `ALTER TABLE games ADD COLUMN price_per_player_cents integer;` nullable, no default, no backfill. Existing Games remain null. Do not fail if Games exist.
 
-- **Update tRPC:** new organizer mutation to set `pricePerPlayer` (integer 0…1_000_000 or null to clear). Same organizer set as `updateWindow` (Club Group: Group creator and Community Owner/Admin; Loose Group: Group creator; groupless: creator). Do not fold into `updateWindow`. Non-organizers refused. Cancelled Game: still allow organizers to edit price this slice (display-only; keep the implementation consistent with window unless window already refuses on cancel — then match window). Soft-archived Club Group Game: organizers may still edit price (join doors stay frozen).
+- **Create tRPC (`games.create`):** optional `pricePerPlayerCents`: integer, min 0, max 100_000_000 (that is 1_000_000.00 major units). Omit or null → store null. Accepted on Friendly game, Americano, and Friendly tournament. Team-only does not change the unit (still per User). Do not change Venue/Court, format, caps, or `isPublic` behavior. App Create Game still sends Friendly game, individual, `isPublic: false`.
 
-- **Read payloads:** `games.byId` includes `pricePerPlayer`. `users.home` upcoming Games, `games.listPublicPickup`, and `groups.byId` upcoming/history include `pricePerPlayer`. List helpers that only compute liveness do not need the column for sorting.
+- **Update tRPC:** new organizer mutation to set `pricePerPlayerCents` (integer 0…100_000_000 or null to clear). Same organizer set as `updateWindow` (Club Group: Group creator and Community Owner/Admin; Loose Group: Group creator; groupless: creator). Do not fold into `updateWindow`. Non-organizers refused. Cancelled Game: still allow organizers to edit price this slice (display-only; keep the implementation consistent with window unless window already refuses on cancel — then match window). Soft-archived Club Group Game: organizers may still edit price (join doors stay frozen).
 
-- **UI — Create Game:** optional `Input type="number"` after Court, before window. Label “Price per player”. FieldDescription as story 7. Empty string is not sent (omit). Reuse `Field`, `FieldLabel`, `FieldError`, `FieldDescription`. Wire `pricePerPlayer` in `focusFormFailure`. Do not add Format select, Individual vs Team-only, or public flag.
+- **Read payloads:** `games.byId` includes `pricePerPlayerCents`. `users.home` upcoming Games, `games.listPublicPickup`, and `groups.byId` upcoming/history include `pricePerPlayerCents`. List helpers that only compute liveness do not need the column for sorting.
 
-- **UI — Game home:** viewer line with Venue when set (stories 21–23). Organizer card: Field + save, blank clears. Non-organizers see the line only.
+- **UI — Create Game:** optional `Input type="number"` `step="0.01"` `min="0"` after Court, before window. Label “Price per player”. FieldDescription as story 7. Empty string is not sent (omit). Reuse `Field`, `FieldLabel`, `FieldError`, `FieldDescription`. Wire `pricePerPlayerCents` in `focusFormFailure`. Do not add Format select, Individual vs Team-only, or public flag.
 
-- **UI — lists:** extend `GameSummaryCard` with optional `pricePerPlayer`. Append meta `Free` or `{n} / player` when not null. Home upcoming, Games hub pickup, Group Games tab pass the prop. Home hero shows the same when set. Do not add Venue or Court to cards.
+- **UI — Game home:** viewer line with Venue when set (stories 21–23). Organizer card: Field in major units + save, blank clears. Prefill from cents ÷ 100 with two fraction digits. Non-organizers see the line only.
 
-- **Formatting:** one small helper next to existing Game start formatters. Null → no string. 0 → `Free`. Positive → decimal-free integer text. No `Intl.NumberFormat` currency. No ₪/€/$ this slice.
+- **UI — lists:** extend `GameSummaryCard` with optional `pricePerPlayerCents`. Append meta `Free` or `{major} / player` when not null. Home upcoming, Games hub pickup, Group Games tab pass the prop. Home hero shows the same when set. Do not add Venue or Court to cards.
+
+- **Formatting:** one small helper next to existing Game start formatters. Null → no string. 0 → `Free`. Positive → major units with exactly two fraction digits and no grouping (`50.00`, `12.50`). No `Intl.NumberFormat` currency style. No ₪/€/$ this slice.
 
 - **Authorization (product):** create and update price = people who may create / organize that Game today. Viewing price = people who may already see that Game.
 
-- **ADR:** none. Integer whole units on Game is the obvious display-only column; Match leftovers are gone.
+- **ADR:** none. Integer cents on Game is the usual two-decimal store without `numeric` or tRPC floats; Match leftovers are gone.
 
-- **Amends:** `.scratch/games-matches/spec.md` payment unread bullet and Out of Scope “Payment, prices, guests” — prices may now display; payments remain out. `.scratch/redesign/games-and-rankings-contract.md` field 10 and `.scratch/redesign/spec.md` price row — surface Game.pricePerPlayer when present; still no payments. Does not replace those specs. Does not reopen friendly-only-ui or game-create-venue-court except to add this field beside Venue/Court.
+- **Amends:** `.scratch/games-matches/spec.md` payment unread bullet and Out of Scope “Payment, prices, guests” — prices may now display; payments remain out. `.scratch/redesign/games-and-rankings-contract.md` field 10 and `.scratch/redesign/spec.md` price row — surface Game.pricePerPlayerCents when present; still no payments. Does not replace those specs. Does not reopen friendly-only-ui or game-create-venue-court except to add this field beside Venue/Court.
 
 ## Testing Decisions
 
@@ -134,16 +136,16 @@ Temba has no test suite and no CI. Do not add a test runner or CI. The test is e
 
 ### Test seams
 
-Highest seam (one): an organizer can create a Friendly game from the App with an optional price per player, see that amount on Game home and on list cards / Home hero, and change or clear it later — without checkout, without gating Game admit, without a currency picker, and without writing price on Match.
+Highest seam (one): an organizer can create a Friendly game from the App with an optional price per player (including cents), see that amount on Game home and on list cards / Home hero, and change or clear it later — without checkout, without gating Game admit, without a currency picker or symbol, and without writing price on Match.
 
 If you implement this spec, you implement these seams:
 
-- Create Game: optional Price per player Field; blank creates unset; 0 persists free; 50 persists 50; invalid refused; Venue/Court/window still required as today
-- Game home shows Free / 50 / omits unset; organizer can set, change, and clear; non-organizer has no editor
+- Create Game: optional Price per player Field; blank creates unset; 0 persists free; 50 persists 5000 cents and shows `50.00`; 12.50 persists 1250 cents and shows `12.50`; 50.123 and negatives refused; Venue/Court/window still required as today
+- Game home shows Free / `50.00` / `12.50` / omits unset; organizer Field is major units; organizer can set, change, and clear; non-organizer has no editor
 - Home upcoming `GameSummaryCard`, public pickup cards, Group Games cards, and Home hero show the amount when set and omit when unset
-- `games.byId` and list payloads include `pricePerPlayer`
-- Crafted create: optional on Friendly game, Americano, and Friendly tournament; omit → null; 0 → free; out-of-range refused
-- Team-only crafted create still stores per-User amount, not a Team total
+- `games.byId` and list payloads include `pricePerPlayerCents`
+- Crafted create: optional `pricePerPlayerCents` on Friendly game, Americano, and Friendly tournament; omit → null; 0 → free; out-of-range refused
+- Team-only crafted create still stores per-User cents, not a Team total
 - Existing Games (null column) omit price until an organizer saves
 - Register, waitlist, Lookup, Invite link, caps, cancel, Soft-archive join freeze, who may create, Venue immutability, window edit, Friendly-only App create, and Route `/public` still behave as their specs
 - Match rows gain no price columns; create does not write leftover contest names
@@ -152,7 +154,7 @@ Manual check: existing Community, Group, Team, Venue catalog, login, Invites, Ho
 
 ### Modules under that seam
 
-DB Package Game.pricePerPlayer and new migration; `games.create` / by-id / lists / organizer update; App Create Game Field; Game home line and editor; `GameSummaryCard` and Home hero — only as they affect the flows above.
+DB Package Game.pricePerPlayerCents and new migration; `games.create` / by-id / lists / organizer update; App Create Game Field and cents parse/format helpers; Game home line and editor; `GameSummaryCard` and Home hero — only as they affect the flows above.
 
 ### Prior art
 
@@ -163,8 +165,8 @@ Create Game Venue/Court Field pattern. Optional Venue latitude (`parseOptionalCo
 - Payments, checkout, Stripe, invoices, refunds, paid flags, “has paid”
 - Gating Game admit, Waitlist, or invites on price
 - Guest pricing; splitting court hire; total price for the Game
-- Currency column, currency picker, currency symbol in copy (unless Q2 is confirmed otherwise)
-- Decimal / minor-unit storage
+- Currency column, currency picker, currency symbol in copy
+- `numeric(10,2)` storage; major-unit floats on tRPC
 - Price on Match; reviving `games_legacy` / `total_price` / `paid_amount`
 - App format picker; Individual vs Team-only or public flag on Create Game
 - Venue/Court on list cards; visual redesign of Game home
@@ -179,10 +181,10 @@ Glossary: apply the Language patch in root `CONTEXT.md` in the same planning com
 
 Settled grilling: `.scratch/game-price-per-player/decisions.md`.
 
-**Amends** `.scratch/games-matches/spec.md` (prices may display; payments stay out) and `.scratch/redesign/games-and-rankings-contract.md` field 10 / redesign spec price row (surface when Game.pricePerPlayer is set). Same amend pattern as `.scratch/game-create-venue-court/spec.md`. Does not replace those specs.
+**Amends** `.scratch/games-matches/spec.md` (prices may display; payments stay out) and `.scratch/redesign/games-and-rankings-contract.md` field 10 / redesign spec price row (surface when Game.pricePerPlayerCents is set). Same amend pattern as `.scratch/game-create-venue-court/spec.md`. Does not replace those specs.
 
 Create Game on current `dev` has Venue, Court, and window only (always Friendly game, individual, not public). Implementers add price per player and must not reintroduce a Format select.
 
 ## Comments
 
-Draft from `/planner`. Two decisions flagged needs-confirmation in `decisions.md`: implicit currency with no symbol this slice (Q2), and integer whole units rather than cents (Q3). Linear tickets wait on spec approval.
+Draft from `/planner`. Round 2: Q2 confirmed (no currency symbol); Q3 confirmed (allow cents → integer `price_per_player_cents`). Linear tickets wait on spec approval.
