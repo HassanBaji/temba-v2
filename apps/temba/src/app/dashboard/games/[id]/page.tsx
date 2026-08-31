@@ -844,11 +844,7 @@ export default function GameHomePage({
                                           ? "Set draw"
                                           : `${set.wins.slot1SetWins}–${set.wins.slot2SetWins}`}
                                       </p>
-                                    ) : (
-                                      <p className="text-muted-foreground text-sm">
-                                        Shell
-                                      </p>
-                                    )}
+                                    ) : null}
                                     {match.canScoreSets ? (
                                       <Button
                                         type="button"
