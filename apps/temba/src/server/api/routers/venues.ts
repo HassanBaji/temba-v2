@@ -608,7 +608,7 @@ export const venuesRouter = createTRPCRouter({
   approveLinkRequest: operatorProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const request = await ctx.db.query.venueLinkRequests.findFirst({
         where: eq(venueLinkRequests.id, input.requestId),
         with: {
@@ -689,7 +689,7 @@ export const venuesRouter = createTRPCRouter({
   rejectLinkRequest: operatorProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const request = await ctx.db.query.venueLinkRequests.findFirst({
         where: eq(venueLinkRequests.id, input.requestId),
         with: {

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, gt, inArray, isNull, ne } from "drizzle-orm";
+import { and, eq, gt, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -14,13 +14,12 @@ import {
   groupMembers,
   groups,
   GroupTypeEnum,
-  user,
   type GroupSportEnum,
 } from "@repo/db";
 
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { mayCreateGameOnGroup } from "~/server/games/access";
-import { searchLookupUsers } from "~/server/invites/search-lookup-users";
+
 import {
   inviteLinkExpiresAt,
   isInviteLinkLive,
@@ -45,6 +44,7 @@ import {
   sortStandingMembers,
   standingPosition,
 } from "~/server/standing/compare-standing";
+import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 
 const sportSchema = z.enum(["padel", "football"]);
 
@@ -468,7 +468,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createClubGroup({
         database: ctx.db,
         communityId: input.communityId,
@@ -490,7 +490,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createClubGroup({
         database: ctx.db,
         communityId: input.communityId,
@@ -511,7 +511,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createLooseGroup({
         database: ctx.db,
         name: input.name,
@@ -531,7 +531,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createLooseGroup({
         database: ctx.db,
         name: input.name,
@@ -544,7 +544,7 @@ export const groupsRouter = createTRPCRouter({
 
   /** Loose Groups the caller belongs to (Club Groups live under Communities). */
   mineLoose: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const memberships = await ctx.db.query.groupMembers.findMany({
       where: eq(groupMembers.userId, appUser.id),
@@ -566,8 +566,10 @@ export const groupsRouter = createTRPCRouter({
 
   /** Groups the caller is a member of (Loose Groups and joined Club Groups). */
   mine: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
-
+    console.time("mine");
+    const appUser = await resolveAppUser(ctx.userId);
+    console.timeEnd("mine");
+    console.time("findMany");
     const memberships = await ctx.db.query.groupMembers.findMany({
       where: eq(groupMembers.userId, appUser.id),
       with: {
@@ -578,7 +580,7 @@ export const groupsRouter = createTRPCRouter({
         },
       },
     });
-
+    console.timeEnd("findMany");
     return memberships.map((membership) => {
       const group = membership.group;
       const community = group.community;
@@ -603,7 +605,7 @@ export const groupsRouter = createTRPCRouter({
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.id);
 
       const membership = await ctx.db.query.groupMembers.findFirst({
@@ -813,7 +815,7 @@ export const groupsRouter = createTRPCRouter({
   joinClubPublic: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.groupId);
 
       if (!group.communityId) {
@@ -896,7 +898,7 @@ export const groupsRouter = createTRPCRouter({
   joinLoosePublic: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.groupId);
 
       if (group.communityId) {
@@ -948,7 +950,7 @@ export const groupsRouter = createTRPCRouter({
   leave: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.groupId);
 
       const membership = await ctx.db.query.groupMembers.findFirst({
@@ -979,7 +981,7 @@ export const groupsRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return deleteEmptyGroup({
         database: ctx.db,
         groupId: input.groupId,
@@ -987,186 +989,103 @@ export const groupsRouter = createTRPCRouter({
       });
     }),
 
-  searchLookupUsers: protectedProcedure
-    .input(
-      z.object({
-        groupId: z.string().uuid(),
-        query: z.string().trim().max(255),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
-      const { group, canAutoAdmit } = await requireGroupLookupSender(
-        ctx.db,
-        input.groupId,
-        appUser.id,
-      );
-
-      const members = await ctx.db.query.groupMembers.findMany({
-        where: eq(groupMembers.groupId, group.id),
-        columns: { userId: true },
-      });
-      const unusedInvites = await ctx.db.query.groupMemberInvites.findMany({
-        where: and(
-          eq(groupMemberInvites.groupId, group.id),
-          isNull(groupMemberInvites.acceptedAt),
-          isNull(groupMemberInvites.revokedAt),
-        ),
-        columns: { userId: true },
-      });
-
-      const excludeUserIds = [
-        appUser.id,
-        ...members.map((member) => member.userId),
-        ...unusedInvites.map((invite) => invite.userId),
-      ];
-
-      if (group.communityId && !canAutoAdmit) {
-        const communityMembersRows =
-          await ctx.db.query.communityMembers.findMany({
-            where: eq(communityMembers.communityId, group.communityId),
-            columns: { userId: true },
-          });
-
-        return searchLookupUsers(ctx.db, {
-          query: input.query,
-          excludeUserIds,
-          includeUserIds: communityMembersRows.map((row) => row.userId),
-        });
-      }
-
-      return searchLookupUsers(ctx.db, {
-        query: input.query,
-        excludeUserIds,
-      });
-    }),
-
   sendLookupInvite: protectedProcedure
     .input(
       z.object({
         groupId: z.string().uuid(),
-        userIds: z.array(z.string().uuid()).min(1).max(20),
+        query: z.string().trim().min(1).max(255),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { group, canAutoAdmit } = await requireGroupLookupSender(
         ctx.db,
         input.groupId,
         appUser.id,
       );
-
-      const uniqueIds = [...new Set(input.userIds)];
-      const targets = await ctx.db.query.user.findMany({
-        where: inArray(user.id, uniqueIds),
-        columns: {
-          id: true,
-          name: true,
-        },
+      const [invitee] = await searchLookupUsers(ctx.db, {
+        query: input.query,
+        excludeUserIds: [appUser.id],
       });
-      const targetsById = new Map(targets.map((row) => [row.id, row]));
-
-      const sent: {
-        id: string;
-        groupId: string;
-        userId: string;
-        createdAt: Date;
-      }[] = [];
-      const refused: { name: string; message: string }[] = [];
-
-      for (const userId of uniqueIds) {
-        const target = targetsById.get(userId);
-        if (!target) {
-          refused.push({ name: "Unknown User", message: "User not found" });
-          continue;
-        }
-
-        if (group.communityId && !canAutoAdmit) {
-          const inviteeMembership = await requireCommunityMembership(
-            ctx.db,
-            group.communityId,
-            target.id,
-          );
-          if (!inviteeMembership) {
-            refused.push({
-              name: target.name,
-              message: "Invitee must already be a Community Member",
-            });
-            continue;
-          }
-        }
-
-        const existingMember = await ctx.db.query.groupMembers.findFirst({
-          where: and(
-            eq(groupMembers.groupId, group.id),
-            eq(groupMembers.userId, target.id),
-          ),
+      if (!invitee) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
         });
+      }
 
-        if (existingMember) {
-          refused.push({
-            name: target.name,
-            message: "User is already a member of this Group",
-          });
-          continue;
-        }
-
-        const existingInvite = await ctx.db.query.groupMemberInvites.findFirst({
-          where: and(
-            eq(groupMemberInvites.groupId, group.id),
-            eq(groupMemberInvites.userId, target.id),
-            isNull(groupMemberInvites.acceptedAt),
-            isNull(groupMemberInvites.revokedAt),
-          ),
-        });
-
-        if (existingInvite) {
-          refused.push({
-            name: target.name,
-            message: "An unused Lookup invite already exists for this User",
-          });
-          continue;
-        }
-
-        try {
-          const [created] = await ctx.db
-            .insert(groupMemberInvites)
-            .values({
-              groupId: group.id,
-              userId: target.id,
-              invitedBy: appUser.id,
-            })
-            .returning();
-
-          if (!created) {
-            refused.push({
-              name: target.name,
-              message: "Failed to create Lookup invite",
-            });
-            continue;
-          }
-
-          sent.push({
-            id: created.id,
-            groupId: created.groupId,
-            userId: created.userId,
-            createdAt: created.createdAt,
-          });
-        } catch {
-          refused.push({
-            name: target.name,
-            message: "An unused Lookup invite already exists for this User",
+      if (group.communityId && !canAutoAdmit) {
+        const inviteeMembership = await requireCommunityMembership(
+          ctx.db,
+          group.communityId,
+          invitee.id,
+        );
+        if (!inviteeMembership) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invitee must already be a Community Member",
           });
         }
       }
 
-      return { sent, refused };
+      const existingMember = await ctx.db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, group.id),
+          eq(groupMembers.userId, invitee.id),
+        ),
+      });
+
+      if (existingMember) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "User is already a member of this Group",
+        });
+      }
+
+      const existingInvite = await ctx.db.query.groupMemberInvites.findFirst({
+        where: and(
+          eq(groupMemberInvites.groupId, group.id),
+          eq(groupMemberInvites.userId, invitee.id),
+          isNull(groupMemberInvites.acceptedAt),
+          isNull(groupMemberInvites.revokedAt),
+        ),
+      });
+
+      if (existingInvite) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "An unused Lookup invite already exists for this User",
+        });
+      }
+
+      const [created] = await ctx.db
+        .insert(groupMemberInvites)
+        .values({
+          groupId: group.id,
+          userId: invitee.id,
+          invitedBy: appUser.id,
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Lookup invite",
+        });
+      }
+
+      return {
+        id: created.id,
+        groupId: created.groupId,
+        userId: created.userId,
+        createdAt: created.createdAt,
+      };
     }),
 
   listLookupInvites: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { group } = await requireGroupLookupSender(
         ctx.db,
         input.groupId,
@@ -1199,7 +1118,7 @@ export const groupsRouter = createTRPCRouter({
   revokeLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.groupMemberInvites.findFirst({
         where: eq(groupMemberInvites.id, input.inviteId),
@@ -1245,7 +1164,7 @@ export const groupsRouter = createTRPCRouter({
     }),
 
   pendingLookupInvites: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const rows = await ctx.db.query.groupMemberInvites.findMany({
       where: and(
@@ -1282,7 +1201,7 @@ export const groupsRouter = createTRPCRouter({
   acceptLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.groupMemberInvites.findFirst({
         where: eq(groupMemberInvites.id, input.inviteId),
@@ -1418,7 +1337,7 @@ export const groupsRouter = createTRPCRouter({
   getInviteLink: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroupInviteLinkMinter(
         ctx.db,
         input.groupId,
@@ -1448,7 +1367,7 @@ export const groupsRouter = createTRPCRouter({
   createInviteLink: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroupInviteLinkMinter(
         ctx.db,
         input.groupId,
@@ -1514,7 +1433,7 @@ export const groupsRouter = createTRPCRouter({
   acceptInviteLink: protectedProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const link = await ctx.db.query.groupInviteLinks.findFirst({
         where: eq(groupInviteLinks.token, input.token),

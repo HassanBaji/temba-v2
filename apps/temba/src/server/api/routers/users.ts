@@ -35,7 +35,7 @@ export const usersRouter = createTRPCRouter({
    * global rank.
    */
   home: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
     const now = new Date();
 
     const communityMemberships = await ctx.db.query.communityMembers.findMany({

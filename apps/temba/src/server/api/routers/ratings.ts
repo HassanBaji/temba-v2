@@ -20,7 +20,7 @@ export const ratingsRouter = createTRPCRouter({
    * Provisional only — never raw Glicko μ/φ/σ.
    */
   me: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
     const row = await ctx.db.query.ratings.findFirst({
       where: and(
         eq(ratings.userId, appUser.id),
@@ -58,7 +58,7 @@ export const ratingsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const rating = await selfDeclareRating(
         ctx.db,
         appUser.id,

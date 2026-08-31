@@ -292,7 +292,7 @@ export const teamsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const created = await ctx.db.transaction(async (tx) => {
         const [team] = await tx
@@ -335,7 +335,7 @@ export const teamsRouter = createTRPCRouter({
     }),
 
   mine: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const memberships = await ctx.db.query.teamMembers.findMany({
       where: eq(teamMembers.userId, appUser.id),
@@ -396,7 +396,7 @@ export const teamsRouter = createTRPCRouter({
   }),
 
   pendingInvites: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const rows = await ctx.db.query.teamMemberInvites.findMany({
       where: and(
@@ -434,7 +434,7 @@ export const teamsRouter = createTRPCRouter({
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const team = await requireTeam(ctx.db, input.id);
 
       const membership = await ctx.db.query.teamMembers.findFirst({
@@ -569,7 +569,7 @@ export const teamsRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { team, memberRows } = await requireIncompleteTeamCreator(
         ctx.db,
         input.teamId,
@@ -595,7 +595,7 @@ export const teamsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { team, memberRows } = await requireIncompleteTeamCreator(
         ctx.db,
         input.teamId,
@@ -677,7 +677,7 @@ export const teamsRouter = createTRPCRouter({
   listInAppInvites: protectedProcedure
     .input(z.object({ teamId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const team = await requireTeam(ctx.db, input.teamId);
 
       if (team.createdBy !== appUser.id) {
@@ -733,7 +733,7 @@ export const teamsRouter = createTRPCRouter({
   revokeInAppInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.teamMemberInvites.findFirst({
         where: eq(teamMemberInvites.id, input.inviteId),
@@ -780,7 +780,7 @@ export const teamsRouter = createTRPCRouter({
   acceptInAppInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.teamMemberInvites.findFirst({
         where: eq(teamMemberInvites.id, input.inviteId),
@@ -889,7 +889,7 @@ export const teamsRouter = createTRPCRouter({
   getInviteLink: protectedProcedure
     .input(z.object({ teamId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       await requireIncompleteTeamCreator(ctx.db, input.teamId, appUser.id);
 
       const newest = await newestLiveTeamInviteLink(ctx.db, input.teamId);
@@ -908,7 +908,7 @@ export const teamsRouter = createTRPCRouter({
   createInviteLink: protectedProcedure
     .input(z.object({ teamId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { team } = await requireIncompleteTeamCreator(
         ctx.db,
         input.teamId,
@@ -979,7 +979,7 @@ export const teamsRouter = createTRPCRouter({
   acceptInviteLink: protectedProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const link = await ctx.db.query.teamInviteLinks.findFirst({
         where: eq(teamInviteLinks.token, input.token),
@@ -1059,7 +1059,7 @@ export const teamsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const team = await requireTeam(ctx.db, input.teamId);
 
       const membership = await ctx.db.query.teamMembers.findFirst({
@@ -1165,7 +1165,7 @@ export const teamsRouter = createTRPCRouter({
   unlink: protectedProcedure
     .input(z.object({ teamId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const team = await requireTeam(ctx.db, input.teamId);
 
       const membership = await ctx.db.query.teamMembers.findFirst({
@@ -1225,7 +1225,7 @@ export const teamsRouter = createTRPCRouter({
   dissolve: protectedProcedure
     .input(z.object({ teamId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const team = await requireTeam(ctx.db, input.teamId);
 
       const membership = await ctx.db.query.teamMembers.findFirst({
