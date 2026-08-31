@@ -96,6 +96,10 @@ _Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 A door URL any authenticated User may use while that token is live. Each copy mints a new token that expires 6 hours after mint; older tokens stay valid until each expires. No rotate or revoke. Used on Community (Public and Private), every Group type, incomplete Team, and Game.
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
+**Invite doors**:
+Lookup invite and Invite link as the two live invitation channels onto a Community, Group, Team, or Game.
+_Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door)
+
 **Venue link**:
 A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. Distinct from Invite link and from a Team’s Community link.
 _Avoid_: Invite link, membership, join, Club Team
@@ -144,6 +148,10 @@ _Avoid_: Admin (that is a Community role), system admin, platform admin, superad
 A Community role with no staff powers. Community membership is required to join that Community’s Club Groups. Leaving a Community is refused while the User sits on any Team linked to that Community.
 _Avoid_: player (when you mean Member), user (when you mean this role)
 
+**Community membership**:
+A User’s Owner, Admin, or Member seat on a Community. Distinct from Group membership and from Team seats.
+_Avoid_: enrollment, subscription, Group membership (when you mean this), join (when you mean this seat)
+
 **Soft-archive**:
 A reversible hide. For a Community: hides it and its Club Groups together; Games are kept; existing Club Group Games stay visible to those allowed to open the Community or Group and are excluded from public pickup; new Club Group Games are refused; register, waitlist, and Game Lookup/Invite link mint and accept behave as closed; organizers may still add Matches and assign Courts and cannot reopen while archived; Club Groups stay attached; refuse new joins, invites, Team→Community link requests and decisions, Venue link requests and decisions, and invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats and a live Venue link remain visible to those allowed to open the Community. For a Venue: hides it from the Community request catalog and from unlocked Game create; refuse new Venue link requests and decisions; refuse new Court assign on Games whose Venue is that site (skip/clear still allowed); live Community Venue links stay; a Club Group whose only linked Venue is Soft-archived may still create a Game there with skip Court and cannot pick another Venue; Members still see that Venue on Community home as history. Not a delete, not detaching Groups, and not unlinking a Venue.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
@@ -175,6 +183,10 @@ _Avoid_: Single, Friendly tournament, Americano
 **Waitlist**:
 The queue to join a Game after its cap is reached.
 _Avoid_: player (when you mean someone waitlisted), guest
+
+**Game admit**:
+Registered occupancy of a User or complete Team on a Game. Distinct from Waitlist and from creating the Game.
+_Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window)
 
 **User**:
 A person with a Temba account.
