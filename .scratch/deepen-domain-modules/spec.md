@@ -2,6 +2,8 @@
 
 Status: ready-for-agent
 
+Tickets (Linear, `ready-for-agent`): [TEM-94](https://linear.app/temba-app/issue/TEM-94/add-vitest-pglite-workspace-harness) Add Vitest + PGLite Workspace harness → [TEM-95](https://linear.app/temba-app/issue/TEM-95/soft-archive-community) Soft-archive Community → [TEM-96](https://linear.app/temba-app/issue/TEM-96/soft-archive-venue) Soft-archive Venue; then parallel [TEM-97](https://linear.app/temba-app/issue/TEM-97/game-admit-for-self-register) Game admit for self-register ∥ [TEM-99](https://linear.app/temba-app/issue/TEM-99/community-membership) Community membership → [TEM-98](https://linear.app/temba-app/issue/TEM-98/game-admit-for-invite-accept-and-waitlist-promote) Game admit for invite accept and Waitlist promote → [TEM-100](https://linear.app/temba-app/issue/TEM-100/invite-doors-for-all-hosts) Invite doors for all hosts; and [TEM-101](https://linear.app/temba-app/issue/TEM-101/friendly-game-create-module) Friendly Game create module (after Soft-archive Venue).
+
 Glossary terms locked in `CONTEXT.md`: Soft-archive, Game admit, Community membership, Invite doors (plus existing Lookup invite, Invite link, Waitlist, Game, Friendly game, Member, Venue).
 
 Approving this spec approves the Test seams in Testing Decisions and the Implementation Decisions below.
@@ -306,5 +308,5 @@ If you implement this spec, you implement these seams (approved):
 
 - Settled grilling: architecture-review conversation (Soft-archive hybrid consult/commit; Game admit minimal `admit`; membership admit+leave; Invite doors host-parameterized; Friendly-only create; Vitest+PGLite; CONTEXT terms).
 - Glossary PR / branch may already contain CONTEXT updates for Game admit, Invite doors, Community membership.
-- Suggested ticket grain (from `/to-tickets` draft, not yet published): harness → Soft-archive Community → Soft-archive Venue → Game admit self-register ∥ Community membership → Game admit invite/promote → Invite doors → Friendly create.
-- When publishing implementation tickets to Linear, link this spec at the top of each ticket body.
+- Tickets published: TEM-94 … TEM-101 (see header). Frontier: TEM-94.
+- Each Linear ticket body links this spec.
