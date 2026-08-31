@@ -13,6 +13,7 @@ import {
 import { type db } from "~/server/db";
 import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { createTRPCRouter, operatorProcedure } from "~/server/api/trpc";
 import {
   assertVenueLogoType,
@@ -624,13 +625,14 @@ export const venuesRouter = createTRPCRouter({
         });
       }
 
-      if (request.community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
+      refuseIfFrozen(
+        consult({ archivedAt: request.community.archivedAt }),
+        "host",
+        {
+          frozenMessage:
             "Cannot decide Venue link requests for an archived Community",
-        });
-      }
+        },
+      );
 
       if (request.venue.archivedAt) {
         throw new TRPCError({
@@ -705,13 +707,14 @@ export const venuesRouter = createTRPCRouter({
         });
       }
 
-      if (request.community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
+      refuseIfFrozen(
+        consult({ archivedAt: request.community.archivedAt }),
+        "host",
+        {
+          frozenMessage:
             "Cannot decide Venue link requests for an archived Community",
-        });
-      }
+        },
+      );
 
       if (request.venue.archivedAt) {
         throw new TRPCError({

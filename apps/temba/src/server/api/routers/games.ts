@@ -30,6 +30,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { consult } from "~/server/soft-archive";
 import {
   FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
@@ -417,10 +418,15 @@ export const gamesRouter = createTRPCRouter({
     const now = new Date();
 
     return rows
-      .filter(
-        (row) =>
-          row.cancelledAt == null && row.group?.community?.archivedAt == null,
-      )
+      .filter((row) => {
+        if (row.cancelledAt != null) {
+          return false;
+        }
+        const view = consult({
+          archivedAt: row.group?.community?.archivedAt ?? null,
+        });
+        return !view.freeze("catalog");
+      })
       .map((row) => {
         const candidate = {
           id: row.id,
@@ -2155,7 +2161,11 @@ export const gamesRouter = createTRPCRouter({
       if (game.cancelledAt) {
         return { status: "unavailable" as const };
       }
-      if (game.group?.community?.archivedAt) {
+      if (
+        consult({
+          archivedAt: game.group?.community?.archivedAt ?? null,
+        }).freeze("join")
+      ) {
         return { status: "unavailable" as const };
       }
       const gameRow = await requireGame(ctx.db, game.id);

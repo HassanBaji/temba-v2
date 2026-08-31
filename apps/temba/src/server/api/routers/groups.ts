@@ -20,6 +20,7 @@ import {
 
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { mayCreateGameOnGroup } from "~/server/games/access";
+import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 import {
   inviteLinkExpiresAt,
@@ -250,25 +251,10 @@ async function requireLiveClubCommunity(
   database: DbClient,
   communityId: string,
 ) {
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, communityId),
+  const view = await consult(database, { communityId });
+  refuseIfFrozen(view, "host", {
+    frozenMessage: "Cannot invite into a Group in an archived Community",
   });
-
-  if (!community) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Community not found",
-    });
-  }
-
-  if (community.archivedAt) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Cannot invite into a Group in an archived Community",
-    });
-  }
-
-  return community;
 }
 
 async function requireGroupLookupSender(
@@ -346,12 +332,9 @@ async function createClubGroup(args: {
     });
   }
 
-  if (community.archivedAt) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Cannot create a Club Group in an archived Community",
-    });
-  }
+  refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+    frozenMessage: "Cannot create a Club Group in an archived Community",
+  });
 
   await requireStaff(args.database, community.id, args.createdBy);
 
@@ -635,24 +618,25 @@ export const groupsRouter = createTRPCRouter({
         Boolean(group.communityId) && group.type === GroupTypeEnum.PUBLIC;
       const isClubPrivate =
         Boolean(group.communityId) && group.type === GroupTypeEnum.PRIVATE;
+      const archive = consult({
+        archivedAt: community?.archivedAt ?? null,
+      });
+      const live = !archive.freeze("join");
       const canJoinClubPublic =
-        isClubPublic &&
-        Boolean(communityMembership) &&
-        !membership &&
-        !community?.archivedAt;
+        isClubPublic && Boolean(communityMembership) && !membership && live;
       const canJoinLoosePublic = isLoosePublic && !membership;
       const canJoin = canJoinClubPublic || canJoinLoosePublic;
       const canManageLookupInvites =
         ((isLoosePublic || isLoosePrivate) && group.createdBy === appUser.id) ||
         ((isClubPublic || isClubPrivate) &&
-          !community?.archivedAt &&
+          !archive.freeze("host") &&
           Boolean(communityMembership) &&
           (isStaffRole(communityMembership?.role) ||
             group.createdBy === appUser.id));
       const canManageInviteLinks =
         ((isLoosePublic || isLoosePrivate) && group.createdBy === appUser.id) ||
         ((isClubPublic || isClubPrivate) &&
-          !community?.archivedAt &&
+          !archive.freeze("host") &&
           isStaffRole(communityMembership?.role));
 
       const canDelete = await mayDeleteEmptyGroup({
@@ -777,7 +761,9 @@ export const groupsRouter = createTRPCRouter({
               archivedAt: community.archivedAt,
             }
           : null,
-        isCommunityArchived: Boolean(community?.archivedAt),
+        isCommunityArchived:
+          consult({ archivedAt: community?.archivedAt ?? null }).phase ===
+          "archived",
         createdBy: group.createdBy,
         createdAt: group.createdAt,
         membership: membership
@@ -841,12 +827,9 @@ export const groupsRouter = createTRPCRouter({
         });
       }
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot join a Group in an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+        frozenMessage: "Cannot join a Group in an archived Community",
+      });
 
       const communityMembership = await requireCommunityMembership(
         ctx.db,
@@ -1315,12 +1298,9 @@ export const groupsRouter = createTRPCRouter({
             message: "Community not found",
           });
         }
-        if (community.archivedAt) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Cannot join a Group in an archived Community",
-          });
-        }
+        refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+          frozenMessage: "Cannot join a Group in an archived Community",
+        });
 
         communityMembership = await requireCommunityMembership(
           ctx.db,
@@ -1497,10 +1477,10 @@ export const groupsRouter = createTRPCRouter({
       }
 
       if (link.group.communityId) {
-        const community = await ctx.db.query.communities.findFirst({
-          where: eq(communities.id, link.group.communityId),
+        const view = await consult(ctx.db, {
+          clubGroupId: link.group.id,
         });
-        if (!community || community.archivedAt) {
+        if (!view.ok || view.freeze("join")) {
           return { status: "unavailable" as const };
         }
       }
@@ -1539,12 +1519,9 @@ export const groupsRouter = createTRPCRouter({
             message: "Community not found",
           });
         }
-        if (community.archivedAt) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Cannot join a Group in an archived Community",
-          });
-        }
+        refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+          frozenMessage: "Cannot join a Group in an archived Community",
+        });
       }
 
       const existingMembership = await ctx.db.query.groupMembers.findFirst({

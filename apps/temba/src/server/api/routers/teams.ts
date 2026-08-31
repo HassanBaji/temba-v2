@@ -23,6 +23,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { type db } from "~/server/db";
 import {
   inviteLinkExpiresAt,
@@ -78,16 +79,9 @@ async function refuseIfLinkedCommunityArchived(
     return;
   }
 
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, team.communityId),
-    columns: { archivedAt: true },
-  });
-
-  if (community?.archivedAt) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message,
-    });
+  const view = await consult(database, { communityId: team.communityId });
+  if (view.ok) {
+    refuseIfFrozen(view, "host", { frozenMessage: message });
   }
 }
 
@@ -478,7 +472,7 @@ export const teamsRouter = createTRPCRouter({
         isMember &&
         incomplete &&
         team.createdBy === appUser.id &&
-        !community?.archivedAt;
+        !consult({ archivedAt: community?.archivedAt ?? null }).freeze("host");
       const unusedInvite = canInvite
         ? await unusedInviteForTeam(ctx.db, team.id)
         : null;
@@ -957,11 +951,10 @@ export const teamsRouter = createTRPCRouter({
       }
 
       if (link.team.communityId) {
-        const linked = await ctx.db.query.communities.findFirst({
-          where: eq(communities.id, link.team.communityId),
-          columns: { archivedAt: true },
+        const view = await consult(ctx.db, {
+          communityId: link.team.communityId,
         });
-        if (linked?.archivedAt) {
+        if (view.ok && view.freeze("join")) {
           return { status: "unavailable" as const };
         }
       }
@@ -1102,12 +1095,9 @@ export const teamsRouter = createTRPCRouter({
         });
       }
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot request a Team link to an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+        frozenMessage: "Cannot request a Team link to an archived Community",
+      });
 
       const allowedSport = await ctx.db.query.communitySports.findFirst({
         where: and(

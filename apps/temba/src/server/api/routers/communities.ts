@@ -26,6 +26,12 @@ import {
 
 import { type db } from "~/server/db";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import {
+  commit,
+  consult,
+  refuseIfFrozen,
+  throwCommitFailure,
+} from "~/server/soft-archive";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 import {
   inviteLinkExpiresAt,
@@ -218,14 +224,9 @@ async function lockOwnersForUpdate(
 
 async function requireLiveCommunity(database: DbClient, id: string) {
   const community = await requireCommunity(database, id);
-
-  if (community.archivedAt) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Cannot manage invites for an archived Community",
-    });
-  }
-
+  refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+    frozenMessage: "Cannot manage invites for an archived Community",
+  });
   return community;
 }
 
@@ -316,30 +317,22 @@ export const communitiesRouter = createTRPCRouter({
         ),
       });
 
+      const archive = consult({ archivedAt: community.archivedAt });
+      const live = !archive.freeze("host");
       const canManageJoinRequests =
-        community.type === "public" &&
-        !community.archivedAt &&
-        isStaffRole(membership?.role);
+        community.type === "public" && live && isStaffRole(membership?.role);
       const canManageInvites =
-        community.type === "private" &&
-        !community.archivedAt &&
-        isStaffRole(membership?.role);
-      const canManageLookupInvites =
-        !community.archivedAt && isStaffRole(membership?.role);
-      const canManageInviteLinks =
-        !community.archivedAt && isStaffRole(membership?.role);
-      const canCreateClubGroup =
-        !community.archivedAt && isStaffRole(membership?.role);
+        community.type === "private" && live && isStaffRole(membership?.role);
+      const canManageLookupInvites = live && isStaffRole(membership?.role);
+      const canManageInviteLinks = live && isStaffRole(membership?.role);
+      const canCreateClubGroup = live && isStaffRole(membership?.role);
       const canManageSports = isStaffRole(membership?.role);
       const canManageRoles = membership?.role === "owner";
-      const canSoftArchive =
-        !community.archivedAt && isStaffRole(membership?.role);
+      const canSoftArchive = live && isStaffRole(membership?.role);
       const canUnarchive =
-        Boolean(community.archivedAt) && isStaffRole(membership?.role);
-      const canManageTeamLinks =
-        !community.archivedAt && isStaffRole(membership?.role);
-      const canManageVenueLink =
-        !community.archivedAt && isStaffRole(membership?.role);
+        archive.phase === "archived" && isStaffRole(membership?.role);
+      const canManageTeamLinks = live && isStaffRole(membership?.role);
+      const canManageVenueLink = live && isStaffRole(membership?.role);
 
       const venue = membership
         ? await loadMemberVenue(ctx.db, community.venueId)
@@ -656,29 +649,15 @@ export const communitiesRouter = createTRPCRouter({
 
       await requireStaff(ctx.db, community.id, appUser.id);
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Community is already Soft-archived",
-        });
-      }
-
       // Soft-archive hides listing and join paths. Club Groups stay attached
       // (communityId unchanged). Invite tokens are kept, not auto-revoked.
-      const [updated] = await ctx.db
-        .update(communities)
-        .set({
-          archivedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(communities.id, community.id))
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to Soft-archive Community",
-        });
+      const updated = await commit(
+        ctx.db,
+        { communityId: community.id },
+        "archived",
+      );
+      if (!updated.ok) {
+        throwCommitFailure(updated);
       }
 
       return {
@@ -695,29 +674,15 @@ export const communitiesRouter = createTRPCRouter({
 
       await requireStaff(ctx.db, community.id, appUser.id);
 
-      if (!community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Community is not Soft-archived",
-        });
-      }
-
       // Unarchive restores join rules. Live Invite link tokens stay valid
       // until each expires.
-      const [updated] = await ctx.db
-        .update(communities)
-        .set({
-          archivedAt: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(communities.id, community.id))
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to unarchive Community",
-        });
+      const updated = await commit(
+        ctx.db,
+        { communityId: community.id },
+        "live",
+      );
+      if (!updated.ok) {
+        throwCommitFailure(updated);
       }
 
       return {
@@ -1026,13 +991,10 @@ export const communitiesRouter = createTRPCRouter({
       );
 
       const community = await requireCommunity(ctx.db, request.communityId);
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Cannot approve Team link requests for an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+        frozenMessage:
+          "Cannot approve Team link requests for an archived Community",
+      });
 
       if (request.team.communityId) {
         throw new TRPCError({
@@ -1145,12 +1107,10 @@ export const communitiesRouter = createTRPCRouter({
       );
 
       const community = await requireCommunity(ctx.db, request.communityId);
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot reject Team link requests for an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+        frozenMessage:
+          "Cannot reject Team link requests for an archived Community",
+      });
 
       const [updated] = await ctx.db
         .update(teamLinkRequests)
@@ -1269,12 +1229,9 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot request to join an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+        frozenMessage: "Cannot request to join an archived Community",
+      });
 
       const membership = await requireMembership(
         ctx.db,
@@ -1415,12 +1372,9 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot approve join requests for an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+        frozenMessage: "Cannot approve join requests for an archived Community",
+      });
 
       await requireStaff(ctx.db, community.id, appUser.id);
 
@@ -1493,12 +1447,9 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot reject join requests for an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+        frozenMessage: "Cannot reject join requests for an archived Community",
+      });
 
       await requireStaff(ctx.db, community.id, appUser.id);
 
@@ -1811,12 +1762,9 @@ export const communitiesRouter = createTRPCRouter({
 
       const community = await requireCommunity(ctx.db, invite.communityId);
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot join an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+        frozenMessage: "Cannot join an archived Community",
+      });
 
       const existingMembership = await requireMembership(
         ctx.db,
@@ -1961,7 +1909,7 @@ export const communitiesRouter = createTRPCRouter({
         return { status: "invalid" as const };
       }
 
-      if (link.community.archivedAt) {
+      if (consult({ archivedAt: link.community.archivedAt }).freeze("join")) {
         return { status: "unavailable" as const };
       }
 
@@ -1989,12 +1937,9 @@ export const communitiesRouter = createTRPCRouter({
 
       const community = await requireCommunity(ctx.db, link.communityId);
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot join an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
+        frozenMessage: "Cannot join an archived Community",
+      });
 
       const existingMembership = await requireMembership(
         ctx.db,
@@ -2050,12 +1995,9 @@ export const communitiesRouter = createTRPCRouter({
         "Only Owner or Admin can search Venues",
       );
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot search Venues for an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+        frozenMessage: "Cannot search Venues for an archived Community",
+      });
 
       const query = input.query;
       const rows = await ctx.db.query.venues.findMany({
@@ -2113,12 +2055,9 @@ export const communitiesRouter = createTRPCRouter({
         "Only Owner or Admin can request a Venue link",
       );
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot request a Venue link for an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+        frozenMessage: "Cannot request a Venue link for an archived Community",
+      });
 
       if (community.venueId) {
         throw new TRPCError({
@@ -2209,12 +2148,9 @@ export const communitiesRouter = createTRPCRouter({
         "Only Owner or Admin can unlink a Venue",
       );
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot unlink a Venue from an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+        frozenMessage: "Cannot unlink a Venue from an archived Community",
+      });
 
       if (!community.venueId) {
         throw new TRPCError({
