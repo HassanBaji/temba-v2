@@ -33,6 +33,16 @@ import {
   throwLeaveFailure,
 } from "~/server/community-membership";
 import {
+  acceptLink,
+  acceptLookup,
+  listLookup,
+  mintLink,
+  mintLookup,
+  previewLink,
+  revokeLookup,
+  throwInviteFrozen,
+} from "~/server/invites/doors";
+import {
   commit,
   consult,
   refuseIfFrozen,
@@ -40,15 +50,7 @@ import {
 } from "~/server/soft-archive";
 import { liveVenuesWhere } from "~/server/soft-archive/adapter";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
-import {
-  inviteLinkExpiresAt,
-  isInviteLinkLive,
-} from "~/server/invites/invite-link-expiry";
-import {
-  communityInviteLinkUrl,
-  createOpaqueToken,
-  getAppOrigin,
-} from "~/server/invites/tokens";
+import { communityInviteLinkUrl, getAppOrigin } from "~/server/invites/tokens";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -1512,28 +1514,27 @@ export const communitiesRouter = createTRPCRouter({
         }
 
         try {
-          const [created] = await ctx.db
-            .insert(communityMemberInvites)
-            .values({
-              communityId: community.id,
-              userId: target.id,
-              invitedBy: appUser.id,
-            })
-            .returning();
-
-          if (!created) {
+          const minted = await mintLookup(
+            ctx.db,
+            { kind: "community", id: community.id },
+            { userId: target.id, invitedBy: appUser.id },
+          );
+          if (!minted.ok) {
             refused.push({
               name: target.name,
-              message: "Failed to create Lookup invite",
+              message:
+                minted.reason === "unused_exists"
+                  ? "An unused Lookup invite already exists for this User"
+                  : "Failed to create Lookup invite",
             });
             continue;
           }
 
           sent.push({
-            id: created.id,
-            communityId: created.communityId,
-            userId: created.userId,
-            createdAt: created.createdAt,
+            id: minted.invite.id,
+            communityId: minted.invite.hostId,
+            userId: minted.invite.userId,
+            createdAt: minted.invite.createdAt,
           });
         } catch {
           refused.push({
@@ -1553,27 +1554,12 @@ export const communitiesRouter = createTRPCRouter({
       const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
-      const rows = await ctx.db.query.communityMemberInvites.findMany({
-        where: and(
-          eq(communityMemberInvites.communityId, community.id),
-          isNull(communityMemberInvites.acceptedAt),
-          isNull(communityMemberInvites.revokedAt),
-        ),
-        with: {
-          user: true,
-        },
-        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      const rows = await listLookup(ctx.db, {
+        kind: "community",
+        id: community.id,
       });
 
-      return rows.map((row) => ({
-        id: row.id,
-        createdAt: row.createdAt,
-        user: {
-          id: row.user.id,
-          name: row.user.name,
-          email: row.user.email,
-        },
-      }));
+      return rows;
     }),
 
   revokeLookupInvite: protectedProcedure
@@ -1606,16 +1592,18 @@ export const communitiesRouter = createTRPCRouter({
         return { ok: true as const };
       }
 
-      const [updated] = await ctx.db
-        .update(communityMemberInvites)
-        .set({
-          revokedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(communityMemberInvites.id, invite.id))
-        .returning();
-
-      if (!updated) {
+      const revoked = await revokeLookup(
+        ctx.db,
+        { kind: "community", id: community.id },
+        invite.id,
+      );
+      if (!revoked.ok && revoked.reason === "already_accepted") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Accepted Lookup invites cannot be revoked",
+        });
+      }
+      if (!revoked.ok) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to revoke Lookup invite",
@@ -1689,72 +1677,34 @@ export const communitiesRouter = createTRPCRouter({
       }
 
       const community = await requireCommunity(ctx.db, invite.communityId);
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
-        frozenMessage: "Cannot join an archived Community",
-      });
-
-      const existingMembership = await requireMembership(
+      const accepted = await acceptLookup(
         ctx.db,
-        community.id,
-        appUser.id,
+        { kind: "community", id: community.id },
+        { inviteId: invite.id, userId: appUser.id },
       );
-      if (existingMembership) {
-        await ctx.db
-          .update(communityMemberInvites)
-          .set({
-            acceptedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(communityMemberInvites.id, invite.id),
-              isNull(communityMemberInvites.acceptedAt),
-              isNull(communityMemberInvites.revokedAt),
-            ),
+      if (!accepted.ok) {
+        if (accepted.reason === "frozen" || accepted.reason === "not_found") {
+          throwInviteFrozen(
+            { kind: "community", id: community.id },
+            "accept",
+            accepted.reason,
           );
-
-        return {
-          communityId: community.id,
-          alreadyMember: true as const,
-        };
-      }
-
-      await ctx.db.transaction(async (tx) => {
-        const [updated] = await tx
-          .update(communityMemberInvites)
-          .set({
-            acceptedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(communityMemberInvites.id, invite.id),
-              isNull(communityMemberInvites.acceptedAt),
-              isNull(communityMemberInvites.revokedAt),
-            ),
-          )
-          .returning();
-
-        if (!updated) {
+        }
+        if (accepted.reason === "wrong_user") {
           throw new TRPCError({
-            code: "CONFLICT",
-            message: "Lookup invite is no longer available",
+            code: "FORBIDDEN",
+            message: "This invite is for a different User",
           });
         }
-
-        throwAdmitFailure(
-          await admitCommunityMember(tx, {
-            communityId: community.id,
-            userId: appUser.id,
-            role: CommunityRoleEnum.MEMBER,
-          }),
-        );
-      });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lookup invite is not available",
+        });
+      }
 
       return {
         communityId: community.id,
-        alreadyMember: false as const,
+        alreadyMember: accepted.alreadyMember,
       };
     }),
 
@@ -1795,58 +1745,41 @@ export const communitiesRouter = createTRPCRouter({
       const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
-      const createdAt = new Date();
-      const [created] = await ctx.db
-        .insert(communityInviteLinks)
-        .values({
-          communityId: community.id,
-          createdBy: appUser.id,
-          token: createOpaqueToken(),
-          createdAt,
-          expiresAt: inviteLinkExpiresAt(createdAt),
-        })
-        .returning();
-
-      if (!created) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create Invite link",
-        });
+      const minted = await mintLink(
+        ctx.db,
+        { kind: "community", id: community.id },
+        { createdBy: appUser.id },
+      );
+      if (!minted.ok) {
+        throwInviteFrozen(
+          { kind: "community", id: community.id },
+          "mint",
+          minted.reason === "frozen" ? "frozen" : "not_found",
+        );
       }
 
       return {
-        id: created.id,
+        id: minted.link.id,
         inviteUrl: communityInviteLinkUrl(
           getAppOrigin(ctx.headers),
-          created.token,
+          minted.link.token,
         ),
-        createdAt: created.createdAt,
-        expiresAt: created.expiresAt,
+        createdAt: minted.link.createdAt,
+        expiresAt: minted.link.expiresAt,
       };
     }),
 
   previewInviteLink: publicProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .query(async ({ ctx, input }) => {
-      const link = await ctx.db.query.communityInviteLinks.findFirst({
-        where: eq(communityInviteLinks.token, input.token),
-        with: {
-          community: true,
-        },
-      });
-
-      if (!link || !isInviteLinkLive(link.expiresAt)) {
-        return { status: "invalid" as const };
+      const previewed = await previewLink(ctx.db, "community", input.token);
+      if (previewed.status === "ready") {
+        return {
+          status: "ready" as const,
+          communityName: previewed.name,
+        };
       }
-
-      if (consult({ archivedAt: link.community.archivedAt }).freeze("join")) {
-        return { status: "unavailable" as const };
-      }
-
-      return {
-        status: "ready" as const,
-        communityName: link.community.name,
-      };
+      return { status: previewed.status };
     }),
 
   acceptInviteLink: protectedProcedure
@@ -1854,46 +1787,29 @@ export const communitiesRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser();
 
-      const link = await ctx.db.query.communityInviteLinks.findFirst({
-        where: eq(communityInviteLinks.token, input.token),
+      const accepted = await acceptLink(ctx.db, "community", {
+        token: input.token,
+        userId: appUser.id,
       });
-
-      if (!link || !isInviteLinkLive(link.expiresAt)) {
+      if (!accepted.ok) {
+        if (accepted.reason === "frozen") {
+          throwInviteFrozen({ kind: "community", id: "" }, "accept", "frozen");
+        }
+        if (accepted.reason === "already_member") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "You are already a Member of this Community",
+          });
+        }
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Invite link is not available",
         });
       }
 
-      const community = await requireCommunity(ctx.db, link.communityId);
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
-        frozenMessage: "Cannot join an archived Community",
-      });
-
-      const existingMembership = await requireMembership(
-        ctx.db,
-        community.id,
-        appUser.id,
-      );
-      if (existingMembership) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You are already a Member of this Community",
-        });
-      }
-
-      throwAdmitFailure(
-        await admitCommunityMember(ctx.db, {
-          communityId: community.id,
-          userId: appUser.id,
-          role: CommunityRoleEnum.MEMBER,
-        }),
-      );
-
       return {
-        communityId: community.id,
-        alreadyMember: false as const,
+        communityId: accepted.hostId,
+        alreadyMember: accepted.alreadyMember,
       };
     }),
 
