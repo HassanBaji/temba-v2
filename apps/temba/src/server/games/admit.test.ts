@@ -500,3 +500,216 @@ describe("Game admit self-register", () => {
     }
   });
 });
+
+describe("Game admit invite accept and promote", () => {
+  it("requires a Position for individual-seat occupancy (invite accept)", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "invite-owner@example.com");
+      const invitee = await insertUser(db, "invitee@example.com");
+      const venue = await insertVenue(db);
+      const game = await insertGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+      });
+
+      expect(
+        await admit(db, {
+          game,
+          door: "register",
+          party: { kind: "user", userId: invitee.id },
+        }),
+      ).toEqual({ ok: false, reason: "seat_required" });
+
+      const seated = await admit(db, {
+        game,
+        door: "register",
+        party: {
+          kind: "user",
+          userId: invitee.id,
+          seat: { sideIndex: 1, position: "left" },
+        },
+      });
+      expect(seated.ok).toBe(true);
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.gameId, game.id),
+      });
+      const side = await db.query.gameTeams.findFirst({
+        where: eq(gameTeams.gameId, game.id),
+      });
+      expect(side?.sideIndex).toBe(1);
+      expect(match?.slot1GameTeamId).toBe(side?.id);
+    } finally {
+      await close();
+    }
+  });
+
+  it("seats promote-door when registration is closed or the window ended", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "promote-owner@example.com");
+      const closedPlayer = await insertUser(db, "promote-closed@example.com");
+      const windowPlayer = await insertUser(db, "promote-window@example.com");
+      const venue = await insertVenue(db);
+      const now = new Date();
+
+      const closed = await insertGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        format: GameFormatEnum.AMERICANO,
+        registrationClosedAt: now,
+      });
+      expect(
+        await admit(db, {
+          game: closed,
+          door: "register",
+          party: { kind: "user", userId: closedPlayer.id },
+          now,
+        }),
+      ).toEqual({ ok: false, reason: "registration_closed" });
+      expect(
+        await admit(db, {
+          game: closed,
+          door: "promote",
+          party: { kind: "user", userId: closedPlayer.id },
+          now,
+        }),
+      ).toMatchObject({
+        ok: true,
+        placement: { kind: "user", userId: closedPlayer.id },
+      });
+
+      const windowed = await insertGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        format: GameFormatEnum.AMERICANO,
+        windowEnd: new Date(now.getTime() - 1000),
+      });
+      expect(
+        await admit(db, {
+          game: windowed,
+          door: "register",
+          party: { kind: "user", userId: windowPlayer.id },
+          now,
+        }),
+      ).toEqual({ ok: false, reason: "registration_closed" });
+      expect(
+        await admit(db, {
+          game: windowed,
+          door: "promote",
+          party: { kind: "user", userId: windowPlayer.id },
+          now,
+        }),
+      ).toMatchObject({ ok: true });
+    } finally {
+      await close();
+    }
+  });
+
+  it("promotes a Team onto the next free sideIndex while registration is closed", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "promote-team-owner@example.com");
+      const a = await insertUser(db, "promote-team-a@example.com");
+      const b = await insertUser(db, "promote-team-b@example.com");
+      const venue = await insertVenue(db);
+      const now = new Date();
+      const game = await insertGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
+        registrationClosedAt: now,
+      });
+      const [team] = await db
+        .insert(teams)
+        .values({ createdBy: a.id, name: "Promoted" })
+        .returning({ id: teams.id });
+      if (!team) {
+        throw new Error("Failed to insert team");
+      }
+      await db.insert(teamMembers).values([
+        { teamId: team.id, userId: a.id },
+        { teamId: team.id, userId: b.id },
+      ]);
+
+      expect(
+        await admit(db, {
+          game,
+          door: "register",
+          party: { kind: "team", teamId: team.id },
+          now,
+        }),
+      ).toEqual({ ok: false, reason: "registration_closed" });
+
+      const promoted = await admit(db, {
+        game,
+        door: "promote",
+        party: { kind: "team", teamId: team.id },
+        now,
+      });
+      expect(promoted).toMatchObject({
+        ok: true,
+        placement: { kind: "team", teamId: team.id, sideIndex: 1 },
+      });
+      const side = await db.query.gameTeams.findFirst({
+        where: eq(gameTeams.gameId, game.id),
+      });
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.gameId, game.id),
+      });
+      expect(side?.sideIndex).toBe(1);
+      expect(match?.slot1GameTeamId).toBe(side?.id);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses promote and register when Club Group Game join is frozen", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "promote-frozen-owner@example.com");
+      const player = await insertUser(db, "promote-frozen@example.com");
+      const venue = await insertVenue(db);
+      const [community] = await db
+        .insert(communities)
+        .values({
+          name: "Frozen Club",
+          type: "private",
+          createdBy: owner.id,
+        })
+        .returning({ id: communities.id });
+      if (!community) {
+        throw new Error("Failed to insert community");
+      }
+      const [clubGroup] = await db
+        .insert(groups)
+        .values({
+          name: "Frozen Group",
+          createdBy: owner.id,
+          communityId: community.id,
+        })
+        .returning({ id: groups.id });
+      if (!clubGroup) {
+        throw new Error("Failed to insert club group");
+      }
+      const game = await insertGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        format: GameFormatEnum.AMERICANO,
+        groupId: clubGroup.id,
+        registrationClosedAt: new Date(),
+      });
+      await commit(db, { communityId: community.id }, "archived");
+
+      expect(
+        await admit(db, {
+          game,
+          door: "promote",
+          party: { kind: "user", userId: player.id },
+        }),
+      ).toEqual({ ok: false, reason: "join_frozen" });
+    } finally {
+      await close();
+    }
+  });
+});
