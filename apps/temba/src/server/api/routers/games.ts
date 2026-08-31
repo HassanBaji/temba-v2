@@ -16,7 +16,6 @@ import {
   games,
   groups,
   groupMembers,
-  matchSets,
   matches,
   teamMembers,
   teams,
@@ -61,6 +60,7 @@ import {
   updateGameWindow,
 } from "~/server/games/organize";
 import { listAssignableCourts } from "~/server/games/courts";
+import { createFriendlyGame } from "~/server/games/create-friendly";
 import {
   assertGameCreateVenueAndCourt,
   listVenuesForGameCreate,
@@ -565,6 +565,25 @@ export const gamesRouter = createTRPCRouter({
         await assertMayCreateGameOnGroup(ctx.db, group, appUser.id);
       }
 
+      const isAmericano = input.format === "americano";
+      const isTournament = input.format === "friendly_tournament";
+
+      if (!isAmericano && !isTournament) {
+        const created = await createFriendlyGame(ctx.db, {
+          createdBy: appUser.id,
+          name: input.name,
+          groupId: input.groupId,
+          venueId: input.venueId,
+          courtId: input.courtId,
+          windowStart: input.windowStart,
+          windowEnd: input.windowEnd,
+        });
+        return {
+          id: created.game.id,
+          matchId: created.matchId,
+        };
+      }
+
       await assertGameCreateVenueAndCourt(ctx.db, {
         groupId: input.groupId,
         venueId: input.venueId,
@@ -574,24 +593,11 @@ export const gamesRouter = createTRPCRouter({
 
       const windowStart = input.windowStart;
       const windowEnd = input.windowEnd;
-      const durationInMinutes = Math.max(
-        0,
-        Math.round((windowEnd.getTime() - windowStart.getTime()) / 60000),
-      );
-      const isAmericano = input.format === "americano";
-      const isTournament = input.format === "friendly_tournament";
       const formatEnum = isAmericano
         ? GameFormatEnum.AMERICANO
-        : isTournament
-          ? GameFormatEnum.FRIENDLY_TOURNAMENT
-          : GameFormatEnum.FRIENDLY_GAME;
+        : GameFormatEnum.FRIENDLY_TOURNAMENT;
       const registrationMode = GameRegistrationModeEnum.INDIVIDUAL;
-      const playersAllowed =
-        isAmericano || isTournament
-          ? (input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
-          : FRIENDLY_PLAYERS_ALLOWED;
-      const teamsAllowed =
-        isAmericano || isTournament ? null : FRIENDLY_TEAMS_ALLOWED;
+      const playersAllowed = input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED;
 
       const created = await ctx.db.transaction(async (tx) => {
         const [game] = await tx
@@ -606,7 +612,7 @@ export const gamesRouter = createTRPCRouter({
             windowStart,
             windowEnd,
             playersAllowed,
-            teamsAllowed,
+            teamsAllowed: null,
             sport: GameSportEnum.PADEL,
             createdBy: appUser.id,
           })
@@ -619,53 +625,15 @@ export const gamesRouter = createTRPCRouter({
           });
         }
 
-        if (isAmericano || isTournament) {
-          if (input.courtIds && input.courtIds.length > 0) {
-            await tx.insert(gameCourts).values(
-              input.courtIds.map((courtId) => ({
-                gameId: game.id,
-                courtId,
-              })),
-            );
-          }
-          return { game, matchId: null as string | null };
+        if (input.courtIds && input.courtIds.length > 0) {
+          await tx.insert(gameCourts).values(
+            input.courtIds.map((courtId) => ({
+              gameId: game.id,
+              courtId,
+            })),
+          );
         }
-
-        const [match] = await tx
-          .insert(matches)
-          .values({
-            gameId: game.id,
-            courtId: input.courtId ?? null,
-            startTime: windowStart,
-            endTime: windowEnd,
-            durationInMinutes,
-          })
-          .returning();
-
-        if (!match) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create Match",
-          });
-        }
-
-        const shells = await tx
-          .insert(matchSets)
-          .values([
-            { matchId: match.id },
-            { matchId: match.id },
-            { matchId: match.id },
-          ])
-          .returning({ id: matchSets.id });
-
-        if (shells.length !== 3) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create Set shells",
-          });
-        }
-
-        return { game, matchId: match.id };
+        return { game, matchId: null as string | null };
       });
 
       return {
