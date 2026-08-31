@@ -258,7 +258,7 @@ export const communitiesRouter = createTRPCRouter({
         });
       }
 
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const community = await ctx.db.transaction(async (tx) => {
         const [created] = await tx
@@ -302,7 +302,7 @@ export const communitiesRouter = createTRPCRouter({
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const community = await ctx.db.query.communities.findFirst({
         where: eq(communities.id, input.id),
@@ -539,7 +539,7 @@ export const communitiesRouter = createTRPCRouter({
   listMembers: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       const membership = await requireMembership(
@@ -583,7 +583,7 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       await requireOwner(ctx.db, community.id, appUser.id);
@@ -655,7 +655,7 @@ export const communitiesRouter = createTRPCRouter({
   softArchive: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       await requireStaff(ctx.db, community.id, appUser.id);
@@ -680,7 +680,7 @@ export const communitiesRouter = createTRPCRouter({
   unarchive: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       await requireStaff(ctx.db, community.id, appUser.id);
@@ -705,7 +705,7 @@ export const communitiesRouter = createTRPCRouter({
   leave: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       // Leave removes membership only — never Soft-archives the Community.
@@ -732,7 +732,7 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       await requireStaff(ctx.db, community.id, appUser.id);
@@ -781,7 +781,7 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       await requireStaff(ctx.db, community.id, appUser.id);
@@ -844,7 +844,7 @@ export const communitiesRouter = createTRPCRouter({
   listTeamLinkRequests: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
       await requireStaff(
         ctx.db,
@@ -908,7 +908,7 @@ export const communitiesRouter = createTRPCRouter({
   approveTeamLink: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const request = await ctx.db.query.teamLinkRequests.findFirst({
         where: eq(teamLinkRequests.id, input.requestId),
@@ -1022,7 +1022,7 @@ export const communitiesRouter = createTRPCRouter({
   rejectTeamLink: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const request = await ctx.db.query.teamLinkRequests.findFirst({
         where: eq(teamLinkRequests.id, input.requestId),
@@ -1078,7 +1078,7 @@ export const communitiesRouter = createTRPCRouter({
     }),
 
   mine: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const memberships = await ctx.db.query.communityMembers.findMany({
       where: eq(communityMembers.userId, appUser.id),
@@ -1155,7 +1155,7 @@ export const communitiesRouter = createTRPCRouter({
   requestJoin: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       if (community.type !== "public") {
@@ -1245,7 +1245,7 @@ export const communitiesRouter = createTRPCRouter({
   listJoinRequests: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
 
       if (community.type !== "public") {
@@ -1286,7 +1286,7 @@ export const communitiesRouter = createTRPCRouter({
   approveJoinRequest: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const request = await ctx.db.query.communityJoinRequests.findFirst({
         where: eq(communityJoinRequests.id, input.requestId),
@@ -1355,7 +1355,7 @@ export const communitiesRouter = createTRPCRouter({
   rejectJoinRequest: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const request = await ctx.db.query.communityJoinRequests.findFirst({
         where: eq(communityJoinRequests.id, input.requestId),
@@ -1418,7 +1418,7 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
@@ -1453,7 +1453,7 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
@@ -1550,7 +1550,7 @@ export const communitiesRouter = createTRPCRouter({
   listLookupInvites: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
@@ -1565,7 +1565,7 @@ export const communitiesRouter = createTRPCRouter({
   revokeLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.communityMemberInvites.findFirst({
         where: eq(communityMemberInvites.id, input.inviteId),
@@ -1614,7 +1614,7 @@ export const communitiesRouter = createTRPCRouter({
     }),
 
   pendingLookupInvites: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const rows = await ctx.db.query.communityMemberInvites.findMany({
       where: and(
@@ -1656,7 +1656,7 @@ export const communitiesRouter = createTRPCRouter({
   acceptLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.communityMemberInvites.findFirst({
         where: eq(communityMemberInvites.id, input.inviteId),
@@ -1711,7 +1711,7 @@ export const communitiesRouter = createTRPCRouter({
   getInviteLink: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
@@ -1741,7 +1741,7 @@ export const communitiesRouter = createTRPCRouter({
   createInviteLink: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireLiveCommunity(ctx.db, input.communityId);
       await requireStaff(ctx.db, community.id, appUser.id);
 
@@ -1785,7 +1785,7 @@ export const communitiesRouter = createTRPCRouter({
   acceptInviteLink: protectedProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const accepted = await acceptLink(ctx.db, "community", {
         token: input.token,
@@ -1821,7 +1821,7 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
       await requireStaff(
         ctx.db,
@@ -1881,7 +1881,7 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
       await requireStaff(
         ctx.db,
@@ -1972,7 +1972,7 @@ export const communitiesRouter = createTRPCRouter({
   unlinkVenue: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const community = await requireCommunity(ctx.db, input.communityId);
       await requireStaff(
         ctx.db,

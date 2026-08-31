@@ -11,6 +11,7 @@
     "verbatimModuleSyntax": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
+    "types": ["node"],
     "checkJs": true,
     "module": "ESNext",
     "moduleResolution": "Bundler"

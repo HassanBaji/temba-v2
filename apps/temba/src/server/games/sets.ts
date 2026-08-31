@@ -231,7 +231,7 @@ export async function scoreMatchSet(
   const set = await database.query.matchSets.findFirst({
     where: eq(matchSets.id, setId),
   });
-  if (!set || set.matchId !== match.id) {
+  if (set?.matchId !== match.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Set not found",

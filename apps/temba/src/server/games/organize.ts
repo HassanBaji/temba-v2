@@ -62,7 +62,7 @@ export async function cancelMatch(
   const match = await database.query.matches.findFirst({
     where: eq(matches.id, matchId),
   });
-  if (!match || match.gameId !== game.id) {
+  if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Match not found",
@@ -415,7 +415,7 @@ export async function updateTournamentMatch(
   const match = await database.query.matches.findFirst({
     where: eq(matches.id, matchId),
   });
-  if (!match || match.gameId !== game.id) {
+  if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Match not found",
@@ -476,7 +476,7 @@ export async function updateFriendlyGameMatchCourt(
   const match = await database.query.matches.findFirst({
     where: eq(matches.id, matchId),
   });
-  if (!match || match.gameId !== game.id) {
+  if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Match not found",

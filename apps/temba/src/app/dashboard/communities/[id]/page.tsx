@@ -104,6 +104,7 @@ export default function CommunityHomePage({
     { communityId: id },
     { enabled: Boolean(community.data?.canManageLookupInvites) },
   );
+
   const lookupSearch = api.communities.searchLookupUsers.useQuery(
     { communityId: id, query: lookupQuery },
     {

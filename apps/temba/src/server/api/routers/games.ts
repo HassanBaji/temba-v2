@@ -460,7 +460,7 @@ export const gamesRouter = createTRPCRouter({
   listCreateVenues: protectedProcedure
     .input(z.object({ groupId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       if (input.groupId) {
         const group = await requireGroup(ctx.db, input.groupId);
         await assertMayCreateGameOnGroup(ctx.db, group, appUser.id);
@@ -558,7 +558,7 @@ export const gamesRouter = createTRPCRouter({
         }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       if (input.groupId) {
         const group = await requireGroup(ctx.db, input.groupId);
@@ -645,7 +645,7 @@ export const gamesRouter = createTRPCRouter({
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.id);
 
       if (!(await canViewGame(ctx.db, game, appUser.id))) {
@@ -972,7 +972,7 @@ export const gamesRouter = createTRPCRouter({
   register: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
 
@@ -1029,7 +1029,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
 
@@ -1127,7 +1127,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
 
@@ -1161,7 +1161,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
       await assertCanRegisterWithPartner(ctx.db, game, appUser.id, now);
@@ -1194,7 +1194,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
       await assertCanRegisterWithPartner(ctx.db, game, appUser.id, now);
@@ -1290,7 +1290,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const now = new Date();
 
@@ -1402,7 +1402,7 @@ export const gamesRouter = createTRPCRouter({
   leave: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await ctx.db.transaction(async (tx) => {
         await leaveRegisteredSeat(tx, game, appUser.id);
@@ -1413,7 +1413,7 @@ export const gamesRouter = createTRPCRouter({
   leaveWaitlist: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       await requireGame(ctx.db, input.gameId);
       await leaveWaitlistEntry(ctx.db, input.gameId, appUser.id);
       return { ok: true as const };
@@ -1433,7 +1433,7 @@ export const gamesRouter = createTRPCRouter({
         ),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       if (input.waitlistId) {
@@ -1456,7 +1456,7 @@ export const gamesRouter = createTRPCRouter({
   closeRegistration: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await closeRegistration(ctx.db, game);
@@ -1466,7 +1466,7 @@ export const gamesRouter = createTRPCRouter({
   reopenRegistration: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await reopenRegistration(ctx.db, game);
@@ -1476,7 +1476,7 @@ export const gamesRouter = createTRPCRouter({
   cancel: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await ctx.db.transaction(async (tx) => {
@@ -1493,7 +1493,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       const result = await ctx.db.transaction(async (tx) => {
@@ -1520,7 +1520,7 @@ export const gamesRouter = createTRPCRouter({
         ),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await ctx.db.transaction(async (tx) => {
@@ -1551,7 +1551,7 @@ export const gamesRouter = createTRPCRouter({
         ),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await updateGameCaps(ctx.db, game, {
@@ -1564,7 +1564,7 @@ export const gamesRouter = createTRPCRouter({
   listCourts: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       return listAssignableCourts(ctx.db, game);
@@ -1583,7 +1583,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       const match = await ctx.db.transaction(async (tx) => {
@@ -1613,7 +1613,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await ctx.db.transaction(async (tx) => {
@@ -1637,7 +1637,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
       const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
@@ -1662,7 +1662,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
       const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
@@ -1690,7 +1690,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
       const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
@@ -1713,7 +1713,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       const match = await requireMatchOnGame(ctx.db, game.id, input.matchId);
       const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
@@ -1729,7 +1729,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await assertGameInviteDoorsOpen(ctx.db, game);
@@ -1760,7 +1760,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await assertGameInviteDoorsOpen(ctx.db, game);
@@ -1885,7 +1885,7 @@ export const gamesRouter = createTRPCRouter({
   listLookupInvites: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       return listLookup(ctx.db, { kind: "game", id: game.id });
@@ -1894,7 +1894,7 @@ export const gamesRouter = createTRPCRouter({
   revokeLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const invite = await ctx.db.query.gameMemberInvites.findFirst({
         where: eq(gameMemberInvites.id, input.inviteId),
       });
@@ -1930,7 +1930,7 @@ export const gamesRouter = createTRPCRouter({
     }),
 
   pendingLookupInvites: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
     const rows = await ctx.db.query.gameMemberInvites.findMany({
       where: and(
         eq(gameMemberInvites.userId, appUser.id),
@@ -1985,7 +1985,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const invite = await ctx.db.query.gameMemberInvites.findFirst({
         where: eq(gameMemberInvites.id, input.inviteId),
       });
@@ -2043,7 +2043,7 @@ export const gamesRouter = createTRPCRouter({
   getInviteLink: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       const newest = await ctx.db.query.gameInviteLinks.findFirst({
@@ -2067,7 +2067,7 @@ export const gamesRouter = createTRPCRouter({
   createInviteLink: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const game = await requireGame(ctx.db, input.gameId);
       await assertGameOrganizer(ctx.db, game, appUser.id);
       await assertGameInviteDoorsOpen(ctx.db, game);
@@ -2133,7 +2133,7 @@ export const gamesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const link = await ctx.db.query.gameInviteLinks.findFirst({
         where: eq(gameInviteLinks.token, input.token),
       });

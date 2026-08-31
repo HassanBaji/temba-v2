@@ -451,7 +451,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createClubGroup({
         database: ctx.db,
         communityId: input.communityId,
@@ -473,7 +473,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createClubGroup({
         database: ctx.db,
         communityId: input.communityId,
@@ -494,7 +494,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createLooseGroup({
         database: ctx.db,
         name: input.name,
@@ -514,7 +514,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return createLooseGroup({
         database: ctx.db,
         name: input.name,
@@ -527,7 +527,7 @@ export const groupsRouter = createTRPCRouter({
 
   /** Loose Groups the caller belongs to (Club Groups live under Communities). */
   mineLoose: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const memberships = await ctx.db.query.groupMembers.findMany({
       where: eq(groupMembers.userId, appUser.id),
@@ -549,8 +549,10 @@ export const groupsRouter = createTRPCRouter({
 
   /** Groups the caller is a member of (Loose Groups and joined Club Groups). */
   mine: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
-
+    console.time("mine");
+    const appUser = await resolveAppUser(ctx.userId);
+    console.timeEnd("mine");
+    console.time("findMany");
     const memberships = await ctx.db.query.groupMembers.findMany({
       where: eq(groupMembers.userId, appUser.id),
       with: {
@@ -561,7 +563,7 @@ export const groupsRouter = createTRPCRouter({
         },
       },
     });
-
+    console.timeEnd("findMany");
     return memberships.map((membership) => {
       const group = membership.group;
       const community = group.community;
@@ -586,7 +588,7 @@ export const groupsRouter = createTRPCRouter({
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.id);
 
       const membership = await ctx.db.query.groupMembers.findFirst({
@@ -799,7 +801,7 @@ export const groupsRouter = createTRPCRouter({
   joinClubPublic: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.groupId);
 
       if (!group.communityId) {
@@ -879,7 +881,7 @@ export const groupsRouter = createTRPCRouter({
   joinLoosePublic: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.groupId);
 
       if (group.communityId) {
@@ -931,7 +933,7 @@ export const groupsRouter = createTRPCRouter({
   leave: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroup(ctx.db, input.groupId);
 
       const membership = await ctx.db.query.groupMembers.findFirst({
@@ -962,7 +964,7 @@ export const groupsRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       return deleteEmptyGroup({
         database: ctx.db,
         groupId: input.groupId,
@@ -978,7 +980,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { group, canAutoAdmit } = await requireGroupLookupSender(
         ctx.db,
         input.groupId,
@@ -1032,7 +1034,7 @@ export const groupsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { group, canAutoAdmit } = await requireGroupLookupSender(
         ctx.db,
         input.groupId,
@@ -1148,7 +1150,7 @@ export const groupsRouter = createTRPCRouter({
   listLookupInvites: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const { group } = await requireGroupLookupSender(
         ctx.db,
         input.groupId,
@@ -1161,7 +1163,7 @@ export const groupsRouter = createTRPCRouter({
   revokeLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.groupMemberInvites.findFirst({
         where: eq(groupMemberInvites.id, input.inviteId),
@@ -1207,7 +1209,7 @@ export const groupsRouter = createTRPCRouter({
     }),
 
   pendingLookupInvites: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser();
+    const appUser = await resolveAppUser(ctx.userId);
 
     const rows = await ctx.db.query.groupMemberInvites.findMany({
       where: and(
@@ -1244,7 +1246,7 @@ export const groupsRouter = createTRPCRouter({
   acceptLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
 
       const invite = await ctx.db.query.groupMemberInvites.findFirst({
         where: eq(groupMemberInvites.id, input.inviteId),
@@ -1306,7 +1308,7 @@ export const groupsRouter = createTRPCRouter({
   getInviteLink: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroupInviteLinkMinter(
         ctx.db,
         input.groupId,
@@ -1336,7 +1338,7 @@ export const groupsRouter = createTRPCRouter({
   createInviteLink: protectedProcedure
     .input(z.object({ groupId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const group = await requireGroupInviteLinkMinter(
         ctx.db,
         input.groupId,
@@ -1379,7 +1381,7 @@ export const groupsRouter = createTRPCRouter({
   acceptInviteLink: protectedProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const accepted = await acceptLink(ctx.db, "group", {
         token: input.token,
         userId: appUser.id,
