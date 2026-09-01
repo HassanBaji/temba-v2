@@ -683,6 +683,7 @@ export const gamesRouter = createTRPCRouter({
           city: true,
           country: true,
           archivedAt: true,
+          logoImageUrl: true,
         },
       });
 
@@ -801,6 +802,7 @@ export const gamesRouter = createTRPCRouter({
               city: venue.city,
               country: venue.country,
               archivedAt: venue.archivedAt,
+              logoImageUrl: venue.logoImageUrl,
             }
           : null,
         windowStart: game.windowStart,
