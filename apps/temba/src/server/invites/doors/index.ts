@@ -32,4 +32,4 @@ export type {
   MintLookupResult,
   PreviewLinkResult,
   RevokeLookupResult,
-} from "~/server/invites/doors/types";
+} from "~/server/invites/doors/utils";

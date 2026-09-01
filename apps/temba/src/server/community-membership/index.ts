@@ -11,4 +11,4 @@ export type {
   LeaveResult,
   MembershipDb,
   MembershipRole,
-} from "~/server/community-membership/types";
+} from "~/server/community-membership/utils";
