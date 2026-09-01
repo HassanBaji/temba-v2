@@ -24,6 +24,7 @@ export type {
   InviteHostKind,
   InvitePhase,
   LookupListItem,
+  LookupUserSearchRow,
   MintLinkResult,
   MintLookupResult,
   PreviewLinkResult,

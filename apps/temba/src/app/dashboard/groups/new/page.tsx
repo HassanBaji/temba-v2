@@ -31,8 +31,7 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
-
-type GroupVisibility = "public" | "private";
+import type { GroupType } from "~/server/groups";
 
 const FIELD_IDS = { name: "group-name", visibility: "group-type" };
 
@@ -41,7 +40,7 @@ export default function NewLooseGroupPage() {
   const utils = api.useUtils();
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
-  const [visibility, setVisibility] = React.useState<GroupVisibility>("public");
+  const [visibility, setVisibility] = React.useState<GroupType>("public");
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
     onSuccess: async (group) => {
@@ -114,7 +113,7 @@ export default function NewLooseGroupPage() {
               <Select
                 value={visibility}
                 onValueChange={(value) =>
-                  setVisibility(value as GroupVisibility)
+                  setVisibility(value as GroupType)
                 }
               >
                 <SelectTrigger id="group-type" className="w-full">

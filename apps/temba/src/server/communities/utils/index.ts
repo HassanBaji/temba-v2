@@ -1,5 +1,7 @@
 export type CommunityRole = "owner" | "admin" | "member";
 
+export type CommunityType = "public" | "private";
+
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
 
 export type VenueLinkStatus = "pending" | "approved" | "rejected";

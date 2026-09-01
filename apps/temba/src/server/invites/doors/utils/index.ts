@@ -35,6 +35,15 @@ export type LookupListItem = {
   user: { id: string; name: string; email: string };
 };
 
+export type LookupUserSearchRow = {
+  id: string;
+  name: string;
+  username: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  cue: string | null;
+};
+
 export type RevokeLookupResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "already_accepted" };

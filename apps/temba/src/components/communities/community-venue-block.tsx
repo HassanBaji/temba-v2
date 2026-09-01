@@ -3,20 +3,7 @@ import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-
-type Venue = {
-  name: string;
-  city: string;
-  country: string;
-  logoImageUrl: string | null;
-  archivedAt: Date | string | null;
-  courts: { id: string; name: string }[];
-};
-
-type VenueLinkRequest = {
-  status: string;
-  venue: { name: string; city: string; country: string };
-};
+import type { CommunityVenue, VenueLinkRequest } from "~/server/communities";
 
 export function CommunityVenueBlock({
   venue,
@@ -27,7 +14,7 @@ export function CommunityVenueBlock({
   onUnlink,
   onLinkVenue,
 }: {
-  venue: Venue | null;
+  venue: CommunityVenue | null;
   venueLinkRequest: VenueLinkRequest | null;
   canUnlinkVenue: boolean;
   canRequestVenueLink: boolean;

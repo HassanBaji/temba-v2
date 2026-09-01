@@ -40,6 +40,7 @@ export type {
   CommunityJoinRequestSummary,
   CommunityMember,
   CommunityRole,
+  CommunityType,
   CommunityVenue,
   JoinRequest,
   JoinRequestStatus,

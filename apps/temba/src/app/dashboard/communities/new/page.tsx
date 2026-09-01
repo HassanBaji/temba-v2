@@ -31,8 +31,7 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
-
-type CommunityType = "public" | "private";
+import type { CommunityType } from "~/server/communities";
 
 const FIELD_IDS = { name: "community-name", type: "community-type" };
 

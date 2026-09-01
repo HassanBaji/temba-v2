@@ -28,24 +28,13 @@ import {
 } from "~/lib/game-summary-cta";
 import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
-
-export type GameSummaryOccupant = {
-  userId: string;
-  name: string;
-  image?: string | null;
-};
-
-export type GameSummarySide = {
-  sideIndex: number;
-  left: GameSummaryOccupant | null;
-  right: GameSummaryOccupant | null;
-};
+import type { HubListSide, HubListSideOccupant } from "~/server/games";
 
 function seatLabel(sideIndex: number, position: "left" | "right") {
   return `Team ${sideIndex} ${position === "left" ? "Left" : "Right"}`;
 }
 
-function vacantSeats(sides: GameSummarySide[]) {
+function vacantSeats(sides: HubListSide[]) {
   const vacant: { sideIndex: number; position: "left" | "right" }[] = [];
   for (const side of sides) {
     if (side.left == null) {
@@ -58,7 +47,7 @@ function vacantSeats(sides: GameSummarySide[]) {
   return vacant;
 }
 
-function RosterSeat({ occupant }: { occupant: GameSummaryOccupant | null }) {
+function RosterSeat({ occupant }: { occupant: HubListSideOccupant | null }) {
   if (occupant) {
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
@@ -83,7 +72,7 @@ function RosterSeat({ occupant }: { occupant: GameSummaryOccupant | null }) {
   );
 }
 
-function FriendlyRoster({ sides }: { sides: GameSummarySide[] }) {
+function FriendlyRoster({ sides }: { sides: HubListSide[] }) {
   return (
     <div className="flex items-stretch gap-3 py-1" data-slot="friendly-roster">
       {sides.map((side, index) => (
@@ -153,7 +142,7 @@ export function GameSummaryCard({
   windowEnd?: Date | string | null;
   pricePerPlayerCents?: number | null;
   actionLabel?: string | null;
-  sides?: GameSummarySide[];
+  sides?: HubListSide[];
   primaryAction?: GameSummaryCta;
   actionPending?: boolean;
   onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;

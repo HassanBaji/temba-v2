@@ -3,16 +3,7 @@ import { Calendar } from "lucide-react";
 import { EmptyState } from "~/components/common/empty-state";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Section } from "~/components/layout/section";
-
-type GroupGame = {
-  id: string;
-  name: string | null;
-  startTime: Date | string;
-  sport: string | null;
-  format: string;
-  cancelledAt: Date | string | null;
-  pricePerPlayerCents?: number | null;
-};
+import type { GroupGame } from "~/server/groups";
 
 export function GroupGamesTab({
   upcomingGames,

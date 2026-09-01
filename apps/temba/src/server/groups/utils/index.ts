@@ -1,4 +1,4 @@
-import type { GameFormatEnum, GroupSportEnum, GroupTypeEnum } from "@repo/db";
+import type { GameFormatEnum, GroupSportEnum } from "@repo/db";
 // Value import required for `typeof groups.$inferSelect` (type-only import fails TS2749).
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { groups } from "@repo/db";
@@ -22,4 +22,4 @@ export type GroupGame = {
 };
 
 export type GroupSport = GroupSportEnum;
-export type GroupType = GroupTypeEnum;
+export type GroupType = "public" | "private";

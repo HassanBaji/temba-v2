@@ -33,12 +33,11 @@ import {
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
+import type { VenueLogoContentType } from "~/server/venues";
 
 const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
-type LogoContentType = "image/jpeg" | "image/png" | "image/webp";
-
-function asLogoContentType(value: string): LogoContentType | null {
+function asLogoContentType(value: string): VenueLogoContentType | null {
   if (value === "image/jpg") {
     return "image/jpeg";
   }

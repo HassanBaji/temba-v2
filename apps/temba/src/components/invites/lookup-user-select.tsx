@@ -8,17 +8,9 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
+import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 
 export const LOOKUP_USER_SELECT_MAX = 20;
-
-export type LookupUserOption = {
-  id: string;
-  name: string;
-  username: string | null;
-  email?: string | null;
-  phoneNumber?: string | null;
-  cue?: string | null;
-};
 
 export function LookupUserSelect({
   id,
@@ -37,9 +29,9 @@ export function LookupUserSelect({
   id: string;
   query: string;
   onQueryChange: (query: string) => void;
-  options: LookupUserOption[] | undefined;
-  selected: LookupUserOption[];
-  onSelectedChange: (next: LookupUserOption[]) => void;
+  options: LookupUserSearchRow[] | undefined;
+  selected: LookupUserSearchRow[];
+  onSelectedChange: (next: LookupUserSearchRow[]) => void;
   selection?: "multiple" | "single";
   max?: number;
   pending?: boolean;
@@ -71,7 +63,7 @@ export function LookupUserSelect({
     };
   }, [open]);
 
-  function toggle(option: LookupUserOption) {
+  function toggle(option: LookupUserSearchRow) {
     if (selection === "single") {
       onSelectedChange(
         selectedIds.has(option.id) ? [] : [{ ...option, cue: option.cue }],
@@ -227,8 +219,8 @@ export function LookupUserSelect({
 }
 
 function mergeSelectedIntoOptions(
-  options: LookupUserOption[],
-  selected: LookupUserOption[],
+  options: LookupUserSearchRow[],
+  selected: LookupUserSearchRow[],
 ) {
   const seen = new Set(options.map((row) => row.id));
   const missing = selected.filter((row) => !seen.has(row.id));

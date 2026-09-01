@@ -11,10 +11,8 @@ import {
   formatGameSideLabel,
   gameTeamDisplayName,
 } from "~/components/games/game-side-label";
-import {
-  LookupUserSelect,
-  type LookupUserOption,
-} from "~/components/invites/lookup-user-select";
+import { LookupUserSelect } from "~/components/invites/lookup-user-select";
+import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { Section } from "~/components/layout/section";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -70,11 +68,11 @@ export function GamePlayersPanel({
 }: {
   game: GameDetail;
   partnerQuery: string;
-  selectedPartner: LookupUserOption[];
+  selectedPartner: LookupUserSearchRow[];
   partnerSide: string;
   partnerPosition: "left" | "right";
   teamId: string;
-  partnerSearch: LookupUserOption[] | undefined;
+  partnerSearch: LookupUserSearchRow[] | undefined;
   partnerSearchPending: boolean;
   registerWithPartnerPending: boolean;
   partnerError: {
@@ -86,7 +84,7 @@ export function GamePlayersPanel({
   kickPending: boolean;
   registerTeamPending: boolean;
   onPartnerQueryChange: (query: string) => void;
-  onSelectedPartnerChange: (selected: LookupUserOption[]) => void;
+  onSelectedPartnerChange: (selected: LookupUserSearchRow[]) => void;
   onPartnerSideChange: (side: string) => void;
   onPartnerPositionChange: (position: "left" | "right") => void;
   onTeamIdChange: (teamId: string) => void;
@@ -386,10 +384,10 @@ function PartnerRegisterCard({
 }: {
   game: GameDetail;
   partnerQuery: string;
-  selectedPartner: LookupUserOption[];
+  selectedPartner: LookupUserSearchRow[];
   partnerSide: string;
   partnerPosition: "left" | "right";
-  partnerSearch: LookupUserOption[] | undefined;
+  partnerSearch: LookupUserSearchRow[] | undefined;
   partnerSearchPending: boolean;
   registerWithPartnerPending: boolean;
   partnerError: {
@@ -397,7 +395,7 @@ function PartnerRegisterCard({
     data?: { zodError?: unknown } | null;
   } | null;
   onPartnerQueryChange: (query: string) => void;
-  onSelectedPartnerChange: (selected: LookupUserOption[]) => void;
+  onSelectedPartnerChange: (selected: LookupUserSearchRow[]) => void;
   onPartnerSideChange: (side: string) => void;
   onPartnerPositionChange: (position: "left" | "right") => void;
   onRegisterWithPartner: (input: {

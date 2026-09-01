@@ -3,6 +3,7 @@ import { and, ilike, inArray, notInArray, or, sql } from "drizzle-orm";
 import { user } from "@repo/db";
 
 import { type db } from "~/server/db";
+import type { LookupUserSearchRow } from "~/server/invites/doors/utils";
 
 type DbClient = typeof db;
 
@@ -15,14 +16,7 @@ export type ClassifiedLookupQuery = {
   phoneStripped: string | null;
 };
 
-export type LookupUserSearchRow = {
-  id: string;
-  name: string;
-  username: string | null;
-  email: string | null;
-  phoneNumber: string | null;
-  cue: string | null;
-};
+export type { LookupUserSearchRow } from "~/server/invites/doors/utils";
 
 export function classifyLookupQuery(raw: string): ClassifiedLookupQuery {
   const query = raw.trim();

@@ -12,13 +12,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-
-type LiveVenue = {
-  id: string;
-  name: string;
-  city: string;
-  country: string;
-};
+import type { LiveVenue } from "~/server/communities";
 
 export function CommunityLinkVenueDialog({
   open,

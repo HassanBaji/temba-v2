@@ -5,12 +5,7 @@ import { AvatarStack } from "~/components/common/avatar-stack";
 import { EmptyState } from "~/components/common/empty-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { SportBadge } from "~/components/temba/sport-badge";
-
-type LinkedTeam = {
-  id: string;
-  displayName: string;
-  sport: string;
-};
+import type { ClubTeam } from "~/server/communities";
 
 function peopleFromDisplayName(displayName: string) {
   const parts = displayName
@@ -23,7 +18,7 @@ function peopleFromDisplayName(displayName: string) {
   return [{ name: displayName }];
 }
 
-export function CommunityTeamsTab({ teams }: { teams: LinkedTeam[] }) {
+export function CommunityTeamsTab({ teams }: { teams: ClubTeam[] }) {
   if (teams.length === 0) {
     return (
       <EmptyState

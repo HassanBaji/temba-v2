@@ -3,10 +3,7 @@
 import * as React from "react";
 
 import { RowList } from "~/components/common/row-list";
-import {
-  LookupUserSelect,
-  type LookupUserOption,
-} from "~/components/invites/lookup-user-select";
+import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
@@ -15,11 +12,8 @@ import {
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-
-type LookupInvite = {
-  id: string;
-  user: { name: string | null; email: string | null };
-};
+import type { LookupListItem } from "~/server/invites/doors";
+import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 
 export function LookupInvitePanel({
   description,
@@ -38,13 +32,13 @@ export function LookupInvitePanel({
   onRevokeLookup,
 }: {
   description: React.ReactNode;
-  lookupInvites: LookupInvite[] | undefined;
+  lookupInvites: LookupListItem[] | undefined;
   sendPending: boolean;
   revokePending: boolean;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
-  searchResults: LookupUserOption[] | undefined;
+  searchResults: LookupUserSearchRow[] | undefined;
   searchPending?: boolean;
   refused?: { name: string; message: string }[] | null;
   selection?: "multiple" | "single";
@@ -60,7 +54,7 @@ export function LookupInvitePanel({
     selection === "single" ? "userId" : "userIds",
   );
   const formError = globalFormErrorMessage(sendError);
-  const [selected, setSelected] = React.useState<LookupUserOption[]>([]);
+  const [selected, setSelected] = React.useState<LookupUserSearchRow[]>([]);
 
   React.useEffect(() => {
     if (!sendError) {
