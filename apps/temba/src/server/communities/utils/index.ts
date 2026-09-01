@@ -47,3 +47,26 @@ export type CommunityJoinRequestSummary = {
   id: string;
   status: JoinRequestStatus;
 };
+
+export type LiveVenue = {
+  id: string;
+  name: string;
+  city: string;
+  country: string;
+  logoImageUrl: string | null;
+  courts: { id: string; name: string; createdAt: Date }[];
+};
+
+export type TeamLinkRequest = {
+  id: string;
+  createdAt: Date;
+  team: { id: string; displayName: string; sport: string };
+  requestedBy: { id: string; name: string; email: string };
+};
+
+export type JoinRequest = {
+  id: string;
+  status: JoinRequestStatus;
+  createdAt: Date;
+  user: { id: string; name: string; email: string };
+};
