@@ -4,8 +4,6 @@ import { and, eq } from "drizzle-orm";
 import {
   gameInviteLinkConsents,
   gamePlayers,
-  gameTeamPlayers,
-  gameTeams,
   gameWaitlist,
   teamMembers,
   teams,
@@ -14,13 +12,12 @@ import {
 import { type db } from "~/server/db";
 import {
   type GameRow,
-  FRIENDLY_TEAMS_ALLOWED,
   assertRegistrationOpen,
   getRegistrationStatus,
   isGroupMember,
-  registeredGameTeamCount,
   userPassesJoinGate,
 } from "~/server/games/access";
+import { admit, type AdmitResult } from "~/server/games/admit";
 import {
   enqueueWaitlistTeam,
   enqueueWaitlistUser,
@@ -28,7 +25,6 @@ import {
 import {
   isIndividualSeatGame,
   listGameSides,
-  occupySeat,
   type SeatPosition,
   vacantPositionsFromSides,
 } from "~/server/games/seats";
@@ -77,6 +73,58 @@ async function userAlreadyOnGame(
   return Boolean(row);
 }
 
+function throwIfInviteAdmitRefused(
+  result: AdmitResult,
+  alreadyOnGameMessage = "You are already registered on this Game",
+) {
+  if (result.ok || result.reason === "full") {
+    return;
+  }
+  if (
+    result.reason === "registration_closed" ||
+    result.reason === "join_frozen"
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This Game is not open for registration",
+    });
+  }
+  if (result.reason === "team_already_on_game") {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "That Team is already registered on this Game",
+    });
+  }
+  if (result.reason === "already_on_game") {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: alreadyOnGameMessage,
+    });
+  }
+  if (result.reason === "seat_required") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Pick a vacant Position",
+    });
+  }
+  if (result.reason === "no_vacant_side") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "No fully vacant side; pick a seat",
+    });
+  }
+  if (result.reason === "team_not_found") {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Team not found",
+    });
+  }
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "Incomplete Teams cannot register",
+  });
+}
+
 export async function admitIndividualUser(
   database: Tx,
   game: GameRow,
@@ -119,19 +167,35 @@ export async function admitIndividualUser(
         message: "Pick a vacant Position",
       });
     }
-    await occupySeat(database, game, userId, seat.sideIndex, seat.position);
+    const admitted = await admit(database, {
+      game,
+      door: "register",
+      party: { kind: "user", userId, seat },
+      now,
+    });
+    if (!admitted.ok) {
+      if (admitted.reason === "full") {
+        await enqueueWaitlistUser(database, game.id, userId);
+        return { waitlisted: true };
+      }
+      throwIfInviteAdmitRefused(admitted);
+    }
     return { waitlisted: false };
   }
 
-  if (status === "full") {
-    await enqueueWaitlistUser(database, game.id, userId);
-    return { waitlisted: true };
-  }
-
-  await database.insert(gamePlayers).values({
-    gameId: game.id,
-    userId,
+  const admitted = await admit(database, {
+    game,
+    door: "register",
+    party: { kind: "user", userId },
+    now,
   });
+  if (!admitted.ok) {
+    if (admitted.reason === "full") {
+      await enqueueWaitlistUser(database, game.id, userId);
+      return { waitlisted: true };
+    }
+    throwIfInviteAdmitRefused(admitted);
+  }
   return { waitlisted: false };
 }
 
@@ -139,71 +203,25 @@ export async function admitCompleteTeam(
   database: Tx,
   game: GameRow,
   teamId: string,
+  now = new Date(),
 ): Promise<{ waitlisted: boolean }> {
-  const members = await database.query.teamMembers.findMany({
-    where: eq(teamMembers.teamId, teamId),
+  const admitted = await admit(database, {
+    game,
+    door: "register",
+    party: { kind: "team", teamId },
+    now,
   });
-  if (members.length !== 2) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Incomplete Teams cannot register",
-    });
+  if (admitted.ok) {
+    return { waitlisted: false };
   }
-
-  const existing = await database.query.gameTeams.findFirst({
-    where: and(eq(gameTeams.gameId, game.id), eq(gameTeams.teamId, teamId)),
-    columns: { id: true },
-  });
-  if (existing) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "That Team is already registered on this Game",
-    });
-  }
-
-  const teamCount = await registeredGameTeamCount(database, game.id);
-  if (teamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
+  if (admitted.reason === "full") {
     await enqueueWaitlistTeam(database, game.id, teamId);
     return { waitlisted: true };
   }
-
-  const createdPlayers = [];
-  for (const member of members) {
-    if (await userAlreadyOnGame(database, game.id, member.userId)) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "A Team partner is already registered on this Game",
-      });
-    }
-    const [player] = await database
-      .insert(gamePlayers)
-      .values({ gameId: game.id, userId: member.userId })
-      .returning();
-    if (!player) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to register on this Game",
-      });
-    }
-    createdPlayers.push(player);
-  }
-
-  const [gameTeam] = await database
-    .insert(gameTeams)
-    .values({ gameId: game.id, teamId })
-    .returning();
-  if (!gameTeam) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to register on this Game",
-    });
-  }
-  for (const player of createdPlayers) {
-    await database.insert(gameTeamPlayers).values({
-      gameTeamId: gameTeam.id,
-      gamePlayerId: player.id,
-    });
-  }
+  throwIfInviteAdmitRefused(
+    admitted,
+    "A Team partner is already registered on this Game",
+  );
   return { waitlisted: false };
 }
 

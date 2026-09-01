@@ -19,6 +19,7 @@ Fill Clerk keys in `apps/temba/.env`. Keep `DATABASE_URL` in both env files.
 pnpm exec turbo run dev --filter temba
 pnpm exec turbo run typecheck
 pnpm exec turbo run lint
+pnpm exec turbo run test --filter temba
 pnpm exec turbo run build --filter temba
 
 pnpm --filter temba format:check
@@ -33,3 +34,5 @@ pnpm exec turbo run db:studio
 ```
 
 Equivalent filter form: `pnpm --filter temba dev`, `pnpm --filter @repo/db db:push`.
+
+`pnpm exec turbo run test --filter temba` (or `pnpm --filter temba test`) runs Vitest with PGLite. Suite setup applies the DB Package migrations and hands tests a Drizzle client. No product Postgres required.
