@@ -34,13 +34,14 @@ export function LookupInvitePanel({
   refused,
   selection = "multiple",
   canSend = true,
+  compact = false,
   onSendUserIds,
   onRevokeLookup,
 }: {
-  description: React.ReactNode;
-  lookupInvites: LookupInvite[] | undefined;
+  description?: React.ReactNode;
+  lookupInvites?: LookupInvite[];
   sendPending: boolean;
-  revokePending: boolean;
+  revokePending?: boolean;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
@@ -49,8 +50,9 @@ export function LookupInvitePanel({
   refused?: { name: string; message: string }[] | null;
   selection?: "multiple" | "single";
   canSend?: boolean;
+  compact?: boolean;
   onSendUserIds: (userIds: string[]) => void;
-  onRevokeLookup: (inviteId: string) => void;
+  onRevokeLookup?: (inviteId: string) => void;
 }) {
   const queryId = React.useId();
   const queryErrorId = `${queryId}-error`;
@@ -82,10 +84,16 @@ export function LookupInvitePanel({
 
   return (
     <section className="space-y-4">
-      <div>
-        <h3 className="text-title font-semibold">Lookup invite</h3>
-        <p className="text-body text-muted-foreground mt-1">{description}</p>
-      </div>
+      {!compact ? (
+        <div>
+          <h3 className="text-title font-semibold">Lookup invite</h3>
+          {description ? (
+            <p className="text-body text-muted-foreground mt-1">
+              {description}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <FormErrorSummary ref={summaryRef} message={formError} />
       {refused && refused.length > 0 ? (
         <ul className="text-destructive space-y-1 text-sm">
@@ -108,7 +116,10 @@ export function LookupInvitePanel({
           }}
         >
           <Field>
-            <FieldLabel htmlFor={queryId}>
+            <FieldLabel
+              htmlFor={queryId}
+              className={compact ? "sr-only" : undefined}
+            >
               {selection === "single" ? "User" : "Users"}
             </FieldLabel>
             <LookupUserSelect
@@ -123,20 +134,21 @@ export function LookupInvitePanel({
               disabled={sendPending}
               error={Boolean(queryError)}
               describedBy={queryError ? queryErrorId : undefined}
+              placeholder={compact ? "Search" : undefined}
             />
             <FieldError id={queryErrorId}>{queryError}</FieldError>
           </Field>
           <Button type="submit" disabled={sendPending || selected.length === 0}>
-            {sendPending ? "Sending…" : "Send Lookup invite"}
+            {sendPending ? "Sending…" : compact ? "Send" : "Send Lookup invite"}
           </Button>
         </form>
       ) : null}
-      {lookupInvites?.length === 0 ? (
+      {!compact && lookupInvites?.length === 0 ? (
         <p className="text-body text-muted-foreground">
           No unused Lookup invites.
         </p>
       ) : null}
-      {lookupInvites && lookupInvites.length > 0 ? (
+      {lookupInvites && lookupInvites.length > 0 && !compact ? (
         <RowList>
           {lookupInvites.map((invite) => (
             <li
@@ -153,7 +165,7 @@ export function LookupInvitePanel({
               </div>
               <Button
                 variant="outline"
-                onClick={() => onRevokeLookup(invite.id)}
+                onClick={() => onRevokeLookup?.(invite.id)}
                 disabled={revokePending}
               >
                 Revoke

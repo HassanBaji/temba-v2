@@ -33,6 +33,7 @@ export function LookupUserSelect({
   disabled = false,
   error = false,
   describedBy,
+  placeholder = "Search Users",
 }: {
   id: string;
   query: string;
@@ -46,6 +47,7 @@ export function LookupUserSelect({
   disabled?: boolean;
   error?: boolean;
   describedBy?: string;
+  placeholder?: string;
 }) {
   const listId = `${id}-list`;
   const rootRef = React.useRef<HTMLDivElement>(null);
@@ -133,7 +135,7 @@ export function LookupUserSelect({
           aria-describedby={describedBy}
           autoComplete="off"
           disabled={disabled}
-          placeholder="Search Users"
+          placeholder={placeholder}
           value={query}
           onChange={(event) => {
             onQueryChange(event.target.value);

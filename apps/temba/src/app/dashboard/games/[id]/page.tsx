@@ -6,10 +6,9 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
+import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { GameWindowFields } from "~/components/games/game-window-fields";
-import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
-import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
 import {
   LookupUserSelect,
   type LookupUserOption,
@@ -130,6 +129,8 @@ export default function GameHomePage({
   const [lookupRefused, setLookupRefused] = React.useState<
     { name: string; message: string }[] | null
   >(null);
+  const [invitesOpen, setInvitesOpen] = React.useState(false);
+  const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
@@ -336,16 +337,6 @@ export default function GameHomePage({
     },
   });
 
-  const revokeLookupInvite = api.games.revokeLookupInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Lookup invite revoked");
-      await utils.games.listLookupInvites.invalidate({ gameId: id });
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
   const createInviteLink = api.games.createInviteLink.useMutation({
     onSuccess: async (result) => {
       await navigator.clipboard.writeText(result.inviteUrl);
@@ -372,14 +363,6 @@ export default function GameHomePage({
       ),
     },
   );
-  const lookupInvites = api.games.listLookupInvites.useQuery(
-    { gameId: id },
-    {
-      enabled: Boolean(
-        data?.isOrganizer && data.registrationMode !== "team_only",
-      ),
-    },
-  );
   const canSendGameLookup = Boolean(
     data?.isOrganizer &&
       data.registrationMode !== "team_only" &&
@@ -388,7 +371,7 @@ export default function GameHomePage({
   );
   const lookupSearch = api.games.searchLookupUsers.useQuery(
     { gameId: id, query: lookupQuery },
-    { enabled: canSendGameLookup },
+    { enabled: invitesOpen && canSendGameLookup },
   );
   const canPartnerPick = Boolean(
     data &&
@@ -433,8 +416,25 @@ export default function GameHomePage({
     setSetScores(nextScores);
   }, [data]);
 
+  const canManageGameInvites = Boolean(
+    data?.isOrganizer && !data.cancelledAt && !data.joinFrozen,
+  );
+
   return (
-    <DashboardShell title={data?.name ?? "Game"}>
+    <DashboardShell
+      title={data?.name ?? "Game"}
+      action={
+        canManageGameInvites ? (
+          <Button
+            ref={inviteButtonRef}
+            type="button"
+            onClick={() => setInvitesOpen(true)}
+          >
+            Invite
+          </Button>
+        ) : null
+      }
+    >
       <div className="space-y-8">
         {game.isLoading ? (
           <div className="space-y-3">
@@ -1501,44 +1501,35 @@ export default function GameHomePage({
               </Card>
             ) : null}
 
-            {data.isOrganizer &&
-            data.registrationMode !== "team_only" &&
-            !data.cancelledAt ? (
-              <Card variant="outlined">
-                <LookupInvitePanel
-                  description={
-                    data.joinFrozen
-                      ? "Lookup invite is paused while the Community is Soft-archived."
-                      : "Organizers can search existing Users and send Lookup invites. The invitee accepts on Invites. Team-only Games do not offer Lookup."
+            {canManageGameInvites ? (
+              <GameInvitesDialog
+                open={invitesOpen}
+                onOpenChange={(next) => {
+                  setInvitesOpen(next);
+                  if (!next) {
+                    setLookupQuery("");
+                    setLookupRefused(null);
                   }
-                  lookupInvites={lookupInvites.data}
-                  sendPending={sendLookupInvite.isPending}
-                  revokePending={revokeLookupInvite.isPending}
-                  sendError={sendLookupInvite.error}
-                  searchQuery={lookupQuery}
-                  onSearchQueryChange={setLookupQuery}
-                  searchResults={lookupSearch.data}
-                  searchPending={lookupSearch.isFetching}
-                  refused={lookupRefused}
-                  canSend={!data.joinFrozen}
-                  onSendUserIds={(userIds) =>
-                    sendLookupInvite.mutate({ gameId: id, userIds })
-                  }
-                  onRevokeLookup={(inviteId) =>
-                    revokeLookupInvite.mutate({ inviteId })
-                  }
-                />
-              </Card>
-            ) : null}
-
-            {data.isOrganizer && !data.cancelledAt && !data.joinFrozen ? (
-              <Card variant="outlined">
-                <InviteLinkPanel
-                  inviteUrl={inviteLink.data?.inviteUrl}
-                  copyPending={createInviteLink.isPending}
-                  onCopy={() => createInviteLink.mutate({ gameId: id })}
-                />
-              </Card>
+                }}
+                restoreFocusRef={inviteButtonRef}
+                canSendLookup={
+                  data.registrationMode !== "team_only" && !data.joinFrozen
+                }
+                canCopyInviteLink={!data.joinFrozen}
+                inviteUrl={inviteLink.data?.inviteUrl}
+                sendPending={sendLookupInvite.isPending}
+                copyPending={createInviteLink.isPending}
+                sendError={sendLookupInvite.error}
+                searchQuery={lookupQuery}
+                onSearchQueryChange={setLookupQuery}
+                searchResults={lookupSearch.data}
+                searchPending={lookupSearch.isFetching}
+                refused={lookupRefused}
+                onSendLookup={(userIds) =>
+                  sendLookupInvite.mutate({ gameId: id, userIds })
+                }
+                onCopyInviteLink={() => createInviteLink.mutate({ gameId: id })}
+              />
             ) : null}
           </>
         ) : null}
