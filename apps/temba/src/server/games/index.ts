@@ -21,15 +21,7 @@ export {
   type GameRow,
   type RegistrationStatus,
 } from "~/server/games/access";
-export {
-  admit,
-  type AdmitDb,
-  type AdmitDoor,
-  type AdmitParty,
-  type AdmitPlacement,
-  type AdmitReason,
-  type AdmitResult,
-} from "~/server/games/admit";
+export { admit } from "~/server/games/admit";
 export {
   listAssignableCourts,
   assertCourtAssignable,
@@ -42,6 +34,15 @@ export {
   backfillFriendlySetShells,
   createFriendlyGame,
 } from "~/server/games/create-friendly";
+export { register } from "~/server/games/register";
+export { registerSeat } from "~/server/games/register-seat";
+export { moveSeat } from "~/server/games/move-seat";
+export { searchPartnerUsers } from "~/server/games/search-partner-users";
+export { registerWithPartner } from "~/server/games/register-with-partner";
+export { registerTeam } from "~/server/games/register-team";
+export { leaveGame } from "~/server/games/leave";
+export { leaveWaitlist } from "~/server/games/leave-waitlist";
+export { kick } from "~/server/games/kick";
 export { listCreateVenues } from "~/server/games/list-create-venues";
 export {
   listVenuesForGameCreate,
@@ -90,10 +91,6 @@ export {
   sitsOnCompletedMatch,
   vacateSeat,
   vacantPositionsFromSides,
-  type GameSide,
-  type SeatOccupant,
-  type SeatPosition,
-  type VacatedSeat,
 } from "~/server/games/seats";
 export {
   addMatchSet,
@@ -114,6 +111,12 @@ export {
   toHubListRow,
 } from "~/server/games/hub-list-rows";
 export type {
+  AdmitDb,
+  AdmitDoor,
+  AdmitParty,
+  AdmitPlacement,
+  AdmitReason,
+  AdmitResult,
   CreateGameInput,
   CreateFriendlyDb,
   CreateFriendlyGameInput,
@@ -121,9 +124,13 @@ export type {
   GameCreateGroupKind,
   GameCreateVenueContext,
   GameCreateVenueOption,
+  GameSide,
   HubListRow,
   HubListSide,
   HubListSideOccupant,
+  SeatOccupant,
+  SeatPosition,
+  VacatedSeat,
 } from "~/server/games/utils";
 export {
   clearMatchSlotsForGameTeam,

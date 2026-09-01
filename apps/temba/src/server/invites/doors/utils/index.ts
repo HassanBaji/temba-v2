@@ -1,6 +1,6 @@
 import { type db } from "~/server/db";
 import type { TestDatabase } from "~/server/test/pglite";
-import type { SeatPosition } from "~/server/games/seats";
+import type { SeatPosition } from "~/server/games/utils";
 
 type AppDb = typeof db;
 type AppTx = Parameters<Parameters<AppDb["transaction"]>[0]>[0];

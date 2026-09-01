@@ -106,3 +106,69 @@ export type CreateGameInput = {
   courtIds?: string[];
   pricePerPlayerCents?: number | null;
 };
+
+export type SeatPosition = "left" | "right";
+
+export type SeatOccupant = {
+  userId: string;
+  name: string;
+};
+
+export type GameSide = {
+  sideIndex: number;
+  gameTeamId: string | null;
+  left: SeatOccupant | null;
+  right: SeatOccupant | null;
+};
+
+export type VacatedSeat = {
+  sideIndex: number;
+  position: SeatPosition;
+};
+
+export type AdmitDb = typeof db | AppTx | TestDatabase;
+
+export type AdmitDoor = "register" | "promote";
+
+export type AdmitParty =
+  | {
+      kind: "user";
+      userId: string;
+      seat?: { sideIndex: number; position: SeatPosition };
+    }
+  | {
+      kind: "pair";
+      userIds: readonly [string, string];
+      sideIndex: number;
+      callerPosition: SeatPosition;
+    }
+  | { kind: "team"; teamId: string };
+
+export type AdmitReason =
+  | "full"
+  | "registration_closed"
+  | "join_frozen"
+  | "already_on_game"
+  | "seat_required"
+  | "no_vacant_side"
+  | "team_not_found"
+  | "team_incomplete"
+  | "team_already_on_game";
+
+export type AdmitPlacement =
+  | {
+      kind: "user";
+      userId: string;
+      sideIndex?: number;
+      position?: SeatPosition;
+    }
+  | {
+      kind: "pair";
+      userIds: readonly [string, string];
+      sideIndex: number;
+    }
+  | { kind: "team"; teamId: string; sideIndex: number };
+
+export type AdmitResult =
+  | { ok: true; placement: AdmitPlacement }
+  | { ok: false; reason: AdmitReason };
