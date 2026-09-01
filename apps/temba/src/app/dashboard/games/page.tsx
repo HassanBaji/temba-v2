@@ -6,12 +6,11 @@ import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { ListPageSkeleton } from "~/components/common/page-skeleton";
-import { RowList } from "~/components/common/row-list";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
@@ -60,7 +59,31 @@ function GamesHubTabPanel({
   pendingGameId: string | null;
 }) {
   if (isLoading) {
-    return <ListPageSkeleton rows={4} />;
+    return (
+      <div aria-busy="true" aria-live="polite" className="flex flex-col gap-3">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="bg-surface-raised flex flex-col gap-3 rounded-lg p-4 shadow-sm md:p-5"
+          >
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-6 shrink-0 rounded-lg" />
+              <Skeleton className="h-5 w-40 max-w-full" />
+            </div>
+            <Skeleton className="h-16 w-full" />
+            <div className="flex items-end justify-between gap-3">
+              <div className="grid flex-1 grid-cols-2 gap-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-8 w-20 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (errorMessage) {
@@ -88,7 +111,7 @@ function GamesHubTabPanel({
   }
 
   return (
-    <RowList>
+    <ul className="flex flex-col gap-3">
       {games.map((game) => {
         const primaryAction = gameSummaryPrimaryAction(game);
         return (
@@ -125,7 +148,7 @@ function GamesHubTabPanel({
           />
         );
       })}
-    </RowList>
+    </ul>
   );
 }
 

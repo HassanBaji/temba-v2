@@ -1,9 +1,10 @@
 "use client";
 
+import { Calendar, Clock, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
-import { ListRow } from "~/components/common/row-list";
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -15,16 +16,17 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import {
   formatGameStart,
   formatGameTimeWindow,
   formatRelativeDay,
 } from "~/lib/format-game-start";
-import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import {
   gameSummaryCtaLabel,
   type GameSummaryCta,
 } from "~/lib/game-summary-cta";
+import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 
 export type GameSummaryOccupant = {
@@ -59,42 +61,61 @@ function vacantSeats(sides: GameSummarySide[]) {
 function RosterSeat({ occupant }: { occupant: GameSummaryOccupant | null }) {
   if (occupant) {
     return (
-      <div className="flex min-w-0 items-center gap-2">
-        <UserAvatar name={occupant.name} image={occupant.image} size="sm" />
-        <span className="truncate text-sm font-medium">{occupant.name}</span>
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+        <UserAvatar name={occupant.name} image={occupant.image} size="lg" />
+        <span className="text-meta w-full truncate text-center font-medium">
+          {occupant.name}
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="text-muted-foreground flex min-w-0 items-center gap-2">
+    <div className="text-muted-foreground flex min-w-0 flex-1 flex-col items-center gap-1.5">
       <span
         aria-hidden="true"
-        className="border-border flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium"
+        className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full text-lg font-medium"
       >
         +
       </span>
-      <span className="text-sm">Available</span>
+      <span className="text-meta">Available</span>
     </div>
   );
 }
 
 function FriendlyRoster({ sides }: { sides: GameSummarySide[] }) {
   return (
-    <div
-      className="divide-border grid grid-cols-2 divide-x py-2"
-      data-slot="friendly-roster"
-    >
-      {sides.map((side) => (
-        <div
-          key={side.sideIndex}
-          className="flex flex-col gap-2 px-3 first:pl-0 last:pr-0"
-        >
-          <RosterSeat occupant={side.left} />
-          <RosterSeat occupant={side.right} />
-        </div>
+    <div className="flex items-stretch gap-3 py-1" data-slot="friendly-roster">
+      {sides.map((side, index) => (
+        <React.Fragment key={side.sideIndex}>
+          {index > 0 ? (
+            <div
+              aria-hidden="true"
+              className="bg-border w-px shrink-0 self-stretch"
+            />
+          ) : null}
+          <div className="flex min-w-0 flex-1 items-start justify-around gap-2">
+            <RosterSeat occupant={side.left} />
+            <RosterSeat occupant={side.right} />
+          </div>
+        </React.Fragment>
       ))}
     </div>
+  );
+}
+
+function MetaItem({
+  icon: Icon,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="text-meta text-muted-foreground inline-flex min-w-0 items-center gap-1.5">
+      <Icon aria-hidden={true} className="size-3.5 shrink-0" />
+      <span className="truncate">{children}</span>
+    </span>
   );
 }
 
@@ -149,22 +170,13 @@ export function GameSummaryCard({
     cta === "join" || cta === "join_waitlist" || cta === "register";
   const showRoster = Boolean(sides && sides.length > 0);
   const priceMeta = formatPricePerPlayerCardMeta(pricePerPlayerCents);
-  const meta = venueLed
-    ? [
-        formatRelativeDay(startTime),
-        formatGameTimeWindow(windowStart, windowEnd, startTime),
-        occupancy,
-        location,
-        priceMeta,
-      ]
-        .filter((part): part is string => Boolean(part))
-        .join(" · ")
-    : [
-        formatRelativeDay(startTime),
-        formatGameStart(startTime),
-        groupName ?? "Pickup",
-        priceMeta,
-      ]
+  const dayLabel = formatRelativeDay(startTime);
+  const timeLabel = venueLed
+    ? formatGameTimeWindow(windowStart, windowEnd, startTime)
+    : formatGameStart(startTime);
+  const plainMeta = venueLed
+    ? null
+    : [dayLabel, timeLabel, groupName ?? "Pickup", priceMeta]
         .filter((part): part is string => Boolean(part))
         .join(" · ");
 
@@ -195,6 +207,7 @@ export function GameSummaryCard({
       <Button
         type="button"
         size="sm"
+        className="relative z-10 rounded-full px-4"
         disabled={actionPending}
         onClick={(event) => {
           event.preventDefault();
@@ -203,6 +216,10 @@ export function GameSummaryCard({
         }}
       >
         {actionPending ? pendingLabel : ctaText}
+      </Button>
+    ) : ctaText && href ? (
+      <Button asChild size="sm" className="relative z-10 rounded-full px-4">
+        <Link href={href}>{ctaText}</Link>
       </Button>
     ) : ctaText ? (
       <span className="text-body text-brand font-semibold">{ctaText}</span>
@@ -237,75 +254,84 @@ export function GameSummaryCard({
     </ResponsiveDialog>
   );
 
-  if (showRoster || interactiveCta) {
-    const body = (
-      <>
-        <p className="text-lead truncate font-semibold">{title}</p>
-        {subtitle ? (
-          <p className="text-body text-muted-foreground truncate">{subtitle}</p>
-        ) : null}
-        {showRoster && sides ? <FriendlyRoster sides={sides} /> : null}
-        {meta ? (
-          <p className="text-meta text-muted-foreground">{meta}</p>
-        ) : null}
-      </>
-    );
-
-    return (
-      <li data-slot="list-row">
-        <div
-          className={cn(
-            "flex min-h-16 w-full min-w-0 items-start gap-3 px-4 py-3",
-            href ? "hover:bg-muted/50" : null,
-          )}
-        >
-          {href ? (
-            <Link
-              href={href}
-              className="focus-visible:ring-ring/50 min-w-0 flex-1 rounded-md no-underline outline-none focus-visible:ring-[3px]"
-            >
-              {body}
-            </Link>
-          ) : (
-            <div className="min-w-0 flex-1">{body}</div>
-          )}
-          <div className="flex shrink-0 flex-col items-end gap-2 pt-0.5">
-            {badges}
-            {actionControl}
-          </div>
-        </div>
-        {cta === "join" ? picker : null}
-      </li>
-    );
-  }
-
-  const trailing = (
-    <div className="flex flex-wrap items-center gap-2">
-      {badges}
-      {actionControl}
+  const metaBlock = venueLed ? (
+    <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-1.5">
+      <MetaItem icon={Calendar}>{dayLabel}</MetaItem>
+      <MetaItem icon={Clock}>{timeLabel}</MetaItem>
+      {occupancy ? <MetaItem icon={Users}>{occupancy}</MetaItem> : null}
+      {location ? <MetaItem icon={MapPin}>{location}</MetaItem> : null}
+      {priceMeta ? (
+        <span className="text-meta text-muted-foreground col-span-2 truncate font-medium">
+          {priceMeta}
+        </span>
+      ) : null}
     </div>
+  ) : (
+    <p className="text-meta text-muted-foreground min-w-0 flex-1">
+      {plainMeta}
+    </p>
   );
 
-  if (href) {
-    return (
-      <ListRow
-        asChild
-        title={title}
-        subtitle={subtitle}
-        meta={meta}
-        trailing={trailing}
-      >
-        <Link href={href} />
-      </ListRow>
-    );
-  }
-
   return (
-    <ListRow
-      title={title}
-      subtitle={subtitle}
-      meta={meta}
-      trailing={trailing}
-    />
+    <li data-slot="game-summary-card">
+      <Card
+        variant="raised"
+        className={cn(
+          "relative gap-3 border border-transparent shadow-sm md:gap-3",
+          href ? "hover:border-border" : null,
+        )}
+      >
+        {href ? (
+          <Link
+            href={href}
+            aria-label={title}
+            className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-lg outline-none focus-visible:ring-[3px]"
+          />
+        ) : null}
+
+        <div
+          className={cn(
+            "relative z-10 flex min-w-0 items-start gap-3",
+            href ? "pointer-events-none" : null,
+          )}
+        >
+          {venueLed ? <EntityMonogram name={title} size="sm" /> : null}
+          <div className="min-w-0 flex-1">
+            <p className="text-lead truncate font-semibold">{title}</p>
+            {subtitle ? (
+              <p className="text-body text-muted-foreground truncate">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {badges}
+          </div>
+        </div>
+
+        {showRoster && sides ? (
+          <div
+            className={cn("relative z-10", href ? "pointer-events-none" : null)}
+          >
+            <FriendlyRoster sides={sides} />
+          </div>
+        ) : null}
+
+        <div
+          className={cn(
+            "relative z-10 flex min-w-0 items-end gap-3",
+            href ? "pointer-events-none" : null,
+          )}
+        >
+          {metaBlock}
+          {actionControl ? (
+            <div className="pointer-events-auto relative z-10 shrink-0 self-end">
+              {actionControl}
+            </div>
+          ) : null}
+        </div>
+      </Card>
+      {cta === "join" ? picker : null}
+    </li>
   );
 }
