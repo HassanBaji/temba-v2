@@ -20,7 +20,7 @@ import {
 } from "~/lib/game-summary-cta";
 import { api, type RouterOutputs } from "~/trpc/react";
 
-type HubGame = RouterOutputs["games"]["listMyGroups"][number];
+type HubGame = RouterOutputs["games"]["listMyGames"][number];
 
 function occupancyLabel(
   registeredUserCount: number,
@@ -129,14 +129,14 @@ function GamesHubTabPanel({
 }
 
 export default function GamesHubPage() {
-  const myGroups = api.games.listMyGroups.useQuery();
+  const myGames = api.games.listMyGames.useQuery();
   const pickup = api.games.listPublicPickup.useQuery();
   const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
 
   async function refreshLists() {
     await Promise.all([
-      utils.games.listMyGroups.invalidate(),
+      utils.games.listMyGames.invalidate(),
       utils.games.listPublicPickup.invalidate(),
       utils.users.home.invalidate(),
       utils.games.byId.invalidate(),
@@ -193,7 +193,7 @@ export default function GamesHubPage() {
   return (
     <DashboardShell
       title="Games"
-      description="Upcoming Games on your Groups, and public pickup."
+      description="Upcoming Games on your Groups, private Games you created or joined, and public pickup."
       action={
         hasCreateAccess ? (
           <Button asChild>
@@ -202,16 +202,16 @@ export default function GamesHubPage() {
         ) : undefined
       }
     >
-      <Tabs defaultValue="my-groups" className="gap-4">
+      <Tabs defaultValue="my-games" className="gap-4">
         <TabsList
           variant="line"
           className="h-11 min-h-11 w-full max-w-full justify-start rounded-none"
         >
           <TabsTrigger
-            value="my-groups"
+            value="my-games"
             className="min-h-11 min-w-11 flex-none px-3"
           >
-            My Groups
+            My Games
           </TabsTrigger>
           <TabsTrigger
             value="public"
@@ -221,18 +221,18 @@ export default function GamesHubPage() {
           </TabsTrigger>
         </TabsList>
         <TabsContent
-          value="my-groups"
+          value="my-games"
           className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
         >
           <GamesHubTabPanel
-            isLoading={myGroups.isLoading}
-            errorMessage={myGroups.error?.message}
+            isLoading={myGames.isLoading}
+            errorMessage={myGames.error?.message}
             onRetry={() => {
-              void myGroups.refetch();
+              void myGames.refetch();
             }}
-            games={myGroups.data}
-            emptyTitle="No Games in my Groups"
-            emptyDescription="Live Games on Groups you belong to will show up here."
+            games={myGames.data}
+            emptyTitle="No Games yet"
+            emptyDescription="Live Games on Groups you belong to, plus private Games you created or joined, will show up here."
             onJoinSeat={onJoinSeat}
             onJoinWaitlist={onJoinWaitlist}
             onRegister={onRegister}

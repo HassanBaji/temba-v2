@@ -78,7 +78,7 @@ export default function HomePage() {
   async function refreshLists() {
     await Promise.all([
       utils.users.home.invalidate(),
-      utils.games.listMyGroups.invalidate(),
+      utils.games.listMyGames.invalidate(),
       utils.games.listPublicPickup.invalidate(),
       utils.games.byId.invalidate(),
     ]);

@@ -100,7 +100,7 @@ function NewGameForm() {
       toast.success("Game created");
       await utils.users.home.invalidate();
       await utils.games.listPublicPickup.invalidate();
-      await utils.games.listMyGroups.invalidate();
+      await utils.games.listMyGames.invalidate();
       if (groupId) {
         await utils.groups.byId.invalidate({ id: groupId });
       }
