@@ -35,22 +35,19 @@ export {
   assertCourtAssignable,
   assertGameTeamOnGame,
 } from "~/server/games/courts";
+export { gameById } from "~/server/games/by-id";
+export { createGame } from "~/server/games/create";
 export {
   FRIENDLY_SET_SHELL_COUNT,
   backfillFriendlySetShells,
   createFriendlyGame,
-  type CreateFriendlyDb,
-  type CreateFriendlyGameInput,
-  type CreateFriendlyGameResult,
 } from "~/server/games/create-friendly";
+export { listCreateVenues } from "~/server/games/list-create-venues";
 export {
-  listMyGamesHubRows,
-  listPublicHubRows,
-  toHubListRow,
-  type HubListRow,
-  type HubListSide,
-  type HubListSideOccupant,
-} from "~/server/games/hub-list-rows";
+  listVenuesForGameCreate,
+  assertGameCreateVenueAndCourt,
+} from "~/server/games/venue";
+export { loadGameCreateVenueContext } from "~/server/games/helpers/load-game-create-venue-context";
 export {
   admitCompleteTeam,
   admitIndividualUser,
@@ -112,13 +109,22 @@ export {
   userIsOnMatchSlots,
 } from "~/server/games/sets";
 export {
-  loadGameCreateVenueContext,
-  listVenuesForGameCreate,
-  assertGameCreateVenueAndCourt,
-  type GameCreateGroupKind,
-  type GameCreateVenueContext,
-  type GameCreateVenueOption,
-} from "~/server/games/venue";
+  listMyGamesHubRows,
+  listPublicHubRows,
+  toHubListRow,
+} from "~/server/games/hub-list-rows";
+export type {
+  CreateGameInput,
+  CreateFriendlyDb,
+  CreateFriendlyGameInput,
+  CreateFriendlyGameResult,
+  GameCreateGroupKind,
+  GameCreateVenueContext,
+  GameCreateVenueOption,
+  HubListRow,
+  HubListSide,
+  HubListSideOccupant,
+} from "~/server/games/utils";
 export {
   clearMatchSlotsForGameTeam,
   enqueueWaitlistTeam,

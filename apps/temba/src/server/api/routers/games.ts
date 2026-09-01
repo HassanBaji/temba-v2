@@ -3,24 +3,16 @@ import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
-  GameFormatEnum,
-  GameRegistrationModeEnum,
-  GameSportEnum,
-  gameCourts,
   gameInviteLinks,
   gameMemberInvites,
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
   gameWaitlist,
-  games,
-  groups,
   groupMembers,
-  matches,
   teamMembers,
   teams,
   user,
-  venues,
 } from "@repo/db";
 
 import {
@@ -30,22 +22,20 @@ import {
 } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import {
-  FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
   assertGameOrganizer,
-  assertMayCreateGameOnGroup,
   assertRegistrationOpen,
   assertUserPassesJoinGate,
-  canViewGame,
   getRegistrationStatus,
-  isClubGroupGameJoinFrozen,
   isGameOrganizer,
   registeredGameTeamCount,
-  registeredUserCount,
   requireGame,
-  userPassesJoinGate,
   type GameRow,
 } from "~/server/games/access";
+import { createGame } from "~/server/games/create";
+import { gameById } from "~/server/games/by-id";
+import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
+import { listCreateVenues } from "~/server/games/list-create-venues";
 import {
   addTournamentMatch,
   cancelGame,
@@ -60,21 +50,12 @@ import {
   updateGameWindow,
 } from "~/server/games/organize";
 import { listAssignableCourts } from "~/server/games/courts";
-import { createFriendlyGame } from "~/server/games/create-friendly";
-import {
-  assertGameCreateVenueAndCourt,
-  listVenuesForGameCreate,
-} from "~/server/games/venue";
 import {
   addMatchSet,
-  bothSlotsFilled,
-  bothSlottedTeamsComplete,
   completeMatch as markMatchCompleted,
-  matchOutcome,
   removeMatchSet,
   requireMatchOnGame,
   scoreMatchSet,
-  setWinsForGames,
 } from "~/server/games/sets";
 import { admit, type AdmitResult } from "~/server/games/admit";
 import {
@@ -91,13 +72,10 @@ import {
   moveToSeat,
   occupySeat,
   remainingCapacity,
-  sitsOnCompletedMatch,
   vacantPositionsFromSides,
 } from "~/server/games/seats";
-import {
-  listMyGamesHubRows,
-  listPublicHubRows,
-} from "~/server/games/hub-list-rows";
+import { listMyGamesHubRows } from "~/server/games/list-my-games";
+import { listPublicHubRows } from "~/server/games/list-public-pickup";
 import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 import { gameInviteLinkUrl, getAppOrigin } from "~/server/invites/tokens";
@@ -126,31 +104,6 @@ const createFormatSchema = z.enum([
   "americano",
   "friendly_tournament",
 ]);
-
-async function requireGroup(database: DbClient, groupId: string) {
-  const group = await database.query.groups.findFirst({
-    where: eq(groups.id, groupId),
-  });
-  if (!group) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Group not found",
-    });
-  }
-  return group;
-}
-
-async function userAlreadyOnGame(
-  database: DbClient,
-  gameId: string,
-  userId: string,
-) {
-  const row = await database.query.gamePlayers.findFirst({
-    where: and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.userId, userId)),
-    columns: { id: true },
-  });
-  return Boolean(row);
-}
 
 async function userAlreadyWaitlisted(
   database: DbClient,
@@ -401,11 +354,10 @@ export const gamesRouter = createTRPCRouter({
     .input(z.object({ groupId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      if (input.groupId) {
-        const group = await requireGroup(ctx.db, input.groupId);
-        await assertMayCreateGameOnGroup(ctx.db, group, appUser.id);
-      }
-      return listVenuesForGameCreate(ctx.db, input.groupId);
+      return listCreateVenues(ctx.db, {
+        userId: appUser.id,
+        groupId: input.groupId,
+      });
     }),
 
   create: protectedProcedure
@@ -506,419 +458,17 @@ export const gamesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      if (input.groupId) {
-        const group = await requireGroup(ctx.db, input.groupId);
-        await assertMayCreateGameOnGroup(ctx.db, group, appUser.id);
-      }
-
-      const isAmericano = input.format === "americano";
-      const isTournament = input.format === "friendly_tournament";
-
-      if (!isAmericano && !isTournament) {
-        const created = await createFriendlyGame(ctx.db, {
-          createdBy: appUser.id,
-          name: input.name,
-          groupId: input.groupId,
-          venueId: input.venueId,
-          courtId: input.courtId,
-          windowStart: input.windowStart,
-          windowEnd: input.windowEnd,
-          pricePerPlayerCents: input.pricePerPlayerCents ?? null,
-        });
-        return {
-          id: created.game.id,
-          matchId: created.matchId,
-        };
-      }
-
-      await assertGameCreateVenueAndCourt(ctx.db, {
-        groupId: input.groupId,
-        venueId: input.venueId,
-        courtId: input.courtId,
-        courtIds: input.courtIds,
+      return createGame(ctx.db, {
+        ...input,
+        createdBy: appUser.id,
       });
-
-      const windowStart = input.windowStart;
-      const windowEnd = input.windowEnd;
-      const formatEnum = isAmericano
-        ? GameFormatEnum.AMERICANO
-        : GameFormatEnum.FRIENDLY_TOURNAMENT;
-      const registrationMode = GameRegistrationModeEnum.INDIVIDUAL;
-      const playersAllowed = input.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED;
-
-      const created = await ctx.db.transaction(async (tx) => {
-        const [game] = await tx
-          .insert(games)
-          .values({
-            name: input.name && input.name.length > 0 ? input.name : null,
-            format: formatEnum,
-            registrationMode,
-            groupId: input.groupId ?? null,
-            venueId: input.venueId,
-            isPublic: false,
-            windowStart,
-            windowEnd,
-            playersAllowed,
-            teamsAllowed: null,
-            pricePerPlayerCents: input.pricePerPlayerCents ?? null,
-            sport: GameSportEnum.PADEL,
-            createdBy: appUser.id,
-          })
-          .returning();
-
-        if (!game) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create Game",
-          });
-        }
-
-        if (input.courtIds && input.courtIds.length > 0) {
-          await tx.insert(gameCourts).values(
-            input.courtIds.map((courtId) => ({
-              gameId: game.id,
-              courtId,
-            })),
-          );
-        }
-        return { game, matchId: null as string | null };
-      });
-
-      return {
-        id: created.game.id,
-        matchId: created.matchId,
-      };
     }),
 
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const game = await requireGame(ctx.db, input.id);
-
-      if (!(await canViewGame(ctx.db, game, appUser.id))) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Game not found",
-        });
-      }
-
-      const now = new Date();
-      const organizer = await isGameOrganizer(ctx.db, game, appUser.id);
-      const passesGate = await userPassesJoinGate(ctx.db, game, appUser.id);
-      const alreadyOnGame = await userAlreadyOnGame(
-        ctx.db,
-        game.id,
-        appUser.id,
-      );
-      const userCount = await registeredUserCount(ctx.db, game.id);
-      const teamCount = await registeredGameTeamCount(ctx.db, game.id);
-      const registrationStatus = await getRegistrationStatus(ctx.db, game, now);
-      const waitlistRows = await ctx.db.query.gameWaitlist.findMany({
-        where: eq(gameWaitlist.gameId, game.id),
-        with: {
-          user: { columns: { id: true, name: true } },
-          team: { columns: { id: true, name: true } },
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
-      });
-
-      const matchRows = await ctx.db.query.matches.findMany({
-        where: eq(matches.gameId, game.id),
-        with: {
-          court: {
-            columns: { id: true, name: true },
-          },
-          sets: {
-            orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
-          },
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
-      });
-
-      const teamRows = await ctx.db.query.gameTeams.findMany({
-        where: eq(gameTeams.gameId, game.id),
-        with: {
-          team: {
-            columns: { id: true, name: true },
-          },
-          players: {
-            with: {
-              gamePlayer: {
-                with: {
-                  user: {
-                    columns: { id: true, name: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
-      });
-
-      const playerRows = await ctx.db.query.gamePlayers.findMany({
-        where: eq(gamePlayers.gameId, game.id),
-        with: {
-          user: {
-            columns: { id: true, name: true },
-          },
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
-      });
-
-      const group = game.groupId
-        ? await ctx.db.query.groups.findFirst({
-            where: eq(groups.id, game.groupId),
-            columns: { id: true, name: true },
-          })
-        : null;
-
-      const venue = await ctx.db.query.venues.findFirst({
-        where: eq(venues.id, game.venueId),
-        columns: {
-          id: true,
-          name: true,
-          city: true,
-          country: true,
-          archivedAt: true,
-          logoImageUrl: true,
-        },
-      });
-
-      const memberships = await ctx.db.query.teamMembers.findMany({
-        where: eq(teamMembers.userId, appUser.id),
-        columns: { teamId: true },
-      });
-      const myTeamIds = memberships.map((row) => row.teamId);
-      const isWaitlisted = waitlistRows.some(
-        (row) =>
-          row.userId === appUser.id ||
-          (row.teamId !== null && myTeamIds.includes(row.teamId)),
-      );
-      const eligibleTeams = [];
-      if (game.registrationMode === "team_only" && myTeamIds.length > 0) {
-        const memberRows = await ctx.db.query.teamMembers.findMany({
-          where: inArray(teamMembers.teamId, myTeamIds),
-          with: {
-            team: { columns: { id: true, name: true } },
-            user: { columns: { id: true, name: true } },
-          },
-        });
-        const byTeam = new Map<string, typeof memberRows>();
-        for (const row of memberRows) {
-          const list = byTeam.get(row.teamId) ?? [];
-          list.push(row);
-          byTeam.set(row.teamId, list);
-        }
-        for (const [teamId, members] of byTeam) {
-          if (members.length !== 2) {
-            continue;
-          }
-          const partnerIds = members.map((member) => member.userId);
-          const bothAllowed = (
-            await Promise.all(
-              partnerIds.map((userId) =>
-                userPassesJoinGate(ctx.db, game, userId),
-              ),
-            )
-          ).every(Boolean);
-          if (!bothAllowed) {
-            continue;
-          }
-          const already = teamRows.some((row) => row.teamId === teamId);
-          if (already) {
-            continue;
-          }
-          const names = members.map((member) => member.user.name);
-          eligibleTeams.push({
-            id: teamId,
-            name: members[0]?.team.name ?? names.join(" / "),
-            memberNames: names,
-          });
-        }
-      }
-
-      const myGameTeamIds = new Set(
-        teamRows
-          .filter((row) =>
-            row.players.some((link) => link.gamePlayer.user?.id === appUser.id),
-          )
-          .map((row) => row.id),
-      );
-
-      const seatedUserIds = new Set(
-        teamRows.flatMap((row) =>
-          row.players.flatMap((link) =>
-            link.gamePlayer.user?.id ? [link.gamePlayer.user.id] : [],
-          ),
-        ),
-      );
-      const isSeated = seatedUserIds.has(appUser.id);
-      const unseatedPlayers = playerRows.flatMap((row) =>
-        row.user && !seatedUserIds.has(row.user.id)
-          ? [{ id: row.user.id, name: row.user.name }]
-          : [],
-      );
-      const sides = isIndividualSeatGame(game)
-        ? await listGameSides(ctx.db, game)
-        : [];
-      const canPickSeat =
-        alreadyOnGame &&
-        !isSeated &&
-        registrationStatus !== "cancelled" &&
-        registrationStatus !== "closed";
-      const hasVacantPosition = sides.some(
-        (side) => side.left == null || side.right == null,
-      );
-      let sitsCompleted = false;
-      if (isSeated) {
-        for (const teamId of myGameTeamIds) {
-          if (await sitsOnCompletedMatch(ctx.db, game.id, teamId)) {
-            sitsCompleted = true;
-            break;
-          }
-        }
-      }
-      const canMove =
-        isSeated &&
-        registrationStatus === "open" &&
-        hasVacantPosition &&
-        !sitsCompleted;
-
-      return {
-        id: game.id,
-        name: game.name,
-        format: game.format,
-        registrationMode: game.registrationMode,
-        isPublic: game.isPublic,
-        groupId: game.groupId,
-        groupName: group?.name ?? null,
-        venueId: game.venueId,
-        venue: venue
-          ? {
-              name: venue.name,
-              city: venue.city,
-              country: venue.country,
-              archivedAt: venue.archivedAt,
-              logoImageUrl: venue.logoImageUrl,
-            }
-          : null,
-        windowStart: game.windowStart,
-        windowEnd: game.windowEnd,
-        pricePerPlayerCents: game.pricePerPlayerCents,
-        playersAllowed: game.playersAllowed,
-        teamsAllowed: game.teamsAllowed,
-        sport: game.sport,
-        cancelledAt: game.cancelledAt,
-        registrationClosedAt: game.registrationClosedAt,
-        createdBy: game.createdBy,
-        createdAt: game.createdAt,
-        isOrganizer: organizer,
-        joinFrozen: await isClubGroupGameJoinFrozen(ctx.db, game),
-        isRegistered: alreadyOnGame,
-        isSeated,
-        isWaitlisted,
-        registrationStatus,
-        canRegister:
-          registrationStatus === "open" &&
-          passesGate &&
-          !alreadyOnGame &&
-          !isWaitlisted,
-        canWaitlist:
-          registrationStatus === "full" &&
-          passesGate &&
-          !alreadyOnGame &&
-          !isWaitlisted,
-        canPickSeat,
-        canMove,
-        canLeave: alreadyOnGame || isWaitlisted,
-        registeredUserCount: userCount,
-        registeredTeamCount: teamCount,
-        waitlist: waitlistRows.map((row) => ({
-          id: row.id,
-          userId: row.userId,
-          teamId: row.teamId,
-          createdAt: row.createdAt,
-          name: row.user?.name ?? row.team?.name ?? "Waitlisted",
-        })),
-        matches: await Promise.all(
-          matchRows.map(async (match) => {
-            const onSides =
-              Boolean(match.slot1GameTeamId) &&
-              Boolean(match.slot2GameTeamId) &&
-              (myGameTeamIds.has(match.slot1GameTeamId ?? "") ||
-                myGameTeamIds.has(match.slot2GameTeamId ?? ""));
-            const frozen =
-              match.status === "completed" || match.status === "cancelled";
-            const canWriteSets =
-              !frozen && game.format !== "americano" && (organizer || onSides);
-            const sidesComplete = await bothSlottedTeamsComplete(ctx.db, match);
-            const outcome = matchOutcome(match.sets);
-            return {
-              id: match.id,
-              startTime: match.startTime,
-              endTime: match.endTime,
-              durationInMinutes: match.durationInMinutes,
-              status: match.status,
-              courtId: match.courtId,
-              courtName: match.court?.name ?? null,
-              slot1GameTeamId: match.slot1GameTeamId,
-              slot2GameTeamId: match.slot2GameTeamId,
-              bothSlotsFilled: bothSlotsFilled(match),
-              bothSidesComplete: sidesComplete,
-              canAddSet: canWriteSets && (organizer || onSides),
-              canScoreSets:
-                canWriteSets && sidesComplete && (organizer || onSides),
-              canComplete:
-                !frozen &&
-                game.format !== "americano" &&
-                (organizer || onSides) &&
-                sidesComplete &&
-                match.sets.length > 0 &&
-                outcome.result !== "none",
-              outcome,
-              sets: match.sets.map((set) => ({
-                id: set.id,
-                slot1GamesWon: set.slot1GamesWon,
-                slot2GamesWon: set.slot2GamesWon,
-                wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
-              })),
-            };
-          }),
-        ),
-        gameTeams: teamRows.map((row) => ({
-          id: row.id,
-          teamId: row.teamId,
-          name: row.name,
-          sideIndex: row.sideIndex,
-          members: row.players.flatMap((link) =>
-            link.gamePlayer.user
-              ? [
-                  {
-                    id: link.gamePlayer.user.id,
-                    name: link.gamePlayer.user.name,
-                    position: link.position,
-                  },
-                ]
-              : [],
-          ),
-        })),
-        sides,
-        unseatedPlayers,
-        registeredPlayers: playerRows.flatMap((row) =>
-          row.user
-            ? [
-                {
-                  id: row.user.id,
-                  name: row.user.name,
-                },
-              ]
-            : [],
-        ),
-        eligibleTeams,
-      };
+      return gameById(ctx.db, { gameId: input.id, userId: appUser.id });
     }),
 
   register: protectedProcedure

@@ -16,29 +16,19 @@ import {
   FRIENDLY_TEAMS_ALLOWED,
 } from "~/server/games/access";
 import { assertGameCreateVenueAndCourt } from "~/server/games/venue";
-import type { TestDatabase } from "~/server/test/pglite";
+import type {
+  CreateFriendlyDb,
+  CreateFriendlyGameInput,
+  CreateFriendlyGameResult,
+} from "~/server/games/utils";
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-export type CreateFriendlyDb = typeof db | Tx | TestDatabase;
+export type {
+  CreateFriendlyDb,
+  CreateFriendlyGameInput,
+  CreateFriendlyGameResult,
+} from "~/server/games/utils";
 
 export const FRIENDLY_SET_SHELL_COUNT = 3;
-
-export type CreateFriendlyGameInput = {
-  createdBy: string;
-  name?: string | null;
-  groupId?: string | null;
-  venueId: string;
-  courtId?: string | null;
-  windowStart: Date;
-  windowEnd: Date;
-  /** Null / omitted = unset. 0 = free. Positive = cents per User occupying a seat. */
-  pricePerPlayerCents?: number | null;
-};
-
-export type CreateFriendlyGameResult = {
-  game: typeof games.$inferSelect;
-  matchId: string;
-};
 
 function writeDb(database: CreateFriendlyDb): typeof db {
   return database as typeof db;
