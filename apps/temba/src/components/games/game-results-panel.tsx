@@ -91,14 +91,18 @@ function matchWindowLabel(match: GameResultsMatch) {
 function outcomeLabel(format: string, match: GameResultsMatch) {
   const slot1 = formatMatchSlotLabel(format, 1);
   const slot2 = formatMatchSlotLabel(format, 2);
+  const completed = match.status === "completed";
   if (match.outcome.result === "draw") {
     return "Match draw";
   }
   if (match.outcome.result === "slot1") {
-    return `${slot1} leads`;
+    return completed ? `${slot1} won` : `${slot1} leads`;
   }
   if (match.outcome.result === "slot2") {
-    return `${slot2} leads`;
+    return completed ? `${slot2} won` : `${slot2} leads`;
+  }
+  if (completed) {
+    return "Match completed";
   }
   return "No result yet";
 }

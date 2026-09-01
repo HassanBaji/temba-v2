@@ -100,7 +100,11 @@ export function GameDetailTiles({
       />
       <DetailTile icon={Trophy} label="Sport" value={sportLabel(sport)} />
       {priceLabel ? (
-        <DetailTile icon={Coins} label="Price" value={priceLabel} />
+        <DetailTile
+          icon={Coins}
+          label="Price per player"
+          value={priceLabel}
+        />
       ) : null}
     </div>
   );

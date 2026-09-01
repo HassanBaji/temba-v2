@@ -7,7 +7,10 @@ import { EmptyState } from "~/components/common/empty-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
-import { formatGameSideLabel } from "~/components/games/game-side-label";
+import {
+  formatGameSideLabel,
+  gameTeamDisplayName,
+} from "~/components/games/game-side-label";
 import {
   LookupUserSelect,
   type LookupUserOption,
@@ -195,10 +198,7 @@ export function GamePlayersPanel({
           <RowList>
             {game.gameTeams.map((side) => {
               const firstMember = side.members[0];
-              const title =
-                side.members.length > 0
-                  ? side.members.map((member) => member.name).join(" / ")
-                  : (side.name ?? "Game team");
+              const title = gameTeamDisplayName(side);
               return (
                 <ListRow
                   key={side.id}
