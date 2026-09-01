@@ -2,18 +2,14 @@ export {
   assertInviteOpen,
   consultInviteHost,
 } from "~/server/invites/doors/consult";
-export {
-  acceptLookup,
-  listLookup,
-  mintLookup,
-  revokeLookup,
-} from "~/server/invites/doors/lookup";
-export {
-  acceptLink,
-  getLiveLink,
-  mintLink,
-  previewLink,
-} from "~/server/invites/doors/link";
+export { mintLookup } from "~/server/invites/doors/mint-lookup";
+export { listLookup } from "~/server/invites/doors/list-lookup";
+export { revokeLookup } from "~/server/invites/doors/revoke-lookup";
+export { acceptLookup } from "~/server/invites/doors/accept-lookup";
+export { mintLink } from "~/server/invites/doors/mint-link";
+export { getLiveLink } from "~/server/invites/doors/get-live-link";
+export { previewLink } from "~/server/invites/doors/preview-link";
+export { acceptLink } from "~/server/invites/doors/accept-link";
 export {
   frozenAcceptMessage,
   frozenMintMessage,
