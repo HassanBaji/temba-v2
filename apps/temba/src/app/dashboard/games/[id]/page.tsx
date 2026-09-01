@@ -1,49 +1,40 @@
 "use client";
 
-import Link from "next/link";
+import { notFound } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+} from "~/components/common/action-menu";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
-import { GameSeatGrid } from "~/components/games/game-seat-grid";
-import { GameWindowFields } from "~/components/games/game-window-fields";
+import { DetailPageSkeleton } from "~/components/common/page-skeleton";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "~/components/common/responsive-dialog";
+import { DashboardShell } from "~/components/dashboard-shell";
+import { GameEditDialog } from "~/components/games/game-edit-dialog";
+import { GameHomeHeader } from "~/components/games/game-home-header";
+import { GameOverviewPanel } from "~/components/games/game-overview-panel";
+import { GamePlayersPanel } from "~/components/games/game-players-panel";
+import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
-import {
-  LookupUserSelect,
-  type LookupUserOption,
-} from "~/components/invites/lookup-user-select";
-import { RowList } from "~/components/common/row-list";
-import { DashboardShell } from "~/components/dashboard-shell";
-import { Section } from "~/components/layout/section";
-import { SportBadge } from "~/components/temba/sport-badge";
-import { GameRegistrationStatusBadge } from "~/components/temba/typed-labels";
-import { Badge } from "~/components/ui/badge";
-import { Card } from "~/components/ui/card";
+import { type LookupUserOption } from "~/components/invites/lookup-user-select";
+import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "~/components/ui/field";
-import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { Skeleton } from "~/components/ui/skeleton";
-import { api } from "~/trpc/react";
-import {
-  fieldErrorMessage,
   focusFormFailure,
-  globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import {
@@ -53,49 +44,9 @@ import {
 } from "~/lib/game-window";
 import {
   centsToMajorInput,
-  formatPricePerPlayerCents,
   parseOptionalPricePerPlayerCents,
-  PRICE_PER_PLAYER_FIELD_DESCRIPTION,
 } from "~/lib/price-per-player";
-
-function formatWhen(value: Date | string | null | undefined) {
-  if (!value) {
-    return "Not set";
-  }
-  const date = value instanceof Date ? value : new Date(value);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function optionalSelectId(value: string) {
-  return value === "none" || value.length === 0 ? null : value;
-}
-
-function gameTeamLabel(side: {
-  members: { name: string }[];
-  name: string | null;
-}) {
-  if (side.members.length > 0) {
-    return side.members.map((member) => member.name).join(" / ");
-  }
-  return side.name ?? "Game team";
-}
-
-function slotLabel(
-  sides: { id: string; members: { name: string }[]; name: string | null }[],
-  gameTeamId: string | null,
-) {
-  if (!gameTeamId) {
-    return "empty";
-  }
-  const side = sides.find((row) => row.id === gameTeamId);
-  return side ? gameTeamLabel(side) : "empty";
-}
+import { api } from "~/trpc/react";
 
 export default function GameHomePage({
   params,
@@ -105,6 +56,8 @@ export default function GameHomePage({
   const { id } = use(params);
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id });
+  const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const priceSummaryRef = React.useRef<HTMLDivElement>(null);
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
   const [selectedPartner, setSelectedPartner] = React.useState<
@@ -114,7 +67,7 @@ export default function GameHomePage({
   const [partnerPosition, setPartnerPosition] = React.useState<
     "left" | "right"
   >("left");
-  const [teamId, setTeamId] = React.useState<string>("");
+  const [teamId, setTeamId] = React.useState("");
   const [windowDay, setWindowDay] = React.useState("");
   const [windowStartTime, setWindowStartTime] = React.useState("");
   const [windowFinishTime, setWindowFinishTime] = React.useState("");
@@ -122,14 +75,17 @@ export default function GameHomePage({
   const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
     string | undefined
   >();
-  const priceSummaryRef = React.useRef<HTMLDivElement>(null);
-  const [setScores, setSetScores] = React.useState<
-    Record<string, { slot1: string; slot2: string }>
-  >({});
   const [lookupQuery, setLookupQuery] = React.useState("");
   const [lookupRefused, setLookupRefused] = React.useState<
     { name: string; message: string }[] | null
   >(null);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [lookupOpen, setLookupOpen] = React.useState(false);
+  const [inviteLinkOpen, setInviteLinkOpen] = React.useState(false);
+  const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
+  const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
+  const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
+  const [cancelMatchId, setCancelMatchId] = React.useState<string | null>(null);
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
@@ -265,6 +221,7 @@ export default function GameHomePage({
   const updateWindow = api.games.updateWindow.useMutation({
     onSuccess: async () => {
       toast.success("Window updated");
+      setEditOpen(false);
       await refreshGame();
     },
     onError: (error) => {
@@ -275,6 +232,7 @@ export default function GameHomePage({
   const updatePricePerPlayer = api.games.updatePricePerPlayer.useMutation({
     onSuccess: async () => {
       toast.success("Price per player saved");
+      setEditOpen(false);
       await refreshGame();
     },
     onError: (error) => {
@@ -353,14 +311,11 @@ export default function GameHomePage({
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
     onError: (error) => {
-      toastGlobalFormError(error);
+      toast.error(error.message);
     },
   });
 
   const data = game.data;
-  const pricePerPlayerLabel = formatPricePerPlayerCents(
-    data?.pricePerPlayerCents,
-  );
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
   const courts = api.games.listCourts.useQuery(
     { gameId: id },
@@ -372,23 +327,19 @@ export default function GameHomePage({
       ),
     },
   );
-  const lookupInvites = api.games.listLookupInvites.useQuery(
-    { gameId: id },
-    {
-      enabled: Boolean(
-        data?.isOrganizer && data.registrationMode !== "team_only",
-      ),
-    },
-  );
-  const canSendGameLookup = Boolean(
+  const canManageLookup = Boolean(
     data?.isOrganizer &&
       data.registrationMode !== "team_only" &&
-      !data.cancelledAt &&
-      !data.joinFrozen,
+      !data.cancelledAt,
+  );
+  const canSendGameLookup = Boolean(canManageLookup && !data?.joinFrozen);
+  const lookupInvites = api.games.listLookupInvites.useQuery(
+    { gameId: id },
+    { enabled: canManageLookup },
   );
   const lookupSearch = api.games.searchLookupUsers.useQuery(
     { gameId: id, query: lookupQuery },
-    { enabled: canSendGameLookup },
+    { enabled: lookupOpen && canSendGameLookup },
   );
   const canPartnerPick = Boolean(
     data &&
@@ -400,9 +351,12 @@ export default function GameHomePage({
     { gameId: id, query: partnerQuery },
     { enabled: canPartnerPick },
   );
+  const canManageInviteLink = Boolean(
+    data?.isOrganizer && !data.cancelledAt && !data.joinFrozen,
+  );
   const inviteLink = api.games.getInviteLink.useQuery(
     { gameId: id },
-    { enabled: Boolean(data?.isOrganizer && !data.joinFrozen) },
+    { enabled: canManageInviteLink },
   );
 
   React.useEffect(() => {
@@ -421,1128 +375,467 @@ export default function GameHomePage({
     setWindowFinishTime(gameWindow.finishTime);
     setPricePerPlayer(centsToMajorInput(data.pricePerPlayerCents));
     setPricePerPlayerError(undefined);
-    const nextScores: Record<string, { slot1: string; slot2: string }> = {};
-    for (const match of data.matches) {
-      for (const set of match.sets) {
-        nextScores[set.id] = {
-          slot1: set.slot1GamesWon == null ? "" : String(set.slot1GamesWon),
-          slot2: set.slot2GamesWon == null ? "" : String(set.slot2GamesWon),
-        };
-      }
-    }
-    setSetScores(nextScores);
   }, [data]);
 
+  if (isNotFoundError(game.error)) {
+    notFound();
+  }
+
+  if (game.isLoading) {
+    return (
+      <DashboardShell title="Game" hidePageHeader>
+        <DetailPageSkeleton />
+      </DashboardShell>
+    );
+  }
+
+  if (game.error) {
+    return (
+      <DashboardShell title="Game" hidePageHeader>
+        <ErrorState
+          title="Game could not be loaded"
+          message={game.error.message}
+          onRetry={() => {
+            void game.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  if (!data) {
+    return (
+      <DashboardShell title="Game" hidePageHeader>
+        <ErrorState
+          title="Game could not be loaded"
+          onRetry={() => {
+            void game.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  const gameName = data.name ?? "Game";
+  const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
+  const showMenu = isOrganizerActive;
+  const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
+  const primaryLeaveWaitlist = data.isWaitlisted;
+
+  function saveWindow() {
+    const gameWindow = parseRequiredGameWindow(
+      windowDay,
+      windowStartTime,
+      windowFinishTime,
+    );
+    if (!gameWindow) {
+      return;
+    }
+    updateWindow.mutate({
+      gameId: id,
+      name: formatGameWindowName(windowDay, windowStartTime, windowFinishTime),
+      windowStart: gameWindow.windowStart,
+      windowEnd: gameWindow.windowEnd,
+    });
+  }
+
+  function savePrice() {
+    if (updatePricePerPlayer.isPending) {
+      return;
+    }
+    setPricePerPlayerError(undefined);
+    const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
+    if (!parsedPrice.ok) {
+      setPricePerPlayerError(parsedPrice.message);
+      document.getElementById("edit-price-per-player")?.focus();
+      return;
+    }
+    updatePricePerPlayer.mutate({
+      gameId: id,
+      pricePerPlayerCents: parsedPrice.cents,
+    });
+  }
+
   return (
-    <DashboardShell title={data?.name ?? "Game"}>
-      <div className="space-y-8">
-        {game.isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : null}
-
-        {game.error ? (
-          <ErrorState
-            title="Game could not be loaded"
-            message={game.error.message}
-            onRetry={() => {
-              void game.refetch();
-            }}
-          />
-        ) : null}
-
-        {data ? (
-          <>
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  {data.groupId ? (
-                    <p className="text-muted-foreground text-sm">
-                      On Group{" "}
-                      <Link
-                        href={`/dashboard/groups/${data.groupId}`}
-                        className="hover:text-foreground underline underline-offset-2"
-                      >
-                        {data.groupName ?? "Group"}
-                      </Link>
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      Groupless Game
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <GameRegistrationStatusBadge
-                    status={data.registrationStatus}
-                  />
-                  {data.sport ? <SportBadge sport={data.sport} /> : null}
-                </div>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Window {formatWhen(data.windowStart)} –{" "}
-                {formatWhen(data.windowEnd)}. Cap{" "}
-                {data.registrationMode === "team_only"
-                  ? `${data.registeredTeamCount} / ${data.teamsAllowed ?? 2} Teams`
-                  : `${data.registeredUserCount} / ${data.playersAllowed ?? 4} players`}
-                .
-              </p>
-              {data.venue ? (
-                <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span>Venue {data.venue.name}</span>
-                  {data.venue.archivedAt ? (
-                    <Badge variant="outline">Soft-archived</Badge>
-                  ) : null}
-                </p>
-              ) : null}
-              {pricePerPlayerLabel ? (
-                <p className="text-muted-foreground text-sm">
-                  Price per player {pricePerPlayerLabel}
-                </p>
-              ) : null}
-              {data.joinFrozen && !data.cancelledAt ? (
-                <p className="text-muted-foreground text-sm">
-                  This Club Group’s Community is Soft-archived. Register,
-                  waitlist, Lookup, and Invite link mint and accept stay closed.
-                  Reopen is refused.
-                </p>
-              ) : null}
-            </div>
-
-            {data.isOrganizer && !data.cancelledAt ? (
-              <Card variant="outlined" className="space-y-4">
-                <h3 className="text-title font-medium">Organizer</h3>
-                <p className="text-muted-foreground text-sm">
-                  Venue cannot change.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {data.registrationClosedAt ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => reopenRegistration.mutate({ gameId: id })}
-                      disabled={reopenRegistration.isPending || data.joinFrozen}
-                    >
-                      {reopenRegistration.isPending
-                        ? "Reopening…"
-                        : "Reopen registration"}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      onClick={() => closeRegistration.mutate({ gameId: id })}
-                      disabled={closeRegistration.isPending}
-                    >
-                      {closeRegistration.isPending
-                        ? "Closing…"
-                        : "Close registration"}
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={() => cancelGame.mutate({ gameId: id })}
-                    disabled={cancelGame.isPending}
-                  >
-                    {cancelGame.isPending ? "Cancelling…" : "Cancel Game"}
-                  </Button>
-                </div>
-                {data.joinFrozen ? (
-                  <p className="text-muted-foreground text-sm">
-                    Join doors stay closed while the Community is Soft-archived.
-                    Reopen is refused.
-                  </p>
-                ) : null}
-                <form
-                  className="space-y-3"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (updateWindow.isPending) {
-                      return;
-                    }
-                    const gameWindow = parseRequiredGameWindow(
-                      windowDay,
-                      windowStartTime,
-                      windowFinishTime,
-                    );
-                    if (!gameWindow) {
-                      return;
-                    }
-                    updateWindow.mutate({
-                      gameId: id,
-                      name: formatGameWindowName(
-                        windowDay,
-                        windowStartTime,
-                        windowFinishTime,
-                      ),
-                      windowStart: gameWindow.windowStart,
-                      windowEnd: gameWindow.windowEnd,
-                    });
-                  }}
-                >
-                  <FormErrorSummary
-                    message={globalFormErrorMessage(updateWindow.error)}
-                  />
-                  <GameWindowFields
-                    dayId="edit-window-day"
-                    startId="edit-window-start"
-                    finishId="edit-window-finish"
-                    day={windowDay}
-                    startTime={windowStartTime}
-                    finishTime={windowFinishTime}
-                    onDayChange={setWindowDay}
-                    onStartTimeChange={setWindowStartTime}
-                    onFinishTimeChange={setWindowFinishTime}
-                    startError={fieldErrorMessage(
-                      updateWindow.error,
-                      "windowStart",
-                    )}
-                    finishError={fieldErrorMessage(
-                      updateWindow.error,
-                      "windowEnd",
-                    )}
-                  />
-                  <Button type="submit" disabled={updateWindow.isPending}>
-                    {updateWindow.isPending ? "Saving…" : "Save window"}
-                  </Button>
-                </form>
-                <form
-                  className="space-y-3"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (updatePricePerPlayer.isPending) {
-                      return;
-                    }
-                    setPricePerPlayerError(undefined);
-                    const parsedPrice =
-                      parseOptionalPricePerPlayerCents(pricePerPlayer);
-                    if (!parsedPrice.ok) {
-                      setPricePerPlayerError(parsedPrice.message);
-                      document.getElementById("edit-price-per-player")?.focus();
-                      return;
-                    }
-                    updatePricePerPlayer.mutate({
-                      gameId: id,
-                      pricePerPlayerCents: parsedPrice.cents,
-                    });
-                  }}
-                >
-                  <FormErrorSummary
-                    ref={priceSummaryRef}
-                    message={globalFormErrorMessage(updatePricePerPlayer.error)}
-                  />
-                  <FieldGroup>
-                    <Field>
-                      <FieldLabel htmlFor="edit-price-per-player">
-                        Price per player
-                      </FieldLabel>
-                      <Input
-                        id="edit-price-per-player"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={pricePerPlayer}
-                        onChange={(event) => {
-                          setPricePerPlayer(event.target.value);
-                          setPricePerPlayerError(undefined);
-                        }}
-                        aria-invalid={
-                          pricePerPlayerError ||
-                          fieldErrorMessage(
-                            updatePricePerPlayer.error,
-                            "pricePerPlayerCents",
-                          )
-                            ? true
-                            : undefined
-                        }
-                        aria-describedby={
-                          pricePerPlayerError ||
-                          fieldErrorMessage(
-                            updatePricePerPlayer.error,
-                            "pricePerPlayerCents",
-                          )
-                            ? "edit-price-per-player-error"
-                            : "edit-price-per-player-copy"
-                        }
-                      />
-                      <FieldDescription id="edit-price-per-player-copy">
-                        {PRICE_PER_PLAYER_FIELD_DESCRIPTION}
-                      </FieldDescription>
-                      <FieldError id="edit-price-per-player-error">
-                        {pricePerPlayerError ??
-                          fieldErrorMessage(
-                            updatePricePerPlayer.error,
-                            "pricePerPlayerCents",
-                          )}
-                      </FieldError>
-                    </Field>
-                  </FieldGroup>
-                  <Button
-                    type="submit"
-                    disabled={updatePricePerPlayer.isPending}
-                  >
-                    {updatePricePerPlayer.isPending
-                      ? "Saving…"
-                      : "Save price per player"}
-                  </Button>
-                </form>
-                {data.format === "friendly_game" ? (
-                  <p className="text-muted-foreground text-sm">
-                    Friendly game caps stay 4 players / 2 Teams.
-                  </p>
-                ) : null}
-              </Card>
-            ) : null}
-
-            <Section title="Matches">
-              {data.matches.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  {data.format === "americano"
-                    ? "Americano has no Matches this slice."
-                    : "No Matches on this Game."}
-                </p>
-              ) : (
-                <RowList>
-                  {data.matches.map((match) => (
-                    <li key={match.id} className="space-y-3 px-4 py-4">
-                      <p className="text-foreground font-medium">
-                        {formatWhen(match.startTime)} –{" "}
-                        {formatWhen(match.endTime)}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {(match.status ?? "pending").replaceAll("_", " ")}
-                        {match.durationInMinutes
-                          ? ` · ${match.durationInMinutes} min`
-                          : ""}
-                        {match.courtName
-                          ? ` · ${match.courtName}`
-                          : " · no Court"}
-                        {` · Team 1 ${slotLabel(data.gameTeams, match.slot1GameTeamId)} · Team 2 ${slotLabel(data.gameTeams, match.slot2GameTeamId)}`}
-                      </p>
-                      {data.isOrganizer &&
-                      !data.cancelledAt &&
-                      match.status !== "cancelled" &&
-                      (data.format === "friendly_tournament" ||
-                        data.format === "friendly_game") ? (
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <Field>
-                            <FieldLabel htmlFor={`match-${match.id}-court`}>
-                              Court
-                            </FieldLabel>
-                            <Select
-                              value={match.courtId ?? "none"}
-                              onValueChange={(value) => {
-                                const courtId = optionalSelectId(value);
-                                if (data.format === "friendly_game") {
-                                  updateMatch.mutate({
-                                    gameId: id,
-                                    matchId: match.id,
-                                    courtId,
-                                  });
-                                  return;
-                                }
-                                updateMatch.mutate({
-                                  gameId: id,
-                                  matchId: match.id,
-                                  startTime: match.startTime,
-                                  endTime: match.endTime,
-                                  durationInMinutes: match.durationInMinutes,
-                                  courtId,
-                                  slot1GameTeamId: match.slot1GameTeamId,
-                                  slot2GameTeamId: match.slot2GameTeamId,
-                                });
-                              }}
-                            >
-                              <SelectTrigger id={`match-${match.id}-court`}>
-                                <SelectValue placeholder="Court" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">No Court</SelectItem>
-                                {(courts.data ?? []).map((court) => (
-                                  <SelectItem key={court.id} value={court.id}>
-                                    {court.venueName}: {court.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                          {data.format === "friendly_tournament" ? (
-                            <>
-                              <Field>
-                                <FieldLabel htmlFor={`match-${match.id}-slot1`}>
-                                  Team 1
-                                </FieldLabel>
-                                <Select
-                                  value={match.slot1GameTeamId ?? "none"}
-                                  onValueChange={(value) =>
-                                    updateMatch.mutate({
-                                      gameId: id,
-                                      matchId: match.id,
-                                      startTime: match.startTime,
-                                      endTime: match.endTime,
-                                      durationInMinutes:
-                                        match.durationInMinutes,
-                                      courtId: match.courtId,
-                                      slot1GameTeamId: optionalSelectId(value),
-                                      slot2GameTeamId: match.slot2GameTeamId,
-                                    })
-                                  }
-                                >
-                                  <SelectTrigger id={`match-${match.id}-slot1`}>
-                                    <SelectValue placeholder="Team 1" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">
-                                      Team 1 empty
-                                    </SelectItem>
-                                    {data.gameTeams.map((side) => (
-                                      <SelectItem key={side.id} value={side.id}>
-                                        {gameTeamLabel(side)}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </Field>
-                              <Field>
-                                <FieldLabel htmlFor={`match-${match.id}-slot2`}>
-                                  Team 2
-                                </FieldLabel>
-                                <Select
-                                  value={match.slot2GameTeamId ?? "none"}
-                                  onValueChange={(value) =>
-                                    updateMatch.mutate({
-                                      gameId: id,
-                                      matchId: match.id,
-                                      startTime: match.startTime,
-                                      endTime: match.endTime,
-                                      durationInMinutes:
-                                        match.durationInMinutes,
-                                      courtId: match.courtId,
-                                      slot1GameTeamId: match.slot1GameTeamId,
-                                      slot2GameTeamId: optionalSelectId(value),
-                                    })
-                                  }
-                                >
-                                  <SelectTrigger id={`match-${match.id}-slot2`}>
-                                    <SelectValue placeholder="Team 2" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">
-                                      Team 2 empty
-                                    </SelectItem>
-                                    {data.gameTeams.map((side) => (
-                                      <SelectItem key={side.id} value={side.id}>
-                                        {gameTeamLabel(side)}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </Field>
-                            </>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {data.isOrganizer &&
-                      !data.cancelledAt &&
-                      match.status !== "cancelled" &&
-                      data.format !== "americano" ? (
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            cancelMatch.mutate({
-                              gameId: id,
-                              matchId: match.id,
-                            })
-                          }
-                          disabled={cancelMatch.isPending}
-                        >
-                          {data.format === "friendly_game"
-                            ? "Cancel Match (cancels Game)"
-                            : "Cancel Match"}
-                        </Button>
-                      ) : null}
-                      {data.format !== "americano" ? (
-                        <div className="space-y-3">
-                          <p className="text-foreground text-sm font-medium">
-                            Sets
-                            {match.outcome.result === "draw"
-                              ? " · Match draw"
-                              : match.outcome.result === "slot1"
-                                ? " · Team 1 leads"
-                                : match.outcome.result === "slot2"
-                                  ? " · Team 2 leads"
-                                  : " · no result yet"}
-                            {` · ${match.outcome.slot1SetWins}–${match.outcome.slot2SetWins} Set-wins`}
-                          </p>
-                          {match.sets.length === 0 ? (
-                            <p className="text-muted-foreground text-sm">
-                              No Sets on this Match.
-                            </p>
-                          ) : (
-                            <ul className="space-y-3">
-                              {match.sets.map((set, index) => {
-                                const scores = setScores[set.id] ?? {
-                                  slot1: "",
-                                  slot2: "",
-                                };
-                                return (
-                                  <li
-                                    key={set.id}
-                                    className="flex flex-wrap items-end gap-2"
-                                  >
-                                    <p className="text-muted-foreground w-12 text-sm">
-                                      Set {index + 1}
-                                    </p>
-                                    <Field>
-                                      <FieldLabel
-                                        htmlFor={`set-${set.id}-slot1`}
-                                      >
-                                        Team 1 games
-                                      </FieldLabel>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        id={`set-${set.id}-slot1`}
-                                        className="w-20"
-                                        value={scores.slot1}
-                                        disabled={!match.canScoreSets}
-                                        onChange={(event) =>
-                                          setSetScores((current) => ({
-                                            ...current,
-                                            [set.id]: {
-                                              slot1: event.target.value,
-                                              slot2: scores.slot2,
-                                            },
-                                          }))
-                                        }
-                                      />
-                                    </Field>
-                                    <span className="text-muted-foreground text-sm">
-                                      –
-                                    </span>
-                                    <Field>
-                                      <FieldLabel
-                                        htmlFor={`set-${set.id}-slot2`}
-                                      >
-                                        Team 2 games
-                                      </FieldLabel>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        id={`set-${set.id}-slot2`}
-                                        className="w-20"
-                                        value={scores.slot2}
-                                        disabled={!match.canScoreSets}
-                                        onChange={(event) =>
-                                          setSetScores((current) => ({
-                                            ...current,
-                                            [set.id]: {
-                                              slot1: scores.slot1,
-                                              slot2: event.target.value,
-                                            },
-                                          }))
-                                        }
-                                      />
-                                    </Field>
-                                    {set.wins ? (
-                                      <p className="text-muted-foreground text-sm">
-                                        {set.wins.slot1SetWins === 0 &&
-                                        set.wins.slot2SetWins === 0
-                                          ? "Set draw"
-                                          : `${set.wins.slot1SetWins}–${set.wins.slot2SetWins}`}
-                                      </p>
-                                    ) : null}
-                                    {match.canScoreSets ? (
-                                      <Button
-                                        type="button"
-                                        onClick={() => {
-                                          if (
-                                            scores.slot1.trim().length === 0 ||
-                                            scores.slot2.trim().length === 0
-                                          ) {
-                                            toast.error(
-                                              "Enter games won for both teams",
-                                            );
-                                            return;
-                                          }
-                                          scoreSet.mutate({
-                                            gameId: id,
-                                            matchId: match.id,
-                                            setId: set.id,
-                                            slot1GamesWon: Number(scores.slot1),
-                                            slot2GamesWon: Number(scores.slot2),
-                                          });
-                                        }}
-                                        disabled={scoreSet.isPending}
-                                      >
-                                        Save
-                                      </Button>
-                                    ) : null}
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                          <div className="flex flex-wrap gap-2">
-                            {match.canComplete ? (
-                              <Button
-                                type="button"
-                                onClick={() =>
-                                  completeMatch.mutate({
-                                    gameId: id,
-                                    matchId: match.id,
-                                  })
-                                }
-                                disabled={completeMatch.isPending}
-                              >
-                                Complete Match
-                              </Button>
-                            ) : null}
-                          </div>
-                          {(!match.bothSidesComplete ||
-                            !match.bothSlotsFilled) &&
-                          match.status !== "completed" ? (
-                            <p className="text-muted-foreground text-sm">
-                              Scoring is frozen until both teams have two
-                              Positions.
-                            </p>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </li>
-                  ))}
-                </RowList>
-              )}
-            </Section>
-
-            <Section
-              title={
-                data.format === "americano"
-                  ? "Player pool"
-                  : data.registrationMode === "individual"
-                    ? "Sides"
-                    : "Registered"
-              }
-            >
-              {data.registrationMode === "individual" &&
-              data.format !== "americano" ? (
-                <div className="space-y-4">
-                  <GameSeatGrid
-                    sides={data.sides}
-                    canJoinVacant={
-                      data.canRegister || data.canWaitlist || data.canPickSeat
-                    }
-                    joinLabel={
-                      data.canWaitlist && !data.canPickSeat
-                        ? "Join waitlist"
-                        : "Sit here"
-                    }
-                    joining={registerSeat.isPending}
-                    canMove={data.canMove}
-                    moving={moveSeat.isPending}
-                    isOrganizer={data.isOrganizer}
-                    cancelled={Boolean(data.cancelledAt)}
-                    kickPending={kick.isPending}
-                    onJoin={(sideIndex, position) =>
-                      registerSeat.mutate({
-                        gameId: id,
-                        sideIndex,
-                        position,
-                      })
-                    }
-                    onMove={(sideIndex, position) =>
-                      moveSeat.mutate({
-                        gameId: id,
-                        sideIndex,
-                        position,
-                      })
-                    }
-                    onKick={(userId) =>
-                      kick.mutate({
-                        gameId: id,
-                        userId,
-                      })
-                    }
-                    sideNoun={
-                      data.format === "friendly_tournament" ? "Side" : "Team"
-                    }
-                  />
-                  {data.canPickSeat ? (
-                    <p className="text-muted-foreground text-sm">
-                      Pick a vacant Position to occupy a side.
-                    </p>
-                  ) : null}
-                  {data.unseatedPlayers.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-muted-foreground text-sm">
-                        These Users must pick a vacant Position before they
-                        occupy a side.
-                      </p>
-                      <RowList>
-                        {data.unseatedPlayers.map((player) => (
-                          <li
-                            key={player.id}
-                            className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
-                          >
-                            <p className="text-foreground font-medium">
-                              {player.name}
-                            </p>
-                            {data.isOrganizer && !data.cancelledAt ? (
-                              <Button
-                                variant="outline"
-                                onClick={() =>
-                                  kick.mutate({
-                                    gameId: id,
-                                    userId: player.id,
-                                  })
-                                }
-                                disabled={kick.isPending}
-                              >
-                                Kick
-                              </Button>
-                            ) : null}
-                          </li>
-                        ))}
-                      </RowList>
-                    </div>
-                  ) : null}
-                  {data.sides.every(
-                    (side) => side.left == null && side.right == null,
-                  ) && data.unseatedPlayers.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                      Nobody is seated yet. Pick a vacant Position.
-                    </p>
-                  ) : null}
-                </div>
-              ) : data.gameTeams.length === 0 &&
-                data.registeredPlayers.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Nobody is registered yet.
-                </p>
-              ) : (
-                <RowList>
-                  {data.gameTeams.map((side) => {
-                    const firstMember = side.members[0];
-                    return (
-                      <li
-                        key={side.id}
-                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
-                      >
-                        <p className="text-foreground font-medium">
-                          {side.members.length > 0
-                            ? side.members
-                                .map((member) => member.name)
-                                .join(" / ")
-                            : (side.name ?? "Game team")}
-                        </p>
-                        {data.isOrganizer &&
-                        !data.cancelledAt &&
-                        firstMember ? (
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              kick.mutate({
-                                gameId: id,
-                                userId: firstMember.id,
-                              })
-                            }
-                            disabled={kick.isPending}
-                          >
-                            Kick
-                          </Button>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                  {data.registeredPlayers
-                    .filter(
-                      (player) =>
-                        !data.gameTeams.some((side) =>
-                          side.members.some(
-                            (member) => member.id === player.id,
-                          ),
-                        ),
-                    )
-                    .map((player) => (
-                      <li
-                        key={player.id}
-                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
-                      >
-                        <p className="text-foreground font-medium">
-                          {player.name}
-                        </p>
-                        {data.isOrganizer && !data.cancelledAt ? (
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              kick.mutate({
-                                gameId: id,
-                                userId: player.id,
-                              })
-                            }
-                            disabled={kick.isPending}
-                          >
-                            Kick
-                          </Button>
-                        ) : null}
-                      </li>
-                    ))}
-                </RowList>
-              )}
-            </Section>
-
-            <Section title="Waitlist">
-              {data.waitlist.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Waitlist is empty.
-                </p>
-              ) : (
-                <RowList aria-label="Waitlist">
-                  {data.waitlist.map((entry, index) => (
-                    <li
-                      key={entry.id}
-                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-4"
-                    >
-                      <p className="text-foreground font-medium">
-                        {index + 1}. {entry.name}
-                      </p>
-                      {data.isOrganizer && !data.cancelledAt ? (
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            kick.mutate({
-                              gameId: id,
-                              waitlistId: entry.id,
-                            })
-                          }
-                          disabled={kick.isPending}
-                        >
-                          Kick
-                        </Button>
-                      ) : null}
-                    </li>
-                  ))}
-                </RowList>
-              )}
-            </Section>
-            {data.isRegistered ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-muted-foreground text-sm">
-                  You are registered on this Game.
-                </p>
-                {data.canLeave ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => leaveGame.mutate({ gameId: id })}
-                    disabled={leaveGame.isPending}
-                  >
-                    {leaveGame.isPending ? "Leaving…" : "Leave Game"}
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-
-            {data.isWaitlisted ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-muted-foreground text-sm">
-                  You are on the waitlist.
-                </p>
+    <DashboardShell title={gameName} hidePageHeader>
+      <div className="space-y-6">
+        <GameHomeHeader
+          name={gameName}
+          groupId={data.groupId}
+          groupName={data.groupName}
+          sport={data.sport}
+          isPublic={data.isPublic}
+          registrationMode={data.registrationMode}
+          registrationStatus={data.registrationStatus}
+          primaryAction={
+            <>
+              {primaryLeave ? (
                 <Button
                   variant="outline"
-                  onClick={() => leaveWaitlist.mutate({ gameId: id })}
-                  disabled={leaveWaitlist.isPending}
+                  className="min-h-11"
+                  onClick={() => setLeaveGameOpen(true)}
                 >
-                  {leaveWaitlist.isPending ? "Leaving…" : "Leave waitlist"}
+                  Leave Game
                 </Button>
-              </div>
-            ) : null}
-
-            {data.canWaitlist &&
-            data.registrationMode === "individual" &&
-            data.format !== "americano" ? (
-              <Card variant="outlined" className="space-y-3">
-                <h3 className="text-title font-medium">Join the waitlist</h3>
-                <p className="text-muted-foreground text-sm">
-                  The Game is full. Join the waitlist alone. You promote into a
-                  vacated Position.
-                </p>
+              ) : null}
+              {primaryLeaveWaitlist ? (
                 <Button
-                  onClick={() => registerSeat.mutate({ gameId: id })}
-                  disabled={registerSeat.isPending}
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => setLeaveWaitlistOpen(true)}
                 >
-                  {registerSeat.isPending ? "Joining…" : "Join waitlist"}
+                  Leave waitlist
                 </Button>
-              </Card>
-            ) : null}
-
-            {(data.canRegister || data.canWaitlist) &&
-            data.registrationMode === "individual" &&
-            data.format !== "americano" ? (
-              <Card variant="outlined">
-                <form
-                  className="space-y-4"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (registerWithPartner.isPending) {
-                      return;
-                    }
-                    const vacantSides = data.sides.filter(
-                      (side) => side.left == null && side.right == null,
-                    );
-                    if (data.canWaitlist) {
-                      const partnerUserId = selectedPartner[0]?.id;
-                      if (!partnerUserId) {
-                        return;
-                      }
-                      registerWithPartner.mutate({
-                        gameId: id,
-                        partnerUserId,
-                      });
-                      return;
-                    }
-                    if (vacantSides.length === 0) {
-                      toast.error("No fully vacant side; pick a seat");
-                      return;
-                    }
-                    const sideIndex = Number(partnerSide);
-                    if (!Number.isInteger(sideIndex) || sideIndex < 1) {
-                      toast.error("Pick a vacant side and your Position");
-                      return;
-                    }
-                    const partnerUserId = selectedPartner[0]?.id;
-                    if (!partnerUserId) {
-                      return;
-                    }
-                    registerWithPartner.mutate({
-                      gameId: id,
-                      partnerUserId,
-                      sideIndex,
-                      position: partnerPosition,
-                    });
-                  }}
-                >
-                  <h3 className="text-title font-medium">
-                    {data.canWaitlist
-                      ? "Join waitlist with a partner"
-                      : "Register with a partner"}
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    {data.canWaitlist
-                      ? "The Game is full. You both join the waitlist as separate rows and each promote alone."
-                      : data.sides.every(
-                            (side) => side.left != null || side.right != null,
-                          )
-                        ? "No fully vacant side. Pick a vacant Position instead."
-                        : "Take one fully vacant side. You pick left or right; your partner gets the other."}
-                  </p>
-                  <FormErrorSummary
-                    message={globalFormErrorMessage(registerWithPartner.error)}
-                  />
-                  <FieldGroup>
-                    {data.canWaitlist ? null : (
-                      <>
-                        <Field>
-                          <FieldLabel htmlFor="partner-side">Side</FieldLabel>
-                          <Select
-                            value={partnerSide}
-                            onValueChange={setPartnerSide}
-                          >
-                            <SelectTrigger id="partner-side">
-                              <SelectValue placeholder="Vacant side" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {data.sides
-                                .filter(
-                                  (side) =>
-                                    side.left == null && side.right == null,
-                                )
-                                .map((side) => (
-                                  <SelectItem
-                                    key={side.sideIndex}
-                                    value={String(side.sideIndex)}
-                                  >
-                                    {data.format === "friendly_game"
-                                      ? `Team ${side.sideIndex}`
-                                      : `Side ${side.sideIndex}`}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                          <FieldDescription>
-                            Refused if that side already has anyone.
-                          </FieldDescription>
-                        </Field>
-                        <Field>
-                          <FieldLabel htmlFor="partner-position">
-                            Your Position
-                          </FieldLabel>
-                          <Select
-                            value={partnerPosition}
-                            onValueChange={(value) =>
-                              setPartnerPosition(value as "left" | "right")
-                            }
-                          >
-                            <SelectTrigger id="partner-position">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="left">Left</SelectItem>
-                              <SelectItem value="right">Right</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                      </>
-                    )}
-                    <Field>
-                      <FieldLabel htmlFor="partner-query">Partner</FieldLabel>
-                      <LookupUserSelect
-                        id="partner-query"
-                        query={partnerQuery}
-                        onQueryChange={setPartnerQuery}
-                        options={partnerSearch.data}
-                        selected={selectedPartner}
-                        onSelectedChange={setSelectedPartner}
-                        selection="single"
-                        pending={partnerSearch.isFetching}
-                        disabled={registerWithPartner.isPending}
-                        error={Boolean(
-                          fieldErrorMessage(
-                            registerWithPartner.error,
-                            "partnerUserId",
-                          ),
-                        )}
-                        describedBy={
-                          fieldErrorMessage(
-                            registerWithPartner.error,
-                            "partnerUserId",
-                          )
-                            ? "partner-query-error"
-                            : undefined
-                        }
-                      />
-                      <FieldDescription>
-                        Pick an existing User. You both register or waitlist
-                        immediately.
-                      </FieldDescription>
-                      <FieldError id="partner-query-error">
-                        {fieldErrorMessage(
-                          registerWithPartner.error,
-                          "partnerUserId",
-                        )}
-                      </FieldError>
-                    </Field>
-                  </FieldGroup>
-                  <Button
-                    type="submit"
-                    disabled={
-                      registerWithPartner.isPending ||
-                      selectedPartner.length === 0 ||
-                      (data.canRegister &&
-                        data.sides.every(
-                          (side) => side.left != null || side.right != null,
-                        ))
-                    }
+              ) : null}
+            </>
+          }
+          actions={
+            showMenu ? (
+              <ActionMenu triggerRef={menuTriggerRef} label="Game actions">
+                <ActionMenuItem onSelect={() => setEditOpen(true)}>
+                  Edit Game
+                </ActionMenuItem>
+                {data.registrationClosedAt ? (
+                  <ActionMenuItem
+                    disabled={data.joinFrozen || reopenRegistration.isPending}
+                    onSelect={() => reopenRegistration.mutate({ gameId: id })}
                   >
-                    {registerWithPartner.isPending
-                      ? "Registering…"
-                      : data.canWaitlist
-                        ? "Join waitlist"
-                        : "Register"}
-                  </Button>
-                </form>
-              </Card>
-            ) : null}
-
-            {(data.canRegister || data.canWaitlist) &&
-            data.registrationMode === "team_only" ? (
-              <Card variant="outlined">
-                <form
-                  className="space-y-4"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (teamId.length === 0) {
-                      toast.error("Pick a complete Team");
-                      return;
-                    }
-                    registerTeam.mutate({ gameId: id, teamId });
-                  }}
+                    Reopen registration
+                  </ActionMenuItem>
+                ) : (
+                  <ActionMenuItem
+                    disabled={closeRegistration.isPending}
+                    onSelect={() => closeRegistration.mutate({ gameId: id })}
+                  >
+                    Close registration
+                  </ActionMenuItem>
+                )}
+                {canManageLookup ? (
+                  <ActionMenuItem onSelect={() => setLookupOpen(true)}>
+                    Lookup invite
+                  </ActionMenuItem>
+                ) : null}
+                {canManageInviteLink ? (
+                  <ActionMenuItem onSelect={() => setInviteLinkOpen(true)}>
+                    Invite link
+                  </ActionMenuItem>
+                ) : null}
+                <ActionMenuSeparator />
+                <ActionMenuItem
+                  variant="destructive"
+                  onSelect={() => setCancelGameOpen(true)}
                 >
-                  <h3 className="text-title font-medium">Register a Team</h3>
-                  {data.eligibleTeams.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                      You need a complete Team whose both partners are allowed
-                      on this Game.
-                    </p>
-                  ) : (
-                    <>
-                      <Field>
-                        <FieldLabel htmlFor="team-id">Team</FieldLabel>
-                        <Select value={teamId} onValueChange={setTeamId}>
-                          <SelectTrigger id="team-id">
-                            <SelectValue placeholder="Select a Team" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {data.eligibleTeams.map((team) => (
-                              <SelectItem key={team.id} value={team.id}>
-                                {team.name} ({team.memberNames.join(" / ")})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Button type="submit" disabled={registerTeam.isPending}>
-                        {registerTeam.isPending
-                          ? "Registering…"
-                          : "Register Team"}
-                      </Button>
-                    </>
-                  )}
-                </form>
-              </Card>
-            ) : null}
+                  Cancel Game
+                </ActionMenuItem>
+              </ActionMenu>
+            ) : null
+          }
+        />
 
-            {data.isOrganizer &&
-            data.registrationMode !== "team_only" &&
-            !data.cancelledAt ? (
-              <Card variant="outlined">
-                <LookupInvitePanel
-                  description={
-                    data.joinFrozen
-                      ? "Lookup invite is paused while the Community is Soft-archived."
-                      : "Organizers can search existing Users and send Lookup invites. The invitee accepts on Invites. Team-only Games do not offer Lookup."
-                  }
-                  lookupInvites={lookupInvites.data}
-                  sendPending={sendLookupInvite.isPending}
-                  revokePending={revokeLookupInvite.isPending}
-                  sendError={sendLookupInvite.error}
-                  searchQuery={lookupQuery}
-                  onSearchQueryChange={setLookupQuery}
-                  searchResults={lookupSearch.data}
-                  searchPending={lookupSearch.isFetching}
-                  refused={lookupRefused}
-                  canSend={!data.joinFrozen}
-                  onSendUserIds={(userIds) =>
-                    sendLookupInvite.mutate({ gameId: id, userIds })
-                  }
-                  onRevokeLookup={(inviteId) =>
-                    revokeLookupInvite.mutate({ inviteId })
-                  }
-                />
-              </Card>
-            ) : null}
-
-            {data.isOrganizer && !data.cancelledAt && !data.joinFrozen ? (
-              <Card variant="outlined">
-                <InviteLinkPanel
-                  inviteUrl={inviteLink.data?.inviteUrl}
-                  copyPending={createInviteLink.isPending}
-                  onCopy={() => createInviteLink.mutate({ gameId: id })}
-                />
-              </Card>
-            ) : null}
-          </>
+        {data.joinFrozen && !data.cancelledAt ? (
+          <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+            Register, waitlist, Lookup, and Invite link mint and accept stay
+            closed. Reopen is refused.
+          </SoftArchiveBanner>
         ) : null}
+
+        <Tabs defaultValue="overview" className="gap-4">
+          <TabsList
+            variant="line"
+            className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
+          >
+            <TabsTrigger
+              value="overview"
+              className="min-h-11 min-w-11 flex-none px-3"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="players"
+              className="min-h-11 min-w-11 flex-none px-3"
+            >
+              Players
+            </TabsTrigger>
+            <TabsTrigger
+              value="results"
+              className="min-h-11 min-w-11 flex-none px-3"
+            >
+              Results
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent
+            value="overview"
+            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+          >
+            <GameOverviewPanel game={data} />
+          </TabsContent>
+          <TabsContent
+            value="players"
+            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+          >
+            <GamePlayersPanel
+              game={data}
+              partnerQuery={partnerQuery}
+              selectedPartner={selectedPartner}
+              partnerSide={partnerSide}
+              partnerPosition={partnerPosition}
+              teamId={teamId}
+              partnerSearch={partnerSearch.data}
+              partnerSearchPending={partnerSearch.isFetching}
+              registerWithPartnerPending={registerWithPartner.isPending}
+              partnerError={registerWithPartner.error}
+              registerSeatPending={registerSeat.isPending}
+              moveSeatPending={moveSeat.isPending}
+              kickPending={kick.isPending}
+              registerTeamPending={registerTeam.isPending}
+              onPartnerQueryChange={setPartnerQuery}
+              onSelectedPartnerChange={setSelectedPartner}
+              onPartnerSideChange={setPartnerSide}
+              onPartnerPositionChange={setPartnerPosition}
+              onTeamIdChange={setTeamId}
+              onRegisterSeat={(input) =>
+                registerSeat.mutate({
+                  gameId: id,
+                  sideIndex: input?.sideIndex,
+                  position: input?.position,
+                })
+              }
+              onMoveSeat={(sideIndex, position) =>
+                moveSeat.mutate({ gameId: id, sideIndex, position })
+              }
+              onKick={(userId) => kick.mutate({ gameId: id, userId })}
+              onKickWaitlist={(waitlistId) =>
+                kick.mutate({ gameId: id, waitlistId })
+              }
+              onRegisterWithPartner={(input) =>
+                registerWithPartner.mutate({ gameId: id, ...input })
+              }
+              onRegisterTeam={(nextTeamId) =>
+                registerTeam.mutate({ gameId: id, teamId: nextTeamId })
+              }
+            />
+          </TabsContent>
+          <TabsContent
+            value="results"
+            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+          >
+            <GameResultsPanel
+              format={data.format}
+              matches={data.matches}
+              gameTeams={data.gameTeams}
+              isOrganizer={data.isOrganizer}
+              cancelled={Boolean(data.cancelledAt)}
+              courts={courts.data ?? []}
+              scorePending={scoreSet.isPending}
+              completePending={completeMatch.isPending}
+              cancelPending={cancelMatch.isPending}
+              onScoreSet={(input) =>
+                scoreSet.mutate({
+                  gameId: id,
+                  matchId: input.matchId,
+                  setId: input.setId,
+                  slot1GamesWon: input.slot1GamesWon,
+                  slot2GamesWon: input.slot2GamesWon,
+                })
+              }
+              onComplete={(matchId) =>
+                completeMatch.mutate({ gameId: id, matchId })
+              }
+              onUpdateCourt={(input) =>
+                updateMatch.mutate({
+                  gameId: id,
+                  matchId: input.matchId,
+                  courtId: input.courtId,
+                })
+              }
+              onUpdateSlots={(input) =>
+                updateMatch.mutate({
+                  gameId: id,
+                  matchId: input.matchId,
+                  startTime: input.startTime,
+                  endTime: input.endTime,
+                  durationInMinutes: input.durationInMinutes,
+                  courtId: input.courtId,
+                  slot1GameTeamId: input.slot1GameTeamId,
+                  slot2GameTeamId: input.slot2GameTeamId,
+                })
+              }
+              onCancelMatch={(matchId) => setCancelMatchId(matchId)}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {isOrganizerActive ? (
+        <GameEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          restoreFocusRef={menuTriggerRef}
+          format={data.format}
+          windowDay={windowDay}
+          windowStartTime={windowStartTime}
+          windowFinishTime={windowFinishTime}
+          onDayChange={setWindowDay}
+          onStartTimeChange={setWindowStartTime}
+          onFinishTimeChange={setWindowFinishTime}
+          windowError={updateWindow.error}
+          windowPending={updateWindow.isPending}
+          onSaveWindow={saveWindow}
+          pricePerPlayer={pricePerPlayer}
+          onPricePerPlayerChange={(value) => {
+            setPricePerPlayer(value);
+            setPricePerPlayerError(undefined);
+          }}
+          pricePerPlayerError={pricePerPlayerError}
+          priceError={updatePricePerPlayer.error}
+          priceSummaryRef={priceSummaryRef}
+          pricePending={updatePricePerPlayer.isPending}
+          onSavePrice={savePrice}
+        />
+      ) : null}
+
+      {canManageLookup ? (
+        <ResponsiveDialog
+          open={lookupOpen}
+          onOpenChange={(next) => {
+            setLookupOpen(next);
+            if (!next) {
+              setLookupQuery("");
+              setLookupRefused(null);
+            }
+          }}
+        >
+          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>Lookup invite</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
+                {data.joinFrozen
+                  ? "Lookup invite is paused while the Community is Soft-archived."
+                  : "Search existing Users and send Lookup invites. The invitee accepts on Invites. Team-only Games do not offer Lookup."}
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+            <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
+              <LookupInvitePanel
+                description={
+                  data.joinFrozen
+                    ? "Lookup invite is paused while the Community is Soft-archived."
+                    : "Organizers can search existing Users and send Lookup invites. The invitee accepts on Invites. Team-only Games do not offer Lookup."
+                }
+                lookupInvites={lookupInvites.data}
+                sendPending={sendLookupInvite.isPending}
+                revokePending={revokeLookupInvite.isPending}
+                sendError={sendLookupInvite.error}
+                searchQuery={lookupQuery}
+                onSearchQueryChange={setLookupQuery}
+                searchResults={lookupSearch.data}
+                searchPending={lookupSearch.isFetching}
+                refused={lookupRefused}
+                canSend={canSendGameLookup}
+                onSendUserIds={(userIds) =>
+                  sendLookupInvite.mutate({ gameId: id, userIds })
+                }
+                onRevokeLookup={(inviteId) =>
+                  revokeLookupInvite.mutate({ inviteId })
+                }
+              />
+            </div>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
+      ) : null}
+
+      {canManageInviteLink ? (
+        <ResponsiveDialog
+          open={inviteLinkOpen}
+          onOpenChange={setInviteLinkOpen}
+        >
+          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>Invite link</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
+                Copy a Game Invite link.
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+            <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
+              <InviteLinkPanel
+                inviteUrl={inviteLink.data?.inviteUrl}
+                copyPending={createInviteLink.isPending}
+                onCopy={() => createInviteLink.mutate({ gameId: id })}
+              />
+            </div>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
+      ) : null}
+
+      <ConfirmDialog
+        open={cancelGameOpen}
+        onOpenChange={setCancelGameOpen}
+        title={`Cancel ${gameName}?`}
+        description="This cannot be undone. Cancelling does nothing."
+        confirmLabel="Cancel Game"
+        pending={cancelGame.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await cancelGame.mutateAsync({ gameId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={leaveGameOpen}
+        onOpenChange={setLeaveGameOpen}
+        title={`Leave ${gameName}?`}
+        description="You will leave this Game. Cancelling does nothing."
+        confirmLabel="Leave Game"
+        pending={leaveGame.isPending}
+        onConfirm={async () => {
+          await leaveGame.mutateAsync({ gameId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={leaveWaitlistOpen}
+        onOpenChange={setLeaveWaitlistOpen}
+        title="Leave waitlist?"
+        description="You will leave the waitlist for this Game. Cancelling does nothing."
+        confirmLabel="Leave waitlist"
+        pending={leaveWaitlist.isPending}
+        onConfirm={async () => {
+          await leaveWaitlist.mutateAsync({ gameId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={cancelMatchId != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCancelMatchId(null);
+          }
+        }}
+        title={
+          data.format === "friendly_game"
+            ? "Cancel Match (cancels Game)?"
+            : "Cancel Match?"
+        }
+        description={
+          data.format === "friendly_game"
+            ? "Cancelling this Match also cancels the Game. This cannot be undone."
+            : "This cannot be undone. Cancelling does nothing."
+        }
+        confirmLabel={
+          data.format === "friendly_game"
+            ? "Cancel Match (cancels Game)"
+            : "Cancel Match"
+        }
+        pending={cancelMatch.isPending}
+        onConfirm={async () => {
+          if (!cancelMatchId) {
+            return;
+          }
+          await cancelMatch.mutateAsync({
+            gameId: id,
+            matchId: cancelMatchId,
+          });
+        }}
+      />
     </DashboardShell>
   );
 }
