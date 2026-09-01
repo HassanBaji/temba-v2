@@ -3,16 +3,18 @@ import Link from "next/link";
 
 import { SportBadge } from "~/components/temba/sport-badge";
 import {
-  GameFormatBadge,
+  GameRegistrationModeBadge,
   GameRegistrationStatusBadge,
 } from "~/components/temba/typed-labels";
+import { Badge } from "~/components/ui/badge";
 
 export function GameHomeHeader({
   name,
   groupId,
   groupName,
   sport,
-  format,
+  isPublic,
+  registrationMode,
   registrationStatus,
   primaryAction,
   actions,
@@ -21,7 +23,8 @@ export function GameHomeHeader({
   groupId: string | null;
   groupName: string | null;
   sport: string | null;
-  format: string;
+  isPublic: boolean;
+  registrationMode: string;
   registrationStatus: string;
   primaryAction?: ReactNode;
   actions?: ReactNode;
@@ -46,8 +49,9 @@ export function GameHomeHeader({
           <p className="text-meta text-muted-foreground">Groupless Game</p>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <GameFormatBadge format={format} />
           <GameRegistrationStatusBadge status={registrationStatus} />
+          <GameRegistrationModeBadge mode={registrationMode} />
+          {isPublic ? <Badge variant="outline">Public</Badge> : null}
           {sport ? <SportBadge sport={sport} /> : null}
         </div>
       </div>

@@ -1,7 +1,6 @@
 import { StatStrip } from "~/components/common/stat-strip";
 import { GameDetailTiles } from "~/components/games/game-detail-tiles";
 import { GameVenueCard } from "~/components/games/game-venue-card";
-import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];
@@ -28,19 +27,11 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
 
   return (
     <div className="space-y-6">
-      {game.joinFrozen && !game.cancelledAt ? (
-        <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
-          Register, waitlist, Lookup, and Invite link mint and accept stay
-          closed. Reopen is refused.
-        </SoftArchiveBanner>
-      ) : null}
-
       <GameDetailTiles
         windowStart={game.windowStart}
         windowEnd={game.windowEnd}
         durationInMinutes={firstMatch?.durationInMinutes}
         sport={game.sport}
-        format={game.format}
         pricePerPlayerCents={game.pricePerPlayerCents}
       />
 

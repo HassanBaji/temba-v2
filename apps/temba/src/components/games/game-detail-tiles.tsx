@@ -1,8 +1,7 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarDays, Clock, Coins, LayoutGrid, Trophy } from "lucide-react";
+import { CalendarDays, Clock, Coins, Trophy } from "lucide-react";
 
 import { SPORT_LABELS, type SportValue } from "~/components/temba/sport-badge";
-import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Card } from "~/components/ui/card";
 import {
   formatGameTimeWindow,
@@ -15,12 +14,6 @@ function sportLabel(sport: string | null) {
     return "Not set";
   }
   return sport in SPORT_LABELS ? SPORT_LABELS[sport as SportValue] : sport;
-}
-
-function formatLabel(format: string) {
-  return format in GAME_FORMAT_LABELS
-    ? GAME_FORMAT_LABELS[format as keyof typeof GAME_FORMAT_LABELS]
-    : format.replaceAll("_", " ");
 }
 
 function durationLabel(minutes: number | null | undefined) {
@@ -66,25 +59,39 @@ export function GameDetailTiles({
   windowEnd,
   durationInMinutes,
   sport,
-  format,
   pricePerPlayerCents,
 }: {
   windowStart: Date | string | null;
   windowEnd: Date | string | null | undefined;
   durationInMinutes: number | null | undefined;
   sport: string | null;
-  format: string;
   pricePerPlayerCents: number | null | undefined;
 }) {
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
-  const dateValue = windowStart ? formatRelativeDay(windowStart) : "Not set";
+  const relativeDay = windowStart ? formatRelativeDay(windowStart) : null;
+  const dateValue = windowStart
+    ? (windowStart instanceof Date
+        ? windowStart
+        : new Date(windowStart)
+      ).toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "Not set";
   const windowLabel = windowStart
     ? formatGameTimeWindow(windowStart, windowEnd, windowStart)
     : "Not set";
 
   return (
     <div className="flex flex-wrap gap-3">
-      <DetailTile icon={CalendarDays} label="Date" value={dateValue} />
+      <DetailTile
+        icon={CalendarDays}
+        label="Date"
+        value={dateValue}
+        detail={relativeDay}
+      />
       <DetailTile
         icon={Clock}
         label="Time"
@@ -92,11 +99,6 @@ export function GameDetailTiles({
         detail={durationLabel(durationInMinutes)}
       />
       <DetailTile icon={Trophy} label="Sport" value={sportLabel(sport)} />
-      <DetailTile
-        icon={LayoutGrid}
-        label="Format"
-        value={formatLabel(format)}
-      />
       {priceLabel ? (
         <DetailTile icon={Coins} label="Price" value={priceLabel} />
       ) : null}

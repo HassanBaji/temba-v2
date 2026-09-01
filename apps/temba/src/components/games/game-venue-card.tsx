@@ -1,3 +1,5 @@
+import { MapPin } from "lucide-react";
+
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Badge } from "~/components/ui/badge";
 import { Card } from "~/components/ui/card";
@@ -21,7 +23,12 @@ export function GameVenueCard({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-title font-semibold tracking-[-0.01em]">
+      <h2 className="text-title flex items-center gap-2 font-semibold tracking-[-0.01em]">
+        <MapPin
+          aria-hidden="true"
+          className="text-muted-foreground size-4"
+          strokeWidth={1.75}
+        />
         Court information
       </h2>
       <Card variant="raised">

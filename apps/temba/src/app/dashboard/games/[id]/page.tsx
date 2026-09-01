@@ -29,6 +29,7 @@ import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
 import { type LookupUserOption } from "~/components/invites/lookup-user-select";
+import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isNotFoundError } from "~/lib/is-not-found-error";
@@ -220,6 +221,7 @@ export default function GameHomePage({
   const updateWindow = api.games.updateWindow.useMutation({
     onSuccess: async () => {
       toast.success("Window updated");
+      setEditOpen(false);
       await refreshGame();
     },
     onError: (error) => {
@@ -230,6 +232,7 @@ export default function GameHomePage({
   const updatePricePerPlayer = api.games.updatePricePerPlayer.useMutation({
     onSuccess: async () => {
       toast.success("Price per player saved");
+      setEditOpen(false);
       await refreshGame();
     },
     onError: (error) => {
@@ -461,7 +464,8 @@ export default function GameHomePage({
           groupId={data.groupId}
           groupName={data.groupName}
           sport={data.sport}
-          format={data.format}
+          isPublic={data.isPublic}
+          registrationMode={data.registrationMode}
           registrationStatus={data.registrationStatus}
           primaryAction={
             <>
@@ -527,6 +531,13 @@ export default function GameHomePage({
             ) : null
           }
         />
+
+        {data.joinFrozen && !data.cancelledAt ? (
+          <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+            Register, waitlist, Lookup, and Invite link mint and accept stay
+            closed. Reopen is refused.
+          </SoftArchiveBanner>
+        ) : null}
 
         <Tabs defaultValue="overview" className="gap-4">
           <TabsList
