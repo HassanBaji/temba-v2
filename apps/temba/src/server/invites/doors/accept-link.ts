@@ -27,7 +27,7 @@ import type {
   AcceptSeat,
   InviteDb,
   InviteHost,
-} from "~/server/invites/doors/types";
+} from "~/server/invites/doors/utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

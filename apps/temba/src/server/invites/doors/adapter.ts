@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
-import type { InviteHost, InvitePhase } from "~/server/invites/doors/types";
+import type { InviteHost, InvitePhase } from "~/server/invites/doors/utils";
 
 export function frozenMintMessage(host: InviteHost) {
   if (host.kind === "community") {

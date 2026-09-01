@@ -14,7 +14,7 @@ import type {
   InviteDb,
   InviteHost,
   RevokeLookupResult,
-} from "~/server/invites/doors/types";
+} from "~/server/invites/doors/utils";
 
 export async function revokeLookup(
   database: InviteDb,

@@ -13,7 +13,7 @@ import type {
   InviteDb,
   InviteHost,
   MintLookupResult,
-} from "~/server/invites/doors/types";
+} from "~/server/invites/doors/utils";
 
 export async function mintLookup(
   database: InviteDb,

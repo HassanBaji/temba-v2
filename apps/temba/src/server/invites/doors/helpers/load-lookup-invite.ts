@@ -7,7 +7,7 @@ import {
   teamMemberInvites,
 } from "@repo/db";
 
-import type { InviteDb, InviteHost } from "~/server/invites/doors/types";
+import type { InviteDb, InviteHost } from "~/server/invites/doors/utils";
 
 export async function loadLookupInvite(
   database: InviteDb,

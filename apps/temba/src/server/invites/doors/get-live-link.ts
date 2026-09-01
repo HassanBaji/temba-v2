@@ -7,7 +7,7 @@ import {
   teamInviteLinks,
 } from "@repo/db";
 
-import type { InviteDb, InviteHost } from "~/server/invites/doors/types";
+import type { InviteDb, InviteHost } from "~/server/invites/doors/utils";
 
 export async function getLiveLink(database: InviteDb, host: InviteHost) {
   const now = new Date();

@@ -11,7 +11,7 @@ import type {
   InviteDb,
   InviteHost,
   LookupListItem,
-} from "~/server/invites/doors/types";
+} from "~/server/invites/doors/utils";
 
 export async function listLookup(
   database: InviteDb,

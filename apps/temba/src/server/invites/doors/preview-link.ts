@@ -17,7 +17,7 @@ import type {
   InviteDb,
   InviteHost,
   PreviewLinkResult,
-} from "~/server/invites/doors/types";
+} from "~/server/invites/doors/utils";
 
 export async function previewLink(
   database: InviteDb,

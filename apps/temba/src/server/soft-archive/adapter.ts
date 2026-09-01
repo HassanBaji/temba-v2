@@ -8,7 +8,7 @@ import type {
   ConsultResult,
   FreezeKind,
   SoftArchiveView,
-} from "~/server/soft-archive/types";
+} from "~/server/soft-archive/utils";
 
 export function refuseIfFrozen(
   view: ConsultResult,

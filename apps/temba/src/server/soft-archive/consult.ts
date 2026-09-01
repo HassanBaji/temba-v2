@@ -8,7 +8,7 @@ import type {
   SoftArchiveDb,
   SoftArchiveSnapshot,
   SoftArchiveView,
-} from "~/server/soft-archive/types";
+} from "~/server/soft-archive/utils";
 
 export function viewFromArchivedAt(archivedAt: Date | null): SoftArchiveView {
   const archived = archivedAt != null;

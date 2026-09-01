@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import type {
   AdmitResult,
   LeaveResult,
-} from "~/server/community-membership/types";
+} from "~/server/community-membership/utils";
 
 export function throwAdmitFailure(
   result: AdmitResult,
