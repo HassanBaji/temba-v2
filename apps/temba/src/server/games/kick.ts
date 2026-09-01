@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
-import { kickRegisteredUser, kickWaitlistEntry } from "~/server/games/organize";
+import { kickRegisteredUser } from "~/server/games/kick-registered-user";
+import { kickWaitlistEntry } from "~/server/games/kick-waitlist-entry";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

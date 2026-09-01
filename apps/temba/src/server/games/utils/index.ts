@@ -3,9 +3,9 @@ import type {
   GameRegistrationModeEnum,
   GameSportEnum,
 } from "@repo/db";
-// Value import required for `typeof games.$inferSelect` (type-only import fails TS2749).
+// Value import required for `typeof games.$inferSelect` / `typeof matches.$inferSelect` (type-only import fails TS2749).
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { games } from "@repo/db";
+import { games, matches } from "@repo/db";
 
 import { type db } from "~/server/db";
 import type { TestDatabase } from "~/server/test/pglite";
@@ -13,6 +13,8 @@ import type { TestDatabase } from "~/server/test/pglite";
 type AppTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
+
+export type MatchRow = typeof matches.$inferSelect;
 
 export type HubListSideOccupant = {
   userId: string;
@@ -172,3 +174,21 @@ export type AdmitPlacement =
 export type AdmitResult =
   | { ok: true; placement: AdmitPlacement }
   | { ok: false; reason: AdmitReason };
+
+export type TournamentMatchInput = {
+  startTime: Date | null;
+  endTime: Date | null;
+  durationInMinutes: number | null;
+  courtId: string | null;
+  slot1GameTeamId: string | null;
+  slot2GameTeamId: string | null;
+};
+
+export type MatchUpdateInput = {
+  startTime?: Date | null;
+  endTime?: Date | null;
+  durationInMinutes?: number | null;
+  courtId?: string | null;
+  slot1GameTeamId?: string | null;
+  slot2GameTeamId?: string | null;
+};

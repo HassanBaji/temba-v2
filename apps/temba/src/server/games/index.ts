@@ -23,9 +23,10 @@ export {
 } from "~/server/games/access";
 export { admit } from "~/server/games/admit";
 export {
-  listAssignableCourts,
   assertCourtAssignable,
   assertGameTeamOnGame,
+  listAssignableCourts,
+  listCourts,
 } from "~/server/games/courts";
 export { gameById } from "~/server/games/by-id";
 export { createGame } from "~/server/games/create";
@@ -57,23 +58,33 @@ export {
   eligibleCompleteTeamsForUser,
   recordTeamInviteLinkConsent,
 } from "~/server/games/invites";
-export {
-  addTournamentMatch,
-  cancelGame,
-  cancelMatch,
-  closeRegistration,
-  kickRegisteredUser,
-  kickWaitlistEntry,
-  reopenRegistration,
-  updateFriendlyGameMatchCourt,
-  updateGameCaps,
-  updateGameMatch,
-  updateTournamentMatch,
-  updateGamePricePerPlayer,
-  updateGameWindow,
-  type MatchUpdateInput,
-  type TournamentMatchInput,
-} from "~/server/games/organize";
+export { addMatch, addTournamentMatch } from "~/server/games/add-match";
+export { cancelGame } from "~/server/games/cancel";
+export { cancelMatch } from "~/server/games/cancel-match";
+export { closeRegistration } from "~/server/games/close-registration";
+export { kickRegisteredUser } from "~/server/games/kick-registered-user";
+export { kickWaitlistEntry } from "~/server/games/kick-waitlist-entry";
+export { reopenRegistration } from "~/server/games/reopen-registration";
+export { updateFriendlyGameMatchCourt } from "~/server/games/update-friendly-game-match-court";
+export { updateGameMatch, updateMatch } from "~/server/games/update-match";
+export { updateTournamentMatch } from "~/server/games/update-tournament-match";
+export { updateGameCaps } from "~/server/games/update-caps";
+export { updateGamePricePerPlayer } from "~/server/games/update-price-per-player";
+export { updateGameWindow } from "~/server/games/update-window";
+export { addSet, addMatchSet } from "~/server/games/add-set";
+export { scoreSet, scoreMatchSet } from "~/server/games/score-set";
+export { removeSet, removeMatchSet } from "~/server/games/remove-set";
+export { completeMatch } from "~/server/games/complete-match";
+export { searchLookupUsers } from "~/server/games/search-lookup-users";
+export { sendLookupInvite } from "~/server/games/send-lookup-invite";
+export { listLookupInvites } from "~/server/games/list-lookup-invites";
+export { revokeLookupInvite } from "~/server/games/revoke-lookup-invite";
+export { pendingLookupInvites } from "~/server/games/pending-lookup-invites";
+export { acceptLookupInvite } from "~/server/games/accept-lookup-invite";
+export { getInviteLink } from "~/server/games/get-invite-link";
+export { createInviteLink } from "~/server/games/create-invite-link";
+export { previewInviteLink } from "~/server/games/preview-invite-link";
+export { acceptInviteLink } from "~/server/games/accept-invite-link";
 export {
   assertFullyVacantSide,
   firstFullyVacantSideIndex,
@@ -93,15 +104,11 @@ export {
   vacantPositionsFromSides,
 } from "~/server/games/seats";
 export {
-  addMatchSet,
   assertMayWriteSets,
   bothSlotsFilled,
   bothSlottedTeamsComplete,
-  completeMatch,
   matchOutcome,
-  removeMatchSet,
   requireMatchOnGame,
-  scoreMatchSet,
   setWinsForGames,
   userIsOnMatchSlots,
 } from "~/server/games/sets";
@@ -128,8 +135,11 @@ export type {
   HubListRow,
   HubListSide,
   HubListSideOccupant,
+  MatchRow,
+  MatchUpdateInput,
   SeatOccupant,
   SeatPosition,
+  TournamentMatchInput,
   VacatedSeat,
 } from "~/server/games/utils";
 export {
