@@ -11,8 +11,6 @@ import {
   communitySports,
   CommunityJoinRequestStatusEnum,
   CommunityRoleEnum,
-  groupMembers,
-  groups,
   teamLinkRequests,
   TeamLinkRequestStatusEnum,
   teamMembers,
@@ -24,14 +22,27 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
-import { type db } from "~/server/db";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import {
   admit as admitCommunityMember,
-  leave as leaveCommunity,
   throwAdmitFailure,
-  throwLeaveFailure,
 } from "~/server/community-membership";
+import { addSport } from "~/server/communities/add-sport";
+import { communityById } from "~/server/communities/by-id";
+import { createCommunity } from "~/server/communities/create";
+import { asJoinStatus } from "~/server/communities/helpers/as-join-status";
+import { asVenueLinkStatus } from "~/server/communities/helpers/as-venue-link-status";
+import { requireCommunity } from "~/server/communities/helpers/require-community";
+import { requireLiveCommunity } from "~/server/communities/helpers/require-live-community";
+import { requireMembership } from "~/server/communities/helpers/require-membership";
+import { requireStaff } from "~/server/communities/helpers/require-staff";
+import { leave as leaveCommunity } from "~/server/communities/leave";
+import { listMembers } from "~/server/communities/list-members";
+import { mine } from "~/server/communities/mine";
+import { removeSport } from "~/server/communities/remove-sport";
+import { setMemberRole } from "~/server/communities/set-member-role";
+import { softArchive } from "~/server/communities/soft-archive";
+import { unarchive } from "~/server/communities/unarchive";
 import {
   acceptLink,
   acceptLookup,
@@ -42,15 +53,11 @@ import {
   revokeLookup,
   throwInviteFrozen,
 } from "~/server/invites/doors";
-import {
-  commit,
-  consult,
-  refuseIfFrozen,
-  throwCommitFailure,
-} from "~/server/soft-archive";
+import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { liveVenuesWhere } from "~/server/soft-archive/adapter";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
 import { communityInviteLinkUrl, getAppOrigin } from "~/server/invites/tokens";
+import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -59,185 +66,6 @@ import {
 
 const sportSchema = z.enum(["padel", "football"]);
 const communityTypeSchema = z.enum(["public", "private"]);
-
-type DbClient = typeof db;
-type CommunityRole = "owner" | "admin" | "member";
-type JoinRequestStatus = "pending" | "approved" | "rejected";
-type VenueLinkStatus = "pending" | "approved" | "rejected";
-
-function isStaffRole(role: string | null | undefined) {
-  return role === "owner" || role === "admin";
-}
-
-function asRole(role: string): CommunityRole {
-  return role as CommunityRole;
-}
-
-function asJoinStatus(status: string): JoinRequestStatus {
-  return status as JoinRequestStatus;
-}
-
-function asVenueLinkStatus(status: string): VenueLinkStatus {
-  return status as VenueLinkStatus;
-}
-
-function teamDisplayName(name: string | null, memberNames: string[]) {
-  const trimmed = name?.trim();
-  if (trimmed) {
-    return trimmed;
-  }
-  if (memberNames.length === 0) {
-    return "Untitled Team";
-  }
-  return memberNames.join(" & ");
-}
-
-async function requireCommunity(database: DbClient, id: string) {
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, id),
-  });
-
-  if (!community) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Community not found" });
-  }
-
-  return community;
-}
-
-async function loadMemberVenue(database: DbClient, venueId: string | null) {
-  if (!venueId) {
-    return null;
-  }
-
-  const venue = await database.query.venues.findFirst({
-    where: eq(venues.id, venueId),
-    columns: {
-      id: true,
-      name: true,
-      city: true,
-      country: true,
-      logoImageUrl: true,
-      archivedAt: true,
-    },
-    with: {
-      courts: {
-        columns: {
-          id: true,
-          name: true,
-          createdAt: true,
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
-      },
-    },
-  });
-
-  return venue ?? null;
-}
-
-function mapVenueLinkRequestRow(row: {
-  id: string;
-  status: string;
-  createdAt: Date;
-  venue: { id: string; name: string; city: string; country: string };
-}) {
-  return {
-    id: row.id,
-    status: asVenueLinkStatus(row.status),
-    createdAt: row.createdAt,
-    venue: {
-      id: row.venue.id,
-      name: row.venue.name,
-      city: row.venue.city,
-      country: row.venue.country,
-    },
-  };
-}
-
-async function requireMembership(
-  database: DbClient,
-  communityId: string,
-  userId: string,
-) {
-  const membership = await database.query.communityMembers.findFirst({
-    where: and(
-      eq(communityMembers.communityId, communityId),
-      eq(communityMembers.userId, userId),
-    ),
-  });
-
-  return membership ?? null;
-}
-
-async function requireStaff(
-  database: DbClient,
-  communityId: string,
-  userId: string,
-  message = "Only Owner or Admin can manage this Community",
-) {
-  const membership = await requireMembership(database, communityId, userId);
-
-  if (!membership || !isStaffRole(membership.role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message,
-    });
-  }
-
-  return membership;
-}
-
-async function requireOwner(
-  database: DbClient,
-  communityId: string,
-  userId: string,
-) {
-  const membership = await requireMembership(database, communityId, userId);
-
-  if (membership?.role !== "owner") {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Only Owners can change Community roles",
-    });
-  }
-
-  return membership;
-}
-
-async function countOwners(database: DbClient, communityId: string) {
-  const owners = await database.query.communityMembers.findMany({
-    where: and(
-      eq(communityMembers.communityId, communityId),
-      eq(communityMembers.role, CommunityRoleEnum.OWNER),
-    ),
-  });
-
-  return owners.length;
-}
-
-/** Lock Owner rows so last-Owner leave/demote cannot race to zero Owners. */
-async function lockOwnersForUpdate(
-  tx: Parameters<Parameters<DbClient["transaction"]>[0]>[0],
-  communityId: string,
-) {
-  return tx
-    .select({ id: communityMembers.id })
-    .from(communityMembers)
-    .where(
-      and(
-        eq(communityMembers.communityId, communityId),
-        eq(communityMembers.role, CommunityRoleEnum.OWNER),
-      ),
-    )
-    .for("update");
-}
-
-async function requireLiveCommunity(database: DbClient, id: string) {
-  const community = await requireCommunity(database, id);
-  refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-    frozenMessage: "Cannot manage invites for an archived Community",
-  });
-  return community;
-}
 
 export const communitiesRouter = createTRPCRouter({
   create: protectedProcedure
@@ -250,328 +78,34 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const uniqueSports = [...new Set(input.sports)];
-      if (uniqueSports.length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "At least one sport is required",
-        });
-      }
-
       const appUser = await resolveAppUser(ctx.userId);
-
-      const community = await ctx.db.transaction(async (tx) => {
-        const [created] = await tx
-          .insert(communities)
-          .values({
-            name: input.name,
-            description: input.description,
-            type: input.type,
-            createdBy: appUser.id,
-          })
-          .returning();
-
-        if (!created) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create community",
-          });
-        }
-
-        throwAdmitFailure(
-          await admitCommunityMember(tx, {
-            communityId: created.id,
-            userId: appUser.id,
-            role: CommunityRoleEnum.OWNER,
-          }),
-        );
-
-        await tx.insert(communitySports).values(
-          uniqueSports.map((sport) => ({
-            communityId: created.id,
-            sport,
-          })),
-        );
-
-        return created;
+      return createCommunity(ctx.db, {
+        name: input.name,
+        description: input.description,
+        type: input.type,
+        sports: input.sports,
+        userId: appUser.id,
       });
-
-      return community;
     }),
 
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const community = await ctx.db.query.communities.findFirst({
-        where: eq(communities.id, input.id),
-        with: {
-          sports: true,
-        },
+      return communityById(ctx.db, {
+        communityId: input.id,
+        userId: appUser.id,
       });
-
-      if (!community) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const membership = await requireMembership(
-        ctx.db,
-        community.id,
-        appUser.id,
-      );
-
-      const joinRequest = await ctx.db.query.communityJoinRequests.findFirst({
-        where: and(
-          eq(communityJoinRequests.communityId, community.id),
-          eq(communityJoinRequests.userId, appUser.id),
-        ),
-      });
-
-      const archive = consult({ archivedAt: community.archivedAt });
-      const live = !archive.freeze("host");
-      const canManageJoinRequests =
-        community.type === "public" && live && isStaffRole(membership?.role);
-      const canManageInvites =
-        community.type === "private" && live && isStaffRole(membership?.role);
-      const canManageLookupInvites = live && isStaffRole(membership?.role);
-      const canManageInviteLinks = live && isStaffRole(membership?.role);
-      const canCreateClubGroup = live && isStaffRole(membership?.role);
-      const canManageSports = isStaffRole(membership?.role);
-      const canManageRoles = membership?.role === "owner";
-      const canSoftArchive = live && isStaffRole(membership?.role);
-      const canUnarchive =
-        archive.phase === "archived" && isStaffRole(membership?.role);
-      const canManageTeamLinks = live && isStaffRole(membership?.role);
-      const canManageVenueLink = live && isStaffRole(membership?.role);
-
-      const venue = membership
-        ? await loadMemberVenue(ctx.db, community.venueId)
-        : null;
-
-      let venueLinkRequest: ReturnType<typeof mapVenueLinkRequestRow> | null =
-        null;
-      if (isStaffRole(membership?.role)) {
-        const pendingRequest = await ctx.db.query.venueLinkRequests.findFirst({
-          where: and(
-            eq(venueLinkRequests.communityId, community.id),
-            eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
-          ),
-          with: {
-            venue: {
-              columns: {
-                id: true,
-                name: true,
-                city: true,
-                country: true,
-              },
-            },
-          },
-        });
-        if (pendingRequest) {
-          venueLinkRequest = mapVenueLinkRequestRow(pendingRequest);
-        } else {
-          const lastRejected = await ctx.db.query.venueLinkRequests.findFirst({
-            where: and(
-              eq(venueLinkRequests.communityId, community.id),
-              eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.REJECTED),
-            ),
-            with: {
-              venue: {
-                columns: {
-                  id: true,
-                  name: true,
-                  city: true,
-                  country: true,
-                },
-              },
-            },
-            orderBy: (table, { desc }) => [desc(table.createdAt)],
-          });
-          if (lastRejected) {
-            venueLinkRequest = mapVenueLinkRequestRow(lastRejected);
-          }
-        }
-      }
-
-      const canRequestVenueLink =
-        canManageVenueLink &&
-        !community.venueId &&
-        venueLinkRequest?.status !== "pending";
-      const canUnlinkVenue = canManageVenueLink && Boolean(community.venueId);
-
-      let canLeave = Boolean(membership);
-      let linkedTeamBlocksLeave = false;
-      if (membership?.role === "owner") {
-        const ownerCount = await countOwners(ctx.db, community.id);
-        if (ownerCount <= 1) {
-          canLeave = false;
-        }
-      }
-
-      if (membership) {
-        const teamSeats = await ctx.db.query.teamMembers.findMany({
-          where: eq(teamMembers.userId, appUser.id),
-          columns: { teamId: true },
-        });
-        const teamIds = teamSeats.map((row) => row.teamId);
-        if (teamIds.length > 0) {
-          const linkedSeat = await ctx.db.query.teams.findFirst({
-            where: and(
-              eq(teams.communityId, community.id),
-              inArray(teams.id, teamIds),
-            ),
-            columns: { id: true },
-          });
-          if (linkedSeat) {
-            linkedTeamBlocksLeave = true;
-            canLeave = false;
-          }
-        }
-      }
-
-      const clubGroups = await ctx.db.query.groups.findMany({
-        where: eq(groups.communityId, community.id),
-        orderBy: (table, { asc }) => [asc(table.name)],
-      });
-
-      const linkedTeamRows = membership
-        ? await ctx.db.query.teams.findMany({
-            where: eq(teams.communityId, community.id),
-            orderBy: (table, { asc }) => [asc(table.name)],
-          })
-        : [];
-
-      const memberGroupIds = new Set<string>();
-      if (clubGroups.length > 0) {
-        const myGroupMemberships = await ctx.db.query.groupMembers.findMany({
-          where: and(
-            eq(groupMembers.userId, appUser.id),
-            inArray(
-              groupMembers.groupId,
-              clubGroups.map((group) => group.id),
-            ),
-          ),
-        });
-        for (const row of myGroupMemberships) {
-          memberGroupIds.add(row.groupId);
-        }
-      }
-
-      const linkedTeamIds = linkedTeamRows.map((team) => team.id);
-      const linkedTeamMemberRows =
-        linkedTeamIds.length === 0
-          ? []
-          : await ctx.db.query.teamMembers.findMany({
-              where: inArray(teamMembers.teamId, linkedTeamIds),
-              with: {
-                user: {
-                  columns: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            });
-      const linkedMembersByTeam = new Map<string, string[]>();
-      for (const row of linkedTeamMemberRows) {
-        const list = linkedMembersByTeam.get(row.teamId) ?? [];
-        list.push(row.user.name);
-        linkedMembersByTeam.set(row.teamId, list);
-      }
-
-      return {
-        id: community.id,
-        name: community.name,
-        description: community.description,
-        type: community.type,
-        archivedAt: community.archivedAt,
-        createdAt: community.createdAt,
-        sports: community.sports.map(
-          (sportRow) => sportRow.sport as GroupSportEnum,
-        ),
-        membership: membership
-          ? { role: asRole(membership.role), userId: appUser.id }
-          : null,
-        joinRequest: joinRequest
-          ? {
-              id: joinRequest.id,
-              status: asJoinStatus(joinRequest.status),
-            }
-          : null,
-        canManageJoinRequests,
-        canManageInvites,
-        canManageLookupInvites,
-        canManageInviteLinks,
-        canCreateClubGroup,
-        canManageSports,
-        canManageRoles,
-        canSoftArchive,
-        canUnarchive,
-        canLeave,
-        linkedTeamBlocksLeave,
-        canManageTeamLinks,
-        canManageVenueLink,
-        canRequestVenueLink,
-        canUnlinkVenue,
-        venue,
-        venueLinkRequest,
-        groups: clubGroups.map((group) => ({
-          id: group.id,
-          name: group.name,
-          description: group.description,
-          type: group.type,
-          sport: group.sport as GroupSportEnum | null,
-          isMember: memberGroupIds.has(group.id),
-        })),
-        teams: linkedTeamRows.map((team) => ({
-          id: team.id,
-          name: team.name,
-          displayName: teamDisplayName(
-            team.name,
-            linkedMembersByTeam.get(team.id) ?? [],
-          ),
-          sport: team.sport as GroupSportEnum,
-        })),
-      };
     }),
 
   listMembers: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      const membership = await requireMembership(
-        ctx.db,
-        community.id,
-        appUser.id,
-      );
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only Community members can list members",
-        });
-      }
-
-      const rows = await ctx.db.query.communityMembers.findMany({
-        where: eq(communityMembers.communityId, community.id),
-        with: {
-          user: true,
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      return listMembers(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      return rows.map((row) => ({
-        id: row.id,
-        role: asRole(row.role),
-        user: {
-          id: row.user.id,
-          name: row.user.name,
-          email: row.user.email,
-        },
-      }));
     }),
 
   setMemberRole: protectedProcedure
@@ -584,144 +118,42 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireOwner(ctx.db, community.id, appUser.id);
-
-      const target = await requireMembership(
-        ctx.db,
-        community.id,
-        input.userId,
-      );
-
-      if (!target) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Community member not found",
-        });
-      }
-
-      const nextRole = input.role;
-      const previousRole = asRole(target.role);
-
-      if (previousRole === nextRole) {
-        return {
-          ok: true as const,
-          userId: target.userId,
-          role: previousRole,
-        };
-      }
-
-      const demotingOwner = previousRole === "owner" && nextRole !== "owner";
-
-      const updated = await ctx.db.transaction(async (tx) => {
-        if (demotingOwner) {
-          const owners = await lockOwnersForUpdate(tx, community.id);
-          if (owners.length <= 1) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message:
-                "The last Owner cannot demote until another Owner is promoted",
-            });
-          }
-        }
-
-        const [row] = await tx
-          .update(communityMembers)
-          .set({
-            role: nextRole,
-            updatedAt: new Date(),
-          })
-          .where(eq(communityMembers.id, target.id))
-          .returning();
-
-        if (!row) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to update member role",
-          });
-        }
-
-        return row;
+      return setMemberRole(ctx.db, {
+        communityId: input.communityId,
+        callerId: appUser.id,
+        userId: input.userId,
+        role: input.role,
       });
-
-      return {
-        ok: true as const,
-        userId: updated.userId,
-        role: asRole(updated.role),
-      };
     }),
 
   softArchive: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      // Soft-archive hides listing and join paths. Club Groups stay attached
-      // (communityId unchanged). Invite tokens are kept, not auto-revoked.
-      const updated = await commit(
-        ctx.db,
-        { communityId: community.id },
-        "archived",
-      );
-      if (!updated.ok) {
-        throwCommitFailure(updated);
-      }
-
-      return {
-        id: updated.id,
-        archivedAt: updated.archivedAt,
-      };
+      return softArchive(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+      });
     }),
 
   unarchive: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      // Unarchive restores join rules. Live Invite link tokens stay valid
-      // until each expires.
-      const updated = await commit(
-        ctx.db,
-        { communityId: community.id },
-        "live",
-      );
-      if (!updated.ok) {
-        throwCommitFailure(updated);
-      }
-
-      return {
-        id: updated.id,
-        archivedAt: updated.archivedAt,
-      };
+      return unarchive(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+      });
     }),
 
   leave: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      // Leave removes membership only — never Soft-archives the Community.
-      await ctx.db.transaction(async (tx) => {
-        throwLeaveFailure(
-          await leaveCommunity(tx, {
-            communityId: community.id,
-            userId: appUser.id,
-          }),
-        );
+      return leaveCommunity(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      return {
-        ok: true as const,
-        communityId: community.id,
-      };
     }),
 
   addSport: protectedProcedure
@@ -733,44 +165,11 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const existing = await ctx.db.query.communitySports.findFirst({
-        where: and(
-          eq(communitySports.communityId, community.id),
-          eq(communitySports.sport, input.sport),
-        ),
+      return addSport(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+        sport: input.sport,
       });
-
-      if (existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Sport is already on this Community's sports allow-list",
-        });
-      }
-
-      const [created] = await ctx.db
-        .insert(communitySports)
-        .values({
-          communityId: community.id,
-          sport: input.sport,
-        })
-        .returning();
-
-      if (!created) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to add sport",
-        });
-      }
-
-      return {
-        ok: true as const,
-        communityId: community.id,
-        sport: created.sport as GroupSportEnum,
-      };
     }),
 
   removeSport: protectedProcedure
@@ -782,63 +181,11 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const existing = await ctx.db.query.communitySports.findFirst({
-        where: and(
-          eq(communitySports.communityId, community.id),
-          eq(communitySports.sport, input.sport),
-        ),
-      });
-
-      if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Sport is not on this Community's sports allow-list",
-        });
-      }
-
-      const clubGroupWithSport = await ctx.db.query.groups.findFirst({
-        where: and(
-          eq(groups.communityId, community.id),
-          eq(groups.sport, input.sport),
-        ),
-      });
-
-      if (clubGroupWithSport) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Cannot remove a sport while a Club Group of that sport exists in this Community",
-        });
-      }
-
-      const linkedTeamWithSport = await ctx.db.query.teams.findFirst({
-        where: and(
-          eq(teams.communityId, community.id),
-          eq(teams.sport, input.sport),
-        ),
-      });
-
-      if (linkedTeamWithSport) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Cannot remove a sport while a linked Team of that sport exists in this Community",
-        });
-      }
-
-      await ctx.db
-        .delete(communitySports)
-        .where(eq(communitySports.id, existing.id));
-
-      return {
-        ok: true as const,
-        communityId: community.id,
+      return removeSport(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
         sport: input.sport,
-      };
+      });
     }),
 
   listTeamLinkRequests: protectedProcedure
@@ -1079,77 +426,7 @@ export const communitiesRouter = createTRPCRouter({
 
   mine: protectedProcedure.query(async ({ ctx }) => {
     const appUser = await resolveAppUser(ctx.userId);
-
-    const memberships = await ctx.db.query.communityMembers.findMany({
-      where: eq(communityMembers.userId, appUser.id),
-      with: {
-        community: {
-          with: {
-            sports: true,
-          },
-        },
-      },
-    });
-
-    const communityIds = memberships.map(
-      (membership) => membership.community.id,
-    );
-
-    const clubGroups =
-      communityIds.length > 0
-        ? await ctx.db.query.groups.findMany({
-            where: inArray(groups.communityId, communityIds),
-            orderBy: (table, { asc }) => [asc(table.name)],
-          })
-        : [];
-
-    const memberGroupIds = new Set<string>();
-    if (clubGroups.length > 0) {
-      const myGroupMemberships = await ctx.db.query.groupMembers.findMany({
-        where: and(
-          eq(groupMembers.userId, appUser.id),
-          inArray(
-            groupMembers.groupId,
-            clubGroups.map((group) => group.id),
-          ),
-        ),
-      });
-      for (const row of myGroupMemberships) {
-        memberGroupIds.add(row.groupId);
-      }
-    }
-
-    const groupsByCommunityId = new Map<string, typeof clubGroups>();
-    for (const group of clubGroups) {
-      if (!group.communityId) {
-        continue;
-      }
-      const nested = groupsByCommunityId.get(group.communityId) ?? [];
-      nested.push(group);
-      groupsByCommunityId.set(group.communityId, nested);
-    }
-
-    return memberships.map((membership) => ({
-      id: membership.community.id,
-      name: membership.community.name,
-      description: membership.community.description,
-      type: membership.community.type,
-      role: asRole(membership.role),
-      sports: membership.community.sports.map(
-        (sportRow) => sportRow.sport as GroupSportEnum,
-      ),
-      archivedAt: membership.community.archivedAt,
-      groups: (groupsByCommunityId.get(membership.community.id) ?? []).map(
-        (group) => ({
-          id: group.id,
-          name: group.name,
-          description: group.description,
-          type: group.type,
-          sport: group.sport as GroupSportEnum | null,
-          isMember: memberGroupIds.has(group.id),
-        }),
-      ),
-    }));
+    return mine(ctx.db, { userId: appUser.id });
   }),
 
   requestJoin: protectedProcedure
