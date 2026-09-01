@@ -9,6 +9,25 @@ export function formatGameStart(startTime: Date | string) {
   });
 }
 
+export function formatGameClock(startTime: Date | string) {
+  const date = startTime instanceof Date ? startTime : new Date(startTime);
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function formatGameTimeWindow(
+  windowStart: Date | string | null | undefined,
+  windowEnd: Date | string | null | undefined,
+  startTime: Date | string,
+) {
+  if (windowStart && windowEnd) {
+    return `${formatGameClock(windowStart)} - ${formatGameClock(windowEnd)}`;
+  }
+  return formatGameClock(startTime);
+}
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function startOfLocalDay(date: Date) {

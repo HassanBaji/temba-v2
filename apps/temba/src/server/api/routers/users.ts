@@ -1,9 +1,8 @@
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 
 import {
   communityMembers,
   gamePlayers,
-  games,
   groupMembers,
   MatchStatusEnum,
   matches,
@@ -12,14 +11,11 @@ import {
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { listMyGroupsHubRows } from "~/server/games/hub-list-rows";
 import {
   EMPTY_HOME_MATCH_STATS,
   homeMatchStatsFromCompletedMatches,
 } from "~/server/home/match-stats";
-import {
-  filterAndSortHomeUpcomingGames,
-  gameListTime,
-} from "~/server/home/upcoming-games";
 import {
   sortStandingMembers,
   standingPosition,
@@ -102,63 +98,7 @@ export const usersRouter = createTRPCRouter({
         }),
       );
 
-    const upcomingGameRows =
-      groupIds.length === 0
-        ? []
-        : await ctx.db.query.games.findMany({
-            where: and(
-              inArray(games.groupId, groupIds),
-              isNull(games.cancelledAt),
-            ),
-            columns: {
-              id: true,
-              name: true,
-              windowStart: true,
-              windowEnd: true,
-              cancelledAt: true,
-              createdAt: true,
-              format: true,
-              sport: true,
-              groupId: true,
-            },
-            with: {
-              group: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-              matches: {
-                columns: {
-                  startTime: true,
-                  status: true,
-                },
-              },
-            },
-          });
-
-    const upcomingGames = filterAndSortHomeUpcomingGames(
-      upcomingGameRows,
-      new Set(groupIds),
-      now,
-    ).flatMap((game) => {
-      if (game.groupId === null) {
-        return [];
-      }
-      return [
-        {
-          id: game.id,
-          name: game.name,
-          startTime: gameListTime(game),
-          windowStart: game.windowStart,
-          windowEnd: game.windowEnd,
-          format: game.format,
-          sport: game.sport,
-          groupId: game.groupId,
-          groupName: game.group?.name ?? null,
-        },
-      ];
-    });
+    const upcomingGames = await listMyGroupsHubRows(ctx.db, appUser.id, now);
 
     const myPlayerRows = await ctx.db.query.gamePlayers.findMany({
       where: eq(gamePlayers.userId, appUser.id),
