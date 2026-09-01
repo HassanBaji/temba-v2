@@ -15,23 +15,22 @@ import {
   type GameRow,
   registeredUserCount,
 } from "~/server/games/access";
+import type {
+  GameSide,
+  SeatOccupant,
+  SeatPosition,
+  VacatedSeat,
+} from "~/server/games/utils";
+
+export type {
+  GameSide,
+  SeatOccupant,
+  SeatPosition,
+  VacatedSeat,
+} from "~/server/games/utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
-
-export type SeatPosition = "left" | "right";
-
-export type SeatOccupant = {
-  userId: string;
-  name: string;
-};
-
-export type GameSide = {
-  sideIndex: number;
-  gameTeamId: string | null;
-  left: SeatOccupant | null;
-  right: SeatOccupant | null;
-};
 
 function isUniqueViolation(error: unknown): boolean {
   return (
@@ -409,11 +408,6 @@ export async function insertIndividualPairOnVacantSide(
   await occupySeat(database, game, userIds[0], sideIndex, callerPosition);
   await occupySeat(database, game, userIds[1], sideIndex, partnerPosition);
 }
-
-export type VacatedSeat = {
-  sideIndex: number;
-  position: SeatPosition;
-};
 
 export async function vacateSeat(
   database: Tx,

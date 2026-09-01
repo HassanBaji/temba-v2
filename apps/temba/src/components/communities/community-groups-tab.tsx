@@ -7,14 +7,7 @@ import { GroupTypeBadge } from "~/components/temba/group-type-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Button } from "~/components/ui/button";
 import { Section } from "~/components/layout/section";
-
-type ClubGroup = {
-  id: string;
-  name: string | null;
-  type: string | null;
-  sport: string | null;
-  isMember: boolean;
-};
+import type { ClubGroup } from "~/server/communities";
 
 export function CommunityGroupsTab({
   groups,

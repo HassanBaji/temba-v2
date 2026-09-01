@@ -9,7 +9,7 @@ import type {
   CommitSubject,
   SoftArchiveDb,
   SoftArchivePhase,
-} from "~/server/soft-archive/types";
+} from "~/server/soft-archive/utils";
 
 function writeDb(database: SoftArchiveDb): typeof db {
   return database as typeof db;

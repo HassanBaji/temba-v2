@@ -9,17 +9,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Section } from "~/components/layout/section";
-
-type JoinRequest = {
-  id: string;
-  user: { name: string | null; email: string | null };
-};
-
-type TeamLinkRequest = {
-  id: string;
-  requestedBy: { name: string | null };
-  team: { displayName: string; sport: string };
-};
+import type { JoinRequest, TeamLinkRequest } from "~/server/communities";
 
 export function CommunityRequestsTab({
   canManageJoinRequests,

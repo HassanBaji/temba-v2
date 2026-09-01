@@ -11,7 +11,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
-import type { LookupUserOption } from "~/components/invites/lookup-user-select";
+import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 
 export function GameInvitesDialog({
   open,
@@ -42,7 +42,7 @@ export function GameInvitesDialog({
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
-  searchResults: LookupUserOption[] | undefined;
+  searchResults: LookupUserSearchRow[] | undefined;
   searchPending?: boolean;
   refused?: { name: string; message: string }[] | null;
   onSendLookup: (userIds: string[]) => void;

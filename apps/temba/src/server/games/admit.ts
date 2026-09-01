@@ -16,63 +16,31 @@ import {
   isIndividualSeatGame,
   occupySeat,
   remainingCapacity,
-  type SeatPosition,
 } from "~/server/games/seats";
 import { consult } from "~/server/soft-archive";
 import { type db } from "~/server/db";
-import type { TestDatabase } from "~/server/test/pglite";
+import type {
+  AdmitDb,
+  AdmitDoor,
+  AdmitParty,
+  AdmitResult,
+  SeatPosition,
+} from "~/server/games/utils";
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-export type AdmitDb = typeof db | Tx | TestDatabase;
+export type {
+  AdmitDb,
+  AdmitDoor,
+  AdmitParty,
+  AdmitPlacement,
+  AdmitReason,
+  AdmitResult,
+} from "~/server/games/utils";
 
 function writeDb(database: AdmitDb): typeof db {
   return database as typeof db;
 }
 
-export type AdmitDoor = "register" | "promote";
-
-export type AdmitParty =
-  | {
-      kind: "user";
-      userId: string;
-      seat?: { sideIndex: number; position: SeatPosition };
-    }
-  | {
-      kind: "pair";
-      userIds: readonly [string, string];
-      sideIndex: number;
-      callerPosition: SeatPosition;
-    }
-  | { kind: "team"; teamId: string };
-
-export type AdmitReason =
-  | "full"
-  | "registration_closed"
-  | "join_frozen"
-  | "already_on_game"
-  | "seat_required"
-  | "no_vacant_side"
-  | "team_not_found"
-  | "team_incomplete"
-  | "team_already_on_game";
-
-export type AdmitPlacement =
-  | {
-      kind: "user";
-      userId: string;
-      sideIndex?: number;
-      position?: SeatPosition;
-    }
-  | {
-      kind: "pair";
-      userIds: readonly [string, string];
-      sideIndex: number;
-    }
-  | { kind: "team"; teamId: string; sideIndex: number };
-
-export type AdmitResult =
-  | { ok: true; placement: AdmitPlacement }
-  | { ok: false; reason: AdmitReason };
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 async function userOnGame(database: AdmitDb, gameId: string, userId: string) {
   const row = await database.query.gamePlayers.findFirst({

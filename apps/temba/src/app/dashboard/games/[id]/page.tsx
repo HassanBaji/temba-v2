@@ -20,7 +20,7 @@ import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
-import { type LookupUserOption } from "~/components/invites/lookup-user-select";
+import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -55,7 +55,7 @@ export default function GameHomePage({
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
   const [selectedPartner, setSelectedPartner] = React.useState<
-    LookupUserOption[]
+    LookupUserSearchRow[]
   >([]);
   const [partnerSide, setPartnerSide] = React.useState("");
   const [partnerPosition, setPartnerPosition] = React.useState<

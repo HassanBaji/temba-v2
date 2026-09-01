@@ -7,12 +7,7 @@ import { RoleBadge } from "~/components/temba/role-badge";
 import { ErrorState } from "~/components/common/error-state";
 import { FieldLabel } from "~/components/ui/field";
 import { Skeleton } from "~/components/ui/skeleton";
-
-type Member = {
-  id: string;
-  role: string;
-  user: { id: string; name: string | null; email: string | null };
-};
+import type { CommunityMember } from "~/server/communities";
 
 export function CommunityMembersTab({
   members,
@@ -26,7 +21,7 @@ export function CommunityMembersTab({
   linkedTeamBlocksLeave,
   isLastOwnerBlockedLeave,
 }: {
-  members: Member[] | undefined;
+  members: CommunityMember[] | undefined;
   isLoading: boolean;
   errorMessage?: string;
   onRetry: () => void;

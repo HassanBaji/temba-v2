@@ -4,13 +4,7 @@ import { Button } from "~/components/ui/button";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatSeatSideHeading } from "~/components/games/game-side-label";
-
-export type SeatSideView = {
-  sideIndex: number;
-  gameTeamId: string | null;
-  left: { userId: string; name: string } | null;
-  right: { userId: string; name: string } | null;
-};
+import type { GameSide, SeatOccupant } from "~/server/games";
 
 function VacantAvatar() {
   return (
@@ -38,7 +32,7 @@ function SeatRow({
   onKick,
 }: {
   positionLabel: string;
-  occupant: { userId: string; name: string } | null;
+  occupant: SeatOccupant | null;
   canJoin: boolean;
   joinLabel: string;
   joining: boolean;
@@ -110,7 +104,7 @@ export function GameSeatGrid({
   onKick,
   sideNoun = "Team",
 }: {
-  sides: SeatSideView[];
+  sides: GameSide[];
   canJoinVacant: boolean;
   joinLabel: string;
   joining: boolean;

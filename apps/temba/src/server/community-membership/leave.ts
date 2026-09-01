@@ -15,7 +15,7 @@ import type {
   LeaveArgs,
   LeaveResult,
   MembershipDb,
-} from "~/server/community-membership/types";
+} from "~/server/community-membership/utils";
 
 function writeDb(database: MembershipDb): typeof db {
   return database as typeof db;

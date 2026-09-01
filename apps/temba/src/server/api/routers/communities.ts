@@ -1,56 +1,37 @@
-import { TRPCError } from "@trpc/server";
-import { and, eq, gt, ilike, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  communities,
-  communityInviteLinks,
-  communityJoinRequests,
-  communityMemberInvites,
-  communityMembers,
-  communitySports,
-  CommunityJoinRequestStatusEnum,
-  CommunityRoleEnum,
-  groupMembers,
-  groups,
-  teamLinkRequests,
-  TeamLinkRequestStatusEnum,
-  teamMembers,
-  teams,
-  user,
-  venueLinkRequests,
-  VenueLinkRequestStatusEnum,
-  venues,
-  type GroupSportEnum,
-} from "@repo/db";
-
-import { type db } from "~/server/db";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import {
-  admit as admitCommunityMember,
-  leave as leaveCommunity,
-  throwAdmitFailure,
-  throwLeaveFailure,
-} from "~/server/community-membership";
-import {
-  acceptLink,
-  acceptLookup,
-  listLookup,
-  mintLink,
-  mintLookup,
-  previewLink,
-  revokeLookup,
-  throwInviteFrozen,
-} from "~/server/invites/doors";
-import {
-  commit,
-  consult,
-  refuseIfFrozen,
-  throwCommitFailure,
-} from "~/server/soft-archive";
-import { liveVenuesWhere } from "~/server/soft-archive/adapter";
-import { searchLookupUsers } from "~/server/invites/search-lookup-users";
-import { communityInviteLinkUrl, getAppOrigin } from "~/server/invites/tokens";
+import { acceptInviteLink } from "~/server/communities/accept-invite-link";
+import { acceptLookupInvite } from "~/server/communities/accept-lookup-invite";
+import { addSport } from "~/server/communities/add-sport";
+import { approveJoinRequest } from "~/server/communities/approve-join-request";
+import { approveTeamLink } from "~/server/communities/approve-team-link";
+import { communityById } from "~/server/communities/by-id";
+import { createCommunity } from "~/server/communities/create";
+import { createInviteLink } from "~/server/communities/create-invite-link";
+import { getInviteLink } from "~/server/communities/get-invite-link";
+import { leave as leaveCommunity } from "~/server/communities/leave";
+import { listJoinRequests } from "~/server/communities/list-join-requests";
+import { listLookupInvites } from "~/server/communities/list-lookup-invites";
+import { listMembers } from "~/server/communities/list-members";
+import { listTeamLinkRequests } from "~/server/communities/list-team-link-requests";
+import { mine } from "~/server/communities/mine";
+import { pendingLookupInvites } from "~/server/communities/pending-lookup-invites";
+import { previewInviteLink } from "~/server/communities/preview-invite-link";
+import { rejectJoinRequest } from "~/server/communities/reject-join-request";
+import { rejectTeamLink } from "~/server/communities/reject-team-link";
+import { removeSport } from "~/server/communities/remove-sport";
+import { requestJoin } from "~/server/communities/request-join";
+import { requestVenueLink } from "~/server/communities/request-venue-link";
+import { revokeLookupInvite } from "~/server/communities/revoke-lookup-invite";
+import { searchLiveVenues } from "~/server/communities/search-live-venues";
+import { searchLookupUsers } from "~/server/communities/search-lookup-users";
+import { sendLookupInvite } from "~/server/communities/send-lookup-invite";
+import { setMemberRole } from "~/server/communities/set-member-role";
+import { softArchive } from "~/server/communities/soft-archive";
+import { unarchive } from "~/server/communities/unarchive";
+import { unlinkVenue } from "~/server/communities/unlink-venue";
+import { getAppOrigin } from "~/server/invites/tokens";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -59,185 +40,6 @@ import {
 
 const sportSchema = z.enum(["padel", "football"]);
 const communityTypeSchema = z.enum(["public", "private"]);
-
-type DbClient = typeof db;
-type CommunityRole = "owner" | "admin" | "member";
-type JoinRequestStatus = "pending" | "approved" | "rejected";
-type VenueLinkStatus = "pending" | "approved" | "rejected";
-
-function isStaffRole(role: string | null | undefined) {
-  return role === "owner" || role === "admin";
-}
-
-function asRole(role: string): CommunityRole {
-  return role as CommunityRole;
-}
-
-function asJoinStatus(status: string): JoinRequestStatus {
-  return status as JoinRequestStatus;
-}
-
-function asVenueLinkStatus(status: string): VenueLinkStatus {
-  return status as VenueLinkStatus;
-}
-
-function teamDisplayName(name: string | null, memberNames: string[]) {
-  const trimmed = name?.trim();
-  if (trimmed) {
-    return trimmed;
-  }
-  if (memberNames.length === 0) {
-    return "Untitled Team";
-  }
-  return memberNames.join(" & ");
-}
-
-async function requireCommunity(database: DbClient, id: string) {
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, id),
-  });
-
-  if (!community) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Community not found" });
-  }
-
-  return community;
-}
-
-async function loadMemberVenue(database: DbClient, venueId: string | null) {
-  if (!venueId) {
-    return null;
-  }
-
-  const venue = await database.query.venues.findFirst({
-    where: eq(venues.id, venueId),
-    columns: {
-      id: true,
-      name: true,
-      city: true,
-      country: true,
-      logoImageUrl: true,
-      archivedAt: true,
-    },
-    with: {
-      courts: {
-        columns: {
-          id: true,
-          name: true,
-          createdAt: true,
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
-      },
-    },
-  });
-
-  return venue ?? null;
-}
-
-function mapVenueLinkRequestRow(row: {
-  id: string;
-  status: string;
-  createdAt: Date;
-  venue: { id: string; name: string; city: string; country: string };
-}) {
-  return {
-    id: row.id,
-    status: asVenueLinkStatus(row.status),
-    createdAt: row.createdAt,
-    venue: {
-      id: row.venue.id,
-      name: row.venue.name,
-      city: row.venue.city,
-      country: row.venue.country,
-    },
-  };
-}
-
-async function requireMembership(
-  database: DbClient,
-  communityId: string,
-  userId: string,
-) {
-  const membership = await database.query.communityMembers.findFirst({
-    where: and(
-      eq(communityMembers.communityId, communityId),
-      eq(communityMembers.userId, userId),
-    ),
-  });
-
-  return membership ?? null;
-}
-
-async function requireStaff(
-  database: DbClient,
-  communityId: string,
-  userId: string,
-  message = "Only Owner or Admin can manage this Community",
-) {
-  const membership = await requireMembership(database, communityId, userId);
-
-  if (!membership || !isStaffRole(membership.role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message,
-    });
-  }
-
-  return membership;
-}
-
-async function requireOwner(
-  database: DbClient,
-  communityId: string,
-  userId: string,
-) {
-  const membership = await requireMembership(database, communityId, userId);
-
-  if (membership?.role !== "owner") {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Only Owners can change Community roles",
-    });
-  }
-
-  return membership;
-}
-
-async function countOwners(database: DbClient, communityId: string) {
-  const owners = await database.query.communityMembers.findMany({
-    where: and(
-      eq(communityMembers.communityId, communityId),
-      eq(communityMembers.role, CommunityRoleEnum.OWNER),
-    ),
-  });
-
-  return owners.length;
-}
-
-/** Lock Owner rows so last-Owner leave/demote cannot race to zero Owners. */
-async function lockOwnersForUpdate(
-  tx: Parameters<Parameters<DbClient["transaction"]>[0]>[0],
-  communityId: string,
-) {
-  return tx
-    .select({ id: communityMembers.id })
-    .from(communityMembers)
-    .where(
-      and(
-        eq(communityMembers.communityId, communityId),
-        eq(communityMembers.role, CommunityRoleEnum.OWNER),
-      ),
-    )
-    .for("update");
-}
-
-async function requireLiveCommunity(database: DbClient, id: string) {
-  const community = await requireCommunity(database, id);
-  refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-    frozenMessage: "Cannot manage invites for an archived Community",
-  });
-  return community;
-}
 
 export const communitiesRouter = createTRPCRouter({
   create: protectedProcedure
@@ -250,328 +52,34 @@ export const communitiesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const uniqueSports = [...new Set(input.sports)];
-      if (uniqueSports.length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "At least one sport is required",
-        });
-      }
-
       const appUser = await resolveAppUser(ctx.userId);
-
-      const community = await ctx.db.transaction(async (tx) => {
-        const [created] = await tx
-          .insert(communities)
-          .values({
-            name: input.name,
-            description: input.description,
-            type: input.type,
-            createdBy: appUser.id,
-          })
-          .returning();
-
-        if (!created) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create community",
-          });
-        }
-
-        throwAdmitFailure(
-          await admitCommunityMember(tx, {
-            communityId: created.id,
-            userId: appUser.id,
-            role: CommunityRoleEnum.OWNER,
-          }),
-        );
-
-        await tx.insert(communitySports).values(
-          uniqueSports.map((sport) => ({
-            communityId: created.id,
-            sport,
-          })),
-        );
-
-        return created;
+      return createCommunity(ctx.db, {
+        name: input.name,
+        description: input.description,
+        type: input.type,
+        sports: input.sports,
+        userId: appUser.id,
       });
-
-      return community;
     }),
 
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const community = await ctx.db.query.communities.findFirst({
-        where: eq(communities.id, input.id),
-        with: {
-          sports: true,
-        },
+      return communityById(ctx.db, {
+        communityId: input.id,
+        userId: appUser.id,
       });
-
-      if (!community) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const membership = await requireMembership(
-        ctx.db,
-        community.id,
-        appUser.id,
-      );
-
-      const joinRequest = await ctx.db.query.communityJoinRequests.findFirst({
-        where: and(
-          eq(communityJoinRequests.communityId, community.id),
-          eq(communityJoinRequests.userId, appUser.id),
-        ),
-      });
-
-      const archive = consult({ archivedAt: community.archivedAt });
-      const live = !archive.freeze("host");
-      const canManageJoinRequests =
-        community.type === "public" && live && isStaffRole(membership?.role);
-      const canManageInvites =
-        community.type === "private" && live && isStaffRole(membership?.role);
-      const canManageLookupInvites = live && isStaffRole(membership?.role);
-      const canManageInviteLinks = live && isStaffRole(membership?.role);
-      const canCreateClubGroup = live && isStaffRole(membership?.role);
-      const canManageSports = isStaffRole(membership?.role);
-      const canManageRoles = membership?.role === "owner";
-      const canSoftArchive = live && isStaffRole(membership?.role);
-      const canUnarchive =
-        archive.phase === "archived" && isStaffRole(membership?.role);
-      const canManageTeamLinks = live && isStaffRole(membership?.role);
-      const canManageVenueLink = live && isStaffRole(membership?.role);
-
-      const venue = membership
-        ? await loadMemberVenue(ctx.db, community.venueId)
-        : null;
-
-      let venueLinkRequest: ReturnType<typeof mapVenueLinkRequestRow> | null =
-        null;
-      if (isStaffRole(membership?.role)) {
-        const pendingRequest = await ctx.db.query.venueLinkRequests.findFirst({
-          where: and(
-            eq(venueLinkRequests.communityId, community.id),
-            eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
-          ),
-          with: {
-            venue: {
-              columns: {
-                id: true,
-                name: true,
-                city: true,
-                country: true,
-              },
-            },
-          },
-        });
-        if (pendingRequest) {
-          venueLinkRequest = mapVenueLinkRequestRow(pendingRequest);
-        } else {
-          const lastRejected = await ctx.db.query.venueLinkRequests.findFirst({
-            where: and(
-              eq(venueLinkRequests.communityId, community.id),
-              eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.REJECTED),
-            ),
-            with: {
-              venue: {
-                columns: {
-                  id: true,
-                  name: true,
-                  city: true,
-                  country: true,
-                },
-              },
-            },
-            orderBy: (table, { desc }) => [desc(table.createdAt)],
-          });
-          if (lastRejected) {
-            venueLinkRequest = mapVenueLinkRequestRow(lastRejected);
-          }
-        }
-      }
-
-      const canRequestVenueLink =
-        canManageVenueLink &&
-        !community.venueId &&
-        venueLinkRequest?.status !== "pending";
-      const canUnlinkVenue = canManageVenueLink && Boolean(community.venueId);
-
-      let canLeave = Boolean(membership);
-      let linkedTeamBlocksLeave = false;
-      if (membership?.role === "owner") {
-        const ownerCount = await countOwners(ctx.db, community.id);
-        if (ownerCount <= 1) {
-          canLeave = false;
-        }
-      }
-
-      if (membership) {
-        const teamSeats = await ctx.db.query.teamMembers.findMany({
-          where: eq(teamMembers.userId, appUser.id),
-          columns: { teamId: true },
-        });
-        const teamIds = teamSeats.map((row) => row.teamId);
-        if (teamIds.length > 0) {
-          const linkedSeat = await ctx.db.query.teams.findFirst({
-            where: and(
-              eq(teams.communityId, community.id),
-              inArray(teams.id, teamIds),
-            ),
-            columns: { id: true },
-          });
-          if (linkedSeat) {
-            linkedTeamBlocksLeave = true;
-            canLeave = false;
-          }
-        }
-      }
-
-      const clubGroups = await ctx.db.query.groups.findMany({
-        where: eq(groups.communityId, community.id),
-        orderBy: (table, { asc }) => [asc(table.name)],
-      });
-
-      const linkedTeamRows = membership
-        ? await ctx.db.query.teams.findMany({
-            where: eq(teams.communityId, community.id),
-            orderBy: (table, { asc }) => [asc(table.name)],
-          })
-        : [];
-
-      const memberGroupIds = new Set<string>();
-      if (clubGroups.length > 0) {
-        const myGroupMemberships = await ctx.db.query.groupMembers.findMany({
-          where: and(
-            eq(groupMembers.userId, appUser.id),
-            inArray(
-              groupMembers.groupId,
-              clubGroups.map((group) => group.id),
-            ),
-          ),
-        });
-        for (const row of myGroupMemberships) {
-          memberGroupIds.add(row.groupId);
-        }
-      }
-
-      const linkedTeamIds = linkedTeamRows.map((team) => team.id);
-      const linkedTeamMemberRows =
-        linkedTeamIds.length === 0
-          ? []
-          : await ctx.db.query.teamMembers.findMany({
-              where: inArray(teamMembers.teamId, linkedTeamIds),
-              with: {
-                user: {
-                  columns: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            });
-      const linkedMembersByTeam = new Map<string, string[]>();
-      for (const row of linkedTeamMemberRows) {
-        const list = linkedMembersByTeam.get(row.teamId) ?? [];
-        list.push(row.user.name);
-        linkedMembersByTeam.set(row.teamId, list);
-      }
-
-      return {
-        id: community.id,
-        name: community.name,
-        description: community.description,
-        type: community.type,
-        archivedAt: community.archivedAt,
-        createdAt: community.createdAt,
-        sports: community.sports.map(
-          (sportRow) => sportRow.sport as GroupSportEnum,
-        ),
-        membership: membership
-          ? { role: asRole(membership.role), userId: appUser.id }
-          : null,
-        joinRequest: joinRequest
-          ? {
-              id: joinRequest.id,
-              status: asJoinStatus(joinRequest.status),
-            }
-          : null,
-        canManageJoinRequests,
-        canManageInvites,
-        canManageLookupInvites,
-        canManageInviteLinks,
-        canCreateClubGroup,
-        canManageSports,
-        canManageRoles,
-        canSoftArchive,
-        canUnarchive,
-        canLeave,
-        linkedTeamBlocksLeave,
-        canManageTeamLinks,
-        canManageVenueLink,
-        canRequestVenueLink,
-        canUnlinkVenue,
-        venue,
-        venueLinkRequest,
-        groups: clubGroups.map((group) => ({
-          id: group.id,
-          name: group.name,
-          description: group.description,
-          type: group.type,
-          sport: group.sport as GroupSportEnum | null,
-          isMember: memberGroupIds.has(group.id),
-        })),
-        teams: linkedTeamRows.map((team) => ({
-          id: team.id,
-          name: team.name,
-          displayName: teamDisplayName(
-            team.name,
-            linkedMembersByTeam.get(team.id) ?? [],
-          ),
-          sport: team.sport as GroupSportEnum,
-        })),
-      };
     }),
 
   listMembers: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      const membership = await requireMembership(
-        ctx.db,
-        community.id,
-        appUser.id,
-      );
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only Community members can list members",
-        });
-      }
-
-      const rows = await ctx.db.query.communityMembers.findMany({
-        where: eq(communityMembers.communityId, community.id),
-        with: {
-          user: true,
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      return listMembers(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      return rows.map((row) => ({
-        id: row.id,
-        role: asRole(row.role),
-        user: {
-          id: row.user.id,
-          name: row.user.name,
-          email: row.user.email,
-        },
-      }));
     }),
 
   setMemberRole: protectedProcedure
@@ -584,144 +92,42 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireOwner(ctx.db, community.id, appUser.id);
-
-      const target = await requireMembership(
-        ctx.db,
-        community.id,
-        input.userId,
-      );
-
-      if (!target) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Community member not found",
-        });
-      }
-
-      const nextRole = input.role;
-      const previousRole = asRole(target.role);
-
-      if (previousRole === nextRole) {
-        return {
-          ok: true as const,
-          userId: target.userId,
-          role: previousRole,
-        };
-      }
-
-      const demotingOwner = previousRole === "owner" && nextRole !== "owner";
-
-      const updated = await ctx.db.transaction(async (tx) => {
-        if (demotingOwner) {
-          const owners = await lockOwnersForUpdate(tx, community.id);
-          if (owners.length <= 1) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message:
-                "The last Owner cannot demote until another Owner is promoted",
-            });
-          }
-        }
-
-        const [row] = await tx
-          .update(communityMembers)
-          .set({
-            role: nextRole,
-            updatedAt: new Date(),
-          })
-          .where(eq(communityMembers.id, target.id))
-          .returning();
-
-        if (!row) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to update member role",
-          });
-        }
-
-        return row;
+      return setMemberRole(ctx.db, {
+        communityId: input.communityId,
+        callerId: appUser.id,
+        userId: input.userId,
+        role: input.role,
       });
-
-      return {
-        ok: true as const,
-        userId: updated.userId,
-        role: asRole(updated.role),
-      };
     }),
 
   softArchive: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      // Soft-archive hides listing and join paths. Club Groups stay attached
-      // (communityId unchanged). Invite tokens are kept, not auto-revoked.
-      const updated = await commit(
-        ctx.db,
-        { communityId: community.id },
-        "archived",
-      );
-      if (!updated.ok) {
-        throwCommitFailure(updated);
-      }
-
-      return {
-        id: updated.id,
-        archivedAt: updated.archivedAt,
-      };
+      return softArchive(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+      });
     }),
 
   unarchive: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      // Unarchive restores join rules. Live Invite link tokens stay valid
-      // until each expires.
-      const updated = await commit(
-        ctx.db,
-        { communityId: community.id },
-        "live",
-      );
-      if (!updated.ok) {
-        throwCommitFailure(updated);
-      }
-
-      return {
-        id: updated.id,
-        archivedAt: updated.archivedAt,
-      };
+      return unarchive(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+      });
     }),
 
   leave: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      // Leave removes membership only — never Soft-archives the Community.
-      await ctx.db.transaction(async (tx) => {
-        throwLeaveFailure(
-          await leaveCommunity(tx, {
-            communityId: community.id,
-            userId: appUser.id,
-          }),
-        );
+      return leaveCommunity(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      return {
-        ok: true as const,
-        communityId: community.id,
-      };
     }),
 
   addSport: protectedProcedure
@@ -733,44 +139,11 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const existing = await ctx.db.query.communitySports.findFirst({
-        where: and(
-          eq(communitySports.communityId, community.id),
-          eq(communitySports.sport, input.sport),
-        ),
+      return addSport(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+        sport: input.sport,
       });
-
-      if (existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Sport is already on this Community's sports allow-list",
-        });
-      }
-
-      const [created] = await ctx.db
-        .insert(communitySports)
-        .values({
-          communityId: community.id,
-          sport: input.sport,
-        })
-        .returning();
-
-      if (!created) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to add sport",
-        });
-      }
-
-      return {
-        ok: true as const,
-        communityId: community.id,
-        sport: created.sport as GroupSportEnum,
-      };
     }),
 
   removeSport: protectedProcedure
@@ -782,632 +155,86 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const existing = await ctx.db.query.communitySports.findFirst({
-        where: and(
-          eq(communitySports.communityId, community.id),
-          eq(communitySports.sport, input.sport),
-        ),
-      });
-
-      if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Sport is not on this Community's sports allow-list",
-        });
-      }
-
-      const clubGroupWithSport = await ctx.db.query.groups.findFirst({
-        where: and(
-          eq(groups.communityId, community.id),
-          eq(groups.sport, input.sport),
-        ),
-      });
-
-      if (clubGroupWithSport) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Cannot remove a sport while a Club Group of that sport exists in this Community",
-        });
-      }
-
-      const linkedTeamWithSport = await ctx.db.query.teams.findFirst({
-        where: and(
-          eq(teams.communityId, community.id),
-          eq(teams.sport, input.sport),
-        ),
-      });
-
-      if (linkedTeamWithSport) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Cannot remove a sport while a linked Team of that sport exists in this Community",
-        });
-      }
-
-      await ctx.db
-        .delete(communitySports)
-        .where(eq(communitySports.id, existing.id));
-
-      return {
-        ok: true as const,
-        communityId: community.id,
+      return removeSport(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
         sport: input.sport,
-      };
+      });
     }),
 
   listTeamLinkRequests: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-      await requireStaff(
-        ctx.db,
-        community.id,
-        appUser.id,
-        "Only Owner or Admin can list Team link requests",
-      );
-
-      const rows = await ctx.db.query.teamLinkRequests.findMany({
-        where: and(
-          eq(teamLinkRequests.communityId, community.id),
-          eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
-        ),
-        with: {
-          team: true,
-          requestedBy: {
-            columns: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      return listTeamLinkRequests(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      const teamIds = rows.map((row) => row.team.id);
-      const memberRows =
-        teamIds.length === 0
-          ? []
-          : await ctx.db.query.teamMembers.findMany({
-              where: inArray(teamMembers.teamId, teamIds),
-              with: {
-                user: {
-                  columns: { id: true, name: true },
-                },
-              },
-            });
-      const membersByTeam = new Map<string, string[]>();
-      for (const row of memberRows) {
-        const list = membersByTeam.get(row.teamId) ?? [];
-        list.push(row.user.name);
-        membersByTeam.set(row.teamId, list);
-      }
-
-      return rows.map((row) => ({
-        id: row.id,
-        createdAt: row.createdAt,
-        team: {
-          id: row.team.id,
-          displayName: teamDisplayName(
-            row.team.name,
-            membersByTeam.get(row.team.id) ?? [],
-          ),
-          sport: row.team.sport as GroupSportEnum,
-        },
-        requestedBy: row.requestedBy,
-      }));
     }),
 
   approveTeamLink: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const request = await ctx.db.query.teamLinkRequests.findFirst({
-        where: eq(teamLinkRequests.id, input.requestId),
-        with: {
-          team: true,
-        },
+      return approveTeamLink(ctx.db, {
+        requestId: input.requestId,
+        userId: appUser.id,
       });
-
-      if (request?.status !== "pending") {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Team link request is not available",
-        });
-      }
-
-      await requireStaff(
-        ctx.db,
-        request.communityId,
-        appUser.id,
-        "Only Owner or Admin can approve Team link requests",
-      );
-
-      const community = await requireCommunity(ctx.db, request.communityId);
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-        frozenMessage:
-          "Cannot approve Team link requests for an archived Community",
-      });
-
-      if (request.team.communityId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This Team is already linked to a Community",
-        });
-      }
-
-      const allowedSport = await ctx.db.query.communitySports.findFirst({
-        where: and(
-          eq(communitySports.communityId, request.communityId),
-          eq(communitySports.sport, request.team.sport),
-        ),
-      });
-
-      if (!allowedSport) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Sport is not on this Community's sports allow-list",
-        });
-      }
-
-      const memberRows = await ctx.db.query.teamMembers.findMany({
-        where: eq(teamMembers.teamId, request.team.id),
-      });
-
-      if (memberRows.length < 2) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Incomplete Teams cannot be linked",
-        });
-      }
-
-      await ctx.db.transaction(async (tx) => {
-        for (const member of memberRows) {
-          const admitted = await admitCommunityMember(tx, {
-            communityId: request.communityId,
-            userId: member.userId,
-            role: CommunityRoleEnum.MEMBER,
-          });
-          if (!admitted.ok && admitted.reason !== "already_member") {
-            throwAdmitFailure(admitted);
-          }
-        }
-
-        await tx
-          .update(teams)
-          .set({
-            communityId: request.communityId,
-            updatedAt: new Date(),
-          })
-          .where(eq(teams.id, request.team.id));
-
-        const [updated] = await tx
-          .update(teamLinkRequests)
-          .set({
-            status: TeamLinkRequestStatusEnum.APPROVED,
-            decidedBy: appUser.id,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(teamLinkRequests.id, request.id),
-              eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
-            ),
-          )
-          .returning();
-
-        if (!updated) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Team link request is no longer pending",
-          });
-        }
-      });
-
-      return {
-        ok: true as const,
-        teamId: request.team.id,
-        communityId: request.communityId,
-      };
     }),
 
   rejectTeamLink: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const request = await ctx.db.query.teamLinkRequests.findFirst({
-        where: eq(teamLinkRequests.id, input.requestId),
+      return rejectTeamLink(ctx.db, {
+        requestId: input.requestId,
+        userId: appUser.id,
       });
-
-      if (request?.status !== "pending") {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Team link request is not available",
-        });
-      }
-
-      await requireStaff(
-        ctx.db,
-        request.communityId,
-        appUser.id,
-        "Only Owner or Admin can reject Team link requests",
-      );
-
-      const community = await requireCommunity(ctx.db, request.communityId);
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-        frozenMessage:
-          "Cannot reject Team link requests for an archived Community",
-      });
-
-      const [updated] = await ctx.db
-        .update(teamLinkRequests)
-        .set({
-          status: TeamLinkRequestStatusEnum.REJECTED,
-          decidedBy: appUser.id,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(teamLinkRequests.id, request.id),
-            eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
-          ),
-        )
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Team link request is no longer pending",
-        });
-      }
-
-      return {
-        ok: true as const,
-        teamId: request.teamId,
-        communityId: request.communityId,
-      };
     }),
 
   mine: protectedProcedure.query(async ({ ctx }) => {
     const appUser = await resolveAppUser(ctx.userId);
-
-    const memberships = await ctx.db.query.communityMembers.findMany({
-      where: eq(communityMembers.userId, appUser.id),
-      with: {
-        community: {
-          with: {
-            sports: true,
-          },
-        },
-      },
-    });
-
-    const communityIds = memberships.map(
-      (membership) => membership.community.id,
-    );
-
-    const clubGroups =
-      communityIds.length > 0
-        ? await ctx.db.query.groups.findMany({
-            where: inArray(groups.communityId, communityIds),
-            orderBy: (table, { asc }) => [asc(table.name)],
-          })
-        : [];
-
-    const memberGroupIds = new Set<string>();
-    if (clubGroups.length > 0) {
-      const myGroupMemberships = await ctx.db.query.groupMembers.findMany({
-        where: and(
-          eq(groupMembers.userId, appUser.id),
-          inArray(
-            groupMembers.groupId,
-            clubGroups.map((group) => group.id),
-          ),
-        ),
-      });
-      for (const row of myGroupMemberships) {
-        memberGroupIds.add(row.groupId);
-      }
-    }
-
-    const groupsByCommunityId = new Map<string, typeof clubGroups>();
-    for (const group of clubGroups) {
-      if (!group.communityId) {
-        continue;
-      }
-      const nested = groupsByCommunityId.get(group.communityId) ?? [];
-      nested.push(group);
-      groupsByCommunityId.set(group.communityId, nested);
-    }
-
-    return memberships.map((membership) => ({
-      id: membership.community.id,
-      name: membership.community.name,
-      description: membership.community.description,
-      type: membership.community.type,
-      role: asRole(membership.role),
-      sports: membership.community.sports.map(
-        (sportRow) => sportRow.sport as GroupSportEnum,
-      ),
-      archivedAt: membership.community.archivedAt,
-      groups: (groupsByCommunityId.get(membership.community.id) ?? []).map(
-        (group) => ({
-          id: group.id,
-          name: group.name,
-          description: group.description,
-          type: group.type,
-          sport: group.sport as GroupSportEnum | null,
-          isMember: memberGroupIds.has(group.id),
-        }),
-      ),
-    }));
+    return mine(ctx.db, { userId: appUser.id });
   }),
 
   requestJoin: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      if (community.type !== "public") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Community Private has no request-to-join path",
-        });
-      }
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
-        frozenMessage: "Cannot request to join an archived Community",
+      return requestJoin(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      const membership = await requireMembership(
-        ctx.db,
-        community.id,
-        appUser.id,
-      );
-      if (membership) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You are already a member of this Community",
-        });
-      }
-
-      const existing = await ctx.db.query.communityJoinRequests.findFirst({
-        where: and(
-          eq(communityJoinRequests.communityId, community.id),
-          eq(communityJoinRequests.userId, appUser.id),
-        ),
-      });
-
-      if (existing?.status === "pending") {
-        return {
-          id: existing.id,
-          status: asJoinStatus(existing.status),
-        };
-      }
-
-      // Non-members may re-request after leave (approved leftover) or reject.
-      if (existing?.status === "rejected" || existing?.status === "approved") {
-        const [updated] = await ctx.db
-          .update(communityJoinRequests)
-          .set({
-            status: CommunityJoinRequestStatusEnum.PENDING,
-            decidedBy: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(communityJoinRequests.id, existing.id))
-          .returning();
-
-        if (!updated) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to re-request join",
-          });
-        }
-
-        return {
-          id: updated.id,
-          status: asJoinStatus(updated.status),
-        };
-      }
-
-      const [created] = await ctx.db
-        .insert(communityJoinRequests)
-        .values({
-          communityId: community.id,
-          userId: appUser.id,
-          status: CommunityJoinRequestStatusEnum.PENDING,
-        })
-        .returning();
-
-      if (!created) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create join request",
-        });
-      }
-
-      return {
-        id: created.id,
-        status: asJoinStatus(created.status),
-      };
     }),
 
   listJoinRequests: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-
-      if (community.type !== "public") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Join requests only apply to Community Public",
-        });
-      }
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const rows = await ctx.db.query.communityJoinRequests.findMany({
-        where: and(
-          eq(communityJoinRequests.communityId, community.id),
-          eq(
-            communityJoinRequests.status,
-            CommunityJoinRequestStatusEnum.PENDING,
-          ),
-        ),
-        with: {
-          user: true,
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      return listJoinRequests(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      return rows.map((row) => ({
-        id: row.id,
-        status: asJoinStatus(row.status),
-        createdAt: row.createdAt,
-        user: {
-          id: row.user.id,
-          name: row.user.name,
-          email: row.user.email,
-        },
-      }));
     }),
 
   approveJoinRequest: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const request = await ctx.db.query.communityJoinRequests.findFirst({
-        where: eq(communityJoinRequests.id, input.requestId),
+      return approveJoinRequest(ctx.db, {
+        requestId: input.requestId,
+        userId: appUser.id,
       });
-
-      if (!request) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Join request not found",
-        });
-      }
-
-      const community = await requireCommunity(ctx.db, request.communityId);
-
-      if (community.type !== "public") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Join requests only apply to Community Public",
-        });
-      }
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
-        frozenMessage: "Cannot approve join requests for an archived Community",
-      });
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      if (request.status !== "pending") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Join request is not pending",
-        });
-      }
-
-      await ctx.db.transaction(async (tx) => {
-        const [updated] = await tx
-          .update(communityJoinRequests)
-          .set({
-            status: CommunityJoinRequestStatusEnum.APPROVED,
-            decidedBy: appUser.id,
-            updatedAt: new Date(),
-          })
-          .where(eq(communityJoinRequests.id, request.id))
-          .returning();
-
-        if (!updated) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to approve join request",
-          });
-        }
-
-        const admitted = await admitCommunityMember(tx, {
-          communityId: community.id,
-          userId: request.userId,
-          role: CommunityRoleEnum.MEMBER,
-        });
-        if (!admitted.ok && admitted.reason !== "already_member") {
-          throwAdmitFailure(admitted);
-        }
-      });
-
-      return { ok: true as const };
     }),
 
   rejectJoinRequest: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const request = await ctx.db.query.communityJoinRequests.findFirst({
-        where: eq(communityJoinRequests.id, input.requestId),
+      return rejectJoinRequest(ctx.db, {
+        requestId: input.requestId,
+        userId: appUser.id,
       });
-
-      if (!request) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Join request not found",
-        });
-      }
-
-      const community = await requireCommunity(ctx.db, request.communityId);
-
-      if (community.type !== "public") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Join requests only apply to Community Public",
-        });
-      }
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
-        frozenMessage: "Cannot reject join requests for an archived Community",
-      });
-
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      if (request.status !== "pending") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Join request is not pending",
-        });
-      }
-
-      const [updated] = await ctx.db
-        .update(communityJoinRequests)
-        .set({
-          status: CommunityJoinRequestStatusEnum.REJECTED,
-          decidedBy: appUser.id,
-          updatedAt: new Date(),
-        })
-        .where(eq(communityJoinRequests.id, request.id))
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to reject join request",
-        });
-      }
-
-      return { ok: true as const };
     }),
 
   searchLookupUsers: protectedProcedure
@@ -1419,29 +246,10 @@ export const communitiesRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireLiveCommunity(ctx.db, input.communityId);
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const members = await ctx.db.query.communityMembers.findMany({
-        where: eq(communityMembers.communityId, community.id),
-        columns: { userId: true },
-      });
-      const unusedInvites = await ctx.db.query.communityMemberInvites.findMany({
-        where: and(
-          eq(communityMemberInvites.communityId, community.id),
-          isNull(communityMemberInvites.acceptedAt),
-          isNull(communityMemberInvites.revokedAt),
-        ),
-        columns: { userId: true },
-      });
-
       return searchLookupUsers(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
         query: input.query,
-        excludeUserIds: [
-          appUser.id,
-          ...members.map((member) => member.userId),
-          ...unusedInvites.map((invite) => invite.userId),
-        ],
       });
     }),
 
@@ -1454,363 +262,84 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireLiveCommunity(ctx.db, input.communityId);
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const uniqueIds = [...new Set(input.userIds)];
-      const targets = await ctx.db.query.user.findMany({
-        where: inArray(user.id, uniqueIds),
-        columns: {
-          id: true,
-          name: true,
-        },
+      return sendLookupInvite(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+        userIds: input.userIds,
       });
-      const targetsById = new Map(targets.map((row) => [row.id, row]));
-
-      const sent: {
-        id: string;
-        communityId: string;
-        userId: string;
-        createdAt: Date;
-      }[] = [];
-      const refused: { name: string; message: string }[] = [];
-
-      for (const userId of uniqueIds) {
-        const target = targetsById.get(userId);
-        if (!target) {
-          refused.push({ name: "Unknown User", message: "User not found" });
-          continue;
-        }
-
-        const existingMembership = await requireMembership(
-          ctx.db,
-          community.id,
-          target.id,
-        );
-        if (existingMembership) {
-          refused.push({
-            name: target.name,
-            message: "User is already a Member of this Community",
-          });
-          continue;
-        }
-
-        const existingInvite =
-          await ctx.db.query.communityMemberInvites.findFirst({
-            where: and(
-              eq(communityMemberInvites.communityId, community.id),
-              eq(communityMemberInvites.userId, target.id),
-              isNull(communityMemberInvites.acceptedAt),
-              isNull(communityMemberInvites.revokedAt),
-            ),
-          });
-
-        if (existingInvite) {
-          refused.push({
-            name: target.name,
-            message: "An unused Lookup invite already exists for this User",
-          });
-          continue;
-        }
-
-        try {
-          const minted = await mintLookup(
-            ctx.db,
-            { kind: "community", id: community.id },
-            { userId: target.id, invitedBy: appUser.id },
-          );
-          if (!minted.ok) {
-            refused.push({
-              name: target.name,
-              message:
-                minted.reason === "unused_exists"
-                  ? "An unused Lookup invite already exists for this User"
-                  : "Failed to create Lookup invite",
-            });
-            continue;
-          }
-
-          sent.push({
-            id: minted.invite.id,
-            communityId: minted.invite.hostId,
-            userId: minted.invite.userId,
-            createdAt: minted.invite.createdAt,
-          });
-        } catch {
-          refused.push({
-            name: target.name,
-            message: "An unused Lookup invite already exists for this User",
-          });
-        }
-      }
-
-      return { sent, refused };
     }),
 
   listLookupInvites: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireLiveCommunity(ctx.db, input.communityId);
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const rows = await listLookup(ctx.db, {
-        kind: "community",
-        id: community.id,
+      return listLookupInvites(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      return rows;
     }),
 
   revokeLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const invite = await ctx.db.query.communityMemberInvites.findFirst({
-        where: eq(communityMemberInvites.id, input.inviteId),
+      return revokeLookupInvite(ctx.db, {
+        inviteId: input.inviteId,
+        userId: appUser.id,
       });
-
-      if (!invite) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Lookup invite not found",
-        });
-      }
-
-      const community = await requireLiveCommunity(ctx.db, invite.communityId);
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      if (invite.acceptedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Accepted Lookup invites cannot be revoked",
-        });
-      }
-
-      if (invite.revokedAt) {
-        return { ok: true as const };
-      }
-
-      const revoked = await revokeLookup(
-        ctx.db,
-        { kind: "community", id: community.id },
-        invite.id,
-      );
-      if (!revoked.ok && revoked.reason === "already_accepted") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Accepted Lookup invites cannot be revoked",
-        });
-      }
-      if (!revoked.ok) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to revoke Lookup invite",
-        });
-      }
-
-      return { ok: true as const };
     }),
 
   pendingLookupInvites: protectedProcedure.query(async ({ ctx }) => {
     const appUser = await resolveAppUser(ctx.userId);
-
-    const rows = await ctx.db.query.communityMemberInvites.findMany({
-      where: and(
-        eq(communityMemberInvites.userId, appUser.id),
-        isNull(communityMemberInvites.acceptedAt),
-        isNull(communityMemberInvites.revokedAt),
-      ),
-      with: {
-        community: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
-        invitedBy: {
-          columns: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: (table, { desc }) => [desc(table.createdAt)],
-    });
-
-    return rows.map((row) => ({
-      id: row.id,
-      communityId: row.communityId,
-      communityName: row.community.name,
-      invitedBy: {
-        id: row.invitedBy.id,
-        name: row.invitedBy.name,
-        email: row.invitedBy.email,
-      },
-      createdAt: row.createdAt,
-    }));
+    return pendingLookupInvites(ctx.db, { userId: appUser.id });
   }),
 
   acceptLookupInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const invite = await ctx.db.query.communityMemberInvites.findFirst({
-        where: eq(communityMemberInvites.id, input.inviteId),
+      return acceptLookupInvite(ctx.db, {
+        inviteId: input.inviteId,
+        userId: appUser.id,
       });
-
-      if (!invite || invite.acceptedAt || invite.revokedAt) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Lookup invite is not available",
-        });
-      }
-
-      if (invite.userId !== appUser.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "This invite is for a different User",
-        });
-      }
-
-      const community = await requireCommunity(ctx.db, invite.communityId);
-      const accepted = await acceptLookup(
-        ctx.db,
-        { kind: "community", id: community.id },
-        { inviteId: invite.id, userId: appUser.id },
-      );
-      if (!accepted.ok) {
-        if (accepted.reason === "frozen" || accepted.reason === "not_found") {
-          throwInviteFrozen(
-            { kind: "community", id: community.id },
-            "accept",
-            accepted.reason,
-          );
-        }
-        if (accepted.reason === "wrong_user") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "This invite is for a different User",
-          });
-        }
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Lookup invite is not available",
-        });
-      }
-
-      return {
-        communityId: community.id,
-        alreadyMember: accepted.alreadyMember,
-      };
     }),
 
   getInviteLink: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireLiveCommunity(ctx.db, input.communityId);
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const newest = await ctx.db.query.communityInviteLinks.findFirst({
-        where: and(
-          eq(communityInviteLinks.communityId, community.id),
-          gt(communityInviteLinks.expiresAt, new Date()),
-        ),
-        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      return getInviteLink(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+        origin: getAppOrigin(ctx.headers),
       });
-
-      if (!newest) {
-        return null;
-      }
-
-      return {
-        id: newest.id,
-        inviteUrl: communityInviteLinkUrl(
-          getAppOrigin(ctx.headers),
-          newest.token,
-        ),
-        createdAt: newest.createdAt,
-        expiresAt: newest.expiresAt,
-      };
     }),
 
   createInviteLink: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireLiveCommunity(ctx.db, input.communityId);
-      await requireStaff(ctx.db, community.id, appUser.id);
-
-      const minted = await mintLink(
-        ctx.db,
-        { kind: "community", id: community.id },
-        { createdBy: appUser.id },
-      );
-      if (!minted.ok) {
-        throwInviteFrozen(
-          { kind: "community", id: community.id },
-          "mint",
-          minted.reason === "frozen" ? "frozen" : "not_found",
-        );
-      }
-
-      return {
-        id: minted.link.id,
-        inviteUrl: communityInviteLinkUrl(
-          getAppOrigin(ctx.headers),
-          minted.link.token,
-        ),
-        createdAt: minted.link.createdAt,
-        expiresAt: minted.link.expiresAt,
-      };
+      return createInviteLink(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+        origin: getAppOrigin(ctx.headers),
+      });
     }),
 
   previewInviteLink: publicProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .query(async ({ ctx, input }) => {
-      const previewed = await previewLink(ctx.db, "community", input.token);
-      if (previewed.status === "ready") {
-        return {
-          status: "ready" as const,
-          communityName: previewed.name,
-        };
-      }
-      return { status: previewed.status };
+      return previewInviteLink(ctx.db, { token: input.token });
     }),
 
   acceptInviteLink: protectedProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-
-      const accepted = await acceptLink(ctx.db, "community", {
+      return acceptInviteLink(ctx.db, {
         token: input.token,
         userId: appUser.id,
       });
-      if (!accepted.ok) {
-        if (accepted.reason === "frozen") {
-          throwInviteFrozen({ kind: "community", id: "" }, "accept", "frozen");
-        }
-        if (accepted.reason === "already_member") {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "You are already a Member of this Community",
-          });
-        }
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Invite link is not available",
-        });
-      }
-
-      return {
-        communityId: accepted.hostId,
-        alreadyMember: accepted.alreadyMember,
-      };
     }),
 
   searchLiveVenues: protectedProcedure
@@ -1822,55 +351,11 @@ export const communitiesRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-      await requireStaff(
-        ctx.db,
-        community.id,
-        appUser.id,
-        "Only Owner or Admin can search Venues",
-      );
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-        frozenMessage: "Cannot search Venues for an archived Community",
+      return searchLiveVenues(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+        query: input.query,
       });
-
-      const query = input.query;
-      const rows = await ctx.db.query.venues.findMany({
-        where: and(
-          liveVenuesWhere(),
-          query
-            ? or(
-                ilike(venues.name, `%${query}%`),
-                ilike(venues.city, `%${query}%`),
-                ilike(venues.country, `%${query}%`),
-              )
-            : undefined,
-        ),
-        columns: {
-          id: true,
-          name: true,
-          city: true,
-          country: true,
-          logoImageUrl: true,
-        },
-        with: {
-          courts: {
-            columns: {
-              id: true,
-              name: true,
-              createdAt: true,
-            },
-            orderBy: (table, { asc }) => [asc(table.createdAt)],
-          },
-        },
-        orderBy: (table, { asc }) => [
-          asc(table.name),
-          asc(table.city),
-          asc(table.country),
-        ],
-      });
-
-      return rows;
     }),
 
   requestVenueLink: protectedProcedure
@@ -1882,127 +367,20 @@ export const communitiesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-      await requireStaff(
-        ctx.db,
-        community.id,
-        appUser.id,
-        "Only Owner or Admin can request a Venue link",
-      );
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-        frozenMessage: "Cannot request a Venue link for an archived Community",
+      return requestVenueLink(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
+        venueId: input.venueId,
       });
-
-      if (community.venueId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This Community already has a Venue link",
-        });
-      }
-
-      const venue = await ctx.db.query.venues.findFirst({
-        where: eq(venues.id, input.venueId),
-        columns: { id: true, archivedAt: true },
-      });
-
-      if (!venue) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
-      }
-
-      refuseIfFrozen(consult({ archivedAt: venue.archivedAt }), "catalog", {
-        frozenMessage: "Cannot request a link to a Soft-archived Venue",
-        notFoundMessage: "Venue not found",
-      });
-
-      const pending = await ctx.db.query.venueLinkRequests.findFirst({
-        where: and(
-          eq(venueLinkRequests.communityId, community.id),
-          eq(venueLinkRequests.status, VenueLinkRequestStatusEnum.PENDING),
-        ),
-      });
-
-      if (pending) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "This Community already has a pending Venue link request",
-        });
-      }
-
-      try {
-        const [created] = await ctx.db
-          .insert(venueLinkRequests)
-          .values({
-            communityId: community.id,
-            venueId: venue.id,
-            requestedBy: appUser.id,
-            status: VenueLinkRequestStatusEnum.PENDING,
-          })
-          .returning();
-
-        if (!created) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create Venue link request",
-          });
-        }
-
-        return {
-          id: created.id,
-          communityId: created.communityId,
-          venueId: created.venueId,
-          status: asVenueLinkStatus(created.status),
-        };
-      } catch (error) {
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "code" in error &&
-          error.code === "23505"
-        ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "This Community already has a pending Venue link request",
-          });
-        }
-        throw error;
-      }
     }),
 
   unlinkVenue: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const appUser = await resolveAppUser(ctx.userId);
-      const community = await requireCommunity(ctx.db, input.communityId);
-      await requireStaff(
-        ctx.db,
-        community.id,
-        appUser.id,
-        "Only Owner or Admin can unlink a Venue",
-      );
-
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-        frozenMessage: "Cannot unlink a Venue from an archived Community",
+      return unlinkVenue(ctx.db, {
+        communityId: input.communityId,
+        userId: appUser.id,
       });
-
-      if (!community.venueId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This Community is not linked to a Venue",
-        });
-      }
-
-      await ctx.db
-        .update(communities)
-        .set({
-          venueId: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(communities.id, community.id));
-
-      return {
-        ok: true as const,
-        communityId: community.id,
-      };
     }),
 });

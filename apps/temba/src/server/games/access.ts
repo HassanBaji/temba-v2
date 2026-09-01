@@ -15,6 +15,9 @@ import {
 
 import { type db } from "~/server/db";
 import { consult } from "~/server/soft-archive";
+import type { RegistrationStatus } from "~/server/games/utils";
+
+export type { RegistrationStatus };
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -315,8 +318,6 @@ export async function assertRegistrationOpen(
     });
   }
 }
-
-export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
 
 type RegistrationStatusGame = {
   cancelledAt: Date | null;

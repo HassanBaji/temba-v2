@@ -13,8 +13,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
-
-type InviteKind = "community" | "group" | "team";
+import type { InviteHostKind } from "~/server/invites/doors";
 
 export function AcceptInviteFlow({
   kind,
@@ -22,7 +21,7 @@ export function AcceptInviteFlow({
   isSignedIn,
   returnPath,
 }: {
-  kind: InviteKind;
+  kind: Exclude<InviteHostKind, "game">;
   token: string;
   isSignedIn: boolean;
   returnPath: string;
