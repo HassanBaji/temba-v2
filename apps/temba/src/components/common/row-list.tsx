@@ -20,6 +20,7 @@ export function RowList({ className, ...props }: React.ComponentProps<"ul">) {
 export function ListRow({
   leading,
   title,
+  subtitle,
   meta,
   trailing,
   asChild = false,
@@ -29,6 +30,7 @@ export function ListRow({
 }: {
   leading?: React.ReactNode;
   title: React.ReactNode;
+  subtitle?: React.ReactNode;
   meta?: React.ReactNode;
   trailing?: React.ReactNode;
   asChild?: boolean;
@@ -52,6 +54,9 @@ export function ListRow({
       {leading ? <div className="shrink-0">{leading}</div> : null}
       <div className="min-w-0 flex-1">
         <p className="text-lead truncate font-semibold">{title}</p>
+        {subtitle ? (
+          <p className="text-body text-muted-foreground truncate">{subtitle}</p>
+        ) : null}
         {meta ? (
           <p className="text-meta text-muted-foreground truncate">{meta}</p>
         ) : null}
