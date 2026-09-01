@@ -495,7 +495,7 @@ Field availability today:
 | Venue and Court | **Broken** | `games.courtId` references `venues.id`, not `courts.id` (§7.2). Corrected on `Match` by TEM-40 |
 | Format, open/full/closed, spots, Waitlist | Does not exist | `games-matches` (TEM-36, TEM-37) |
 | Registered Users, avatars | Does not exist | `games-matches` Game-scoped pool (TEM-36, TEM-39) |
-| Price per player | Columns exist (`totalPrice`, `pricePerPlayer`), unread | `games-matches` explicitly excludes payment |
+| Price per player | Game.`pricePerPlayerCents` | `.scratch/game-price-per-player/spec.md` (TEM-105). Surface when set; still no payments |
 | Level or skill band | Does not exist anywhere | Rankings phase, TEM-69 |
 | Set scores and Match result | Does not exist | `games-matches` Sets (TEM-41) |
 
@@ -904,7 +904,7 @@ Manual check at 360, 390, 430, 768, 1024 and 1440px, signed in as a seeded playe
 - Adding `react-hook-form`, `date-fns`, `dayjs`, `framer-motion`, or any shadcn primitive with no phase-one consumer
 - Removing `recharts`, `@tanstack/react-table`, `@dnd-kit/*` or the legacy `@radix-ui/*` singletons — flagged, not actioned
 - Moving `teamDisplayName` out of the two routers
-- Payment, price or guest UI
+- Payment or guest UI. Price per player display: `.scratch/game-price-per-player/spec.md` (TEM-105)
 - Football pickers or any sport selection
 - Coaching UI — the `coach`, `coaching_session` and `coaching_session_players` tables have zero UI and stay that way
 - Notifications, push or email delivery

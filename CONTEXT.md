@@ -188,6 +188,10 @@ _Avoid_: player (when you mean someone waitlisted), guest
 Registered occupancy of a User or complete Team on a Game. Distinct from Waitlist and from creating the Game.
 _Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window)
 
+**Price per player**:
+The display-only amount one User pays to occupy a seat on that Game. Optional on the Game; zero means free; unset means the organizer did not state an amount. Not a payment, not per Game team, and not a total for the Game.
+_Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
+
 **User**:
 A person with a Temba account.
 _Avoid_: player (when you mean User), member (when you mean the Community role)

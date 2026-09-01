@@ -170,7 +170,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 - **Sets:** rows on a Match. Order is add order. Each Set: optional games-won for slot 1 and slot 2 (both null = shell). Organizer may insert a shell with empty slots over tRPC. Entering or editing games-won requires both slots filled; both values required together; equal values allowed (draw); no tie-break points. Unequal → 1 Set-win for the higher slot; equal → 0 both. Match result is computed, not stored, except completed/cancelled flags. Who may add/remove Sets or complete: organizer, or Users on the two Game teams currently in the slots (complete requires ≥1 Set). Completed: refuse add/remove/edit. Cancelled Match: refuse Sets. No Set table on Americano this slice. The App hides Add Set and Remove Set. Friendly game Matches start with three shells at create. Historical Friendly game ensure-3 is App-only (organizer Game home, skip cancelled/completed, do not delete 4+).
 
-- **Payment fields** on the old contest row (`totalPrice`, `pricePerPlayer`, paid columns): unread this slice. Do not ship payment UI. Do not require them on Match.
+- **Payment fields** on the old contest row (`totalPrice`, `pricePerPlayer`, paid columns): unread this slice. Do not ship payment UI. Do not require them on Match. **Amended:** display-only **price per player** on Game is `.scratch/game-price-per-player/spec.md` (TEM-105). Payments stay out.
 
 - **Old integer set counters** (`setsPlayed`, `setsWon`, `setsLost`): unused for product; prefer drop or ignore in the migration. Do not invent Set rows from them.
 
@@ -240,7 +240,7 @@ Community/Group/Team Lookup invite and Invite link, Soft-archive refuse patterns
 - Friendly tournament bracket / later “D” style
 - Live or point-by-point scoring; tie-break points
 - Updating User, Group, or Team stored counters from completed Matches
-- Payment, prices, guests
+- Payments, guests. Prices: `.scratch/game-price-per-player/spec.md` (TEM-105) — display-only; still no payments
 - Football pickers in App UI
 - Game Email invite
 - Game invite that auto-admits to a Community or joins a Group
