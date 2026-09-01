@@ -100,7 +100,11 @@ import {
 } from "~/server/games/hub-list-rows";
 import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
-import { gameInviteLinkUrl, getAppOrigin } from "~/server/invites/tokens";
+import {
+  gameInviteLinkUrl,
+  gameInviteShortUrl,
+  getAppOrigin,
+} from "~/server/invites/tokens";
 import {
   assertGameInviteDoorsOpen,
   assertInviteeAllowedOnGame,
@@ -2030,9 +2034,13 @@ export const gamesRouter = createTRPCRouter({
       if (!newest) {
         return null;
       }
+      const origin = getAppOrigin(ctx.headers);
       return {
         id: newest.id,
-        inviteUrl: gameInviteLinkUrl(getAppOrigin(ctx.headers), newest.token),
+        inviteUrl: gameInviteLinkUrl(origin, newest.token),
+        shortUrl: newest.shortCode
+          ? gameInviteShortUrl(origin, newest.shortCode)
+          : null,
         createdAt: newest.createdAt,
         expiresAt: newest.expiresAt,
       };
@@ -2056,12 +2064,13 @@ export const gamesRouter = createTRPCRouter({
           message: "Failed to create Invite link",
         });
       }
+      const origin = getAppOrigin(ctx.headers);
       return {
         id: minted.link.id,
-        inviteUrl: gameInviteLinkUrl(
-          getAppOrigin(ctx.headers),
-          minted.link.token,
-        ),
+        inviteUrl: gameInviteLinkUrl(origin, minted.link.token),
+        shortUrl: minted.link.shortCode
+          ? gameInviteShortUrl(origin, minted.link.shortCode)
+          : null,
         createdAt: minted.link.createdAt,
         expiresAt: minted.link.expiresAt,
       };

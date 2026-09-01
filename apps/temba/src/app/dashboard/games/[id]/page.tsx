@@ -288,7 +288,7 @@ export default function GameHomePage({
 
   const createInviteLink = api.games.createInviteLink.useMutation({
     onSuccess: async (result) => {
-      await navigator.clipboard.writeText(result.inviteUrl);
+      await navigator.clipboard.writeText(result.shortUrl ?? result.inviteUrl);
       toast.success("Invite link copied");
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
@@ -687,7 +687,7 @@ export default function GameHomePage({
           restoreFocusRef={inviteButtonRef}
           canSendLookup={canSendGameLookup}
           canCopyInviteLink
-          inviteUrl={inviteLink.data?.inviteUrl}
+          inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
           sendPending={sendLookupInvite.isPending}
           copyPending={createInviteLink.isPending}
           sendError={sendLookupInvite.error}
