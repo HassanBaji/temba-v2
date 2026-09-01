@@ -10,5 +10,10 @@
   "dependencies": {
     "turbo": "^2.10.11"
   },
-  "packageManager": "pnpm@10.13.1"
+  "packageManager": "pnpm@10.13.1",
+  "pnpm": {
+    "overrides": {
+      "drizzle-orm": "0.41.0"
+    }
+  }
 }

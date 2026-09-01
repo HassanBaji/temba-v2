@@ -72,9 +72,6 @@ function formatWhen(value: Date | string | null | undefined) {
   });
 }
 
-const FRIENDLY_SET_SHELL_COUNT = 3;
-const friendlySetEnsureInFlight = new Set<string>();
-
 function optionalSelectId(value: string) {
   return value === "none" || value.length === 0 ? null : value;
 }
@@ -300,15 +297,6 @@ export default function GameHomePage({
     },
   });
 
-  const addSet = api.games.addSet.useMutation({
-    onSuccess: async () => {
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
   const scoreSet = api.games.scoreSet.useMutation({
     onSuccess: async () => {
       toast.success("Set saved");
@@ -444,35 +432,6 @@ export default function GameHomePage({
     }
     setSetScores(nextScores);
   }, [data]);
-
-  React.useEffect(() => {
-    if (!data?.isOrganizer || data.format !== "friendly_game") {
-      return;
-    }
-    for (const match of data.matches) {
-      if (match.status === "cancelled" || match.status === "completed") {
-        continue;
-      }
-      const need = FRIENDLY_SET_SHELL_COUNT - match.sets.length;
-      if (need <= 0) {
-        continue;
-      }
-      const key = `${id}:${match.id}`;
-      if (friendlySetEnsureInFlight.has(key)) {
-        continue;
-      }
-      friendlySetEnsureInFlight.add(key);
-      void (async () => {
-        try {
-          for (let i = 0; i < need; i++) {
-            await addSet.mutateAsync({ gameId: id, matchId: match.id });
-          }
-        } catch {
-          friendlySetEnsureInFlight.delete(key);
-        }
-      })();
-    }
-  }, [addSet, data, id]);
 
   return (
     <DashboardShell title={data?.name ?? "Game"}>

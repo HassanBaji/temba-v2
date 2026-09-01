@@ -1,9 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { eq, inArray, isNull } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import { communities, courts, groups, venues } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { consult } from "~/server/soft-archive";
+import { liveVenuesWhere } from "~/server/soft-archive/adapter";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -95,7 +97,9 @@ export async function listVenuesForGameCreate(
       });
     }
 
-    const archived = Boolean(venue.archivedAt);
+    const archived = consult({ archivedAt: venue.archivedAt }).freeze(
+      "catalog",
+    );
     return {
       locked: true,
       groupKind: context.groupKind,
@@ -115,7 +119,7 @@ export async function listVenuesForGameCreate(
   }
 
   const rows = await database.query.venues.findMany({
-    where: isNull(venues.archivedAt),
+    where: liveVenuesWhere(),
     columns: {
       id: true,
       name: true,
@@ -180,7 +184,7 @@ export async function assertGameCreateVenueAndCourt(
       });
     }
     if (
-      venue.archivedAt &&
+      consult({ archivedAt: venue.archivedAt }).freeze("host") &&
       (input.courtId || (input.courtIds != null && input.courtIds.length > 0))
     ) {
       throw new TRPCError({
@@ -190,7 +194,7 @@ export async function assertGameCreateVenueAndCourt(
     }
   } else {
     const liveVenue = await database.query.venues.findFirst({
-      where: isNull(venues.archivedAt),
+      where: liveVenuesWhere(),
       columns: { id: true },
     });
     if (!liveVenue) {
@@ -205,7 +209,7 @@ export async function assertGameCreateVenueAndCourt(
         message: "Venue not found",
       });
     }
-    if (venue.archivedAt) {
+    if (consult({ archivedAt: venue.archivedAt }).freeze("catalog")) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "Venue must be a live Operator Venue",

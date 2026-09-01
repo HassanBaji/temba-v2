@@ -23,17 +23,12 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { consult, refuseIfFrozen } from "~/server/soft-archive";
+import { acceptLookup, mintLink, mintLookup } from "~/server/invites/doors";
 import { type db } from "~/server/db";
-import {
-  inviteLinkExpiresAt,
-  isInviteLinkLive,
-} from "~/server/invites/invite-link-expiry";
+import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
-import {
-  createOpaqueToken,
-  getAppOrigin,
-  teamInviteLinkUrl,
-} from "~/server/invites/tokens";
+import { getAppOrigin, teamInviteLinkUrl } from "~/server/invites/tokens";
 
 const sportSchema = z.enum(["padel", "football"]);
 
@@ -78,16 +73,9 @@ async function refuseIfLinkedCommunityArchived(
     return;
   }
 
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, team.communityId),
-    columns: { archivedAt: true },
-  });
-
-  if (community?.archivedAt) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message,
-    });
+  const view = await consult(database, { communityId: team.communityId });
+  if (view.ok) {
+    refuseIfFrozen(view, "host", { frozenMessage: message });
   }
 }
 
@@ -478,7 +466,7 @@ export const teamsRouter = createTRPCRouter({
         isMember &&
         incomplete &&
         team.createdBy === appUser.id &&
-        !community?.archivedAt;
+        !consult({ archivedAt: community?.archivedAt ?? null }).freeze("host");
       const unusedInvite = canInvite
         ? await unusedInviteForTeam(ctx.db, team.id)
         : null;
@@ -650,16 +638,12 @@ export const teamsRouter = createTRPCRouter({
         });
       }
 
-      const [created] = await ctx.db
-        .insert(teamMemberInvites)
-        .values({
-          teamId: team.id,
-          userId: invitee.id,
-          invitedBy: appUser.id,
-        })
-        .returning();
-
-      if (!created) {
+      const minted = await mintLookup(
+        ctx.db,
+        { kind: "team", id: team.id },
+        { userId: invitee.id, invitedBy: appUser.id },
+      );
+      if (!minted.ok) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to create Team invite",
@@ -667,10 +651,10 @@ export const teamsRouter = createTRPCRouter({
       }
 
       return {
-        id: created.id,
-        teamId: created.teamId,
-        userId: created.userId,
-        createdAt: created.createdAt,
+        id: minted.invite.id,
+        teamId: minted.invite.hostId,
+        userId: minted.invite.userId,
+        createdAt: minted.invite.createdAt,
       };
     }),
 
@@ -849,32 +833,17 @@ export const teamsRouter = createTRPCRouter({
       }
 
       await ctx.db.transaction(async (tx) => {
-        const [updated] = await tx
-          .update(teamMemberInvites)
-          .set({
-            acceptedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(teamMemberInvites.id, invite.id),
-              isNull(teamMemberInvites.acceptedAt),
-              isNull(teamMemberInvites.revokedAt),
-            ),
-          )
-          .returning();
-
-        if (!updated) {
+        const accepted = await acceptLookup(
+          tx,
+          { kind: "team", id: team.id },
+          { inviteId: invite.id, userId: appUser.id },
+        );
+        if (!accepted.ok) {
           throw new TRPCError({
             code: "CONFLICT",
             message: "Team invite is not available",
           });
         }
-
-        await tx.insert(teamMembers).values({
-          teamId: team.id,
-          userId: appUser.id,
-        });
 
         await killTeamOpenSeatDoors(tx, team.id);
       });
@@ -915,19 +884,12 @@ export const teamsRouter = createTRPCRouter({
         appUser.id,
       );
 
-      const createdAt = new Date();
-      const [created] = await ctx.db
-        .insert(teamInviteLinks)
-        .values({
-          teamId: team.id,
-          createdBy: appUser.id,
-          token: createOpaqueToken(),
-          createdAt,
-          expiresAt: inviteLinkExpiresAt(createdAt),
-        })
-        .returning();
-
-      if (!created) {
+      const minted = await mintLink(
+        ctx.db,
+        { kind: "team", id: team.id },
+        { createdBy: appUser.id },
+      );
+      if (!minted.ok) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to create Invite link",
@@ -935,10 +897,13 @@ export const teamsRouter = createTRPCRouter({
       }
 
       return {
-        id: created.id,
-        inviteUrl: teamInviteLinkUrl(getAppOrigin(ctx.headers), created.token),
-        createdAt: created.createdAt,
-        expiresAt: created.expiresAt,
+        id: minted.link.id,
+        inviteUrl: teamInviteLinkUrl(
+          getAppOrigin(ctx.headers),
+          minted.link.token,
+        ),
+        createdAt: minted.link.createdAt,
+        expiresAt: minted.link.expiresAt,
       };
     }),
 
@@ -957,11 +922,10 @@ export const teamsRouter = createTRPCRouter({
       }
 
       if (link.team.communityId) {
-        const linked = await ctx.db.query.communities.findFirst({
-          where: eq(communities.id, link.team.communityId),
-          columns: { archivedAt: true },
+        const view = await consult(ctx.db, {
+          communityId: link.team.communityId,
         });
-        if (linked?.archivedAt) {
+        if (view.ok && view.freeze("join")) {
           return { status: "unavailable" as const };
         }
       }
@@ -1102,12 +1066,9 @@ export const teamsRouter = createTRPCRouter({
         });
       }
 
-      if (community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot request a Team link to an archived Community",
-        });
-      }
+      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
+        frozenMessage: "Cannot request a Team link to an archived Community",
+      });
 
       const allowedSport = await ctx.db.query.communitySports.findFirst({
         where: and(

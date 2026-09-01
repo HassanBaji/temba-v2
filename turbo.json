@@ -26,6 +26,7 @@
     },
     "typecheck": {},
     "lint": {},
+    "test": {},
     "db:generate": {},
     "db:migrate": {},
     "db:push": {},

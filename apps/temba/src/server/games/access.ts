@@ -2,7 +2,6 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
-  communities,
   communityMembers,
   CommunityRoleEnum,
   gamePlayers,
@@ -15,6 +14,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { consult } from "~/server/soft-archive";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -55,21 +55,6 @@ export async function isGroupMember(
   return Boolean(membership);
 }
 
-async function clubCommunity(database: DbClient, groupId: string) {
-  const group = await database.query.groups.findFirst({
-    where: eq(groups.id, groupId),
-    columns: { id: true, communityId: true },
-  });
-  if (!group?.communityId) {
-    return null;
-  }
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, group.communityId),
-    columns: { id: true, archivedAt: true },
-  });
-  return community ?? null;
-}
-
 type GroupForOrganize = {
   communityId: string | null;
   createdBy: string;
@@ -94,11 +79,8 @@ async function clubCommunityIsArchived(
   database: DbClient,
   communityId: string,
 ) {
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, communityId),
-    columns: { archivedAt: true },
-  });
-  return Boolean(community?.archivedAt);
+  const view = await consult(database, { communityId });
+  return view.ok && view.freeze("host");
 }
 
 /** Group creator, or Community Owner/Admin on a Club Group. */
@@ -273,8 +255,10 @@ export async function canViewGame(
 
   if (game.isPublic) {
     if (game.groupId) {
-      const community = await clubCommunity(database, game.groupId);
-      if (community?.archivedAt) {
+      const view = await consult(database, {
+        clubGroupGame: { groupId: game.groupId },
+      });
+      if (view.ok && view.freeze("join")) {
         return false;
       }
     }
@@ -301,11 +285,10 @@ export async function isClubGroupGameJoinFrozen(
   database: DbClient,
   game: GameRow,
 ) {
-  if (!game.groupId) {
-    return false;
-  }
-  const community = await clubCommunity(database, game.groupId);
-  return Boolean(community?.archivedAt);
+  const view = await consult(database, {
+    clubGroupGame: { groupId: game.groupId },
+  });
+  return view.ok && view.freeze("join");
 }
 
 export async function assertRegistrationOpen(
@@ -325,14 +308,11 @@ export async function assertRegistrationOpen(
       message: "This Game is not open for registration",
     });
   }
-  if (game.groupId) {
-    const community = await clubCommunity(database, game.groupId);
-    if (community?.archivedAt) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "This Game is not open for registration",
-      });
-    }
+  if (await isClubGroupGameJoinFrozen(database, game)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This Game is not open for registration",
+    });
   }
 }
 

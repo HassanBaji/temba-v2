@@ -19,6 +19,7 @@ import {
   filterAndSortPublicHubGames,
   gameListTime,
 } from "~/server/home/upcoming-games";
+import { consult } from "~/server/soft-archive";
 
 type DbClient = typeof db;
 
@@ -276,7 +277,9 @@ export function toHubListRow(
   },
   now: Date,
 ): HubListRow {
-  const joinFrozen = row.group?.community?.archivedAt != null;
+  const joinFrozen = consult({
+    archivedAt: row.group?.community?.archivedAt ?? null,
+  }).freeze("join");
   const registeredUserCount = row.players.length;
   const registeredTeamCount = row.teams.length;
   const isRegistered = row.players.some(

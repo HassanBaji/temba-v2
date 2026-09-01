@@ -5,6 +5,7 @@ import { courts, gameCourts, gameTeams, venues } from "@repo/db";
 
 import { type db } from "~/server/db";
 import { type GameRow } from "~/server/games/access";
+import { consult } from "~/server/soft-archive";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -28,7 +29,7 @@ async function recordedCourtIdsForGame(database: DbClient, gameId: string) {
 
 export async function listAssignableCourts(database: DbClient, game: GameRow) {
   const venue = await venueForGame(database, game.venueId);
-  if (!venue || venue.archivedAt) {
+  if (!venue || consult({ archivedAt: venue.archivedAt }).freeze("catalog")) {
     return [];
   }
 
@@ -75,7 +76,7 @@ export async function assertCourtAssignable(
       message: "Venue not found",
     });
   }
-  if (venue.archivedAt) {
+  if (consult({ archivedAt: venue.archivedAt }).freeze("host")) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Cannot assign a Court on an archived Venue",

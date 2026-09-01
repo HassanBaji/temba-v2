@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, expect, it } from "vitest";
 
 import {
   centsToMajorInput,
@@ -7,76 +6,77 @@ import {
   formatPricePerPlayerCents,
   parseOptionalPricePerPlayerCents,
   PRICE_PER_PLAYER_MAX_CENTS,
-} from "./price-per-player.ts";
+} from "./price-per-player";
 
 describe("parseOptionalPricePerPlayerCents", () => {
   it("treats blank as unset", () => {
-    assert.deepEqual(parseOptionalPricePerPlayerCents(""), {
+    expect(parseOptionalPricePerPlayerCents("")).toEqual({
       ok: true,
       cents: null,
     });
-    assert.deepEqual(parseOptionalPricePerPlayerCents("   "), {
+    expect(parseOptionalPricePerPlayerCents("   ")).toEqual({
       ok: true,
       cents: null,
     });
   });
 
   it("parses zero, whole units, one decimal, and two decimals", () => {
-    assert.deepEqual(parseOptionalPricePerPlayerCents("0"), {
+    expect(parseOptionalPricePerPlayerCents("0")).toEqual({
       ok: true,
       cents: 0,
     });
-    assert.deepEqual(parseOptionalPricePerPlayerCents("50"), {
+    expect(parseOptionalPricePerPlayerCents("50")).toEqual({
       ok: true,
       cents: 5000,
     });
-    assert.deepEqual(parseOptionalPricePerPlayerCents("50.5"), {
+    expect(parseOptionalPricePerPlayerCents("50.5")).toEqual({
       ok: true,
       cents: 5050,
     });
-    assert.deepEqual(parseOptionalPricePerPlayerCents("12.50"), {
+    expect(parseOptionalPricePerPlayerCents("12.50")).toEqual({
       ok: true,
       cents: 1250,
     });
   });
 
   it("refuses negatives, extra fraction digits, and non-numeric input", () => {
-    assert.equal(parseOptionalPricePerPlayerCents("-1").ok, false);
-    assert.equal(parseOptionalPricePerPlayerCents("50.123").ok, false);
-    assert.equal(parseOptionalPricePerPlayerCents("abc").ok, false);
+    expect(parseOptionalPricePerPlayerCents("-1").ok).toBe(false);
+    expect(parseOptionalPricePerPlayerCents("50.123").ok).toBe(false);
+    expect(parseOptionalPricePerPlayerCents("abc").ok).toBe(false);
   });
 
   it("refuses amounts above 1_000_000.00 major units", () => {
-    const tooLarge = parseOptionalPricePerPlayerCents("1000000.01");
-    assert.equal(tooLarge.ok, false);
-    const max = parseOptionalPricePerPlayerCents("1000000");
-    assert.deepEqual(max, { ok: true, cents: PRICE_PER_PLAYER_MAX_CENTS });
+    expect(parseOptionalPricePerPlayerCents("1000000.01").ok).toBe(false);
+    expect(parseOptionalPricePerPlayerCents("1000000")).toEqual({
+      ok: true,
+      cents: PRICE_PER_PLAYER_MAX_CENTS,
+    });
   });
 });
 
 describe("formatPricePerPlayerCents", () => {
   it("omits unset, shows Free at zero, and two fraction digits otherwise", () => {
-    assert.equal(formatPricePerPlayerCents(null), null);
-    assert.equal(formatPricePerPlayerCents(undefined), null);
-    assert.equal(formatPricePerPlayerCents(0), "Free");
-    assert.equal(formatPricePerPlayerCents(5000), "50.00");
-    assert.equal(formatPricePerPlayerCents(1250), "12.50");
+    expect(formatPricePerPlayerCents(null)).toBeNull();
+    expect(formatPricePerPlayerCents(undefined)).toBeNull();
+    expect(formatPricePerPlayerCents(0)).toBe("Free");
+    expect(formatPricePerPlayerCents(5000)).toBe("50.00");
+    expect(formatPricePerPlayerCents(1250)).toBe("12.50");
   });
 });
 
 describe("formatPricePerPlayerCardMeta", () => {
   it("omits unset, shows Free, or major units / player", () => {
-    assert.equal(formatPricePerPlayerCardMeta(null), null);
-    assert.equal(formatPricePerPlayerCardMeta(0), "Free");
-    assert.equal(formatPricePerPlayerCardMeta(5000), "50.00 / player");
-    assert.equal(formatPricePerPlayerCardMeta(1250), "12.50 / player");
+    expect(formatPricePerPlayerCardMeta(null)).toBeNull();
+    expect(formatPricePerPlayerCardMeta(0)).toBe("Free");
+    expect(formatPricePerPlayerCardMeta(5000)).toBe("50.00 / player");
+    expect(formatPricePerPlayerCardMeta(1250)).toBe("12.50 / player");
   });
 });
 
 describe("centsToMajorInput", () => {
   it("prefills the organizer Field from cents", () => {
-    assert.equal(centsToMajorInput(null), "");
-    assert.equal(centsToMajorInput(0), "0.00");
-    assert.equal(centsToMajorInput(1250), "12.50");
+    expect(centsToMajorInput(null)).toBe("");
+    expect(centsToMajorInput(0)).toBe("0.00");
+    expect(centsToMajorInput(1250)).toBe("12.50");
   });
 });

@@ -10,6 +10,8 @@
  * excludes them separately.
  */
 
+import { consult } from "~/server/soft-archive";
+
 export type GameListMatch = {
   startTime: Date | null;
   status: string | null;
@@ -127,7 +129,7 @@ export function isPublicHubGame(
   if (!game.isPublic) {
     return false;
   }
-  if (game.communityArchivedAt !== null) {
+  if (consult({ archivedAt: game.communityArchivedAt }).freeze("catalog")) {
     return false;
   }
   if (game.groupId !== null && memberGroupIds.has(game.groupId)) {

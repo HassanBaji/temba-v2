@@ -11,18 +11,11 @@ import {
 } from "@repo/db";
 
 import { type db } from "~/server/db";
-import {
-  FRIENDLY_PLAYERS_ALLOWED,
-  FRIENDLY_TEAMS_ALLOWED,
-  type GameRow,
-  registeredGameTeamCount,
-  registeredUserCount,
-  userPassesJoinGate,
-} from "~/server/games/access";
+import { type GameRow, userPassesJoinGate } from "~/server/games/access";
+import { admit } from "~/server/games/admit";
 import {
   firstVacantPosition,
   isIndividualSeatGame,
-  occupySeat,
   type SeatPosition,
   vacateSeat,
 } from "~/server/games/seats";
@@ -58,72 +51,6 @@ export async function removeGameTeamAndPlayers(
       .delete(gamePlayers)
       .where(eq(gamePlayers.id, link.gamePlayerId));
   }
-}
-
-async function insertRegisteredPair(
-  database: Tx,
-  args: {
-    gameId: string;
-    userIds: [string, string];
-    teamId: string | null;
-  },
-) {
-  const createdPlayers = [];
-  for (const userId of args.userIds) {
-    const [player] = await database
-      .insert(gamePlayers)
-      .values({ gameId: args.gameId, userId })
-      .returning();
-    if (!player) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to register on this Game",
-      });
-    }
-    createdPlayers.push(player);
-  }
-  const [gameTeam] = await database
-    .insert(gameTeams)
-    .values({
-      gameId: args.gameId,
-      teamId: args.teamId,
-    })
-    .returning();
-  if (!gameTeam) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to register on this Game",
-    });
-  }
-  for (const player of createdPlayers) {
-    await database.insert(gameTeamPlayers).values({
-      gameTeamId: gameTeam.id,
-      gamePlayerId: player.id,
-    });
-  }
-}
-
-export async function assignFriendlyMatchSlots(database: Tx, gameId: string) {
-  const match = await database.query.matches.findFirst({
-    where: eq(matches.gameId, gameId),
-    columns: { id: true },
-  });
-  if (!match) {
-    return;
-  }
-  const sides = await database.query.gameTeams.findMany({
-    where: eq(gameTeams.gameId, gameId),
-    columns: { id: true },
-    orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
-  });
-  await database
-    .update(matches)
-    .set({
-      slot1GameTeamId: sides[0]?.id ?? null,
-      slot2GameTeamId: sides[1]?.id ?? null,
-      updatedAt: new Date(),
-    })
-    .where(eq(matches.id, match.id));
 }
 
 export async function enqueueWaitlistUser(
@@ -215,17 +142,28 @@ export async function promoteWaitlist(
       if (!(await userPassesJoinGate(database, game, entry.userId))) {
         continue;
       }
-      const userCount = await registeredUserCount(database, game.id);
-      if (userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)) {
-        break;
-      }
-      await occupySeat(
-        database,
+      const admitted = await admit(database, {
         game,
-        entry.userId,
-        vacated.sideIndex,
-        vacated.position,
-      );
+        door: "promote",
+        party: {
+          kind: "user",
+          userId: entry.userId,
+          seat: {
+            sideIndex: vacated.sideIndex,
+            position: vacated.position,
+          },
+        },
+      });
+      if (!admitted.ok) {
+        if (
+          admitted.reason === "full" ||
+          admitted.reason === "join_frozen" ||
+          admitted.reason === "no_vacant_side"
+        ) {
+          break;
+        }
+        continue;
+      }
       await database.delete(gameWaitlist).where(eq(gameWaitlist.id, entry.id));
       return;
     }
@@ -250,14 +188,17 @@ export async function promoteWaitlist(
       if (!(await userPassesJoinGate(database, game, entry.userId))) {
         continue;
       }
-      const userCount = await registeredUserCount(database, game.id);
-      if (userCount >= (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)) {
-        break;
-      }
-      await database.insert(gamePlayers).values({
-        gameId: game.id,
-        userId: entry.userId,
+      const admitted = await admit(database, {
+        game,
+        door: "promote",
+        party: { kind: "user", userId: entry.userId },
       });
+      if (!admitted.ok) {
+        if (admitted.reason === "full" || admitted.reason === "join_frozen") {
+          break;
+        }
+        continue;
+      }
       await database.delete(gameWaitlist).where(eq(gameWaitlist.id, entry.id));
       continue;
     }
@@ -284,23 +225,22 @@ export async function promoteWaitlist(
       if (!members) {
         continue;
       }
-      const teamCount = await registeredGameTeamCount(database, game.id);
-      if (teamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
-        break;
-      }
-      const userIds = members.map((member) => member.userId) as [
-        string,
-        string,
-      ];
-      await insertRegisteredPair(database, {
-        gameId: game.id,
-        userIds,
-        teamId: entry.teamId,
+      const admitted = await admit(database, {
+        game,
+        door: "promote",
+        party: { kind: "team", teamId: entry.teamId },
       });
-      await database.delete(gameWaitlist).where(eq(gameWaitlist.id, entry.id));
-      if (game.format === "friendly_game") {
-        await assignFriendlyMatchSlots(database, game.id);
+      if (!admitted.ok) {
+        if (
+          admitted.reason === "full" ||
+          admitted.reason === "join_frozen" ||
+          admitted.reason === "no_vacant_side"
+        ) {
+          break;
+        }
+        continue;
       }
+      await database.delete(gameWaitlist).where(eq(gameWaitlist.id, entry.id));
     }
   }
 }
@@ -341,9 +281,6 @@ export async function leaveRegisteredSeat(
   });
   if (link) {
     await removeGameTeamAndPlayers(database, link.gameTeamId);
-    if (game.format === "friendly_game") {
-      await assignFriendlyMatchSlots(database, game.id);
-    }
   } else {
     await database.delete(gamePlayers).where(eq(gamePlayers.id, player.id));
   }

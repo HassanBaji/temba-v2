@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 
 import {
   gameSummaryPrimaryAction,
   showsFriendlyRoster,
   type GameSummaryCtaInput,
-} from "./game-summary-cta.ts";
+} from "./game-summary-cta";
 
 function game(
   overrides: Partial<GameSummaryCtaInput> = {},
