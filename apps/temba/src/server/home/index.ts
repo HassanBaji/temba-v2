@@ -1,3 +1,4 @@
+export { home } from "~/server/home/home";
 export {
   EMPTY_HOME_MATCH_STATS,
   homeMatchStatsFromCompletedMatches,
