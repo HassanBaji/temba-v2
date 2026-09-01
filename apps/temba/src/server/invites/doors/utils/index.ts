@@ -71,7 +71,13 @@ export type AcceptLookupResult =
 export type MintLinkResult =
   | {
       ok: true;
-      link: { id: string; token: string; createdAt: Date; expiresAt: Date };
+      link: {
+        id: string;
+        token: string;
+        createdAt: Date;
+        expiresAt: Date;
+        shortCode?: string;
+      };
     }
   | { ok: false; reason: "frozen" | "not_found" | "insert_failed" };
 

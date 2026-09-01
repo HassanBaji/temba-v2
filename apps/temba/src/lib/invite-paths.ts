@@ -13,3 +13,7 @@ export function teamInviteLinkPath(token: string) {
 export function gameInviteLinkPath(token: string) {
   return `/invites/game/link/${token}`;
 }
+
+export function gameInviteShortPath(code: string) {
+  return `/g/${code}`;
+}

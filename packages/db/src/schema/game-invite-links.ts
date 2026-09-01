@@ -14,6 +14,7 @@ export const gameInviteLinks = pgTable("game_invite_links", {
     .references(() => user.id, { onDelete: "restrict" })
     .notNull(),
   token: varchar("token", { length: 64 }).notNull().unique(),
+  shortCode: varchar("short_code", { length: 8 }).unique(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

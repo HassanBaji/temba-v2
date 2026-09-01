@@ -3,7 +3,10 @@ import { TRPCError } from "@trpc/server";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { assertGameInviteDoorsOpen } from "~/server/games/invites";
 import { mintLink } from "~/server/invites/doors";
-import { gameInviteLinkUrl } from "~/server/invites/tokens";
+import {
+  gameInviteLinkUrl,
+  gameInviteShortUrl,
+} from "~/server/invites/tokens";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
@@ -29,6 +32,9 @@ export async function createInviteLink(
   return {
     id: minted.link.id,
     inviteUrl: gameInviteLinkUrl(args.origin, minted.link.token),
+    shortUrl: minted.link.shortCode
+      ? gameInviteShortUrl(args.origin, minted.link.shortCode)
+      : null,
     createdAt: minted.link.createdAt,
     expiresAt: minted.link.expiresAt,
   };

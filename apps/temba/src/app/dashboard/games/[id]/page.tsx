@@ -13,35 +13,28 @@ import {
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "~/components/common/responsive-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
+import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
-import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
-import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   focusFormFailure,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
   splitGameWindow,
 } from "~/lib/game-window";
+import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   centsToMajorInput,
   parseOptionalPricePerPlayerCents,
@@ -57,6 +50,7 @@ export default function GameHomePage({
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id });
   const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
@@ -80,8 +74,7 @@ export default function GameHomePage({
     { name: string; message: string }[] | null
   >(null);
   const [editOpen, setEditOpen] = React.useState(false);
-  const [lookupOpen, setLookupOpen] = React.useState(false);
-  const [inviteLinkOpen, setInviteLinkOpen] = React.useState(false);
+  const [invitesOpen, setInvitesOpen] = React.useState(false);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
@@ -294,19 +287,27 @@ export default function GameHomePage({
     },
   });
 
-  const revokeLookupInvite = api.games.revokeLookupInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Lookup invite revoked");
-      await utils.games.listLookupInvites.invalidate({ gameId: id });
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
   const createInviteLink = api.games.createInviteLink.useMutation({
     onSuccess: async (result) => {
-      await navigator.clipboard.writeText(result.inviteUrl);
+      const url = result.shortUrl ?? result.inviteUrl;
+      const row = game.data;
+      await navigator.clipboard.writeText(
+        gameInviteClipboardText({
+          format: row?.format ?? "",
+          registrationMode: row?.registrationMode ?? "",
+          shortUrl: url,
+          roster: row
+            ? {
+                venueName: row.venue?.name ?? "Venue",
+                courtName: row.matches[0]?.courtName ?? null,
+                windowStart: row.windowStart,
+                windowEnd: row.windowEnd,
+                sides: row.sides,
+                shortUrl: url,
+              }
+            : null,
+        }),
+      );
       toast.success("Invite link copied");
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
@@ -327,19 +328,15 @@ export default function GameHomePage({
       ),
     },
   );
-  const canManageLookup = Boolean(
-    data?.isOrganizer &&
-      data.registrationMode !== "team_only" &&
-      !data.cancelledAt,
+  const canManageGameInvites = Boolean(
+    data?.isOrganizer && !data.cancelledAt && !data.joinFrozen,
   );
-  const canSendGameLookup = Boolean(canManageLookup && !data?.joinFrozen);
-  const lookupInvites = api.games.listLookupInvites.useQuery(
-    { gameId: id },
-    { enabled: canManageLookup },
+  const canSendGameLookup = Boolean(
+    canManageGameInvites && data?.registrationMode !== "team_only",
   );
   const lookupSearch = api.games.searchLookupUsers.useQuery(
     { gameId: id, query: lookupQuery },
-    { enabled: lookupOpen && canSendGameLookup },
+    { enabled: invitesOpen && canSendGameLookup },
   );
   const canPartnerPick = Boolean(
     data &&
@@ -351,12 +348,9 @@ export default function GameHomePage({
     { gameId: id, query: partnerQuery },
     { enabled: canPartnerPick },
   );
-  const canManageInviteLink = Boolean(
-    data?.isOrganizer && !data.cancelledAt && !data.joinFrozen,
-  );
   const inviteLink = api.games.getInviteLink.useQuery(
     { gameId: id },
-    { enabled: canManageInviteLink },
+    { enabled: canManageGameInvites },
   );
 
   React.useEffect(() => {
@@ -469,6 +463,16 @@ export default function GameHomePage({
           registrationStatus={data.registrationStatus}
           primaryAction={
             <>
+              {canManageGameInvites ? (
+                <Button
+                  ref={inviteButtonRef}
+                  type="button"
+                  className="min-h-11"
+                  onClick={() => setInvitesOpen(true)}
+                >
+                  Invite
+                </Button>
+              ) : null}
               {primaryLeave ? (
                 <Button
                   variant="outline"
@@ -510,14 +514,9 @@ export default function GameHomePage({
                     Close registration
                   </ActionMenuItem>
                 )}
-                {canManageLookup ? (
-                  <ActionMenuItem onSelect={() => setLookupOpen(true)}>
-                    Lookup invite
-                  </ActionMenuItem>
-                ) : null}
-                {canManageInviteLink ? (
-                  <ActionMenuItem onSelect={() => setInviteLinkOpen(true)}>
-                    Invite link
+                {canManageGameInvites ? (
+                  <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+                    Invite
                   </ActionMenuItem>
                 ) : null}
                 <ActionMenuSeparator />
@@ -694,76 +693,33 @@ export default function GameHomePage({
         />
       ) : null}
 
-      {canManageLookup ? (
-        <ResponsiveDialog
-          open={lookupOpen}
+      {canManageGameInvites ? (
+        <GameInvitesDialog
+          open={invitesOpen}
           onOpenChange={(next) => {
-            setLookupOpen(next);
+            setInvitesOpen(next);
             if (!next) {
               setLookupQuery("");
               setLookupRefused(null);
             }
           }}
-        >
-          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
-            <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>Lookup invite</ResponsiveDialogTitle>
-              <ResponsiveDialogDescription>
-                {data.joinFrozen
-                  ? "Lookup invite is paused while the Community is Soft-archived."
-                  : "Search existing Users and send Lookup invites. The invitee accepts on Invites. Team-only Games do not offer Lookup."}
-              </ResponsiveDialogDescription>
-            </ResponsiveDialogHeader>
-            <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
-              <LookupInvitePanel
-                description={
-                  data.joinFrozen
-                    ? "Lookup invite is paused while the Community is Soft-archived."
-                    : "Organizers can search existing Users and send Lookup invites. The invitee accepts on Invites. Team-only Games do not offer Lookup."
-                }
-                lookupInvites={lookupInvites.data}
-                sendPending={sendLookupInvite.isPending}
-                revokePending={revokeLookupInvite.isPending}
-                sendError={sendLookupInvite.error}
-                searchQuery={lookupQuery}
-                onSearchQueryChange={setLookupQuery}
-                searchResults={lookupSearch.data}
-                searchPending={lookupSearch.isFetching}
-                refused={lookupRefused}
-                canSend={canSendGameLookup}
-                onSendUserIds={(userIds) =>
-                  sendLookupInvite.mutate({ gameId: id, userIds })
-                }
-                onRevokeLookup={(inviteId) =>
-                  revokeLookupInvite.mutate({ inviteId })
-                }
-              />
-            </div>
-          </ResponsiveDialogContent>
-        </ResponsiveDialog>
-      ) : null}
-
-      {canManageInviteLink ? (
-        <ResponsiveDialog
-          open={inviteLinkOpen}
-          onOpenChange={setInviteLinkOpen}
-        >
-          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
-            <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>Invite link</ResponsiveDialogTitle>
-              <ResponsiveDialogDescription>
-                Copy a Game Invite link.
-              </ResponsiveDialogDescription>
-            </ResponsiveDialogHeader>
-            <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
-              <InviteLinkPanel
-                inviteUrl={inviteLink.data?.inviteUrl}
-                copyPending={createInviteLink.isPending}
-                onCopy={() => createInviteLink.mutate({ gameId: id })}
-              />
-            </div>
-          </ResponsiveDialogContent>
-        </ResponsiveDialog>
+          restoreFocusRef={inviteButtonRef}
+          canSendLookup={canSendGameLookup}
+          canCopyInviteLink
+          inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
+          sendPending={sendLookupInvite.isPending}
+          copyPending={createInviteLink.isPending}
+          sendError={sendLookupInvite.error}
+          searchQuery={lookupQuery}
+          onSearchQueryChange={setLookupQuery}
+          searchResults={lookupSearch.data}
+          searchPending={lookupSearch.isFetching}
+          refused={lookupRefused}
+          onSendLookup={(userIds) =>
+            sendLookupInvite.mutate({ gameId: id, userIds })
+          }
+          onCopyInviteLink={() => createInviteLink.mutate({ gameId: id })}
+        />
       ) : null}
 
       <ConfirmDialog
