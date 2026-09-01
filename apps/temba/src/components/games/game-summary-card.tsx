@@ -319,13 +319,13 @@ export function GameSummaryCard({
 
         <div
           className={cn(
-            "relative z-10 flex min-w-0 items-end gap-3",
+            "relative z-10 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end",
             href ? "pointer-events-none" : null,
           )}
         >
           {metaBlock}
           {actionControl ? (
-            <div className="pointer-events-auto relative z-10 shrink-0 self-end">
+            <div className="pointer-events-auto relative z-10 shrink-0 self-start sm:self-end">
               {actionControl}
             </div>
           ) : null}
