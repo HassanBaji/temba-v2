@@ -268,7 +268,7 @@ function userPassesHubJoinGate(
   return row.createdBy === userId;
 }
 
-function viewerIsParticipantOnRow(
+function viewerParticipation(
   row: HubQueryRow,
   viewer: {
     userId: string;
@@ -286,7 +286,22 @@ function viewerIsParticipantOnRow(
   const isSeated = row.teams.some((team) =>
     team.players.some((link) => link.gamePlayer?.user?.id === viewer.userId),
   );
-  return isRegistered || isWaitlisted || isSeated;
+  return { isRegistered, isWaitlisted, isSeated };
+}
+
+function viewerIsParticipantOnRow(
+  row: HubQueryRow,
+  viewer: {
+    userId: string;
+    myTeamIds: ReadonlySet<string>;
+  },
+) {
+  const participation = viewerParticipation(row, viewer);
+  return (
+    participation.isRegistered ||
+    participation.isWaitlisted ||
+    participation.isSeated
+  );
 }
 
 async function participantGameIdsForViewer(
@@ -329,16 +344,9 @@ export function toHubListRow(
   }).freeze("join");
   const registeredUserCount = row.players.length;
   const registeredTeamCount = row.teams.length;
-  const isRegistered = row.players.some(
-    (player) => player.userId === viewer.userId,
-  );
-  const isWaitlisted = row.waitlist.some(
-    (entry) =>
-      entry.userId === viewer.userId ||
-      (entry.teamId != null && viewer.myTeamIds.has(entry.teamId)),
-  );
-  const isSeated = row.teams.some((team) =>
-    team.players.some((link) => link.gamePlayer?.user?.id === viewer.userId),
+  const { isRegistered, isWaitlisted, isSeated } = viewerParticipation(
+    row,
+    viewer,
   );
   const registrationStatus = registrationStatusFromState(
     row,

@@ -231,7 +231,7 @@ export default function GamesHubPage() {
               void myGames.refetch();
             }}
             games={myGames.data}
-            emptyTitle="No Games yet"
+            emptyTitle="No Games in My Games"
             emptyDescription="Live Games on Groups you belong to, plus private Games you created or joined, will show up here."
             onJoinSeat={onJoinSeat}
             onJoinWaitlist={onJoinWaitlist}

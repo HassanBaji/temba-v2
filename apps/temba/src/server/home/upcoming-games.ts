@@ -1,13 +1,10 @@
 /**
- * Home upcoming Games (parent events, ADR-0008 / TEM-35):
- * - Visible because the User belongs to the Game's Group (excludes groupless
- *   public pickup until registered / waitlisted / organizer in later tickets)
- * - Not cancelled
- * - Still live: window has not ended if set, or a non-completed Match has
- *   start >= now or unset, or an Americano / empty tournament has no
- *   completed-only life
- * Soft-archived Club Group Games still appear here (TEM-43). Public pickup
- * excludes them separately.
+ * Group-home and membership-only Game lists (parent events, ADR-0008 / TEM-35):
+ * live, not cancelled, Group id in the caller's membership set. Soft-archived
+ * Club Group Games still appear (TEM-43). Home upcoming and the Games hub My
+ * Games tab also include private Games the User created or is part of — see
+ * `isMyGamesHubGame`. Public pickup excludes Soft-archived Club Group Games
+ * separately.
  */
 
 import { consult } from "~/server/soft-archive";
