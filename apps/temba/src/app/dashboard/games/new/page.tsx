@@ -17,6 +17,7 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { Input } from "~/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -29,6 +30,10 @@ import {
   formatGameWindowName,
   parseRequiredGameWindow,
 } from "~/lib/game-window";
+import {
+  parseOptionalPricePerPlayerCents,
+  PRICE_PER_PLAYER_FIELD_DESCRIPTION,
+} from "~/lib/price-per-player";
 import { api } from "~/trpc/react";
 import {
   fieldErrorMessage,
@@ -73,6 +78,10 @@ function NewGameForm() {
   const [finishTime, setFinishTime] = React.useState("");
   const [venueId, setVenueId] = React.useState("");
   const [courtId, setCourtId] = React.useState("none");
+  const [pricePerPlayer, setPricePerPlayer] = React.useState("");
+  const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
+    string | undefined
+  >();
 
   const picker = api.games.listCreateVenues.useQuery({ groupId });
   const selectedVenue = picker.data?.venues.find(
@@ -113,6 +122,7 @@ function NewGameForm() {
         {
           venueId: "game-venue",
           courtId: "game-court",
+          pricePerPlayerCents: "game-price-per-player",
           windowStart: "game-window-start",
           windowEnd: "game-window-finish",
         },
@@ -133,6 +143,13 @@ function NewGameForm() {
     if (emptyCatalog) {
       return;
     }
+    setPricePerPlayerError(undefined);
+    const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
+    if (!parsedPrice.ok) {
+      setPricePerPlayerError(parsedPrice.message);
+      document.getElementById("game-price-per-player")?.focus();
+      return;
+    }
     createGame.mutate({
       name: formatGameWindowName(day, startTime, finishTime),
       groupId,
@@ -143,6 +160,9 @@ function NewGameForm() {
       windowEnd: gameWindow.windowEnd,
       venueId,
       courtId: courtId === "none" ? undefined : courtId,
+      ...(parsedPrice.cents !== null
+        ? { pricePerPlayerCents: parsedPrice.cents }
+        : {}),
     });
   }
 
@@ -243,6 +263,42 @@ function NewGameForm() {
               </Select>
               <FieldError id="game-court-error">
                 {fieldErrorMessage(createGame.error, "courtId")}
+              </FieldError>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="game-price-per-player">
+                Price per player
+              </FieldLabel>
+              <Input
+                id="game-price-per-player"
+                type="number"
+                step="0.01"
+                min="0"
+                value={pricePerPlayer}
+                onChange={(event) => {
+                  setPricePerPlayer(event.target.value);
+                  setPricePerPlayerError(undefined);
+                }}
+                aria-invalid={
+                  pricePerPlayerError ||
+                  fieldErrorMessage(createGame.error, "pricePerPlayerCents")
+                    ? true
+                    : undefined
+                }
+                aria-describedby={
+                  pricePerPlayerError ||
+                  fieldErrorMessage(createGame.error, "pricePerPlayerCents")
+                    ? "game-price-per-player-error"
+                    : "game-price-per-player-copy"
+                }
+              />
+              <FieldDescription id="game-price-per-player-copy">
+                {PRICE_PER_PLAYER_FIELD_DESCRIPTION}
+              </FieldDescription>
+              <FieldError id="game-price-per-player-error">
+                {pricePerPlayerError ??
+                  fieldErrorMessage(createGame.error, "pricePerPlayerCents")}
               </FieldError>
             </Field>
 

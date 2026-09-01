@@ -216,6 +216,25 @@ export async function updateGameWindow(
   }
 }
 
+export async function updateGamePricePerPlayer(
+  database: Tx,
+  game: GameRow,
+  pricePerPlayerCents: number | null,
+) {
+  if (game.cancelledAt) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Cannot edit a cancelled Game",
+    });
+  }
+
+  const now = new Date();
+  await database
+    .update(games)
+    .set({ pricePerPlayerCents, updatedAt: now })
+    .where(eq(games.id, game.id));
+}
+
 export async function updateGameCaps(
   database: Tx | typeof db,
   game: GameRow,

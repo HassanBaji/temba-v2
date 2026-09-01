@@ -20,6 +20,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { formatRelativeDay } from "~/lib/format-game-start";
+import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import {
   gameSummaryPrimaryAction,
   showsFriendlyRoster,
@@ -210,7 +211,14 @@ export default function HomePage() {
                           {hero.name ?? "Untitled Game"}
                         </p>
                         <p className="text-meta text-muted-foreground">
-                          {hero.groupName ?? "Pickup"}
+                          {[
+                            hero.groupName ?? "Pickup",
+                            formatPricePerPlayerCardMeta(
+                              hero.pricePerPlayerCents,
+                            ),
+                          ]
+                            .filter((part): part is string => Boolean(part))
+                            .join(" · ")}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {hero.sport ? (
@@ -247,6 +255,7 @@ export default function HomePage() {
                             game.registeredUserCount,
                             game.playersAllowed,
                           )}
+                          pricePerPlayerCents={game.pricePerPlayerCents}
                           sides={
                             showsFriendlyRoster(
                               game.format,

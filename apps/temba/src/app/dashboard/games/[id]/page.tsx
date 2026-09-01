@@ -42,6 +42,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import {
   fieldErrorMessage,
+  focusFormFailure,
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
@@ -50,6 +51,12 @@ import {
   parseRequiredGameWindow,
   splitGameWindow,
 } from "~/lib/game-window";
+import {
+  centsToMajorInput,
+  formatPricePerPlayerCents,
+  parseOptionalPricePerPlayerCents,
+  PRICE_PER_PLAYER_FIELD_DESCRIPTION,
+} from "~/lib/price-per-player";
 
 function formatWhen(value: Date | string | null | undefined) {
   if (!value) {
@@ -114,6 +121,11 @@ export default function GameHomePage({
   const [windowDay, setWindowDay] = React.useState("");
   const [windowStartTime, setWindowStartTime] = React.useState("");
   const [windowFinishTime, setWindowFinishTime] = React.useState("");
+  const [pricePerPlayer, setPricePerPlayer] = React.useState("");
+  const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
+    string | undefined
+  >();
+  const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const [setScores, setSetScores] = React.useState<
     Record<string, { slot1: string; slot2: string }>
   >({});
@@ -263,6 +275,21 @@ export default function GameHomePage({
     },
   });
 
+  const updatePricePerPlayer = api.games.updatePricePerPlayer.useMutation({
+    onSuccess: async () => {
+      toast.success("Price per player saved");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+      focusFormFailure(
+        error,
+        { pricePerPlayerCents: "edit-price-per-player" },
+        priceSummaryRef.current,
+      );
+    },
+  });
+
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: async () => {
       toast.success("Match updated");
@@ -343,6 +370,9 @@ export default function GameHomePage({
   });
 
   const data = game.data;
+  const pricePerPlayerLabel = formatPricePerPlayerCents(
+    data?.pricePerPlayerCents,
+  );
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
   const courts = api.games.listCourts.useQuery(
     { gameId: id },
@@ -401,6 +431,8 @@ export default function GameHomePage({
     setWindowDay(gameWindow.day);
     setWindowStartTime(gameWindow.startTime);
     setWindowFinishTime(gameWindow.finishTime);
+    setPricePerPlayer(centsToMajorInput(data.pricePerPlayerCents));
+    setPricePerPlayerError(undefined);
     const nextScores: Record<string, { slot1: string; slot2: string }> = {};
     for (const match of data.matches) {
       for (const set of match.sets) {
@@ -506,6 +538,11 @@ export default function GameHomePage({
                   ) : null}
                 </p>
               ) : null}
+              {pricePerPlayerLabel ? (
+                <p className="text-muted-foreground text-sm">
+                  Price per player {pricePerPlayerLabel}
+                </p>
+              ) : null}
               {data.joinFrozen && !data.cancelledAt ? (
                 <p className="text-muted-foreground text-sm">
                   This Club Group’s Community is Soft-archived. Register,
@@ -608,6 +645,86 @@ export default function GameHomePage({
                   />
                   <Button type="submit" disabled={updateWindow.isPending}>
                     {updateWindow.isPending ? "Saving…" : "Save window"}
+                  </Button>
+                </form>
+                <form
+                  className="space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (updatePricePerPlayer.isPending) {
+                      return;
+                    }
+                    setPricePerPlayerError(undefined);
+                    const parsedPrice =
+                      parseOptionalPricePerPlayerCents(pricePerPlayer);
+                    if (!parsedPrice.ok) {
+                      setPricePerPlayerError(parsedPrice.message);
+                      document.getElementById("edit-price-per-player")?.focus();
+                      return;
+                    }
+                    updatePricePerPlayer.mutate({
+                      gameId: id,
+                      pricePerPlayerCents: parsedPrice.cents,
+                    });
+                  }}
+                >
+                  <FormErrorSummary
+                    ref={priceSummaryRef}
+                    message={globalFormErrorMessage(updatePricePerPlayer.error)}
+                  />
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="edit-price-per-player">
+                        Price per player
+                      </FieldLabel>
+                      <Input
+                        id="edit-price-per-player"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={pricePerPlayer}
+                        onChange={(event) => {
+                          setPricePerPlayer(event.target.value);
+                          setPricePerPlayerError(undefined);
+                        }}
+                        aria-invalid={
+                          pricePerPlayerError ||
+                          fieldErrorMessage(
+                            updatePricePerPlayer.error,
+                            "pricePerPlayerCents",
+                          )
+                            ? true
+                            : undefined
+                        }
+                        aria-describedby={
+                          pricePerPlayerError ||
+                          fieldErrorMessage(
+                            updatePricePerPlayer.error,
+                            "pricePerPlayerCents",
+                          )
+                            ? "edit-price-per-player-error"
+                            : "edit-price-per-player-copy"
+                        }
+                      />
+                      <FieldDescription id="edit-price-per-player-copy">
+                        {PRICE_PER_PLAYER_FIELD_DESCRIPTION}
+                      </FieldDescription>
+                      <FieldError id="edit-price-per-player-error">
+                        {pricePerPlayerError ??
+                          fieldErrorMessage(
+                            updatePricePerPlayer.error,
+                            "pricePerPlayerCents",
+                          )}
+                      </FieldError>
+                    </Field>
+                  </FieldGroup>
+                  <Button
+                    type="submit"
+                    disabled={updatePricePerPlayer.isPending}
+                  >
+                    {updatePricePerPlayer.isPending
+                      ? "Saving…"
+                      : "Save price per player"}
                   </Button>
                 </form>
                 {data.format === "friendly_game" ? (

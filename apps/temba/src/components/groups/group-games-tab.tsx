@@ -12,6 +12,7 @@ type GroupGame = {
   sport: string | null;
   format: string;
   cancelledAt: Date | string | null;
+  pricePerPlayerCents?: number | null;
 };
 
 export function GroupGamesTab({
@@ -66,6 +67,7 @@ export function GroupGamesTab({
                 sport={game.sport}
                 cancelled={Boolean(game.cancelledAt)}
                 href={`/dashboard/games/${game.id}`}
+                pricePerPlayerCents={game.pricePerPlayerCents}
               />
             ))}
           </RowList>
@@ -91,6 +93,7 @@ export function GroupGamesTab({
                 sport={game.sport}
                 cancelled={Boolean(game.cancelledAt)}
                 href={`/dashboard/games/${game.id}`}
+                pricePerPlayerCents={game.pricePerPlayerCents}
               />
             ))}
           </RowList>
