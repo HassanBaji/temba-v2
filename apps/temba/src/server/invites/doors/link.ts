@@ -1,4 +1,4 @@
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 
 import {
   communityInviteLinks,
@@ -15,6 +15,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { admit as admitCommunityMember } from "~/server/community-membership";
 import { requireGame } from "~/server/games/access";
 import {
@@ -26,7 +27,11 @@ import {
   inviteLinkExpiresAt,
   isInviteLinkLive,
 } from "~/server/invites/invite-link-expiry";
-import { createOpaqueToken } from "~/server/invites/tokens";
+import {
+  createGameInviteShortCode,
+  createOpaqueToken,
+  parseGameInviteShortCode,
+} from "~/server/invites/tokens";
 import { assertInviteOpen } from "~/server/invites/doors/consult";
 import type {
   AcceptLinkResult,
@@ -42,6 +47,8 @@ function writeDb(database: InviteDb): typeof db {
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+const GAME_INVITE_SHORT_CODE_ATTEMPTS = 8;
 
 export async function mintLink(
   database: InviteDb,
@@ -114,22 +121,57 @@ export async function mintLink(
       },
     };
   }
-  const [created] = await writeDb(database)
-    .insert(gameInviteLinks)
-    .values({ ...values, gameId: host.id })
-    .returning();
-  if (!created) {
-    return { ok: false, reason: "insert_failed" };
+
+  for (let attempt = 0; attempt < GAME_INVITE_SHORT_CODE_ATTEMPTS; attempt++) {
+    try {
+      const [created] = await writeDb(database)
+        .insert(gameInviteLinks)
+        .values({
+          ...values,
+          token: createOpaqueToken(),
+          shortCode: createGameInviteShortCode(),
+          gameId: host.id,
+        })
+        .returning();
+      if (!created?.shortCode) {
+        return { ok: false, reason: "insert_failed" };
+      }
+      return {
+        ok: true,
+        link: {
+          id: created.id,
+          token: created.token,
+          shortCode: created.shortCode,
+          createdAt: created.createdAt,
+          expiresAt: created.expiresAt,
+        },
+      };
+    } catch (error) {
+      if (
+        !isUniqueViolation(error) ||
+        attempt === GAME_INVITE_SHORT_CODE_ATTEMPTS - 1
+      ) {
+        if (isUniqueViolation(error)) {
+          return { ok: false, reason: "insert_failed" };
+        }
+        throw error;
+      }
+    }
   }
-  return {
-    ok: true,
-    link: {
-      id: created.id,
-      token: created.token,
-      createdAt: created.createdAt,
-      expiresAt: created.expiresAt,
-    },
-  };
+  return { ok: false, reason: "insert_failed" };
+}
+
+export async function findGameInviteLinkByShortCode(
+  database: InviteDb,
+  rawCode: string,
+) {
+  const code = parseGameInviteShortCode(rawCode);
+  if (!code) {
+    return undefined;
+  }
+  return database.query.gameInviteLinks.findFirst({
+    where: sql`upper(${gameInviteLinks.shortCode}) = ${code}`,
+  });
 }
 
 export async function getLiveLink(database: InviteDb, host: InviteHost) {

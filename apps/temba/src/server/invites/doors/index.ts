@@ -10,6 +10,7 @@ export {
 } from "~/server/invites/doors/lookup";
 export {
   acceptLink,
+  findGameInviteLinkByShortCode,
   getLiveLink,
   mintLink,
   previewLink,

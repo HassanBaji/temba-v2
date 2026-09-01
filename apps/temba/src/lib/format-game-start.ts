@@ -55,3 +55,12 @@ export function formatRelativeDay(startTime: Date | string) {
     month: "short",
   });
 }
+
+export function formatAbsoluteDay(startTime: Date | string) {
+  const date = startTime instanceof Date ? startTime : new Date(startTime);
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}

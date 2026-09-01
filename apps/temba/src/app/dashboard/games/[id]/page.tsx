@@ -24,16 +24,17 @@ import { type LookupUserOption } from "~/components/invites/lookup-user-select";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   focusFormFailure,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
   splitGameWindow,
 } from "~/lib/game-window";
+import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   centsToMajorInput,
   parseOptionalPricePerPlayerCents,
@@ -288,7 +289,25 @@ export default function GameHomePage({
 
   const createInviteLink = api.games.createInviteLink.useMutation({
     onSuccess: async (result) => {
-      await navigator.clipboard.writeText(result.inviteUrl);
+      const url = result.shortUrl ?? result.inviteUrl;
+      const row = game.data;
+      await navigator.clipboard.writeText(
+        gameInviteClipboardText({
+          format: row?.format ?? "",
+          registrationMode: row?.registrationMode ?? "",
+          shortUrl: url,
+          roster: row
+            ? {
+                venueName: row.venue?.name ?? "Venue",
+                courtName: row.matches[0]?.courtName ?? null,
+                windowStart: row.windowStart,
+                windowEnd: row.windowEnd,
+                sides: row.sides,
+                shortUrl: url,
+              }
+            : null,
+        }),
+      );
       toast.success("Invite link copied");
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
@@ -687,7 +706,7 @@ export default function GameHomePage({
           restoreFocusRef={inviteButtonRef}
           canSendLookup={canSendGameLookup}
           canCopyInviteLink
-          inviteUrl={inviteLink.data?.inviteUrl}
+          inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
           sendPending={sendLookupInvite.isPending}
           copyPending={createInviteLink.isPending}
           sendError={sendLookupInvite.error}

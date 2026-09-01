@@ -93,7 +93,7 @@ Retired as a product door. Do not send named invitations bound to an email addre
 _Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 
 **Invite link**:
-A door URL any authenticated User may use while that token is live. Each copy mints a new token that expires 6 hours after mint; older tokens stay valid until each expires. No rotate or revoke. Used on Community (Public and Private), every Group type, incomplete Team, and Game.
+A door URL any authenticated User may use while that token is live. Each copy mints a new token that expires 6 hours after mint; older tokens stay valid until each expires. No rotate or revoke. Used on Community (Public and Private), every Group type, incomplete Team, and Game. Game Invite links may be opened at `/g/{code}` (eight-character public alias on the same 6-hour row); Community, Group, and Team stay token-path only.
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Invite doors**:
