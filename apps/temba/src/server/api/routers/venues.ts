@@ -13,6 +13,12 @@ import {
 import { type db } from "~/server/db";
 import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import {
+  commit,
+  consult,
+  refuseIfFrozen,
+  throwCommitFailure,
+} from "~/server/soft-archive";
 import { createTRPCRouter, operatorProcedure } from "~/server/api/trpc";
 import {
   assertVenueLogoType,
@@ -498,71 +504,35 @@ export const venuesRouter = createTRPCRouter({
   softArchive: operatorProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const venue = await requireVenue(ctx.db, input.id);
-
-      if (venue.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Venue is already Soft-archived",
-        });
-      }
+      await requireVenue(ctx.db, input.id);
 
       // Soft-archive hides the Venue from the Community request catalog.
       // Edits stay allowed. Live Community pointers are not cleared.
-      const [updated] = await ctx.db
-        .update(venues)
-        .set({
-          archivedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(venues.id, venue.id))
-        .returning({
-          id: venues.id,
-          archivedAt: venues.archivedAt,
-        });
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to Soft-archive Venue",
-        });
+      const updated = await commit(ctx.db, { venueId: input.id }, "archived");
+      if (!updated.ok) {
+        throwCommitFailure(updated, "Venue");
       }
 
-      return updated;
+      return {
+        id: updated.id,
+        archivedAt: updated.archivedAt,
+      };
     }),
 
   unarchive: operatorProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const venue = await requireVenue(ctx.db, input.id);
+      await requireVenue(ctx.db, input.id);
 
-      if (!venue.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Venue is not Soft-archived",
-        });
+      const updated = await commit(ctx.db, { venueId: input.id }, "live");
+      if (!updated.ok) {
+        throwCommitFailure(updated, "Venue");
       }
 
-      const [updated] = await ctx.db
-        .update(venues)
-        .set({
-          archivedAt: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(venues.id, venue.id))
-        .returning({
-          id: venues.id,
-          archivedAt: venues.archivedAt,
-        });
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to unarchive Venue",
-        });
-      }
-
-      return updated;
+      return {
+        id: updated.id,
+        archivedAt: updated.archivedAt,
+      };
     }),
 
   listPendingLinkRequests: operatorProcedure.query(async ({ ctx }) => {
@@ -608,7 +578,7 @@ export const venuesRouter = createTRPCRouter({
   approveLinkRequest: operatorProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const request = await ctx.db.query.venueLinkRequests.findFirst({
         where: eq(venueLinkRequests.id, input.requestId),
         with: {
@@ -624,21 +594,24 @@ export const venuesRouter = createTRPCRouter({
         });
       }
 
-      if (request.community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
+      refuseIfFrozen(
+        consult({ archivedAt: request.community.archivedAt }),
+        "host",
+        {
+          frozenMessage:
             "Cannot decide Venue link requests for an archived Community",
-        });
-      }
+        },
+      );
 
-      if (request.venue.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
+      refuseIfFrozen(
+        consult({ archivedAt: request.venue.archivedAt }),
+        "host",
+        {
+          frozenMessage:
             "Cannot decide Venue link requests for a Soft-archived Venue",
-        });
-      }
+          notFoundMessage: "Venue not found",
+        },
+      );
 
       if (request.community.venueId) {
         throw new TRPCError({
@@ -689,7 +662,7 @@ export const venuesRouter = createTRPCRouter({
   rejectLinkRequest: operatorProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser();
+      const appUser = await resolveAppUser(ctx.userId);
       const request = await ctx.db.query.venueLinkRequests.findFirst({
         where: eq(venueLinkRequests.id, input.requestId),
         with: {
@@ -705,21 +678,24 @@ export const venuesRouter = createTRPCRouter({
         });
       }
 
-      if (request.community.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
+      refuseIfFrozen(
+        consult({ archivedAt: request.community.archivedAt }),
+        "host",
+        {
+          frozenMessage:
             "Cannot decide Venue link requests for an archived Community",
-        });
-      }
+        },
+      );
 
-      if (request.venue.archivedAt) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
+      refuseIfFrozen(
+        consult({ archivedAt: request.venue.archivedAt }),
+        "host",
+        {
+          frozenMessage:
             "Cannot decide Venue link requests for a Soft-archived Venue",
-        });
-      }
+          notFoundMessage: "Venue not found",
+        },
+      );
 
       const [updated] = await ctx.db
         .update(venueLinkRequests)

@@ -104,6 +104,7 @@ export default function CommunityHomePage({
     { communityId: id },
     { enabled: Boolean(community.data?.canManageLookupInvites) },
   );
+
   const lookupSearch = api.communities.searchLookupUsers.useQuery(
     { communityId: id, query: lookupQuery },
     {
@@ -246,6 +247,7 @@ export default function CommunityHomePage({
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
+      await utils.games.listMyGroups.invalidate();
     },
   });
 
@@ -255,6 +257,7 @@ export default function CommunityHomePage({
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
+      await utils.games.listMyGroups.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);

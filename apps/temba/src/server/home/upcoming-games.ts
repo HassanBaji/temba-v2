@@ -10,6 +10,8 @@
  * excludes them separately.
  */
 
+import { consult } from "~/server/soft-archive";
+
 export type GameListMatch = {
   startTime: Date | null;
   status: string | null;
@@ -85,5 +87,63 @@ export function filterAndSortHomeUpcomingGames<T extends GameListCandidate>(
 ): T[] {
   return games
     .filter((game) => isHomeUpcomingGame(game, memberGroupIds, now))
+    .sort((a, b) => gameListTime(a).getTime() - gameListTime(b).getTime());
+}
+
+/**
+ * Games hub My Groups uses the same membership and live rules as Home
+ * upcoming, including Soft-archived Club Group Games. Community membership
+ * is not consulted — only the Group id set.
+ */
+export function isMyGroupsHubGame(
+  game: GameListCandidate,
+  memberGroupIds: ReadonlySet<string>,
+  now: Date,
+): boolean {
+  return isHomeUpcomingGame(game, memberGroupIds, now);
+}
+
+export function filterAndSortMyGroupsHubGames<T extends GameListCandidate>(
+  games: readonly T[],
+  memberGroupIds: ReadonlySet<string>,
+  now: Date,
+): T[] {
+  return filterAndSortHomeUpcomingGames(games, memberGroupIds, now);
+}
+
+export type PublicHubListCandidate = GameListCandidate & {
+  isPublic: boolean;
+  communityArchivedAt: Date | null;
+};
+
+/**
+ * Public hub: live `isPublic` Games (groupless allowed). Soft-archived Club
+ * Group Games are excluded. Games on Groups the User belongs to are excluded
+ * (My preferred).
+ */
+export function isPublicHubGame(
+  game: PublicHubListCandidate,
+  memberGroupIds: ReadonlySet<string>,
+  now: Date,
+): boolean {
+  if (!game.isPublic) {
+    return false;
+  }
+  if (consult({ archivedAt: game.communityArchivedAt }).freeze("catalog")) {
+    return false;
+  }
+  if (game.groupId !== null && memberGroupIds.has(game.groupId)) {
+    return false;
+  }
+  return isGameLive(game, now);
+}
+
+export function filterAndSortPublicHubGames<T extends PublicHubListCandidate>(
+  games: readonly T[],
+  memberGroupIds: ReadonlySet<string>,
+  now: Date,
+): T[] {
+  return games
+    .filter((game) => isPublicHubGame(game, memberGroupIds, now))
     .sort((a, b) => gameListTime(a).getTime() - gameListTime(b).getTime());
 }

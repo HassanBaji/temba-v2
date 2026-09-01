@@ -62,7 +62,7 @@ export async function cancelMatch(
   const match = await database.query.matches.findFirst({
     where: eq(matches.id, matchId),
   });
-  if (!match || match.gameId !== game.id) {
+  if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Match not found",
@@ -214,6 +214,25 @@ export async function updateGameWindow(
       })
       .where(eq(matches.gameId, game.id));
   }
+}
+
+export async function updateGamePricePerPlayer(
+  database: Tx,
+  game: GameRow,
+  pricePerPlayerCents: number | null,
+) {
+  if (game.cancelledAt) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Cannot edit a cancelled Game",
+    });
+  }
+
+  const now = new Date();
+  await database
+    .update(games)
+    .set({ pricePerPlayerCents, updatedAt: now })
+    .where(eq(games.id, game.id));
 }
 
 export async function updateGameCaps(
@@ -415,7 +434,7 @@ export async function updateTournamentMatch(
   const match = await database.query.matches.findFirst({
     where: eq(matches.id, matchId),
   });
-  if (!match || match.gameId !== game.id) {
+  if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Match not found",
@@ -476,7 +495,7 @@ export async function updateFriendlyGameMatchCourt(
   const match = await database.query.matches.findFirst({
     where: eq(matches.id, matchId),
   });
-  if (!match || match.gameId !== game.id) {
+  if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Match not found",

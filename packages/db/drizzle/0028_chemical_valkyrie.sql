@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "price_per_player_cents" integer;
