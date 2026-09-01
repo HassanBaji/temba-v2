@@ -1,7 +1,9 @@
-import { and, eq, inArray, isNull, type SQL } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, type SQL } from "drizzle-orm";
 
 import {
+  gamePlayers,
   games,
+  gameWaitlist,
   groupMembers,
   teamMembers,
   type GameFormatEnum,
@@ -15,13 +17,14 @@ import {
 } from "~/server/games/access";
 import { type db } from "~/server/db";
 import {
-  filterAndSortMyGroupsHubGames,
+  filterAndSortMyGamesHubGames,
   filterAndSortPublicHubGames,
   gameListTime,
 } from "~/server/home/upcoming-games";
 import { consult } from "~/server/soft-archive";
+import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db;
+type DbClient = typeof db | TestDatabase;
 
 export type HubListSideOccupant = {
   userId: string;
@@ -268,6 +271,68 @@ function userPassesHubJoinGate(
   return row.createdBy === userId;
 }
 
+function viewerParticipation(
+  row: HubQueryRow,
+  viewer: {
+    userId: string;
+    myTeamIds: ReadonlySet<string>;
+  },
+) {
+  const isRegistered = row.players.some(
+    (player) => player.userId === viewer.userId,
+  );
+  const isWaitlisted = row.waitlist.some(
+    (entry) =>
+      entry.userId === viewer.userId ||
+      (entry.teamId != null && viewer.myTeamIds.has(entry.teamId)),
+  );
+  const isSeated = row.teams.some((team) =>
+    team.players.some((link) => link.gamePlayer?.user?.id === viewer.userId),
+  );
+  return { isRegistered, isWaitlisted, isSeated };
+}
+
+function viewerIsParticipantOnRow(
+  row: HubQueryRow,
+  viewer: {
+    userId: string;
+    myTeamIds: ReadonlySet<string>;
+  },
+) {
+  const participation = viewerParticipation(row, viewer);
+  return (
+    participation.isRegistered ||
+    participation.isWaitlisted ||
+    participation.isSeated
+  );
+}
+
+async function participantGameIdsForViewer(
+  database: DbClient,
+  userId: string,
+  myTeamIds: ReadonlySet<string>,
+) {
+  const players = await database.query.gamePlayers.findMany({
+    where: eq(gamePlayers.userId, userId),
+    columns: { gameId: true },
+  });
+  const waitlistWhere =
+    myTeamIds.size === 0
+      ? eq(gameWaitlist.userId, userId)
+      : or(
+          eq(gameWaitlist.userId, userId),
+          inArray(gameWaitlist.teamId, [...myTeamIds]),
+        );
+  const waitlisted = await database.query.gameWaitlist.findMany({
+    where: waitlistWhere,
+    columns: { gameId: true },
+  });
+  return new Set([
+    ...players.map((row) => row.gameId),
+    ...waitlisted.map((row) => row.gameId),
+  ]);
+}
+
 export function toHubListRow(
   row: HubQueryRow,
   viewer: {
@@ -282,16 +347,9 @@ export function toHubListRow(
   }).freeze("join");
   const registeredUserCount = row.players.length;
   const registeredTeamCount = row.teams.length;
-  const isRegistered = row.players.some(
-    (player) => player.userId === viewer.userId,
-  );
-  const isWaitlisted = row.waitlist.some(
-    (entry) =>
-      entry.userId === viewer.userId ||
-      (entry.teamId != null && viewer.myTeamIds.has(entry.teamId)),
-  );
-  const isSeated = row.teams.some((team) =>
-    team.players.some((link) => link.gamePlayer?.user?.id === viewer.userId),
+  const { isRegistered, isWaitlisted, isSeated } = viewerParticipation(
+    row,
+    viewer,
   );
   const registrationStatus = registrationStatusFromState(
     row,
@@ -367,25 +425,42 @@ async function queryHubGames(database: DbClient, where: SQL | undefined) {
   });
 }
 
-export async function listMyGroupsHubRows(
+export async function listMyGamesHubRows(
   database: DbClient,
   userId: string,
   now: Date = new Date(),
 ): Promise<HubListRow[]> {
   const viewer = await viewerHubContext(database, userId);
-  if (viewer.memberGroupIds.size === 0) {
-    return [];
+  const participantGameIds = await participantGameIdsForViewer(
+    database,
+    userId,
+    viewer.myTeamIds,
+  );
+  const scope: SQL[] = [
+    and(eq(games.isPublic, false), eq(games.createdBy, userId))!,
+  ];
+  if (viewer.memberGroupIds.size > 0) {
+    scope.push(inArray(games.groupId, [...viewer.memberGroupIds]));
+  }
+  if (participantGameIds.size > 0) {
+    scope.push(
+      and(
+        eq(games.isPublic, false),
+        inArray(games.id, [...participantGameIds]),
+      )!,
+    );
   }
   const rows = await queryHubGames(
     database,
-    and(
-      inArray(games.groupId, [...viewer.memberGroupIds]),
-      isNull(games.cancelledAt),
-    ),
+    and(isNull(games.cancelledAt), or(...scope)),
   );
-  return filterAndSortMyGroupsHubGames(
-    rows as HubQueryRow[],
+  return filterAndSortMyGamesHubGames(
+    (rows as HubQueryRow[]).map((row) => ({
+      ...row,
+      viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
+    })),
     viewer.memberGroupIds,
+    viewer.userId,
     now,
   ).map((row) => toHubListRow(row, viewer, now));
 }

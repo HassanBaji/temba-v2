@@ -11,7 +11,7 @@ import {
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { listMyGroupsHubRows } from "~/server/games/hub-list-rows";
+import { listMyGamesHubRows } from "~/server/games/hub-list-rows";
 import {
   EMPTY_HOME_MATCH_STATS,
   homeMatchStatsFromCompletedMatches,
@@ -25,8 +25,9 @@ export const usersRouter = createTRPCRouter({
   /**
    * Home metrics, upcoming Games, and per-Group standing for the signed-in User.
    * Stats (Games played / Games won / Sets won) are completed Matches the User
-   * sat on, including zeros when they have not played. Upcoming Games are
-   * membership-scoped only (no public pickup); Soft-archived Club Group Games
+   * sat on, including zeros when they have not played. Upcoming Games use the
+   * My Games hub filter (Group membership plus private Games the User created
+   * or is part of; no public pickup); Soft-archived Club Group Games
    * still appear. Standing position is among that Group's members only — not a
    * global rank.
    */
@@ -98,7 +99,7 @@ export const usersRouter = createTRPCRouter({
         }),
       );
 
-    const upcomingGames = await listMyGroupsHubRows(ctx.db, appUser.id, now);
+    const upcomingGames = await listMyGamesHubRows(ctx.db, appUser.id, now);
 
     const myPlayerRows = await ctx.db.query.gamePlayers.findMany({
       where: eq(gamePlayers.userId, appUser.id),

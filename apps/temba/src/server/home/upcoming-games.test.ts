@@ -2,17 +2,20 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
-  filterAndSortMyGroupsHubGames,
+  filterAndSortMyGamesHubGames,
   filterAndSortPublicHubGames,
-  isMyGroupsHubGame,
+  isMyGamesHubGame,
   isPublicHubGame,
   type GameListCandidate,
+  type MyGamesHubListCandidate,
   type PublicHubListCandidate,
 } from "./upcoming-games";
 
 const NOW = new Date("2026-08-31T16:00:00.000Z");
 const MEMBER_GROUP = "11111111-1111-4111-8111-111111111111";
 const OTHER_GROUP = "22222222-2222-4222-8222-222222222222";
+const VIEWER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const OTHER_USER = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const memberGroupIds = new Set([MEMBER_GROUP]);
 
 function candidate(
@@ -30,6 +33,19 @@ function candidate(
   };
 }
 
+function myGamesCandidate(
+  overrides: Partial<MyGamesHubListCandidate> &
+    Pick<MyGamesHubListCandidate, "id">,
+): MyGamesHubListCandidate {
+  return {
+    ...candidate(overrides),
+    isPublic: false,
+    createdBy: OTHER_USER,
+    viewerIsParticipant: false,
+    ...overrides,
+  };
+}
+
 function publicCandidate(
   overrides: Partial<PublicHubListCandidate> &
     Pick<PublicHubListCandidate, "id">,
@@ -42,30 +58,30 @@ function publicCandidate(
   };
 }
 
-describe("My Groups hub list", () => {
+describe("My Games hub list", () => {
   it("includes live upcoming Games on Groups the User belongs to", () => {
-    const game = candidate({ id: "member-live" });
-    assert.equal(isMyGroupsHubGame(game, memberGroupIds, NOW), true);
+    const game = myGamesCandidate({ id: "member-live" });
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
   });
 
   it("excludes Club Group Games when the User is not a Group member", () => {
-    const game = candidate({
+    const game = myGamesCandidate({
       id: "community-only",
       groupId: OTHER_GROUP,
     });
-    assert.equal(isMyGroupsHubGame(game, memberGroupIds, NOW), false);
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
   it("includes Soft-archived Club Group Games the User is a member of", () => {
-    const game = publicCandidate({
+    const game = myGamesCandidate({
       id: "archived-member",
-      communityArchivedAt: new Date("2026-08-15T00:00:00.000Z"),
+      isPublic: true,
     });
-    assert.equal(isMyGroupsHubGame(game, memberGroupIds, NOW), true);
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
   });
 
   it("excludes non-live Games", () => {
-    const game = candidate({
+    const game = myGamesCandidate({
       id: "ended",
       windowStart: new Date("2026-08-01T18:00:00.000Z"),
       windowEnd: new Date("2026-08-01T20:00:00.000Z"),
@@ -76,28 +92,82 @@ describe("My Groups hub list", () => {
         },
       ],
     });
-    assert.equal(isMyGroupsHubGame(game, memberGroupIds, NOW), false);
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
-  it("excludes groupless Games from My Groups", () => {
-    const game = candidate({ id: "groupless", groupId: null });
-    assert.equal(isMyGroupsHubGame(game, memberGroupIds, NOW), false);
+  it("excludes public groupless Games from My Games", () => {
+    const game = myGamesCandidate({
+      id: "groupless-public",
+      groupId: null,
+      isPublic: true,
+      createdBy: VIEWER_ID,
+    });
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
-  it("sorts My Groups soonest first", () => {
-    const later = candidate({
+  it("includes private groupless Games the User created", () => {
+    const game = myGamesCandidate({
+      id: "private-created",
+      groupId: null,
+      createdBy: VIEWER_ID,
+    });
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
+  });
+
+  it("includes private Games the User created on a Group they do not belong to", () => {
+    const game = myGamesCandidate({
+      id: "private-created-other-group",
+      groupId: OTHER_GROUP,
+      createdBy: VIEWER_ID,
+    });
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
+  });
+
+  it("includes private Games the User is registered or waitlisted on", () => {
+    const registered = myGamesCandidate({
+      id: "private-registered",
+      groupId: null,
+      viewerIsParticipant: true,
+    });
+    assert.equal(
+      isMyGamesHubGame(registered, memberGroupIds, VIEWER_ID, NOW),
+      true,
+    );
+  });
+
+  it("excludes private Games the User did not create and is not part of", () => {
+    const game = myGamesCandidate({
+      id: "private-stranger",
+      groupId: null,
+    });
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
+  });
+
+  it("excludes public Games the User is part of when they are not a Group member", () => {
+    const game = myGamesCandidate({
+      id: "public-participant",
+      groupId: null,
+      isPublic: true,
+      viewerIsParticipant: true,
+    });
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
+  });
+
+  it("sorts My Games soonest first", () => {
+    const later = myGamesCandidate({
       id: "later",
       windowStart: new Date("2026-09-03T18:00:00.000Z"),
       windowEnd: new Date("2026-09-03T20:00:00.000Z"),
     });
-    const sooner = candidate({
+    const sooner = myGamesCandidate({
       id: "sooner",
       windowStart: new Date("2026-09-02T18:00:00.000Z"),
       windowEnd: new Date("2026-09-02T20:00:00.000Z"),
     });
-    const sorted = filterAndSortMyGroupsHubGames(
+    const sorted = filterAndSortMyGamesHubGames(
       [later, sooner],
       memberGroupIds,
+      VIEWER_ID,
       NOW,
     );
     assert.deepEqual(
@@ -130,12 +200,24 @@ describe("Public hub list", () => {
     assert.equal(isPublicHubGame(game, memberGroupIds, NOW), false);
   });
 
-  it("excludes public Games already listed on My Groups (My preferred)", () => {
+  it("excludes public Games already listed on My Games (My preferred)", () => {
     const game = publicCandidate({
       id: "member-public",
       groupId: MEMBER_GROUP,
     });
-    assert.equal(isMyGroupsHubGame(game, memberGroupIds, NOW), true);
+    assert.equal(
+      isMyGamesHubGame(
+        myGamesCandidate({
+          id: game.id,
+          groupId: MEMBER_GROUP,
+          isPublic: true,
+        }),
+        memberGroupIds,
+        VIEWER_ID,
+        NOW,
+      ),
+      true,
+    );
     assert.equal(isPublicHubGame(game, memberGroupIds, NOW), false);
   });
 
