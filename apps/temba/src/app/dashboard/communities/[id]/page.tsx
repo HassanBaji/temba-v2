@@ -247,7 +247,7 @@ export default function CommunityHomePage({
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
-      await utils.games.listMyGroups.invalidate();
+      await utils.games.listMyGames.invalidate();
     },
   });
 
@@ -257,7 +257,7 @@ export default function CommunityHomePage({
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
-      await utils.games.listMyGroups.invalidate();
+      await utils.games.listMyGames.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);

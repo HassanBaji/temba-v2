@@ -1,13 +1,10 @@
 /**
- * Home upcoming Games (parent events, ADR-0008 / TEM-35):
- * - Visible because the User belongs to the Game's Group (excludes groupless
- *   public pickup until registered / waitlisted / organizer in later tickets)
- * - Not cancelled
- * - Still live: window has not ended if set, or a non-completed Match has
- *   start >= now or unset, or an Americano / empty tournament has no
- *   completed-only life
- * Soft-archived Club Group Games still appear here (TEM-43). Public pickup
- * excludes them separately.
+ * Group-home and membership-only Game lists (parent events, ADR-0008 / TEM-35):
+ * live, not cancelled, Group id in the caller's membership set. Soft-archived
+ * Club Group Games still appear (TEM-43). Home upcoming and the Games hub My
+ * Games tab also include private Games the User created or is part of — see
+ * `isMyGamesHubGame`. Public pickup excludes Soft-archived Club Group Games
+ * separately.
  */
 
 import { consult } from "~/server/soft-archive";
@@ -90,25 +87,45 @@ export function filterAndSortHomeUpcomingGames<T extends GameListCandidate>(
     .sort((a, b) => gameListTime(a).getTime() - gameListTime(b).getTime());
 }
 
+export type MyGamesHubListCandidate = GameListCandidate & {
+  isPublic: boolean;
+  createdBy: string;
+  viewerIsParticipant: boolean;
+};
+
 /**
- * Games hub My Groups uses the same membership and live rules as Home
- * upcoming, including Soft-archived Club Group Games. Community membership
- * is not consulted — only the Group id set.
+ * Games hub My Games: live upcoming Games on Groups the User belongs to
+ * (including Soft-archived Club Group Games), plus private Games they
+ * created or are registered/waitlisted on. Community membership is not
+ * consulted. Public groupless pickup stays on Public.
  */
-export function isMyGroupsHubGame(
-  game: GameListCandidate,
+export function isMyGamesHubGame(
+  game: MyGamesHubListCandidate,
   memberGroupIds: ReadonlySet<string>,
+  userId: string,
   now: Date,
 ): boolean {
-  return isHomeUpcomingGame(game, memberGroupIds, now);
+  if (!isGameLive(game, now)) {
+    return false;
+  }
+  if (game.groupId !== null && memberGroupIds.has(game.groupId)) {
+    return true;
+  }
+  if (game.isPublic) {
+    return false;
+  }
+  return game.createdBy === userId || game.viewerIsParticipant;
 }
 
-export function filterAndSortMyGroupsHubGames<T extends GameListCandidate>(
+export function filterAndSortMyGamesHubGames<T extends MyGamesHubListCandidate>(
   games: readonly T[],
   memberGroupIds: ReadonlySet<string>,
+  userId: string,
   now: Date,
 ): T[] {
-  return filterAndSortHomeUpcomingGames(games, memberGroupIds, now);
+  return games
+    .filter((game) => isMyGamesHubGame(game, memberGroupIds, userId, now))
+    .sort((a, b) => gameListTime(a).getTime() - gameListTime(b).getTime());
 }
 
 export type PublicHubListCandidate = GameListCandidate & {
@@ -119,7 +136,7 @@ export type PublicHubListCandidate = GameListCandidate & {
 /**
  * Public hub: live `isPublic` Games (groupless allowed). Soft-archived Club
  * Group Games are excluded. Games on Groups the User belongs to are excluded
- * (My preferred).
+ * (My Games preferred).
  */
 export function isPublicHubGame(
   game: PublicHubListCandidate,

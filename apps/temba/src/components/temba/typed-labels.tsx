@@ -16,6 +16,7 @@ export const GAME_REGISTRATION_STATUS_LABELS = {
   full: "Full",
   closed: "Closed",
   frozen: "Frozen",
+  cancelled: "Cancelled",
 } as const;
 
 export const INVITE_KIND_LABELS = {

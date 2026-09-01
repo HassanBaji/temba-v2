@@ -79,7 +79,7 @@ export default function HomePage() {
   async function refreshLists() {
     await Promise.all([
       utils.users.home.invalidate(),
-      utils.games.listMyGroups.invalidate(),
+      utils.games.listMyGames.invalidate(),
       utils.games.listPublicPickup.invalidate(),
       utils.games.byId.invalidate(),
     ]);
@@ -241,7 +241,7 @@ export default function HomePage() {
                       ) : null
                     }
                   >
-                    <RowList>
+                    <ul className="flex flex-col gap-3">
                       {restVisible.map((game) => (
                         <GameSummaryCard
                           key={game.id}
@@ -278,7 +278,7 @@ export default function HomePage() {
                           }}
                         />
                       ))}
-                    </RowList>
+                    </ul>
                   </Section>
                 ) : null}
               </div>

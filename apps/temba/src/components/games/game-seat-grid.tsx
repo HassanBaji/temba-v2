@@ -1,5 +1,9 @@
+"use client";
+
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { ListRow, RowList } from "~/components/common/row-list";
+import { UserAvatar } from "~/components/common/user-avatar";
+import { formatSeatSideHeading } from "~/components/games/game-side-label";
 
 export type SeatSideView = {
   sideIndex: number;
@@ -8,8 +12,19 @@ export type SeatSideView = {
   right: { userId: string; name: string } | null;
 };
 
-function SeatCell({
-  label,
+function VacantAvatar() {
+  return (
+    <span
+      aria-hidden="true"
+      className="border-border text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full border text-sm font-medium"
+    >
+      +
+    </span>
+  );
+}
+
+function SeatRow({
+  positionLabel,
   occupant,
   canJoin,
   joinLabel,
@@ -22,7 +37,7 @@ function SeatCell({
   onMove,
   onKick,
 }: {
-  label: string;
+  positionLabel: string;
   occupant: { userId: string; name: string } | null;
   canJoin: boolean;
   joinLabel: string;
@@ -35,37 +50,48 @@ function SeatCell({
   onMove: () => void;
   onKick: (userId: string) => void;
 }) {
+  const trailing = occupant ? (
+    isOrganizer ? (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onKick(occupant.userId)}
+        disabled={kickPending}
+      >
+        Kick
+      </Button>
+    ) : undefined
+  ) : canMove ? (
+    <Button onClick={onMove} disabled={moving} variant="outline" size="sm">
+      {moving ? "Moving…" : "Move here"}
+    </Button>
+  ) : canJoin ? (
+    <Button onClick={onJoin} disabled={joining} size="sm">
+      {joining ? "Joining…" : joinLabel}
+    </Button>
+  ) : undefined;
+
   return (
-    <div className="border-border flex min-h-24 flex-col justify-between gap-2 rounded-md border p-3">
-      <p className="text-muted-foreground text-xs font-medium uppercase">
-        {label}
-      </p>
-      {occupant ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-foreground font-medium">{occupant.name}</p>
-          {isOrganizer ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onKick(occupant.userId)}
-              disabled={kickPending}
-            >
-              Kick
-            </Button>
-          ) : null}
-        </div>
-      ) : canMove ? (
-        <Button onClick={onMove} disabled={moving} variant="outline">
-          {moving ? "Moving…" : "Move here"}
-        </Button>
-      ) : canJoin ? (
-        <Button onClick={onJoin} disabled={joining} variant="outline">
-          {joining ? "Joining…" : joinLabel}
-        </Button>
-      ) : (
-        <p className="text-muted-foreground text-sm">Vacant</p>
-      )}
-    </div>
+    <ListRow
+      leading={
+        occupant ? (
+          <UserAvatar name={occupant.name} size="lg" />
+        ) : (
+          <VacantAvatar />
+        )
+      }
+      title={
+        occupant ? (
+          occupant.name
+        ) : (
+          <span className="text-muted-foreground font-medium">
+            {canJoin || canMove ? "Available" : "Vacant"}
+          </span>
+        )
+      }
+      subtitle={positionLabel}
+      trailing={trailing}
+    />
   );
 }
 
@@ -101,13 +127,13 @@ export function GameSeatGrid({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {sides.map((side) => (
-        <Card key={side.sideIndex} variant="outlined" className="space-y-3">
+        <div key={side.sideIndex} className="space-y-2">
           <h3 className="text-title font-medium">
-            {sideNoun} {side.sideIndex}
+            {formatSeatSideHeading(sideNoun, side.sideIndex, sides.length)}
           </h3>
-          <div className="grid grid-cols-2 gap-3">
-            <SeatCell
-              label="Left"
+          <RowList>
+            <SeatRow
+              positionLabel="Left"
               occupant={side.left}
               canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}
@@ -120,8 +146,8 @@ export function GameSeatGrid({
               onMove={() => onMove(side.sideIndex, "left")}
               onKick={onKick}
             />
-            <SeatCell
-              label="Right"
+            <SeatRow
+              positionLabel="Right"
               occupant={side.right}
               canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}
@@ -134,8 +160,8 @@ export function GameSeatGrid({
               onMove={() => onMove(side.sideIndex, "right")}
               onKick={onKick}
             />
-          </div>
-        </Card>
+          </RowList>
+        </div>
       ))}
     </div>
   );

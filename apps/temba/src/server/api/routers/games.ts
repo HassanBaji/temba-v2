@@ -95,7 +95,7 @@ import {
   vacantPositionsFromSides,
 } from "~/server/games/seats";
 import {
-  listMyGroupsHubRows,
+  listMyGamesHubRows,
   listPublicHubRows,
 } from "~/server/games/hub-list-rows";
 import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
@@ -377,20 +377,20 @@ export const gamesRouter = createTRPCRouter({
     }),
 
   /**
-   * Games hub My Groups: live upcoming Games on Groups the signed-in User
-   * belongs to (same membership / live filter as Home upcoming, including
-   * Soft-archived Club Group Games).
+   * Games hub My Games: live upcoming Games on Groups the signed-in User
+   * belongs to (including Soft-archived Club Group Games), plus private
+   * Games they created or are registered/waitlisted on.
    */
-  listMyGroups: protectedProcedure.query(async ({ ctx }) => {
+  listMyGames: protectedProcedure.query(async ({ ctx }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return listMyGroupsHubRows(ctx.db, appUser.id);
+    return listMyGamesHubRows(ctx.db, appUser.id);
   }),
 
   /**
    * Public pickup Games (parent events). Live `isPublic` Games only.
    * Soft-archived Community Club Group Games are excluded; the Game
    * `isPublic` row flag is not flipped. Groupless public Games are included.
-   * Games already listed on My Groups are excluded (My preferred).
+   * Games already listed on My Games are excluded (My Games preferred).
    */
   listPublicPickup: protectedProcedure.query(async ({ ctx }) => {
     const appUser = await resolveAppUser(ctx.userId);
@@ -683,6 +683,7 @@ export const gamesRouter = createTRPCRouter({
           city: true,
           country: true,
           archivedAt: true,
+          logoImageUrl: true,
         },
       });
 
@@ -801,6 +802,7 @@ export const gamesRouter = createTRPCRouter({
               city: venue.city,
               country: venue.country,
               archivedAt: venue.archivedAt,
+              logoImageUrl: venue.logoImageUrl,
             }
           : null,
         windowStart: game.windowStart,
