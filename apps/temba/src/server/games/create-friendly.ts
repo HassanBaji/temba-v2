@@ -31,6 +31,8 @@ export type CreateFriendlyGameInput = {
   courtId?: string | null;
   windowStart: Date;
   windowEnd: Date;
+  /** Null / omitted = unset. 0 = free. Positive = cents per User occupying a seat. */
+  pricePerPlayerCents?: number | null;
 };
 
 export type CreateFriendlyGameResult = {
@@ -101,6 +103,7 @@ export async function createFriendlyGame(
         windowEnd: input.windowEnd,
         playersAllowed: FRIENDLY_PLAYERS_ALLOWED,
         teamsAllowed: FRIENDLY_TEAMS_ALLOWED,
+        pricePerPlayerCents: input.pricePerPlayerCents ?? null,
         sport: GameSportEnum.PADEL,
         createdBy: input.createdBy,
       })

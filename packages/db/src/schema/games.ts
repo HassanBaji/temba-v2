@@ -45,6 +45,7 @@ export const games = pgTable("games", {
   windowEnd: timestamp("window_end"),
   playersAllowed: integer("players_allowed"),
   teamsAllowed: integer("teams_allowed"),
+  pricePerPlayerCents: integer("price_per_player_cents"),
   sport: gameSports("sport").default(GameSportEnum.PADEL),
   createdBy: uuid("created_by")
     .notNull()

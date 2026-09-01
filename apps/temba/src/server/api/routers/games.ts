@@ -56,6 +56,7 @@ import {
   reopenRegistration,
   updateGameCaps,
   updateGameMatch,
+  updateGamePricePerPlayer,
   updateGameWindow,
 } from "~/server/games/organize";
 import { listAssignableCourts } from "~/server/games/courts";
@@ -104,6 +105,7 @@ import {
   assertGameInviteDoorsOpen,
   assertInviteeAllowedOnGame,
 } from "~/server/games/invites";
+import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
 import {
   acceptLink,
   acceptLookup,
@@ -422,6 +424,13 @@ export const gamesRouter = createTRPCRouter({
           venueId: z.string().uuid({ message: "Pick a Venue" }),
           courtId: z.string().uuid().nullable().optional(),
           courtIds: z.array(z.string().uuid()).optional(),
+          pricePerPlayerCents: z
+            .number()
+            .int()
+            .min(0)
+            .max(PRICE_PER_PLAYER_MAX_CENTS)
+            .nullable()
+            .optional(),
         })
         .refine(
           (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
@@ -515,6 +524,7 @@ export const gamesRouter = createTRPCRouter({
           courtId: input.courtId,
           windowStart: input.windowStart,
           windowEnd: input.windowEnd,
+          pricePerPlayerCents: input.pricePerPlayerCents ?? null,
         });
         return {
           id: created.game.id,
@@ -551,6 +561,7 @@ export const gamesRouter = createTRPCRouter({
             windowEnd,
             playersAllowed,
             teamsAllowed: null,
+            pricePerPlayerCents: input.pricePerPlayerCents ?? null,
             sport: GameSportEnum.PADEL,
             createdBy: appUser.id,
           })
@@ -794,6 +805,7 @@ export const gamesRouter = createTRPCRouter({
           : null,
         windowStart: game.windowStart,
         windowEnd: game.windowEnd,
+        pricePerPlayerCents: game.pricePerPlayerCents,
         playersAllowed: game.playersAllowed,
         teamsAllowed: game.teamsAllowed,
         sport: game.sport,
@@ -1469,6 +1481,28 @@ export const gamesRouter = createTRPCRouter({
           input.windowEnd,
           input.name,
         );
+      });
+      return { ok: true as const };
+    }),
+
+  updatePricePerPlayer: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        pricePerPlayerCents: z
+          .number()
+          .int()
+          .min(0)
+          .max(PRICE_PER_PLAYER_MAX_CENTS)
+          .nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser(ctx.userId);
+      const game = await requireGame(ctx.db, input.gameId);
+      await assertGameOrganizer(ctx.db, game, appUser.id);
+      await ctx.db.transaction(async (tx) => {
+        await updateGamePricePerPlayer(tx, game, input.pricePerPlayerCents);
       });
       return { ok: true as const };
     }),

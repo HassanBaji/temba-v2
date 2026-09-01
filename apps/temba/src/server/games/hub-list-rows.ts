@@ -48,6 +48,7 @@ export type HubListRow = {
   windowStart: Date | null;
   windowEnd: Date | null;
   venue: { id: string; name: string; city: string } | null;
+  pricePerPlayerCents: number | null;
   registeredUserCount: number;
   playersAllowed: number | null;
   registeredTeamCount: number;
@@ -70,6 +71,7 @@ const hubListColumns = {
   venueId: true,
   windowStart: true,
   windowEnd: true,
+  pricePerPlayerCents: true,
   cancelledAt: true,
   registrationClosedAt: true,
   createdAt: true,
@@ -157,6 +159,7 @@ type HubQueryRow = {
   venueId: string;
   windowStart: Date | null;
   windowEnd: Date | null;
+  pricePerPlayerCents: number | null;
   cancelledAt: Date | null;
   registrationClosedAt: Date | null;
   createdAt: Date;
@@ -332,6 +335,7 @@ export function toHubListRow(
           city: row.venue.city,
         }
       : null,
+    pricePerPlayerCents: row.pricePerPlayerCents,
     registeredUserCount,
     playersAllowed: row.playersAllowed,
     registeredTeamCount,

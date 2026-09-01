@@ -20,6 +20,7 @@ import {
   formatGameTimeWindow,
   formatRelativeDay,
 } from "~/lib/format-game-start";
+import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import {
   gameSummaryCtaLabel,
   type GameSummaryCta,
@@ -109,6 +110,7 @@ export function GameSummaryCard({
   occupancy,
   windowStart,
   windowEnd,
+  pricePerPlayerCents,
   actionLabel,
   sides,
   primaryAction,
@@ -128,6 +130,7 @@ export function GameSummaryCard({
   occupancy?: string | null;
   windowStart?: Date | string | null;
   windowEnd?: Date | string | null;
+  pricePerPlayerCents?: number | null;
   actionLabel?: string | null;
   sides?: GameSummarySide[];
   primaryAction?: GameSummaryCta;
@@ -145,12 +148,14 @@ export function GameSummaryCard({
   const interactiveCta =
     cta === "join" || cta === "join_waitlist" || cta === "register";
   const showRoster = Boolean(sides && sides.length > 0);
+  const priceMeta = formatPricePerPlayerCardMeta(pricePerPlayerCents);
   const meta = venueLed
     ? [
         formatRelativeDay(startTime),
         formatGameTimeWindow(windowStart, windowEnd, startTime),
         occupancy,
         location,
+        priceMeta,
       ]
         .filter((part): part is string => Boolean(part))
         .join(" · ")
@@ -158,6 +163,7 @@ export function GameSummaryCard({
         formatRelativeDay(startTime),
         formatGameStart(startTime),
         groupName ?? "Pickup",
+        priceMeta,
       ]
         .filter((part): part is string => Boolean(part))
         .join(" · ");
