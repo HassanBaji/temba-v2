@@ -1,7 +1,6 @@
 import { Calendar } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
-import { RowList } from "~/components/common/row-list";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Section } from "~/components/layout/section";
 
@@ -57,7 +56,7 @@ export function GroupGamesTab({
             No upcoming Games scheduled for this Group.
           </p>
         ) : (
-          <RowList>
+          <ul className="flex flex-col gap-3">
             {upcomingGames.map((game) => (
               <GameSummaryCard
                 key={game.id}
@@ -70,7 +69,7 @@ export function GroupGamesTab({
                 pricePerPlayerCents={game.pricePerPlayerCents}
               />
             ))}
-          </RowList>
+          </ul>
         )}
       </Section>
 
@@ -83,7 +82,7 @@ export function GroupGamesTab({
             No Game history yet.
           </p>
         ) : (
-          <RowList>
+          <ul className="flex flex-col gap-3">
             {gameHistory.map((game) => (
               <GameSummaryCard
                 key={game.id}
@@ -96,7 +95,7 @@ export function GroupGamesTab({
                 pricePerPlayerCents={game.pricePerPlayerCents}
               />
             ))}
-          </RowList>
+          </ul>
         )}
       </Section>
     </div>

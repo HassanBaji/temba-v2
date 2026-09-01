@@ -241,7 +241,7 @@ export default function HomePage() {
                       ) : null
                     }
                   >
-                    <RowList>
+                    <ul className="flex flex-col gap-3">
                       {restVisible.map((game) => (
                         <GameSummaryCard
                           key={game.id}
@@ -278,7 +278,7 @@ export default function HomePage() {
                           }}
                         />
                       ))}
-                    </RowList>
+                    </ul>
                   </Section>
                 ) : null}
               </div>
