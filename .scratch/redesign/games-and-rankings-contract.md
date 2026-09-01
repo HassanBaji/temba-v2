@@ -35,7 +35,7 @@ Until a field's source exists, omit the prop. Do not fabricate Venue, Court, spo
 | 7 | Spots with progress | Optional | `6/8` plus a 4px track. Omit when caps are unknown. |
 | 8 | Registered Users as `AvatarStack` | Optional | Game-scoped pool; overflow count as today. |
 | 9 | Level band | Optional | Rankings only. Do not show until rankings schema exists. |
-| 10 | Price per player | Optional | Columns `totalPrice` / `pricePerPlayer` exist and are unread. `games-matches` explicitly excludes payment. Do not surface. |
+| 10 | Price per player | Optional | Game.`pricePerPlayerCents` (TEM-105). Surface when set (`50.00` / `12.50` / `Free`); omit when unset. Still no payments. |
 | 11 | Exactly one primary action | Yes when the row is a destination | `Register`, `Join waitlist`, or `View`. Home/Group reduced rows stay non-actions until Game home is the destination. |
 
 Reduced (phase-one) props, already shipping: relative day and time, Game name, Group, sport, optional cancelled status. No chevron and no pointer cursor when `href` is omitted.
@@ -50,7 +50,7 @@ Reduced (phase-one) props, already shipping: relative day and time, Game name, G
 | Venue and Court | **Broken on the old Game row; corrected on Match** | When the redesign spec was written, `games.courtId` referenced `venues.id` (ADR-0007 leftover), not `courts.id`. TEM-35 renamed that table to `games_legacy` (constraint `games_legacy_court_id_venues_id_fk`). The new `games` table has **no** `courtId`. **Match.courtId** references `courts.id` (TEM-40). Venue and Court on a Game card therefore come from the Game's Matches, not from the Game row. |
 | Format, open/full/closed, spots, Waitlist | Exists in schema after TEM-36 / TEM-37 | Do not re-specify; defer to `games-matches` |
 | Registered Users, avatars | Game-scoped pool (TEM-36, TEM-39) | `game_players` + User image |
-| Price per player | Columns exist, unread | `games-matches` excludes payment |
+| Price per player | Game.`pricePerPlayerCents` (TEM-105) | `.scratch/game-price-per-player/spec.md`. Surface when set; still no payments |
 | Level or skill band | Does not exist | Rankings phase (this file, Part 2) |
 | Set scores and Match result | Sets (TEM-41) | Match completion; counters stay at zero |
 

@@ -1,4 +1,4 @@
-Status: draft
+Status: ready-for-agent
 
 ## Problem Statement
 
@@ -185,6 +185,16 @@ Settled grilling: `.scratch/game-price-per-player/decisions.md`.
 
 Create Game on current `dev` has Venue, Court, and window only (always Friendly game, individual, not public). Implementers add price per player and must not reintroduce a Format select.
 
+## Implementation tickets (Linear)
+
+All labelled `ready-for-agent`. Spec: `.scratch/game-price-per-player/spec.md`.
+
+| # | Ticket | Blocked by |
+|---|--------|------------|
+| 1 | [TEM-105 Game price per player: column, create, display, organizer edit](https://linear.app/temba-app/issue/TEM-105/game-price-per-player-column-create-display-organizer-edit) | — |
+
+Frontier: **TEM-105**. Do not implement until an implementer / orchestrator is asked to run the ticket.
+
 ## Comments
 
-Draft from `/planner`. Round 2: Q2 confirmed (no currency symbol); Q3 confirmed (allow cents → integer `price_per_player_cents`). Linear tickets wait on spec approval.
+`/to-tickets`: published [TEM-105](https://linear.app/temba-app/issue/TEM-105/game-price-per-player-column-create-display-organizer-edit). Round 2 grilling: no currency symbol; integer cents.

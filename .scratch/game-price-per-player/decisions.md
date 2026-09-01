@@ -1,6 +1,6 @@
 # Game price per player — settled decisions
 
-Status: spec draft — `.scratch/game-price-per-player/spec.md`. No Linear tickets until the spec is approved.
+Status: spec published — `.scratch/game-price-per-player/spec.md` (ready-for-agent). Ticket: [TEM-105](https://linear.app/temba-app/issue/TEM-105/game-price-per-player-column-create-display-organizer-edit). Frontier TEM-105.
 
 ## Settled (round 1)
 
@@ -24,16 +24,6 @@ Status: spec draft — `.scratch/game-price-per-player/spec.md`. No Linear ticke
 
 ## Glossary (ships with spec approval)
 
-**Price per player**:
-The display-only amount one User pays to occupy a seat on that Game. Optional on the Game; zero means free; unset means the organizer did not state an amount. Stored as integer cents; shown with two decimal places and no currency symbol. Not a payment, not per Game team, and not a total for the Game.
-_Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
+**Price per player** in root `CONTEXT.md` (product language only; cents storage stays in this spec).
 
 **ADR: no.** Integer cents on Game is the usual way to keep two decimal places without `numeric` or floats. Implicit currency without a column is deferred, not a locked trade-off. Match-vs-Game was already decided by ADR-0008.
-
-## Ticket sketch (not published)
-
-After spec approval, one vertical ticket:
-
-| # | Title | Notes |
-|---|--------|--------|
-| 1 | Game price per player: column, create, display, organizer edit | DB Package `price_per_player_cents` + migration; `games.create` + by-id + list payloads + organizer update; Create Game Field in major units; Game home line/editor; `GameSummaryCard` + Home hero. Blocked by: nothing. |
