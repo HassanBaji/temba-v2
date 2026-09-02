@@ -95,7 +95,6 @@ export default function TeamsIndexPage() {
                       meta={`Invite from ${invite.invitedBy.name}`}
                       trailing={
                         <Button
-                          variant="brand"
                           className="min-h-11"
                           disabled={accepting}
                           onClick={() =>
