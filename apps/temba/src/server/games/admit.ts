@@ -19,6 +19,10 @@ import {
 } from "~/server/games/seats";
 import { consult } from "~/server/soft-archive";
 import { type db } from "~/server/db";
+import {
+  partyUserIdsForAdmit,
+  userAllowedByLevelRange,
+} from "~/server/games/user-allowed-by-level-range";
 import type {
   AdmitDb,
   AdmitDoor,
@@ -81,6 +85,17 @@ export async function admit(
   const closed = await refuseRegisterDoors(database, args.game, args.door, now);
   if (closed) {
     return closed;
+  }
+
+  if (args.door === "register") {
+    const userIds = await partyUserIdsForAdmit(database, args.party);
+    if (userIds) {
+      for (const userId of userIds) {
+        if (!(await userAllowedByLevelRange(database, args.game, userId))) {
+          return { ok: false, reason: "level_range" };
+        }
+      }
+    }
   }
 
   if (args.party.kind === "user") {

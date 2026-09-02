@@ -19,6 +19,7 @@ export * from "./match-sets";
 export * from "./game-member-invites";
 export * from "./game-invite-links";
 export * from "./game-invite-link-consents";
+export * from "./game-level-range-requests";
 export * from "./group-enums";
 export * from "./groups";
 export * from "./group-members";

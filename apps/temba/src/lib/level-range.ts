@@ -68,6 +68,26 @@ export function tenthsToMajorInput(tenths: number | null | undefined): string {
   return formatLevelTenths(tenths) ?? "";
 }
 
+export const LEVEL_RANGE_OUTSIDE_MESSAGE =
+  "Your Level is outside this Game's range";
+
+export const LEVEL_RANGE_OUTSIDE_PARTY_MESSAGE =
+  "A User's Level is outside this Game's range";
+
+export function formatLevelRangeGateCopy(args: {
+  levelMinTenths: number | null | undefined;
+  levelMaxTenths: number | null | undefined;
+  viewerLevelTenths: number | null | undefined;
+}): string {
+  if (args.viewerLevelTenths == null) {
+    return "You don't have a Level yet. Declare one on You, or request to play.";
+  }
+  const range =
+    formatLevelRangeLabel(args.levelMinTenths, args.levelMaxTenths) ??
+    "this Game's range";
+  return `This Game is for ${range}. Your Level is ${formatLevelTenths(args.viewerLevelTenths)}.`;
+}
+
 export function formatLevelRangeLabel(
   levelMinTenths: number | null | undefined,
   levelMaxTenths: number | null | undefined,

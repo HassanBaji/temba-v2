@@ -18,6 +18,7 @@ import { matches } from "./matches";
 import { gameWaitlist } from "./game-waitlist";
 import { gameMemberInvites } from "./game-member-invites";
 import { gameInviteLinks } from "./game-invite-links";
+import { gameLevelRangeRequests } from "./game-level-range-requests";
 import {
   gameFormats,
   gameRegistrationModes,
@@ -69,4 +70,5 @@ export const gameRelations = relations(games, ({ one, many }) => ({
   waitlist: many(gameWaitlist),
   memberInvites: many(gameMemberInvites),
   inviteLinks: many(gameInviteLinks),
+  levelRangeRequests: many(gameLevelRangeRequests),
 }));

@@ -23,6 +23,7 @@ import {
   userPassesJoinGate,
 } from "~/server/games/access";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
+import { viewerLevelRangeFields } from "~/server/games/level-range-requests";
 import {
   isIndividualSeatGame,
   listGameSides,
@@ -228,6 +229,12 @@ export async function gameById(
     registrationStatus === "open" &&
     hasVacantPosition &&
     !sitsCompleted;
+  const levelRange = await viewerLevelRangeFields(
+    database,
+    game,
+    args.userId,
+    organizer,
+  );
 
   return {
     id: game.id,
@@ -268,11 +275,13 @@ export async function gameById(
     canRegister:
       registrationStatus === "open" &&
       passesGate &&
+      levelRange.viewerPassesLevelRange &&
       !alreadyOnGame &&
       !isWaitlisted,
     canWaitlist:
       registrationStatus === "full" &&
       passesGate &&
+      levelRange.viewerPassesLevelRange &&
       !alreadyOnGame &&
       !isWaitlisted,
     canPickSeat,
@@ -364,5 +373,6 @@ export async function gameById(
         : [],
     ),
     eligibleTeams,
+    ...levelRange,
   };
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatLevelRangeLabel,
+  formatLevelRangeGateCopy,
   formatLevelTenths,
   LEVEL_RANGE_FIELD_DESCRIPTION,
   parseOptionalLevelTenths,
@@ -83,5 +84,26 @@ describe("LEVEL_RANGE_FIELD_DESCRIPTION", () => {
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).toContain("Level");
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).not.toMatch(/rank|ELO/i);
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).toContain("request to play");
+  });
+});
+
+describe("formatLevelRangeGateCopy", () => {
+  it("explains the range and the viewer Level, or no Level yet", () => {
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 30,
+        levelMaxTenths: 45,
+        viewerLevelTenths: 52,
+      }),
+    ).toBe("This Game is for Level 3.0–4.5. Your Level is 5.2.");
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 30,
+        levelMaxTenths: 45,
+        viewerLevelTenths: null,
+      }),
+    ).toBe(
+      "You don't have a Level yet. Declare one on You, or request to play.",
+    );
   });
 });

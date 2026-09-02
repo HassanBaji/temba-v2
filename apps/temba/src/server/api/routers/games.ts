@@ -21,6 +21,12 @@ import { getInviteLink } from "~/server/games/get-invite-link";
 import { kick } from "~/server/games/kick";
 import { leaveGame } from "~/server/games/leave";
 import { leaveWaitlist } from "~/server/games/leave-waitlist";
+import {
+  approveLevelRangeRequest,
+  listLevelRangeRequests,
+  rejectLevelRangeRequest,
+  requestLevelRange,
+} from "~/server/games/level-range-requests";
 import { listCreateVenues } from "~/server/games/list-create-venues";
 import { listCourts } from "~/server/games/list-courts";
 import { listLookupInvites } from "~/server/games/list-lookup-invites";
@@ -512,6 +518,52 @@ export const gamesRouter = createTRPCRouter({
         userId: appUser.id,
         levelMinTenths: input.levelMinTenths,
         levelMaxTenths: input.levelMaxTenths,
+      });
+    }),
+
+  requestLevelRange: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string().uuid(),
+        inviteToken: z.string().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser(ctx.userId);
+      return requestLevelRange(ctx.db, {
+        gameId: input.gameId,
+        userId: appUser.id,
+        inviteToken: input.inviteToken,
+      });
+    }),
+
+  listLevelRangeRequests: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser(ctx.userId);
+      return listLevelRangeRequests(ctx.db, {
+        gameId: input.gameId,
+        userId: appUser.id,
+      });
+    }),
+
+  approveLevelRangeRequest: protectedProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser(ctx.userId);
+      return approveLevelRangeRequest(ctx.db, {
+        requestId: input.requestId,
+        userId: appUser.id,
+      });
+    }),
+
+  rejectLevelRangeRequest: protectedProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser(ctx.userId);
+      return rejectLevelRangeRequest(ctx.db, {
+        requestId: input.requestId,
+        userId: appUser.id,
       });
     }),
 

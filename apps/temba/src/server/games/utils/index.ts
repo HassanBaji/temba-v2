@@ -163,7 +163,8 @@ export type AdmitReason =
   | "no_vacant_side"
   | "team_not_found"
   | "team_incomplete"
-  | "team_already_on_game";
+  | "team_already_on_game"
+  | "level_range";
 
 export type AdmitPlacement =
   | {

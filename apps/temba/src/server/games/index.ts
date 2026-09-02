@@ -31,6 +31,13 @@ export {
 export { gameById } from "~/server/games/by-id";
 export { createGame } from "~/server/games/create";
 export {
+  approveLevelRangeRequest,
+  listLevelRangeRequests,
+  rejectLevelRangeRequest,
+  requestLevelRange,
+} from "~/server/games/level-range-requests";
+export { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
+export {
   FRIENDLY_SET_SHELL_COUNT,
   backfillFriendlySetShells,
   createFriendlyGame,
