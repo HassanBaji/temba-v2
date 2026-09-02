@@ -19,6 +19,7 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { Input } from "~/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,11 @@ import {
   formatGameWindowName,
   parseRequiredGameWindow,
 } from "~/lib/game-window";
+import {
+  LEVEL_RANGE_FIELD_DESCRIPTION,
+  LEVEL_RANGE_INVERTED_MESSAGE,
+  parseOptionalLevelTenths,
+} from "~/lib/level-range";
 import {
   parseOptionalPricePerPlayerCents,
   PRICE_PER_PLAYER_FIELD_DESCRIPTION,
@@ -75,6 +81,14 @@ function NewGameForm() {
   const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
     string | undefined
   >();
+  const [levelMin, setLevelMin] = React.useState("");
+  const [levelMax, setLevelMax] = React.useState("");
+  const [levelMinError, setLevelMinError] = React.useState<
+    string | undefined
+  >();
+  const [levelMaxError, setLevelMaxError] = React.useState<
+    string | undefined
+  >();
 
   const picker = api.games.listCreateVenues.useQuery({ groupId });
   const selectedVenue = picker.data?.venues.find(
@@ -116,6 +130,8 @@ function NewGameForm() {
           venueId: "game-venue",
           courtId: "game-court",
           pricePerPlayerCents: "game-price-per-player",
+          levelMinTenths: "game-level-min",
+          levelMaxTenths: "game-level-max",
           windowStart: "game-window-start",
           windowEnd: "game-window-finish",
         },
@@ -137,10 +153,33 @@ function NewGameForm() {
       return;
     }
     setPricePerPlayerError(undefined);
+    setLevelMinError(undefined);
+    setLevelMaxError(undefined);
     const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
     if (!parsedPrice.ok) {
       setPricePerPlayerError(parsedPrice.message);
       document.getElementById("game-price-per-player")?.focus();
+      return;
+    }
+    const parsedMin = parseOptionalLevelTenths(levelMin);
+    if (!parsedMin.ok) {
+      setLevelMinError(parsedMin.message);
+      document.getElementById("game-level-min")?.focus();
+      return;
+    }
+    const parsedMax = parseOptionalLevelTenths(levelMax);
+    if (!parsedMax.ok) {
+      setLevelMaxError(parsedMax.message);
+      document.getElementById("game-level-max")?.focus();
+      return;
+    }
+    if (
+      parsedMin.tenths != null &&
+      parsedMax.tenths != null &&
+      parsedMin.tenths > parsedMax.tenths
+    ) {
+      setLevelMinError(LEVEL_RANGE_INVERTED_MESSAGE);
+      document.getElementById("game-level-min")?.focus();
       return;
     }
     createGame.mutate({
@@ -155,6 +194,12 @@ function NewGameForm() {
       courtId: courtId === "none" ? undefined : courtId,
       ...(parsedPrice.cents !== null
         ? { pricePerPlayerCents: parsedPrice.cents }
+        : {}),
+      ...(parsedMin.tenths !== null
+        ? { levelMinTenths: parsedMin.tenths }
+        : {}),
+      ...(parsedMax.tenths !== null
+        ? { levelMaxTenths: parsedMax.tenths }
         : {}),
     });
   }
@@ -281,6 +326,73 @@ function NewGameForm() {
               <FieldError id="game-price-per-player-error">
                 {pricePerPlayerError ??
                   fieldErrorMessage(createGame.error, "pricePerPlayerCents")}
+              </FieldError>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="game-level-min">Minimum Level</FieldLabel>
+              <Input
+                id="game-level-min"
+                type="number"
+                step="0.1"
+                min="0"
+                max="7"
+                value={levelMin}
+                onChange={(event) => {
+                  setLevelMin(event.target.value);
+                  setLevelMinError(undefined);
+                }}
+                aria-invalid={
+                  levelMinError ||
+                  fieldErrorMessage(createGame.error, "levelMinTenths")
+                    ? true
+                    : undefined
+                }
+                aria-describedby={
+                  levelMinError ||
+                  fieldErrorMessage(createGame.error, "levelMinTenths")
+                    ? "game-level-min-error"
+                    : "game-level-range-copy"
+                }
+              />
+              <FieldError id="game-level-min-error">
+                {levelMinError ??
+                  fieldErrorMessage(createGame.error, "levelMinTenths")}
+              </FieldError>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="game-level-max">Maximum Level</FieldLabel>
+              <Input
+                id="game-level-max"
+                type="number"
+                step="0.1"
+                min="0"
+                max="7"
+                value={levelMax}
+                onChange={(event) => {
+                  setLevelMax(event.target.value);
+                  setLevelMaxError(undefined);
+                }}
+                aria-invalid={
+                  levelMaxError ||
+                  fieldErrorMessage(createGame.error, "levelMaxTenths")
+                    ? true
+                    : undefined
+                }
+                aria-describedby={
+                  levelMaxError ||
+                  fieldErrorMessage(createGame.error, "levelMaxTenths")
+                    ? "game-level-max-error"
+                    : "game-level-range-copy"
+                }
+              />
+              <FieldDescription id="game-level-range-copy">
+                {LEVEL_RANGE_FIELD_DESCRIPTION}
+              </FieldDescription>
+              <FieldError id="game-level-max-error">
+                {levelMaxError ??
+                  fieldErrorMessage(createGame.error, "levelMaxTenths")}
               </FieldError>
             </Field>
 

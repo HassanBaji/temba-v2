@@ -46,6 +46,8 @@ export const games = pgTable("games", {
   playersAllowed: integer("players_allowed"),
   teamsAllowed: integer("teams_allowed"),
   pricePerPlayerCents: integer("price_per_player_cents"),
+  levelMinTenths: integer("level_min_tenths"),
+  levelMaxTenths: integer("level_max_tenths"),
   sport: gameSports("sport").default(GameSportEnum.PADEL),
   createdBy: uuid("created_by")
     .notNull()

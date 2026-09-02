@@ -33,6 +33,8 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
         durationInMinutes={firstMatch?.durationInMinutes}
         sport={game.sport}
         pricePerPlayerCents={game.pricePerPlayerCents}
+        levelMinTenths={game.levelMinTenths}
+        levelMaxTenths={game.levelMaxTenths}
       />
 
       <GameVenueCard venue={game.venue} courtNames={courtNames} />

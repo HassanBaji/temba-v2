@@ -41,10 +41,16 @@ import { searchLookupUsers } from "~/server/games/search-lookup-users";
 import { searchPartnerUsers } from "~/server/games/search-partner-users";
 import { sendLookupInvite } from "~/server/games/send-lookup-invite";
 import { updateGameCaps } from "~/server/games/update-caps";
+import { updateGameLevelRange } from "~/server/games/update-level-range";
 import { updateMatch } from "~/server/games/update-match";
 import { updateGamePricePerPlayer } from "~/server/games/update-price-per-player";
 import { updateGameWindow } from "~/server/games/update-window";
 import { getAppOrigin } from "~/server/invites/tokens";
+import {
+  LEVEL_RANGE_INVERTED_MESSAGE,
+  LEVEL_TENTHS_MAX,
+  LEVEL_TENTHS_MIN,
+} from "~/lib/level-range";
 import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
 
 const registrationModeSchema = z.enum(["individual", "team_only"]);
@@ -117,6 +123,20 @@ export const gamesRouter = createTRPCRouter({
             .max(PRICE_PER_PLAYER_MAX_CENTS)
             .nullable()
             .optional(),
+          levelMinTenths: z
+            .number()
+            .int()
+            .min(LEVEL_TENTHS_MIN)
+            .max(LEVEL_TENTHS_MAX)
+            .nullable()
+            .optional(),
+          levelMaxTenths: z
+            .number()
+            .int()
+            .min(LEVEL_TENTHS_MIN)
+            .max(LEVEL_TENTHS_MAX)
+            .nullable()
+            .optional(),
         })
         .refine(
           (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
@@ -186,6 +206,22 @@ export const gamesRouter = createTRPCRouter({
               code: z.ZodIssueCode.custom,
               message: "Duplicate courtIds",
               path: ["courtIds"],
+            });
+          }
+          if (
+            value.levelMinTenths != null &&
+            value.levelMaxTenths != null &&
+            value.levelMinTenths > value.levelMaxTenths
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: LEVEL_RANGE_INVERTED_MESSAGE,
+              path: ["levelMinTenths"],
+            });
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: LEVEL_RANGE_INVERTED_MESSAGE,
+              path: ["levelMaxTenths"],
             });
           }
         }),
@@ -429,6 +465,53 @@ export const gamesRouter = createTRPCRouter({
         gameId: input.gameId,
         userId: appUser.id,
         pricePerPlayerCents: input.pricePerPlayerCents,
+      });
+    }),
+
+  updateLevelRange: protectedProcedure
+    .input(
+      z
+        .object({
+          gameId: z.string().uuid(),
+          levelMinTenths: z
+            .number()
+            .int()
+            .min(LEVEL_TENTHS_MIN)
+            .max(LEVEL_TENTHS_MAX)
+            .nullable(),
+          levelMaxTenths: z
+            .number()
+            .int()
+            .min(LEVEL_TENTHS_MIN)
+            .max(LEVEL_TENTHS_MAX)
+            .nullable(),
+        })
+        .superRefine((value, ctx) => {
+          if (
+            value.levelMinTenths != null &&
+            value.levelMaxTenths != null &&
+            value.levelMinTenths > value.levelMaxTenths
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: LEVEL_RANGE_INVERTED_MESSAGE,
+              path: ["levelMinTenths"],
+            });
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: LEVEL_RANGE_INVERTED_MESSAGE,
+              path: ["levelMaxTenths"],
+            });
+          }
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const appUser = await resolveAppUser(ctx.userId);
+      return updateGameLevelRange(ctx.db, {
+        gameId: input.gameId,
+        userId: appUser.id,
+        levelMinTenths: input.levelMinTenths,
+        levelMaxTenths: input.levelMaxTenths,
       });
     }),
 

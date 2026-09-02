@@ -24,6 +24,8 @@ export const hubListColumns = {
   windowStart: true,
   windowEnd: true,
   pricePerPlayerCents: true,
+  levelMinTenths: true,
+  levelMaxTenths: true,
   cancelledAt: true,
   registrationClosedAt: true,
   createdAt: true,
@@ -112,6 +114,8 @@ export type HubQueryRow = {
   windowStart: Date | null;
   windowEnd: Date | null;
   pricePerPlayerCents: number | null;
+  levelMinTenths: number | null;
+  levelMaxTenths: number | null;
   cancelledAt: Date | null;
   registrationClosedAt: Date | null;
   createdAt: Date;
@@ -343,6 +347,8 @@ export function toHubListRow(
         }
       : null,
     pricePerPlayerCents: row.pricePerPlayerCents,
+    levelMinTenths: row.levelMinTenths,
+    levelMaxTenths: row.levelMaxTenths,
     registeredUserCount,
     playersAllowed: row.playersAllowed,
     registeredTeamCount,

@@ -39,6 +39,8 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
       windowStart: input.windowStart,
       windowEnd: input.windowEnd,
       pricePerPlayerCents: input.pricePerPlayerCents ?? null,
+      levelMinTenths: input.levelMinTenths ?? null,
+      levelMaxTenths: input.levelMaxTenths ?? null,
     });
     return {
       id: created.game.id,
@@ -76,6 +78,8 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
         playersAllowed,
         teamsAllowed: null,
         pricePerPlayerCents: input.pricePerPlayerCents ?? null,
+        levelMinTenths: input.levelMinTenths ?? null,
+        levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
         createdBy: input.createdBy,
       })
