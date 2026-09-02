@@ -66,7 +66,7 @@ export default function TeamsIndexPage() {
           title="No Teams yet"
           description="A Team is a lasting partnership with one other player."
           action={
-            <Button asChild variant="brand">
+            <Button asChild>
               <Link href="/dashboard/teams/new">Create Team</Link>
             </Button>
           }

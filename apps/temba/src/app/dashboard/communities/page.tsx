@@ -74,7 +74,7 @@ export default function CommunitiesPage() {
           description="Communities organise Club Groups around a Venue."
           action={
             hasCreateAccess ? (
-              <Button asChild variant="brand">
+              <Button asChild>
                 <Link href="/dashboard/communities/new">Create Community</Link>
               </Button>
             ) : undefined

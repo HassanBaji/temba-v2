@@ -467,7 +467,7 @@ export default function GameHomePage({
                 <Button
                   ref={inviteButtonRef}
                   type="button"
-                  variant="brand"
+                  variant="outline"
                   className="min-h-11"
                   onClick={() => setInvitesOpen(true)}
                 >

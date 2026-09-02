@@ -12,19 +12,11 @@
 
 @theme static {
   /* Sports brand — primary is black (#0A0A0A); Volt Lime is a separate accent
-     that nothing maps --primary onto. --color-brand* below is retired: it is
-     kept only as a safety net for any leftover text-brand / bg-brand-subtle
-     usage mid-migration, and resolves to neutral foreground/muted so it can
-     never render blue or lime-on-white. */
-  --color-brand: var(--foreground);
-  --color-brand-hover: var(--foreground);
-  --color-brand-active: var(--foreground);
-  --color-brand-text: var(--foreground);
-  --color-brand-on-dark: oklch(1 0 0);
-  --color-brand-subtle: var(--muted);
-  --color-brand-subtle-border: var(--border);
+     that nothing maps --primary onto. The retired blue --color-brand* tokens
+     (formerly text-brand / bg-brand-subtle / bg-brand-on-dark) have been
+     removed now that no source references them. */
 
-  /* Volt Lime — accent only; never aliased onto --color-brand or --primary. */
+  /* Volt Lime — accent only; never aliased onto --primary. */
   --color-volt: #c8f135;
   --color-volt-hover: #b3d928;
   --color-volt-soft: #eef8c9;
@@ -117,7 +109,8 @@
   --popover: #ffffff;
   --popover-foreground: var(--foreground);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.5 0 0);
+  /* ~gray-700; meets AA contrast at 12–13px meta text sizes */
+  --muted-foreground: oklch(0.4 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --accent: oklch(0.97 0 0);
