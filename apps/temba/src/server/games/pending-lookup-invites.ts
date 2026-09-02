@@ -27,7 +27,7 @@ export async function pendingLookupInvites(
         columns: { id: true, name: true },
       },
       invitedBy: {
-        columns: { id: true, name: true, email: true },
+        columns: { id: true, name: true, email: true, image: true },
       },
     },
     orderBy: (table, { desc }) => [desc(table.createdAt)],
@@ -45,6 +45,7 @@ export async function pendingLookupInvites(
         id: row.invitedBy.id,
         name: row.invitedBy.name,
         email: row.invitedBy.email,
+        image: row.invitedBy.image,
       },
       createdAt: row.createdAt,
       needsSeatPick,

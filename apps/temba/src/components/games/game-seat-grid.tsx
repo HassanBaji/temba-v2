@@ -69,7 +69,7 @@ function SeatRow({
     <ListRow
       leading={
         occupant ? (
-          <UserAvatar name={occupant.name} size="lg" />
+          <UserAvatar name={occupant.name} image={occupant.image} size="lg" />
         ) : (
           <VacantAvatar />
         )

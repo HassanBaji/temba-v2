@@ -30,6 +30,7 @@ export async function mine(database: DbClient, args: { userId: string }) {
               columns: {
                 id: true,
                 name: true,
+                image: true,
               },
             },
           },
@@ -60,6 +61,10 @@ export async function mine(database: DbClient, args: { userId: string }) {
             archivedAt: community.archivedAt,
           }
         : null,
+      members: members.map((member) => ({
+        name: member.user.name,
+        image: member.user.image,
+      })),
       memberCount: members.length,
       incomplete: members.length < 2,
     };

@@ -8,7 +8,7 @@ import { RoleBadge } from "~/components/temba/role-badge";
 export function GroupMembersTab({
   members,
 }: {
-  members: { userId: string; name: string }[];
+  members: { userId: string; name: string; image?: string | null }[];
 }) {
   if (members.length === 0) {
     return (
@@ -25,7 +25,9 @@ export function GroupMembersTab({
       {members.map((member) => (
         <ListRow
           key={member.userId}
-          leading={<UserAvatar name={member.name} size="lg" />}
+          leading={
+            <UserAvatar name={member.name} image={member.image} size="lg" />
+          }
           title={member.name}
           trailing={<RoleBadge role="member" />}
         />

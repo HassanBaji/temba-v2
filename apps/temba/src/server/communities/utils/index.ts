@@ -9,7 +9,12 @@ export type VenueLinkStatus = "pending" | "approved" | "rejected";
 export type CommunityMember = {
   id: string;
   role: CommunityRole;
-  user: { id: string; name: string | null; email: string | null };
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  };
 };
 
 export type ClubGroup = {
@@ -26,6 +31,7 @@ export type ClubTeam = {
   name: string | null;
   displayName: string;
   sport: string;
+  members: { name: string; image: string | null }[];
 };
 
 export type CommunityVenue = {
@@ -70,5 +76,5 @@ export type JoinRequest = {
   id: string;
   status: JoinRequestStatus;
   createdAt: Date;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; image: string | null };
 };

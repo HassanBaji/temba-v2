@@ -7,17 +7,6 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { SportBadge } from "~/components/temba/sport-badge";
 import type { ClubTeam } from "~/server/communities";
 
-function peopleFromDisplayName(displayName: string) {
-  const parts = displayName
-    .split(" & ")
-    .map((part) => part.trim())
-    .filter(Boolean);
-  if (parts.length >= 2) {
-    return parts.slice(0, 2).map((name) => ({ name }));
-  }
-  return [{ name: displayName }];
-}
-
 export function CommunityTeamsTab({ teams }: { teams: ClubTeam[] }) {
   if (teams.length === 0) {
     return (
@@ -36,7 +25,10 @@ export function CommunityTeamsTab({ teams }: { teams: ClubTeam[] }) {
           key={team.id}
           asChild
           leading={
-            <AvatarStack people={peopleFromDisplayName(team.displayName)} />
+            <AvatarStack
+              people={team.members}
+              openSeats={team.members.length < 2 ? 1 : 0}
+            />
           }
           title={team.displayName}
           trailing={team.sport ? <SportBadge sport={team.sport} /> : undefined}

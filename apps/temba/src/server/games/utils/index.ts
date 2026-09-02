@@ -114,6 +114,7 @@ export type SeatPosition = "left" | "right";
 export type SeatOccupant = {
   userId: string;
   name: string;
+  image: string | null;
 };
 
 export type GameSide = {

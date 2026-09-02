@@ -88,6 +88,7 @@ export default function TeamsIndexPage() {
                       leading={
                         <UserAvatar
                           name={invite.invitedBy.name ?? "Member"}
+                          image={invite.invitedBy.image}
                           size="lg"
                         />
                       }
@@ -114,11 +115,7 @@ export default function TeamsIndexPage() {
           {teams.data.length > 0 ? (
             <RowList>
               {teams.data.map((team) => {
-                const people = teamAvatarPeople(
-                  team.displayName,
-                  team.memberCount,
-                  team.incomplete,
-                );
+                const people = teamAvatarPeople(team.members);
                 return (
                   <ListRow
                     key={team.id}

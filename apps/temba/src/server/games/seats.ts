@@ -153,13 +153,17 @@ async function requirePlayerUser(
   const player = await database.query.gamePlayers.findFirst({
     where: eq(gamePlayers.id, gamePlayerId),
     with: {
-      user: { columns: { id: true, name: true } },
+      user: { columns: { id: true, name: true, image: true } },
     },
   });
   if (!player?.user) {
     return null;
   }
-  return { userId: player.user.id, name: player.user.name };
+  return {
+    userId: player.user.id,
+    name: player.user.name,
+    image: player.user.image,
+  };
 }
 
 export async function listGameSides(

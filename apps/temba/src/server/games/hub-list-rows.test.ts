@@ -15,16 +15,21 @@ import {
 } from "@repo/db/schema";
 
 import { listMyGamesHubRows } from "~/server/games/hub-list-rows";
+import { admit } from "~/server/games/admit";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 const NOW = new Date("2026-08-31T16:00:00.000Z");
 const WINDOW_START = new Date("2026-09-01T18:00:00.000Z");
 const WINDOW_END = new Date("2026-09-01T20:00:00.000Z");
 
-async function insertUser(database: TestDatabase, email: string) {
+async function insertUser(
+  database: TestDatabase,
+  email: string,
+  image: string | null = null,
+) {
   const [row] = await database
     .insert(user)
-    .values({ name: "Test User", email })
+    .values({ name: email.split("@")[0] ?? "Test User", email, image })
     .returning({ id: user.id });
   if (!row) {
     throw new Error("Failed to insert user");
@@ -68,6 +73,8 @@ async function insertGame(
     venueId: string;
     isPublic?: boolean;
     groupId?: string | null;
+    windowStart?: Date;
+    windowEnd?: Date;
   },
 ) {
   const [row] = await database
@@ -81,8 +88,8 @@ async function insertGame(
       isPublic: args.isPublic ?? false,
       playersAllowed: 4,
       teamsAllowed: 2,
-      windowStart: WINDOW_START,
-      windowEnd: WINDOW_END,
+      windowStart: args.windowStart ?? WINDOW_START,
+      windowEnd: args.windowEnd ?? WINDOW_END,
     })
     .returning();
   if (!row) {
@@ -194,6 +201,58 @@ describe("My Games hub rows", () => {
 
       const rows = await listMyGamesHubRows(db, viewer.id, NOW);
       expect(rows).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("shows stored User photos or initials on Friendly roster occupants", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const photoUrl = "https://img.clerk.com/roster-photo.png";
+      const viewer = await insertUser(db, "roster-photo@example.com", photoUrl);
+      const partner = await insertUser(db, "roster-initials@example.com", null);
+      const venue = await insertVenue(db);
+      const created = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        windowStart: new Date(Date.now() - 60 * 60 * 1000),
+        windowEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+
+      const seated = await admit(db, {
+        game: created,
+        door: "register",
+        party: {
+          kind: "user",
+          userId: viewer.id,
+          seat: { sideIndex: 1, position: "left" },
+        },
+      });
+      expect(seated).toMatchObject({ ok: true });
+
+      const partnerSeat = await admit(db, {
+        game: created,
+        door: "register",
+        party: {
+          kind: "user",
+          userId: partner.id,
+          seat: { sideIndex: 1, position: "right" },
+        },
+      });
+      expect(partnerSeat).toMatchObject({ ok: true });
+
+      const rows = await listMyGamesHubRows(db, viewer.id, NOW);
+      const row = rows.find((item) => item.id === created.id);
+      expect(row?.sides[0]?.left).toMatchObject({
+        userId: viewer.id,
+        image: photoUrl,
+      });
+      expect(row?.sides[0]?.right).toMatchObject({
+        userId: partner.id,
+        image: null,
+      });
+      expect(row?.sides[0]?.left && row.sides[0].right).toBeTruthy();
     } finally {
       await close();
     }

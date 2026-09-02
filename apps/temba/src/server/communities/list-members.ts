@@ -45,6 +45,7 @@ export async function listMembers(
       id: row.user.id,
       name: row.user.name,
       email: row.user.email,
+      image: row.user.image,
     },
   }));
 }

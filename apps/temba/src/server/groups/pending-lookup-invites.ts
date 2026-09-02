@@ -23,6 +23,7 @@ export async function pendingLookupInvites(
           id: true,
           name: true,
           email: true,
+          image: true,
         },
       },
     },
@@ -37,6 +38,7 @@ export async function pendingLookupInvites(
       id: row.invitedBy.id,
       name: row.invitedBy.name,
       email: row.invitedBy.email,
+      image: row.invitedBy.image,
     },
     createdAt: row.createdAt,
   }));

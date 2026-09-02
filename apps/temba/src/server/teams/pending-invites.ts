@@ -24,6 +24,7 @@ export async function pendingInvites(
           id: true,
           name: true,
           email: true,
+          image: true,
         },
       },
     },
@@ -39,6 +40,7 @@ export async function pendingInvites(
       id: row.invitedBy.id,
       name: row.invitedBy.name,
       email: row.invitedBy.email,
+      image: row.invitedBy.image,
     },
     createdAt: row.createdAt,
   }));

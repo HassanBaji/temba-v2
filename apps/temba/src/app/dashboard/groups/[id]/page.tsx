@@ -431,6 +431,7 @@ export default function GroupHomePage({
           members={data.standing.leaderboard.map((entry) => ({
             userId: entry.userId,
             name: entry.name ?? "Member",
+            image: entry.image,
           }))}
         />
       </TabsContent>
