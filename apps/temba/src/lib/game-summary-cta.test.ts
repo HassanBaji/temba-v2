@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   gameSummaryPrimaryAction,
+  gameViewerStatus,
   showsFriendlyRoster,
   type GameSummaryCtaInput,
 } from "./game-summary-cta";
@@ -122,6 +123,25 @@ describe("gameSummaryPrimaryAction", () => {
         }),
       ),
       "join_waitlist",
+    );
+  });
+});
+
+describe("gameViewerStatus", () => {
+  it("is null when the viewer has no standing on the Game", () => {
+    assert.equal(gameViewerStatus(game()), null);
+  });
+
+  it("reads as in when seated or registered", () => {
+    assert.equal(gameViewerStatus(game({ isSeated: true })), "in");
+    assert.equal(gameViewerStatus(game({ isRegistered: true })), "in");
+  });
+
+  it("reads as waitlisted only without a seat or registration", () => {
+    assert.equal(gameViewerStatus(game({ isWaitlisted: true })), "waitlisted");
+    assert.equal(
+      gameViewerStatus(game({ isWaitlisted: true, isSeated: true })),
+      "in",
     );
   });
 });

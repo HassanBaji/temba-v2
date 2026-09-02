@@ -1,9 +1,6 @@
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { getLiveLink } from "~/server/invites/doors";
-import {
-  gameInviteLinkUrl,
-  gameInviteShortUrl,
-} from "~/server/invites/tokens";
+import { gameInviteLinkUrl, gameInviteShortUrl } from "~/server/invites/tokens";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;

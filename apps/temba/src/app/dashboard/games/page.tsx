@@ -1,7 +1,7 @@
 "use client";
 
-import { Calendar } from "lucide-react";
 import Link from "next/link";
+import * as React from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
@@ -9,35 +9,28 @@ import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   gameSummaryPrimaryAction,
+  gameViewerStatus,
   showsFriendlyRoster,
 } from "~/lib/game-summary-cta";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
 
-function occupancyLabel(
-  registeredUserCount: number,
-  playersAllowed: number | null,
-) {
-  if (playersAllowed != null) {
-    return `${registeredUserCount}/${playersAllowed} players`;
-  }
-  return null;
-}
+type HubTab = "my-games" | "public";
 
 function GamesHubTabPanel({
   isLoading,
   errorMessage,
   onRetry,
   games,
-  emptyTitle,
-  emptyDescription,
+  emptyState,
   onJoinSeat,
   onJoinWaitlist,
   onRegister,
@@ -47,8 +40,7 @@ function GamesHubTabPanel({
   errorMessage?: string;
   onRetry: () => void;
   games?: HubGame[];
-  emptyTitle: string;
-  emptyDescription: string;
+  emptyState: React.ReactNode;
   onJoinSeat: (
     gameId: string,
     sideIndex: number,
@@ -64,21 +56,22 @@ function GamesHubTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-surface-raised flex flex-col gap-3 rounded-lg p-4 shadow-sm md:p-5"
+            className="bg-card border-border shadow-xs flex flex-col gap-3 rounded-xl border p-4 md:p-5"
           >
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-6 shrink-0 rounded-lg" />
-              <Skeleton className="h-5 w-40 max-w-full" />
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-3">
+                <Skeleton className="h-4 w-36 max-w-full" />
+                <Skeleton className="h-5 w-16 rounded-sm" />
+              </div>
+              <Skeleton className="h-5 w-48 max-w-full" />
             </div>
-            <Skeleton className="h-16 w-full" />
-            <div className="flex items-end justify-between gap-3">
-              <div className="grid flex-1 grid-cols-2 gap-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-[5.5rem] w-full rounded-lg" />
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-1 flex-wrap gap-x-4 gap-y-2">
+                <Skeleton className="h-4 w-14" />
                 <Skeleton className="h-4 w-24" />
               </div>
-              <Skeleton className="h-8 w-20 rounded-full" />
+              <Skeleton className="h-10 w-20 rounded-md" />
             </div>
           </div>
         ))}
@@ -101,58 +94,61 @@ function GamesHubTabPanel({
   }
 
   if (games.length === 0) {
-    return (
-      <EmptyState
-        icon={Calendar}
-        title={emptyTitle}
-        description={emptyDescription}
-      />
-    );
+    return emptyState;
   }
 
   return (
     <ul className="flex flex-col gap-3">
-      {games.map((game) => {
-        const primaryAction = gameSummaryPrimaryAction(game);
-        return (
-          <GameSummaryCard
-            key={game.id}
-            name={game.name}
-            startTime={game.startTime}
-            windowStart={game.windowStart}
-            windowEnd={game.windowEnd}
-            venueName={game.venue?.name}
-            location={game.venue?.city ?? game.venue?.name}
-            occupancy={occupancyLabel(
-              game.registeredUserCount,
-              game.playersAllowed,
-            )}
-            pricePerPlayerCents={game.pricePerPlayerCents}
-            sides={
-              showsFriendlyRoster(game.format, game.registrationMode)
-                ? game.sides
-                : undefined
-            }
-            primaryAction={primaryAction}
-            actionPending={pendingGameId === game.id}
-            href={`/dashboard/games/${game.id}`}
-            onJoinSeat={(sideIndex, position) => {
-              onJoinSeat(game.id, sideIndex, position);
-            }}
-            onJoinWaitlist={() => {
-              onJoinWaitlist(game);
-            }}
-            onRegister={() => {
-              onRegister(game.id);
-            }}
-          />
-        );
-      })}
+      {games.map((game) => (
+        <GameSummaryCard
+          key={game.id}
+          name={game.name}
+          startTime={game.startTime}
+          windowStart={game.windowStart}
+          windowEnd={game.windowEnd}
+          venueName={game.venue?.name}
+          location={game.venue?.city ?? game.venue?.name}
+          registeredUserCount={game.registeredUserCount}
+          playersAllowed={game.playersAllowed}
+          pricePerPlayerCents={game.pricePerPlayerCents}
+          sides={
+            showsFriendlyRoster(game.format, game.registrationMode)
+              ? game.sides
+              : undefined
+          }
+          primaryAction={gameSummaryPrimaryAction(game)}
+          viewerStatus={gameViewerStatus(game)}
+          actionPending={pendingGameId === game.id}
+          href={`/dashboard/games/${game.id}`}
+          onJoinSeat={(sideIndex, position) => {
+            onJoinSeat(game.id, sideIndex, position);
+          }}
+          onJoinWaitlist={() => {
+            onJoinWaitlist(game);
+          }}
+          onRegister={() => {
+            onRegister(game.id);
+          }}
+        />
+      ))}
     </ul>
   );
 }
 
+function TabCount({ count }: { count: number | undefined }) {
+  if (!count) {
+    return null;
+  }
+
+  return (
+    <Badge variant="secondary" size="sm" className="tabular-nums">
+      {count}
+    </Badge>
+  );
+}
+
 export default function GamesHubPage() {
+  const [tab, setTab] = React.useState<HubTab>("my-games");
   const myGames = api.games.listMyGames.useQuery();
   const pickup = api.games.listPublicPickup.useQuery();
   const { hasCreateAccess } = useCreateAccess();
@@ -217,7 +213,6 @@ export default function GamesHubPage() {
   return (
     <DashboardShell
       title="Games"
-      description="Upcoming Games on your Groups, private Games you created or joined, and public pickup."
       action={
         hasCreateAccess ? (
           <Button asChild variant="brand">
@@ -226,7 +221,13 @@ export default function GamesHubPage() {
         ) : undefined
       }
     >
-      <Tabs defaultValue="my-games" className="gap-4">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          setTab(value as HubTab);
+        }}
+        className="gap-4"
+      >
         <TabsList
           variant="line"
           className="h-11 min-h-11 w-full max-w-full justify-start rounded-none"
@@ -236,12 +237,14 @@ export default function GamesHubPage() {
             className="min-h-11 min-w-11 flex-none px-3"
           >
             My Games
+            <TabCount count={myGames.data?.length} />
           </TabsTrigger>
           <TabsTrigger
             value="public"
             className="min-h-11 min-w-11 flex-none px-3"
           >
             Public
+            <TabCount count={pickup.data?.length} />
           </TabsTrigger>
         </TabsList>
         <TabsContent
@@ -255,8 +258,31 @@ export default function GamesHubPage() {
               void myGames.refetch();
             }}
             games={myGames.data}
-            emptyTitle="No Games in My Games"
-            emptyDescription="Live Games on Groups you belong to, plus private Games you created or joined, will show up here."
+            emptyState={
+              <EmptyState
+                emoji="🎾"
+                title="No games yet"
+                description="Games you create or join show up here."
+                action={
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {hasCreateAccess ? (
+                      <Button asChild variant="brand">
+                        <Link href="/dashboard/games/new">Create Game</Link>
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setTab("public");
+                      }}
+                    >
+                      Find a public game
+                    </Button>
+                  </div>
+                }
+              />
+            }
             onJoinSeat={onJoinSeat}
             onJoinWaitlist={onJoinWaitlist}
             onRegister={onRegister}
@@ -274,8 +300,13 @@ export default function GamesHubPage() {
               void pickup.refetch();
             }}
             games={pickup.data}
-            emptyTitle="No public Games"
-            emptyDescription="Live public pickup Games will show up here."
+            emptyState={
+              <EmptyState
+                emoji="🌍"
+                title="Nothing open right now"
+                description="Public pickup games show up here as soon as they open."
+              />
+            }
             onJoinSeat={onJoinSeat}
             onJoinWaitlist={onJoinWaitlist}
             onRegister={onRegister}

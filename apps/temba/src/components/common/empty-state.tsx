@@ -5,12 +5,15 @@ import { cn } from "~/lib/utils";
 
 export function EmptyState({
   icon: Icon,
+  emoji,
   title,
   description,
   action,
   className,
 }: {
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  /** Decorative emoji shown instead of the icon. */
+  emoji?: string;
   title: string;
   description: string;
   action?: ReactNode;
@@ -25,11 +28,20 @@ export function EmptyState({
         className,
       )}
     >
-      <Icon
-        aria-hidden="true"
-        className="text-muted-foreground size-8"
-        strokeWidth={1.75}
-      />
+      {emoji ? (
+        <span
+          aria-hidden="true"
+          className="bg-surface-raised border-border flex size-14 items-center justify-center rounded-full border text-2xl"
+        >
+          {emoji}
+        </span>
+      ) : Icon ? (
+        <Icon
+          aria-hidden="true"
+          className="text-muted-foreground size-8"
+          strokeWidth={1.75}
+        />
+      ) : null}
       <h2 className="text-title font-semibold">{title}</h2>
       <p className="text-body text-muted-foreground">{description}</p>
       {action ? (

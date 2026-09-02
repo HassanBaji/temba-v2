@@ -1,7 +1,7 @@
 export const PRICE_PER_PLAYER_MAX_CENTS = 100_000_000;
 
 export const PRICE_PER_PLAYER_FIELD_DESCRIPTION =
-  "Optional. Up to two decimal places. Leave blank if unset. Zero means free. Temba does not collect payment.";
+  "Leave blank if unset. Zero means free. Temba does not collect payment.";
 
 export type ParsePricePerPlayerResult =
   | { ok: true; cents: number | null }

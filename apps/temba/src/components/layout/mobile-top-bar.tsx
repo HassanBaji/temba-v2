@@ -12,19 +12,21 @@ export function MobileTopBar({
   title,
   backHref,
   action,
+  icon,
 }: {
-  title: string;
+  title?: string;
+  icon?: ReactNode;
   backHref?: string;
   action?: ReactNode;
 }) {
   return (
     <header
       className={cn(
-        "border-border bg-card sticky top-0 z-40 flex min-h-11 items-center gap-2 border-b py-2 lg:hidden",
+        "bg-card sticky top-0 z-40 flex min-h-11 items-center gap-2 py-2 lg:hidden",
         pageGutterX,
       )}
     >
-      {backHref ? (
+      {backHref && (
         <Link
           href={backHref}
           aria-label="Back"
@@ -32,12 +34,13 @@ export function MobileTopBar({
         >
           <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
         </Link>
-      ) : (
-        <span className="size-11 shrink-0" aria-hidden="true" />
       )}
-      <p className="text-title min-w-0 flex-1 truncate font-semibold tracking-[-0.01em]">
-        {title}
-      </p>
+      {title ? (
+        <p className="text-title min-w-0 flex-1 truncate font-semibold tracking-[-0.01em]">
+          {title}
+        </p>
+      ) : null}
+      {icon ? <div className="size-11 shrink-0">{icon}</div> : null}
       <div className="flex min-h-11 min-w-11 shrink-0 items-center justify-end">
         {action}
       </div>
@@ -69,9 +72,11 @@ export function detailBackHref(pathname: string | null): string | undefined {
 
 export function MobileTopBarFromPath({
   title,
+  icon,
   action,
 }: {
   title: string;
+  icon?: ReactNode;
   action?: ReactNode;
 }) {
   const pathname = usePathname();
@@ -80,6 +85,7 @@ export function MobileTopBarFromPath({
       title={title}
       backHref={detailBackHref(pathname)}
       action={action}
+      icon={icon}
     />
   );
 }

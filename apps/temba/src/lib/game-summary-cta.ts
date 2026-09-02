@@ -69,6 +69,21 @@ export function gameSummaryCtaLabel(action: GameSummaryCta) {
   }
 }
 
+export type GameViewerStatus = "in" | "waitlisted" | null;
+
+/** Null when the viewer has no standing on the Game, so cards stay quiet. */
+export function gameViewerStatus(
+  game: Pick<GameSummaryCtaInput, "isRegistered" | "isSeated" | "isWaitlisted">,
+): GameViewerStatus {
+  if (game.isSeated || game.isRegistered) {
+    return "in";
+  }
+  if (game.isWaitlisted) {
+    return "waitlisted";
+  }
+  return null;
+}
+
 export function showsFriendlyRoster(format: string, registrationMode: string) {
   return format === "friendly_game" && registrationMode === "individual";
 }

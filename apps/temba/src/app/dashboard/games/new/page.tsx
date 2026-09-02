@@ -221,11 +221,7 @@ function NewGameForm() {
                   ))}
                 </SelectContent>
               </Select>
-              <FieldDescription id="game-venue-copy">
-                {picker.data
-                  ? createVenueCopy(picker.data)
-                  : "Pick a Venue. Court is optional."}
-              </FieldDescription>
+              <FieldDescription id="game-venue-copy"></FieldDescription>
               <FieldError id="game-venue-error">
                 {fieldErrorMessage(createGame.error, "venueId") ??
                   (emptyCatalog
@@ -235,7 +231,7 @@ function NewGameForm() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="game-court">Court</FieldLabel>
+              <FieldLabel htmlFor="game-court">Court (optional)</FieldLabel>
               <Select value={courtId} onValueChange={setCourtId}>
                 <SelectTrigger
                   id="game-court"

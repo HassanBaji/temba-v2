@@ -81,33 +81,33 @@ export function UpcomingGameHeroCard({
   return (
     <article
       className={cn(
-        "min-h-70 relative isolate flex flex-col overflow-hidden rounded-[1.75rem] bg-black text-white",
+        "sm:min-h-70 relative isolate flex min-h-60 w-full min-w-0 max-w-full flex-col overflow-hidden rounded-lg bg-black text-white sm:rounded-[1.75rem]",
         className,
       )}
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-cover bg-right bg-no-repeat"
+        className="pointer-events-none absolute inset-0 bg-cover bg-[position:85%_center] bg-no-repeat sm:bg-right"
         style={{ backgroundImage: `url(${HERO_BACKGROUND})` }}
       />
       <div
         aria-hidden="true"
-        className="bg-linear-to-r pointer-events-none absolute inset-0 from-black via-black/90 to-black/35"
+        className="bg-linear-to-r via-black/92 pointer-events-none absolute inset-0 from-black to-black/45 sm:via-black/90 sm:to-black/35"
       />
 
-      <div className="relative z-10 flex flex-1 flex-col gap-4 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col gap-3 p-4 sm:gap-4 sm:p-5">
+        <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 sm:gap-x-3">
             {sportLabel ? (
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">
+              <span className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70 sm:text-[11px]">
                 {sportLabel}
               </span>
             ) : null}
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">
+            <span className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70 sm:text-[11px]">
               {formatLabel}
             </span>
           </div>
-          <div className="shrink-0 rounded-xl border border-white/15 bg-black/35 px-3 py-2 text-center backdrop-blur-sm">
+          <div className="shrink-0 rounded-xl border border-white/15 bg-black/35 px-2.5 py-1.5 text-center backdrop-blur-sm sm:px-3 sm:py-2">
             <p className="text-sm font-semibold tabular-nums leading-none">
               {occupancy}
             </p>
@@ -117,26 +117,30 @@ export function UpcomingGameHeroCard({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-[1.75rem] font-bold leading-tight tracking-[-0.03em]">
-            {formatRelativeDay(startTime, { sameDayLabel: "Today" })}
+        <div className="min-w-0 space-y-2">
+          <p className="text-[1.5rem] font-bold leading-tight tracking-[-0.03em] sm:text-[1.75rem]">
+            <span className="break-words">
+              {formatRelativeDay(startTime, { sameDayLabel: "Today" })}
+            </span>
             <span className="mx-1.5 text-white/45">·</span>
-            {formatGameClock(startTime)}
+            <span className="whitespace-nowrap">
+              {formatGameClock(startTime)}
+            </span>
           </p>
           {venueName ? (
-            <p className="flex items-start gap-1.5 text-sm text-white/75">
+            <p className="flex min-w-0 items-start gap-1.5 text-sm text-white/75">
               <MapPin
                 aria-hidden="true"
                 className="mt-0.5 size-4 shrink-0 text-white/55"
                 strokeWidth={2}
               />
-              <span className="min-w-0">{venueName}</span>
+              <span className="min-w-0 break-words">{venueName}</span>
             </p>
           ) : null}
         </div>
 
         {people.length > 0 ? (
-          <div className="mt-auto">
+          <div className="mt-auto min-w-0 overflow-hidden">
             <AvatarStack
               people={people}
               size="default"

@@ -86,10 +86,7 @@ describe("Friendly Game create", () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "create-price-owner@example.com");
-      const venue = await insertVenue(
-        db,
-        `Price Venue ${crypto.randomUUID()}`,
-      );
+      const venue = await insertVenue(db, `Price Venue ${crypto.randomUUID()}`);
       const windowStart = new Date();
       const windowEnd = new Date(windowStart.getTime() + 60 * 60 * 1000);
 

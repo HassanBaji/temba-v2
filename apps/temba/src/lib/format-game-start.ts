@@ -34,16 +34,34 @@ function startOfLocalDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+function daysUntilLocalDay(date: Date) {
+  const today = startOfLocalDay(new Date());
+  const target = startOfLocalDay(date);
+  return Math.round((target.getTime() - today.getTime()) / MS_PER_DAY);
+}
+
+export type GameDayProximity = "today" | "tomorrow" | "later";
+
+/** Lets cards tint the day label without re-parsing the relative-day copy. */
+export function gameDayProximity(startTime: Date | string): GameDayProximity {
+  const date = startTime instanceof Date ? startTime : new Date(startTime);
+  const diffDays = daysUntilLocalDay(date);
+
+  if (diffDays === 0) {
+    return "today";
+  }
+  if (diffDays === 1) {
+    return "tomorrow";
+  }
+  return "later";
+}
+
 export function formatRelativeDay(
   startTime: Date | string,
   options?: { sameDayLabel?: "Tonight" | "Today" },
 ) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const today = startOfLocalDay(new Date());
-  const target = startOfLocalDay(date);
-  const diffDays = Math.round(
-    (target.getTime() - today.getTime()) / MS_PER_DAY,
-  );
+  const diffDays = daysUntilLocalDay(date);
 
   if (diffDays === 0) {
     return options?.sameDayLabel ?? "Tonight";

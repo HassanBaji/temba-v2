@@ -1,4 +1,4 @@
-import { RATING_LEVEL_BAND_VALUES } from "@repo/db";
+import { RATING_LEVEL_BAND_VALUES } from "@repo/db/schema";
 
 import {
   LEVEL_BANDS,
@@ -119,8 +119,8 @@ export function bandFromLevel(level: number): LevelBand {
   return "D3";
 }
 
-/** Equal-width 0.7 bands as hundredths of Level, for hysteresis comparisons. */
-const BAND_LOWER_HUNDREDTHS: Record<LevelBand, number> = {
+/** Equal-width 0.7 bands as hundredths of Level (D3 0.0–0.7 … A 6.3–7.0). */
+export const BAND_LOWER_HUNDREDTHS: Record<LevelBand, number> = {
   D3: 0,
   D2: 70,
   D1: 140,
@@ -133,7 +133,7 @@ const BAND_LOWER_HUNDREDTHS: Record<LevelBand, number> = {
   A: 630,
 };
 
-const BAND_UPPER_HUNDREDTHS: Record<LevelBand, number> = {
+export const BAND_UPPER_HUNDREDTHS: Record<LevelBand, number> = {
   D3: 70,
   D2: 140,
   D1: 210,
@@ -145,6 +145,46 @@ const BAND_UPPER_HUNDREDTHS: Record<LevelBand, number> = {
   B1: 630,
   A: 700,
 };
+
+export type ProgressToNextBand = {
+  /** Integer 0–100 within the current band toward its upper boundary. */
+  progressPercent: number;
+  /** Next Level band above the current one, or null at top band `A`. */
+  nextBand: LevelBand | null;
+};
+
+/**
+ * Progress within the stored/current Level band toward the next band’s lower
+ * boundary (current band upper). Uses the equal-width 0.7 product table.
+ * Top band `A` is always maxed with no next band.
+ */
+export function progressToNextBand(
+  level: number,
+  levelBand: LevelBand,
+): ProgressToNextBand {
+  const bandIndex = LEVEL_BANDS.indexOf(levelBand);
+  const nextBand =
+    bandIndex >= 0 && bandIndex < LEVEL_BANDS.length - 1
+      ? (LEVEL_BANDS[bandIndex + 1] ?? null)
+      : null;
+
+  if (nextBand === null) {
+    return { progressPercent: 100, nextBand: null };
+  }
+
+  const lower = BAND_LOWER_HUNDREDTHS[levelBand];
+  const upper = BAND_UPPER_HUNDREDTHS[levelBand];
+  const span = upper - lower;
+  if (span <= 0) {
+    return { progressPercent: 100, nextBand };
+  }
+
+  const hundredths = levelToHundredths(level);
+  const raw = ((hundredths - lower) / span) * 100;
+  const progressPercent = Math.min(100, Math.max(0, Math.round(raw)));
+
+  return { progressPercent, nextBand };
+}
 
 const HYSTERESIS_HUNDREDTHS = 10;
 

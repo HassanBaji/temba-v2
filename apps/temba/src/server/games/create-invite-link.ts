@@ -3,10 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { assertGameInviteDoorsOpen } from "~/server/games/invites";
 import { mintLink } from "~/server/invites/doors";
-import {
-  gameInviteLinkUrl,
-  gameInviteShortUrl,
-} from "~/server/invites/tokens";
+import { gameInviteLinkUrl, gameInviteShortUrl } from "~/server/invites/tokens";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;

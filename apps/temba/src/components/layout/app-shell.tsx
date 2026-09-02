@@ -13,17 +13,21 @@ import { cn } from "~/lib/utils";
 export function AppShell({
   children,
   title,
+  icon,
   description,
   action,
   width = "content",
   hidePageHeader = false,
+  hideMobileTopBar = false,
 }: {
   children: ReactNode;
-  title: string;
+  title?: string;
+  icon?: ReactNode;
   description?: string;
   action?: ReactNode;
   width?: "content" | "wide";
   hidePageHeader?: boolean;
+  hideMobileTopBar?: boolean;
 }) {
   return (
     <SidebarProvider
@@ -38,7 +42,9 @@ export function AppShell({
       <div className="flex min-h-svh w-full min-w-0 overflow-x-clip">
         <AppRail />
         <div className="flex min-w-0 flex-1 flex-col">
-          <MobileTopBarFromPath title={title} />
+          {hideMobileTopBar ? null : (
+            <MobileTopBarFromPath title={title ?? ""} icon={icon} />
+          )}
           <main
             className={cn(
               "mx-auto w-full min-w-0 flex-1 py-4 md:py-6",
@@ -51,7 +57,7 @@ export function AppShell({
           >
             {hidePageHeader ? null : (
               <PageHeader
-                title={title}
+                title={title ?? ""}
                 description={description}
                 action={action}
                 className="mb-6 max-lg:[&>div:first-child>h1]:sr-only"
