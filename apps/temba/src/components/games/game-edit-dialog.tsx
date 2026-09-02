@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import {
@@ -20,12 +21,14 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-import { LEVEL_RANGE_FIELD_DESCRIPTION } from "~/lib/level-range";
+import {
+  LEVEL_RANGE_FIELD_DESCRIPTION,
+  type LevelBandSelectValue,
+} from "~/lib/level-range";
 import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "~/lib/price-per-player";
 
 export function GameEditDialog({
@@ -80,10 +83,10 @@ export function GameEditDialog({
   priceSummaryRef: React.RefObject<HTMLDivElement | null>;
   pricePending: boolean;
   onSavePrice: () => void;
-  levelMin: string;
-  onLevelMinChange: (value: string) => void;
-  levelMax: string;
-  onLevelMaxChange: (value: string) => void;
+  levelMin: LevelBandSelectValue;
+  onLevelMinChange: (value: LevelBandSelectValue) => void;
+  levelMax: LevelBandSelectValue;
+  onLevelMaxChange: (value: LevelBandSelectValue) => void;
   levelMinError: string | undefined;
   levelMaxError: string | undefined;
   levelError: { message: string; data?: { zodError?: unknown } | null } | null;
@@ -201,21 +204,17 @@ export function GameEditDialog({
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="edit-level-min">Minimum Level</FieldLabel>
-                <Input
+                <GameLevelBandSelect
                   id="edit-level-min"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="7"
                   value={levelMin}
-                  onChange={(event) => onLevelMinChange(event.target.value)}
-                  aria-invalid={
+                  onValueChange={onLevelMinChange}
+                  invalid={
                     levelMinError ||
                     fieldErrorMessage(levelError, "levelMinTenths")
                       ? true
                       : undefined
                   }
-                  aria-describedby={
+                  describedBy={
                     levelMinError ||
                     fieldErrorMessage(levelError, "levelMinTenths")
                       ? "edit-level-min-error"
@@ -229,21 +228,17 @@ export function GameEditDialog({
               </Field>
               <Field>
                 <FieldLabel htmlFor="edit-level-max">Maximum Level</FieldLabel>
-                <Input
+                <GameLevelBandSelect
                   id="edit-level-max"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="7"
                   value={levelMax}
-                  onChange={(event) => onLevelMaxChange(event.target.value)}
-                  aria-invalid={
+                  onValueChange={onLevelMaxChange}
+                  invalid={
                     levelMaxError ||
                     fieldErrorMessage(levelError, "levelMaxTenths")
                       ? true
                       : undefined
                   }
-                  aria-describedby={
+                  describedBy={
                     levelMaxError ||
                     fieldErrorMessage(levelError, "levelMaxTenths")
                       ? "edit-level-max-error"

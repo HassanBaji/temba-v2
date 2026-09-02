@@ -20,6 +20,8 @@ Status: spec published — `.scratch/game-level-range/spec.md` (ready-for-agent)
 14. **Copy:** Minimum Level / Maximum Level; viewer `Level 3.0–4.5` / `Level 3.0+` / `Level 4.5 and under`; CTA **Request to play**.
 15. **No ADR.** Waiver-not-seat is surprising vs Community but easy to reverse. Integer tenths follow price-per-player cents. Range-on-Game follows ADR-0008. Glicko/Level map stays ADR-0009.
 
+**App min/max UI (user override):** Organizer Create/Edit uses a Level band `<Select>` mapping to tenths. Storage and admit-gate tenths are unchanged.
+
 ## Glossary (ships with spec approval)
 
 **Organizer**, **Game Level range**, **Game Level range request**, **Game Level waiver** in root `CONTEXT.md`, plus Avoid patches on Venue link request and Game admit.
