@@ -197,8 +197,8 @@ Of a Group Game: that Group’s creator, and for a Club Group also Community Own
 _Avoid_: creator (when you mean this set), host, admin (when you mean this)
 
 **Game Level range**:
-Optional inclusive minimum and/or maximum continuous Level on a Game. Both unset means no Level gate. Distinct from a User’s Level and from Level band.
-_Avoid_: rank range, ELO range, Level band picker, skill cap (when you mean this)
+Optional inclusive minimum and/or maximum Level band bounds (letterNumber D3–A) on a Game, stored as tenths. Both unset means no Level gate. Distinct from a User’s continuous Level.
+_Avoid_: rank range, ELO range, skill cap (when you mean this)
 
 **Game Level range request**:
 A User asking Organizers to waive that Game’s Level range for themselves. Distinct from a Community join request and from Game admit. No message. No expiry.

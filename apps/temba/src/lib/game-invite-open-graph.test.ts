@@ -60,7 +60,7 @@ describe("gameInviteOpenGraphMetadata", () => {
       levelMinTenths: 30,
       levelMaxTenths: 45,
     });
-    expect(metadata.description).toContain("Level 3.0–4.5");
+    expect(metadata.description).toContain("Level C2–B3");
     expect(metadata.description).toContain("2/4 sitting");
     expect(metadata.description).not.toMatch(/5\.2|Your Level/);
   });

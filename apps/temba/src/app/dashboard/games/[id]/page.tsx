@@ -36,9 +36,11 @@ import {
 } from "~/lib/game-window";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
+  LEVEL_BAND_SELECT_NONE,
   LEVEL_RANGE_INVERTED_MESSAGE,
-  parseOptionalLevelTenths,
-  tenthsToMajorInput,
+  parseLevelBandSelectTenths,
+  tenthsToLevelBandSelectValue,
+  type LevelBandSelectValue,
 } from "~/lib/level-range";
 import {
   centsToMajorInput,
@@ -75,8 +77,12 @@ export default function GameHomePage({
   const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
     string | undefined
   >();
-  const [levelMin, setLevelMin] = React.useState("");
-  const [levelMax, setLevelMax] = React.useState("");
+  const [levelMin, setLevelMin] = React.useState<LevelBandSelectValue>(
+    LEVEL_BAND_SELECT_NONE,
+  );
+  const [levelMax, setLevelMax] = React.useState<LevelBandSelectValue>(
+    LEVEL_BAND_SELECT_NONE,
+  );
   const [levelMinError, setLevelMinError] = React.useState<
     string | undefined
   >();
@@ -402,8 +408,8 @@ export default function GameHomePage({
     setWindowFinishTime(gameWindow.finishTime);
     setPricePerPlayer(centsToMajorInput(data.pricePerPlayerCents));
     setPricePerPlayerError(undefined);
-    setLevelMin(tenthsToMajorInput(data.levelMinTenths));
-    setLevelMax(tenthsToMajorInput(data.levelMaxTenths));
+    setLevelMin(tenthsToLevelBandSelectValue(data.levelMinTenths));
+    setLevelMax(tenthsToLevelBandSelectValue(data.levelMaxTenths));
     setLevelMinError(undefined);
     setLevelMaxError(undefined);
   }, [data]);
@@ -493,31 +499,17 @@ export default function GameHomePage({
     }
     setLevelMinError(undefined);
     setLevelMaxError(undefined);
-    const parsedMin = parseOptionalLevelTenths(levelMin);
-    if (!parsedMin.ok) {
-      setLevelMinError(parsedMin.message);
-      document.getElementById("edit-level-min")?.focus();
-      return;
-    }
-    const parsedMax = parseOptionalLevelTenths(levelMax);
-    if (!parsedMax.ok) {
-      setLevelMaxError(parsedMax.message);
-      document.getElementById("edit-level-max")?.focus();
-      return;
-    }
-    if (
-      parsedMin.tenths != null &&
-      parsedMax.tenths != null &&
-      parsedMin.tenths > parsedMax.tenths
-    ) {
+    const parsedMin = parseLevelBandSelectTenths(levelMin, "min");
+    const parsedMax = parseLevelBandSelectTenths(levelMax, "max");
+    if (parsedMin != null && parsedMax != null && parsedMin > parsedMax) {
       setLevelMinError(LEVEL_RANGE_INVERTED_MESSAGE);
       document.getElementById("edit-level-min")?.focus();
       return;
     }
     updateLevelRange.mutate({
       gameId: id,
-      levelMinTenths: parsedMin.tenths,
-      levelMaxTenths: parsedMax.tenths,
+      levelMinTenths: parsedMin,
+      levelMaxTenths: parsedMax,
     });
   }
 
