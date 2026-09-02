@@ -1,4 +1,4 @@
-import { Badge } from "~/components/ui/badge";
+import { Badge, type BadgeVariant } from "~/components/ui/badge";
 
 export const GAME_FORMAT_LABELS = {
   friendly_game: "Friendly game",
@@ -18,6 +18,18 @@ export const GAME_REGISTRATION_STATUS_LABELS = {
   frozen: "Frozen",
   cancelled: "Cancelled",
 } as const;
+
+/** Registration state is the page's headline fact, so it carries the colour. */
+const GAME_REGISTRATION_STATUS_VARIANTS: Record<
+  keyof typeof GAME_REGISTRATION_STATUS_LABELS,
+  BadgeVariant
+> = {
+  open: "success",
+  full: "warning",
+  closed: "secondary",
+  frozen: "warning",
+  cancelled: "destructive",
+};
 
 export const INVITE_KIND_LABELS = {
   community: "Community",
@@ -51,8 +63,19 @@ export function GameRegistrationModeBadge({ mode }: { mode: string }) {
 }
 
 export function GameRegistrationStatusBadge({ status }: { status: string }) {
+  const known = status in GAME_REGISTRATION_STATUS_LABELS;
+
   return (
-    <Badge variant="outline">
+    <Badge
+      dot
+      variant={
+        known
+          ? GAME_REGISTRATION_STATUS_VARIANTS[
+              status as keyof typeof GAME_REGISTRATION_STATUS_LABELS
+            ]
+          : "outline"
+      }
+    >
       {labelFromMap(status, GAME_REGISTRATION_STATUS_LABELS)}
     </Badge>
   );

@@ -1,4 +1,4 @@
-import { Badge } from "~/components/ui/badge";
+import { Badge, type BadgeVariant } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 
 export const GAME_STATUS_LABELS = {
@@ -17,13 +17,21 @@ const DOT_CLASS: Record<GameStatusValue, string> = {
   cancelled: "rounded-sm border-2 border-current bg-transparent",
 };
 
+/** The dot shape stays, so colour is never the only status signal. */
+const VARIANT: Record<GameStatusValue, BadgeVariant> = {
+  pending: "outline",
+  confirmed: "secondary",
+  completed: "success",
+  cancelled: "destructive",
+};
+
 export function GameStatusBadge({ status }: { status: string }) {
   const known = status in GAME_STATUS_LABELS;
   const value = known ? (status as GameStatusValue) : null;
   const label = value ? GAME_STATUS_LABELS[value] : status;
 
   return (
-    <Badge variant="outline">
+    <Badge variant={value ? VARIANT[value] : "outline"}>
       <span
         aria-hidden="true"
         className={cn(

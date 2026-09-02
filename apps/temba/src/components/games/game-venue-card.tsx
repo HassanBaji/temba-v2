@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { LandPlot, MapPin } from "lucide-react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Badge } from "~/components/ui/badge";
@@ -29,7 +29,7 @@ export function GameVenueCard({
           className="text-muted-foreground size-4"
           strokeWidth={1.75}
         />
-        Court information
+        Venue
       </h2>
       <Card variant="raised">
         <div className="flex items-start gap-3">
@@ -44,21 +44,20 @@ export function GameVenueCard({
               {venue.city}, {venue.country}
             </p>
             {venue.archivedAt ? (
-              <Badge variant="outline">Soft-archived</Badge>
+              <Badge variant="warning">Soft-archived</Badge>
             ) : null}
           </div>
         </div>
         {courtNames.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {courtNames.map((name) => (
               <Badge key={name} variant="secondary">
+                <LandPlot aria-hidden="true" strokeWidth={2} />
                 {name}
               </Badge>
             ))}
           </div>
-        ) : (
-          <p className="text-meta text-muted-foreground">No Court assigned.</p>
-        )}
+        ) : null}
       </Card>
     </section>
   );

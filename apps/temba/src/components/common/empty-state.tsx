@@ -15,7 +15,7 @@ export function EmptyState({
   /** Decorative emoji shown instead of the icon. */
   emoji?: string;
   title: string;
-  description: string;
+  description?: string;
   action?: ReactNode;
   className?: string;
 }) {
@@ -43,7 +43,9 @@ export function EmptyState({
         />
       ) : null}
       <h2 className="text-title font-semibold">{title}</h2>
-      <p className="text-body text-muted-foreground">{description}</p>
+      {description ? (
+        <p className="text-body text-muted-foreground">{description}</p>
+      ) : null}
       {action ? (
         <div className="[&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:justify-center [&_button]:min-h-11">
           {action}

@@ -29,6 +29,7 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
+import { gameViewerStatus } from "~/lib/game-summary-cta";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
@@ -530,8 +531,10 @@ export default function GameHomePage({
           groupName={data.groupName}
           sport={data.sport}
           isPublic={data.isPublic}
+          format={data.format}
           registrationMode={data.registrationMode}
           registrationStatus={data.registrationStatus}
+          viewerStatus={gameViewerStatus(data)}
           primaryAction={
             <>
               {canManageGameInvites ? (
@@ -605,8 +608,7 @@ export default function GameHomePage({
 
         {data.joinFrozen && !data.cancelledAt ? (
           <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
-            Register, waitlist, Lookup, and Invite link mint and accept stay
-            closed. Reopen is refused.
+            Registration, the waitlist, and invites stay closed.
           </SoftArchiveBanner>
         ) : null}
 
@@ -814,7 +816,7 @@ export default function GameHomePage({
         open={cancelGameOpen}
         onOpenChange={setCancelGameOpen}
         title={`Cancel ${gameName}?`}
-        description="This cannot be undone. Cancelling does nothing."
+        description="This cannot be undone."
         confirmLabel="Cancel Game"
         pending={cancelGame.isPending}
         restoreFocusRef={menuTriggerRef}
@@ -827,7 +829,6 @@ export default function GameHomePage({
         open={leaveGameOpen}
         onOpenChange={setLeaveGameOpen}
         title={`Leave ${gameName}?`}
-        description="You will leave this Game. Cancelling does nothing."
         confirmLabel="Leave Game"
         pending={leaveGame.isPending}
         onConfirm={async () => {
@@ -839,7 +840,6 @@ export default function GameHomePage({
         open={leaveWaitlistOpen}
         onOpenChange={setLeaveWaitlistOpen}
         title="Leave waitlist?"
-        description="You will leave the waitlist for this Game. Cancelling does nothing."
         confirmLabel="Leave waitlist"
         pending={leaveWaitlist.isPending}
         onConfirm={async () => {
@@ -862,7 +862,7 @@ export default function GameHomePage({
         description={
           data.format === "friendly_game"
             ? "Cancelling this Match also cancels the Game. This cannot be undone."
-            : "This cannot be undone. Cancelling does nothing."
+            : "This cannot be undone."
         }
         confirmLabel={
           data.format === "friendly_game"

@@ -6,6 +6,7 @@ import { RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Section } from "~/components/layout/section";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { formatLevelRangeGateCopy, formatLevelTenths } from "~/lib/level-range";
@@ -67,13 +68,11 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
     <div className="space-y-6">
       {showRequester ? (
         <Card variant="outlined" className="space-y-3">
-          <h3 className="text-title font-medium">
-            {pending
-              ? "Request pending"
-              : rejected
-                ? "Request rejected"
-                : "Request to play"}
-          </h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-title font-medium">Request to play</h3>
+            {pending ? <Badge variant="warning">Pending</Badge> : null}
+            {rejected ? <Badge variant="destructive">Rejected</Badge> : null}
+          </div>
           <p className="text-body text-muted-foreground">
             {formatLevelRangeGateCopy({
               levelMinTenths: game.levelMinTenths,
@@ -81,11 +80,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
               viewerLevelTenths: game.viewerLevelTenths,
             })}
           </p>
-          {pending ? (
-            <p className="text-body text-muted-foreground">
-              Organizers have not decided yet.
-            </p>
-          ) : (
+          {pending ? null : (
             <Button
               type="button"
               variant="brand"
@@ -107,7 +102,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
       {showOrganizerQueue ? (
         <Section
           title="Level range requests"
-          description="Approve grants a waiver without seating them. Reject lets them request again. Ignore leaves the request pending."
+          description="Approve grants a waiver without seating them. Reject lets them request again."
         >
           {game.pendingLevelRangeRequests.length > 0 ? (
             <RowList>
