@@ -227,6 +227,37 @@ export async function requestLevelRange(
   };
 }
 
+export async function upsertApprovedLevelRangeWaiver(
+  database: DbClient,
+  args: { gameId: string; userId: string; decidedBy: string },
+) {
+  const existing = await database.query.gameLevelRangeRequests.findFirst({
+    where: and(
+      eq(gameLevelRangeRequests.gameId, args.gameId),
+      eq(gameLevelRangeRequests.userId, args.userId),
+    ),
+    columns: { id: true },
+  });
+  const now = new Date();
+  if (existing) {
+    await database
+      .update(gameLevelRangeRequests)
+      .set({
+        status: GameLevelRangeRequestStatusEnum.APPROVED,
+        decidedBy: args.decidedBy,
+        updatedAt: now,
+      })
+      .where(eq(gameLevelRangeRequests.id, existing.id));
+    return;
+  }
+  await database.insert(gameLevelRangeRequests).values({
+    gameId: args.gameId,
+    userId: args.userId,
+    status: GameLevelRangeRequestStatusEnum.APPROVED,
+    decidedBy: args.decidedBy,
+  });
+}
+
 export async function listLevelRangeRequests(
   database: DbClient,
   args: { gameId: string; userId: string },

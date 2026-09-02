@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import {
+  formatLevelRangeGateCopy,
+  formatLevelRangeLabel,
+} from "~/lib/level-range";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
 export function AcceptGameInviteLink({
@@ -22,6 +27,15 @@ export function AcceptGameInviteLink({
 }) {
   const router = useRouter();
   const preview = api.games.previewInviteLink.useQuery({ token });
+  const requestLevelRange = api.games.requestLevelRange.useMutation({
+    onSuccess: async () => {
+      toast.success("Request sent");
+      await preview.refetch();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
   const accept = api.games.acceptInviteLink.useMutation({
     onSuccess: (result) => {
       if (result.outcome === "waiting_for_partner") {
@@ -44,7 +58,9 @@ export function AcceptGameInviteLink({
   });
 
   const ready = preview.data?.status === "ready" ? preview.data : undefined;
-  const needsSeatPick = Boolean(ready?.needsSeatPick);
+  const blockedByLevelRange =
+    isSignedIn && ready?.viewerPassesLevelRange === false;
+  const needsSeatPick = Boolean(ready?.needsSeatPick) && !blockedByLevelRange;
   const sides = ready?.sides ?? [];
   const vacantSeats = ready?.vacantSeats ?? [];
   const joinFrozen =
@@ -58,12 +74,21 @@ export function AcceptGameInviteLink({
   const seatRaceError =
     needsSeatPick && accept.isError && accept.error.data?.code === "CONFLICT";
   const sideNoun = ready?.format === "friendly_tournament" ? "Side" : "Team";
+  const rangeLabel = formatLevelRangeLabel(
+    ready?.levelMinTenths,
+    ready?.levelMaxTenths,
+  );
+  const pendingRequest = ready?.levelRangeRequest?.status === "pending";
+  const rejectedRequest = ready?.levelRangeRequest?.status === "rejected";
 
   React.useEffect(() => {
     if (!isSignedIn) {
       return;
     }
     if (preview.data?.status !== "ready") {
+      return;
+    }
+    if (preview.data.viewerPassesLevelRange === false) {
       return;
     }
     if (accept.isPending || accept.isSuccess || accept.isError) {
@@ -156,6 +181,53 @@ export function AcceptGameInviteLink({
     );
   }
 
+  if (blockedByLevelRange && ready && !accept.isSuccess) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-title font-semibold">
+            Join {ready.gameName ?? "Game"}
+          </h1>
+          {rangeLabel ? (
+            <p className="text-body text-muted-foreground">{rangeLabel}</p>
+          ) : null}
+          <p className="text-body text-muted-foreground">
+            {formatLevelRangeGateCopy({
+              levelMinTenths: ready.levelMinTenths,
+              levelMaxTenths: ready.levelMaxTenths,
+              viewerLevelTenths: ready.viewerLevelTenths,
+            })}
+          </p>
+        </div>
+        {pendingRequest ? (
+          <p className="text-body text-muted-foreground">
+            Request pending. Organizers have not decided yet.
+          </p>
+        ) : (
+          <Button
+            className="min-h-11"
+            variant="brand"
+            disabled={
+              requestLevelRange.isPending || !ready.canRequestLevelRange
+            }
+            onClick={() =>
+              requestLevelRange.mutate({
+                gameId: ready.gameId,
+                inviteToken: token,
+              })
+            }
+          >
+            {requestLevelRange.isPending
+              ? "Requesting…"
+              : rejectedRequest
+                ? "Request again"
+                : "Request to play"}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   if (needsSeatPick && !accept.isSuccess) {
     return (
       <div className="space-y-4">
@@ -163,6 +235,9 @@ export function AcceptGameInviteLink({
           <h1 className="text-title font-semibold">
             Join {ready?.gameName ?? "Game"}
           </h1>
+          {rangeLabel ? (
+            <p className="text-body text-muted-foreground">{rangeLabel}</p>
+          ) : null}
           <p className="text-body text-muted-foreground">
             {joinFrozen
               ? "Occupied seats show who is already registered. This Game is not open for registration."
@@ -221,6 +296,9 @@ export function AcceptGameInviteLink({
           <h1 className="text-title font-semibold">
             Join {ready?.gameName ?? "Game"}
           </h1>
+          {rangeLabel ? (
+            <p className="text-body text-muted-foreground">{rangeLabel}</p>
+          ) : null}
           <p className="text-body text-muted-foreground">
             Sign in or sign up with Clerk to join. Opening this URL does not log
             anyone in without Clerk.
@@ -245,6 +323,9 @@ export function AcceptGameInviteLink({
       <h1 className="text-title font-semibold">
         Joining {ready?.gameName ?? "Game"}…
       </h1>
+      {rangeLabel ? (
+        <p className="text-body text-muted-foreground">{rangeLabel}</p>
+      ) : null}
       <p className="text-body text-muted-foreground">
         Accepting the Invite link as the signed-in User.
       </p>

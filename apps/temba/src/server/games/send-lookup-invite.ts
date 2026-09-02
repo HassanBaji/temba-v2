@@ -10,6 +10,7 @@ import {
   assertGameInviteDoorsOpen,
   assertInviteeAllowedOnGame,
 } from "~/server/games/invites";
+import { upsertApprovedLevelRangeWaiver } from "~/server/games/level-range-requests";
 import { mintLookup } from "~/server/invites/doors";
 import { type db } from "~/server/db";
 
@@ -123,6 +124,11 @@ export async function sendLookupInvite(
         });
         continue;
       }
+      await upsertApprovedLevelRangeWaiver(database, {
+        gameId: game.id,
+        userId: target.id,
+        decidedBy: args.userId,
+      });
       sent.push({
         id: minted.invite.id,
         gameId: minted.invite.hostId,

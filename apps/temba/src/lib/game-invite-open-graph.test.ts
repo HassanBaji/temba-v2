@@ -45,6 +45,26 @@ describe("gameInviteOpenGraphMetadata", () => {
     expect(metadata.description).not.toContain("Team");
   });
 
+  it("appends the Game Level range when set and never a User Level", () => {
+    const today = new Date();
+    today.setHours(19, 0, 0, 0);
+    const end = new Date(today);
+    end.setHours(20, 0, 0, 0);
+    const metadata = gameInviteOpenGraphMetadata({
+      venueName: "Padel Club",
+      windowStart: today,
+      windowEnd: end,
+      format: "friendly_game",
+      registrationMode: "individual",
+      occupiedCount: 2,
+      levelMinTenths: 30,
+      levelMaxTenths: 45,
+    });
+    expect(metadata.description).toContain("Level 3.0–4.5");
+    expect(metadata.description).toContain("2/4 sitting");
+    expect(metadata.description).not.toMatch(/5\.2|Your Level/);
+  });
+
   it("omits occupancy for other Game formats", () => {
     const start = new Date(2026, 8, 15, 19, 0, 0);
     const end = new Date(2026, 8, 15, 20, 0, 0);

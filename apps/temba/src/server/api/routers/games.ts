@@ -825,7 +825,12 @@ export const gamesRouter = createTRPCRouter({
   previewInviteLink: publicProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))
     .query(async ({ ctx, input }) => {
-      return previewInviteLink(ctx.db, { token: input.token });
+      let userId: string | undefined;
+      if (ctx.userId) {
+        const appUser = await resolveAppUser(ctx.userId);
+        userId = appUser.id;
+      }
+      return previewInviteLink(ctx.db, { token: input.token, userId });
     }),
 
   acceptInviteLink: protectedProcedure

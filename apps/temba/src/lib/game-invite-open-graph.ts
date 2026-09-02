@@ -3,6 +3,7 @@ import {
   formatGameTimeWindow,
 } from "~/lib/format-game-start";
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
+import { formatLevelRangeLabel } from "~/lib/level-range";
 
 export const GENERIC_TEMBA_OPEN_GRAPH = {
   title: "Temba - the future of competitive sports",
@@ -16,6 +17,8 @@ export type GameInviteOpenGraphInput = {
   format: string;
   registrationMode: string;
   occupiedCount: number;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 };
 
 export function occupiedFriendlyPositions(
@@ -40,12 +43,23 @@ export function occupiedFriendlyPositions(
   return occupied;
 }
 
+function withLevelRange(
+  description: string,
+  input: Pick<GameInviteOpenGraphInput, "levelMinTenths" | "levelMaxTenths">,
+) {
+  const range = formatLevelRangeLabel(
+    input.levelMinTenths,
+    input.levelMaxTenths,
+  );
+  return range ? `${description}, ${range}` : description;
+}
+
 export function gameInviteOpenGraphMetadata(input: GameInviteOpenGraphInput) {
   const start = input.windowStart ?? input.windowEnd;
   if (!start) {
     return {
       title: input.venueName,
-      description: input.venueName,
+      description: withLevelRange(input.venueName, input),
     };
   }
   const day = formatAbsoluteDay(start);
@@ -57,11 +71,14 @@ export function gameInviteOpenGraphMetadata(input: GameInviteOpenGraphInput) {
   if (showsFriendlyRoster(input.format, input.registrationMode)) {
     return {
       title: input.venueName,
-      description: `${day}, ${timeWindow}, ${input.occupiedCount}/4 sitting`,
+      description: withLevelRange(
+        `${day}, ${timeWindow}, ${input.occupiedCount}/4 sitting`,
+        input,
+      ),
     };
   }
   return {
     title: input.venueName,
-    description: `${day}, ${timeWindow}`,
+    description: withLevelRange(`${day}, ${timeWindow}`, input),
   };
 }
