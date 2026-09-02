@@ -111,6 +111,8 @@ function GamesHubTabPanel({
           registeredUserCount={game.registeredUserCount}
           playersAllowed={game.playersAllowed}
           pricePerPlayerCents={game.pricePerPlayerCents}
+          levelMinTenths={game.levelMinTenths}
+          levelMaxTenths={game.levelMaxTenths}
           sides={
             showsFriendlyRoster(game.format, game.registrationMode)
               ? game.sides

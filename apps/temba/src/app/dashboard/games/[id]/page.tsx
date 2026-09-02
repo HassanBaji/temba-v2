@@ -36,6 +36,11 @@ import {
 } from "~/lib/game-window";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
+  LEVEL_RANGE_INVERTED_MESSAGE,
+  parseOptionalLevelTenths,
+  tenthsToMajorInput,
+} from "~/lib/level-range";
+import {
   centsToMajorInput,
   parseOptionalPricePerPlayerCents,
 } from "~/lib/price-per-player";
@@ -52,6 +57,7 @@ export default function GameHomePage({
   const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
   const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
+  const levelSummaryRef = React.useRef<HTMLDivElement>(null);
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
   const [selectedPartner, setSelectedPartner] = React.useState<
@@ -67,6 +73,14 @@ export default function GameHomePage({
   const [windowFinishTime, setWindowFinishTime] = React.useState("");
   const [pricePerPlayer, setPricePerPlayer] = React.useState("");
   const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
+    string | undefined
+  >();
+  const [levelMin, setLevelMin] = React.useState("");
+  const [levelMax, setLevelMax] = React.useState("");
+  const [levelMinError, setLevelMinError] = React.useState<
+    string | undefined
+  >();
+  const [levelMaxError, setLevelMaxError] = React.useState<
     string | undefined
   >();
   const [lookupQuery, setLookupQuery] = React.useState("");
@@ -238,6 +252,25 @@ export default function GameHomePage({
     },
   });
 
+  const updateLevelRange = api.games.updateLevelRange.useMutation({
+    onSuccess: async () => {
+      toast.success("Level range saved");
+      setEditOpen(false);
+      await refreshGame();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+      focusFormFailure(
+        error,
+        {
+          levelMinTenths: "edit-level-min",
+          levelMaxTenths: "edit-level-max",
+        },
+        levelSummaryRef.current,
+      );
+    },
+  });
+
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: async () => {
       toast.success("Match updated");
@@ -369,6 +402,10 @@ export default function GameHomePage({
     setWindowFinishTime(gameWindow.finishTime);
     setPricePerPlayer(centsToMajorInput(data.pricePerPlayerCents));
     setPricePerPlayerError(undefined);
+    setLevelMin(tenthsToMajorInput(data.levelMinTenths));
+    setLevelMax(tenthsToMajorInput(data.levelMaxTenths));
+    setLevelMinError(undefined);
+    setLevelMaxError(undefined);
   }, [data]);
 
   if (isNotFoundError(game.error)) {
@@ -447,6 +484,40 @@ export default function GameHomePage({
     updatePricePerPlayer.mutate({
       gameId: id,
       pricePerPlayerCents: parsedPrice.cents,
+    });
+  }
+
+  function saveLevelRange() {
+    if (updateLevelRange.isPending) {
+      return;
+    }
+    setLevelMinError(undefined);
+    setLevelMaxError(undefined);
+    const parsedMin = parseOptionalLevelTenths(levelMin);
+    if (!parsedMin.ok) {
+      setLevelMinError(parsedMin.message);
+      document.getElementById("edit-level-min")?.focus();
+      return;
+    }
+    const parsedMax = parseOptionalLevelTenths(levelMax);
+    if (!parsedMax.ok) {
+      setLevelMaxError(parsedMax.message);
+      document.getElementById("edit-level-max")?.focus();
+      return;
+    }
+    if (
+      parsedMin.tenths != null &&
+      parsedMax.tenths != null &&
+      parsedMin.tenths > parsedMax.tenths
+    ) {
+      setLevelMinError(LEVEL_RANGE_INVERTED_MESSAGE);
+      document.getElementById("edit-level-min")?.focus();
+      return;
+    }
+    updateLevelRange.mutate({
+      gameId: id,
+      levelMinTenths: parsedMin.tenths,
+      levelMaxTenths: parsedMax.tenths,
     });
   }
 
@@ -691,6 +762,22 @@ export default function GameHomePage({
           priceSummaryRef={priceSummaryRef}
           pricePending={updatePricePerPlayer.isPending}
           onSavePrice={savePrice}
+          levelMin={levelMin}
+          onLevelMinChange={(value) => {
+            setLevelMin(value);
+            setLevelMinError(undefined);
+          }}
+          levelMax={levelMax}
+          onLevelMaxChange={(value) => {
+            setLevelMax(value);
+            setLevelMaxError(undefined);
+          }}
+          levelMinError={levelMinError}
+          levelMaxError={levelMaxError}
+          levelError={updateLevelRange.error}
+          levelSummaryRef={levelSummaryRef}
+          levelPending={updateLevelRange.isPending}
+          onSaveLevelRange={saveLevelRange}
         />
       ) : null}
 

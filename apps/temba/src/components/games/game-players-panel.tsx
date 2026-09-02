@@ -165,7 +165,13 @@ export function GamePlayersPanel({
                   {game.unseatedPlayers.map((player) => (
                     <ListRow
                       key={player.id}
-                      leading={<UserAvatar name={player.name} size="lg" />}
+                      leading={
+                        <UserAvatar
+                          name={player.name}
+                          image={player.image}
+                          size="lg"
+                        />
+                      }
                       title={player.name}
                       trailing={
                         game.isOrganizer && !game.cancelledAt ? (
@@ -201,7 +207,11 @@ export function GamePlayersPanel({
                 <ListRow
                   key={side.id}
                   leading={
-                    <UserAvatar name={firstMember?.name ?? title} size="lg" />
+                    <UserAvatar
+                      name={firstMember?.name ?? title}
+                      image={firstMember?.image}
+                      size="lg"
+                    />
                   }
                   title={title}
                   trailing={
@@ -229,7 +239,13 @@ export function GamePlayersPanel({
               .map((player) => (
                 <ListRow
                   key={player.id}
-                  leading={<UserAvatar name={player.name} size="lg" />}
+                  leading={
+                    <UserAvatar
+                      name={player.name}
+                      image={player.image}
+                      size="lg"
+                    />
+                  }
                   title={player.name}
                   trailing={
                     game.isOrganizer && !game.cancelledAt ? (
@@ -262,7 +278,9 @@ export function GamePlayersPanel({
             {game.waitlist.map((entry, index) => (
               <ListRow
                 key={entry.id}
-                leading={<UserAvatar name={entry.name} size="lg" />}
+                leading={
+                  <UserAvatar name={entry.name} image={entry.image} size="lg" />
+                }
                 title={`${index + 1}. ${entry.name}`}
                 trailing={
                   game.isOrganizer && !game.cancelledAt ? (

@@ -194,14 +194,18 @@ export async function communityById(
               columns: {
                 id: true,
                 name: true,
+                image: true,
               },
             },
           },
         });
-  const linkedMembersByTeam = new Map<string, string[]>();
+  const linkedMembersByTeam = new Map<
+    string,
+    { name: string; image: string | null }[]
+  >();
   for (const row of linkedTeamMemberRows) {
     const list = linkedMembersByTeam.get(row.teamId) ?? [];
-    list.push(row.user.name);
+    list.push({ name: row.user.name, image: row.user.image });
     linkedMembersByTeam.set(row.teamId, list);
   }
 
@@ -254,9 +258,10 @@ export async function communityById(
       name: team.name,
       displayName: teamDisplayName(
         team.name,
-        linkedMembersByTeam.get(team.id) ?? [],
+        (linkedMembersByTeam.get(team.id) ?? []).map((member) => member.name),
       ),
       sport: team.sport as GroupSportEnum,
+      members: linkedMembersByTeam.get(team.id) ?? [],
     })),
   };
 }

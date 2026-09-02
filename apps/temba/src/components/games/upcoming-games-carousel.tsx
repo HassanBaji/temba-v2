@@ -15,6 +15,8 @@ export type UpcomingGamesCarouselItem = {
   registeredUserCount: number;
   playersAllowed: number | null;
   sides: HubListSide[];
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 };
 
 export function UpcomingGamesCarousel({
@@ -108,6 +110,8 @@ export function UpcomingGamesCarousel({
               registeredUserCount={game.registeredUserCount}
               playersAllowed={game.playersAllowed}
               sides={game.sides}
+              levelMinTenths={game.levelMinTenths}
+              levelMaxTenths={game.levelMaxTenths}
               className="w-full"
             />
           </li>

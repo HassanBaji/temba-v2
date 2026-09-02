@@ -14,6 +14,7 @@ export async function listTeamMembers(database: DbClient, teamId: string) {
         columns: {
           id: true,
           name: true,
+          image: true,
         },
       },
     },

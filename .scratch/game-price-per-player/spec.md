@@ -198,3 +198,5 @@ Frontier: **TEM-105**. Do not implement until an implementer / orchestrator is a
 ## Comments
 
 `/to-tickets`: published [TEM-105](https://linear.app/temba-app/issue/TEM-105/game-price-per-player-column-create-display-organizer-edit). Round 2 grilling: no currency symbol; integer cents.
+
+Display currency is hardcoded **BD** across Game home, cards, Home hero, and organizer Fields until a stored currency exists. Still no picker and no currency column. Free stays `Free`.

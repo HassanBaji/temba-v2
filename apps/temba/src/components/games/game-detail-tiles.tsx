@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarDays, Clock, Coins, Trophy } from "lucide-react";
+import { CalendarDays, Clock, Coins, Gauge, Trophy } from "lucide-react";
 
 import { SPORT_LABELS, type SportValue } from "~/components/temba/sport-badge";
 import { Card } from "~/components/ui/card";
@@ -7,6 +7,7 @@ import {
   formatGameTimeWindow,
   formatRelativeDay,
 } from "~/lib/format-game-start";
+import { formatLevelRangeLabel } from "~/lib/level-range";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 
 function sportLabel(sport: string | null) {
@@ -60,14 +61,19 @@ export function GameDetailTiles({
   durationInMinutes,
   sport,
   pricePerPlayerCents,
+  levelMinTenths,
+  levelMaxTenths,
 }: {
   windowStart: Date | string | null;
   windowEnd: Date | string | null | undefined;
   durationInMinutes: number | null | undefined;
   sport: string | null;
   pricePerPlayerCents: number | null | undefined;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 }) {
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
+  const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
   const relativeDay = windowStart ? formatRelativeDay(windowStart) : null;
   const dateValue = windowStart
     ? (windowStart instanceof Date
@@ -101,6 +107,9 @@ export function GameDetailTiles({
       <DetailTile icon={Trophy} label="Sport" value={sportLabel(sport)} />
       {priceLabel ? (
         <DetailTile icon={Coins} label="Price per player" value={priceLabel} />
+      ) : null}
+      {levelLabel ? (
+        <DetailTile icon={Gauge} label="Level range" value={levelLabel} />
       ) : null}
     </div>
   );

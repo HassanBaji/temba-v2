@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { games } from "@repo/db";
 
 import {
+  applyViewerLevelRangeToHubRows,
   queryHubGames,
   toHubListRow,
   viewerHubContext,
@@ -25,12 +26,18 @@ export async function listPublicHubRows(
     database,
     and(eq(games.isPublic, true), isNull(games.cancelledAt)),
   );
-  return filterAndSortPublicHubGames(
+  const filtered = filterAndSortPublicHubGames(
     (rows as HubQueryRow[]).map((row) => ({
       ...row,
       communityArchivedAt: row.group?.community?.archivedAt ?? null,
     })),
     viewer.memberGroupIds,
     now,
-  ).map((row) => toHubListRow(row, viewer, now));
+  );
+  return applyViewerLevelRangeToHubRows(
+    database,
+    filtered.map((row) => toHubListRow(row, viewer, now)),
+    filtered,
+    userId,
+  );
 }

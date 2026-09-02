@@ -195,6 +195,7 @@ export default function InvitesPage() {
           {items.map((invite) => {
             const pending = isRowPending(invite.kind, invite.id);
             const inviterName = invite.invitedBy.name ?? "Someone";
+            const inviterImage = invite.invitedBy.image;
             if (
               invite.kind === "game" &&
               invite.needsSeatPick &&
@@ -213,7 +214,11 @@ export default function InvitesPage() {
                   className="space-y-3 px-4 py-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <UserAvatar name={inviterName} size="lg" />
+                    <UserAvatar
+                      name={inviterName}
+                      image={inviterImage}
+                      size="lg"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="text-lead truncate font-semibold">
                         {invite.title}
@@ -270,7 +275,13 @@ export default function InvitesPage() {
             return (
               <ListRow
                 key={`${invite.kind}-${invite.id}`}
-                leading={<UserAvatar name={inviterName} size="lg" />}
+                leading={
+                  <UserAvatar
+                    name={inviterName}
+                    image={inviterImage}
+                    size="lg"
+                  />
+                }
                 title={invite.title}
                 meta={inviteMeta(invite.kind, inviterName)}
                 trailing={

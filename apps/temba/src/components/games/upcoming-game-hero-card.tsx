@@ -8,6 +8,7 @@ import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { SPORT_LABELS, type SportValue } from "~/components/temba/sport-badge";
 import { Button } from "~/components/ui/button";
 import { formatGameClock, formatRelativeDay } from "~/lib/format-game-start";
+import { formatLevelRangeLabel } from "~/lib/level-range";
 import { cn } from "~/lib/utils";
 import type { HubListSide } from "~/server/games";
 
@@ -58,6 +59,8 @@ export function UpcomingGameHeroCard({
   registeredUserCount,
   playersAllowed,
   sides,
+  levelMinTenths,
+  levelMaxTenths,
   className,
 }: {
   href: string;
@@ -68,6 +71,8 @@ export function UpcomingGameHeroCard({
   registeredUserCount: number;
   playersAllowed: number | null;
   sides: HubListSide[];
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
   className?: string;
 }) {
   const sportLabel = sportEyebrow(sport);
@@ -77,6 +82,7 @@ export function UpcomingGameHeroCard({
     playersAllowed != null
       ? `${registeredUserCount}/${playersAllowed}`
       : `${registeredUserCount}`;
+  const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
 
   return (
     <article
@@ -136,6 +142,9 @@ export function UpcomingGameHeroCard({
               />
               <span className="min-w-0 break-words">{venueName}</span>
             </p>
+          ) : null}
+          {levelLabel ? (
+            <p className="text-sm text-white/75">{levelLabel}</p>
           ) : null}
         </div>
 

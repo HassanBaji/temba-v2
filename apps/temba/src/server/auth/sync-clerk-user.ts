@@ -3,7 +3,11 @@ import type { UserWebhookEvent } from "@clerk/nextjs/webhooks";
 
 import { user } from "@repo/db";
 
-import { db } from "~/server/db";
+import { type db } from "~/server/db";
+import type { TestDatabase } from "~/server/test/pglite";
+
+type AppTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type ClerkUserSyncDb = typeof db | AppTx | TestDatabase;
 
 type ClerkUserPayload = Extract<
   UserWebhookEvent,
@@ -38,14 +42,19 @@ function clerkPrimaryPhone(clerkUser: ClerkUserPayload) {
   };
 }
 
+function writeDb(database: ClerkUserSyncDb): typeof db {
+  return database as typeof db;
+}
+
 async function availableUsername(
+  database: ClerkUserSyncDb,
   username: string | null,
   exceptUserId?: string,
 ) {
   if (!username) {
     return null;
   }
-  const taken = await db.query.user.findFirst({
+  const taken = await database.query.user.findFirst({
     where: exceptUserId
       ? and(eq(user.username, username), ne(user.id, exceptUserId))
       : eq(user.username, username),
@@ -55,13 +64,14 @@ async function availableUsername(
 }
 
 async function availablePhoneNumber(
+  database: ClerkUserSyncDb,
   phoneNumber: string | null,
   exceptUserId?: string,
 ) {
   if (!phoneNumber) {
     return null;
   }
-  const taken = await db.query.user.findFirst({
+  const taken = await database.query.user.findFirst({
     where: exceptUserId
       ? and(eq(user.phoneNumber, phoneNumber), ne(user.id, exceptUserId))
       : eq(user.phoneNumber, phoneNumber),
@@ -79,11 +89,24 @@ function displayName(clerkUser: ClerkUserPayload, email: string) {
   );
 }
 
+function clerkStoredImage(clerkUser: ClerkUserPayload): string | null {
+  if (!clerkUser.has_image) {
+    return null;
+  }
+  if (!clerkUser.image_url || clerkUser.image_url.length === 0) {
+    return null;
+  }
+  return clerkUser.image_url;
+}
+
 /**
  * Insert or update the Temba User row for a Clerk user.created / user.updated
  * webhook. Lookup invite still matches username, email, and primary phone.
  */
-export async function upsertUserFromClerk(clerkUser: ClerkUserPayload) {
+export async function upsertUserFromClerk(
+  database: ClerkUserSyncDb,
+  clerkUser: ClerkUserPayload,
+) {
   const primaryEmail = clerkPrimaryEmail(clerkUser);
   if (!primaryEmail) {
     throw new Error("Clerk user must have an email address");
@@ -95,12 +118,13 @@ export async function upsertUserFromClerk(clerkUser: ClerkUserPayload) {
   const username = clerkUsername(clerkUser.username);
   const { phoneNumber, phoneNumberVerified } = clerkPrimaryPhone(clerkUser);
   const emailVerified = primaryEmail.verification?.status === "verified";
+  const image = clerkStoredImage(clerkUser);
 
   const existing =
-    (await db.query.user.findFirst({
+    (await database.query.user.findFirst({
       where: eq(user.clerkId, clerkId),
     })) ??
-    (await db.query.user.findFirst({
+    (await database.query.user.findFirst({
       where: eq(user.email, email),
     }));
 
@@ -112,19 +136,19 @@ export async function upsertUserFromClerk(clerkUser: ClerkUserPayload) {
     const nextUsername =
       username === null
         ? null
-        : ((await availableUsername(username, existing.id)) ??
+        : ((await availableUsername(database, username, existing.id)) ??
           existing.username);
     const nextPhoneNumber =
       phoneNumber === null
         ? null
-        : ((await availablePhoneNumber(phoneNumber, existing.id)) ??
+        : ((await availablePhoneNumber(database, phoneNumber, existing.id)) ??
           existing.phoneNumber);
     const nextPhoneVerified =
       nextPhoneNumber === phoneNumber
         ? phoneNumberVerified
         : existing.phoneNumberVerified;
 
-    const [updated] = await db
+    const [updated] = await writeDb(database)
       .update(user)
       .set({
         clerkId,
@@ -134,7 +158,7 @@ export async function upsertUserFromClerk(clerkUser: ClerkUserPayload) {
         username: nextUsername,
         phoneNumber: nextPhoneNumber,
         phoneNumberVerified: nextPhoneVerified,
-        image: clerkUser.image_url,
+        image,
         updatedAt: new Date(),
       })
       .where(eq(user.id, existing.id))
@@ -143,10 +167,10 @@ export async function upsertUserFromClerk(clerkUser: ClerkUserPayload) {
     return updated ?? existing;
   }
 
-  const insertUsername = await availableUsername(username);
-  const insertPhoneNumber = await availablePhoneNumber(phoneNumber);
+  const insertUsername = await availableUsername(database, username);
+  const insertPhoneNumber = await availablePhoneNumber(database, phoneNumber);
 
-  const [created] = await db
+  const [created] = await writeDb(database)
     .insert(user)
     .values({
       clerkId,
@@ -157,7 +181,7 @@ export async function upsertUserFromClerk(clerkUser: ClerkUserPayload) {
       phoneNumber: insertPhoneNumber,
       phoneNumberVerified:
         insertPhoneNumber === phoneNumber ? phoneNumberVerified : false,
-      image: clerkUser.image_url,
+      image,
     })
     .returning();
 

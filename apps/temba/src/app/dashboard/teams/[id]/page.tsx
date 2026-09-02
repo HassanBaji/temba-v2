@@ -218,6 +218,7 @@ export default function TeamHomePage({
   const displayName = data.displayName ?? "Team";
   const people = data.members.map((member) => ({
     name: member.name ?? "Member",
+    image: member.image,
   }));
 
   return (
@@ -341,7 +342,11 @@ export default function TeamHomePage({
                 <ListRow
                   key={member.id}
                   leading={
-                    <UserAvatar name={member.name ?? "Member"} size="lg" />
+                    <UserAvatar
+                      name={member.name ?? "Member"}
+                      image={member.image}
+                      size="lg"
+                    />
                   }
                   title={member.name ?? "Member"}
                   trailing={

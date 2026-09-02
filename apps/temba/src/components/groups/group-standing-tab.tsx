@@ -12,6 +12,7 @@ export function GroupStandingTab({
   leaderboard: {
     userId: string;
     name: string | null;
+    image?: string | null;
     totalSetsWon: number;
     totalPointsWon: number;
     totalGamesPlayed: number;
@@ -46,6 +47,7 @@ export function GroupStandingTab({
           key={entry.userId}
           position={entry.position}
           name={entry.name ?? "Member"}
+          image={entry.image}
           totalSetsWon={entry.totalSetsWon}
           totalPointsWon={entry.totalPointsWon}
           totalGamesPlayed={entry.totalGamesPlayed}

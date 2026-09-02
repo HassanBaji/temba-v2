@@ -6,7 +6,9 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GameVenueSelect } from "~/components/games/game-venue-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
+import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
@@ -31,6 +33,11 @@ import {
   parseRequiredGameWindow,
 } from "~/lib/game-window";
 import {
+  LEVEL_RANGE_FIELD_DESCRIPTION,
+  LEVEL_RANGE_INVERTED_MESSAGE,
+  parseOptionalLevelTenths,
+} from "~/lib/level-range";
+import {
   parseOptionalPricePerPlayerCents,
   PRICE_PER_PLAYER_FIELD_DESCRIPTION,
 } from "~/lib/price-per-player";
@@ -41,14 +48,6 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-
-function venueOptionLabel(venue: {
-  name: string;
-  city: string;
-  country: string;
-}) {
-  return `${venue.name} — ${venue.city}, ${venue.country}`;
-}
 
 function createVenueCopy(picker: {
   locked: boolean;
@@ -80,6 +79,14 @@ function NewGameForm() {
   const [courtId, setCourtId] = React.useState("none");
   const [pricePerPlayer, setPricePerPlayer] = React.useState("");
   const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
+    string | undefined
+  >();
+  const [levelMin, setLevelMin] = React.useState("");
+  const [levelMax, setLevelMax] = React.useState("");
+  const [levelMinError, setLevelMinError] = React.useState<
+    string | undefined
+  >();
+  const [levelMaxError, setLevelMaxError] = React.useState<
     string | undefined
   >();
 
@@ -123,6 +130,8 @@ function NewGameForm() {
           venueId: "game-venue",
           courtId: "game-court",
           pricePerPlayerCents: "game-price-per-player",
+          levelMinTenths: "game-level-min",
+          levelMaxTenths: "game-level-max",
           windowStart: "game-window-start",
           windowEnd: "game-window-finish",
         },
@@ -144,10 +153,33 @@ function NewGameForm() {
       return;
     }
     setPricePerPlayerError(undefined);
+    setLevelMinError(undefined);
+    setLevelMaxError(undefined);
     const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
     if (!parsedPrice.ok) {
       setPricePerPlayerError(parsedPrice.message);
       document.getElementById("game-price-per-player")?.focus();
+      return;
+    }
+    const parsedMin = parseOptionalLevelTenths(levelMin);
+    if (!parsedMin.ok) {
+      setLevelMinError(parsedMin.message);
+      document.getElementById("game-level-min")?.focus();
+      return;
+    }
+    const parsedMax = parseOptionalLevelTenths(levelMax);
+    if (!parsedMax.ok) {
+      setLevelMaxError(parsedMax.message);
+      document.getElementById("game-level-max")?.focus();
+      return;
+    }
+    if (
+      parsedMin.tenths != null &&
+      parsedMax.tenths != null &&
+      parsedMin.tenths > parsedMax.tenths
+    ) {
+      setLevelMinError(LEVEL_RANGE_INVERTED_MESSAGE);
+      document.getElementById("game-level-min")?.focus();
       return;
     }
     createGame.mutate({
@@ -162,6 +194,12 @@ function NewGameForm() {
       courtId: courtId === "none" ? undefined : courtId,
       ...(parsedPrice.cents !== null
         ? { pricePerPlayerCents: parsedPrice.cents }
+        : {}),
+      ...(parsedMin.tenths !== null
+        ? { levelMinTenths: parsedMin.tenths }
+        : {}),
+      ...(parsedMax.tenths !== null
+        ? { levelMaxTenths: parsedMax.tenths }
         : {}),
     });
   }
@@ -190,38 +228,31 @@ function NewGameForm() {
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="game-venue">Venue</FieldLabel>
-              <Select
-                value={venueId || undefined}
-                onValueChange={(value) => {
-                  setVenueId(value);
+              <GameVenueSelect
+                id="game-venue"
+                venues={picker.data?.venues ?? []}
+                value={venueId}
+                onValueChange={(nextVenueId) => {
+                  setVenueId(nextVenueId);
                   setCourtId("none");
                 }}
                 disabled={picker.data?.locked === true}
-              >
-                <SelectTrigger
-                  id="game-venue"
-                  aria-invalid={
-                    fieldErrorMessage(createGame.error, "venueId")
-                      ? true
-                      : undefined
-                  }
-                  aria-describedby={
-                    fieldErrorMessage(createGame.error, "venueId")
-                      ? "game-venue-error"
-                      : "game-venue-copy"
-                  }
-                >
-                  <SelectValue placeholder="Select a Venue" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(picker.data?.venues ?? []).map((venue) => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      {venueOptionLabel(venue)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldDescription id="game-venue-copy"></FieldDescription>
+                pending={picker.isLoading}
+                error={
+                  Boolean(fieldErrorMessage(createGame.error, "venueId")) ||
+                  emptyCatalog
+                }
+                describedBy={
+                  fieldErrorMessage(createGame.error, "venueId")
+                    ? "game-venue-error"
+                    : "game-venue-copy"
+                }
+              />
+              <FieldDescription id="game-venue-copy">
+                {picker.data
+                  ? createVenueCopy(picker.data)
+                  : "Pick a Venue. Court is optional."}
+              </FieldDescription>
               <FieldError id="game-venue-error">
                 {fieldErrorMessage(createGame.error, "venueId") ??
                   (emptyCatalog
@@ -266,7 +297,7 @@ function NewGameForm() {
               <FieldLabel htmlFor="game-price-per-player">
                 Price per player
               </FieldLabel>
-              <Input
+              <PricePerPlayerAmountInput
                 id="game-price-per-player"
                 type="number"
                 step="0.01"
@@ -295,6 +326,73 @@ function NewGameForm() {
               <FieldError id="game-price-per-player-error">
                 {pricePerPlayerError ??
                   fieldErrorMessage(createGame.error, "pricePerPlayerCents")}
+              </FieldError>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="game-level-min">Minimum Level</FieldLabel>
+              <Input
+                id="game-level-min"
+                type="number"
+                step="0.1"
+                min="0"
+                max="7"
+                value={levelMin}
+                onChange={(event) => {
+                  setLevelMin(event.target.value);
+                  setLevelMinError(undefined);
+                }}
+                aria-invalid={
+                  levelMinError ||
+                  fieldErrorMessage(createGame.error, "levelMinTenths")
+                    ? true
+                    : undefined
+                }
+                aria-describedby={
+                  levelMinError ||
+                  fieldErrorMessage(createGame.error, "levelMinTenths")
+                    ? "game-level-min-error"
+                    : "game-level-range-copy"
+                }
+              />
+              <FieldError id="game-level-min-error">
+                {levelMinError ??
+                  fieldErrorMessage(createGame.error, "levelMinTenths")}
+              </FieldError>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="game-level-max">Maximum Level</FieldLabel>
+              <Input
+                id="game-level-max"
+                type="number"
+                step="0.1"
+                min="0"
+                max="7"
+                value={levelMax}
+                onChange={(event) => {
+                  setLevelMax(event.target.value);
+                  setLevelMaxError(undefined);
+                }}
+                aria-invalid={
+                  levelMaxError ||
+                  fieldErrorMessage(createGame.error, "levelMaxTenths")
+                    ? true
+                    : undefined
+                }
+                aria-describedby={
+                  levelMaxError ||
+                  fieldErrorMessage(createGame.error, "levelMaxTenths")
+                    ? "game-level-max-error"
+                    : "game-level-range-copy"
+                }
+              />
+              <FieldDescription id="game-level-range-copy">
+                {LEVEL_RANGE_FIELD_DESCRIPTION}
+              </FieldDescription>
+              <FieldError id="game-level-max-error">
+                {levelMaxError ??
+                  fieldErrorMessage(createGame.error, "levelMaxTenths")}
               </FieldError>
             </Field>
 

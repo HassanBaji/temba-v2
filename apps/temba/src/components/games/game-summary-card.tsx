@@ -5,6 +5,7 @@ import {
   Check,
   ChevronRight,
   Coins,
+  Gauge,
   Hourglass,
   MapPin,
   Users,
@@ -38,6 +39,7 @@ import {
   type GameSummaryCta,
   type GameViewerStatus,
 } from "~/lib/game-summary-cta";
+import { formatLevelRangeLabel } from "~/lib/level-range";
 import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import type { HubListSide, HubListSideOccupant } from "~/server/games";
@@ -205,6 +207,8 @@ export function GameSummaryCard({
   windowStart,
   windowEnd,
   pricePerPlayerCents,
+  levelMinTenths,
+  levelMaxTenths,
   sides,
   primaryAction,
   viewerStatus,
@@ -226,6 +230,8 @@ export function GameSummaryCard({
   windowStart?: Date | string | null;
   windowEnd?: Date | string | null;
   pricePerPlayerCents?: number | null;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
   sides?: HubListSide[];
   primaryAction?: GameSummaryCta;
   viewerStatus?: GameViewerStatus;
@@ -245,6 +251,7 @@ export function GameSummaryCard({
     primaryAction === "register";
   const showRoster = Boolean(sides && sides.length > 0);
   const priceMeta = formatPricePerPlayerCardMeta(pricePerPlayerCents);
+  const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
   const occupancy = gameOccupancy(registeredUserCount ?? 0, playersAllowed);
   const dayLabel = formatRelativeDay(startTime, { sameDayLabel: "Today" });
   const dayTone = DAY_TONE[gameDayProximity(startTime)];
@@ -434,6 +441,7 @@ export function GameSummaryCard({
                 {priceMeta}
               </MetaItem>
             ) : null}
+            {levelMeta ? <MetaItem icon={Gauge}>{levelMeta}</MetaItem> : null}
           </div>
           {actionControl ? (
             <div

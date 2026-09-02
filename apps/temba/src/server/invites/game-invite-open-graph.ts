@@ -56,5 +56,7 @@ export async function loadGameInviteOpenGraph(
     format: game.format,
     registrationMode: game.registrationMode,
     occupiedCount: occupiedFriendlyPositions(sides),
+    levelMinTenths: game.levelMinTenths,
+    levelMaxTenths: game.levelMaxTenths,
   });
 }

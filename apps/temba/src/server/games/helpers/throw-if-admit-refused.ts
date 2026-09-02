@@ -1,10 +1,30 @@
 import { TRPCError } from "@trpc/server";
 
 import type { AdmitResult } from "~/server/games/utils";
+import {
+  LEVEL_RANGE_OUTSIDE_MESSAGE,
+  LEVEL_RANGE_PARTNER_MESSAGE,
+  LEVEL_RANGE_TEAM_MESSAGE,
+} from "~/lib/level-range";
 
-export function throwIfAdmitRefused(result: AdmitResult) {
+export function throwIfAdmitRefused(
+  result: AdmitResult,
+  partyKind: "user" | "pair" | "team" = "user",
+) {
   if (result.ok || result.reason === "full") {
     return;
+  }
+  if (result.reason === "level_range") {
+    const message =
+      partyKind === "user"
+        ? LEVEL_RANGE_OUTSIDE_MESSAGE
+        : partyKind === "pair"
+          ? LEVEL_RANGE_PARTNER_MESSAGE
+          : LEVEL_RANGE_TEAM_MESSAGE;
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message,
+    });
   }
   if (
     result.reason === "registration_closed" ||

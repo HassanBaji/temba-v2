@@ -211,6 +211,20 @@
       "when": 1788256946725,
       "tag": "0029_sharp_moondragon",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1788353606789,
+      "tag": "0030_lowly_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1788354257821,
+      "tag": "0031_regular_stranger",
+      "breakpoints": true
     }
   ]
 }

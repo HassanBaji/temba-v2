@@ -12,6 +12,7 @@ import type {
   HubListSide,
   HubListSideOccupant,
 } from "~/server/games/utils";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 
 export type HubListDb = typeof db | TestDatabase;
 
@@ -24,6 +25,8 @@ export const hubListColumns = {
   windowStart: true,
   windowEnd: true,
   pricePerPlayerCents: true,
+  levelMinTenths: true,
+  levelMaxTenths: true,
   cancelledAt: true,
   registrationClosedAt: true,
   createdAt: true,
@@ -112,6 +115,8 @@ export type HubQueryRow = {
   windowStart: Date | null;
   windowEnd: Date | null;
   pricePerPlayerCents: number | null;
+  levelMinTenths: number | null;
+  levelMaxTenths: number | null;
   cancelledAt: Date | null;
   registrationClosedAt: Date | null;
   createdAt: Date;
@@ -343,6 +348,8 @@ export function toHubListRow(
         }
       : null,
     pricePerPlayerCents: row.pricePerPlayerCents,
+    levelMinTenths: row.levelMinTenths,
+    levelMaxTenths: row.levelMaxTenths,
     registeredUserCount,
     playersAllowed: row.playersAllowed,
     registeredTeamCount,
@@ -364,6 +371,38 @@ export function toHubListRow(
       !isWaitlisted,
     sides: sidesFromRow(row),
   };
+}
+
+export async function applyViewerLevelRangeToHubRows(
+  database: HubListDb,
+  rows: HubListRow[],
+  games: Array<{
+    id: string;
+    sport: string | null;
+    createdBy: string;
+    groupId: string | null;
+    levelMinTenths: number | null;
+    levelMaxTenths: number | null;
+  }>,
+  userId: string,
+): Promise<HubListRow[]> {
+  const byId = new Map(games.map((game) => [game.id, game]));
+  return Promise.all(
+    rows.map(async (row) => {
+      const game = byId.get(row.id);
+      if (!game) {
+        return row;
+      }
+      if (await userAllowedByLevelRange(database, game, userId)) {
+        return row;
+      }
+      return {
+        ...row,
+        canRegister: false,
+        canWaitlist: false,
+      };
+    }),
+  );
 }
 
 export async function queryHubGames(

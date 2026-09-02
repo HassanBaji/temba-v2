@@ -1,7 +1,9 @@
 export const PRICE_PER_PLAYER_MAX_CENTS = 100_000_000;
 
-export const PRICE_PER_PLAYER_FIELD_DESCRIPTION =
-  "Leave blank if unset. Zero means free. Temba does not collect payment.";
+/** Display currency for price per player until a stored currency exists. */
+export const PRICE_PER_PLAYER_CURRENCY = "BD";
+
+export const PRICE_PER_PLAYER_FIELD_DESCRIPTION = `Optional. Amounts are in ${PRICE_PER_PLAYER_CURRENCY}. Up to two decimal places. Leave blank if unset. Zero means free. Temba does not collect payment.`;
 
 export type ParsePricePerPlayerResult =
   | { ok: true; cents: number | null }
@@ -52,7 +54,7 @@ export function formatPricePerPlayerCents(
   if (cents === 0) {
     return "Free";
   }
-  return formatMajorUnitsFromCents(cents);
+  return formatMajorUnitsWithCurrency(cents);
 }
 
 export function formatPricePerPlayerCardMeta(
@@ -64,7 +66,7 @@ export function formatPricePerPlayerCardMeta(
   if (cents === 0) {
     return "Free";
   }
-  return `${formatMajorUnitsFromCents(cents)} / player`;
+  return `${formatMajorUnitsWithCurrency(cents)} / player`;
 }
 
 export function centsToMajorInput(cents: number | null | undefined): string {
@@ -80,4 +82,8 @@ function formatMajorUnitsFromCents(cents: number): string {
   const fraction = abs % 100;
   const body = `${whole}.${String(fraction).padStart(2, "0")}`;
   return cents < 0 ? `-${body}` : body;
+}
+
+function formatMajorUnitsWithCurrency(cents: number): string {
+  return `${formatMajorUnitsFromCents(cents)} ${PRICE_PER_PLAYER_CURRENCY}`;
 }

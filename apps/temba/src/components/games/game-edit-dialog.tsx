@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { GameWindowFields } from "~/components/games/game-window-fields";
+import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -24,6 +25,7 @@ import {
   fieldErrorMessage,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
+import { LEVEL_RANGE_FIELD_DESCRIPTION } from "~/lib/level-range";
 import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "~/lib/price-per-player";
 
 export function GameEditDialog({
@@ -47,6 +49,16 @@ export function GameEditDialog({
   priceSummaryRef,
   pricePending,
   onSavePrice,
+  levelMin,
+  onLevelMinChange,
+  levelMax,
+  onLevelMaxChange,
+  levelMinError,
+  levelMaxError,
+  levelError,
+  levelSummaryRef,
+  levelPending,
+  onSaveLevelRange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -68,6 +80,16 @@ export function GameEditDialog({
   priceSummaryRef: React.RefObject<HTMLDivElement | null>;
   pricePending: boolean;
   onSavePrice: () => void;
+  levelMin: string;
+  onLevelMinChange: (value: string) => void;
+  levelMax: string;
+  onLevelMaxChange: (value: string) => void;
+  levelMinError: string | undefined;
+  levelMaxError: string | undefined;
+  levelError: { message: string; data?: { zodError?: unknown } | null } | null;
+  levelSummaryRef: React.RefObject<HTMLDivElement | null>;
+  levelPending: boolean;
+  onSaveLevelRange: () => void;
 }) {
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -75,8 +97,8 @@ export function GameEditDialog({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>Edit Game</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Venue cannot change. Update the window and optional price per
-            player.
+            Venue cannot change. Update the window, optional price per player,
+            and optional Level range.
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
@@ -127,7 +149,7 @@ export function GameEditDialog({
                 <FieldLabel htmlFor="edit-price-per-player">
                   Price per player
                 </FieldLabel>
-                <Input
+                <PricePerPlayerAmountInput
                   id="edit-price-per-player"
                   type="number"
                   step="0.01"
@@ -160,6 +182,85 @@ export function GameEditDialog({
             </FieldGroup>
             <Button type="submit" disabled={pricePending}>
               {pricePending ? "Saving…" : "Save price per player"}
+            </Button>
+          </form>
+          <form
+            className="space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (levelPending) {
+                return;
+              }
+              onSaveLevelRange();
+            }}
+          >
+            <FormErrorSummary
+              ref={levelSummaryRef}
+              message={globalFormErrorMessage(levelError)}
+            />
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="edit-level-min">Minimum Level</FieldLabel>
+                <Input
+                  id="edit-level-min"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="7"
+                  value={levelMin}
+                  onChange={(event) => onLevelMinChange(event.target.value)}
+                  aria-invalid={
+                    levelMinError ||
+                    fieldErrorMessage(levelError, "levelMinTenths")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    levelMinError ||
+                    fieldErrorMessage(levelError, "levelMinTenths")
+                      ? "edit-level-min-error"
+                      : "edit-level-range-copy"
+                  }
+                />
+                <FieldError id="edit-level-min-error">
+                  {levelMinError ??
+                    fieldErrorMessage(levelError, "levelMinTenths")}
+                </FieldError>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="edit-level-max">Maximum Level</FieldLabel>
+                <Input
+                  id="edit-level-max"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="7"
+                  value={levelMax}
+                  onChange={(event) => onLevelMaxChange(event.target.value)}
+                  aria-invalid={
+                    levelMaxError ||
+                    fieldErrorMessage(levelError, "levelMaxTenths")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    levelMaxError ||
+                    fieldErrorMessage(levelError, "levelMaxTenths")
+                      ? "edit-level-max-error"
+                      : "edit-level-range-copy"
+                  }
+                />
+                <FieldDescription id="edit-level-range-copy">
+                  {LEVEL_RANGE_FIELD_DESCRIPTION}
+                </FieldDescription>
+                <FieldError id="edit-level-max-error">
+                  {levelMaxError ??
+                    fieldErrorMessage(levelError, "levelMaxTenths")}
+                </FieldError>
+              </Field>
+            </FieldGroup>
+            <Button type="submit" disabled={levelPending}>
+              {levelPending ? "Saving…" : "Save Level range"}
             </Button>
           </form>
           {format === "friendly_game" ? (

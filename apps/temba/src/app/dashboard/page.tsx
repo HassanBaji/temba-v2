@@ -12,10 +12,10 @@ import { HomeStatsCard } from "~/components/home/home-stats-card";
 import { Section } from "~/components/layout/section";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
+import TembaTextLogo from "~/components/ui/icons/temba-text-logo";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { api } from "~/trpc/react";
-import TembaTextLogo from "~/components/ui/icons/temba-text-logo";
 
 const HERO_GAME_LIMIT = 4;
 
@@ -109,6 +109,8 @@ export default function HomePage() {
                         registeredUserCount: game.registeredUserCount,
                         playersAllowed: game.playersAllowed,
                         sides: game.sides,
+                        levelMinTenths: game.levelMinTenths,
+                        levelMaxTenths: game.levelMaxTenths,
                       }))}
                     />
                   </Section>

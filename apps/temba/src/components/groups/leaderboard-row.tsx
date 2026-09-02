@@ -42,6 +42,7 @@ function RankSlot({ position }: { position: number }) {
 export function LeaderboardRow({
   position,
   name,
+  image,
   totalSetsWon,
   totalPointsWon,
   totalGamesPlayed,
@@ -49,6 +50,7 @@ export function LeaderboardRow({
 }: {
   position: number;
   name: string;
+  image?: string | null;
   totalSetsWon: number;
   totalPointsWon: number;
   totalGamesPlayed: number;
@@ -64,7 +66,7 @@ export function LeaderboardRow({
       <div className="w-12 shrink-0">
         <RankSlot position={position} />
       </div>
-      <UserAvatar name={name} size="lg" />
+      <UserAvatar name={name} image={image} size="lg" />
       <div className="min-w-0 flex-1">
         <p className="text-lead truncate font-semibold">
           {name}

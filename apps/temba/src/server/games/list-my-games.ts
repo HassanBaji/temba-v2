@@ -6,6 +6,7 @@ import {
   participantGameIdsForViewer,
   queryHubGames,
   toHubListRow,
+  applyViewerLevelRangeToHubRows,
   viewerHubContext,
   viewerIsParticipantOnRow,
   type HubQueryRow,
@@ -44,7 +45,7 @@ export async function listMyGamesHubRows(
     database,
     and(isNull(games.cancelledAt), or(...scope)),
   );
-  return filterAndSortMyGamesHubGames(
+  const filtered = filterAndSortMyGamesHubGames(
     (rows as HubQueryRow[]).map((row) => ({
       ...row,
       viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
@@ -52,5 +53,11 @@ export async function listMyGamesHubRows(
     viewer.memberGroupIds,
     viewer.userId,
     now,
-  ).map((row) => toHubListRow(row, viewer, now));
+  );
+  return applyViewerLevelRangeToHubRows(
+    database,
+    filtered.map((row) => toHubListRow(row, viewer, now)),
+    filtered,
+    userId,
+  );
 }
