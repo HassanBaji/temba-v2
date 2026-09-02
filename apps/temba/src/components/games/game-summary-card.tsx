@@ -2,11 +2,9 @@
 
 import {
   CalendarClock,
-  Check,
   ChevronRight,
   Coins,
   Gauge,
-  Hourglass,
   MapPin,
   Users,
 } from "lucide-react";
@@ -22,6 +20,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
+import { GameViewerStatusBadge } from "~/components/temba/game-viewer-status-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -168,28 +167,6 @@ function MetaItem({
       <Icon aria-hidden={true} className="size-3.5 shrink-0" />
       <span className={cn("truncate", className)}>{children}</span>
     </span>
-  );
-}
-
-function ViewerStatusBadge({
-  status,
-}: {
-  status: Exclude<GameViewerStatus, null>;
-}) {
-  if (status === "in") {
-    return (
-      <Badge variant="success">
-        <Check aria-hidden={true} strokeWidth={2.5} />
-        Joined
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge variant="warning">
-      <Hourglass aria-hidden={true} />
-      Waitlisted
-    </Badge>
   );
 }
 
@@ -374,7 +351,7 @@ export function GameSummaryCard({
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
               {cancelled ? <GameStatusBadge status="cancelled" /> : null}
               {viewerStatus ? (
-                <ViewerStatusBadge status={viewerStatus} />
+                <GameViewerStatusBadge status={viewerStatus} />
               ) : null}
               {showSeatsLeft && occupancy ? (
                 <Badge variant="warning">

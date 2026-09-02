@@ -1,12 +1,16 @@
 import type { ReactNode } from "react";
+import { Globe } from "lucide-react";
 import Link from "next/link";
 
+import { GameViewerStatusBadge } from "~/components/temba/game-viewer-status-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import {
+  GameFormatBadge,
   GameRegistrationModeBadge,
   GameRegistrationStatusBadge,
 } from "~/components/temba/typed-labels";
 import { Badge } from "~/components/ui/badge";
+import type { GameViewerStatus } from "~/lib/game-summary-cta";
 
 export function GameHomeHeader({
   name,
@@ -14,8 +18,10 @@ export function GameHomeHeader({
   groupName,
   sport,
   isPublic,
+  format,
   registrationMode,
   registrationStatus,
+  viewerStatus,
   primaryAction,
   actions,
 }: {
@@ -24,8 +30,10 @@ export function GameHomeHeader({
   groupName: string | null;
   sport: string | null;
   isPublic: boolean;
+  format: string;
   registrationMode: string;
   registrationStatus: string;
+  viewerStatus: GameViewerStatus;
   primaryAction?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -46,13 +54,26 @@ export function GameHomeHeader({
             </Link>
           </p>
         ) : (
-          <p className="text-meta text-muted-foreground">Groupless Game</p>
+          <p className="text-meta text-muted-foreground">Pickup Game</p>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <GameRegistrationStatusBadge status={registrationStatus} />
-          <GameRegistrationModeBadge mode={registrationMode} />
-          {isPublic ? <Badge variant="outline">Public</Badge> : null}
+          {viewerStatus ? (
+            <GameViewerStatusBadge status={viewerStatus} />
+          ) : null}
+          {format === "friendly_game" ? null : (
+            <GameFormatBadge format={format} />
+          )}
+          {registrationMode === "team_only" ? (
+            <GameRegistrationModeBadge mode={registrationMode} />
+          ) : null}
           {sport ? <SportBadge sport={sport} /> : null}
+          {isPublic ? (
+            <Badge variant="outline">
+              <Globe aria-hidden="true" strokeWidth={2} />
+              Public
+            </Badge>
+          ) : null}
         </div>
       </div>
       <div className="flex shrink-0 flex-nowrap items-center gap-1">

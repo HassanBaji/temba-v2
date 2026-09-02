@@ -4,13 +4,19 @@ import { Button } from "~/components/ui/button";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatSeatSideHeading } from "~/components/games/game-side-label";
+import { cn } from "~/lib/utils";
 import type { GameSide, SeatOccupant } from "~/server/games";
 
-function VacantAvatar() {
+function VacantAvatar({ joinable }: { joinable: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className="border-border text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full border text-sm font-medium"
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-sm font-medium",
+        joinable
+          ? "border-volt bg-volt-soft text-volt-foreground"
+          : "border-border text-muted-foreground/70",
+      )}
     >
       +
     </span>
@@ -60,7 +66,7 @@ function SeatRow({
       {moving ? "Moving…" : "Move here"}
     </Button>
   ) : canJoin ? (
-    <Button onClick={onJoin} disabled={joining} size="sm">
+    <Button onClick={onJoin} disabled={joining} variant="brand" size="sm">
       {joining ? "Joining…" : joinLabel}
     </Button>
   ) : undefined;
@@ -71,16 +77,16 @@ function SeatRow({
         occupant ? (
           <UserAvatar name={occupant.name} image={occupant.image} size="lg" />
         ) : (
-          <VacantAvatar />
+          <VacantAvatar joinable={canJoin || canMove} />
         )
       }
       title={
         occupant ? (
           occupant.name
+        ) : canJoin || canMove ? (
+          <span className="text-foreground font-medium">Open</span>
         ) : (
-          <span className="text-muted-foreground font-medium">
-            {canJoin || canMove ? "Available" : "Vacant"}
-          </span>
+          <span className="text-muted-foreground font-medium">Vacant</span>
         )
       }
       subtitle={positionLabel}

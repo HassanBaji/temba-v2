@@ -18,7 +18,6 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -104,10 +103,6 @@ export function GamePlayersPanel({
 }) {
   const individualSeats =
     game.registrationMode === "individual" && game.format !== "americano";
-  const nobodySeated =
-    individualSeats &&
-    game.sides.every((side) => side.left == null && side.right == null) &&
-    game.unseatedPlayers.length === 0;
   const registeredWithoutTeams =
     game.gameTeams.length === 0 && game.registeredPlayers.length === 0;
 
@@ -145,22 +140,11 @@ export function GamePlayersPanel({
               onKick={onKick}
               sideNoun={game.format === "friendly_tournament" ? "Side" : "Team"}
             />
-            {game.canPickSeat ? (
-              <p className="text-muted-foreground text-sm">
-                Pick a vacant Position to occupy a side.
-              </p>
-            ) : null}
-            {nobodySeated ? (
-              <p className="text-muted-foreground text-sm">
-                Nobody is seated yet. Pick a vacant Position.
-              </p>
-            ) : null}
             {game.unseatedPlayers.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-muted-foreground text-sm">
-                  These Users must pick a vacant Position before they occupy a
-                  side.
-                </p>
+                <h3 className="text-body text-muted-foreground font-semibold">
+                  Not seated yet
+                </h3>
                 <RowList>
                   {game.unseatedPlayers.map((player) => (
                     <ListRow
@@ -195,7 +179,6 @@ export function GamePlayersPanel({
           <EmptyState
             icon={Users}
             title="Nobody is registered yet"
-            description="Players who join this Game will show up here."
             className="py-8"
           />
         ) : (
@@ -267,12 +250,7 @@ export function GamePlayersPanel({
 
       <Section title="Waitlist">
         {game.waitlist.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="Waitlist is empty"
-            description="When the Game is full, people can join the waitlist here."
-            className="py-8"
-          />
+          <EmptyState icon={Users} title="Waitlist is empty" className="py-8" />
         ) : (
           <RowList aria-label="Waitlist">
             {game.waitlist.map((entry, index) => (
@@ -304,8 +282,7 @@ export function GamePlayersPanel({
         <Card variant="outlined" className="space-y-3">
           <h3 className="text-title font-medium">Join the waitlist</h3>
           <p className="text-muted-foreground text-sm">
-            The Game is full. Join the waitlist alone. You promote into a
-            vacated Position.
+            The Game is full. You promote into a vacated Position.
           </p>
           <Button
             onClick={() => onRegisterSeat()}
@@ -470,7 +447,7 @@ function PartnerRegisterCard({
         </h3>
         <p className="text-muted-foreground text-sm">
           {game.canWaitlist
-            ? "The Game is full. You both join the waitlist as separate rows and each promote alone."
+            ? "The Game is full. You both join the waitlist and promote separately."
             : game.sides.every(
                   (side) => side.left != null || side.right != null,
                 )
@@ -498,9 +475,6 @@ function PartnerRegisterCard({
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldDescription>
-                  Refused if that side already has anyone.
-                </FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="partner-position">
@@ -542,9 +516,6 @@ function PartnerRegisterCard({
                   : undefined
               }
             />
-            <FieldDescription>
-              Pick an existing User. You both register or waitlist immediately.
-            </FieldDescription>
             <FieldError id="partner-query-error">
               {fieldErrorMessage(partnerError, "partnerUserId")}
             </FieldError>

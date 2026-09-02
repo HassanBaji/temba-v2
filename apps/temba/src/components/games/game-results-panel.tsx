@@ -11,6 +11,7 @@ import {
   matchSlotOccupantLabel,
 } from "~/components/games/game-side-label";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Field, FieldLabel } from "~/components/ui/field";
@@ -31,6 +32,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { formatGameClock } from "~/lib/format-game-start";
+import { cn } from "~/lib/utils";
 
 export type GameResultsMatch = {
   id: string;
@@ -76,6 +78,25 @@ function optionalSelectId(value: string) {
 
 function gamesWonDisplay(value: number | null) {
   return value == null ? "—" : String(value);
+}
+
+/** A decided Match tints the winning Set-wins; a live one or a draw stays neutral. */
+function scoreTone(decided: boolean, won: boolean) {
+  if (!decided) {
+    return "text-foreground";
+  }
+  return won ? "text-success" : "text-muted-foreground";
+}
+
+function matchMetaLabel(match: GameResultsMatch) {
+  const parts: string[] = [];
+  if (match.durationInMinutes != null) {
+    parts.push(`${match.durationInMinutes} min`);
+  }
+  if (match.courtName) {
+    parts.push(match.courtName);
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 function matchWindowLabel(match: GameResultsMatch) {
@@ -173,19 +194,13 @@ export function GameResultsPanel({
       <EmptyState
         icon={Trophy}
         title="No match results"
-        description="Americano has no Matches this slice."
+        description="Americano Games do not have Matches."
       />
     );
   }
 
   if (matches.length === 0) {
-    return (
-      <EmptyState
-        icon={Trophy}
-        title="No match results"
-        description="No Matches on this Game."
-      />
-    );
+    return <EmptyState icon={Trophy} title="No match results" />;
   }
 
   const canEditMatch =
@@ -207,6 +222,12 @@ export function GameResultsPanel({
           match.slot2GameTeamId,
         );
         const matchCancelled = match.status === "cancelled";
+        const matchCompleted = match.status === "completed";
+        const matchMeta = matchMetaLabel(match);
+        const slot1Won = match.outcome.result === "slot1";
+        const slot2Won = match.outcome.result === "slot2";
+        const scored = match.outcome.result !== "none";
+        const decided = matchCompleted && (slot1Won || slot2Won);
 
         return (
           <Card key={match.id} variant="outlined" className="gap-4">
@@ -215,25 +236,34 @@ export function GameResultsPanel({
                 <p className="text-title font-medium">
                   {matchWindowLabel(match)}
                 </p>
-                <p className="text-meta text-muted-foreground">
-                  {match.durationInMinutes
-                    ? `${match.durationInMinutes} min`
-                    : "Duration not set"}
-                  {match.courtName ? ` · ${match.courtName}` : " · no Court"}
-                </p>
+                {matchMeta ? (
+                  <p className="text-meta text-muted-foreground">{matchMeta}</p>
+                ) : null}
               </div>
               {match.status ? <GameStatusBadge status={match.status} /> : null}
             </div>
 
-            <p className="text-body text-muted-foreground">
-              {outcomeLabel(format, match)} · {match.outcome.slot1SetWins}–
-              {match.outcome.slot2SetWins} Set-wins
-            </p>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              {scored ? (
+                <p className="text-h2 font-bold tabular-nums">
+                  <span className={scoreTone(decided, slot1Won)}>
+                    {match.outcome.slot1SetWins}
+                  </span>
+                  <span className="text-muted-foreground mx-1 font-semibold">
+                    –
+                  </span>
+                  <span className={scoreTone(decided, slot2Won)}>
+                    {match.outcome.slot2SetWins}
+                  </span>
+                </p>
+              ) : null}
+              <p className="text-body text-muted-foreground">
+                {outcomeLabel(format, match)}
+              </p>
+            </div>
 
             {match.sets.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No Sets on this Match.
-              </p>
+              <p className="text-muted-foreground text-sm">No Sets yet.</p>
             ) : (
               <div className="border-border overflow-hidden rounded-lg border">
                 <Table>
@@ -248,9 +278,21 @@ export function GameResultsPanel({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow className="hover:bg-transparent">
+                    <TableRow
+                      className={cn(
+                        "hover:bg-transparent",
+                        matchCompleted && slot1Won ? "bg-success-subtle" : null,
+                      )}
+                    >
                       <TableCell>
-                        <p className="font-medium">{slot1Label}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">{slot1Label}</p>
+                          {matchCompleted && slot1Won ? (
+                            <Badge variant="success" size="sm">
+                              Won
+                            </Badge>
+                          ) : null}
+                        </div>
                         {slot1Names ? (
                           <p className="text-meta text-muted-foreground">
                             {slot1Names}
@@ -266,9 +308,21 @@ export function GameResultsPanel({
                         </TableCell>
                       ))}
                     </TableRow>
-                    <TableRow className="hover:bg-transparent">
+                    <TableRow
+                      className={cn(
+                        "hover:bg-transparent",
+                        matchCompleted && slot2Won ? "bg-success-subtle" : null,
+                      )}
+                    >
                       <TableCell>
-                        <p className="font-medium">{slot2Label}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">{slot2Label}</p>
+                          {matchCompleted && slot2Won ? (
+                            <Badge variant="success" size="sm">
+                              Won
+                            </Badge>
+                          ) : null}
+                        </div>
                         {slot2Names ? (
                           <p className="text-meta text-muted-foreground">
                             {slot2Names}
@@ -380,7 +434,7 @@ export function GameResultsPanel({
             {(!match.bothSidesComplete || !match.bothSlotsFilled) &&
             match.status !== "completed" ? (
               <p className="text-muted-foreground text-sm">
-                Scoring is frozen until both teams have two Positions.
+                Scoring opens once both teams are full.
               </p>
             ) : null}
 

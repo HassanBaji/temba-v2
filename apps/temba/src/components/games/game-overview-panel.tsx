@@ -1,6 +1,6 @@
-import { StatStrip } from "~/components/common/stat-strip";
 import { GameDetailTiles } from "~/components/games/game-detail-tiles";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
+import { GameOccupancyCard } from "~/components/games/game-occupancy-card";
 import { GameVenueCard } from "~/components/games/game-venue-card";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -15,16 +15,13 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
       ),
     ),
   ];
-  const occupancy =
-    game.registrationMode === "team_only"
-      ? {
-          label: "Teams",
-          value: `${game.registeredTeamCount} / ${game.teamsAllowed ?? 2}`,
-        }
-      : {
-          label: "Players",
-          value: `${game.registeredUserCount} / ${game.playersAllowed ?? 4}`,
-        };
+  const teamOnly = game.registrationMode === "team_only";
+  const registeredCount = teamOnly
+    ? game.registeredTeamCount
+    : game.registeredUserCount;
+  const allowed = teamOnly
+    ? (game.teamsAllowed ?? 2)
+    : (game.playersAllowed ?? 4);
 
   return (
     <div className="space-y-6">
@@ -32,28 +29,20 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
         windowStart={game.windowStart}
         windowEnd={game.windowEnd}
         durationInMinutes={firstMatch?.durationInMinutes}
-        sport={game.sport}
         pricePerPlayerCents={game.pricePerPlayerCents}
         levelMinTenths={game.levelMinTenths}
         levelMaxTenths={game.levelMaxTenths}
       />
 
-      <GameVenueCard venue={game.venue} courtNames={courtNames} />
-
-      <StatStrip
-        items={[occupancy, { label: "Waitlist", value: game.waitlist.length }]}
+      <GameOccupancyCard
+        unit={teamOnly ? "team" : "player"}
+        registeredCount={registeredCount}
+        allowed={allowed}
+        waitlistCount={game.waitlist.length}
+        people={game.registeredPlayers}
       />
 
-      {game.isRegistered ? (
-        <p className="text-body text-muted-foreground">
-          You are registered on this Game.
-        </p>
-      ) : null}
-      {game.isWaitlisted ? (
-        <p className="text-body text-muted-foreground">
-          You are on the waitlist.
-        </p>
-      ) : null}
+      <GameVenueCard venue={game.venue} courtNames={courtNames} />
 
       <GameLevelRangePanel game={game} />
     </div>
