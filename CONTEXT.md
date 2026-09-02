@@ -106,7 +106,7 @@ _Avoid_: Invite link, membership, join, Club Team
 
 **Venue link request**:
 A request by a Community Owner or Admin to associate that Community with an existing Venue. An Operator approves or rejects it. Distinct from a User’s Community join request.
-_Avoid_: join request (that is a User requesting Community membership), Team link request
+_Avoid_: join request (Community membership request, not a Game Level range request), Team link request
 
 **Community sports**:
 The allow-list of sports a Community offers (padel, football, or both). Each Group and each Team still has exactly one sport.
@@ -186,11 +186,27 @@ _Avoid_: player (when you mean someone waitlisted), guest
 
 **Game admit**:
 Registered occupancy of a User or complete Team on a Game. Distinct from Waitlist and from creating the Game.
-_Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window)
+_Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window), Game Level range request (that is not occupancy)
 
 **Price per player**:
 The display-only amount one User pays to occupy a seat on that Game. Optional on the Game; zero means free; unset means the organizer did not state an amount. Not a payment, not per Game team, and not a total for the Game.
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
+
+**Organizer**:
+Of a Group Game: that Group’s creator, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, kick registered or waitlisted entries, edit window and price per player and Game Level range, and decide Game Level range requests.
+_Avoid_: creator (when you mean this set), host, admin (when you mean this)
+
+**Game Level range**:
+Optional inclusive minimum and/or maximum continuous Level on a Game. Both unset means no Level gate. Distinct from a User’s Level and from Level band.
+_Avoid_: rank range, ELO range, Level band picker, skill cap (when you mean this)
+
+**Game Level range request**:
+A User asking Organizers to waive that Game’s Level range for themselves. Distinct from a Community join request and from Game admit. No message. No expiry.
+_Avoid_: join request (that is Community membership), join (when you mean this request), Game admit
+
+**Game Level waiver**:
+An approved Game Level range request, or an Organizer Lookup invite, that excepts that User from that Game’s Level range. It does not Game admit them and does not occupy a Position or Waitlist row.
+_Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup invite (that is a door that grants this)
 
 **User**:
 A person with a Temba account.
