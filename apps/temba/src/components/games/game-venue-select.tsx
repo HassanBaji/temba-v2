@@ -6,6 +6,7 @@ import * as React from "react";
 import { Input } from "~/components/ui/input";
 import {
   filterVenuesForSelect,
+  venueMatchingQuery,
   venueOptionLabel,
   type VenueSelectOption,
 } from "~/lib/game-venue-select";
@@ -43,6 +44,9 @@ export function GameVenueSelect({
     : undefined;
 
   React.useEffect(() => {
+    if (open) {
+      return;
+    }
     if (!selectedLabel) {
       if (!value) {
         setQuery("");
@@ -50,7 +54,7 @@ export function GameVenueSelect({
       return;
     }
     setQuery(selectedLabel);
-  }, [selectedLabel, value]);
+  }, [open, selectedLabel, value]);
 
   React.useEffect(() => {
     if (!open) {
@@ -72,15 +76,11 @@ export function GameVenueSelect({
     };
   }, [open, selectedLabel]);
 
-  const filtered = filterVenuesForSelect(venues, query, { selectedLabel });
+  const filtered = filterVenuesForSelect(venues, query, selectedLabel);
 
-  function selectVenue(venueId: string) {
-    const venue = venues.find((option) => option.id === venueId);
-    if (!venue) {
-      return;
-    }
-    if (venueId !== value) {
-      onValueChange(venueId);
+  function selectVenue(venue: VenueSelectOption) {
+    if (venue.id !== value) {
+      onValueChange(venue.id);
     }
     setQuery(venueOptionLabel(venue));
     setOpen(false);
@@ -101,8 +101,13 @@ export function GameVenueSelect({
         placeholder={placeholder}
         value={query}
         onChange={(event) => {
-          setQuery(event.target.value);
+          const nextQuery = event.target.value;
+          setQuery(nextQuery);
           setOpen(true);
+          const match = venueMatchingQuery(venues, nextQuery);
+          if (match && match.id !== value) {
+            onValueChange(match.id);
+          }
         }}
         onFocus={(event) => {
           if (disabled) {
@@ -121,10 +126,16 @@ export function GameVenueSelect({
             return;
           }
           if (event.key === "Enter" && open) {
-            event.preventDefault();
+            const browsingSelected =
+              selectedLabel !== undefined && query.trim() === selectedLabel;
+            if (browsingSelected) {
+              setOpen(false);
+              return;
+            }
             const first = filtered[0];
             if (first) {
-              selectVenue(first.id);
+              event.preventDefault();
+              selectVenue(first);
             }
           }
         }}
@@ -162,7 +173,7 @@ export function GameVenueSelect({
                   "focus-visible:bg-accent focus-visible:text-accent-foreground",
                   isSelected && "bg-accent text-accent-foreground",
                 )}
-                onClick={() => selectVenue(venue.id)}
+                onClick={() => selectVenue(venue)}
               >
                 {venueOptionLabel(venue)}
               </button>
