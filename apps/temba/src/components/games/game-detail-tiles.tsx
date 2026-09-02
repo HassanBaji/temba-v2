@@ -78,10 +78,14 @@ export function GameDetailTiles({
 }) {
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
   const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
-  const relativeDay = windowStart ? formatRelativeDay(windowStart) : null;
-  const imminent = windowStart
-    ? gameDayProximity(windowStart) === "today"
-    : false;
+  const proximity = windowStart ? gameDayProximity(windowStart) : null;
+  const imminent = proximity === "today";
+  // A far-off date already spells out its weekday, so the detail line only
+  // earns its space while the Game is near.
+  const relativeDay =
+    windowStart && proximity !== "later"
+      ? formatRelativeDay(windowStart)
+      : null;
   const dateValue = windowStart
     ? (windowStart instanceof Date
         ? windowStart

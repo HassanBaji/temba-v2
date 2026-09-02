@@ -25,6 +25,14 @@ const VARIANT: Record<GameStatusValue, BadgeVariant> = {
   cancelled: "destructive",
 };
 
+/** The dot classes paint with `current`, so tone rides on the text colour. */
+const DOT_TONE: Record<GameStatusValue, string> = {
+  pending: "text-muted-foreground",
+  confirmed: "text-foreground",
+  completed: "text-success",
+  cancelled: "text-current",
+};
+
 export function GameStatusBadge({ status }: { status: string }) {
   const known = status in GAME_STATUS_LABELS;
   const value = known ? (status as GameStatusValue) : null;
@@ -36,7 +44,9 @@ export function GameStatusBadge({ status }: { status: string }) {
         aria-hidden="true"
         className={cn(
           "size-1.5 shrink-0",
-          value ? DOT_CLASS[value] : "rounded-full bg-current",
+          value
+            ? cn(DOT_CLASS[value], DOT_TONE[value])
+            : "rounded-full bg-current",
         )}
       />
       {label}

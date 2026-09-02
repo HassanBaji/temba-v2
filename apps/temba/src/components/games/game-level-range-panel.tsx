@@ -102,7 +102,11 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
       {showOrganizerQueue ? (
         <Section
           title="Level range requests"
-          description="Approve grants a waiver without seating them. Reject lets them request again."
+          description={
+            game.pendingLevelRangeRequests.length > 0
+              ? "Approve grants a waiver without seating them. Reject lets them request again."
+              : undefined
+          }
         >
           {game.pendingLevelRangeRequests.length > 0 ? (
             <RowList>
