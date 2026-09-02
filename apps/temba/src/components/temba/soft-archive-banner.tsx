@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { TriangleAlert } from "lucide-react";
+import { Archive } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 
@@ -15,12 +15,12 @@ export function SoftArchiveBanner({
   return (
     <section
       role="status"
-      className={cn("bg-warning-subtle rounded-lg p-4 md:p-5", className)}
+      className={cn("bg-muted rounded-xl p-4 md:p-5", className)}
     >
       <div className="flex gap-3">
-        <TriangleAlert
+        <Archive
           aria-hidden="true"
-          className="text-warning mt-0.5 size-5 shrink-0"
+          className="text-muted-foreground mt-0.5 size-5 shrink-0"
           strokeWidth={2}
         />
         <div className="min-w-0">
