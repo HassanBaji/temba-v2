@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { filterVenuesForSelect, venueOptionLabel } from "./game-venue-select";
+import {
+  filterVenuesForSelect,
+  venueMatchingQuery,
+  venueOptionLabel,
+} from "./game-venue-select";
 
 const venues = [
   { id: "1", name: "Padel Club", city: "Lisbon", country: "Portugal" },
@@ -28,9 +32,11 @@ describe("filterVenuesForSelect", () => {
 
   it("does not filter when the query is the selected venue label", () => {
     expect(
-      filterVenuesForSelect(venues, "Padel Club — Lisbon, Portugal", {
-        selectedLabel: "Padel Club — Lisbon, Portugal",
-      }),
+      filterVenuesForSelect(
+        venues,
+        "Padel Club — Lisbon, Portugal",
+        "Padel Club — Lisbon, Portugal",
+      ),
     ).toEqual(venues);
   });
 
@@ -53,5 +59,22 @@ describe("filterVenuesForSelect", () => {
 
   it("returns none when nothing matches", () => {
     expect(filterVenuesForSelect(venues, "Zurich")).toEqual([]);
+  });
+});
+
+describe("venueMatchingQuery", () => {
+  it("commits an exact option label", () => {
+    expect(venueMatchingQuery(venues, "Padel Club — Porto, Portugal")?.id).toBe(
+      "2",
+    );
+  });
+
+  it("commits when the query matches exactly one venue", () => {
+    expect(venueMatchingQuery(venues, "porto")?.id).toBe("2");
+  });
+
+  it("does not commit an ambiguous query", () => {
+    expect(venueMatchingQuery(venues, "padel")).toBeUndefined();
+    expect(venueMatchingQuery(venues, "")).toBeUndefined();
   });
 });
