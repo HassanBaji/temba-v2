@@ -16,10 +16,14 @@ import {
 import { type db } from "~/server/db";
 import { consult } from "~/server/soft-archive";
 import type { RegistrationStatus } from "~/server/games/utils";
+import type { TestDatabase } from "~/server/test/pglite";
 
 export type { RegistrationStatus };
 
-type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+type DbClient =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0]
+  | TestDatabase;
 
 export const FRIENDLY_PLAYERS_ALLOWED = 4;
 export const FRIENDLY_TEAMS_ALLOWED = 2;
@@ -146,7 +150,7 @@ export async function assertMayCreateGameOnGroup(
 
 export async function isGameOrganizer(
   database: DbClient,
-  game: GameRow,
+  game: Pick<GameRow, "createdBy" | "groupId">,
   userId: string,
 ) {
   if (!game.groupId) {

@@ -15,6 +15,8 @@ import {
 import { enqueueWaitlistUser } from "~/server/games/waitlist";
 import { type db } from "~/server/db";
 import type { SeatPosition } from "~/server/games/utils";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
+import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -85,6 +87,12 @@ export async function registerSeat(
   }
 
   if ((await remainingCapacity(database, game)) <= 0) {
+    if (!(await userAllowedByLevelRange(database, game, args.userId))) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+      });
+    }
     await enqueueWaitlistUser(database, game.id, args.userId);
     return { ok: true as const, waitlisted: true as const };
   }

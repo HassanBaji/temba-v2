@@ -16,6 +16,8 @@ export type GroupGame = {
   windowStart: Date | null;
   windowEnd: Date | null;
   pricePerPlayerCents: number | null;
+  levelMinTenths: number | null;
+  levelMaxTenths: number | null;
   format: GameFormatEnum | string;
   cancelledAt: Date | null;
   sport: GroupSportEnum | string | null;

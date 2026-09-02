@@ -1,5 +1,6 @@
 import { StatStrip } from "~/components/common/stat-strip";
 import { GameDetailTiles } from "~/components/games/game-detail-tiles";
+import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { GameVenueCard } from "~/components/games/game-venue-card";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -33,6 +34,8 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
         durationInMinutes={firstMatch?.durationInMinutes}
         sport={game.sport}
         pricePerPlayerCents={game.pricePerPlayerCents}
+        levelMinTenths={game.levelMinTenths}
+        levelMaxTenths={game.levelMaxTenths}
       />
 
       <GameVenueCard venue={game.venue} courtNames={courtNames} />
@@ -51,6 +54,8 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
           You are on the waitlist.
         </p>
       ) : null}
+
+      <GameLevelRangePanel game={game} />
     </div>
   );
 }

@@ -14,7 +14,9 @@ import { admit } from "~/server/games/admit";
 import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refused";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import { enqueueWaitlistTeam } from "~/server/games/waitlist";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { type db } from "~/server/db";
+import { LEVEL_RANGE_TEAM_MESSAGE } from "~/lib/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -107,6 +109,15 @@ export async function registerTeam(
     }
   }
 
+  for (const member of members) {
+    if (!(await userAllowedByLevelRange(database, game, member.userId))) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: LEVEL_RANGE_TEAM_MESSAGE,
+      });
+    }
+  }
+
   const teamCount = await registeredGameTeamCount(database, game.id);
   if (teamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
     await enqueueWaitlistTeam(database, game.id, team.id);
@@ -121,6 +132,7 @@ export async function registerTeam(
         party: { kind: "team", teamId: team.id },
         now,
       }),
+      "team",
     );
   });
 

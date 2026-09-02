@@ -58,6 +58,8 @@ export function GroupGamesTab({
                 cancelled={Boolean(game.cancelledAt)}
                 href={`/dashboard/games/${game.id}`}
                 pricePerPlayerCents={game.pricePerPlayerCents}
+                levelMinTenths={game.levelMinTenths}
+                levelMaxTenths={game.levelMaxTenths}
               />
             ))}
           </ul>
@@ -84,6 +86,8 @@ export function GroupGamesTab({
                 cancelled={Boolean(game.cancelledAt)}
                 href={`/dashboard/games/${game.id}`}
                 pricePerPlayerCents={game.pricePerPlayerCents}
+                levelMinTenths={game.levelMinTenths}
+                levelMaxTenths={game.levelMaxTenths}
               />
             ))}
           </ul>

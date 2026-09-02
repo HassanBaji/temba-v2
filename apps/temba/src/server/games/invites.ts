@@ -10,6 +10,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import {
   type GameRow,
   assertRegistrationOpen,
@@ -28,6 +29,10 @@ import {
   type SeatPosition,
   vacantPositionsFromSides,
 } from "~/server/games/seats";
+import {
+  LEVEL_RANGE_OUTSIDE_MESSAGE,
+  LEVEL_RANGE_TEAM_MESSAGE,
+} from "~/lib/level-range";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -79,6 +84,16 @@ function throwIfInviteAdmitRefused(
 ) {
   if (result.ok || result.reason === "full") {
     return;
+  }
+  if (result.reason === "level_range") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        alreadyOnGameMessage ===
+        "A Team partner is already registered on this Game"
+          ? LEVEL_RANGE_TEAM_MESSAGE
+          : LEVEL_RANGE_OUTSIDE_MESSAGE,
+    });
   }
   if (
     result.reason === "registration_closed" ||
@@ -149,6 +164,13 @@ export async function admitIndividualUser(
     throw new TRPCError({
       code: "CONFLICT",
       message: "You are already on the waitlist",
+    });
+  }
+
+  if (!(await userAllowedByLevelRange(database, game, userId))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
     });
   }
 
@@ -257,6 +279,10 @@ export async function eligibleCompleteTeamsForUser(
           break;
         }
       }
+      if (!(await userAllowedByLevelRange(database, game, member.userId))) {
+        allowed = false;
+        break;
+      }
     }
     if (!allowed) {
       continue;
@@ -281,6 +307,13 @@ export async function recordTeamInviteLinkConsent(
   | { outcome: "waiting_for_partner" }
   | { outcome: "registered"; waitlisted: boolean }
 > {
+  if (!(await userAllowedByLevelRange(database, args.game, args.userId))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+    });
+  }
+
   const eligible = await eligibleCompleteTeamsForUser(
     database,
     args.game,

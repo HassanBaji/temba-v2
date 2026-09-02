@@ -23,6 +23,8 @@ import {
   userPassesJoinGate,
 } from "~/server/games/access";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
+import { viewerLevelRangeFields } from "~/server/games/level-range-requests";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
   listGameSides,
@@ -161,9 +163,12 @@ export async function gameById(
       const partnerIds = members.map((member) => member.userId);
       const bothAllowed = (
         await Promise.all(
-          partnerIds.map((userId) =>
-            userPassesJoinGate(database, game, userId),
-          ),
+          partnerIds.map(async (userId) => {
+            if (!(await userPassesJoinGate(database, game, userId))) {
+              return false;
+            }
+            return userAllowedByLevelRange(database, game, userId);
+          }),
         )
       ).every(Boolean);
       if (!bothAllowed) {
@@ -228,6 +233,12 @@ export async function gameById(
     registrationStatus === "open" &&
     hasVacantPosition &&
     !sitsCompleted;
+  const levelRange = await viewerLevelRangeFields(
+    database,
+    game,
+    args.userId,
+    organizer,
+  );
 
   return {
     id: game.id,
@@ -250,6 +261,8 @@ export async function gameById(
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
     pricePerPlayerCents: game.pricePerPlayerCents,
+    levelMinTenths: game.levelMinTenths,
+    levelMaxTenths: game.levelMaxTenths,
     playersAllowed: game.playersAllowed,
     teamsAllowed: game.teamsAllowed,
     sport: game.sport,
@@ -266,11 +279,13 @@ export async function gameById(
     canRegister:
       registrationStatus === "open" &&
       passesGate &&
+      levelRange.viewerPassesLevelRange &&
       !alreadyOnGame &&
       !isWaitlisted,
     canWaitlist:
       registrationStatus === "full" &&
       passesGate &&
+      levelRange.viewerPassesLevelRange &&
       !alreadyOnGame &&
       !isWaitlisted,
     canPickSeat,
@@ -362,5 +377,6 @@ export async function gameById(
         : [],
     ),
     eligibleTeams,
+    ...levelRange,
   };
 }

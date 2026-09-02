@@ -20,6 +20,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { formatRelativeDay } from "~/lib/format-game-start";
+import { formatLevelRangeLabel } from "~/lib/level-range";
 import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import {
   gameSummaryPrimaryAction,
@@ -218,6 +219,10 @@ export default function HomePage() {
                             formatPricePerPlayerCardMeta(
                               hero.pricePerPlayerCents,
                             ),
+                            formatLevelRangeLabel(
+                              hero.levelMinTenths,
+                              hero.levelMaxTenths,
+                            ),
                           ]
                             .filter((part): part is string => Boolean(part))
                             .join(" · ")}
@@ -258,6 +263,8 @@ export default function HomePage() {
                             game.playersAllowed,
                           )}
                           pricePerPlayerCents={game.pricePerPlayerCents}
+                          levelMinTenths={game.levelMinTenths}
+                          levelMaxTenths={game.levelMaxTenths}
                           sides={
                             showsFriendlyRoster(
                               game.format,

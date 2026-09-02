@@ -11,7 +11,9 @@ import {
 } from "~/server/games/invites";
 import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { acceptLink, throwInviteFrozen } from "~/server/invites/doors";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { type db } from "~/server/db";
+import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
 
 type DbClient = typeof db;
 
@@ -43,6 +45,13 @@ export async function acceptInviteLink(
       outcome: "already" as const,
       waitlisted: false as const,
     };
+  }
+
+  if (!(await userAllowedByLevelRange(database, game, args.userId))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+    });
   }
 
   const accepted = await acceptLink(database, "game", {

@@ -73,6 +73,8 @@ describe("Friendly Game create", () => {
 
       expect(created.game.format).toBe("friendly_game");
       expect(created.game.pricePerPlayerCents).toBeNull();
+      expect(created.game.levelMinTenths).toBeNull();
+      expect(created.game.levelMaxTenths).toBeNull();
       const shells = await db.query.matchSets.findMany({
         where: eq(matchSets.matchId, created.matchId),
       });
@@ -86,10 +88,7 @@ describe("Friendly Game create", () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "create-price-owner@example.com");
-      const venue = await insertVenue(
-        db,
-        `Price Venue ${crypto.randomUUID()}`,
-      );
+      const venue = await insertVenue(db, `Price Venue ${crypto.randomUUID()}`);
       const windowStart = new Date();
       const windowEnd = new Date(windowStart.getTime() + 60 * 60 * 1000);
 
@@ -118,6 +117,58 @@ describe("Friendly Game create", () => {
         pricePerPlayerCents: 1250,
       });
       expect(priced.game.pricePerPlayerCents).toBe(1250);
+    } finally {
+      await close();
+    }
+  });
+
+  it("stores optional Level range tenths (unset, 0.0, 4.2, min-only, max-only)", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "create-level-owner@example.com");
+      const venue = await insertVenue(db, `Level Venue ${crypto.randomUUID()}`);
+      const windowStart = new Date();
+      const windowEnd = new Date(windowStart.getTime() + 60 * 60 * 1000);
+
+      const unset = await createFriendlyGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        windowStart,
+        windowEnd,
+      });
+      expect(unset.game.levelMinTenths).toBeNull();
+      expect(unset.game.levelMaxTenths).toBeNull();
+
+      const zeroMin = await createFriendlyGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        windowStart,
+        windowEnd,
+        levelMinTenths: 0,
+      });
+      expect(zeroMin.game.levelMinTenths).toBe(0);
+      expect(zeroMin.game.levelMaxTenths).toBeNull();
+
+      const both = await createFriendlyGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        windowStart,
+        windowEnd,
+        levelMinTenths: 30,
+        levelMaxTenths: 42,
+      });
+      expect(both.game.levelMinTenths).toBe(30);
+      expect(both.game.levelMaxTenths).toBe(42);
+
+      const maxOnly = await createFriendlyGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+        windowStart,
+        windowEnd,
+        levelMaxTenths: 45,
+      });
+      expect(maxOnly.game.levelMinTenths).toBeNull();
+      expect(maxOnly.game.levelMaxTenths).toBe(45);
     } finally {
       await close();
     }

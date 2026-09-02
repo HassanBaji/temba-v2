@@ -26,6 +26,7 @@ import {
   gameSummaryCtaLabel,
   type GameSummaryCta,
 } from "~/lib/game-summary-cta";
+import { formatLevelRangeLabel } from "~/lib/level-range";
 import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import type { HubListSide, HubListSideOccupant } from "~/server/games";
@@ -121,6 +122,8 @@ export function GameSummaryCard({
   windowStart,
   windowEnd,
   pricePerPlayerCents,
+  levelMinTenths,
+  levelMaxTenths,
   actionLabel,
   sides,
   primaryAction,
@@ -141,6 +144,8 @@ export function GameSummaryCard({
   windowStart?: Date | string | null;
   windowEnd?: Date | string | null;
   pricePerPlayerCents?: number | null;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
   actionLabel?: string | null;
   sides?: HubListSide[];
   primaryAction?: GameSummaryCta;
@@ -159,13 +164,14 @@ export function GameSummaryCard({
     cta === "join" || cta === "join_waitlist" || cta === "register";
   const showRoster = Boolean(sides && sides.length > 0);
   const priceMeta = formatPricePerPlayerCardMeta(pricePerPlayerCents);
+  const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
   const dayLabel = formatRelativeDay(startTime);
   const timeLabel = venueLed
     ? formatGameTimeWindow(windowStart, windowEnd, startTime)
     : formatGameStart(startTime);
   const plainMeta = venueLed
     ? null
-    : [dayLabel, timeLabel, groupName ?? "Pickup", priceMeta]
+    : [dayLabel, timeLabel, groupName ?? "Pickup", priceMeta, levelMeta]
         .filter((part): part is string => Boolean(part))
         .join(" · ");
 
@@ -217,9 +223,7 @@ export function GameSummaryCard({
         <Link href={href}>{ctaText}</Link>
       </Button>
     ) : ctaText ? (
-      <span className="text-body text-foreground font-semibold">
-        {ctaText}
-      </span>
+      <span className="text-body text-foreground font-semibold">{ctaText}</span>
     ) : null;
 
   const picker = (
@@ -260,6 +264,11 @@ export function GameSummaryCard({
       {priceMeta ? (
         <span className="text-meta text-muted-foreground col-span-2 truncate font-medium">
           {priceMeta}
+        </span>
+      ) : null}
+      {levelMeta ? (
+        <span className="text-meta text-muted-foreground col-span-2 truncate font-medium">
+          {levelMeta}
         </span>
       ) : null}
     </div>

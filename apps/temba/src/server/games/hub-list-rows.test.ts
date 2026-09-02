@@ -257,4 +257,34 @@ describe("My Games hub rows", () => {
       await close();
     }
   });
+
+  it("includes Level range tenths when set and null when unset", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "level-hub@example.com");
+      const venue = await insertVenue(db);
+      const unset = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+      });
+      const ranged = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+      });
+      await db
+        .update(games)
+        .set({ levelMinTenths: 30, levelMaxTenths: 45 })
+        .where(eq(games.id, ranged.id));
+
+      const rows = await listMyGamesHubRows(db, viewer.id, NOW);
+      const unsetRow = rows.find((item) => item.id === unset.id);
+      const rangedRow = rows.find((item) => item.id === ranged.id);
+      expect(unsetRow?.levelMinTenths).toBeNull();
+      expect(unsetRow?.levelMaxTenths).toBeNull();
+      expect(rangedRow?.levelMinTenths).toBe(30);
+      expect(rangedRow?.levelMaxTenths).toBe(45);
+    } finally {
+      await close();
+    }
+  });
 });

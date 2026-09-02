@@ -42,6 +42,8 @@ export type HubListRow = {
   windowEnd: Date | null;
   venue: { id: string; name: string; city: string } | null;
   pricePerPlayerCents: number | null;
+  levelMinTenths: number | null;
+  levelMaxTenths: number | null;
   registeredUserCount: number;
   playersAllowed: number | null;
   registeredTeamCount: number;
@@ -85,6 +87,9 @@ export type CreateFriendlyGameInput = {
   windowEnd: Date;
   /** Null / omitted = unset. 0 = free. Positive = cents per User occupying a seat. */
   pricePerPlayerCents?: number | null;
+  /** Null / omitted = that bound unset. 0 = Level 0.0. */
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 };
 
 export type CreateFriendlyGameResult = {
@@ -107,6 +112,8 @@ export type CreateGameInput = {
   courtId?: string | null;
   courtIds?: string[];
   pricePerPlayerCents?: number | null;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 };
 
 export type SeatPosition = "left" | "right";
@@ -156,7 +163,8 @@ export type AdmitReason =
   | "no_vacant_side"
   | "team_not_found"
   | "team_incomplete"
-  | "team_already_on_game";
+  | "team_already_on_game"
+  | "level_range";
 
 export type AdmitPlacement =
   | {

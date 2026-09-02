@@ -31,6 +31,13 @@ export {
 export { gameById } from "~/server/games/by-id";
 export { createGame } from "~/server/games/create";
 export {
+  approveLevelRangeRequest,
+  listLevelRangeRequests,
+  rejectLevelRangeRequest,
+  requestLevelRange,
+} from "~/server/games/level-range-requests";
+export { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
+export {
   FRIENDLY_SET_SHELL_COUNT,
   backfillFriendlySetShells,
   createFriendlyGame,
@@ -70,6 +77,7 @@ export { updateGameMatch, updateMatch } from "~/server/games/update-match";
 export { updateTournamentMatch } from "~/server/games/update-tournament-match";
 export { updateGameCaps } from "~/server/games/update-caps";
 export { updateGamePricePerPlayer } from "~/server/games/update-price-per-player";
+export { updateGameLevelRange } from "~/server/games/update-level-range";
 export { updateGameWindow } from "~/server/games/update-window";
 export { addSet, addMatchSet } from "~/server/games/add-set";
 export { scoreSet, scoreMatchSet } from "~/server/games/score-set";
