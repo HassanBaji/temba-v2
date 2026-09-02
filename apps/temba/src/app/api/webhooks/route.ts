@@ -3,6 +3,7 @@ import { type NextRequest } from "next/server";
 
 import { env } from "~/env";
 import { upsertUserFromClerk } from "~/server/auth/sync-clerk-user";
+import { db } from "~/server/db";
 
 export async function POST(req: NextRequest) {
   let evt;
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   if (evt.type === "user.created" || evt.type === "user.updated") {
     try {
-      await upsertUserFromClerk(evt.data);
+      await upsertUserFromClerk(db, evt.data);
     } catch (err) {
       console.error("Failed to sync Clerk user:", err);
       return new Response("Failed to sync user", { status: 500 });

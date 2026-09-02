@@ -1,13 +1,14 @@
 "use client";
 
-import { UserButton, useUser } from "@clerk/nextjs";
+import { UserButton, useClerk, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Building2, Mail, Users } from "lucide-react";
+import { Building2, Camera, Mail, Users } from "lucide-react";
 
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
+import { AvatarBadge } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
 import { YouRatingSection } from "~/components/you/you-rating-section";
@@ -35,6 +36,41 @@ function YouPageSkeleton({ showOperator }: { showOperator: boolean }) {
   );
 }
 
+function YouIdentityAvatar({
+  displayName,
+  hasImage,
+  imageUrl,
+}: {
+  displayName: string;
+  hasImage: boolean;
+  imageUrl: string;
+}) {
+  const clerk = useClerk();
+  const { user } = useUser();
+  const photoLabel = hasImage ? "Edit profile photo" : "Add profile photo";
+
+  return (
+    <button
+      type="button"
+      aria-label={photoLabel}
+      className="focus-visible:ring-ring/50 relative size-10 shrink-0 rounded-full outline-none focus-visible:ring-[3px]"
+      onClick={() => {
+        clerk.openUserProfile();
+        void user?.reload();
+      }}
+    >
+      <UserAvatar
+        name={displayName}
+        image={hasImage ? imageUrl : null}
+        size="lg"
+      />
+      <AvatarBadge aria-hidden="true" className="size-3 [&>svg]:size-2">
+        <Camera />
+      </AvatarBadge>
+    </button>
+  );
+}
+
 export default function YouPage() {
   const { isLoaded, user } = useUser();
   const invites = usePendingInviteCount();
@@ -42,7 +78,6 @@ export default function YouPage() {
   const displayName =
     user?.fullName ?? user?.firstName ?? user?.username ?? "You";
   const username = user?.username;
-  const image = user?.imageUrl;
 
   if (!isLoaded) {
     return (
@@ -56,7 +91,15 @@ export default function YouPage() {
     <DashboardShell title="You">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <UserAvatar name={displayName} image={image} size="lg" />
+          {user ? (
+            <YouIdentityAvatar
+              displayName={displayName}
+              hasImage={user.hasImage}
+              imageUrl={user.imageUrl}
+            />
+          ) : (
+            <UserAvatar name={displayName} size="lg" />
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-lead truncate font-semibold">{displayName}</p>
             {username ? (
