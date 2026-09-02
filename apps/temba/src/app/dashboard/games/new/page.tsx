@@ -320,6 +320,7 @@ function NewGameForm() {
           <div className="flex items-center gap-3">
             <Button
               type="submit"
+              variant="brand"
               disabled={createGame.isPending || emptyCatalog}
             >
               {createGame.isPending ? "Creating…" : "Create Game"}

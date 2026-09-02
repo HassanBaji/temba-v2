@@ -195,8 +195,9 @@ export function GameSummaryCard({
     interactiveCta && ctaText ? (
       <Button
         type="button"
+        variant="brand"
         size="sm"
-        className="relative z-10 rounded-full px-4"
+        className="relative z-10 rounded-md px-4"
         disabled={actionPending}
         onClick={(event) => {
           event.preventDefault();
@@ -207,11 +208,18 @@ export function GameSummaryCard({
         {actionPending ? pendingLabel : ctaText}
       </Button>
     ) : ctaText && href ? (
-      <Button asChild size="sm" className="relative z-10 rounded-full px-4">
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="relative z-10 rounded-md px-4"
+      >
         <Link href={href}>{ctaText}</Link>
       </Button>
     ) : ctaText ? (
-      <span className="text-body text-brand font-semibold">{ctaText}</span>
+      <span className="text-body text-foreground font-semibold">
+        {ctaText}
+      </span>
     ) : null;
 
   const picker = (
