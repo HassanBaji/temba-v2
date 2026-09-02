@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GameVenueSelect } from "~/components/games/game-venue-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -41,14 +42,6 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-
-function venueOptionLabel(venue: {
-  name: string;
-  city: string;
-  country: string;
-}) {
-  return `${venue.name} — ${venue.city}, ${venue.country}`;
-}
 
 function createVenueCopy(picker: {
   locked: boolean;
@@ -190,37 +183,26 @@ function NewGameForm() {
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="game-venue">Venue</FieldLabel>
-              <Select
-                value={venueId || undefined}
-                onValueChange={(value) => {
-                  setVenueId(value);
+              <GameVenueSelect
+                id="game-venue"
+                venues={picker.data?.venues ?? []}
+                value={venueId}
+                onValueChange={(nextVenueId) => {
+                  setVenueId(nextVenueId);
                   setCourtId("none");
                 }}
                 disabled={picker.data?.locked === true}
-              >
-                <SelectTrigger
-                  id="game-venue"
-                  aria-invalid={
-                    fieldErrorMessage(createGame.error, "venueId")
-                      ? true
-                      : undefined
-                  }
-                  aria-describedby={
-                    fieldErrorMessage(createGame.error, "venueId")
-                      ? "game-venue-error"
-                      : "game-venue-copy"
-                  }
-                >
-                  <SelectValue placeholder="Select a Venue" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(picker.data?.venues ?? []).map((venue) => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      {venueOptionLabel(venue)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                pending={picker.isLoading}
+                error={
+                  Boolean(fieldErrorMessage(createGame.error, "venueId")) ||
+                  emptyCatalog
+                }
+                describedBy={
+                  fieldErrorMessage(createGame.error, "venueId")
+                    ? "game-venue-error"
+                    : "game-venue-copy"
+                }
+              />
               <FieldDescription id="game-venue-copy">
                 {picker.data
                   ? createVenueCopy(picker.data)
