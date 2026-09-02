@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { GameWindowFields } from "~/components/games/game-window-fields";
+import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -19,7 +20,6 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
@@ -127,7 +127,7 @@ export function GameEditDialog({
                 <FieldLabel htmlFor="edit-price-per-player">
                   Price per player
                 </FieldLabel>
-                <Input
+                <PricePerPlayerAmountInput
                   id="edit-price-per-player"
                   type="number"
                   step="0.01"

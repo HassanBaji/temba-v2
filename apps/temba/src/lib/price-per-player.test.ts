@@ -5,6 +5,8 @@ import {
   formatPricePerPlayerCardMeta,
   formatPricePerPlayerCents,
   parseOptionalPricePerPlayerCents,
+  PRICE_PER_PLAYER_CURRENCY,
+  PRICE_PER_PLAYER_FIELD_DESCRIPTION,
   PRICE_PER_PLAYER_MAX_CENTS,
 } from "./price-per-player";
 
@@ -55,21 +57,21 @@ describe("parseOptionalPricePerPlayerCents", () => {
 });
 
 describe("formatPricePerPlayerCents", () => {
-  it("omits unset, shows Free at zero, and two fraction digits otherwise", () => {
+  it("omits unset, shows Free at zero, and two fraction digits with BD otherwise", () => {
     expect(formatPricePerPlayerCents(null)).toBeNull();
     expect(formatPricePerPlayerCents(undefined)).toBeNull();
     expect(formatPricePerPlayerCents(0)).toBe("Free");
-    expect(formatPricePerPlayerCents(5000)).toBe("50.00");
-    expect(formatPricePerPlayerCents(1250)).toBe("12.50");
+    expect(formatPricePerPlayerCents(5000)).toBe("50.00 BD");
+    expect(formatPricePerPlayerCents(1250)).toBe("12.50 BD");
   });
 });
 
 describe("formatPricePerPlayerCardMeta", () => {
-  it("omits unset, shows Free, or major units / player", () => {
+  it("omits unset, shows Free, or major units BD / player", () => {
     expect(formatPricePerPlayerCardMeta(null)).toBeNull();
     expect(formatPricePerPlayerCardMeta(0)).toBe("Free");
-    expect(formatPricePerPlayerCardMeta(5000)).toBe("50.00 / player");
-    expect(formatPricePerPlayerCardMeta(1250)).toBe("12.50 / player");
+    expect(formatPricePerPlayerCardMeta(5000)).toBe("50.00 BD / player");
+    expect(formatPricePerPlayerCardMeta(1250)).toBe("12.50 BD / player");
   });
 });
 
@@ -78,5 +80,12 @@ describe("centsToMajorInput", () => {
     expect(centsToMajorInput(null)).toBe("");
     expect(centsToMajorInput(0)).toBe("0.00");
     expect(centsToMajorInput(1250)).toBe("12.50");
+  });
+});
+
+describe("PRICE_PER_PLAYER_CURRENCY", () => {
+  it("is BD until a stored currency exists", () => {
+    expect(PRICE_PER_PLAYER_CURRENCY).toBe("BD");
+    expect(PRICE_PER_PLAYER_FIELD_DESCRIPTION).toContain("BD");
   });
 });

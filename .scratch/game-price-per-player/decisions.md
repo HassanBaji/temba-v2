@@ -5,7 +5,7 @@ Status: spec published — `.scratch/game-price-per-player/spec.md` (ready-for-a
 ## Settled (round 1)
 
 1. **Optional.** Null = unset. 0 = explicitly free. Required would force junk zeros onto pickup Games and every backfilled row. “Able to input” is a capability, not a mandate.
-2. **No currency column.** No currency symbol this slice. **Confirmed (recommended).** Display is `50.00` / `12.50` / `Free`, not `₪50.00`.
+2. **No currency column.** No currency picker. Display is hardcoded **BD** until a stored currency exists (`50.00 BD` / `12.50 BD` / `Free`).
 3. **Nullable integer minor units (cents)** on Game (`price_per_player_cents`). **Confirmed: allow cents.** App and organizer fields accept major units with up to two decimal places (`50`, `50.5`, `12.50`); persist `5000` / `5050` / `1250`. Stay off `numeric` and off JS floats at the tRPC boundary (`pricePerPlayerCents` integer). Max `1_000_000.00` major units (`100_000_000` cents). More than two decimal places refused.
 4. **Per User occupying a seat** (Game admit), including team-only (a complete Team is two Users). Not per Game team. No `totalPrice` this slice. Copy remains “Price per player” even on team-only.
 5. **Editable after create** by organizers (same people as `updateWindow`). Display-only, so no payment lock-in. Existing Games are null; without an editor they could never show a price. Not folded into `updateWindow`.

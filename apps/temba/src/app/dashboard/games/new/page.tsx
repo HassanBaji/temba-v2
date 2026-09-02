@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameVenueSelect } from "~/components/games/game-venue-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
+import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
@@ -18,7 +19,6 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -252,7 +252,7 @@ function NewGameForm() {
               <FieldLabel htmlFor="game-price-per-player">
                 Price per player
               </FieldLabel>
-              <Input
+              <PricePerPlayerAmountInput
                 id="game-price-per-player"
                 type="number"
                 step="0.01"
