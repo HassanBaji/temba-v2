@@ -122,6 +122,7 @@ export async function teamById(
       id: row.id,
       userId: row.user.id,
       name: row.user.name,
+      image: row.user.image,
       isCreator: row.user.id === team.createdBy,
       isViewer: row.user.id === args.userId,
     })),

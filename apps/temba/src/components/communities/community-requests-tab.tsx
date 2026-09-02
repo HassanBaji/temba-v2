@@ -88,7 +88,13 @@ export function CommunityRequestsTab({
                 return (
                   <RequestRow
                     key={request.id}
-                    leading={<UserAvatar name={name} size="lg" />}
+                    leading={
+                      <UserAvatar
+                        name={name}
+                        image={request.user.image}
+                        size="lg"
+                      />
+                    }
                     title={name}
                     meta={
                       request.user.email

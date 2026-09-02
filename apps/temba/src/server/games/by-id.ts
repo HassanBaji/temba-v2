@@ -60,7 +60,7 @@ export async function gameById(
   const waitlistRows = await database.query.gameWaitlist.findMany({
     where: eq(gameWaitlist.gameId, game.id),
     with: {
-      user: { columns: { id: true, name: true } },
+      user: { columns: { id: true, name: true, image: true } },
       team: { columns: { id: true, name: true } },
     },
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
@@ -90,7 +90,7 @@ export async function gameById(
           gamePlayer: {
             with: {
               user: {
-                columns: { id: true, name: true },
+                columns: { id: true, name: true, image: true },
               },
             },
           },
@@ -104,7 +104,7 @@ export async function gameById(
     where: eq(gamePlayers.gameId, game.id),
     with: {
       user: {
-        columns: { id: true, name: true },
+        columns: { id: true, name: true, image: true },
       },
     },
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
@@ -145,7 +145,7 @@ export async function gameById(
       where: inArray(teamMembers.teamId, myTeamIds),
       with: {
         team: { columns: { id: true, name: true } },
-        user: { columns: { id: true, name: true } },
+        user: { columns: { id: true, name: true, image: true } },
       },
     });
     const byTeam = new Map<string, typeof memberRows>();
@@ -200,7 +200,7 @@ export async function gameById(
   const isSeated = seatedUserIds.has(args.userId);
   const unseatedPlayers = playerRows.flatMap((row) =>
     row.user && !seatedUserIds.has(row.user.id)
-      ? [{ id: row.user.id, name: row.user.name }]
+      ? [{ id: row.user.id, name: row.user.name, image: row.user.image }]
       : [],
   );
   const sides = isIndividualSeatGame(game)
@@ -284,6 +284,7 @@ export async function gameById(
       teamId: row.teamId,
       createdAt: row.createdAt,
       name: row.user?.name ?? row.team?.name ?? "Waitlisted",
+      image: row.user?.image ?? null,
     })),
     matches: await Promise.all(
       matchRows.map(async (match) => {
@@ -340,6 +341,7 @@ export async function gameById(
               {
                 id: link.gamePlayer.user.id,
                 name: link.gamePlayer.user.name,
+                image: link.gamePlayer.user.image,
                 position: link.position,
               },
             ]
@@ -354,6 +356,7 @@ export async function gameById(
             {
               id: row.user.id,
               name: row.user.name,
+              image: row.user.image,
             },
           ]
         : [],

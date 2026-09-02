@@ -83,7 +83,9 @@ export function CommunityMembersTab({
           return (
             <ListRow
               key={member.id}
-              leading={<UserAvatar name={name} size="lg" />}
+              leading={
+                <UserAvatar name={name} image={member.user.image} size="lg" />
+              }
               title={
                 <>
                   {name}

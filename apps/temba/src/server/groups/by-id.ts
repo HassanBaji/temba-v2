@@ -98,6 +98,7 @@ export async function groupById(
         columns: {
           id: true,
           name: true,
+          image: true,
         },
       },
     },
@@ -112,12 +113,14 @@ export async function groupById(
       totalPointsWon: row.totalPointsWon,
       totalGamesPlayed: row.totalGamesPlayed,
       name: row.user.name,
+      image: row.user.image,
     })),
   );
 
   const leaderboard = sortedStanding.map((entry, index) => ({
     userId: entry.userId,
     name: entry.name,
+    image: entry.image,
     totalSetsWon: entry.totalSetsWon,
     totalPointsWon: entry.totalPointsWon,
     totalGamesPlayed: entry.totalGamesPlayed,
