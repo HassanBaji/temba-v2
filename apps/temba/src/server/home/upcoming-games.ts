@@ -97,7 +97,8 @@ export type MyGamesHubListCandidate = GameListCandidate & {
  * Games hub My Games: live upcoming Games on Groups the User belongs to
  * (including Soft-archived Club Group Games), plus private Games they
  * created or are registered/waitlisted on. Community membership is not
- * consulted. Public groupless pickup stays on Public.
+ * consulted. Public groupless pickup stays on Public. Sorted with Games
+ * the User has already joined first, then soonest start.
  */
 export function isMyGamesHubGame(
   game: MyGamesHubListCandidate,
@@ -125,7 +126,12 @@ export function filterAndSortMyGamesHubGames<T extends MyGamesHubListCandidate>(
 ): T[] {
   return games
     .filter((game) => isMyGamesHubGame(game, memberGroupIds, userId, now))
-    .sort((a, b) => gameListTime(a).getTime() - gameListTime(b).getTime());
+    .sort((a, b) => {
+      if (a.viewerIsParticipant !== b.viewerIsParticipant) {
+        return a.viewerIsParticipant ? -1 : 1;
+      }
+      return gameListTime(a).getTime() - gameListTime(b).getTime();
+    });
 }
 
 export type PublicHubListCandidate = GameListCandidate & {

@@ -175,6 +175,37 @@ describe("My Games hub list", () => {
       ["sooner", "later"],
     );
   });
+
+  it("sorts joined Games before Games the User has not joined, then by soonest", () => {
+    const laterJoined = myGamesCandidate({
+      id: "later-joined",
+      windowStart: new Date("2026-09-03T18:00:00.000Z"),
+      windowEnd: new Date("2026-09-03T20:00:00.000Z"),
+      viewerIsParticipant: true,
+    });
+    const soonerOpen = myGamesCandidate({
+      id: "sooner-open",
+      windowStart: new Date("2026-09-02T18:00:00.000Z"),
+      windowEnd: new Date("2026-09-02T20:00:00.000Z"),
+      viewerIsParticipant: false,
+    });
+    const soonerJoined = myGamesCandidate({
+      id: "sooner-joined",
+      windowStart: new Date("2026-09-02T12:00:00.000Z"),
+      windowEnd: new Date("2026-09-02T14:00:00.000Z"),
+      viewerIsParticipant: true,
+    });
+    const sorted = filterAndSortMyGamesHubGames(
+      [soonerOpen, laterJoined, soonerJoined],
+      memberGroupIds,
+      VIEWER_ID,
+      NOW,
+    );
+    assert.deepEqual(
+      sorted.map((game) => game.id),
+      ["sooner-joined", "later-joined", "sooner-open"],
+    );
+  });
 });
 
 describe("Public hub list", () => {

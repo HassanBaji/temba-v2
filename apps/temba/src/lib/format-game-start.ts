@@ -34,7 +34,10 @@ function startOfLocalDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export function formatRelativeDay(startTime: Date | string) {
+export function formatRelativeDay(
+  startTime: Date | string,
+  options?: { sameDayLabel?: "Tonight" | "Today" },
+) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
   const today = startOfLocalDay(new Date());
   const target = startOfLocalDay(date);
@@ -43,7 +46,7 @@ export function formatRelativeDay(startTime: Date | string) {
   );
 
   if (diffDays === 0) {
-    return "Tonight";
+    return options?.sameDayLabel ?? "Tonight";
   }
   if (diffDays === 1) {
     return "Tomorrow";
