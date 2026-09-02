@@ -15,8 +15,13 @@ import {
   remainingCapacity,
 } from "~/server/games/seats";
 import { enqueueWaitlistUser } from "~/server/games/waitlist";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { type db } from "~/server/db";
 import type { SeatPosition } from "~/server/games/utils";
+import {
+  LEVEL_RANGE_OUTSIDE_MESSAGE,
+  LEVEL_RANGE_PARTNER_MESSAGE,
+} from "~/lib/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -62,6 +67,19 @@ export async function registerWithPartner(
     throw new TRPCError({
       code: "CONFLICT",
       message: "That User is already on the waitlist",
+    });
+  }
+
+  if (!(await userAllowedByLevelRange(database, game, args.userId))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+    });
+  }
+  if (!(await userAllowedByLevelRange(database, game, partner.id))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: LEVEL_RANGE_PARTNER_MESSAGE,
     });
   }
 
@@ -111,6 +129,7 @@ export async function registerWithPartner(
         },
         now,
       }),
+      "pair",
     );
   });
 

@@ -3,7 +3,8 @@ import { TRPCError } from "@trpc/server";
 import type { AdmitResult } from "~/server/games/utils";
 import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,
-  LEVEL_RANGE_OUTSIDE_PARTY_MESSAGE,
+  LEVEL_RANGE_PARTNER_MESSAGE,
+  LEVEL_RANGE_TEAM_MESSAGE,
 } from "~/lib/level-range";
 
 export function throwIfAdmitRefused(
@@ -14,12 +15,15 @@ export function throwIfAdmitRefused(
     return;
   }
   if (result.reason === "level_range") {
+    const message =
+      partyKind === "user"
+        ? LEVEL_RANGE_OUTSIDE_MESSAGE
+        : partyKind === "pair"
+          ? LEVEL_RANGE_PARTNER_MESSAGE
+          : LEVEL_RANGE_TEAM_MESSAGE;
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        partyKind === "user"
-          ? LEVEL_RANGE_OUTSIDE_MESSAGE
-          : LEVEL_RANGE_OUTSIDE_PARTY_MESSAGE,
+      message,
     });
   }
   if (

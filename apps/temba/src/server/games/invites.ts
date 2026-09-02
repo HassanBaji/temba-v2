@@ -10,6 +10,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "~/server/db";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import {
   type GameRow,
   assertRegistrationOpen,
@@ -256,6 +257,10 @@ export async function eligibleCompleteTeamsForUser(
           allowed = false;
           break;
         }
+      }
+      if (!(await userAllowedByLevelRange(database, game, member.userId))) {
+        allowed = false;
+        break;
       }
     }
     if (!allowed) {

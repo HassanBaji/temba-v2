@@ -24,6 +24,7 @@ import {
 } from "~/server/games/access";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import { viewerLevelRangeFields } from "~/server/games/level-range-requests";
+import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
   listGameSides,
@@ -162,9 +163,12 @@ export async function gameById(
       const partnerIds = members.map((member) => member.userId);
       const bothAllowed = (
         await Promise.all(
-          partnerIds.map((userId) =>
-            userPassesJoinGate(database, game, userId),
-          ),
+          partnerIds.map(async (userId) => {
+            if (!(await userPassesJoinGate(database, game, userId))) {
+              return false;
+            }
+            return userAllowedByLevelRange(database, game, userId);
+          }),
         )
       ).every(Boolean);
       if (!bothAllowed) {

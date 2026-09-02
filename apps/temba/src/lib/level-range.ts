@@ -74,6 +74,12 @@ export const LEVEL_RANGE_OUTSIDE_MESSAGE =
 export const LEVEL_RANGE_OUTSIDE_PARTY_MESSAGE =
   "A User's Level is outside this Game's range";
 
+export const LEVEL_RANGE_PARTNER_MESSAGE =
+  "That User's Level is outside this Game's range";
+
+export const LEVEL_RANGE_TEAM_MESSAGE =
+  "A Team partner's Level is outside this Game's range";
+
 export function formatLevelRangeGateCopy(args: {
   levelMinTenths: number | null | undefined;
   levelMaxTenths: number | null | undefined;
