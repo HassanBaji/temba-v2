@@ -256,6 +256,7 @@ export default function InvitesPage() {
                   />
                   {waitlistOnly ? (
                     <Button
+                      variant="brand"
                       className="min-h-11"
                       disabled={pending}
                       onClick={() => onAccept("game", invite.id)}
@@ -276,6 +277,7 @@ export default function InvitesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <InviteKindBadge kind={invite.kind} />
                     <Button
+                      variant="brand"
                       className="min-h-11"
                       disabled={pending}
                       onClick={() => onAccept(invite.kind, invite.id)}

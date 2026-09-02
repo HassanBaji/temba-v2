@@ -25,7 +25,7 @@ export default function GroupsIndexPage() {
       description="Groups you are a member of. Open one to go to its home."
       action={
         hasCreateAccess ? (
-          <Button asChild>
+          <Button asChild variant="brand">
             <Link href="/dashboard/groups/new">Create Group</Link>
           </Button>
         ) : undefined
@@ -50,7 +50,7 @@ export default function GroupsIndexPage() {
           description="Groups are where you play and where your Standing lives."
           action={
             hasCreateAccess ? (
-              <Button asChild>
+              <Button asChild variant="brand">
                 <Link href="/dashboard/groups/new">Create Group</Link>
               </Button>
             ) : undefined

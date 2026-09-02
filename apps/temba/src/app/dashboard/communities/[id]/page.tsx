@@ -348,6 +348,7 @@ export default function CommunityHomePage({
     <>
       {canRequestJoin ? (
         <Button
+          variant="brand"
           className="min-h-11"
           onClick={() => requestJoin.mutate({ communityId: id })}
           disabled={requestJoin.isPending}

@@ -49,7 +49,7 @@ export default function CommunitiesPage() {
       description="Communities you belong to, with every Club Group nested. Open a Community or Group to go to its home."
       action={
         hasCreateAccess ? (
-          <Button asChild>
+          <Button asChild variant="brand">
             <Link href="/dashboard/communities/new">Create Community</Link>
           </Button>
         ) : undefined
@@ -74,7 +74,7 @@ export default function CommunitiesPage() {
           description="Communities organise Club Groups around a Venue."
           action={
             hasCreateAccess ? (
-              <Button asChild>
+              <Button asChild variant="brand">
                 <Link href="/dashboard/communities/new">Create Community</Link>
               </Button>
             ) : undefined

@@ -43,7 +43,7 @@ export default function TeamsIndexPage() {
       title="Teams"
       description="Partnerships you play as"
       action={
-        <Button asChild>
+        <Button asChild variant="brand">
           <Link href="/dashboard/teams/new">Create Team</Link>
         </Button>
       }
@@ -66,7 +66,7 @@ export default function TeamsIndexPage() {
           title="No Teams yet"
           description="A Team is a lasting partnership with one other player."
           action={
-            <Button asChild>
+            <Button asChild variant="brand">
               <Link href="/dashboard/teams/new">Create Team</Link>
             </Button>
           }
@@ -95,6 +95,7 @@ export default function TeamsIndexPage() {
                       meta={`Invite from ${invite.invitedBy.name}`}
                       trailing={
                         <Button
+                          variant="brand"
                           className="min-h-11"
                           disabled={accepting}
                           onClick={() =>
