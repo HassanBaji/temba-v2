@@ -80,9 +80,9 @@ function gamesWonDisplay(value: number | null) {
   return value == null ? "—" : String(value);
 }
 
-/** A finished Match tints the winning Set-wins; a live one stays neutral. */
-function scoreTone(completed: boolean, won: boolean) {
-  if (!completed) {
+/** A decided Match tints the winning Set-wins; a live one or a draw stays neutral. */
+function scoreTone(decided: boolean, won: boolean) {
+  if (!decided) {
     return "text-foreground";
   }
   return won ? "text-success" : "text-muted-foreground";
@@ -227,6 +227,7 @@ export function GameResultsPanel({
         const slot1Won = match.outcome.result === "slot1";
         const slot2Won = match.outcome.result === "slot2";
         const scored = match.outcome.result !== "none";
+        const decided = matchCompleted && (slot1Won || slot2Won);
 
         return (
           <Card key={match.id} variant="outlined" className="gap-4">
@@ -245,13 +246,13 @@ export function GameResultsPanel({
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               {scored ? (
                 <p className="text-h2 font-bold tabular-nums">
-                  <span className={scoreTone(matchCompleted, slot1Won)}>
+                  <span className={scoreTone(decided, slot1Won)}>
                     {match.outcome.slot1SetWins}
                   </span>
                   <span className="text-muted-foreground mx-1 font-semibold">
                     –
                   </span>
-                  <span className={scoreTone(matchCompleted, slot2Won)}>
+                  <span className={scoreTone(decided, slot2Won)}>
                     {match.outcome.slot2SetWins}
                   </span>
                 </p>

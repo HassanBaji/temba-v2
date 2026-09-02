@@ -17,7 +17,7 @@ const DOT_CLASS: Record<GameStatusValue, string> = {
   cancelled: "rounded-sm border-2 border-current bg-transparent",
 };
 
-/** The dot shape stays, so colour is never the only status signal. */
+/** The dot shapes above stay, so colour is never the only status signal. */
 const VARIANT: Record<GameStatusValue, BadgeVariant> = {
   pending: "outline",
   confirmed: "secondary",
