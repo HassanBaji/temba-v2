@@ -11,15 +11,16 @@
 }
 
 @theme static {
-  /* Brand — #0000FF is --color-brand; everything else derives on hue 264 */
-  --color-brand: #0000ff; /* oklch(0.452 0.3132 264.05) · white text 8.59:1 */
-  --color-brand-hover: oklch(0.405 0.28 264.05); /* #0001DC */
-  --color-brand-active: oklch(0.36 0.25 264.05); /* #0000BD */
-  --color-brand-text: oklch(0.42 0.23 264.05); /* #0432C7 · on white 9.19:1 */
-  /* Chroma reduced from 0.160 until the colour sits inside sRGB. */
-  --color-brand-on-dark: oklch(0.7 0.156 264.05);
-  --color-brand-subtle: oklch(0.96 0.018 264.05); /* #ECF2FE */
-  --color-brand-subtle-border: oklch(0.9 0.045 264.05); /* #CFDEFD */
+  /* Sports brand — primary is black (#0A0A0A); Volt Lime is a separate accent
+     that nothing maps --primary onto. The retired blue --color-brand* tokens
+     (formerly text-brand / bg-brand-subtle / bg-brand-on-dark) have been
+     removed now that no source references them. */
+
+  /* Volt Lime — accent only; never aliased onto --primary. */
+  --color-volt: #c8f135;
+  --color-volt-hover: #b3d928;
+  --color-volt-soft: #eef8c9;
+  --color-volt-foreground: #0a0a0a;
 
   --text-eyebrow: 0.75rem; /* 12px */
   --text-eyebrow--line-height: 1rem;
@@ -100,25 +101,26 @@
 
 :root {
   --radius: 0.75rem;
-  --background: oklch(1 0 0);
+  --background: #f6f6f3;
   --foreground: oklch(0.145 0 0);
-  --surface-raised: oklch(0.985 0 0);
-  --card: oklch(1 0 0);
+  --surface-raised: #fafaf8;
+  --card: #ffffff;
   --card-foreground: var(--foreground);
-  --popover: oklch(1 0 0);
+  --popover: #ffffff;
   --popover-foreground: var(--foreground);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.5 0 0);
+  /* ~gray-700; meets AA contrast at 12–13px meta text sizes */
+  --muted-foreground: oklch(0.4 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --border: oklch(0.922 0 0);
+  --border: #e5e5e2;
   --input: oklch(0.89 0 0);
 
-  --primary: var(--color-brand);
-  --primary-foreground: oklch(1 0 0);
-  --ring: var(--color-brand);
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --ring: #0a0a0a;
 
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
@@ -130,19 +132,19 @@
   --warning-foreground: oklch(1 0 0);
   --warning-subtle: oklch(0.97 0.035 80);
 
-  --chart-1: var(--color-brand);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0 0);
-  --chart-4: oklch(0.708 0 0);
-  --chart-5: oklch(0.556 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: var(--color-brand);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: var(--color-brand);
+  --chart-1: var(--color-volt);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.708 0 0);
+  --chart-4: oklch(0.4 0 0);
+  --chart-5: oklch(0.85 0 0);
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: oklch(0.22 0 0);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: #ffffff;
 }
 
 .dark {
@@ -153,7 +155,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: var(--color-brand-on-dark);
+  --primary: oklch(0.985 0 0);
   --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -172,20 +174,20 @@
   --warning-subtle: oklch(0.28 0.05 80);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 18%);
-  --ring: var(--color-brand-on-dark);
-  --chart-1: var(--color-brand-on-dark);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.708 0 0);
-  --chart-4: oklch(0.556 0 0);
-  --chart-5: oklch(0.439 0 0);
-  --sidebar: oklch(0.205 0 0);
+  --ring: oklch(0.985 0 0);
+  --chart-1: var(--color-volt);
+  --chart-2: oklch(0.708 0 0);
+  --chart-3: oklch(0.556 0 0);
+  --chart-4: oklch(0.439 0 0);
+  --chart-5: oklch(0.85 0 0);
+  --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: var(--color-brand-on-dark);
+  --sidebar-primary: oklch(0.985 0 0);
   --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: var(--color-brand-on-dark);
+  --sidebar-ring: oklch(0.985 0 0);
 }
 
 @layer base {

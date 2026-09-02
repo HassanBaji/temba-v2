@@ -34,14 +34,14 @@ export function BottomNav() {
             className={cn(
               "text-meta focus-visible:ring-ring/50 relative flex h-full min-h-11 w-full min-w-11 flex-col items-center justify-center gap-0.5 outline-none focus-visible:ring-[3px]",
               active
-                ? "text-brand font-semibold"
+                ? "text-foreground font-semibold"
                 : "text-muted-foreground font-medium",
             )}
           >
             {active ? (
               <span
                 aria-hidden="true"
-                className="bg-brand absolute inset-x-0 top-0 h-0.5"
+                className="bg-volt absolute inset-x-0 top-0 h-0.5"
               />
             ) : null}
             <Icon

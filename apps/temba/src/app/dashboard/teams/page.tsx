@@ -43,7 +43,7 @@ export default function TeamsIndexPage() {
       title="Teams"
       description="Partnerships you play as"
       action={
-        <Button asChild>
+        <Button asChild variant="brand">
           <Link href="/dashboard/teams/new">Create Team</Link>
         </Button>
       }

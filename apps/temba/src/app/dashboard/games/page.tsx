@@ -220,7 +220,7 @@ export default function GamesHubPage() {
       description="Upcoming Games on your Groups, private Games you created or joined, and public pickup."
       action={
         hasCreateAccess ? (
-          <Button asChild>
+          <Button asChild variant="brand">
             <Link href="/dashboard/games/new">Create Game</Link>
           </Button>
         ) : undefined

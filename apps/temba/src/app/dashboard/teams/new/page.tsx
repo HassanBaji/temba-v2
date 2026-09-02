@@ -88,7 +88,11 @@ export default function NewTeamPage() {
           </FieldGroup>
 
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={createTeam.isPending}>
+            <Button
+              type="submit"
+              variant="brand"
+              disabled={createTeam.isPending}
+            >
               {createTeam.isPending ? "Creating…" : "Create Team"}
             </Button>
             <Button variant="outline" asChild>

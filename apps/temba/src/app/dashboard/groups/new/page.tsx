@@ -112,9 +112,7 @@ export default function NewLooseGroupPage() {
               <FieldLabel htmlFor="group-type">Type</FieldLabel>
               <Select
                 value={visibility}
-                onValueChange={(value) =>
-                  setVisibility(value as GroupType)
-                }
+                onValueChange={(value) => setVisibility(value as GroupType)}
               >
                 <SelectTrigger id="group-type" className="w-full">
                   <SelectValue />
@@ -137,7 +135,7 @@ export default function NewLooseGroupPage() {
           </FieldGroup>
 
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" variant="brand" disabled={isPending}>
               {isPending ? "Creating…" : "Create Group"}
             </Button>
             <Button variant="outline" asChild>

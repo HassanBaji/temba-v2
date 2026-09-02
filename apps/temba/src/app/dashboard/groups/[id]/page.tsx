@@ -236,7 +236,12 @@ export default function GroupHomePage({
   const headerActions = (
     <>
       {data.canJoin ? (
-        <Button className="min-h-11" onClick={onJoin} disabled={joinPending}>
+        <Button
+          variant="brand"
+          className="min-h-11"
+          onClick={onJoin}
+          disabled={joinPending}
+        >
           {joinPending ? "Joining…" : "Join"}
         </Button>
       ) : null}
@@ -295,6 +300,7 @@ export default function GroupHomePage({
 
   const standingStrip = data.membership ? (
     <StatStrip
+      tone="dark"
       items={[
         {
           label: "Position",

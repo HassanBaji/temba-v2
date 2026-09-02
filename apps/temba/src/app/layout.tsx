@@ -23,8 +23,8 @@ const geist = Geist({
 const clerkAppearance = {
   theme: shadcn,
   variables: {
-    colorPrimary: "#0000FF",
-    colorPrimaryForeground: "#FFFFFF",
+    colorPrimary: "#C8F135",
+    colorPrimaryForeground: "#0A0A0A",
     colorBackground: "#FFFFFF",
     colorInputBackground: "#FFFFFF",
     colorInput: "#171717",
