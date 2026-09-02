@@ -37,7 +37,7 @@ export function StatStrip({
           <dt className="text-eyebrow text-muted-foreground truncate font-medium uppercase tracking-[0.06em]">
             {item.label}
           </dt>
-          <dd className="text-lead truncate font-semibold tabular-nums">
+          <dd className="text-title truncate font-bold tabular-nums">
             {item.value}
           </dd>
         </div>

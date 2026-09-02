@@ -63,7 +63,7 @@ export function YouRatingSection() {
       ) : null}
 
       {me.data?.rating ? (
-        <Card variant="outlined">
+        <Card variant="plain" className="bg-primary text-primary-foreground">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-display font-bold tabular-nums tracking-[-0.02em]">
               <span className="sr-only">Level </span>
@@ -89,6 +89,7 @@ export function YouRatingSection() {
               <Button
                 ref={declareButtonRef}
                 type="button"
+                variant="brand"
                 onClick={() => {
                   selfDeclare.reset();
                   setDialogOpen(true);

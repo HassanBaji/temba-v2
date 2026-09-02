@@ -147,7 +147,7 @@ export default function HomePage() {
       description="When you next play, anything waiting, and where you stand."
       action={
         hasCreateAccess ? (
-          <Button asChild>
+          <Button asChild variant="brand">
             <Link href="/dashboard/games/new">Create Game</Link>
           </Button>
         ) : undefined
@@ -169,7 +169,9 @@ export default function HomePage() {
       {home.data ? (
         <div className="space-y-6">
           {firstName ? (
-            <p className="text-meta text-muted-foreground">Hi, {firstName}</p>
+            <p className="text-h2 text-foreground font-bold tracking-[-0.02em]">
+              Hi, {firstName}
+            </p>
           ) : null}
 
           <StatStrip
@@ -195,7 +197,7 @@ export default function HomePage() {
             <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.62fr)_minmax(0,1fr)]">
               <div className="space-y-6">
                 {hero ? (
-                  <Card variant="elevated" className="p-0">
+                  <Card variant="outlined" className="p-0">
                     <Link
                       href={`/dashboard/games/${hero.id}`}
                       className="focus-visible:ring-ring/50 flex min-h-11 flex-col gap-3 p-4 outline-none focus-visible:ring-[3px] md:grid md:grid-cols-[1fr_auto] md:items-end"
@@ -293,7 +295,7 @@ export default function HomePage() {
                       <p className="text-lead font-semibold">
                         {inviteWaitingCopy(invites.count)}
                       </p>
-                      <span className="text-body text-brand font-semibold">
+                      <span className="text-body text-foreground font-semibold">
                         Review
                       </span>
                     </Link>
