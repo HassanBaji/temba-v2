@@ -30,8 +30,9 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import { api } from "~/trpc/react";
-import type { GroupType } from "~/server/groups";
+import { api, type RouterOutputs } from "~/trpc/react";
+
+type GroupType = NonNullable<RouterOutputs["groups"]["byId"]["type"]>;
 
 const FIELD_IDS = { name: "group-name", visibility: "group-type" };
 

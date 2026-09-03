@@ -10,7 +10,10 @@ import { Button } from "~/components/ui/button";
 import { formatGameClock, formatRelativeDay } from "~/lib/format-game-start";
 import { formatLevelRangeLabel } from "~/lib/level-range";
 import { cn } from "~/lib/utils";
-import type { HubListSide } from "~/server/games";
+import { type RouterOutputs } from "~/trpc/react";
+
+type HubListSide =
+  RouterOutputs["games"]["listMyGames"][number]["sides"][number];
 
 const HERO_BACKGROUND = "/images/game-hero-background.jpg";
 

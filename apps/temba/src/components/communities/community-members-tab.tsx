@@ -7,7 +7,9 @@ import { RoleBadge } from "~/components/temba/role-badge";
 import { ErrorState } from "~/components/common/error-state";
 import { FieldLabel } from "~/components/ui/field";
 import { Skeleton } from "~/components/ui/skeleton";
-import type { CommunityMember } from "~/server/communities";
+import { type RouterOutputs } from "~/trpc/react";
+
+type CommunityMember = RouterOutputs["communities"]["listMembers"][number];
 
 export function CommunityMembersTab({
   members,

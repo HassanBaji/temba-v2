@@ -41,7 +41,11 @@ import {
 import { formatLevelRangeLabel } from "~/lib/level-range";
 import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
-import type { HubListSide, HubListSideOccupant } from "~/server/games";
+import { type RouterOutputs } from "~/trpc/react";
+
+type HubListSide =
+  RouterOutputs["games"]["listMyGames"][number]["sides"][number];
+type HubListSideOccupant = NonNullable<HubListSide["left"]>;
 
 /** Imminent Games earn a warm day label so the list scans by urgency. */
 const DAY_TONE: Record<GameDayProximity, string> = {

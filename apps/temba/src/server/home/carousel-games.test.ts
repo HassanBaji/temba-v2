@@ -18,9 +18,9 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { listMyGamesHubRows } from "~/server/games/hub-list-rows";
+import { listMyGamesHubRows } from "~/server/games/list-my-games";
 import { admit } from "~/server/games/admit";
-import { home } from "~/server/home/home";
+import { loadHome } from "~/server/api/routers/users/home";
 import { commit } from "~/server/soft-archive";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 import {
@@ -754,7 +754,7 @@ describe("Home carousel list", () => {
         userId: viewer.id,
       });
 
-      const result = await home(db, { userId: viewer.id });
+      const result = await loadHome(db, { userId: viewer.id });
       expect(result.carouselGames.map((game) => game.id)).toEqual([joined.id]);
       expect(result.carouselGames[0]?.phase).toBe("upcoming");
       expect(result.gamesPlayed).toBe(0);

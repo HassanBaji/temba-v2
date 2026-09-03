@@ -12,16 +12,14 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { gameById } from "~/server/api/routers/games/byId";
+import { register } from "~/server/api/routers/games/register";
+import { registerSeat } from "~/server/api/routers/games/registerSeat";
+import { approveLevelRangeRequest } from "~/server/api/routers/games/approveLevelRangeRequest";
+import { rejectLevelRangeRequest } from "~/server/api/routers/games/rejectLevelRangeRequest";
+import { requestLevelRange } from "~/server/api/routers/games/requestLevelRange";
 import { admit } from "~/server/games/admit";
 import type { GameRow } from "~/server/games/access";
-import { gameById } from "~/server/games/by-id";
-import {
-  approveLevelRangeRequest,
-  rejectLevelRangeRequest,
-  requestLevelRange,
-} from "~/server/games/level-range-requests";
-import { register } from "~/server/games/register";
-import { registerSeat } from "~/server/games/register-seat";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 import {
   INITIAL_PHI,

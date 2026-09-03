@@ -5,7 +5,10 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatSeatSideHeading } from "~/components/games/game-side-label";
 import { cn } from "~/lib/utils";
-import type { GameSide, SeatOccupant } from "~/server/games";
+import { type RouterOutputs } from "~/trpc/react";
+
+type GameSide = RouterOutputs["games"]["byId"]["sides"][number];
+type SeatOccupant = NonNullable<GameSide["left"]>;
 
 function VacantAvatar({ joinable }: { joinable: boolean }) {
   return (

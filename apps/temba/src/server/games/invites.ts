@@ -19,10 +19,8 @@ import {
   userPassesJoinGate,
 } from "~/server/games/access";
 import { admit, type AdmitResult } from "~/server/games/admit";
-import {
-  enqueueWaitlistTeam,
-  enqueueWaitlistUser,
-} from "~/server/games/waitlist";
+import { enqueueWaitlistTeam } from "~/server/games/enqueue-waitlist-team";
+import { enqueueWaitlistUser } from "~/server/games/enqueue-waitlist-user";
 import {
   isIndividualSeatGame,
   listGameSides,

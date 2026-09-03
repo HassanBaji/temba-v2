@@ -33,7 +33,7 @@ import {
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
-import type { VenueLogoContentType } from "~/server/venues";
+import type { VenueLogoContentType } from "~/server/storage/venue-logos";
 
 const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
