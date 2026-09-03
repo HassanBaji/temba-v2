@@ -1,16 +1,20 @@
 /**
- * Home hero carousel list (TEM-147): live Games the signed-in User has Game
- * admit on or organizes. Dedicated to Home — not the Games hub My Groups
- * filter. Waitlisted-only and unjoined Group members are out. Public Games
- * the User joined are in. Soft-archived Club Group Games still appear when
- * live. Cancelled Games do not. Hub lists and `isGameLive` stay unchanged.
+ * Home hero carousel list: Games the signed-in User has Game admit on or
+ * organizes. Live Games stay for the whole window. After the window, at-cap
+ * Games with a Match that can still be scored stay until every remaining
+ * Match is completed (Americano is not retained). Dedicated to Home — not
+ * the Games hub My Groups filter. Hub lists and `isGameLive` stay unchanged.
  */
 
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { communityMembers, gamePlayers, games, groups } from "@repo/db";
 
-import { isStaffRole } from "~/server/games/access";
+import {
+  FRIENDLY_PLAYERS_ALLOWED,
+  FRIENDLY_TEAMS_ALLOWED,
+  isStaffRole,
+} from "~/server/games/access";
 import {
   queryHubGames,
   toHubListRow,
@@ -28,22 +32,78 @@ import {
 
 type DbClient = typeof db | TestDatabase;
 
-export type HomeCarouselPhase = "upcoming" | "ongoing";
+export type HomeCarouselPhase = "upcoming" | "ongoing" | "needs_results";
 
 export type HomeCarouselCandidate = GameListCandidate & {
   createdBy: string;
   viewerHasGameAdmit: boolean;
   viewerIsOrganizer: boolean;
+  registrationMode: string;
+  playersAllowed: number | null;
+  teamsAllowed: number | null;
+  registeredUserCount: number;
+  registeredTeamCount: number;
 };
 
 export type HomeCarouselGame = HubListRow & {
   phase: HomeCarouselPhase;
+  canAddResults: boolean;
 };
 
+const PHASE_ORDER: Record<HomeCarouselPhase, number> = {
+  needs_results: 0,
+  ongoing: 1,
+  upcoming: 2,
+};
+
+function matchIsOpenForSets(status: string | null) {
+  return status !== "completed" && status !== "cancelled";
+}
+
+export function isHomeCarouselAtCap(game: {
+  registrationMode: string;
+  playersAllowed: number | null;
+  teamsAllowed: number | null;
+  registeredUserCount: number;
+  registeredTeamCount: number;
+}) {
+  if (game.registrationMode === "team_only") {
+    return (
+      game.registeredTeamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)
+    );
+  }
+  return (
+    game.registeredUserCount >=
+    (game.playersAllowed ?? FRIENDLY_PLAYERS_ALLOWED)
+  );
+}
+
+export function isHomeCarouselNeedsResults(
+  game: HomeCarouselCandidate,
+  now: Date,
+): boolean {
+  if (game.cancelledAt !== null) {
+    return false;
+  }
+  if (isGameLive(game, now)) {
+    return false;
+  }
+  if (game.format === "americano") {
+    return false;
+  }
+  if (!isHomeCarouselAtCap(game)) {
+    return false;
+  }
+  return game.matches.some((match) => matchIsOpenForSets(match.status));
+}
+
 export function homeCarouselPhase(
-  game: GameListCandidate,
+  game: HomeCarouselCandidate,
   now: Date,
 ): HomeCarouselPhase | null {
+  if (isHomeCarouselNeedsResults(game, now)) {
+    return "needs_results";
+  }
   if (!isGameLive(game, now)) {
     return null;
   }
@@ -61,29 +121,20 @@ export function isHomeCarouselGame(
   if (!game.viewerHasGameAdmit && !game.viewerIsOrganizer) {
     return false;
   }
-  return isGameLive(game, now);
+  return homeCarouselPhase(game, now) != null;
 }
 
 function compareHomeCarouselGames(
-  a: GameListCandidate,
-  b: GameListCandidate,
+  a: HomeCarouselCandidate,
+  b: HomeCarouselCandidate,
   now: Date,
 ): number {
   const phaseA = homeCarouselPhase(a, now);
   const phaseB = homeCarouselPhase(b, now);
-  if (phaseA !== phaseB) {
-    if (phaseA === "ongoing") {
-      return -1;
-    }
-    if (phaseB === "ongoing") {
-      return 1;
-    }
-    if (phaseA === "upcoming") {
-      return -1;
-    }
-    if (phaseB === "upcoming") {
-      return 1;
-    }
+  const orderA = phaseA ? PHASE_ORDER[phaseA] : 99;
+  const orderB = phaseB ? PHASE_ORDER[phaseB] : 99;
+  if (orderA !== orderB) {
+    return orderA - orderB;
   }
   return gameListTime(a).getTime() - gameListTime(b).getTime();
 }
@@ -147,6 +198,66 @@ function viewerIsOrganizerOnRow(
   return organizerGroupIds.has(row.groupId);
 }
 
+function occupancyFromRow(row: HubQueryRow) {
+  return {
+    registrationMode: row.registrationMode,
+    playersAllowed: row.playersAllowed,
+    teamsAllowed: row.teamsAllowed,
+    registeredUserCount: row.players.length,
+    registeredTeamCount: row.teams.length,
+  };
+}
+
+function teamOccupantCount(row: HubQueryRow, teamId: string) {
+  const team = row.teams.find((item) => item.id === teamId);
+  if (!team) {
+    return 0;
+  }
+  return team.players.filter((link) => link.gamePlayer?.user).length;
+}
+
+function viewerCanScoreMatch(
+  row: HubQueryRow,
+  match: HubQueryRow["matches"][number],
+  userId: string,
+  organizer: boolean,
+) {
+  if (row.format === "americano") {
+    return false;
+  }
+  if (!matchIsOpenForSets(match.status)) {
+    return false;
+  }
+  if (!match.slot1GameTeamId || !match.slot2GameTeamId) {
+    return false;
+  }
+  if (
+    teamOccupantCount(row, match.slot1GameTeamId) !== 2 ||
+    teamOccupantCount(row, match.slot2GameTeamId) !== 2
+  ) {
+    return false;
+  }
+  if (organizer) {
+    return true;
+  }
+  return row.teams.some(
+    (team) =>
+      (team.id === match.slot1GameTeamId ||
+        team.id === match.slot2GameTeamId) &&
+      team.players.some((link) => link.gamePlayer?.user?.id === userId),
+  );
+}
+
+function viewerCanAddResults(
+  row: HubQueryRow,
+  userId: string,
+  organizer: boolean,
+) {
+  return row.matches.some((match) =>
+    viewerCanScoreMatch(row, match, userId, organizer),
+  );
+}
+
 export async function listHomeCarouselGames(
   database: DbClient,
   userId: string,
@@ -172,14 +283,18 @@ export async function listHomeCarouselGames(
     ...row,
     viewerHasGameAdmit: row.players.some((player) => player.userId === userId),
     viewerIsOrganizer: viewerIsOrganizerOnRow(row, userId, organizerGroupIds),
+    ...occupancyFromRow(row),
   }));
   const filtered = filterAndSortHomeCarouselGames(candidates, now);
 
   return filtered.map((row) => {
-    const phase = homeCarouselPhase(row, now);
+    const phase = homeCarouselPhase(row, now) ?? "upcoming";
     return {
       ...toHubListRow(row, viewer, now),
-      phase: phase ?? "upcoming",
+      phase,
+      canAddResults:
+        phase === "needs_results" &&
+        viewerCanAddResults(row, userId, row.viewerIsOrganizer),
     };
   });
 }

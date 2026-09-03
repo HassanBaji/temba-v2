@@ -19,13 +19,16 @@ import {
 } from "@repo/db/schema";
 
 import { listMyGamesHubRows } from "~/server/games/hub-list-rows";
+import { admit } from "~/server/games/admit";
 import { home } from "~/server/home/home";
 import { commit } from "~/server/soft-archive";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 import {
   filterAndSortHomeCarouselGames,
   homeCarouselPhase,
+  isHomeCarouselAtCap,
   isHomeCarouselGame,
+  isHomeCarouselNeedsResults,
   listHomeCarouselGames,
   type HomeCarouselCandidate,
 } from "./carousel-games";
@@ -63,8 +66,31 @@ function carouselCandidate(
     createdBy: OTHER_USER,
     viewerHasGameAdmit: false,
     viewerIsOrganizer: false,
+    registrationMode: "individual",
+    playersAllowed: 4,
+    teamsAllowed: 2,
+    registeredUserCount: 0,
+    registeredTeamCount: 0,
     ...overrides,
   };
+}
+
+function finishedUncompleted(
+  overrides: Partial<HomeCarouselCandidate> & Pick<HomeCarouselCandidate, "id">,
+): HomeCarouselCandidate {
+  return carouselCandidate({
+    windowStart: new Date("2026-08-01T18:00:00.000Z"),
+    windowEnd: new Date("2026-08-01T20:00:00.000Z"),
+    matches: [
+      {
+        startTime: new Date("2026-08-01T18:00:00.000Z"),
+        status: "pending",
+      },
+    ],
+    registeredUserCount: 4,
+    viewerHasGameAdmit: true,
+    ...overrides,
+  });
 }
 
 describe("Home carousel audience and live window", () => {
@@ -145,7 +171,7 @@ describe("Home carousel audience and live window", () => {
     expect(isHomeCarouselGame(game, NOW)).toBe(true);
   });
 
-  it("excludes Games after the live window", () => {
+  it("excludes Games after the live window when they are not needs-results", () => {
     const game = carouselCandidate({
       id: "finished",
       viewerHasGameAdmit: true,
@@ -205,6 +231,147 @@ describe("Home carousel audience and live window", () => {
       "fourth-upcoming",
       "later-upcoming",
       "fifth-upcoming",
+    ]);
+  });
+
+  it("retains finished at-cap Games with an uncompleted Match", () => {
+    const game = finishedUncompleted({ id: "needs-results" });
+    expect(isGameLive(game, NOW)).toBe(false);
+    expect(homeCarouselPhase(game, NOW)).toBe("needs_results");
+    expect(isHomeCarouselGame(game, NOW)).toBe(true);
+  });
+
+  it("drops finished at-cap Games once every remaining Match is completed", () => {
+    const game = finishedUncompleted({
+      id: "completed",
+      matches: [
+        {
+          startTime: new Date("2026-08-01T18:00:00.000Z"),
+          status: "completed",
+        },
+      ],
+    });
+    expect(isHomeCarouselGame(game, NOW)).toBe(false);
+  });
+
+  it("drops finished at-cap Games when the remaining Match is cancelled", () => {
+    const game = finishedUncompleted({
+      id: "match-cancelled",
+      matches: [
+        {
+          startTime: new Date("2026-08-01T18:00:00.000Z"),
+          status: "cancelled",
+        },
+      ],
+    });
+    expect(isHomeCarouselGame(game, NOW)).toBe(false);
+  });
+
+  it("drops finished Games under cap even with an uncompleted Match", () => {
+    const game = finishedUncompleted({
+      id: "under-cap",
+      registeredUserCount: 3,
+    });
+    expect(isHomeCarouselGame(game, NOW)).toBe(false);
+  });
+
+  it("uses occupancy at cap, not registration status full", () => {
+    const game = finishedUncompleted({
+      id: "closed-but-full",
+      registeredUserCount: 4,
+    });
+    expect(isHomeCarouselAtCap(game)).toBe(true);
+    expect(isHomeCarouselNeedsResults(game, NOW)).toBe(true);
+  });
+
+  it("uses team occupancy for team-only Games", () => {
+    const under = finishedUncompleted({
+      id: "team-under",
+      registrationMode: "team_only",
+      registeredUserCount: 4,
+      registeredTeamCount: 1,
+    });
+    const atCap = finishedUncompleted({
+      id: "team-cap",
+      registrationMode: "team_only",
+      registeredUserCount: 2,
+      registeredTeamCount: 2,
+    });
+    expect(isHomeCarouselGame(under, NOW)).toBe(false);
+    expect(homeCarouselPhase(atCap, NOW)).toBe("needs_results");
+  });
+
+  it("does not retain Americano after the window", () => {
+    const game = finishedUncompleted({
+      id: "americano",
+      format: "americano",
+    });
+    expect(isHomeCarouselGame(game, NOW)).toBe(false);
+  });
+
+  it("retains a Friendly tournament until every remaining Match is completed", () => {
+    const game = finishedUncompleted({
+      id: "tournament",
+      format: "friendly_tournament",
+      matches: [
+        {
+          startTime: new Date("2026-08-01T18:00:00.000Z"),
+          status: "completed",
+        },
+        {
+          startTime: new Date("2026-08-01T19:00:00.000Z"),
+          status: "pending",
+        },
+      ],
+    });
+    expect(homeCarouselPhase(game, NOW)).toBe("needs_results");
+    const done = finishedUncompleted({
+      id: "tournament-done",
+      format: "friendly_tournament",
+      matches: [
+        {
+          startTime: new Date("2026-08-01T18:00:00.000Z"),
+          status: "completed",
+        },
+        {
+          startTime: new Date("2026-08-01T19:00:00.000Z"),
+          status: "cancelled",
+        },
+      ],
+    });
+    expect(isHomeCarouselGame(done, NOW)).toBe(false);
+  });
+
+  it("orders needs-results (oldest first), then ongoing, then upcoming", () => {
+    const olderNeeds = finishedUncompleted({
+      id: "older-needs",
+      windowStart: new Date("2026-07-01T18:00:00.000Z"),
+      windowEnd: new Date("2026-07-01T20:00:00.000Z"),
+    });
+    const newerNeeds = finishedUncompleted({
+      id: "newer-needs",
+      windowStart: new Date("2026-08-01T18:00:00.000Z"),
+      windowEnd: new Date("2026-08-01T20:00:00.000Z"),
+    });
+    const ongoing = carouselCandidate({
+      id: "ongoing",
+      viewerHasGameAdmit: true,
+      windowStart: new Date("2026-08-31T15:00:00.000Z"),
+      windowEnd: new Date("2026-08-31T18:00:00.000Z"),
+    });
+    const upcoming = carouselCandidate({
+      id: "upcoming",
+      viewerHasGameAdmit: true,
+    });
+    const sorted = filterAndSortHomeCarouselGames(
+      [upcoming, newerNeeds, ongoing, olderNeeds],
+      NOW,
+    );
+    expect(sorted.map((game) => game.id)).toEqual([
+      "older-needs",
+      "newer-needs",
+      "ongoing",
+      "upcoming",
     ]);
   });
 
@@ -281,6 +448,7 @@ async function insertGame(
     venueId: string;
     isPublic?: boolean;
     groupId?: string | null;
+    format?: (typeof GameFormatEnum)[keyof typeof GameFormatEnum];
     windowStart?: Date;
     windowEnd?: Date;
     cancelledAt?: Date | null;
@@ -289,7 +457,7 @@ async function insertGame(
   const [row] = await database
     .insert(games)
     .values({
-      format: GameFormatEnum.FRIENDLY_GAME,
+      format: args.format ?? GameFormatEnum.FRIENDLY_GAME,
       registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
       venueId: args.venueId,
       createdBy: args.createdBy,
@@ -309,6 +477,15 @@ async function insertGame(
   return row;
 }
 
+async function expireInsertedMatch(database: TestDatabase, gameId: string) {
+  await database
+    .update(matches)
+    .set({
+      startTime: new Date("2026-08-01T18:00:00.000Z"),
+    })
+    .where(eq(matches.gameId, gameId));
+}
+
 async function completeInsertedMatch(database: TestDatabase, gameId: string) {
   await database
     .update(matches)
@@ -317,6 +494,29 @@ async function completeInsertedMatch(database: TestDatabase, gameId: string) {
       startTime: new Date("2026-08-01T18:00:00.000Z"),
     })
     .where(eq(matches.gameId, gameId));
+}
+
+const PAST_WINDOW = {
+  windowStart: new Date("2026-08-01T18:00:00.000Z"),
+  windowEnd: new Date("2026-08-01T20:00:00.000Z"),
+};
+
+async function insertFinishedGame(
+  database: TestDatabase,
+  args: {
+    createdBy: string;
+    venueId: string;
+    isPublic?: boolean;
+    groupId?: string | null;
+    format?: (typeof GameFormatEnum)[keyof typeof GameFormatEnum];
+  },
+) {
+  const game = await insertGame(database, {
+    ...args,
+    ...PAST_WINDOW,
+  });
+  await expireInsertedMatch(database, game.id);
+  return game;
 }
 
 describe("Home carousel list", () => {
@@ -566,6 +766,212 @@ describe("Home carousel list", () => {
       );
       expect(hubIds).toContain(spectatorGame.id);
       expect(hubIds).not.toContain(joined.id);
+    } finally {
+      await close();
+    }
+  });
+
+  it("retains finished at-cap Games and drops completed, under-cap, Americano, waitlisted, and spectators", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "needs-viewer@example.com");
+      const other = await insertUser(db, "needs-other@example.com");
+      const extras = await Promise.all([
+        insertUser(db, "needs-p2@example.com"),
+        insertUser(db, "needs-p3@example.com"),
+        insertUser(db, "needs-p4@example.com"),
+      ]);
+      const venue = await insertVenue(db);
+      const memberGroup = await insertGroup(db, other.id);
+      await db.insert(groupMembers).values({
+        groupId: memberGroup.id,
+        userId: viewer.id,
+      });
+
+      const atCap = await insertFinishedGame(db, {
+        createdBy: other.id,
+        venueId: venue.id,
+        isPublic: true,
+      });
+      await db.insert(gamePlayers).values(
+        [viewer.id, other.id, extras[0]!.id, extras[1]!.id].map((userId) => ({
+          gameId: atCap.id,
+          userId,
+        })),
+      );
+
+      const completed = await insertFinishedGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+      });
+      await db.insert(gamePlayers).values(
+        [viewer.id, other.id, extras[0]!.id, extras[1]!.id].map((userId) => ({
+          gameId: completed.id,
+          userId,
+        })),
+      );
+      await completeInsertedMatch(db, completed.id);
+
+      const underCap = await insertFinishedGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+      });
+      await db.insert(gamePlayers).values({
+        gameId: underCap.id,
+        userId: viewer.id,
+      });
+
+      const americano = await insertFinishedGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        format: GameFormatEnum.AMERICANO,
+      });
+      await db.insert(gamePlayers).values(
+        [viewer.id, other.id, extras[0]!.id, extras[1]!.id].map((userId) => ({
+          gameId: americano.id,
+          userId,
+        })),
+      );
+
+      const waitlisted = await insertFinishedGame(db, {
+        createdBy: other.id,
+        venueId: venue.id,
+      });
+      await db.insert(gameWaitlist).values({
+        gameId: waitlisted.id,
+        userId: viewer.id,
+      });
+      await db.insert(gamePlayers).values(
+        [other.id, extras[0]!.id, extras[1]!.id, extras[2]!.id].map(
+          (userId) => ({
+            gameId: waitlisted.id,
+            userId,
+          }),
+        ),
+      );
+
+      const spectator = await insertFinishedGame(db, {
+        createdBy: other.id,
+        venueId: venue.id,
+        groupId: memberGroup.id,
+      });
+      await db.insert(gamePlayers).values(
+        [other.id, extras[0]!.id, extras[1]!.id, extras[2]!.id].map(
+          (userId) => ({
+            gameId: spectator.id,
+            userId,
+          }),
+        ),
+      );
+
+      const tournament = await insertFinishedGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+      });
+      await db.insert(gamePlayers).values(
+        [viewer.id, other.id, extras[0]!.id, extras[1]!.id].map((userId) => ({
+          gameId: tournament.id,
+          userId,
+        })),
+      );
+      await db.insert(matches).values({
+        gameId: tournament.id,
+        startTime: new Date("2026-08-01T19:00:00.000Z"),
+        status: MatchStatusEnum.PENDING,
+      });
+      await completeInsertedMatch(db, tournament.id);
+      await db
+        .update(matches)
+        .set({
+          status: MatchStatusEnum.PENDING,
+          startTime: new Date("2026-08-01T19:00:00.000Z"),
+        })
+        .where(eq(matches.gameId, tournament.id));
+
+      const rows = await listHomeCarouselGames(db, viewer.id, NOW);
+      const ids = rows.map((row) => row.id);
+      expect(ids).toContain(atCap.id);
+      expect(ids).toContain(tournament.id);
+      expect(ids).not.toContain(completed.id);
+      expect(ids).not.toContain(underCap.id);
+      expect(ids).not.toContain(americano.id);
+      expect(ids).not.toContain(waitlisted.id);
+      expect(ids).not.toContain(spectator.id);
+      expect(rows.find((row) => row.id === atCap.id)?.phase).toBe(
+        "needs_results",
+      );
+      expect(rows.find((row) => row.id === atCap.id)?.canAddResults).toBe(
+        false,
+      );
+
+      const hubIds = (await listMyGamesHubRows(db, viewer.id, NOW)).map(
+        (row) => row.id,
+      );
+      expect(hubIds).not.toContain(atCap.id);
+    } finally {
+      await close();
+    }
+  });
+
+  it("sets canAddResults when the viewer could score Sets today", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const organizer = await insertUser(db, "score-org@example.com");
+      const seated = await Promise.all([
+        insertUser(db, "score-a@example.com"),
+        insertUser(db, "score-b@example.com"),
+        insertUser(db, "score-c@example.com"),
+        insertUser(db, "score-d@example.com"),
+      ]);
+      const venue = await insertVenue(db);
+      const liveWindow = {
+        windowStart: new Date(Date.now() - 60 * 60 * 1000),
+        windowEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      };
+      const game = await insertGame(db, {
+        createdBy: organizer.id,
+        venueId: venue.id,
+        ...liveWindow,
+      });
+      const seats = [
+        { sideIndex: 1, position: "left" as const },
+        { sideIndex: 1, position: "right" as const },
+        { sideIndex: 2, position: "left" as const },
+        { sideIndex: 2, position: "right" as const },
+      ];
+      for (const [index, player] of seated.entries()) {
+        const result = await admit(db, {
+          game,
+          door: "register",
+          party: {
+            kind: "user",
+            userId: player.id,
+            seat: seats[index],
+          },
+        });
+        expect(result).toMatchObject({ ok: true });
+      }
+      await db.update(games).set(PAST_WINDOW).where(eq(games.id, game.id));
+      await expireInsertedMatch(db, game.id);
+
+      const organizerRows = await listHomeCarouselGames(db, organizer.id, NOW);
+      expect(organizerRows).toEqual([
+        expect.objectContaining({
+          id: game.id,
+          phase: "needs_results",
+          canAddResults: true,
+        }),
+      ]);
+
+      const seatedRows = await listHomeCarouselGames(db, seated[0]!.id, NOW);
+      expect(seatedRows).toEqual([
+        expect.objectContaining({
+          id: game.id,
+          phase: "needs_results",
+          canAddResults: true,
+        }),
+      ]);
     } finally {
       await close();
     }

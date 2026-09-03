@@ -85,18 +85,28 @@ export default function HomePage() {
                 {heroGames.length > 0 ? (
                   <Section title="Your games" className="min-w-0">
                     <UpcomingGamesCarousel
-                      games={heroGames.map((game) => ({
-                        id: game.id,
-                        startTime: game.startTime,
-                        sport: game.sport,
-                        format: game.format,
-                        venueName: game.venue?.name ?? null,
-                        registeredUserCount: game.registeredUserCount,
-                        playersAllowed: game.playersAllowed,
-                        sides: game.sides,
-                        levelMinTenths: game.levelMinTenths,
-                        levelMaxTenths: game.levelMaxTenths,
-                      }))}
+                      games={heroGames.map((game) => {
+                        const addResults =
+                          game.phase === "needs_results" && game.canAddResults;
+                        return {
+                          id: game.id,
+                          startTime: game.startTime,
+                          sport: game.sport,
+                          format: game.format,
+                          venueName: game.venue?.name ?? null,
+                          registeredUserCount: game.registeredUserCount,
+                          playersAllowed: game.playersAllowed,
+                          sides: game.sides,
+                          levelMinTenths: game.levelMinTenths,
+                          levelMaxTenths: game.levelMaxTenths,
+                          href: addResults
+                            ? `/dashboard/games/${game.id}?tab=results`
+                            : `/dashboard/games/${game.id}`,
+                          actionLabel: addResults
+                            ? "Add results"
+                            : "View game details",
+                        };
+                      })}
                     />
                   </Section>
                 ) : null}

@@ -2,7 +2,9 @@ export { home } from "~/server/home/home";
 export {
   filterAndSortHomeCarouselGames,
   homeCarouselPhase,
+  isHomeCarouselAtCap,
   isHomeCarouselGame,
+  isHomeCarouselNeedsResults,
   listHomeCarouselGames,
   type HomeCarouselCandidate,
   type HomeCarouselGame,

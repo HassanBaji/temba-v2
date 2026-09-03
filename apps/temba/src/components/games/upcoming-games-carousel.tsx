@@ -17,6 +17,8 @@ export type UpcomingGamesCarouselItem = {
   sides: HubListSide[];
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  href?: string;
+  actionLabel?: string;
 };
 
 export function UpcomingGamesCarousel({
@@ -102,7 +104,8 @@ export function UpcomingGamesCarousel({
             aria-current={index === activeIndex ? "true" : undefined}
           >
             <UpcomingGameHeroCard
-              href={`/dashboard/games/${game.id}`}
+              href={game.href ?? `/dashboard/games/${game.id}`}
+              actionLabel={game.actionLabel}
               startTime={game.startTime}
               sport={game.sport}
               format={game.format}
