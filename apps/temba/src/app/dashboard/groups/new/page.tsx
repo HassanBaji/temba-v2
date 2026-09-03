@@ -136,7 +136,7 @@ export default function NewLooseGroupPage() {
           </FieldGroup>
 
           <div className="flex items-center gap-3">
-            <Button type="submit" variant="brand" disabled={isPending}>
+            <Button type="submit" disabled={isPending}>
               {isPending ? "Creating…" : "Create Group"}
             </Button>
             <Button variant="outline" asChild>

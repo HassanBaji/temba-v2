@@ -264,7 +264,6 @@ export function GameSummaryCard({
     interactiveCta && ctaText ? (
       <Button
         type="button"
-        variant="brand"
         size="sm"
         className="relative z-10 h-10 min-h-10 rounded-md px-4"
         disabled={actionPending}

@@ -83,7 +83,6 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
           {pending ? null : (
             <Button
               type="button"
-              variant="brand"
               disabled={
                 requestLevelRange.isPending || !game.canRequestLevelRange
               }

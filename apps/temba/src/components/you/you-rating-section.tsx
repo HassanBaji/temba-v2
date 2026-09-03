@@ -89,7 +89,6 @@ export function YouRatingSection() {
               <Button
                 ref={declareButtonRef}
                 type="button"
-                variant="brand"
                 onClick={() => {
                   selfDeclare.reset();
                   setDialogOpen(true);

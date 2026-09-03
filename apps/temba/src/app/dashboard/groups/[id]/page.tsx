@@ -236,12 +236,7 @@ export default function GroupHomePage({
   const headerActions = (
     <>
       {data.canJoin ? (
-        <Button
-          variant="brand"
-          className="min-h-11"
-          onClick={onJoin}
-          disabled={joinPending}
-        >
+        <Button className="min-h-11" onClick={onJoin} disabled={joinPending}>
           {joinPending ? "Joining…" : "Join"}
         </Button>
       ) : null}

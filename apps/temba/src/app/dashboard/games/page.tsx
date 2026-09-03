@@ -285,7 +285,7 @@ export default function GamesHubPage() {
       title="Games"
       action={
         hasCreateAccess ? (
-          <Button asChild variant="brand">
+          <Button asChild>
             <Link href="/dashboard/games/new">Create Game</Link>
           </Button>
         ) : undefined
@@ -343,7 +343,7 @@ export default function GamesHubPage() {
                 action={
                   <div className="flex flex-wrap items-center justify-center gap-2">
                     {hasCreateAccess ? (
-                      <Button asChild variant="brand">
+                      <Button asChild>
                         <Link href="/dashboard/games/new">Create Game</Link>
                       </Button>
                     ) : null}

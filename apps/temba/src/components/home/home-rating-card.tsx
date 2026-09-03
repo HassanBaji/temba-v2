@@ -350,7 +350,6 @@ export function HomeRatingCard({ className }: { className?: string }) {
               <Button
                 ref={declareButtonRef}
                 type="button"
-                variant="brand"
                 onClick={() => {
                   selfDeclare.reset();
                   setDialogOpen(true);

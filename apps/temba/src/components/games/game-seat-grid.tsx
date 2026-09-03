@@ -69,7 +69,7 @@ function SeatRow({
       {moving ? "Moving…" : "Move here"}
     </Button>
   ) : canJoin ? (
-    <Button onClick={onJoin} disabled={joining} variant="brand" size="sm">
+    <Button onClick={onJoin} disabled={joining} size="sm">
       {joining ? "Joining…" : joinLabel}
     </Button>
   ) : undefined;
