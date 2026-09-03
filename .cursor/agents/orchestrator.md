@@ -54,7 +54,7 @@ Each implementer prompt must include:
 
 - You are the implementer for **only** this ticket. Do not read other tickets.
 - Read `AGENTS.md`, the parent spec, and this ticket.
-- Inspect existing code before changing anything. Follow existing architecture and conventions.
+- Inspect existing code before changing anything. Follow existing architecture and conventions. For tRPC, follow `.cursor/rules/api-one-endpoint-per-file.mdc` — do not copy fat assembler / twin domain-verb files.
 - Implement only what this ticket requires. Do not expand scope.
 - Run the relevant type checks, linting, tests, and build checks. Fix failures caused by this implementation.
 - Mark the ticket complete only when its acceptance criteria are satisfied.

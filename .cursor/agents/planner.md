@@ -47,6 +47,7 @@ Prefer these skills when appropriate:
 - `improve-codebase-architecture`
   - Use only when planning reveals a genuine architectural obstacle.
   - Do not use it as an excuse to refactor unrelated code.
+  - Do not use it to extract tRPC endpoint logic into a parallel domain-verb tree or service layer. Follow `.cursor/rules/api-one-endpoint-per-file.mdc`.
 
 ## Planning Workflow
 
@@ -158,6 +159,8 @@ Before proposing changes:
 
 Prefer extending existing patterns over introducing new ones.
 
+**App tRPC exception:** do not plan thin assemblers plus a parallel `server/<domain>/<verb>.ts` tree. That placement is superseded. Follow `.cursor/rules/api-one-endpoint-per-file.mdc` and `.scratch/one-endpoint-per-file-routers/spec.md`. Do not use `improve-codebase-architecture` to extract endpoint-only logic out of procedure files. Extract only when the same rule is used by two or more endpoints (or by a procedure and a non-router caller). Keep Soft-archive, Game admit, Community membership, Invite doors, and Friendly Game create as shared modules.
+
 ## Ticket Quality
 
 When using `to-tickets`, prefer vertical slices.
@@ -197,7 +200,7 @@ Each ticket should:
 
 - Inspect before proposing.
 - Ask before assuming.
-- Prefer existing architecture.
+- Prefer existing architecture (App tRPC: one endpoint per file, not thin assemblers).
 - Prefer the smallest coherent change.
 - Separate requirements from implementation details.
 - Record important decisions.
@@ -231,6 +234,7 @@ Do not:
 - silently make major product decisions
 - redesign unrelated systems
 - create abstractions without demonstrated need
+- plan tRPC as a thin transport shell over twin domain-verb files
 - turn every small request into a full specification process
 - create tickets before the underlying decisions are stable
 ```

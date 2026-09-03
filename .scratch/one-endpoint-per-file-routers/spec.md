@@ -183,7 +183,7 @@ This is a wide expand–contract refactor. Product behaviour, Invite doors polic
 - Procedure files may export the db-taking function the procedure calls so PGLite tests keep importing a function. Tests of shared glossary modules stay on those modules.
 - Do not reopen Soft-archive, Game admit, Community membership, Invite doors, or Friendly Game create policy (TEM-94…TEM-101).
 - Demo `hello` / `getSecretMessage` stay one-liners. Ratings/Glicko-2 internals are not reshuffled. Game `byId` moves as a door; do not deepen the read-model. Americano / Friendly tournament stay a branch inside `create`; Friendly still calls `createFriendlyGame`.
-- No new CONTEXT terms or ADR for “endpoint file.” The convention lives in this spec.
+- No new CONTEXT terms or ADR for “endpoint file.” The convention lives in this spec and in `.cursor/rules/api-one-endpoint-per-file.mdc` (always applied). Agents must not revive the thin-assembler + domain-verb placement.
 
 Convention (decision-rich; keys stay as today):
 
@@ -293,6 +293,7 @@ Manual App flows are not required to prove the file-cut. If a batch changes a ha
 ## Further Notes
 
 - Settled from `/planner` with a binding architecture decision: one endpoint per file under `api/routers/`; business logic lives in the endpoint file; shared glossary modules stay; locality over abstraction.
+- Binding agent rule: `.cursor/rules/api-one-endpoint-per-file.mdc` (always applied). Also pointed from `AGENTS.md`, `project-standard.mdc`, and the planner / implementer / reviewer / orchestrator agents so this placement is not re-planned.
 - `.scratch/split-domain-router-files/spec.md` is superseded for placement. That file-cut appears already implemented in the tree (thin routers + one-verb domain files). This program is not “finish TEM-106.”
 - Glossary and ADRs unchanged. No CONTEXT term for the folder convention. No ADR conflict (ADR-0002, ADR-0005, ADR-0008, ADR-0009 untouched).
 - Tickets published: TEM-134 … TEM-146 (see header). Frontier: TEM-134.
