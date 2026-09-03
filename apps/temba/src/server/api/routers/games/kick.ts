@@ -8,7 +8,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
-import { leaveRegisteredSeat } from "~/server/games/waitlist";
+import { leaveRegisteredSeat } from "~/server/games/leave-registered-seat";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

@@ -14,7 +14,7 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { listMyGamesHubRows } from "~/server/games/hub-list-rows";
+import { listMyGamesHubRows } from "~/server/games/list-my-games";
 import { admit } from "~/server/games/admit";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 

@@ -9,7 +9,7 @@ import { admit } from "~/server/games/admit";
 import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refused";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import { userAlreadyWaitlisted } from "~/server/games/helpers/user-already-waitlisted";
-import { enqueueWaitlistUser } from "~/server/games/waitlist";
+import { enqueueWaitlistUser } from "~/server/games/enqueue-waitlist-user";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

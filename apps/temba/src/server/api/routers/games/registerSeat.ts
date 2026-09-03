@@ -18,7 +18,7 @@ import {
 } from "~/server/games/seats";
 import type { SeatPosition } from "~/server/games/utils";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
-import { enqueueWaitlistUser } from "~/server/games/waitlist";
+import { enqueueWaitlistUser } from "~/server/games/enqueue-waitlist-user";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

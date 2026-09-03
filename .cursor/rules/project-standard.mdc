@@ -6,7 +6,7 @@ alwaysApply: true
 
 The existing codebase is the primary source of truth.
 
-**Exception — App tRPC:** do not copy fat `api/routers/*.ts` assemblers or twin `server/<domain>/<verb>.ts` files. Follow `api-one-endpoint-per-file` even while that migration is in progress.
+**Exception — App tRPC:** do not copy fat `api/routers/*.ts` assemblers or twin `server/<domain>/<verb>.ts` files. Follow `api-one-endpoint-per-file`.
 
 Before creating:
 
@@ -86,7 +86,7 @@ Before coding:
 
 - Find 2-3 similar implementations in the repository.
 - Identify the pattern they use.
-- Follow that pattern — except App tRPC, which follows `api-one-endpoint-per-file` even if nearby files are still fat assemblers.
+- Follow that pattern — except App tRPC, which follows `api-one-endpoint-per-file`.
 
 After coding:
 

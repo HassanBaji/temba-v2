@@ -13,7 +13,8 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { isStaffRole, mayCreateGameOnGroup } from "~/server/games/access";
-import { mayDeleteEmptyGroup } from "~/server/groups/helpers/may-delete-empty-group";
+import { groupHasGames } from "~/server/groups/helpers/group-has-games";
+import { groupHasNonCreatorMembers } from "~/server/groups/helpers/group-has-non-creator-members";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { requireGroup } from "~/server/groups/helpers/require-group";
 import {
@@ -30,6 +31,41 @@ import {
 type DbClient = typeof db;
 
 const GROUP_GAME_HISTORY_LIMIT = 20;
+
+async function mayDeleteEmptyGroup(args: {
+  database: DbClient;
+  group: Awaited<ReturnType<typeof requireGroup>>;
+  callerId: string;
+}) {
+  if (args.group.communityId) {
+    const membership = await requireCommunityMembership(
+      args.database,
+      args.group.communityId,
+      args.callerId,
+    );
+    if (!membership || !isStaffRole(membership.role)) {
+      return false;
+    }
+  } else if (args.group.createdBy !== args.callerId) {
+    return false;
+  }
+
+  if (await groupHasGames(args.database, args.group.id)) {
+    return false;
+  }
+
+  if (
+    await groupHasNonCreatorMembers(
+      args.database,
+      args.group.id,
+      args.group.createdBy,
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
 
 export async function groupById(
   database: DbClient,

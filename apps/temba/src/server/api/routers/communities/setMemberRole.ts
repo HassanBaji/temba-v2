@@ -1,20 +1,51 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { communityMembers } from "@repo/db";
+import { communityMembers, CommunityRoleEnum } from "@repo/db";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asRole } from "~/server/communities/helpers/as-role";
-import { lockOwnersForUpdate } from "~/server/communities/helpers/lock-owners-for-update";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireMembership } from "~/server/communities/helpers/require-membership";
-import { requireOwner } from "~/server/communities/helpers/require-owner";
 import { type CommunityRole } from "~/server/communities/utils";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
+
+async function requireOwner(
+  database: DbClient,
+  communityId: string,
+  userId: string,
+) {
+  const membership = await requireMembership(database, communityId, userId);
+
+  if (membership?.role !== "owner") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only Owners can change Community roles",
+    });
+  }
+
+  return membership;
+}
+
+async function lockOwnersForUpdate(
+  tx: Parameters<Parameters<DbClient["transaction"]>[0]>[0],
+  communityId: string,
+) {
+  return tx
+    .select({ id: communityMembers.id })
+    .from(communityMembers)
+    .where(
+      and(
+        eq(communityMembers.communityId, communityId),
+        eq(communityMembers.role, CommunityRoleEnum.OWNER),
+      ),
+    )
+    .for("update");
+}
 
 export async function setMemberRole(
   database: DbClient,

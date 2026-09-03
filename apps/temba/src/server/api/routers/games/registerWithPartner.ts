@@ -20,7 +20,7 @@ import {
 } from "~/server/games/seats";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import type { SeatPosition } from "~/server/games/utils";
-import { enqueueWaitlistUser } from "~/server/games/waitlist";
+import { enqueueWaitlistUser } from "~/server/games/enqueue-waitlist-user";
 import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,
   LEVEL_RANGE_PARTNER_MESSAGE,

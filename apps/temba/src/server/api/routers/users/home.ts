@@ -12,8 +12,8 @@ import {
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
-import { listMyGamesHubRows } from "~/server/games/hub-list-rows";
-import { matchOutcome } from "~/server/games/sets";
+import { listMyGamesHubRows } from "~/server/games/list-my-games";
+import { matchOutcome } from "~/server/games/match-outcome";
 import {
   sortStandingMembers,
   standingPosition,

@@ -15,7 +15,7 @@ import {
   FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
 } from "~/server/games/access";
-import { assertGameCreateVenueAndCourt } from "~/server/games/venue";
+import { assertGameCreateVenueAndCourt } from "~/server/games/assert-game-create-venue-and-court";
 import type {
   CreateFriendlyDb,
   CreateFriendlyGameInput,

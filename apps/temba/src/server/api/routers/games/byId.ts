@@ -33,12 +33,10 @@ import {
   listGameSides,
   sitsOnCompletedMatch,
 } from "~/server/games/seats";
-import {
-  bothSlotsFilled,
-  bothSlottedTeamsComplete,
-  matchOutcome,
-  setWinsForGames,
-} from "~/server/games/sets";
+import { bothSlotsFilled } from "~/server/games/both-slots-filled";
+import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
+import { matchOutcome } from "~/server/games/match-outcome";
+import { setWinsForGames } from "~/server/games/set-wins-for-games";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 

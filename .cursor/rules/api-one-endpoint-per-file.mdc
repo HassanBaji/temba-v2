@@ -62,7 +62,3 @@ Do not clone those modules under `api/routers/`. Do not reimplement occupancy, f
 
 - Endpoint-specific PGLite tests import a db-taking function **colocated in the procedure file** (or keep testing the shared glossary module). Do not add tests whose only purpose is “the function lives in its own file.”
 - UI read-models: prefer `RouterOutputs` / `RouterInputs`. Do not recreate a domain `utils/` dump for endpoint payloads.
-
-## While the tree is mid-migration
-
-Until TEM-146 lands, fat assembler files and domain-verb twins still exist. **Do not copy them for new work.** New endpoints go in `api/routers/<domain>/<procedure>.ts` with logic in that file. Do not add new twins under `server/<domain>/` for a single tRPC door.
