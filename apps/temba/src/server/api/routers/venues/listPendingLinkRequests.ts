@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { venueLinkRequests, VenueLinkRequestStatusEnum } from "@repo/db";
 
+import { operatorProcedure } from "~/server/api/trpc";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
@@ -45,3 +46,9 @@ export async function listPendingLinkRequests(database: DbClient) {
     requestedBy: row.requestedBy,
   }));
 }
+
+export const listPendingLinkRequestsProcedure = operatorProcedure.query(
+  async ({ ctx }) => {
+    return listPendingLinkRequests(ctx.db);
+  },
+);

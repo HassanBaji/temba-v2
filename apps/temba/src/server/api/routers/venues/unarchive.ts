@@ -1,6 +1,9 @@
+import { z } from "zod";
+
+import { operatorProcedure } from "~/server/api/trpc";
+import { type db } from "~/server/db";
 import { commit, throwCommitFailure } from "~/server/soft-archive";
 import { requireVenue } from "~/server/venues/helpers/require-venue";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -17,3 +20,9 @@ export async function unarchive(database: DbClient, args: { venueId: string }) {
     archivedAt: updated.archivedAt,
   };
 }
+
+export const unarchiveProcedure = operatorProcedure
+  .input(z.object({ id: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    return unarchive(ctx.db, { venueId: input.id });
+  });

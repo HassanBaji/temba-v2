@@ -1,3 +1,4 @@
+import { operatorProcedure } from "~/server/api/trpc";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
@@ -22,3 +23,7 @@ export async function listVenues(database: DbClient) {
     ],
   });
 }
+
+export const list = operatorProcedure.query(async ({ ctx }) => {
+  return listVenues(ctx.db);
+});

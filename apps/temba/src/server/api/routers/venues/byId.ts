@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { communities, venues } from "@repo/db";
 
+import { operatorProcedure } from "~/server/api/trpc";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
@@ -54,3 +56,9 @@ export async function venueById(database: DbClient, args: { venueId: string }) {
     linkedCommunities,
   };
 }
+
+export const byId = operatorProcedure
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    return venueById(ctx.db, { venueId: input.id });
+  });

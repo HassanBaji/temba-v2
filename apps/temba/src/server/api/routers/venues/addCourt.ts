@@ -1,14 +1,16 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 import { courts } from "@repo/db";
 
+import { operatorProcedure } from "~/server/api/trpc";
+import { type db } from "~/server/db";
 import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import {
   courtNameTaken,
   duplicateCourtMessage,
 } from "~/server/venues/helpers/court-name-taken";
 import { requireVenue } from "~/server/venues/helpers/require-venue";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -58,3 +60,17 @@ export async function addCourt(
     throw error;
   }
 }
+
+export const addCourtProcedure = operatorProcedure
+  .input(
+    z.object({
+      venueId: z.string().uuid(),
+      name: z.string().trim().min(1).max(255),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    return addCourt(ctx.db, {
+      venueId: input.venueId,
+      name: input.name,
+    });
+  });
