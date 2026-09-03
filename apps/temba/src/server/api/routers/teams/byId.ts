@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   communities,
@@ -10,12 +11,14 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { consult } from "~/server/soft-archive";
 import { listTeamMembers } from "~/server/teams/helpers/list-team-members";
 import { requireTeam } from "~/server/teams/helpers/require-team";
 import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 import { unusedInviteForTeam } from "~/server/teams/helpers/unused-invite-for-team";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -147,3 +150,10 @@ export async function teamById(
         : null,
   };
 }
+
+export const byId = protectedProcedure
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return teamById(ctx.db, { teamId: input.id, userId: appUser.id });
+  });

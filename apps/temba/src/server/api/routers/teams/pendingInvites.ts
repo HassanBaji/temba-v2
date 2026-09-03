@@ -2,8 +2,10 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import { teamMemberInvites, type GroupSportEnum } from "@repo/db";
 
-import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 
 type DbClient = typeof db;
 
@@ -45,3 +47,10 @@ export async function pendingInvites(
     createdAt: row.createdAt,
   }));
 }
+
+export const pendingInvitesProcedure = protectedProcedure.query(
+  async ({ ctx }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return pendingInvites(ctx.db, { userId: appUser.id });
+  },
+);

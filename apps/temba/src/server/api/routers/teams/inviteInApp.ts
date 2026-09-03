@@ -1,13 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { user } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { mintLookup } from "~/server/invites/doors";
 import { requireIncompleteTeamCreator } from "~/server/teams/helpers/require-incomplete-team-creator";
 import { unorderedPairIsReserved } from "~/server/teams/helpers/unordered-pair-is-reserved";
 import { unusedInviteForTeam } from "~/server/teams/helpers/unused-invite-for-team";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -88,3 +91,19 @@ export async function inviteInApp(
     createdAt: minted.invite.createdAt,
   };
 }
+
+export const inviteInAppProcedure = protectedProcedure
+  .input(
+    z.object({
+      teamId: z.string().uuid(),
+      userId: z.string().uuid(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return inviteInApp(ctx.db, {
+      teamId: input.teamId,
+      userId: appUser.id,
+      inviteeUserId: input.userId,
+    });
+  });

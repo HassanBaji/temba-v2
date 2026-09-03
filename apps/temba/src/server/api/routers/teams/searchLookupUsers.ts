@@ -1,7 +1,11 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
+import { searchLookupUsers as searchLookupUsersDoor } from "~/server/invites/search-lookup-users";
 import { requireIncompleteTeamCreator } from "~/server/teams/helpers/require-incomplete-team-creator";
 import { unusedInviteForTeam } from "~/server/teams/helpers/unused-invite-for-team";
-import { searchLookupUsers as searchLookupUsersDoor } from "~/server/invites/search-lookup-users";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -25,3 +29,19 @@ export async function searchLookupUsers(
     ],
   });
 }
+
+export const searchLookupUsersProcedure = protectedProcedure
+  .input(
+    z.object({
+      teamId: z.string().uuid(),
+      query: z.string().trim().max(255),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return searchLookupUsers(ctx.db, {
+      teamId: input.teamId,
+      userId: appUser.id,
+      query: input.query,
+    });
+  });

@@ -1,11 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { teamMemberInvites } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { revokeLookup } from "~/server/invites/doors";
 import { requireTeam } from "~/server/teams/helpers/require-team";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -64,3 +67,13 @@ export async function revokeInAppInvite(
 
   return { ok: true as const };
 }
+
+export const revokeInAppInviteProcedure = protectedProcedure
+  .input(z.object({ inviteId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return revokeInAppInvite(ctx.db, {
+      inviteId: input.inviteId,
+      userId: appUser.id,
+    });
+  });

@@ -1,9 +1,12 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
-import { mintLink } from "~/server/invites/doors";
-import { teamInviteLinkUrl } from "~/server/invites/tokens";
-import { requireIncompleteTeamCreator } from "~/server/teams/helpers/require-incomplete-team-creator";
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import { mintLink } from "~/server/invites/doors";
+import { getAppOrigin, teamInviteLinkUrl } from "~/server/invites/tokens";
+import { requireIncompleteTeamCreator } from "~/server/teams/helpers/require-incomplete-team-creator";
 
 type DbClient = typeof db;
 
@@ -36,3 +39,14 @@ export async function createInviteLink(
     expiresAt: minted.link.expiresAt,
   };
 }
+
+export const createInviteLinkProcedure = protectedProcedure
+  .input(z.object({ teamId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return createInviteLink(ctx.db, {
+      teamId: input.teamId,
+      userId: appUser.id,
+      origin: getAppOrigin(ctx.headers),
+    });
+  });

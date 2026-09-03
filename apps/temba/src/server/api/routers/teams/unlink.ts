@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   teamLinkRequests,
@@ -8,8 +9,10 @@ import {
   teams,
 } from "@repo/db";
 
-import { requireTeam } from "~/server/teams/helpers/require-team";
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import { requireTeam } from "~/server/teams/helpers/require-team";
 
 type DbClient = typeof db;
 
@@ -72,3 +75,13 @@ export async function unlink(
     communityId: previousCommunityId,
   };
 }
+
+export const unlinkProcedure = protectedProcedure
+  .input(z.object({ teamId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return unlink(ctx.db, {
+      teamId: input.teamId,
+      userId: appUser.id,
+    });
+  });

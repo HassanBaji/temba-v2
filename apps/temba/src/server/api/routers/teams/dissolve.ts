@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
+import { z } from "zod";
 
 import { teamEmailInvites, teamMembers, teams } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { killTeamOpenSeatDoors } from "~/server/teams/helpers/kill-team-open-seat-doors";
 import { listTeamMembers } from "~/server/teams/helpers/list-team-members";
 import { requireTeam } from "~/server/teams/helpers/require-team";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -65,3 +68,13 @@ export async function dissolve(
     teamId: team.id,
   };
 }
+
+export const dissolveProcedure = protectedProcedure
+  .input(z.object({ teamId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return dissolve(ctx.db, {
+      teamId: input.teamId,
+      userId: appUser.id,
+    });
+  });

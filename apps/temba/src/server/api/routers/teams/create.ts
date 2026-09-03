@@ -1,11 +1,16 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 import { teamMembers, teams, type GroupSportEnum } from "@repo/db";
 
-import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 
 type DbClient = typeof db;
+
+const sportSchema = z.enum(["padel", "football"]);
 
 function optionalTeamName(name: string | undefined) {
   if (!name || name.length === 0) {
@@ -62,3 +67,20 @@ export async function createTeam(
     losses: created.losses,
   };
 }
+
+export const create = protectedProcedure
+  .input(
+    z.object({
+      name: z.string().trim().max(255).optional(),
+      sport: sportSchema,
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return createTeam(ctx.db, {
+      name: input.name,
+      sport: input.sport,
+      userId: appUser.id,
+      userName: appUser.name,
+    });
+  });

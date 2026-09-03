@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { teamInviteLinks } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { acceptLink } from "~/server/invites/doors";
 import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { killTeamOpenSeatDoors } from "~/server/teams/helpers/kill-team-open-seat-doors";
@@ -10,7 +14,6 @@ import { listTeamMembers } from "~/server/teams/helpers/list-team-members";
 import { refuseIfLinkedCommunityArchived } from "~/server/teams/helpers/refuse-if-linked-community-archived";
 import { requireTeam } from "~/server/teams/helpers/require-team";
 import { unorderedPairIsReserved } from "~/server/teams/helpers/unordered-pair-is-reserved";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -86,3 +89,13 @@ export async function acceptInviteLink(
     alreadyMember: false as const,
   };
 }
+
+export const acceptInviteLinkProcedure = protectedProcedure
+  .input(z.object({ token: z.string().min(1).max(64) }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return acceptInviteLink(ctx.db, {
+      token: input.token,
+      userId: appUser.id,
+    });
+  });
