@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UpcomingGameHeroCard } from "~/components/games/upcoming-game-hero-card";
 import { cn } from "~/lib/utils";
-import type { HubListSide } from "~/server/games";
+import { type RouterOutputs } from "~/trpc/react";
+
+type HubListSide =
+  RouterOutputs["games"]["listMyGames"][number]["sides"][number];
 
 export type UpcomingGamesCarouselItem = {
   id: string;

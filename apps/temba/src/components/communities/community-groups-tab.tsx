@@ -7,7 +7,9 @@ import { GroupTypeBadge } from "~/components/temba/group-type-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Button } from "~/components/ui/button";
 import { Section } from "~/components/layout/section";
-import type { ClubGroup } from "~/server/communities";
+import { type RouterOutputs } from "~/trpc/react";
+
+type ClubGroup = RouterOutputs["communities"]["byId"]["groups"][number];
 
 export function CommunityGroupsTab({
   groups,

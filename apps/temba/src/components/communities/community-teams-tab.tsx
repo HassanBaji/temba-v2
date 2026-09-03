@@ -5,7 +5,9 @@ import { AvatarStack } from "~/components/common/avatar-stack";
 import { EmptyState } from "~/components/common/empty-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { SportBadge } from "~/components/temba/sport-badge";
-import type { ClubTeam } from "~/server/communities";
+import { type RouterOutputs } from "~/trpc/react";
+
+type ClubTeam = RouterOutputs["communities"]["byId"]["teams"][number];
 
 export function CommunityTeamsTab({ teams }: { teams: ClubTeam[] }) {
   if (teams.length === 0) {

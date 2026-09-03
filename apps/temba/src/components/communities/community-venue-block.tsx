@@ -3,7 +3,9 @@ import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import type { CommunityVenue, VenueLinkRequest } from "~/server/communities";
+import { type RouterOutputs } from "~/trpc/react";
+
+type CommunityHome = RouterOutputs["communities"]["byId"];
 
 export function CommunityVenueBlock({
   venue,
@@ -14,8 +16,8 @@ export function CommunityVenueBlock({
   onUnlink,
   onLinkVenue,
 }: {
-  venue: CommunityVenue | null;
-  venueLinkRequest: VenueLinkRequest | null;
+  venue: CommunityHome["venue"];
+  venueLinkRequest: CommunityHome["venueLinkRequest"];
   canUnlinkVenue: boolean;
   canRequestVenueLink: boolean;
   canManageVenueLink: boolean;

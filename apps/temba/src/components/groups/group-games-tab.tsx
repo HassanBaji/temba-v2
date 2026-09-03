@@ -3,7 +3,9 @@ import { Calendar } from "lucide-react";
 import { EmptyState } from "~/components/common/empty-state";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { Section } from "~/components/layout/section";
-import type { GroupGame } from "~/server/groups";
+import { type RouterOutputs } from "~/trpc/react";
+
+type GroupHome = RouterOutputs["groups"]["byId"];
 
 export function GroupGamesTab({
   upcomingGames,
@@ -11,8 +13,8 @@ export function GroupGamesTab({
   groupName,
   isCommunityArchived,
 }: {
-  upcomingGames: GroupGame[];
-  gameHistory: GroupGame[];
+  upcomingGames: GroupHome["upcomingGames"];
+  gameHistory: GroupHome["gameHistory"];
   groupName: string;
   isCommunityArchived: boolean;
 }) {

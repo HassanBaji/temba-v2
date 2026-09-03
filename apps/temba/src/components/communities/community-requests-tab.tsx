@@ -9,7 +9,11 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Section } from "~/components/layout/section";
-import type { JoinRequest, TeamLinkRequest } from "~/server/communities";
+import { type RouterOutputs } from "~/trpc/react";
+
+type JoinRequest = RouterOutputs["communities"]["listJoinRequests"][number];
+type TeamLinkRequest =
+  RouterOutputs["communities"]["listTeamLinkRequests"][number];
 
 export function CommunityRequestsTab({
   canManageJoinRequests,

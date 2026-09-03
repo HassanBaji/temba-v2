@@ -30,8 +30,9 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import { api } from "~/trpc/react";
-import type { CommunityType } from "~/server/communities";
+import { api, type RouterInputs } from "~/trpc/react";
+
+type CommunityType = RouterInputs["communities"]["create"]["type"];
 
 const FIELD_IDS = { name: "community-name", type: "community-type" };
 

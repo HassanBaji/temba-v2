@@ -12,7 +12,9 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import type { LiveVenue } from "~/server/communities";
+import { type RouterOutputs } from "~/trpc/react";
+
+type LiveVenue = RouterOutputs["communities"]["searchLiveVenues"][number];
 
 export function CommunityLinkVenueDialog({
   open,
