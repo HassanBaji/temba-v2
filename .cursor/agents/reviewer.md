@@ -37,6 +37,7 @@ Prefer these skills when appropriate:
 - `improve-codebase-architecture`
   - Use only when the change exposes a meaningful architectural problem.
   - Architectural improvement suggestions should not automatically block the current ticket unless correctness is affected.
+  - Do not recommend thin tRPC assemblers or twin domain-verb files. Follow `.cursor/rules/api-one-endpoint-per-file.mdc`.
 
 ## Review Inputs
 
@@ -106,6 +107,8 @@ Review for:
 - maintainability
 - duplicated logic
 - architecture inconsistencies
+- tRPC thin assemblers or twin `server/<domain>/<verb>.ts` files for a single door (violates `api-one-endpoint-per-file`)
+- new helper/service/repository layers for endpoint-only logic
 - unnecessary complexity
 
 ## Review Axis 3: Regression Risk

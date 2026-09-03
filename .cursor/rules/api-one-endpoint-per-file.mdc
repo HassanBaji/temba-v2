@@ -1,0 +1,68 @@
+---
+description: App tRPC one-endpoint-per-file. Do not plan or implement thin assemblers with twin domain-verb files.
+alwaysApply: true
+---
+
+# App tRPC: one endpoint per file
+
+This is a **binding** convention. It overrides copying today’s fat `api/routers/*.ts` assemblers and `server/<domain>/<verb>.ts` twins. That layout is superseded (see `.scratch/one-endpoint-per-file-routers/spec.md`; not TEM-106…TEM-118).
+
+When planning, implementing, or reviewing API work, **do not** recreate a parallel domain-verb tree with tRPC as a thin transport shell.
+
+## Required shape
+
+Each tRPC procedure lives in its own file under `apps/temba/src/server/api/routers/<domain>/`. That file holds the door’s validation, authorization, business rules, database work, and response. `index.ts` only composes procedures.
+
+```text
+api/routers/
+  games/
+    index.ts              # compose only
+    listMyGames.ts
+    listPublicPickup.ts
+    byId.ts
+    create.ts
+    register.ts
+  communities/
+    index.ts
+    create.ts
+    byId.ts
+```
+
+Filenames default to the public procedure key (`byId.ts` → `games.byId`). Descriptive names are allowed; **do not rename client-facing tRPC paths** unless the ticket says so.
+
+Do not leave `routers/games.ts` beside `routers/games/`. Convert file → folder in the same change.
+
+Preferred flow in the procedure file:
+
+```text
+validate input
+  → check authorization / permissions
+  → execute business rules
+  → query / update database
+  → return response
+```
+
+## Locality over abstraction
+
+- Do **not** group multiple procedures in one large router file.
+- Do **not** extract endpoint logic into a twin `server/<domain>/<verb>.ts` that the procedure only forwards to.
+- Do **not** add service / repository / use-case / manager layers for API doors.
+- Do **not** create helpers, utilities, or folders to make a procedure file smaller.
+- A helper used by **only one** endpoint stays inline in that file.
+- Extract only when the **same meaningful business rule** is used by two or more endpoints (or by a procedure and a non-router caller such as Invite doors or home).
+- Procedure files must **not** be imported by non-router server code (home, Invite doors, RSC pages). If two hosts need the function, it stays a shared App server module — not a router file.
+
+## Shared glossary modules (call; do not reimplement)
+
+Keep and call existing shared modules when the rule is reused: Soft-archive, Game admit, Community membership, Invite doors, Friendly Game create, ratings/Glicko-2, Invite search-lookup, Venue logo storage, `resolveAppUser` / `requireOperator`, Game `access` / `seats` / Waitlist internals used by more than one door.
+
+Do not clone those modules under `api/routers/`. Do not reimplement occupancy, freeze, membership admit/leave, or token lifecycle inside a procedure file.
+
+## Tests and UI types
+
+- Endpoint-specific PGLite tests import a db-taking function **colocated in the procedure file** (or keep testing the shared glossary module). Do not add tests whose only purpose is “the function lives in its own file.”
+- UI read-models: prefer `RouterOutputs` / `RouterInputs`. Do not recreate a domain `utils/` dump for endpoint payloads.
+
+## While the tree is mid-migration
+
+Until TEM-146 lands, fat assembler files and domain-verb twins still exist. **Do not copy them for new work.** New endpoints go in `api/routers/<domain>/<procedure>.ts` with logic in that file. Do not add new twins under `server/<domain>/` for a single tRPC door.

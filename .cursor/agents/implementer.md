@@ -47,7 +47,7 @@ Prefer these skills when appropriate:
 3. Inspect the existing implementation.
 4. Read applicable repository rules and documentation.
 5. Identify:
-   - established architecture
+   - established architecture (for tRPC: `api-one-endpoint-per-file`, not fat assembler twins)
    - naming conventions
    - domain patterns
    - data model
@@ -60,6 +60,17 @@ Prefer these skills when appropriate:
 7. Confirm what is explicitly out of scope.
 
 Do not start coding before understanding the surrounding implementation.
+
+## App tRPC
+
+When adding or changing a tRPC procedure, follow `.cursor/rules/api-one-endpoint-per-file.mdc`.
+
+- One procedure per file under `api/routers/<domain>/`. Logic lives in that file.
+- `index.ts` only composes procedures.
+- Do not add a twin `server/<domain>/<verb>.ts` that the procedure only forwards to.
+- Do not copy today’s fat assembler files as the pattern (superseded; TEM-134…TEM-146).
+- Call existing shared glossary modules; do not reimplement them.
+- Do not introduce service / repository / use-case layers for API doors.
 
 ## Default Workflow
 
@@ -120,6 +131,7 @@ Do not:
 - rename unrelated APIs
 - change architecture because another approach feels cleaner
 - introduce abstractions for hypothetical future requirements
+- extract an API door into helpers/services to make the procedure file smaller
 - modify requirements without escalating the conflict
 
 If you discover a significant problem with the specification:

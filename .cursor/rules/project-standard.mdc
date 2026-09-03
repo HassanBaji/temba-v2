@@ -6,21 +6,20 @@ alwaysApply: true
 
 The existing codebase is the primary source of truth.
 
+**Exception — App tRPC:** do not copy fat `api/routers/*.ts` assemblers or twin `server/<domain>/<verb>.ts` files. Follow `api-one-endpoint-per-file` even while that migration is in progress.
+
 Before creating:
 
 - a component
 - a hook
-- a service
 - an API endpoint
-- a repository
 - a form
 - a table
-- a Prisma query
 - an error handling mechanism
 
 search for an existing implementation of the same concept.
 
-If one exists, follow its structure and conventions.
+If one exists, follow its structure and conventions — except where a Cursor rule (such as `api-one-endpoint-per-file`) supersedes the current tree.
 
 Do not introduce a new library, architecture pattern, folder,
 abstraction, or convention when an existing solution already exists.
@@ -42,9 +41,9 @@ Follow the existing folder structure.
 When adding a new feature:
 
 - Place UI components alongside similar existing components.
-- Place business logic in the existing service/domain layer.
-- Place database access in the existing repository/data-access layer.
-- Place shared types in the project's existing type locations.
+- Place tRPC endpoint logic in that endpoint’s procedure file under `api/routers/<domain>/` (see `api-one-endpoint-per-file`). Do **not** put a door’s logic in a twin `server/<domain>/<verb>.ts` or a service/repository layer.
+- Shared glossary rules used by two or more doors (Soft-archive, Game admit, Community membership, Invite doors, and similar) stay in their existing App server modules.
+- Place shared types in the project's existing type locations (UI payloads: `RouterOutputs` / `RouterInputs`).
 - Do not invent new top-level directories without justification.
 
 # TypeScript
@@ -66,11 +65,13 @@ When adding a new feature:
 
 # API / Backend
 
-- Follow existing API patterns.
-- Validate input at the boundary.
-- Keep database queries separate from presentation/UI logic.
+- Follow `api-one-endpoint-per-file`: one tRPC procedure per file; logic lives in that file; `index.ts` only composes.
+- Do **not** copy today’s fat `api/routers/*.ts` assemblers or `server/<domain>/<verb>.ts` twins as the pattern. That layout is superseded.
+- Validate input at the boundary (Zod on the procedure).
+- Keep database queries out of presentation/UI logic.
 - Use existing error-handling patterns.
 - Do not introduce a different response format.
+- Do not add service / repository / use-case layers for API doors.
 
 # Database
 
@@ -85,7 +86,7 @@ Before coding:
 
 - Find 2-3 similar implementations in the repository.
 - Identify the pattern they use.
-- Follow that pattern.
+- Follow that pattern — except App tRPC, which follows `api-one-endpoint-per-file` even if nearby files are still fat assemblers.
 
 After coding:
 
@@ -97,3 +98,4 @@ After coding:
 When uncertain about architecture:
 DO NOT invent a new pattern.
 Search the repository for an existing implementation first.
+For tRPC doors, do not invent a service/domain-verb tree; colocate logic in the procedure file.

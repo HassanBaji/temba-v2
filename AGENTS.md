@@ -12,6 +12,12 @@ Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/age
 
 Project subagents live in `.cursor/agents/`: `planner`, `implementer`, `reviewer`, `orchestrator`. Use `orchestrator` to implement a feature's tickets in numerical order with a fresh `implementer` per ticket.
 
+### App tRPC
+
+One procedure per file under `apps/temba/src/server/api/routers/<domain>/`, with that door’s logic in the same file. Binding rule: `.cursor/rules/api-one-endpoint-per-file.mdc`. Spec: `.scratch/one-endpoint-per-file-routers/spec.md`.
+
+Do not plan or implement thin tRPC assemblers that only forward to `server/<domain>/<verb>.ts` twins. Do not add service/repository/use-case layers for API doors. Shared glossary modules (Soft-archive, Game admit, Community membership, Invite doors, Friendly Game create, ratings) stay shared.
+
 ## Cursor Cloud specific instructions
 
 Cloud Agents use `.cursor/environment.json` (`install` → `.cursor/install.sh`, `start` → `.cursor/start.sh`, terminal `pnpm --filter temba dev` on port 3000).
