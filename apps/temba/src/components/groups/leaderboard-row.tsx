@@ -60,7 +60,7 @@ export function LeaderboardRow({
     <li
       className={cn(
         "flex min-h-16 min-w-11 items-center gap-3 px-4 py-3",
-        isViewer && "bg-muted border-l-volt border-l-2",
+        isViewer && "bg-muted border-l-foreground border-l-2",
       )}
     >
       <div className="w-12 shrink-0">

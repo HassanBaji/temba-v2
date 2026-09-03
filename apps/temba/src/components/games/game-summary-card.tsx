@@ -102,7 +102,7 @@ function RosterSeat({
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-lg font-semibold",
           joinable
-            ? "border-volt bg-volt-soft text-volt-foreground"
+            ? "border-foreground bg-muted text-foreground"
             : "border-border text-muted-foreground/70",
         )}
       >

@@ -41,7 +41,7 @@ export function BottomNav() {
             {active ? (
               <span
                 aria-hidden="true"
-                className="bg-volt absolute inset-x-0 top-0 h-0.5"
+                className="bg-foreground absolute inset-x-0 top-0 h-0.5"
               />
             ) : null}
             <Icon

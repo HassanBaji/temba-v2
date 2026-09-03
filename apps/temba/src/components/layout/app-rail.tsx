@@ -55,7 +55,7 @@ export function AppRail() {
                       isActive={active}
                       className={
                         active
-                          ? "border-l-volt text-sidebar-foreground [&>svg]:text-sidebar-foreground border-l-[3px] font-semibold"
+                          ? "border-l-sidebar-foreground text-sidebar-foreground [&>svg]:text-sidebar-foreground border-l-[3px] font-semibold"
                           : undefined
                       }
                     >

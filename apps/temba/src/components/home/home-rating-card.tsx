@@ -159,7 +159,7 @@ function LevelTrend({
     <span
       className={cn(
         "text-meta inline-flex shrink-0 items-center gap-1 font-semibold tabular-nums",
-        delta > 0 ? "text-success" : "text-muted-foreground",
+        delta > 0 ? "text-foreground" : "text-muted-foreground",
       )}
     >
       <span className="sr-only">{description}</span>

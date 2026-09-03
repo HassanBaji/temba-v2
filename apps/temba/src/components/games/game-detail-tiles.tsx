@@ -11,13 +11,12 @@ import { formatLevelRangeLabel } from "~/lib/level-range";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 
-type TileTone = "neutral" | "warning" | "success" | "volt";
+type TileTone = "neutral" | "warning" | "success";
 
 const ICON_TONE: Record<TileTone, string> = {
   neutral: "bg-background text-muted-foreground",
   warning: "bg-warning-subtle text-warning",
   success: "bg-success-subtle text-success",
-  volt: "bg-volt-soft text-volt-foreground",
 };
 
 function durationLabel(minutes: number | null | undefined) {
@@ -130,7 +129,7 @@ export function GameDetailTiles({
           icon={Gauge}
           label="Level range"
           value={levelLabel}
-          tone="volt"
+          tone="neutral"
         />
       ) : null}
     </div>
