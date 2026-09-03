@@ -1,17 +1,24 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { ratings } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { userHasRatedMatch } from "~/server/ratings/has-rated-match";
 import {
   initialRatingFromChoice,
+  SELF_DECLARE_CHOICES,
   youRatingViewFromState,
   type SelfDeclareChoice,
   type YouRatingView,
 } from "~/server/ratings/level";
+
+const sportSchema = z.enum(["padel", "football"]);
+const selfDeclareChoiceSchema = z.enum(SELF_DECLARE_CHOICES);
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -81,3 +88,26 @@ export async function selfDeclareRating(
     throw error;
   }
 }
+
+/**
+ * One-time self-declare of a starting Level band (or “I don’t know”).
+ * Refused after a previous declare or after a Rated Match. Does not block
+ * Game register.
+ */
+export const selfDeclare = protectedProcedure
+  .input(
+    z.object({
+      sport: sportSchema,
+      choice: selfDeclareChoiceSchema,
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    const rating = await selfDeclareRating(
+      ctx.db,
+      appUser.id,
+      input.sport,
+      input.choice,
+    );
+    return { rating };
+  });

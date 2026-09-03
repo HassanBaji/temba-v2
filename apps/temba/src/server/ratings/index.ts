@@ -41,4 +41,3 @@ export {
   type SelfDeclareChoice,
   type YouRatingView,
 } from "~/server/ratings/level";
-export { selfDeclareRating } from "~/server/ratings/self-declare";
