@@ -9,6 +9,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
+import { MatchHistoryCard } from "~/components/games/match-history-card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -22,8 +23,9 @@ import {
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
+type HistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
 
-type HubTab = "my-games" | "public";
+type HubTab = "my-games" | "public" | "history";
 
 function GamesHubTabPanel({
   isLoading,
@@ -137,6 +139,70 @@ function GamesHubTabPanel({
   );
 }
 
+function HistoryTabPanel({
+  isLoading,
+  errorMessage,
+  onRetry,
+  rows,
+  emptyState,
+}: {
+  isLoading: boolean;
+  errorMessage?: string;
+  onRetry: () => void;
+  rows?: HistoryRow[];
+  emptyState: React.ReactNode;
+}) {
+  if (isLoading) {
+    return (
+      <div aria-busy="true" aria-live="polite" className="flex flex-col gap-3">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="bg-card border-border shadow-xs flex items-center gap-3 rounded-xl border p-4 md:p-5"
+          >
+            <div className="w-16 shrink-0 space-y-1.5">
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-4 w-10" />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Skeleton className="h-5 w-40 max-w-full" />
+              <Skeleton className="h-4 w-28 max-w-full" />
+              <Skeleton className="h-4 w-24 max-w-full" />
+            </div>
+            <Skeleton className="h-6 w-14 rounded-sm" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <ErrorState
+        title="Games could not be loaded"
+        message={errorMessage}
+        onRetry={onRetry}
+      />
+    );
+  }
+
+  if (!rows) {
+    return null;
+  }
+
+  if (rows.length === 0) {
+    return emptyState;
+  }
+
+  return (
+    <ul className="flex flex-col gap-3">
+      {rows.map((row) => (
+        <MatchHistoryCard key={row.id} row={row} />
+      ))}
+    </ul>
+  );
+}
+
 function TabCount({ count }: { count: number | undefined }) {
   if (!count) {
     return null;
@@ -153,6 +219,7 @@ export default function GamesHubPage() {
   const [tab, setTab] = React.useState<HubTab>("my-games");
   const myGames = api.games.listMyGames.useQuery();
   const pickup = api.games.listPublicPickup.useQuery();
+  const history = api.games.listMyMatchHistory.useQuery();
   const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
 
@@ -160,6 +227,7 @@ export default function GamesHubPage() {
     await Promise.all([
       utils.games.listMyGames.invalidate(),
       utils.games.listPublicPickup.invalidate(),
+      utils.games.listMyMatchHistory.invalidate(),
       utils.users.home.invalidate(),
       utils.games.byId.invalidate(),
     ]);
@@ -248,6 +316,13 @@ export default function GamesHubPage() {
             Public
             <TabCount count={pickup.data?.length} />
           </TabsTrigger>
+          <TabsTrigger
+            value="history"
+            className="min-h-11 min-w-11 flex-none px-3"
+          >
+            History
+            <TabCount count={history.data?.length} />
+          </TabsTrigger>
         </TabsList>
         <TabsContent
           value="my-games"
@@ -313,6 +388,26 @@ export default function GamesHubPage() {
             onJoinWaitlist={onJoinWaitlist}
             onRegister={onRegister}
             pendingGameId={pendingGameId}
+          />
+        </TabsContent>
+        <TabsContent
+          value="history"
+          className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+        >
+          <HistoryTabPanel
+            isLoading={history.isLoading}
+            errorMessage={history.error?.message}
+            onRetry={() => {
+              void history.refetch();
+            }}
+            rows={history.data}
+            emptyState={
+              <EmptyState
+                emoji="🏆"
+                title="No match history yet"
+                description="Completed Games you played in show up here."
+              />
+            }
           />
         </TabsContent>
       </Tabs>
