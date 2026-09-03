@@ -25,15 +25,7 @@ export { admit } from "~/server/games/admit";
 export {
   assertCourtAssignable,
   assertGameTeamOnGame,
-  listAssignableCourts,
-  listCourts,
 } from "~/server/games/courts";
-export {
-  approveLevelRangeRequest,
-  listLevelRangeRequests,
-  rejectLevelRangeRequest,
-  requestLevelRange,
-} from "~/server/games/level-range-requests";
 export { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 export {
   FRIENDLY_SET_SHELL_COUNT,
@@ -42,6 +34,8 @@ export {
 } from "~/server/games/create-friendly";
 export { assertGameCreateVenueAndCourt } from "~/server/games/venue";
 export { loadGameCreateVenueContext } from "~/server/games/helpers/load-game-create-venue-context";
+export { updateFriendlyGameMatchCourt } from "~/server/games/update-friendly-game-match-court";
+export { updateTournamentMatch } from "~/server/games/update-tournament-match";
 export {
   admitCompleteTeam,
   admitIndividualUser,
@@ -50,22 +44,6 @@ export {
   eligibleCompleteTeamsForUser,
   recordTeamInviteLinkConsent,
 } from "~/server/games/invites";
-export { addMatch, addTournamentMatch } from "~/server/games/add-match";
-export { cancelGame } from "~/server/games/cancel";
-export { cancelMatch } from "~/server/games/cancel-match";
-export { closeRegistration } from "~/server/games/close-registration";
-export { reopenRegistration } from "~/server/games/reopen-registration";
-export { updateFriendlyGameMatchCourt } from "~/server/games/update-friendly-game-match-court";
-export { updateGameMatch, updateMatch } from "~/server/games/update-match";
-export { updateTournamentMatch } from "~/server/games/update-tournament-match";
-export { updateGameCaps } from "~/server/games/update-caps";
-export { updateGamePricePerPlayer } from "~/server/games/update-price-per-player";
-export { updateGameLevelRange } from "~/server/games/update-level-range";
-export { updateGameWindow } from "~/server/games/update-window";
-export { addSet, addMatchSet } from "~/server/games/add-set";
-export { scoreSet, scoreMatchSet } from "~/server/games/score-set";
-export { removeSet, removeMatchSet } from "~/server/games/remove-set";
-export { completeMatch } from "~/server/games/complete-match";
 export { searchLookupUsers } from "~/server/games/search-lookup-users";
 export { sendLookupInvite } from "~/server/games/send-lookup-invite";
 export { listLookupInvites } from "~/server/games/list-lookup-invites";

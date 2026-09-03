@@ -20,17 +20,15 @@ import {
 
 import { leaveGame } from "~/server/api/routers/games/leave";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
+import { approveLevelRangeRequest } from "~/server/api/routers/games/approveLevelRangeRequest";
+import { requestLevelRange } from "~/server/api/routers/games/requestLevelRange";
+import { updateGameLevelRange } from "~/server/api/routers/games/updateLevelRange";
 import type { GameRow } from "~/server/games/access";
 import { acceptInviteLink } from "~/server/games/accept-invite-link";
 import { acceptLookupInvite } from "~/server/games/accept-lookup-invite";
-import {
-  requestLevelRange,
-  approveLevelRangeRequest,
-} from "~/server/games/level-range-requests";
 import { previewInviteLink } from "~/server/games/preview-invite-link";
 import { revokeLookupInvite } from "~/server/games/revoke-lookup-invite";
 import { sendLookupInvite } from "~/server/games/send-lookup-invite";
-import { updateGameLevelRange } from "~/server/games/update-level-range";
 import { mintLink } from "~/server/invites/doors";
 import { loadGameInviteOpenGraph } from "~/server/invites/game-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";

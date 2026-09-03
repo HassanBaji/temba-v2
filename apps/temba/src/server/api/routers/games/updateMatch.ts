@@ -1,5 +1,9 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   assertGameOrganizer,
   requireGame,
@@ -8,7 +12,6 @@ import {
 import { updateFriendlyGameMatchCourt } from "~/server/games/update-friendly-game-match-court";
 import { updateTournamentMatch } from "~/server/games/update-tournament-match";
 import { type MatchUpdateInput } from "~/server/games/utils";
-import { type db } from "~/server/db";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -82,3 +85,31 @@ export async function updateMatch(
   });
   return { ok: true as const };
 }
+
+export const updateMatchProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      matchId: z.string().uuid(),
+      startTime: z.coerce.date().nullable().optional(),
+      endTime: z.coerce.date().nullable().optional(),
+      durationInMinutes: z.number().int().nonnegative().nullable().optional(),
+      courtId: z.string().uuid().nullable().optional(),
+      slot1GameTeamId: z.string().uuid().nullable().optional(),
+      slot2GameTeamId: z.string().uuid().nullable().optional(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return updateMatch(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      matchId: input.matchId,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      durationInMinutes: input.durationInMinutes,
+      courtId: input.courtId,
+      slot1GameTeamId: input.slot1GameTeamId,
+      slot2GameTeamId: input.slot2GameTeamId,
+    });
+  });

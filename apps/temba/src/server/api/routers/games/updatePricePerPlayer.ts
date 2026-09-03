@@ -1,14 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { games } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   assertGameOrganizer,
   requireGame,
   type GameRow,
 } from "~/server/games/access";
-import { type db } from "~/server/db";
+import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -46,3 +50,24 @@ export async function updateGamePricePerPlayer(
   });
   return { ok: true as const };
 }
+
+export const updatePricePerPlayer = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      pricePerPlayerCents: z
+        .number()
+        .int()
+        .min(0)
+        .max(PRICE_PER_PLAYER_MAX_CENTS)
+        .nullable(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return updateGamePricePerPlayer(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      pricePerPlayerCents: input.pricePerPlayerCents,
+    });
+  });

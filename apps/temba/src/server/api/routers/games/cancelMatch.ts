@@ -1,15 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { MatchStatusEnum, matches } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   assertGameOrganizer,
   requireGame,
   type GameRow,
 } from "~/server/games/access";
 import { cancelGameRecord } from "~/server/games/helpers/cancel-game-record";
-import { type db } from "~/server/db";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -66,3 +69,19 @@ export async function cancelMatch(
     return cancelMatchOnGame(tx, game, args.matchId);
   });
 }
+
+export const cancelMatchProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      matchId: z.string().uuid(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return cancelMatch(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      matchId: input.matchId,
+    });
+  });

@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { MatchStatusEnum, matchSets, matches } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
@@ -10,7 +14,6 @@ import { matchOutcome } from "~/server/games/match-outcome";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
 import { userIsOnMatchSlots } from "~/server/games/user-is-on-match-slots";
 import { applyRatedMatch } from "~/server/ratings/apply-rated-match";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -114,3 +117,19 @@ export async function completeMatch(
   });
   return { ok: true as const };
 }
+
+export const completeMatchProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      matchId: z.string().uuid(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return completeMatch(ctx.db, {
+      gameId: input.gameId,
+      matchId: input.matchId,
+      userId: appUser.id,
+    });
+  });

@@ -40,6 +40,8 @@ import {
   setWinsForGames,
 } from "~/server/games/sets";
 
+import { listLevelRangeRequests } from "./listLevelRangeRequests";
+
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function gameById(
@@ -242,6 +244,12 @@ export async function gameById(
     args.userId,
     organizer,
   );
+  const pendingLevelRangeRequests = organizer
+    ? await listLevelRangeRequests(database, {
+        gameId: game.id,
+        userId: args.userId,
+      })
+    : [];
 
   return {
     id: game.id,
@@ -381,6 +389,7 @@ export async function gameById(
     ),
     eligibleTeams,
     ...levelRange,
+    pendingLevelRangeRequests,
   };
 }
 

@@ -1,14 +1,17 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { games, matches } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   assertGameOrganizer,
   requireGame,
   type GameRow,
 } from "~/server/games/access";
-import { type db } from "~/server/db";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -78,3 +81,31 @@ export async function updateGameWindow(
   });
   return { ok: true as const };
 }
+
+export const updateWindow = protectedProcedure
+  .input(
+    z
+      .object({
+        gameId: z.string().uuid(),
+        name: z.string().trim().min(1).max(255),
+        windowStart: z.coerce.date(),
+        windowEnd: z.coerce.date(),
+      })
+      .refine(
+        (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
+        {
+          message: "Finish time must be at or after start time",
+          path: ["windowEnd"],
+        },
+      ),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return updateGameWindow(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      windowStart: input.windowStart,
+      windowEnd: input.windowEnd,
+      name: input.name,
+    });
+  });

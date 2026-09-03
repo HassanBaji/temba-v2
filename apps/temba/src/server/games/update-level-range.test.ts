@@ -6,7 +6,7 @@ import { games, user, venues } from "@repo/db/schema";
 
 import { gameById } from "~/server/api/routers/games/byId";
 import { createFriendlyGame } from "~/server/games/create-friendly";
-import { updateGameLevelRange } from "~/server/games/update-level-range";
+import { updateGameLevelRange } from "~/server/api/routers/games/updateLevelRange";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 async function insertUser(database: TestDatabase, email: string) {

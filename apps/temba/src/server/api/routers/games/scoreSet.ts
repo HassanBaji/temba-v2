@@ -1,13 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { matchSets } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { assertMayWriteSets } from "~/server/games/assert-may-write-sets";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -60,4 +63,24 @@ export async function scoreSet(
   return { ok: true as const };
 }
 
-export const scoreMatchSet = scoreSet;
+export const scoreSetProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      matchId: z.string().uuid(),
+      setId: z.string().uuid(),
+      slot1GamesWon: z.number().int().nonnegative(),
+      slot2GamesWon: z.number().int().nonnegative(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return scoreSet(ctx.db, {
+      gameId: input.gameId,
+      matchId: input.matchId,
+      setId: input.setId,
+      userId: appUser.id,
+      slot1GamesWon: input.slot1GamesWon,
+      slot2GamesWon: input.slot2GamesWon,
+    });
+  });

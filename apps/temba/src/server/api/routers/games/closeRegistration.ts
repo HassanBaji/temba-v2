@@ -1,14 +1,17 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { games } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   assertGameOrganizer,
   requireGame,
   type GameRow,
 } from "~/server/games/access";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -41,3 +44,13 @@ export async function closeRegistration(
   await closeRegistrationOnGame(database, game);
   return { ok: true as const };
 }
+
+export const closeRegistrationProcedure = protectedProcedure
+  .input(z.object({ gameId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return closeRegistration(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+    });
+  });

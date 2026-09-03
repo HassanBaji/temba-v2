@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { matchSets } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { assertMayWriteSets } from "~/server/games/assert-may-write-sets";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -36,4 +39,20 @@ export async function removeSet(
   return { ok: true as const };
 }
 
-export const removeMatchSet = removeSet;
+export const removeSetProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      matchId: z.string().uuid(),
+      setId: z.string().uuid(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return removeSet(ctx.db, {
+      gameId: input.gameId,
+      matchId: input.matchId,
+      setId: input.setId,
+      userId: appUser.id,
+    });
+  });

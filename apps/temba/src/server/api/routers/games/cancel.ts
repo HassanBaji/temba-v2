@@ -1,6 +1,10 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { cancelGameRecord } from "~/server/games/helpers/cancel-game-record";
-import { type db } from "~/server/db";
 
 export async function cancelGame(
   database: typeof db,
@@ -13,3 +17,10 @@ export async function cancelGame(
   });
   return { ok: true as const };
 }
+
+export const cancel = protectedProcedure
+  .input(z.object({ gameId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return cancelGame(ctx.db, { gameId: input.gameId, userId: appUser.id });
+  });

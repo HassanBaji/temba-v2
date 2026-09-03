@@ -1,7 +1,11 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 import { courts } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   assertGameOrganizer,
   requireGame,
@@ -10,7 +14,6 @@ import {
 import { recordedCourtIdsForGame } from "~/server/games/helpers/recorded-court-ids-for-game";
 import { venueForGame } from "~/server/games/helpers/venue-for-game";
 import { consult } from "~/server/soft-archive";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -48,3 +51,10 @@ export async function listCourts(
   await assertGameOrganizer(database, game, args.userId);
   return listAssignableCourts(database, game);
 }
+
+export const listCourtsProcedure = protectedProcedure
+  .input(z.object({ gameId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listCourts(ctx.db, { gameId: input.gameId, userId: appUser.id });
+  });
