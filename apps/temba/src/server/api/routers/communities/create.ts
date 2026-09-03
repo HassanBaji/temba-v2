@@ -1,7 +1,10 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 import { communities, communitySports, CommunityRoleEnum } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import {
   admit as admitCommunityMember,
   throwAdmitFailure,
@@ -9,6 +12,9 @@ import {
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
+
+const sportSchema = z.enum(["padel", "football"]);
+const communityTypeSchema = z.enum(["public", "private"]);
 
 export async function createCommunity(
   database: DbClient,
@@ -64,3 +70,23 @@ export async function createCommunity(
     return created;
   });
 }
+
+export const create = protectedProcedure
+  .input(
+    z.object({
+      name: z.string().trim().min(1).max(255),
+      description: z.string().trim().max(255).optional(),
+      type: communityTypeSchema,
+      sports: z.array(sportSchema).min(1),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return createCommunity(ctx.db, {
+      name: input.name,
+      description: input.description,
+      type: input.type,
+      sports: input.sports,
+      userId: appUser.id,
+    });
+  });

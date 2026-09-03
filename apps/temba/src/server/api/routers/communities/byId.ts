@@ -1,30 +1,95 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   communities,
   communityJoinRequests,
+  communityMembers,
+  CommunityRoleEnum,
   groupMembers,
   groups,
   teamMembers,
   teams,
   venueLinkRequests,
   VenueLinkRequestStatusEnum,
+  venues,
   type GroupSportEnum,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asJoinStatus } from "~/server/communities/helpers/as-join-status";
 import { asRole } from "~/server/communities/helpers/as-role";
-import { countOwners } from "~/server/communities/helpers/count-owners";
-import { loadMemberVenue } from "~/server/communities/helpers/load-member-venue";
-import { mapVenueLinkRequestRow } from "~/server/communities/helpers/map-venue-link-request-row";
+import { asVenueLinkStatus } from "~/server/communities/helpers/as-venue-link-status";
 import { requireMembership } from "~/server/communities/helpers/require-membership";
+import { type VenueLinkRequest } from "~/server/communities/utils";
+import { type db } from "~/server/db";
 import { isStaffRole } from "~/server/games/access";
 import { consult } from "~/server/soft-archive";
 import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
+
+async function countOwners(database: DbClient, communityId: string) {
+  const owners = await database.query.communityMembers.findMany({
+    where: and(
+      eq(communityMembers.communityId, communityId),
+      eq(communityMembers.role, CommunityRoleEnum.OWNER),
+    ),
+  });
+
+  return owners.length;
+}
+
+async function loadMemberVenue(database: DbClient, venueId: string | null) {
+  if (!venueId) {
+    return null;
+  }
+
+  const venue = await database.query.venues.findFirst({
+    where: eq(venues.id, venueId),
+    columns: {
+      id: true,
+      name: true,
+      city: true,
+      country: true,
+      logoImageUrl: true,
+      archivedAt: true,
+    },
+    with: {
+      courts: {
+        columns: {
+          id: true,
+          name: true,
+          createdAt: true,
+        },
+        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      },
+    },
+  });
+
+  return venue ?? null;
+}
+
+function mapVenueLinkRequestRow(row: {
+  id: string;
+  status: string;
+  createdAt: Date;
+  venue: { id: string; name: string; city: string; country: string };
+}): VenueLinkRequest {
+  return {
+    id: row.id,
+    status: asVenueLinkStatus(row.status),
+    createdAt: row.createdAt,
+    venue: {
+      id: row.venue.id,
+      name: row.venue.name,
+      city: row.venue.city,
+      country: row.venue.country,
+    },
+  };
+}
 
 export async function communityById(
   database: DbClient,
@@ -265,3 +330,13 @@ export async function communityById(
     })),
   };
 }
+
+export const byId = protectedProcedure
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return communityById(ctx.db, {
+      communityId: input.id,
+      userId: appUser.id,
+    });
+  });

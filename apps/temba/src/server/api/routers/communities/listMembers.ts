@@ -1,8 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { communityMembers } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asRole } from "~/server/communities/helpers/as-role";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireMembership } from "~/server/communities/helpers/require-membership";
@@ -49,3 +52,13 @@ export async function listMembers(
     },
   }));
 }
+
+export const listMembersProcedure = protectedProcedure
+  .input(z.object({ communityId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listMembers(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+    });
+  });

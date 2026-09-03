@@ -1,8 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { communityMembers } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asRole } from "~/server/communities/helpers/as-role";
 import { lockOwnersForUpdate } from "~/server/communities/helpers/lock-owners-for-update";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
@@ -85,3 +88,21 @@ export async function setMemberRole(
     role: asRole(updated.role),
   };
 }
+
+export const setMemberRoleProcedure = protectedProcedure
+  .input(
+    z.object({
+      communityId: z.string().uuid(),
+      userId: z.string().uuid(),
+      role: z.enum(["owner", "admin", "member"]),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return setMemberRole(ctx.db, {
+      communityId: input.communityId,
+      callerId: appUser.id,
+      userId: input.userId,
+      role: input.role,
+    });
+  });

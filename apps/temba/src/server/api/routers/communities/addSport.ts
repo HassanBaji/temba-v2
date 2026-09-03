@@ -1,13 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { communitySports, type GroupSportEnum } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
+
+const sportSchema = z.enum(["padel", "football"]);
 
 export async function addSport(
   database: DbClient,
@@ -56,3 +61,19 @@ export async function addSport(
     sport: created.sport as GroupSportEnum,
   };
 }
+
+export const addSportProcedure = protectedProcedure
+  .input(
+    z.object({
+      communityId: z.string().uuid(),
+      sport: sportSchema,
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return addSport(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+      sport: input.sport,
+    });
+  });

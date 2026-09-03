@@ -1,7 +1,11 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
-import { commit, throwCommitFailure } from "~/server/soft-archive";
 import { type db } from "~/server/db";
+import { commit, throwCommitFailure } from "~/server/soft-archive";
 
 type DbClient = typeof db;
 
@@ -29,3 +33,13 @@ export async function softArchive(
     archivedAt: updated.archivedAt,
   };
 }
+
+export const softArchiveProcedure = protectedProcedure
+  .input(z.object({ communityId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return softArchive(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+    });
+  });

@@ -1,166 +1,54 @@
 import { z } from "zod";
 
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { acceptInviteLink } from "~/server/communities/accept-invite-link";
 import { acceptLookupInvite } from "~/server/communities/accept-lookup-invite";
-import { addSport } from "~/server/communities/add-sport";
 import { approveJoinRequest } from "~/server/communities/approve-join-request";
 import { approveTeamLink } from "~/server/communities/approve-team-link";
-import { communityById } from "~/server/communities/by-id";
-import { createCommunity } from "~/server/communities/create";
 import { createInviteLink } from "~/server/communities/create-invite-link";
 import { getInviteLink } from "~/server/communities/get-invite-link";
-import { leave as leaveCommunity } from "~/server/communities/leave";
 import { listJoinRequests } from "~/server/communities/list-join-requests";
 import { listLookupInvites } from "~/server/communities/list-lookup-invites";
-import { listMembers } from "~/server/communities/list-members";
 import { listTeamLinkRequests } from "~/server/communities/list-team-link-requests";
-import { mine } from "~/server/communities/mine";
 import { pendingLookupInvites } from "~/server/communities/pending-lookup-invites";
 import { previewInviteLink } from "~/server/communities/preview-invite-link";
 import { rejectJoinRequest } from "~/server/communities/reject-join-request";
 import { rejectTeamLink } from "~/server/communities/reject-team-link";
-import { removeSport } from "~/server/communities/remove-sport";
 import { requestJoin } from "~/server/communities/request-join";
 import { requestVenueLink } from "~/server/communities/request-venue-link";
 import { revokeLookupInvite } from "~/server/communities/revoke-lookup-invite";
 import { searchLiveVenues } from "~/server/communities/search-live-venues";
 import { searchLookupUsers } from "~/server/communities/search-lookup-users";
 import { sendLookupInvite } from "~/server/communities/send-lookup-invite";
-import { setMemberRole } from "~/server/communities/set-member-role";
-import { softArchive } from "~/server/communities/soft-archive";
-import { unarchive } from "~/server/communities/unarchive";
 import { unlinkVenue } from "~/server/communities/unlink-venue";
 import { getAppOrigin } from "~/server/invites/tokens";
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from "~/server/api/trpc";
 
-const sportSchema = z.enum(["padel", "football"]);
-const communityTypeSchema = z.enum(["public", "private"]);
+import { addSportProcedure as addSport } from "./addSport";
+import { byId } from "./byId";
+import { create } from "./create";
+import { leave } from "./leave";
+import { listMembersProcedure as listMembers } from "./listMembers";
+import { mineProcedure as mine } from "./mine";
+import { removeSportProcedure as removeSport } from "./removeSport";
+import { setMemberRoleProcedure as setMemberRole } from "./setMemberRole";
+import { softArchiveProcedure as softArchive } from "./softArchive";
+import { unarchiveProcedure as unarchive } from "./unarchive";
 
 export const communitiesRouter = createTRPCRouter({
-  create: protectedProcedure
-    .input(
-      z.object({
-        name: z.string().trim().min(1).max(255),
-        description: z.string().trim().max(255).optional(),
-        type: communityTypeSchema,
-        sports: z.array(sportSchema).min(1),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return createCommunity(ctx.db, {
-        name: input.name,
-        description: input.description,
-        type: input.type,
-        sports: input.sports,
-        userId: appUser.id,
-      });
-    }),
-
-  byId: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return communityById(ctx.db, {
-        communityId: input.id,
-        userId: appUser.id,
-      });
-    }),
-
-  listMembers: protectedProcedure
-    .input(z.object({ communityId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return listMembers(ctx.db, {
-        communityId: input.communityId,
-        userId: appUser.id,
-      });
-    }),
-
-  setMemberRole: protectedProcedure
-    .input(
-      z.object({
-        communityId: z.string().uuid(),
-        userId: z.string().uuid(),
-        role: z.enum(["owner", "admin", "member"]),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return setMemberRole(ctx.db, {
-        communityId: input.communityId,
-        callerId: appUser.id,
-        userId: input.userId,
-        role: input.role,
-      });
-    }),
-
-  softArchive: protectedProcedure
-    .input(z.object({ communityId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return softArchive(ctx.db, {
-        communityId: input.communityId,
-        userId: appUser.id,
-      });
-    }),
-
-  unarchive: protectedProcedure
-    .input(z.object({ communityId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return unarchive(ctx.db, {
-        communityId: input.communityId,
-        userId: appUser.id,
-      });
-    }),
-
-  leave: protectedProcedure
-    .input(z.object({ communityId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return leaveCommunity(ctx.db, {
-        communityId: input.communityId,
-        userId: appUser.id,
-      });
-    }),
-
-  addSport: protectedProcedure
-    .input(
-      z.object({
-        communityId: z.string().uuid(),
-        sport: sportSchema,
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return addSport(ctx.db, {
-        communityId: input.communityId,
-        userId: appUser.id,
-        sport: input.sport,
-      });
-    }),
-
-  removeSport: protectedProcedure
-    .input(
-      z.object({
-        communityId: z.string().uuid(),
-        sport: sportSchema,
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return removeSport(ctx.db, {
-        communityId: input.communityId,
-        userId: appUser.id,
-        sport: input.sport,
-      });
-    }),
+  create,
+  byId,
+  listMembers,
+  setMemberRole,
+  softArchive,
+  unarchive,
+  leave,
+  addSport,
+  removeSport,
 
   listTeamLinkRequests: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))
@@ -192,10 +80,7 @@ export const communitiesRouter = createTRPCRouter({
       });
     }),
 
-  mine: protectedProcedure.query(async ({ ctx }) => {
-    const appUser = await resolveAppUser(ctx.userId);
-    return mine(ctx.db, { userId: appUser.id });
-  }),
+  mine,
 
   requestJoin: protectedProcedure
     .input(z.object({ communityId: z.string().uuid() }))

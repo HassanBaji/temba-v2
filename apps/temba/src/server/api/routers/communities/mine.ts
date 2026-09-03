@@ -7,6 +7,8 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asRole } from "~/server/communities/helpers/as-role";
 import { type db } from "~/server/db";
 
@@ -82,3 +84,8 @@ export async function mine(database: DbClient, args: { userId: string }) {
     ),
   }));
 }
+
+export const mineProcedure = protectedProcedure.query(async ({ ctx }) => {
+  const appUser = await resolveAppUser(ctx.userId);
+  return mine(ctx.db, { userId: appUser.id });
+});
