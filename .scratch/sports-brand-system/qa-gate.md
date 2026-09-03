@@ -21,6 +21,8 @@ Before removing the `--color-brand*` tokens, confirmed via grep across `apps/tem
 
 ## "One brand CTA per screen" sampling
 
+**Superseded as a live rule.** `Button variant="brand"` was deleted; see `.scratch/retire-volt-accent/spec.md`. Counts below record TEM-127 as shipped.
+
 Counted `variant="brand"` per file under `apps/temba/src`:
 
 | Screen / file | Count | Notes |
@@ -46,9 +48,11 @@ Fixes made in this gate to hold the "at most one `variant=\"brand\"`" rule per r
 - `dashboard/games/[id]/page.tsx`: header `Invite` button — `variant="brand"` → `variant="outline"` (it's an organizer/management action already duplicated in the `ActionMenu`, not the page's live action).
 - `dashboard/groups/page.tsx`, `dashboard/communities/page.tsx`, `dashboard/teams/page.tsx`: the `EmptyState` action's `Create …` button — dropped `variant="brand"` (now default/black) because the `DashboardShell` header action already renders the same brand `Create …` button at the same time whenever the list is empty.
 
-## Volt occupancy sampling (not a large fill)
+## Volt occupancy sampling (historical; superseded)
 
-`bg-volt` / `border-l-volt` usages under `apps/temba/src`, all confirmed to be small accents, never a large fill:
+**Superseded.** Scarce Volt Lime (~5–10%) is no longer a live gate. See `.scratch/retire-volt-accent/spec.md` and `.scratch/retire-volt-accent/qa-gate.md`. The sampling below records TEM-127 as shipped; lime tokens and `variant="brand"` were later deleted.
+
+`bg-volt` / `border-l-volt` usages under `apps/temba/src` at TEM-127, all confirmed then to be small accents, never a large fill:
 
 - `components/ui/button.tsx` — `Button variant="brand"` fill (bounded control, not a page-level fill).
 - `components/auth/auth-shell.tsx` — `size-12` geometric mark on the dark auth panel.
@@ -56,9 +60,11 @@ Fixes made in this gate to hold the "at most one `variant=\"brand\"`" rule per r
 - `components/layout/app-rail.tsx` — 3px left bar on the selected rail item.
 - `components/groups/leaderboard-row.tsx` — 2px left bar on the viewer's Standing row.
 
-No component renders `bg-volt`/`border-volt` as a card, section, or page background — the ~5–10% occupancy target is satisfied by keeping volt to CTA fills and hairline indicators only.
+No component rendered `bg-volt`/`border-volt` as a card, section, or page background at TEM-127. That occupancy check is historical only.
 
 ## Contrast notes
+
+Lime CTA pairing below is historical (TEM-127). Live primary is black fill / white text; see `.scratch/retire-volt-accent/spec.md`.
 
 - `Button variant="brand"`: `bg-volt` (`#C8F135`) with `text-volt-foreground` (`#0A0A0A`) — dark text on lime, no lime-on-white text anywhere (`text-volt` / `text-color-volt` utility is not used as a text color in any component).
 - Clerk `colorPrimary` is `#C8F135` with `colorPrimaryForeground` `#0A0A0A` (`app/layout.tsx`), matching the same lime+black CTA pairing.

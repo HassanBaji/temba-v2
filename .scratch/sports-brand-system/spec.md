@@ -1,5 +1,7 @@
 Status: ready-for-agent
 
+> **Volt Lime superseded.** Scarce Volt Lime, `Button variant="brand"`, volt tokens, and lime chrome in this document are retired by [`.scratch/retire-volt-accent/spec.md`](../retire-volt-accent/spec.md). Black/white sports surfaces, type, radius, Soft-archive gray, and destructive red here still apply.
+
 # Sports brand system
 
 Successor visual language to `.scratch/redesign/spec.md` §4–4.2 (blue-accent tokens). That document remains historical. This spec is visual language only: colours, typography, spacing, hierarchy, component styling, and design language. Product structure, routes, flows, APIs, and schema do not change.
