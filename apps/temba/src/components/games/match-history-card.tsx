@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, MapPin, Users } from "lucide-react";
+import { Calendar, ChevronRight, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -47,9 +47,11 @@ function cardTitle(row: MatchHistoryRow) {
 function TeamAvatars({
   members,
   label,
+  winner,
 }: {
   members: MatchHistoryRow["slot1Members"];
   label: string;
+  winner: boolean;
 }) {
   if (members.length === 0) {
     return (
@@ -60,32 +62,42 @@ function TeamAvatars({
   }
 
   return (
-    <AvatarGroup aria-label={label}>
+    <div className="flex flex-row items-center gap-1">
       {members.map((member) => (
         <UserAvatar
+          className={`h-12 w-12 rounded-full border ${winner ? "border-green-500" : "border-red-500"}`}
           key={member.id}
           name={member.name}
           image={member.image}
-          size="sm"
+          // size="lg"
         />
       ))}
-    </AvatarGroup>
+    </div>
   );
 }
 
 function Matchup({ row }: { row: MatchHistoryRow }) {
   return (
-    <>
-      <TeamAvatars members={row.slot1Members} label="Slot 1" />
+    <div className="flex w-full flex-row items-center gap-2">
+      <TeamAvatars
+        members={row.slot1Members}
+        label="Slot 1"
+        winner={row.outcome === "won"}
+      />
       <span className="text-meta text-muted-foreground font-medium">vs</span>
-      <TeamAvatars members={row.slot2Members} label="Slot 2" />
-    </>
+      <TeamAvatars
+        members={row.slot2Members}
+        label="Slot 2"
+        winner={row.outcome === "won"}
+      />
+    </div>
   );
 }
 
 export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
   const title = cardTitle(row);
   const venueName = row.venue.name.trim();
+  const groupName = row.groupName?.trim();
   const dayLabel = formatRelativeDay(row.displayTime, {
     sameDayLabel: "Today",
   });
@@ -108,39 +120,39 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
           className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-xl outline-none focus-visible:ring-[3px]"
         />
         <div
-          className={cn(
-            "relative z-10 flex min-w-0 items-center gap-3",
-            "pointer-events-none",
-          )}
+          className={cn("relative z-10 min-w-0 gap-3", "pointer-events-none")}
         >
-          <div className="w-[4.75rem] shrink-0">
-            <p className="text-meta text-foreground font-semibold leading-tight">
-              {dayLabel}
-            </p>
-            <p className="text-meta text-muted-foreground tabular-nums">
-              {timeLabel}
-            </p>
+          <div className="flex flex-row justify-between">
+            <div className="flex flex-row items-center gap-2">
+              <Calendar className="size-4" />
+              <p className="text-muted-foreground leading-tight lg:text-lg">
+                {dayLabel} - {timeLabel}
+              </p>
+            </div>
+            <div>
+              {groupName ? (
+                <p className="text-meta text-muted-foreground flex min-w-0 items-center">
+                  <span className="truncate">{groupName}</span>
+                </p>
+              ) : null}
+            </div>
           </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-lead truncate font-semibold tracking-[-0.01em]">
-              {title}
+          <div className="mt-2 min-w-0 flex-1">
+            <p className="flex min-w-0 items-center gap-1.5 text-2xl font-semibold">
+              <span className="truncate">{formatText}</span>
             </p>
             {venueName ? (
-              <p className="text-meta text-muted-foreground flex min-w-0 items-center gap-1.5">
+              <p className="text-meta text-muted-foreground mt-1 flex min-w-0 items-center gap-1.5">
                 <MapPin aria-hidden={true} className="size-3.5 shrink-0" />
                 <span className="truncate">{venueName}</span>
               </p>
             ) : null}
-            <p className="text-meta text-muted-foreground flex min-w-0 items-center gap-1.5">
-              <Users aria-hidden={true} className="size-3.5 shrink-0" />
-              <span className="truncate">{formatText}</span>
-            </p>
           </div>
-          <div className="hidden min-w-0 items-center gap-2 sm:flex">
+          {/* <div className="hidden min-w-0 items-center gap-2 sm:flex">
             <Matchup row={row} />
-          </div>
+          </div> */}
           <div className="flex shrink-0 flex-col items-end gap-1.5">
-            {row.scoredSets.length > 0 ? (
+            {/* {row.scoredSets.length > 0 ? (
               <div className="text-meta text-foreground flex flex-col items-end font-medium tabular-nums">
                 {row.scoredSets.map((set, index) => (
                   <span
@@ -150,15 +162,15 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
                   </span>
                 ))}
               </div>
-            ) : null}
-            <Badge variant={OUTCOME_VARIANT[row.outcome]} size="sm">
+            ) : null} */}
+            {/* <Badge variant={OUTCOME_VARIANT[row.outcome]} size="sm">
               {OUTCOME_LABEL[row.outcome]}
-            </Badge>
+            </Badge> */}
           </div>
-          <ChevronRight
+          {/* <ChevronRight
             aria-hidden={true}
             className="text-muted-foreground size-5 shrink-0"
-          />
+          /> */}
         </div>
         <div className="pointer-events-none relative z-10 flex items-center justify-center gap-2 sm:hidden">
           <Matchup row={row} />

@@ -24,6 +24,7 @@ export type MatchHistoryRow = {
   venue: { name: string };
   displayTime: Date;
   matchId: string;
+  groupName: string | null;
   slot1Members: MatchHistoryMember[];
   slot2Members: MatchHistoryMember[];
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
@@ -170,6 +171,9 @@ export async function listMyMatchHistoryRows(
           createdAt: true,
         },
         with: {
+          group: {
+            columns: { name: true },
+          },
           venue: {
             columns: { name: true },
           },
@@ -307,6 +311,7 @@ export async function listMyMatchHistoryRows(
       venue: { name: venueName },
       displayTime: chosen.displayTime,
       matchId: chosen.match.id,
+      groupName: game.group?.name ?? null,
       slot1Members: membersFromSlot(chosen.match.slot1GameTeam),
       slot2Members: membersFromSlot(chosen.match.slot2GameTeam),
       scoredSets: scoredSetsFromMatch(chosen.match.sets),
