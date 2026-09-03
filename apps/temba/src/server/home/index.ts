@@ -1,10 +1,3 @@
-export { home } from "~/server/home/home";
-export {
-  EMPTY_HOME_MATCH_STATS,
-  homeMatchStatsFromCompletedMatches,
-  type HomeMatchStats,
-  type MatchSetScore,
-} from "~/server/home/match-stats";
 export {
   filterAndSortHomeUpcomingGames,
   filterAndSortMyGamesHubGames,
