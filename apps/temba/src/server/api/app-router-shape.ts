@@ -55,6 +55,7 @@ type ExpectedCommunities =
 type ExpectedGames =
   | "hello"
   | "listMyGames"
+  | "listMyMatchHistory"
   | "listPublicPickup"
   | "listCreateVenues"
   | "create"
