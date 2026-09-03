@@ -91,7 +91,7 @@ export function UpcomingGamesCarousel({
   }
 
   return (
-    <div className={cn("w-full min-w-0 max-w-full space-y-3", className)}>
+    <div className={cn("mt-4 w-full min-w-0 max-w-full space-y-3", className)}>
       <ul
         ref={scrollerRef}
         className="flex w-full min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"

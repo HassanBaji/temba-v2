@@ -83,7 +83,7 @@ export default function HomePage() {
             <div className="grid min-w-0 gap-2 lg:gap-8">
               <div className="min-w-0 space-y-6">
                 {heroGames.length > 0 ? (
-                  <Section title="Your games" className="min-w-0">
+                  <Section title="Your games" className="mt-4 min-w-0">
                     <UpcomingGamesCarousel
                       games={heroGames.map((game) => {
                         const addResults =
