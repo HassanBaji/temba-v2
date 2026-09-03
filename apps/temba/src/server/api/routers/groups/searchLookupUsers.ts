@@ -1,10 +1,13 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { z } from "zod";
 
 import { communityMembers, groupMemberInvites, groupMembers } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { requireGroupLookupSender } from "~/server/groups/helpers/require-group-lookup-sender";
 import { searchLookupUsers as searchLookupUsersDoor } from "~/server/invites/search-lookup-users";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -57,3 +60,19 @@ export async function searchLookupUsers(
     excludeUserIds,
   });
 }
+
+export const searchLookupUsersProcedure = protectedProcedure
+  .input(
+    z.object({
+      groupId: z.string().uuid(),
+      query: z.string().trim().max(255),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return searchLookupUsers(ctx.db, {
+      groupId: input.groupId,
+      userId: appUser.id,
+      query: input.query,
+    });
+  });

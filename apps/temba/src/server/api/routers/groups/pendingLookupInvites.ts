@@ -2,6 +2,8 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import { groupMemberInvites } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
@@ -43,3 +45,10 @@ export async function pendingLookupInvites(
     createdAt: row.createdAt,
   }));
 }
+
+export const pendingLookupInvitesProcedure = protectedProcedure.query(
+  async ({ ctx }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return pendingLookupInvites(ctx.db, { userId: appUser.id });
+  },
+);

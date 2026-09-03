@@ -1,7 +1,11 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { requireGroupInviteLinkMinter } from "~/server/groups/helpers/require-group-invite-link-minter";
 import { getLiveLink } from "~/server/invites/doors";
-import { groupInviteLinkUrl } from "~/server/invites/tokens";
-import { type db } from "~/server/db";
+import { getAppOrigin, groupInviteLinkUrl } from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -27,3 +31,14 @@ export async function getInviteLink(
     expiresAt: newest.expiresAt,
   };
 }
+
+export const getInviteLinkProcedure = protectedProcedure
+  .input(z.object({ groupId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return getInviteLink(ctx.db, {
+      groupId: input.groupId,
+      userId: appUser.id,
+      origin: getAppOrigin(ctx.headers),
+    });
+  });

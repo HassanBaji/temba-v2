@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   communities,
@@ -8,21 +9,27 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { isStaffRole, mayCreateGameOnGroup } from "~/server/games/access";
-import { filterAndSortGroupGameHistory } from "~/server/groups/filter-and-sort-group-game-history";
-import { filterAndSortGroupUpcomingGames } from "~/server/groups/filter-and-sort-group-upcoming-games";
 import { mayDeleteEmptyGroup } from "~/server/groups/helpers/may-delete-empty-group";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { requireGroup } from "~/server/groups/helpers/require-group";
-import { gameListTime } from "~/server/home/upcoming-games";
+import {
+  filterAndSortHomeUpcomingGames,
+  gameListTime,
+  isGameLive,
+} from "~/server/home/upcoming-games";
+import { consult } from "~/server/soft-archive";
 import {
   sortStandingMembers,
   standingPosition,
 } from "~/server/standing/compare-standing";
-import { consult } from "~/server/soft-archive";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
+
+const GROUP_GAME_HISTORY_LIMIT = 20;
 
 export async function groupById(
   database: DbClient,
@@ -162,9 +169,9 @@ export async function groupById(
     },
   });
 
-  const upcomingGames = filterAndSortGroupUpcomingGames(
+  const upcomingGames = filterAndSortHomeUpcomingGames(
     groupGameRows,
-    group.id,
+    new Set([group.id]),
     now,
   ).map((game) => ({
     id: game.id,
@@ -180,23 +187,28 @@ export async function groupById(
     sport: game.sport,
   }));
 
-  const gameHistory = filterAndSortGroupGameHistory(
-    groupGameRows,
-    group.id,
-    now,
-  ).map((game) => ({
-    id: game.id,
-    name: game.name,
-    startTime: gameListTime(game),
-    windowStart: game.windowStart,
-    windowEnd: game.windowEnd,
-    pricePerPlayerCents: game.pricePerPlayerCents,
-    levelMinTenths: game.levelMinTenths,
-    levelMaxTenths: game.levelMaxTenths,
-    format: game.format,
-    cancelledAt: game.cancelledAt,
-    sport: game.sport,
-  }));
+  const gameHistory = groupGameRows
+    .filter((game) => {
+      if (game.groupId === null || game.groupId !== group.id) {
+        return false;
+      }
+      return !isGameLive(game, now);
+    })
+    .sort((a, b) => gameListTime(b).getTime() - gameListTime(a).getTime())
+    .slice(0, GROUP_GAME_HISTORY_LIMIT)
+    .map((game) => ({
+      id: game.id,
+      name: game.name,
+      startTime: gameListTime(game),
+      windowStart: game.windowStart,
+      windowEnd: game.windowEnd,
+      pricePerPlayerCents: game.pricePerPlayerCents,
+      levelMinTenths: game.levelMinTenths,
+      levelMaxTenths: game.levelMaxTenths,
+      format: game.format,
+      cancelledAt: game.cancelledAt,
+      sport: game.sport,
+    }));
 
   return {
     id: group.id,
@@ -248,3 +260,10 @@ export async function groupById(
     hasInviteLink: canManageInviteLinks,
   };
 }
+
+export const byId = protectedProcedure
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return groupById(ctx.db, { groupId: input.id, userId: appUser.id });
+  });

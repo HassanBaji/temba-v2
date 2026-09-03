@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { communities, groupMembers, GroupTypeEnum } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { requireGroup } from "~/server/groups/helpers/require-group";
 import { consult, refuseIfFrozen } from "~/server/soft-archive";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -89,3 +92,13 @@ export async function joinClubPublic(
 
   return { ok: true as const, groupId: group.id };
 }
+
+export const joinClubPublicProcedure = protectedProcedure
+  .input(z.object({ groupId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return joinClubPublic(ctx.db, {
+      groupId: input.groupId,
+      userId: appUser.id,
+    });
+  });
