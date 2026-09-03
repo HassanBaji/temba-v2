@@ -108,7 +108,7 @@ export default function YouPage() {
               </p>
             ) : null}
           </div>
-          <UserButton />
+          {/* <UserButton /> */}
         </div>
 
         <YouRatingSection />

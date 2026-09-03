@@ -332,21 +332,28 @@ export function GameSummaryCard({
           )}
         >
           <div className="flex min-w-0 items-start justify-between gap-3">
-            <p className="text-meta flex min-w-0 items-center gap-1.5 font-semibold">
-              <CalendarClock
-                aria-hidden={true}
-                className={cn("size-3.5 shrink-0", dayTone)}
-              />
-              <span className="min-w-0 truncate">
-                <span className={dayTone}>{dayLabel}</span>
-                <span className="text-muted-foreground/50 mx-1.5 font-normal">
-                  ·
+            <div className="flex flex-row flex-wrap items-center gap-4">
+              {levelMeta ? (
+                <Badge className="flex flex-row items-center text-xs text-white">
+                  <span className="tabular-nums text-white">{levelMeta}</span>
+                </Badge>
+              ) : null}
+              <p className="text-meta flex min-w-0 items-center gap-1.5 font-semibold">
+                <CalendarClock
+                  aria-hidden={true}
+                  className={cn("size-3.5 shrink-0", dayTone)}
+                />
+                <span className="min-w-0 truncate">
+                  <span className={dayTone}>{dayLabel}</span>
+                  <span className="text-muted-foreground/50 mx-1.5 font-normal">
+                    ·
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {timeLabel}
+                  </span>
                 </span>
-                <span className="text-muted-foreground tabular-nums">
-                  {timeLabel}
-                </span>
-              </span>
-            </p>
+              </p>
+            </div>
 
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
               {cancelled ? <GameStatusBadge status="cancelled" /> : null}
@@ -418,7 +425,6 @@ export function GameSummaryCard({
                 {priceMeta}
               </MetaItem>
             ) : null}
-            {levelMeta ? <MetaItem icon={Gauge}>{levelMeta}</MetaItem> : null}
           </div>
           {actionControl ? (
             <div
