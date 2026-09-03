@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { gamePlayers, gameTeamPlayers } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { assertUserPassesJoinGate, requireGame } from "~/server/games/access";
 import { admit } from "~/server/games/admit";
 import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refused";
@@ -12,10 +16,9 @@ import {
   occupySeat,
   remainingCapacity,
 } from "~/server/games/seats";
-import { enqueueWaitlistUser } from "~/server/games/waitlist";
-import { type db } from "~/server/db";
 import type { SeatPosition } from "~/server/games/utils";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
+import { enqueueWaitlistUser } from "~/server/games/waitlist";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -122,3 +125,21 @@ export async function registerSeat(
   });
   return { ok: true as const, waitlisted: false as const };
 }
+
+export const registerSeatProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      sideIndex: z.number().int().min(1).optional(),
+      position: z.enum(["left", "right"]).optional(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return registerSeat(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      sideIndex: input.sideIndex,
+      position: input.position,
+    });
+  });

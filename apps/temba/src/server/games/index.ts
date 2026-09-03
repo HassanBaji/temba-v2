@@ -40,15 +40,6 @@ export {
   backfillFriendlySetShells,
   createFriendlyGame,
 } from "~/server/games/create-friendly";
-export { register } from "~/server/games/register";
-export { registerSeat } from "~/server/games/register-seat";
-export { moveSeat } from "~/server/games/move-seat";
-export { searchPartnerUsers } from "~/server/games/search-partner-users";
-export { registerWithPartner } from "~/server/games/register-with-partner";
-export { registerTeam } from "~/server/games/register-team";
-export { leaveGame } from "~/server/games/leave";
-export { leaveWaitlist } from "~/server/games/leave-waitlist";
-export { kick } from "~/server/games/kick";
 export { assertGameCreateVenueAndCourt } from "~/server/games/venue";
 export { loadGameCreateVenueContext } from "~/server/games/helpers/load-game-create-venue-context";
 export {
@@ -63,8 +54,6 @@ export { addMatch, addTournamentMatch } from "~/server/games/add-match";
 export { cancelGame } from "~/server/games/cancel";
 export { cancelMatch } from "~/server/games/cancel-match";
 export { closeRegistration } from "~/server/games/close-registration";
-export { kickRegisteredUser } from "~/server/games/kick-registered-user";
-export { kickWaitlistEntry } from "~/server/games/kick-waitlist-entry";
 export { reopenRegistration } from "~/server/games/reopen-registration";
 export { updateFriendlyGameMatchCourt } from "~/server/games/update-friendly-game-match-court";
 export { updateGameMatch, updateMatch } from "~/server/games/update-match";

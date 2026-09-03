@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { user } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { assertUserPassesJoinGate, requireGame } from "~/server/games/access";
 import { admit } from "~/server/games/admit";
 import { assertCanRegisterWithPartner } from "~/server/games/helpers/assert-can-register-with-partner";
@@ -14,10 +18,9 @@ import {
   firstFullyVacantSideIndex,
   remainingCapacity,
 } from "~/server/games/seats";
-import { enqueueWaitlistUser } from "~/server/games/waitlist";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
-import { type db } from "~/server/db";
 import type { SeatPosition } from "~/server/games/utils";
+import { enqueueWaitlistUser } from "~/server/games/waitlist";
 import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,
   LEVEL_RANGE_PARTNER_MESSAGE,
@@ -135,3 +138,23 @@ export async function registerWithPartner(
 
   return { ok: true as const, waitlisted: false as const };
 }
+
+export const registerWithPartnerProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      partnerUserId: z.string().uuid(),
+      sideIndex: z.number().int().min(1).optional(),
+      position: z.enum(["left", "right"]).optional(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return registerWithPartner(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      partnerUserId: input.partnerUserId,
+      sideIndex: input.sideIndex,
+      position: input.position,
+    });
+  });

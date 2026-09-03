@@ -16,9 +16,6 @@ import { closeRegistration } from "~/server/games/close-registration";
 import { completeMatch } from "~/server/games/complete-match";
 import { createInviteLink } from "~/server/games/create-invite-link";
 import { getInviteLink } from "~/server/games/get-invite-link";
-import { kick } from "~/server/games/kick";
-import { leaveGame } from "~/server/games/leave";
-import { leaveWaitlist } from "~/server/games/leave-waitlist";
 import {
   approveLevelRangeRequest,
   listLevelRangeRequests,
@@ -27,19 +24,13 @@ import {
 } from "~/server/games/level-range-requests";
 import { listCourts } from "~/server/games/list-courts";
 import { listLookupInvites } from "~/server/games/list-lookup-invites";
-import { moveSeat } from "~/server/games/move-seat";
 import { pendingLookupInvites } from "~/server/games/pending-lookup-invites";
 import { previewInviteLink } from "~/server/games/preview-invite-link";
-import { register } from "~/server/games/register";
-import { registerSeat } from "~/server/games/register-seat";
-import { registerTeam } from "~/server/games/register-team";
-import { registerWithPartner } from "~/server/games/register-with-partner";
 import { removeSet } from "~/server/games/remove-set";
 import { reopenRegistration } from "~/server/games/reopen-registration";
 import { revokeLookupInvite } from "~/server/games/revoke-lookup-invite";
 import { scoreSet } from "~/server/games/score-set";
 import { searchLookupUsers } from "~/server/games/search-lookup-users";
-import { searchPartnerUsers } from "~/server/games/search-partner-users";
 import { sendLookupInvite } from "~/server/games/send-lookup-invite";
 import { updateGameCaps } from "~/server/games/update-caps";
 import { updateGameLevelRange } from "~/server/games/update-level-range";
@@ -58,9 +49,18 @@ import { byId } from "./byId";
 import { create } from "./create";
 import { getSecretMessage } from "./getSecretMessage";
 import { hello } from "./hello";
+import { kickProcedure as kick } from "./kick";
+import { leave } from "./leave";
+import { leaveWaitlistProcedure as leaveWaitlist } from "./leaveWaitlist";
 import { listCreateVenues } from "./listCreateVenues";
 import { listMyGames } from "./listMyGames";
 import { listPublicPickup } from "./listPublicPickup";
+import { moveSeatProcedure as moveSeat } from "./moveSeat";
+import { registerProcedure as register } from "./register";
+import { registerSeatProcedure as registerSeat } from "./registerSeat";
+import { registerTeamProcedure as registerTeam } from "./registerTeam";
+import { registerWithPartnerProcedure as registerWithPartner } from "./registerWithPartner";
+import { searchPartnerUsersProcedure as searchPartnerUsers } from "./searchPartnerUsers";
 
 export const gamesRouter = createTRPCRouter({
   hello,
@@ -69,141 +69,15 @@ export const gamesRouter = createTRPCRouter({
   listCreateVenues,
   create,
   byId,
-
-  register: protectedProcedure
-    .input(z.object({ gameId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return register(ctx.db, { gameId: input.gameId, userId: appUser.id });
-    }),
-
-  registerSeat: protectedProcedure
-    .input(
-      z.object({
-        gameId: z.string().uuid(),
-        sideIndex: z.number().int().min(1).optional(),
-        position: z.enum(["left", "right"]).optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return registerSeat(ctx.db, {
-        gameId: input.gameId,
-        userId: appUser.id,
-        sideIndex: input.sideIndex,
-        position: input.position,
-      });
-    }),
-
-  moveSeat: protectedProcedure
-    .input(
-      z.object({
-        gameId: z.string().uuid(),
-        sideIndex: z.number().int().min(1),
-        position: z.enum(["left", "right"]),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return moveSeat(ctx.db, {
-        gameId: input.gameId,
-        userId: appUser.id,
-        sideIndex: input.sideIndex,
-        position: input.position,
-      });
-    }),
-
-  searchPartnerUsers: protectedProcedure
-    .input(
-      z.object({
-        gameId: z.string().uuid(),
-        query: z.string().trim().max(255),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return searchPartnerUsers(ctx.db, {
-        gameId: input.gameId,
-        userId: appUser.id,
-        query: input.query,
-      });
-    }),
-
-  registerWithPartner: protectedProcedure
-    .input(
-      z.object({
-        gameId: z.string().uuid(),
-        partnerUserId: z.string().uuid(),
-        sideIndex: z.number().int().min(1).optional(),
-        position: z.enum(["left", "right"]).optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return registerWithPartner(ctx.db, {
-        gameId: input.gameId,
-        userId: appUser.id,
-        partnerUserId: input.partnerUserId,
-        sideIndex: input.sideIndex,
-        position: input.position,
-      });
-    }),
-
-  registerTeam: protectedProcedure
-    .input(
-      z.object({
-        gameId: z.string().uuid(),
-        teamId: z.string().uuid(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return registerTeam(ctx.db, {
-        gameId: input.gameId,
-        userId: appUser.id,
-        teamId: input.teamId,
-      });
-    }),
-
-  leave: protectedProcedure
-    .input(z.object({ gameId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return leaveGame(ctx.db, { gameId: input.gameId, userId: appUser.id });
-    }),
-
-  leaveWaitlist: protectedProcedure
-    .input(z.object({ gameId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return leaveWaitlist(ctx.db, {
-        gameId: input.gameId,
-        userId: appUser.id,
-      });
-    }),
-
-  kick: protectedProcedure
-    .input(
-      z
-        .object({
-          gameId: z.string().uuid(),
-          userId: z.string().uuid().optional(),
-          waitlistId: z.string().uuid().optional(),
-        })
-        .refine(
-          (value) => Boolean(value.userId) !== Boolean(value.waitlistId),
-          { message: "Kick a registered User or a waitlist entry" },
-        ),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const appUser = await resolveAppUser(ctx.userId);
-      return kick(ctx.db, {
-        gameId: input.gameId,
-        organizerUserId: appUser.id,
-        userId: input.userId,
-        waitlistId: input.waitlistId,
-      });
-    }),
+  register,
+  registerSeat,
+  moveSeat,
+  searchPartnerUsers,
+  registerWithPartner,
+  registerTeam,
+  leave,
+  leaveWaitlist,
+  kick,
 
   closeRegistration: protectedProcedure
     .input(z.object({ gameId: z.string().uuid() }))

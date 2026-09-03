@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   assertRegistrationOpen,
   getRegistrationStatus,
   requireGame,
 } from "~/server/games/access";
 import { isIndividualSeatGame, moveToSeat } from "~/server/games/seats";
-import { type db } from "~/server/db";
 import type { SeatPosition } from "~/server/games/utils";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -44,3 +47,21 @@ export async function moveSeat(
   });
   return { ok: true as const };
 }
+
+export const moveSeatProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      sideIndex: z.number().int().min(1),
+      position: z.enum(["left", "right"]),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return moveSeat(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      sideIndex: input.sideIndex,
+      position: input.position,
+    });
+  });

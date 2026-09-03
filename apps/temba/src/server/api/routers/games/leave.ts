@@ -1,6 +1,10 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
 import { leaveRegisteredSeat } from "~/server/games/waitlist";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -14,3 +18,10 @@ export async function leaveGame(
   });
   return { ok: true as const };
 }
+
+export const leave = protectedProcedure
+  .input(z.object({ gameId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return leaveGame(ctx.db, { gameId: input.gameId, userId: appUser.id });
+  });

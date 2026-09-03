@@ -1,8 +1,12 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
 import { assertCanRegisterWithPartner } from "~/server/games/helpers/assert-can-register-with-partner";
 import { gameHideRegisteredWaitlistedSelf } from "~/server/games/helpers/game-hide-registered-waitlisted-self";
 import { searchUsersForGamePicker } from "~/server/games/helpers/search-users-for-game-picker";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -31,3 +35,19 @@ export async function searchPartnerUsers(
     excludeUserIds,
   });
 }
+
+export const searchPartnerUsersProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      query: z.string().trim().max(255),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return searchPartnerUsers(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      query: input.query,
+    });
+  });

@@ -18,10 +18,10 @@ import {
 } from "@repo/db/schema";
 
 import { gameById } from "~/server/api/routers/games/byId";
+import { registerSeat } from "~/server/api/routers/games/registerSeat";
+import { registerTeam } from "~/server/api/routers/games/registerTeam";
+import { registerWithPartner } from "~/server/api/routers/games/registerWithPartner";
 import type { GameRow } from "~/server/games/access";
-import { registerSeat } from "~/server/games/register-seat";
-import { registerTeam } from "~/server/games/register-team";
-import { registerWithPartner } from "~/server/games/register-with-partner";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
 import {

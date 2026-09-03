@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { gameTeams, gameWaitlist, teamMembers, teams } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   FRIENDLY_TEAMS_ALLOWED,
   assertRegistrationOpen,
@@ -13,9 +17,8 @@ import {
 import { admit } from "~/server/games/admit";
 import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refused";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
-import { enqueueWaitlistTeam } from "~/server/games/waitlist";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
-import { type db } from "~/server/db";
+import { enqueueWaitlistTeam } from "~/server/games/waitlist";
 import { LEVEL_RANGE_TEAM_MESSAGE } from "~/lib/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -138,3 +141,19 @@ export async function registerTeam(
 
   return { ok: true as const, waitlisted: false as const };
 }
+
+export const registerTeamProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      teamId: z.string().uuid(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return registerTeam(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      teamId: input.teamId,
+    });
+  });

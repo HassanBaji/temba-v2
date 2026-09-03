@@ -13,6 +13,8 @@ import {
 } from "@repo/db/schema";
 
 import { gameById } from "~/server/api/routers/games/byId";
+import { register } from "~/server/api/routers/games/register";
+import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { admit } from "~/server/games/admit";
 import type { GameRow } from "~/server/games/access";
 import {
@@ -20,8 +22,6 @@ import {
   rejectLevelRangeRequest,
   requestLevelRange,
 } from "~/server/games/level-range-requests";
-import { register } from "~/server/games/register";
-import { registerSeat } from "~/server/games/register-seat";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 import {
   INITIAL_PHI,

@@ -18,16 +18,16 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { leaveGame } from "~/server/api/routers/games/leave";
+import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import type { GameRow } from "~/server/games/access";
 import { acceptInviteLink } from "~/server/games/accept-invite-link";
 import { acceptLookupInvite } from "~/server/games/accept-lookup-invite";
-import { leaveGame } from "~/server/games/leave";
 import {
   requestLevelRange,
   approveLevelRangeRequest,
 } from "~/server/games/level-range-requests";
 import { previewInviteLink } from "~/server/games/preview-invite-link";
-import { registerSeat } from "~/server/games/register-seat";
 import { revokeLookupInvite } from "~/server/games/revoke-lookup-invite";
 import { sendLookupInvite } from "~/server/games/send-lookup-invite";
 import { updateGameLevelRange } from "~/server/games/update-level-range";
