@@ -1,4 +1,15 @@
 export {
+  filterAndSortHomeCarouselGames,
+  homeCarouselPhase,
+  isHomeCarouselAtCap,
+  isHomeCarouselGame,
+  isHomeCarouselNeedsResults,
+  listHomeCarouselGames,
+  type HomeCarouselCandidate,
+  type HomeCarouselGame,
+  type HomeCarouselPhase,
+} from "~/server/home/carousel-games";
+export {
   filterAndSortHomeUpcomingGames,
   filterAndSortMyGamesHubGames,
   filterAndSortPublicHubGames,

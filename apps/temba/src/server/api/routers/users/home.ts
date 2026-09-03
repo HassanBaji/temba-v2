@@ -12,14 +12,15 @@ import {
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
-import { listMyGamesHubRows } from "~/server/games/list-my-games";
 import { matchOutcome } from "~/server/games/match-outcome";
+import { listHomeCarouselGames } from "~/server/home/carousel-games";
 import {
   sortStandingMembers,
   standingPosition,
 } from "~/server/standing/compare-standing";
+import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db;
+type DbClient = typeof db | TestDatabase;
 
 /**
  * Home strip labels use "Games played / Games won / Sets won" (user-facing).
@@ -116,15 +117,15 @@ function homeMatchStatsFromCompletedMatches(
 }
 
 /**
- * Home metrics, upcoming Games, and per-Group standing for the signed-in User.
+ * Home metrics, carousel Games, and per-Group standing for the signed-in User.
  * Stats (Games played / Games won / Sets won) are completed Matches the User
- * sat on, including zeros when they have not played. Upcoming Games use the
- * My Games hub filter (Group membership plus private Games the User created
- * or is part of; no public pickup); Soft-archived Club Group Games
- * still appear. Standing position is among that Group's members only — not a
+ * sat on, including zeros when they have not played. The Home carousel is a
+ * dedicated live-Game list (Game admit or Organizer), not the My Games hub
+ * filter. Soft-archived Club Group Games still appear when live if the viewer
+ * qualifies. Standing position is among that Group's members only — not a
  * global rank.
  */
-async function loadHome(database: DbClient, args: { userId: string }) {
+export async function loadHome(database: DbClient, args: { userId: string }) {
   const now = new Date();
 
   const communityMemberships = await database.query.communityMembers.findMany({
@@ -191,7 +192,7 @@ async function loadHome(database: DbClient, args: { userId: string }) {
       }),
     );
 
-  const upcomingGames = await listMyGamesHubRows(database, args.userId, now);
+  const carouselGames = await listHomeCarouselGames(database, args.userId, now);
 
   const myPlayerRows = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, args.userId),
@@ -253,7 +254,7 @@ async function loadHome(database: DbClient, args: { userId: string }) {
     setsWon: stats.setsWon,
     communitiesCount: communityMemberships.length,
     groupsCount: myGroupMemberships.length,
-    upcomingGames,
+    carouselGames,
     standing,
   };
 }

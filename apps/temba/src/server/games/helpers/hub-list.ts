@@ -62,8 +62,12 @@ export const hubListWith = {
   },
   matches: {
     columns: {
+      id: true,
+      gameId: true,
       startTime: true,
       status: true,
+      slot1GameTeamId: true,
+      slot2GameTeamId: true,
     },
   },
   players: {
@@ -133,7 +137,14 @@ export type HubQueryRow = {
     community: { archivedAt: Date | null } | null;
   } | null;
   venue: { id: string; name: string; city: string } | null;
-  matches: { startTime: Date | null; status: string | null }[];
+  matches: {
+    id: string;
+    gameId: string;
+    startTime: Date | null;
+    status: string | null;
+    slot1GameTeamId: string | null;
+    slot2GameTeamId: string | null;
+  }[];
   players: { id: string; userId: string | null }[];
   waitlist: { userId: string | null; teamId: string | null }[];
   teams: {

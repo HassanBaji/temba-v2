@@ -35,6 +35,7 @@ import {
   parseRequiredGameWindow,
   splitGameWindow,
 } from "~/lib/game-window";
+import { gameHomeTabFromQuery } from "~/lib/game-home-tab";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   LEVEL_BAND_SELECT_NONE,
@@ -51,10 +52,15 @@ import { api } from "~/trpc/react";
 
 export default function GameHomePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const { id } = use(params);
+  const query = use(searchParams);
+  const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  const initialTab = gameHomeTabFromQuery(tabParam);
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id });
   const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
@@ -604,7 +610,7 @@ export default function GameHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        <Tabs defaultValue="overview" className="gap-4">
+        <Tabs defaultValue={initialTab} className="gap-4">
           <TabsList
             variant="line"
             className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
