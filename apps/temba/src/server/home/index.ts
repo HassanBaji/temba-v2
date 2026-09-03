@@ -1,5 +1,14 @@
 export { home } from "~/server/home/home";
 export {
+  filterAndSortHomeCarouselGames,
+  homeCarouselPhase,
+  isHomeCarouselGame,
+  listHomeCarouselGames,
+  type HomeCarouselCandidate,
+  type HomeCarouselGame,
+  type HomeCarouselPhase,
+} from "~/server/home/carousel-games";
+export {
   EMPTY_HOME_MATCH_STATS,
   homeMatchStatsFromCompletedMatches,
   type HomeMatchStats,

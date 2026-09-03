@@ -90,7 +90,7 @@ export function UpcomingGamesCarousel({
       <ul
         ref={scrollerRef}
         className="flex w-full min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"
-        aria-label="Upcoming games"
+        aria-label="Your games"
         aria-roledescription="carousel"
       >
         {games.map((game, index) => (
@@ -122,7 +122,7 @@ export function UpcomingGamesCarousel({
         <div
           className="flex items-center justify-center gap-2"
           role="tablist"
-          aria-label="Upcoming game slides"
+          aria-label="Your game slides"
         >
           {games.map((game, index) => {
             const selected = index === activeIndex;

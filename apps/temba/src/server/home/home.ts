@@ -9,7 +9,7 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
-import { listMyGamesHubRows } from "~/server/games/hub-list-rows";
+import { listHomeCarouselGames } from "~/server/home/carousel-games";
 import {
   EMPTY_HOME_MATCH_STATS,
   homeMatchStatsFromCompletedMatches,
@@ -19,16 +19,17 @@ import {
   standingPosition,
 } from "~/server/standing/compare-standing";
 import { type db } from "~/server/db";
+import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db;
+type DbClient = typeof db | TestDatabase;
 
 /**
- * Home metrics, upcoming Games, and per-Group standing for the signed-in User.
+ * Home metrics, carousel Games, and per-Group standing for the signed-in User.
  * Stats (Games played / Games won / Sets won) are completed Matches the User
- * sat on, including zeros when they have not played. Upcoming Games use the
- * My Games hub filter (Group membership plus private Games the User created
- * or is part of; no public pickup); Soft-archived Club Group Games
- * still appear. Standing position is among that Group's members only — not a
+ * sat on, including zeros when they have not played. The Home carousel is a
+ * dedicated live-Game list (Game admit or Organizer), not the My Games hub
+ * filter. Soft-archived Club Group Games still appear when live if the viewer
+ * qualifies. Standing position is among that Group's members only — not a
  * global rank.
  */
 export async function home(database: DbClient, args: { userId: string }) {
@@ -98,7 +99,7 @@ export async function home(database: DbClient, args: { userId: string }) {
       }),
     );
 
-  const upcomingGames = await listMyGamesHubRows(database, args.userId, now);
+  const carouselGames = await listHomeCarouselGames(database, args.userId, now);
 
   const myPlayerRows = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, args.userId),
@@ -160,7 +161,7 @@ export async function home(database: DbClient, args: { userId: string }) {
     setsWon: stats.setsWon,
     communitiesCount: communityMemberships.length,
     groupsCount: myGroupMemberships.length,
-    upcomingGames,
+    carouselGames,
     standing,
   };
 }

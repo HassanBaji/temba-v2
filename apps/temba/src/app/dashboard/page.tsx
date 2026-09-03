@@ -11,13 +11,10 @@ import { HomeRatingCard } from "~/components/home/home-rating-card";
 import { HomeStatsCard } from "~/components/home/home-stats-card";
 import { Section } from "~/components/layout/section";
 import { Card } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
 import TembaTextLogo from "~/components/ui/icons/temba-text-logo";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { api } from "~/trpc/react";
-
-const HERO_GAME_LIMIT = 4;
 
 function inviteWaitingCopy(count: number) {
   return count === 1
@@ -51,9 +48,7 @@ export default function HomePage() {
     user?.fullName ?? user?.firstName ?? user?.username ?? "You";
   const image = user?.imageUrl;
 
-  const upcoming = home.data?.upcomingGames ?? [];
-  const heroGames = upcoming.slice(0, HERO_GAME_LIMIT);
-  const hasMoreUpcoming = upcoming.length > HERO_GAME_LIMIT;
+  const heroGames = home.data?.carouselGames ?? [];
 
   return (
     <DashboardShell
@@ -88,17 +83,7 @@ export default function HomePage() {
             <div className="grid min-w-0 gap-2 lg:gap-8">
               <div className="min-w-0 space-y-6">
                 {heroGames.length > 0 ? (
-                  <Section
-                    title="Your next games"
-                    className="min-w-0"
-                    action={
-                      hasMoreUpcoming ? (
-                        <Button asChild variant="ghost">
-                          <Link href="/dashboard/games">See all</Link>
-                        </Button>
-                      ) : null
-                    }
-                  >
+                  <Section title="Your games" className="min-w-0">
                     <UpcomingGamesCarousel
                       games={heroGames.map((game) => ({
                         id: game.id,
