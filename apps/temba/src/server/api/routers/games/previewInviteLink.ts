@@ -1,7 +1,11 @@
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { gameInviteLinks } from "@repo/db";
 
+import { publicProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import {
   getRegistrationStatus,
   isGameOrganizer,
@@ -13,9 +17,8 @@ import {
   listGameSides,
   vacantPositionsFromSides,
 } from "~/server/games/seats";
-import { previewLink } from "~/server/invites/doors";
 import { gameHasLevelRange } from "~/server/games/user-allowed-by-level-range";
-import { type db } from "~/server/db";
+import { previewLink } from "~/server/invites/doors";
 
 type DbClient = typeof db;
 
@@ -68,3 +71,14 @@ export async function previewInviteLink(
     canRequestLevelRange: levelFields?.canRequestLevelRange ?? false,
   };
 }
+
+export const previewInviteLinkProcedure = publicProcedure
+  .input(z.object({ token: z.string().min(1).max(64) }))
+  .query(async ({ ctx, input }) => {
+    let userId: string | undefined;
+    if (ctx.userId) {
+      const appUser = await resolveAppUser(ctx.userId);
+      userId = appUser.id;
+    }
+    return previewInviteLink(ctx.db, { token: input.token, userId });
+  });

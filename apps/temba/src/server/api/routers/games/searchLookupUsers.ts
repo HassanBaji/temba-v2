@@ -1,13 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
+import { z } from "zod";
 
 import { gameMemberInvites } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { gameHideRegisteredWaitlistedSelf } from "~/server/games/helpers/game-hide-registered-waitlisted-self";
 import { searchUsersForGamePicker } from "~/server/games/helpers/search-users-for-game-picker";
 import { assertGameInviteDoorsOpen } from "~/server/games/invites";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -56,3 +59,19 @@ export async function searchLookupUsers(
     excludeUserIds,
   });
 }
+
+export const searchLookupUsersProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      query: z.string().trim().max(255),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return searchLookupUsers(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      query: input.query,
+    });
+  });

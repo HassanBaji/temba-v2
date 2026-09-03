@@ -1,15 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { gameMemberInvites } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
 import {
   assertGameInviteDoorsOpen,
   assertInviteeAllowedOnGame,
 } from "~/server/games/invites";
 import { acceptLookup, throwInviteFrozen } from "~/server/invites/doors";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -75,3 +78,21 @@ export async function acceptLookupInvite(
     waitlisted: accepted.waitlisted ?? false,
   };
 }
+
+export const acceptLookupInviteProcedure = protectedProcedure
+  .input(
+    z.object({
+      inviteId: z.string().uuid(),
+      sideIndex: z.number().int().min(1).optional(),
+      position: z.enum(["left", "right"]).optional(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return acceptLookupInvite(ctx.db, {
+      inviteId: input.inviteId,
+      userId: appUser.id,
+      sideIndex: input.sideIndex,
+      position: input.position,
+    });
+  });

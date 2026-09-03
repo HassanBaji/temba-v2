@@ -1,7 +1,15 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { getLiveLink } from "~/server/invites/doors";
-import { gameInviteLinkUrl, gameInviteShortUrl } from "~/server/invites/tokens";
-import { type db } from "~/server/db";
+import {
+  gameInviteLinkUrl,
+  gameInviteShortUrl,
+  getAppOrigin,
+} from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -26,3 +34,14 @@ export async function getInviteLink(
     expiresAt: newest.expiresAt,
   };
 }
+
+export const getInviteLinkProcedure = protectedProcedure
+  .input(z.object({ gameId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return getInviteLink(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      origin: getAppOrigin(ctx.headers),
+    });
+  });

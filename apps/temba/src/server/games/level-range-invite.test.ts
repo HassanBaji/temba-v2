@@ -18,17 +18,17 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { leaveGame } from "~/server/api/routers/games/leave";
-import { registerSeat } from "~/server/api/routers/games/registerSeat";
+import { acceptInviteLink } from "~/server/api/routers/games/acceptInviteLink";
+import { acceptLookupInvite } from "~/server/api/routers/games/acceptLookupInvite";
 import { approveLevelRangeRequest } from "~/server/api/routers/games/approveLevelRangeRequest";
+import { leaveGame } from "~/server/api/routers/games/leave";
+import { previewInviteLink } from "~/server/api/routers/games/previewInviteLink";
+import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { requestLevelRange } from "~/server/api/routers/games/requestLevelRange";
+import { revokeLookupInvite } from "~/server/api/routers/games/revokeLookupInvite";
+import { sendLookupInvite } from "~/server/api/routers/games/sendLookupInvite";
 import { updateGameLevelRange } from "~/server/api/routers/games/updateLevelRange";
 import type { GameRow } from "~/server/games/access";
-import { acceptInviteLink } from "~/server/games/accept-invite-link";
-import { acceptLookupInvite } from "~/server/games/accept-lookup-invite";
-import { previewInviteLink } from "~/server/games/preview-invite-link";
-import { revokeLookupInvite } from "~/server/games/revoke-lookup-invite";
-import { sendLookupInvite } from "~/server/games/send-lookup-invite";
 import { mintLink } from "~/server/invites/doors";
 import { loadGameInviteOpenGraph } from "~/server/invites/game-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";

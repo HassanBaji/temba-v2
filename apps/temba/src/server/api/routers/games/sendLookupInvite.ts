@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import { z } from "zod";
 
 import { gameMemberInvites, user } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import { userAlreadyWaitlisted } from "~/server/games/helpers/user-already-waitlisted";
@@ -12,7 +16,6 @@ import {
 } from "~/server/games/invites";
 import { upsertApprovedLevelRangeWaiver } from "~/server/games/level-range-requests";
 import { mintLookup } from "~/server/invites/doors";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -145,3 +148,19 @@ export async function sendLookupInvite(
 
   return { sent, refused };
 }
+
+export const sendLookupInviteProcedure = protectedProcedure
+  .input(
+    z.object({
+      gameId: z.string().uuid(),
+      userIds: z.array(z.string().uuid()).min(1).max(20),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return sendLookupInvite(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      userIds: input.userIds,
+    });
+  });

@@ -44,16 +44,6 @@ export {
   eligibleCompleteTeamsForUser,
   recordTeamInviteLinkConsent,
 } from "~/server/games/invites";
-export { searchLookupUsers } from "~/server/games/search-lookup-users";
-export { sendLookupInvite } from "~/server/games/send-lookup-invite";
-export { listLookupInvites } from "~/server/games/list-lookup-invites";
-export { revokeLookupInvite } from "~/server/games/revoke-lookup-invite";
-export { pendingLookupInvites } from "~/server/games/pending-lookup-invites";
-export { acceptLookupInvite } from "~/server/games/accept-lookup-invite";
-export { getInviteLink } from "~/server/games/get-invite-link";
-export { createInviteLink } from "~/server/games/create-invite-link";
-export { previewInviteLink } from "~/server/games/preview-invite-link";
-export { acceptInviteLink } from "~/server/games/accept-invite-link";
 export {
   assertFullyVacantSide,
   firstFullyVacantSideIndex,

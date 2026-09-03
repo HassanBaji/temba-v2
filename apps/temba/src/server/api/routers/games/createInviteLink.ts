@@ -1,10 +1,17 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { assertGameInviteDoorsOpen } from "~/server/games/invites";
 import { mintLink } from "~/server/invites/doors";
-import { gameInviteLinkUrl, gameInviteShortUrl } from "~/server/invites/tokens";
-import { type db } from "~/server/db";
+import {
+  gameInviteLinkUrl,
+  gameInviteShortUrl,
+  getAppOrigin,
+} from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -36,3 +43,14 @@ export async function createInviteLink(
     expiresAt: minted.link.expiresAt,
   };
 }
+
+export const createInviteLinkProcedure = protectedProcedure
+  .input(z.object({ gameId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return createInviteLink(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      origin: getAppOrigin(ctx.headers),
+    });
+  });

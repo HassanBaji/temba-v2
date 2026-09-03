@@ -2,13 +2,15 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import { gameMemberInvites } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { getRegistrationStatus, requireGame } from "~/server/games/access";
 import {
   isIndividualSeatGame,
   listGameSides,
   vacantPositionsFromSides,
 } from "~/server/games/seats";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -61,3 +63,10 @@ export async function pendingLookupInvites(
   }
   return mapped;
 }
+
+export const pendingLookupInvitesProcedure = protectedProcedure.query(
+  async ({ ctx }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return pendingLookupInvites(ctx.db, { userId: appUser.id });
+  },
+);

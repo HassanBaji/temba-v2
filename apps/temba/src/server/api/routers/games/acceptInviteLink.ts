@@ -1,18 +1,21 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { gameInviteLinks } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import {
   assertGameInviteDoorsOpen,
   assertInviteeAllowedOnGame,
 } from "~/server/games/invites";
-import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
-import { acceptLink, throwInviteFrozen } from "~/server/invites/doors";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
-import { type db } from "~/server/db";
+import { acceptLink, throwInviteFrozen } from "~/server/invites/doors";
+import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
 
 type DbClient = typeof db;
@@ -92,3 +95,21 @@ export async function acceptInviteLink(
     waitlisted: accepted.waitlisted ?? false,
   };
 }
+
+export const acceptInviteLinkProcedure = protectedProcedure
+  .input(
+    z.object({
+      token: z.string().min(1).max(64),
+      sideIndex: z.number().int().min(1).optional(),
+      position: z.enum(["left", "right"]).optional(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return acceptInviteLink(ctx.db, {
+      token: input.token,
+      userId: appUser.id,
+      sideIndex: input.sideIndex,
+      position: input.position,
+    });
+  });
