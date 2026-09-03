@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   gamePlayers,
@@ -11,6 +12,8 @@ import {
   venues,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import {
   canViewGame,
@@ -380,3 +383,10 @@ export async function gameById(
     ...levelRange,
   };
 }
+
+export const byId = protectedProcedure
+  .input(z.object({ id: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return gameById(ctx.db, { gameId: input.id, userId: appUser.id });
+  });

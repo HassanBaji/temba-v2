@@ -28,8 +28,6 @@ export {
   listAssignableCourts,
   listCourts,
 } from "~/server/games/courts";
-export { gameById } from "~/server/games/by-id";
-export { createGame } from "~/server/games/create";
 export {
   approveLevelRangeRequest,
   listLevelRangeRequests,
@@ -51,11 +49,7 @@ export { registerTeam } from "~/server/games/register-team";
 export { leaveGame } from "~/server/games/leave";
 export { leaveWaitlist } from "~/server/games/leave-waitlist";
 export { kick } from "~/server/games/kick";
-export { listCreateVenues } from "~/server/games/list-create-venues";
-export {
-  listVenuesForGameCreate,
-  assertGameCreateVenueAndCourt,
-} from "~/server/games/venue";
+export { assertGameCreateVenueAndCourt } from "~/server/games/venue";
 export { loadGameCreateVenueContext } from "~/server/games/helpers/load-game-create-venue-context";
 export {
   admitCompleteTeam,
@@ -120,11 +114,7 @@ export {
   setWinsForGames,
   userIsOnMatchSlots,
 } from "~/server/games/sets";
-export {
-  listMyGamesHubRows,
-  listPublicHubRows,
-  toHubListRow,
-} from "~/server/games/hub-list-rows";
+export { listMyGamesHubRows, toHubListRow } from "~/server/games/hub-list-rows";
 export type {
   AdmitDb,
   AdmitDoor,

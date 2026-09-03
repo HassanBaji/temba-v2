@@ -12,9 +12,9 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { gameById } from "~/server/api/routers/games/byId";
 import { admit } from "~/server/games/admit";
 import type { GameRow } from "~/server/games/access";
-import { gameById } from "~/server/games/by-id";
 import {
   approveLevelRangeRequest,
   rejectLevelRangeRequest,

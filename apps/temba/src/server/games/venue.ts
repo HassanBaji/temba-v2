@@ -1,5 +1,4 @@
 export { loadGameCreateVenueContext } from "~/server/games/helpers/load-game-create-venue-context";
-export { listVenuesForGameCreate } from "~/server/games/list-venues-for-game-create";
 export { assertGameCreateVenueAndCourt } from "~/server/games/assert-game-create-venue-and-court";
 export type {
   GameCreateGroupKind,

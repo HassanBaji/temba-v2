@@ -1,20 +1,25 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { venues } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import { assertMayCreateGameOnGroup } from "~/server/games/access";
 import { loadGameCreateVenueContext } from "~/server/games/helpers/load-game-create-venue-context";
-import { consult } from "~/server/soft-archive";
-import { liveVenuesWhere } from "~/server/soft-archive/adapter";
+import { requireGroup } from "~/server/games/helpers/require-group";
 import type {
   GameCreateGroupKind,
   GameCreateVenueOption,
 } from "~/server/games/utils";
+import { consult } from "~/server/soft-archive";
+import { liveVenuesWhere } from "~/server/soft-archive/adapter";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export async function listVenuesForGameCreate(
+async function listVenuesForGameCreate(
   database: DbClient,
   groupId: string | undefined,
 ): Promise<{
@@ -105,3 +110,24 @@ export async function listVenuesForGameCreate(
     })),
   };
 }
+
+async function listCreateVenuesForUser(
+  database: DbClient,
+  args: { userId: string; groupId?: string },
+) {
+  if (args.groupId) {
+    const group = await requireGroup(database, args.groupId);
+    await assertMayCreateGameOnGroup(database, group, args.userId);
+  }
+  return listVenuesForGameCreate(database, args.groupId);
+}
+
+export const listCreateVenues = protectedProcedure
+  .input(z.object({ groupId: z.string().uuid().optional() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listCreateVenuesForUser(ctx.db, {
+      userId: appUser.id,
+      groupId: input.groupId,
+    });
+  });

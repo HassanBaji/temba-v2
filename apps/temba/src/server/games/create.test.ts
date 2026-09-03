@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { games, user, venues } from "@repo/db/schema";
 
-import { createGame } from "~/server/games/create";
+import { createGame } from "~/server/api/routers/games/create";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 async function insertUser(database: TestDatabase, email: string) {

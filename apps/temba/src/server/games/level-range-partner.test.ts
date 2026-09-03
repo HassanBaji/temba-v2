@@ -17,8 +17,8 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { gameById } from "~/server/api/routers/games/byId";
 import type { GameRow } from "~/server/games/access";
-import { gameById } from "~/server/games/by-id";
 import { registerSeat } from "~/server/games/register-seat";
 import { registerTeam } from "~/server/games/register-team";
 import { registerWithPartner } from "~/server/games/register-with-partner";
