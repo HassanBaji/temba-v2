@@ -61,6 +61,7 @@ export function UpcomingGameHeroCard({
   sides,
   levelMinTenths,
   levelMaxTenths,
+  actionLabel = "View game details",
   className,
 }: {
   href: string;
@@ -73,6 +74,7 @@ export function UpcomingGameHeroCard({
   sides: HubListSide[];
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  actionLabel?: string;
   className?: string;
 }) {
   const sportLabel = sportEyebrow(sport);
@@ -166,7 +168,7 @@ export function UpcomingGameHeroCard({
           className="h-11 min-h-11 w-full rounded-full bg-white text-black hover:bg-white/90"
         >
           <Link href={href}>
-            View game details
+            {actionLabel}
             <ChevronRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>

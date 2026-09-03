@@ -1,10 +1,11 @@
 /**
  * Group-home and membership-only Game lists (parent events, ADR-0008 / TEM-35):
  * live, not cancelled, Group id in the caller's membership set. Soft-archived
- * Club Group Games still appear (TEM-43). Home upcoming and the Games hub My
- * Games tab also include private Games the User created or is part of — see
+ * Club Group Games still appear (TEM-43). The Games hub My Games tab also
+ * includes private Games the User created or is part of — see
  * `isMyGamesHubGame`. Public pickup excludes Soft-archived Club Group Games
- * separately.
+ * separately. Home's hero carousel uses `listHomeCarouselGames`, not these
+ * hub filters.
  */
 
 import { consult } from "~/server/soft-archive";
