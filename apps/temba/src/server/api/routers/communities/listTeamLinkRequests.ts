@@ -1,4 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   teamLinkRequests,
@@ -7,11 +8,13 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
 import { type TeamLinkRequest } from "~/server/communities/utils";
-import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 import { type db } from "~/server/db";
+import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 
 type DbClient = typeof db;
 
@@ -78,3 +81,13 @@ export async function listTeamLinkRequests(
     requestedBy: row.requestedBy,
   }));
 }
+
+export const listTeamLinkRequestsProcedure = protectedProcedure
+  .input(z.object({ communityId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listTeamLinkRequests(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+    });
+  });

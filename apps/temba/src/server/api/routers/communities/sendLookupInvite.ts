@@ -1,12 +1,15 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import { z } from "zod";
 
 import { communityMemberInvites, user } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireLiveCommunity } from "~/server/communities/helpers/require-live-community";
 import { requireMembership } from "~/server/communities/helpers/require-membership";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
-import { mintLookup } from "~/server/invites/doors";
 import { type db } from "~/server/db";
+import { mintLookup } from "~/server/invites/doors";
 
 type DbClient = typeof db;
 
@@ -106,3 +109,19 @@ export async function sendLookupInvite(
 
   return { sent, refused };
 }
+
+export const sendLookupInviteProcedure = protectedProcedure
+  .input(
+    z.object({
+      communityId: z.string().uuid(),
+      userIds: z.array(z.string().uuid()).min(1).max(20),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return sendLookupInvite(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+      userIds: input.userIds,
+    });
+  });

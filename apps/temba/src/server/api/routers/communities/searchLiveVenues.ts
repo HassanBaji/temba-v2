@@ -1,13 +1,16 @@
 import { and, ilike, or } from "drizzle-orm";
+import { z } from "zod";
 
 import { venues } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
 import { type LiveVenue } from "~/server/communities/utils";
+import { type db } from "~/server/db";
 import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { liveVenuesWhere } from "~/server/soft-archive/adapter";
-import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
@@ -65,3 +68,19 @@ export async function searchLiveVenues(
 
   return rows;
 }
+
+export const searchLiveVenuesProcedure = protectedProcedure
+  .input(
+    z.object({
+      communityId: z.string().uuid(),
+      query: z.string().trim().max(255),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return searchLiveVenues(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+      query: input.query,
+    });
+  });

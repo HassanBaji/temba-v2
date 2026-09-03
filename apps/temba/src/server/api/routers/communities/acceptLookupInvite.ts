@@ -1,11 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { communityMemberInvites } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
-import { acceptLookup, throwInviteFrozen } from "~/server/invites/doors";
 import { type db } from "~/server/db";
+import { acceptLookup, throwInviteFrozen } from "~/server/invites/doors";
 
 type DbClient = typeof db;
 
@@ -62,3 +65,13 @@ export async function acceptLookupInvite(
     alreadyMember: accepted.alreadyMember,
   };
 }
+
+export const acceptLookupInviteProcedure = protectedProcedure
+  .input(z.object({ inviteId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return acceptLookupInvite(ctx.db, {
+      inviteId: input.inviteId,
+      userId: appUser.id,
+    });
+  });

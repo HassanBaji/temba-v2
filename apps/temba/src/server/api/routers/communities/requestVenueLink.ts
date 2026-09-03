@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   venueLinkRequests,
@@ -7,11 +8,13 @@ import {
   venues,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asVenueLinkStatus } from "~/server/communities/helpers/as-venue-link-status";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
-import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { type db } from "~/server/db";
+import { consult, refuseIfFrozen } from "~/server/soft-archive";
 
 type DbClient = typeof db;
 
@@ -105,3 +108,19 @@ export async function requestVenueLink(
     throw error;
   }
 }
+
+export const requestVenueLinkProcedure = protectedProcedure
+  .input(
+    z.object({
+      communityId: z.string().uuid(),
+      venueId: z.string().uuid(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return requestVenueLink(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+      venueId: input.venueId,
+    });
+  });

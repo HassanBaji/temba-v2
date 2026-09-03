@@ -1,11 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   communityJoinRequests,
   CommunityJoinRequestStatusEnum,
 } from "@repo/db";
 
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asJoinStatus } from "~/server/communities/helpers/as-join-status";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
@@ -52,3 +55,13 @@ export async function listJoinRequests(
     },
   }));
 }
+
+export const listJoinRequestsProcedure = protectedProcedure
+  .input(z.object({ communityId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listJoinRequests(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+    });
+  });

@@ -1,8 +1,12 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireLiveCommunity } from "~/server/communities/helpers/require-live-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
-import { getLiveLink } from "~/server/invites/doors";
-import { communityInviteLinkUrl } from "~/server/invites/tokens";
 import { type db } from "~/server/db";
+import { getLiveLink } from "~/server/invites/doors";
+import { communityInviteLinkUrl, getAppOrigin } from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -29,3 +33,14 @@ export async function getInviteLink(
     expiresAt: newest.expiresAt,
   };
 }
+
+export const getInviteLinkProcedure = protectedProcedure
+  .input(z.object({ communityId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return getInviteLink(ctx.db, {
+      communityId: input.communityId,
+      userId: appUser.id,
+      origin: getAppOrigin(ctx.headers),
+    });
+  });

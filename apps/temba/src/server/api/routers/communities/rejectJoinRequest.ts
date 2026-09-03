@@ -1,24 +1,22 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   communityJoinRequests,
   CommunityJoinRequestStatusEnum,
-  CommunityRoleEnum,
 } from "@repo/db";
 
-import {
-  admit as admitCommunityMember,
-  throwAdmitFailure,
-} from "~/server/community-membership";
+import { protectedProcedure } from "~/server/api/trpc";
+import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { requireCommunity } from "~/server/communities/helpers/require-community";
 import { requireStaff } from "~/server/communities/helpers/require-staff";
-import { consult, refuseIfFrozen } from "~/server/soft-archive";
 import { type db } from "~/server/db";
+import { consult, refuseIfFrozen } from "~/server/soft-archive";
 
 type DbClient = typeof db;
 
-export async function approveJoinRequest(
+export async function rejectJoinRequest(
   database: DbClient,
   args: { requestId: string; userId: string },
 ) {
@@ -43,7 +41,7 @@ export async function approveJoinRequest(
   }
 
   refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
-    frozenMessage: "Cannot approve join requests for an archived Community",
+    frozenMessage: "Cannot reject join requests for an archived Community",
   });
 
   await requireStaff(database, community.id, args.userId);
@@ -55,33 +53,32 @@ export async function approveJoinRequest(
     });
   }
 
-  await database.transaction(async (tx) => {
-    const [updated] = await tx
-      .update(communityJoinRequests)
-      .set({
-        status: CommunityJoinRequestStatusEnum.APPROVED,
-        decidedBy: args.userId,
-        updatedAt: new Date(),
-      })
-      .where(eq(communityJoinRequests.id, request.id))
-      .returning();
+  const [updated] = await database
+    .update(communityJoinRequests)
+    .set({
+      status: CommunityJoinRequestStatusEnum.REJECTED,
+      decidedBy: args.userId,
+      updatedAt: new Date(),
+    })
+    .where(eq(communityJoinRequests.id, request.id))
+    .returning();
 
-    if (!updated) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to approve join request",
-      });
-    }
-
-    const admitted = await admitCommunityMember(tx, {
-      communityId: community.id,
-      userId: request.userId,
-      role: CommunityRoleEnum.MEMBER,
+  if (!updated) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to reject join request",
     });
-    if (!admitted.ok && admitted.reason !== "already_member") {
-      throwAdmitFailure(admitted);
-    }
-  });
+  }
 
   return { ok: true as const };
 }
+
+export const rejectJoinRequestProcedure = protectedProcedure
+  .input(z.object({ requestId: z.string().uuid() }))
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return rejectJoinRequest(ctx.db, {
+      requestId: input.requestId,
+      userId: appUser.id,
+    });
+  });
