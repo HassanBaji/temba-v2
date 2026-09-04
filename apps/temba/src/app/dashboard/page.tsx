@@ -9,6 +9,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { UpcomingGamesCarousel } from "~/components/games/upcoming-games-carousel";
 import { HomeRatingCard } from "~/components/home/home-rating-card";
+import { HomeRecentFormCard } from "~/components/home/home-recent-form-card";
 import { HomeStatsCard } from "~/components/home/home-stats-card";
 import { Section } from "~/components/layout/section";
 import { Button } from "~/components/ui/button";
@@ -127,6 +128,8 @@ export default function HomePage() {
                 <Section title="Your level" className="min-w-0">
                   <HomeRatingCard className="mt-4" />
                 </Section>
+
+                <HomeRecentFormCard />
 
                 <Section title="Your overall stats" className="min-w-0">
                   <HomeStatsCard
