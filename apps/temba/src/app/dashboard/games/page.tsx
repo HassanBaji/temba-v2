@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -15,6 +17,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { gamesHubTabFromQuery, gamesHubTabQuery } from "~/lib/games-hub-tab";
 import {
   gameSummaryPrimaryAction,
   gameViewerStatus,
@@ -24,8 +27,6 @@ import { api, type RouterOutputs } from "~/trpc/react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
 type HistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
-
-type HubTab = "my-games" | "public" | "history";
 
 function GamesHubTabPanel({
   isLoading,
@@ -215,8 +216,27 @@ function TabCount({ count }: { count: number | undefined }) {
   );
 }
 
-export default function GamesHubPage() {
-  const [tab, setTab] = React.useState<HubTab>("my-games");
+export default function GamesHubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const query = use(searchParams);
+  const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  const tab = gamesHubTabFromQuery(tabParam);
+  const router = useRouter();
+  const pathname = usePathname() ?? "/dashboard/games";
+
+  function setTab(next: string) {
+    const resolved = gamesHubTabFromQuery(next);
+    if (resolved === tab) {
+      return;
+    }
+    router.replace(`${pathname}${gamesHubTabQuery(resolved)}`, {
+      scroll: false,
+    });
+  }
+
   const myGames = api.games.listMyGames.useQuery();
   const pickup = api.games.listPublicPickup.useQuery();
   const history = api.games.listMyMatchHistory.useQuery();
@@ -291,13 +311,7 @@ export default function GamesHubPage() {
         ) : undefined
       }
     >
-      <Tabs
-        value={tab}
-        onValueChange={(value) => {
-          setTab(value as HubTab);
-        }}
-        className="gap-4"
-      >
+      <Tabs value={tab} onValueChange={setTab} className="gap-4">
         <TabsList
           variant="line"
           className="h-11 min-h-11 w-full max-w-full justify-start rounded-none"
