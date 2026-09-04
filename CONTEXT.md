@@ -212,6 +212,10 @@ _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup i
 A person with a Temba account.
 _Avoid_: player (when you mean User), member (when you mean the Community role)
 
+**Home**:
+The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
+_Avoid_: feed, lobby, dashboard (when you mean this surface)
+
 **Rating**:
 A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.
 _Avoid_: ELO, Elo, player rating (when you mean this entity), rank (that is leaderboard position)
