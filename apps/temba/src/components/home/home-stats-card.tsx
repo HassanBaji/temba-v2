@@ -11,8 +11,9 @@ function winRatePercent(gamesPlayed: number, gamesWon: number) {
 
 const FORM_TIERS = [
   { minWinRate: 75, emoji: "🔥", headline: "You're on fire" },
-  { minWinRate: 50, emoji: "💪", headline: "Winning more than losing" },
-  { minWinRate: 25, emoji: "🌱", headline: "Momentum is building" },
+  { minWinRate: 51, emoji: "💪", headline: "Winning more than losing" },
+  { minWinRate: 40, emoji: "🌱", headline: "Momentum is building" },
+  { minWinRate: 25, emoji: "💨", headline: "Room to bounce back" },
   { minWinRate: 0, emoji: "👊", headline: "Every game counts" },
 ] as const;
 

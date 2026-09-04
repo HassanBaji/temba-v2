@@ -57,7 +57,8 @@ async function padelLevelHistory(
  * Current padel Rating for the signed-in User. Idle RD inflation is applied
  * for display (not persisted). Returns product Level / Level band /
  * Provisional only — never raw Glicko μ/φ/σ. Also includes progress within
- * the current Level band and recent Level history for the home sparkline.
+ * the current Level band, typical Rated Matches remaining while Provisional,
+ * and recent Level history for the home sparkline.
  */
 export const me = protectedProcedure.query(async ({ ctx }) => {
   const appUser = await resolveAppUser(ctx.userId);

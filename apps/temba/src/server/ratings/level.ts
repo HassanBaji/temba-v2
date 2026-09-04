@@ -17,6 +17,8 @@ export const INITIAL_MU = 1500;
 export const INITIAL_PHI = 350;
 export const INITIAL_SIGMA = 0.06;
 export const PROVISIONAL_PHI_THRESHOLD = 200;
+/** Typical Rated Matches from a fresh Rating (φ₀) until Provisional clears. */
+export const RATED_MATCHES_TO_CONFIRM = 5;
 
 const _levelBandsMatchSchema: typeof LEVEL_BANDS = RATING_LEVEL_BAND_VALUES;
 void _levelBandsMatchSchema;
@@ -59,6 +61,8 @@ export type YouRatingView = {
   level: string;
   levelBand: LevelBand;
   provisional: boolean;
+  /** Typical Rated Matches still needed before Provisional clears. 0 when settled. */
+  ratedMatchesRemaining: number;
 };
 
 export function clampLevel(level: number): number {
@@ -230,6 +234,24 @@ export function isProvisional(phi: number): boolean {
   return phi > PROVISIONAL_PHI_THRESHOLD;
 }
 
+/**
+ * Product-facing count of typical Rated Matches until φ is at or below the
+ * Provisional threshold. Linear in φ between φ₀ and the threshold; never
+ * exposes raw φ. Still-Provisional Ratings always return at least 1.
+ */
+export function ratedMatchesRemainingToConfirm(phi: number): number {
+  if (!isProvisional(phi)) {
+    return 0;
+  }
+
+  const span = INITIAL_PHI - PROVISIONAL_PHI_THRESHOLD;
+  const cappedPhi = Math.min(phi, INITIAL_PHI);
+  const remaining = Math.ceil(
+    ((cappedPhi - PROVISIONAL_PHI_THRESHOLD) / span) * RATED_MATCHES_TO_CONFIRM,
+  );
+  return Math.max(1, remaining);
+}
+
 export function initialRatingFromChoice(
   choice: SelfDeclareChoice,
 ): RatingGlickoState {
@@ -257,5 +279,6 @@ export function youRatingViewFromState(
     level: displayedLevelFromMu(state.mu),
     levelBand: state.levelBand,
     provisional: isProvisional(state.phi),
+    ratedMatchesRemaining: ratedMatchesRemainingToConfirm(state.phi),
   };
 }

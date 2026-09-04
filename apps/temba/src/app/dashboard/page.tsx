@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { BellIcon } from "lucide-react";
 import Link from "next/link";
 
 import { ErrorState } from "~/components/common/error-state";
@@ -10,6 +11,7 @@ import { UpcomingGamesCarousel } from "~/components/games/upcoming-games-carouse
 import { HomeRatingCard } from "~/components/home/home-rating-card";
 import { HomeStatsCard } from "~/components/home/home-stats-card";
 import { Section } from "~/components/layout/section";
+import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import TembaTextLogo from "~/components/ui/icons/temba-text-logo";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -54,17 +56,28 @@ export default function HomePage() {
     <DashboardShell
       width="content"
       hidePageHeader={true}
-      icon={<TembaTextLogo className="mt-2 h-6 w-auto" />}
+      hideMobileTopBar
+      // icon={<TembaTextLogo className="mt-2 h-6 w-auto" />}
     >
       <div className="min-w-0 space-y-2 lg:space-y-6">
-        {user ? (
-          <div className="flex min-w-0 items-center gap-3">
-            <UserAvatar name={displayName} image={image} size="lg" />
-            <p className="lg:text-h2 min-w-0 truncate text-xl font-semibold tracking-[-0.02em] lg:font-semibold">
-              Hi, {firstName ?? displayName} 👋
-            </p>
-          </div>
-        ) : null}
+        <div className="flex items-center justify-between">
+          {user ? (
+            <div className="flex min-w-0 items-center gap-3">
+              <UserAvatar name={displayName} image={image} size="lg" />
+              <p className="lg:text-h2 min-w-0 truncate text-xl font-semibold tracking-[-0.02em] lg:font-semibold">
+                Hi, {firstName ?? displayName} 👋
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          )}
+          <Button variant="ghost" size="icon">
+            <BellIcon className="size-6" />
+          </Button>
+        </div>
 
         {home.isLoading ? <HomeSkeleton /> : null}
 
@@ -83,7 +96,7 @@ export default function HomePage() {
             <div className="grid min-w-0 gap-2 lg:gap-8">
               <div className="min-w-0 space-y-6">
                 {heroGames.length > 0 ? (
-                  <Section title="Your games" className="mt-4 min-w-0">
+                  <Section title="Next games" className="mt-4 min-w-0">
                     <UpcomingGamesCarousel
                       games={heroGames.map((game) => {
                         const addResults =

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { progressToNextBand } from "./level";
+import {
+  INITIAL_PHI,
+  PROVISIONAL_PHI_THRESHOLD,
+  RATED_MATCHES_TO_CONFIRM,
+  progressToNextBand,
+  ratedMatchesRemainingToConfirm,
+} from "./level";
 
 describe("progressToNextBand", () => {
   it("returns mid-band progress toward the next Level band", () => {
@@ -59,5 +65,31 @@ describe("progressToNextBand", () => {
       progressPercent: 29,
       nextBand: "C1",
     });
+  });
+});
+
+describe("ratedMatchesRemainingToConfirm", () => {
+  it("returns the full window at a fresh Rating", () => {
+    expect(ratedMatchesRemainingToConfirm(INITIAL_PHI)).toBe(
+      RATED_MATCHES_TO_CONFIRM,
+    );
+  });
+
+  it("returns 0 once Provisional has cleared", () => {
+    expect(ratedMatchesRemainingToConfirm(PROVISIONAL_PHI_THRESHOLD)).toBe(0);
+    expect(ratedMatchesRemainingToConfirm(PROVISIONAL_PHI_THRESHOLD - 1)).toBe(
+      0,
+    );
+  });
+
+  it("returns at least 1 while still Provisional", () => {
+    expect(ratedMatchesRemainingToConfirm(PROVISIONAL_PHI_THRESHOLD + 1)).toBe(
+      1,
+    );
+  });
+
+  it("scales remaining with φ between a fresh Rating and the threshold", () => {
+    expect(ratedMatchesRemainingToConfirm(275)).toBe(3);
+    expect(ratedMatchesRemainingToConfirm(260)).toBe(2);
   });
 });

@@ -109,11 +109,6 @@ export function UpcomingGameHeroCard({
       <div className="relative z-10 flex min-w-0 flex-1 flex-col gap-3 p-4 sm:gap-4 sm:p-5">
         <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 sm:gap-x-3">
-            {sportLabel ? (
-              <span className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70 sm:text-[11px]">
-                {sportLabel}
-              </span>
-            ) : null}
             <span className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70 sm:text-[11px]">
               {formatLabel}
             </span>

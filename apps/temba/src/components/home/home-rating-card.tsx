@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -74,6 +73,12 @@ function parseHistory(history: string[]): LevelHistory | null {
 
 function matchCountCopy(matchCount: number) {
   return `${matchCount} Rated ${matchCount === 1 ? "Match" : "Matches"}`;
+}
+
+function provisionalNoteCopy(ratedMatchesRemaining: number) {
+  return ratedMatchesRemaining === 1
+    ? "Provisional · 1 rated game remaining to confirm"
+    : `Provisional · ${ratedMatchesRemaining} rated games remaining to confirm your level`;
 }
 
 function LevelSparkline({
@@ -223,6 +228,7 @@ function RatedLevelCard({
   level,
   levelBand,
   provisional,
+  ratedMatchesRemaining,
   progressPercent,
   nextBand,
   history,
@@ -230,6 +236,7 @@ function RatedLevelCard({
   level: string;
   levelBand: LevelBand;
   provisional: boolean;
+  ratedMatchesRemaining: number;
   progressPercent: number;
   nextBand: LevelBand | null;
   history: string[];
@@ -243,19 +250,18 @@ function RatedLevelCard({
           <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
             Padel
           </p>
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          <div className="flex w-full items-center gap-2">
             <p className="text-display font-bold leading-none tracking-[-0.02em]">
               <span className="sr-only">Level band </span>
               {levelBand}
             </p>
-            {provisional ? (
-              <Badge variant="secondary">Provisional</Badge>
-            ) : null}
           </div>
-          <p className="text-meta text-muted-foreground">
-            Level{" "}
-            <span className="text-foreground font-semibold tabular-nums">
-              {level}
+          <p className="text-meta text-muted-foreground flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span>
+              Level{" "}
+              <span className="text-foreground font-semibold tabular-nums">
+                {level}
+              </span>
             </span>
           </p>
         </div>
@@ -275,6 +281,12 @@ function RatedLevelCard({
       ) : null}
 
       <BandProgress progressPercent={progressPercent} nextBand={nextBand} />
+
+      {provisional ? (
+        <span className="bg-warning/10 rounded-4xl text-warning mt-4 w-full p-2 text-xs font-medium">
+          {provisionalNoteCopy(ratedMatchesRemaining)}
+        </span>
+      ) : null}
     </Card>
   );
 }
@@ -333,6 +345,7 @@ export function HomeRatingCard({ className }: { className?: string }) {
           level={me.data.rating.level}
           levelBand={me.data.rating.levelBand}
           provisional={me.data.rating.provisional}
+          ratedMatchesRemaining={me.data.rating.ratedMatchesRemaining}
           progressPercent={me.data.progressPercent}
           nextBand={me.data.nextBand}
           history={me.data.history}
