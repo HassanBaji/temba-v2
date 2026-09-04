@@ -22,18 +22,18 @@ const geist = Geist({
 
 const clerkAppearance = {
   theme: shadcn,
-  // variables: {
-  //   colorPrimary: "#C8F135",
-  //   colorPrimaryForeground: "#0A0A0A",
-  //   colorBackground: "#FFFFFF",
-  //   colorInputBackground: "#FFFFFF",
-  //   colorInput: "#171717",
-  //   colorText: "#171717",
-  //   colorTextSecondary: "#636363",
-  //   colorDanger: "#DC2626",
-  //   colorNeutral: "#636363",
-  //   borderRadius: "0.75rem",
-  // },
+  variables: {
+    colorPrimary: "#0A0A0A",
+    colorPrimaryForeground: "#FFFFFF",
+    colorBackground: "#FFFFFF",
+    colorInputBackground: "#FFFFFF",
+    colorInput: "#171717",
+    colorText: "#171717",
+    colorTextSecondary: "#404040",
+    colorDanger: "#DC2626",
+    colorNeutral: "#636363",
+    borderRadius: "0.75rem",
+  },
 } as const;
 
 export default function RootLayout({

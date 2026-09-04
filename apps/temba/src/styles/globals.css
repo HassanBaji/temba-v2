@@ -11,16 +11,10 @@
 }
 
 @theme static {
-  /* Sports brand — primary is black (#0A0A0A); Volt Lime is a separate accent
-     that nothing maps --primary onto. The retired blue --color-brand* tokens
-     (formerly text-brand / bg-brand-subtle / bg-brand-on-dark) have been
-     removed now that no source references them. */
-
-  /* Volt Lime — accent only; never aliased onto --primary. */
-  --color-volt: #c8f135;
-  --color-volt-hover: #b3d928;
-  --color-volt-soft: #eef8c9;
-  --color-volt-foreground: #0a0a0a;
+  /* Sports brand — primary is black (#0A0A0A). Do not map --primary onto a
+     chroma accent. The retired blue --color-brand* tokens (formerly
+     text-brand / bg-brand-subtle / bg-brand-on-dark) have been removed now
+     that no source references them. */
 
   --text-eyebrow: 0.75rem; /* 12px */
   --text-eyebrow--line-height: 1rem;
@@ -132,7 +126,7 @@
   --warning-foreground: oklch(1 0 0);
   --warning-subtle: oklch(0.97 0.035 80);
 
-  --chart-1: var(--color-volt);
+  --chart-1: #0a0a0a;
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.708 0 0);
   --chart-4: oklch(0.4 0 0);
@@ -175,7 +169,7 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.985 0 0);
-  --chart-1: var(--color-volt);
+  --chart-1: #e5e5e5;
   --chart-2: oklch(0.708 0 0);
   --chart-3: oklch(0.556 0 0);
   --chart-4: oklch(0.439 0 0);

@@ -25,7 +25,7 @@ export default function GroupsIndexPage() {
       description="Groups you are a member of. Open one to go to its home."
       action={
         hasCreateAccess ? (
-          <Button asChild variant="brand">
+          <Button asChild>
             <Link href="/dashboard/groups/new">Create Group</Link>
           </Button>
         ) : undefined

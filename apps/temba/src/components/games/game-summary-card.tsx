@@ -102,7 +102,7 @@ function RosterSeat({
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-lg font-semibold",
           joinable
-            ? "border-volt bg-volt-soft text-volt-foreground"
+            ? "border-foreground bg-muted text-foreground"
             : "border-border text-muted-foreground/70",
         )}
       >
@@ -264,7 +264,6 @@ export function GameSummaryCard({
     interactiveCta && ctaText ? (
       <Button
         type="button"
-        variant="brand"
         size="sm"
         className="relative z-10 h-10 min-h-10 rounded-md px-4"
         disabled={actionPending}

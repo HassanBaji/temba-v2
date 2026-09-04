@@ -22,7 +22,10 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             Join the future of competitive sports — track games, climb ranks,
             and dominate your league.
           </p>
-          <span aria-hidden="true" className="bg-volt mt-6 block size-12" />
+          <span
+            aria-hidden="true"
+            className="bg-primary-foreground mt-6 block size-12"
+          />
         </div>
         <p className="text-primary-foreground text-meta">
           © {new Date().getFullYear()} Temba

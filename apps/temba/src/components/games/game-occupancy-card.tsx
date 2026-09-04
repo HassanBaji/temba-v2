@@ -11,7 +11,7 @@ import {
 import { cn } from "~/lib/utils";
 
 const BAR_TONE: Record<GameOccupancyTone, string> = {
-  open: "bg-volt",
+  open: "bg-foreground",
   filling: "bg-warning",
   full: "bg-success",
 };

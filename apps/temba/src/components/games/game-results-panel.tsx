@@ -441,7 +441,6 @@ export function GameResultsPanel({
             {match.canComplete ? (
               <Button
                 type="button"
-                variant="brand"
                 onClick={() => onComplete(match.id)}
                 disabled={completePending}
               >

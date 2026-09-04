@@ -124,11 +124,7 @@ export default function NewCommunityPage() {
           </FieldGroup>
 
           <div className="flex items-center gap-3">
-            <Button
-              type="submit"
-              variant="brand"
-              disabled={createCommunity.isPending}
-            >
+            <Button type="submit" disabled={createCommunity.isPending}>
               {createCommunity.isPending ? "Creating…" : "Create Community"}
             </Button>
             <Button variant="outline" asChild>

@@ -206,7 +206,6 @@ export function AcceptGameInviteLink({
         ) : (
           <Button
             className="min-h-11"
-            variant="brand"
             disabled={
               requestLevelRange.isPending || !ready.canRequestLevelRange
             }
