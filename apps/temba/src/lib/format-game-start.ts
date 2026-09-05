@@ -22,9 +22,9 @@ export function formatGameTimeWindow(
   windowEnd: Date | string | null | undefined,
   startTime: Date | string,
 ) {
-  if (windowStart && windowEnd) {
-    return `${formatGameClock(windowStart)} - ${formatGameClock(windowEnd)}`;
-  }
+  // if (windowStart && windowEnd) {
+  //   return `${formatGameClock(windowStart)} - ${formatGameClock(windowEnd)}`;
+  // }
   return formatGameClock(startTime);
 }
 

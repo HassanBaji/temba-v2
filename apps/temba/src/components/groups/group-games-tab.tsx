@@ -56,6 +56,7 @@ export function GroupGamesTab({
                 name={game.name}
                 startTime={game.startTime}
                 groupName={groupName}
+                format={game.format}
                 sport={game.sport}
                 cancelled={Boolean(game.cancelledAt)}
                 href={`/dashboard/games/${game.id}`}
@@ -84,6 +85,7 @@ export function GroupGamesTab({
                 name={game.name}
                 startTime={game.startTime}
                 groupName={groupName}
+                format={game.format}
                 sport={game.sport}
                 cancelled={Boolean(game.cancelledAt)}
                 href={`/dashboard/games/${game.id}`}

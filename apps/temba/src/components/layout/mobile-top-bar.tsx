@@ -22,7 +22,7 @@ export function MobileTopBar({
   return (
     <header
       className={cn(
-        "bg-card sticky top-0 z-40 flex min-h-11 items-center gap-2 py-2 lg:hidden",
+        "bg-card sticky top-0 z-40 flex min-h-11 items-center gap-2 py-2 pt-4 lg:hidden",
         pageGutterX,
       )}
     >
@@ -36,7 +36,7 @@ export function MobileTopBar({
         </Link>
       )}
       {title ? (
-        <p className="text-title min-w-0 flex-1 truncate font-semibold tracking-[-0.01em]">
+        <p className="min-w-0 flex-1 truncate text-3xl font-bold tracking-[-0.01em]">
           {title}
         </p>
       ) : null}

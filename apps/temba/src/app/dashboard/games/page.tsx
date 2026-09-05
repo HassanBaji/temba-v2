@@ -59,22 +59,48 @@ function GamesHubTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-card border-border shadow-xs flex flex-col gap-3 rounded-xl border p-4 md:p-5"
+            className="bg-card border-border shadow-xs flex flex-col gap-4 rounded-2xl border p-5 md:p-6"
           >
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <Skeleton className="h-4 w-36 max-w-full" />
-                <Skeleton className="h-5 w-16 rounded-sm" />
-              </div>
-              <Skeleton className="h-5 w-48 max-w-full" />
+            <div className="flex justify-end gap-3">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-24" />
             </div>
-            <Skeleton className="h-[5.5rem] w-full rounded-lg" />
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-1 flex-wrap gap-x-4 gap-y-2">
-                <Skeleton className="h-4 w-14" />
-                <Skeleton className="h-4 w-24" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-3.5 w-14" />
+              <Skeleton className="h-10 w-36 max-w-full md:h-12" />
+            </div>
+            <Skeleton className="h-4 w-48 max-w-full" />
+            <Skeleton className="h-px w-full" />
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-1 justify-around gap-2">
+                <div className="flex flex-col items-center gap-1.5">
+                  <Skeleton className="size-11 rounded-full" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <Skeleton className="size-11 rounded-full" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
               </div>
-              <Skeleton className="h-10 w-20 rounded-md" />
+              <Skeleton className="mt-4 h-3 w-6" />
+              <div className="flex flex-1 justify-around gap-2">
+                <div className="flex flex-col items-center gap-1.5">
+                  <Skeleton className="size-11 rounded-full" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <Skeleton className="size-11 rounded-full" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </div>
+            </div>
+            <Skeleton className="h-px w-full" />
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-40 max-w-full" />
+              </div>
+              <Skeleton className="h-4 w-20" />
             </div>
           </div>
         ))}
@@ -107,6 +133,8 @@ function GamesHubTabPanel({
           key={game.id}
           name={game.name}
           startTime={game.startTime}
+          groupName={game.groupName}
+          format={game.format}
           windowStart={game.windowStart}
           windowEnd={game.windowEnd}
           venueName={game.venue?.name}
@@ -312,36 +340,21 @@ export default function GamesHubPage({
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="gap-4">
-        <TabsList
-          variant="line"
-          className="h-11 min-h-11 w-full max-w-full justify-start rounded-none"
-        >
-          <TabsTrigger
-            value="my-games"
-            className="min-h-11 min-w-11 flex-none px-3"
-          >
+        <TabsList className="w-full max-w-full justify-between rounded-2xl p-1">
+          <TabsTrigger value="my-games" className="w-[33%] flex-none px-3">
             My Games
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
-          <TabsTrigger
-            value="public"
-            className="min-h-11 min-w-11 flex-none px-3"
-          >
+          <TabsTrigger value="public" className="w-[33%] flex-none px-3">
             Public
             <TabCount count={pickup.data?.length} />
           </TabsTrigger>
-          <TabsTrigger
-            value="history"
-            className="min-h-11 min-w-11 flex-none px-3"
-          >
+          <TabsTrigger value="history" className="w-[33%] flex-none px-3">
             History
             <TabCount count={history.data?.length} />
           </TabsTrigger>
         </TabsList>
-        <TabsContent
-          value="my-games"
-          className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-        >
+        <TabsContent value="my-games">
           <GamesHubTabPanel
             isLoading={myGames.isLoading}
             errorMessage={myGames.error?.message}
