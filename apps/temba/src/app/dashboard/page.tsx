@@ -129,7 +129,9 @@ export default function HomePage() {
                   <HomeRatingCard className="mt-4" />
                 </Section>
 
-                <HomeRecentFormCard />
+                <Section title="Your recent form" className="min-w-0">
+                  <HomeRecentFormCard />
+                </Section>
 
                 <Section title="Your overall stats" className="min-w-0">
                   <HomeStatsCard

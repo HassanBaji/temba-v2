@@ -32,12 +32,24 @@ describe("deriveRecentForm", () => {
     assert.equal(deriveRecentForm([]), null);
   });
 
-  it("keeps 1–9 bars oldest-left with no padded tracks", () => {
+  it("pads 1–9 played games to 10 bars with empty slots on the right", () => {
     const form = deriveRecentForm([row("won"), row("lost"), row("draw")]);
     assert.ok(form);
+    assert.equal(form.bars.length, 10);
     assert.deepEqual(
-      form.bars.map((bar) => bar.label),
-      ["D", "L", "W"],
+      form.bars.map((bar) => (bar.kind === "played" ? bar.label : "empty")),
+      [
+        "D",
+        "L",
+        "W",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+        "empty",
+      ],
     );
   });
 
@@ -46,8 +58,11 @@ describe("deriveRecentForm", () => {
     const form = deriveRecentForm(rows);
     assert.ok(form);
     assert.equal(form.bars.length, 10);
-    assert.equal(form.bars[0]?.label, "L");
-    assert.equal(form.bars[9]?.label, "W");
+    assert.ok(form.bars.every((bar) => bar.kind === "played"));
+    assert.deepEqual(
+      form.bars.map((bar) => (bar.kind === "played" ? bar.label : "empty")),
+      ["L", "L", "L", "L", "L", "L", "L", "L", "L", "W"],
+    );
   });
 
   it("hides trend when History has fewer than 20 Games", () => {
@@ -86,11 +101,13 @@ describe("deriveRecentForm", () => {
     ]);
     assert.ok(form);
     assert.deepEqual(
-      form.bars.map((bar) => ({
-        label: bar.label,
-        outcome: bar.outcome,
-        fillRatio: bar.fillRatio,
-      })),
+      form.bars
+        .filter((bar) => bar.kind === "played")
+        .map((bar) => ({
+          label: bar.label,
+          outcome: bar.outcome,
+          fillRatio: bar.fillRatio,
+        })),
       [
         { label: "D", outcome: "draw", fillRatio: 0 },
         { label: "L", outcome: "lost", fillRatio: 1 },

@@ -1,12 +1,10 @@
 "use client";
 
-import { ChevronRight, Flame } from "lucide-react";
-import Link from "next/link";
+import { Flame, TrendingDown, TrendingUp } from "lucide-react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
-import { gamesHubTabQuery } from "~/lib/games-hub-tab";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -16,8 +14,6 @@ import {
   type RecentFormStreak,
   type RecentFormView,
 } from "./home-recent-form";
-
-const HISTORY_HREF = `/dashboard/games${gamesHubTabQuery("history")}`;
 
 function HomeRecentFormSkeleton() {
   return (
@@ -58,53 +54,47 @@ function HomeRecentFormSkeleton() {
 }
 
 function FormBar({ bar }: { bar: RecentFormBar }) {
-  const fillClass =
-    bar.outcome === "won"
-      ? "bg-success"
-      : bar.outcome === "lost"
-        ? "bg-destructive"
-        : "bg-primary-foreground/35";
+  if (bar.kind === "empty") {
+    return (
+      <div
+        className={`border-primary flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed`}
+      >
+        -
+      </div>
+    );
+  }
 
   return (
-    <li className="flex min-w-0 flex-1 flex-col items-center gap-1">
-      <div
-        aria-hidden="true"
-        className="bg-primary-foreground/15 relative h-20 w-3.5 overflow-hidden rounded-full"
-      >
-        <div
-          className={cn("absolute inset-x-0 bottom-0 rounded-full", fillClass)}
-          style={{ height: `${bar.fillRatio * 100}%` }}
-        />
-      </div>
-      <span
-        aria-hidden="true"
-        className="text-meta text-primary-foreground/80 font-semibold"
-      >
-        {bar.label}
-      </span>
-    </li>
+    <div
+      className={cn(
+        `flex h-8 w-8 items-center justify-center rounded-full border-2`,
+        bar.outcome === "won"
+          ? "border-success"
+          : bar.outcome === "lost"
+            ? "border-destructive"
+            : "border-primary/35",
+      )}
+    >
+      <p className="text-xs font-semibold">{bar.label}</p>
+    </div>
   );
 }
 
 function StreakReadout({ streak }: { streak: RecentFormStreak }) {
-  const tone =
-    streak.kind === "won"
-      ? "text-success"
-      : streak.kind === "lost"
-        ? "text-destructive"
-        : "text-primary-foreground/70";
-
   return (
-    <div className="min-w-0 space-y-1">
-      <p className="text-meta text-primary-foreground/70">Current streak</p>
-      <p
-        className={cn(
-          "flex items-center gap-1.5 text-lg font-semibold leading-none",
-          tone,
-        )}
-      >
-        {streak.kind === "won" ? (
-          <Flame aria-hidden="true" className="size-4" strokeWidth={2.25} />
+    <div
+      className={cn(
+        `w-fit rounded-2xl p-2`,
+        streak.kind === "lost"
+          ? "border-destructive bg-destructive/10"
+          : "border-success bg-success/10",
+      )}
+    >
+      <p className={"flex items-center gap-1.5 text-xs font-semibold"}>
+        {streak.kind === "lost" ? (
+          <TrendingDown aria-hidden="true" className="size-4" />
+        ) : streak.kind === "won" ? (
+          <TrendingUp aria-hidden="true" className="size-4" />
         ) : null}
         {streak.label}
       </p>
@@ -126,10 +116,12 @@ function WinRateReadout({ form }: { form: RecentFormView }) {
     trend == null ? null : trend > 0 ? "↑" : trend < 0 ? "↓" : null;
 
   return (
-    <div className="min-w-0 space-y-1">
-      <p className="text-meta text-primary-foreground/70">Win rate (last 10)</p>
-      <p className="flex flex-wrap items-baseline gap-2 text-lg font-semibold tabular-nums leading-none">
-        <span>{form.winRatePercent}%</span>
+    <div className="w-fit">
+      <p className="flex flex-wrap items-baseline gap-2 text-lg font-semibold tabular-nums">
+        <div className="flex flex-col items-end">
+          <span>{form.winRatePercent}%</span>
+          <span className="text-muted-foreground/70 text-xs">win rate</span>
+        </div>
         {trend != null && trendTone ? (
           <span
             className={cn("text-meta font-semibold tabular-nums", trendTone)}
@@ -173,50 +165,45 @@ export function HomeRecentFormCard({ className }: { className?: string }) {
     return null;
   }
 
-  const resultsLabel = form.bars.map((bar) => bar.label).join(", ");
+  const resultsLabel = form.bars
+    .filter((bar) => bar.kind === "played")
+    .map((bar) => bar.label)
+    .join(", ");
 
   return (
-    <div className={cn("min-w-0", className)}>
-      <Card
-        variant="plain"
-        data-slot="home-recent-form-card"
-        className="bg-primary text-primary-foreground w-full"
-      >
+    <div className={cn("mt-4 min-w-0", className)}>
+      <Card data-slot="home-recent-form-card" className="w-full">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-title font-semibold tracking-[-0.01em]">
-              Recent form
-            </h2>
-            <p className="text-meta text-primary-foreground/70 mt-1">
-              Last 10 games
-            </p>
+            <p className="text-meta mt-1">Last 10 games</p>
           </div>
-          <Link
-            href={HISTORY_HREF}
-            className={cn(
-              "text-meta inline-flex min-h-8 shrink-0 items-center gap-0.5 rounded-full px-3 font-semibold",
-              "bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/15",
-              "focus-visible:ring-primary-foreground/50 outline-none focus-visible:ring-[3px]",
-            )}
-          >
-            View all
-            <ChevronRight aria-hidden="true" className="size-3.5" />
-          </Link>
         </div>
 
-        <div className="flex flex-wrap items-stretch gap-x-4 gap-y-4">
+        <div className="flex items-center justify-between">
+          <p className="mt-1 text-3xl font-semibold">
+            {form.wins}W <span className="text-muted-foreground/70">•</span>{" "}
+            {form.losses}L
+          </p>
+          <WinRateReadout form={form} />
+        </div>
+        <StreakReadout streak={form.streak} />
+
+        <div className="mt-4 flex flex-wrap items-stretch gap-x-4 gap-y-4">
           <ol
-            className="flex min-h-24 min-w-[12rem] flex-1 items-end gap-1.5"
+            className="flex flex-1 items-end gap-1"
             aria-label={`Recent results, oldest to newest: ${resultsLabel}. ${form.streak.label}. Win rate ${form.winRatePercent} percent`}
           >
             {form.bars.map((bar, index) => (
-              <FormBar key={`${bar.label}-${index}`} bar={bar} />
+              <FormBar
+                key={
+                  bar.kind === "played"
+                    ? `${bar.label}-${index}`
+                    : `empty-${index}`
+                }
+                bar={bar}
+              />
             ))}
           </ol>
-          <div className="border-primary-foreground/20 flex min-w-[10rem] flex-col justify-center gap-4 border-t pt-4 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
-            <StreakReadout streak={form.streak} />
-            <WinRateReadout form={form} />
-          </div>
         </div>
       </Card>
     </div>

@@ -5,11 +5,14 @@ export type RecentFormHistoryRow = Pick<
   "outcome" | "scoredSets"
 >;
 
-export type RecentFormBar = {
-  outcome: RecentFormHistoryRow["outcome"];
-  label: "W" | "L" | "D";
-  fillRatio: number;
-};
+export type RecentFormBar =
+  | {
+      kind: "played";
+      outcome: RecentFormHistoryRow["outcome"];
+      label: "W" | "L" | "D";
+      fillRatio: number;
+    }
+  | { kind: "empty" };
 
 export type RecentFormStreak =
   | { kind: "won"; count: number; label: string }
@@ -17,6 +20,8 @@ export type RecentFormStreak =
   | { kind: "none"; label: "No streak" };
 
 export type RecentFormView = {
+  wins: number;
+  losses: number;
   bars: RecentFormBar[];
   streak: RecentFormStreak;
   winRatePercent: number;
@@ -73,14 +78,17 @@ function streakFromNewestFirst(
     return {
       kind: "won",
       count,
-      label: count === 1 ? "1 Win" : `${count} Wins`,
+      label:
+        count === 1
+          ? "Building that win streak"
+          : `On a ${count} games Win streak`,
     };
   }
 
   return {
     kind: "lost",
     count,
-    label: count === 1 ? "1 Loss" : `${count} Losses`,
+    label: count === 1 ? "Painful loss" : `On a ${count} games Lose streak`,
   };
 }
 
@@ -98,12 +106,21 @@ export function deriveRecentForm(
       ? winRatePercent(current) - winRatePercent(previous)
       : null;
 
+  const played: RecentFormBar[] = [...current].reverse().map((row) => ({
+    kind: "played",
+    outcome: row.outcome,
+    label: OUTCOME_LABEL[row.outcome],
+    fillRatio: fillRatio(row.scoredSets),
+  }));
+  const empty: RecentFormBar[] = Array.from(
+    { length: WINDOW - played.length },
+    () => ({ kind: "empty" }),
+  );
+
   return {
-    bars: [...current].reverse().map((row) => ({
-      outcome: row.outcome,
-      label: OUTCOME_LABEL[row.outcome],
-      fillRatio: fillRatio(row.scoredSets),
-    })),
+    wins: current.filter((row) => row.outcome === "won").length,
+    losses: current.filter((row) => row.outcome === "lost").length,
+    bars: [...played, ...empty],
     streak: streakFromNewestFirst(current),
     winRatePercent: winRatePercent(current),
     trendPoints,
