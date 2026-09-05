@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { Card } from "~/components/ui/card";
@@ -17,36 +17,28 @@ import {
 
 function HomeRecentFormSkeleton() {
   return (
-    <Card
-      aria-busy="true"
-      variant="plain"
-      className="bg-primary text-primary-foreground w-full"
-    >
+    <Card aria-busy="true" className="w-full">
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <Skeleton className="bg-primary-foreground/15 h-5 w-28" />
-          <Skeleton className="bg-primary-foreground/10 h-3 w-24" />
+        <div className="min-w-0">
+          <Skeleton className="mt-1 h-3 w-24" />
         </div>
-        <Skeleton className="bg-primary-foreground/15 h-7 w-20 rounded-full" />
       </div>
-      <div className="flex flex-wrap items-stretch gap-x-4 gap-y-4">
-        <div className="flex h-24 min-w-[12rem] flex-1 items-end gap-1.5">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <Skeleton
-              key={index}
-              className="bg-primary-foreground/15 h-full w-3.5 rounded-full"
-            />
-          ))}
+
+      <div className="flex items-center justify-between">
+        <Skeleton className="mt-1 h-9 w-28" />
+        <div className="flex flex-col items-end gap-1">
+          <Skeleton className="h-6 w-12" />
+          <Skeleton className="h-3 w-14" />
         </div>
-        <div className="border-primary-foreground/20 flex min-w-[10rem] flex-col justify-center gap-4 border-t pt-4 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
-          <div className="space-y-2">
-            <Skeleton className="bg-primary-foreground/10 h-3 w-24" />
-            <Skeleton className="bg-primary-foreground/15 h-6 w-20" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="bg-primary-foreground/10 h-3 w-32" />
-            <Skeleton className="bg-primary-foreground/15 h-6 w-16" />
-          </div>
+      </div>
+
+      <Skeleton className="h-8 w-36 rounded-2xl" />
+
+      <div className="mt-4 flex flex-wrap items-stretch gap-x-4 gap-y-4">
+        <div className="flex flex-1 items-end gap-1">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <Skeleton key={index} className="h-8 w-8 rounded-full" />
+          ))}
         </div>
       </div>
     </Card>
@@ -140,7 +132,7 @@ export function HomeRecentFormCard({ className }: { className?: string }) {
 
   if (history.isLoading) {
     return (
-      <div className={className}>
+      <div className={cn("mt-4 min-w-0", className)}>
         <HomeRecentFormSkeleton />
       </div>
     );
