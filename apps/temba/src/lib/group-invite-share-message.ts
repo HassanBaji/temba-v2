@@ -1,11 +1,14 @@
-import { SPORT_LABELS, type SportValue } from "~/components/temba/sport-badge";
+const SPORT_LABELS: Record<string, string> = {
+  padel: "Padel",
+  football: "Football",
+};
 
 function sportDisplayLabel(sport: string | null | undefined) {
   const value = sport?.trim();
   if (!value) {
     return null;
   }
-  return value in SPORT_LABELS ? SPORT_LABELS[value as SportValue] : value;
+  return SPORT_LABELS[value] ?? value;
 }
 
 export function groupInviteClipboardText(input: {
