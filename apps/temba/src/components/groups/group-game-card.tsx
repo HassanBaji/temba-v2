@@ -15,9 +15,7 @@ import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
-type GroupHomeGame =
-  | RouterOutputs["groups"]["byId"]["upcomingGames"][number]
-  | RouterOutputs["groups"]["byId"]["gameHistory"][number];
+type GroupHomeGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
 export function GroupGameCard({
   game,
