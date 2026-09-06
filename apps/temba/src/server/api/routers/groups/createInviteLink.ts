@@ -6,7 +6,11 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { requireGroupInviteLinkMinter } from "~/server/groups/helpers/require-group-invite-link-minter";
 import { mintLink } from "~/server/invites/doors";
-import { getAppOrigin, groupInviteLinkUrl } from "~/server/invites/tokens";
+import {
+  getAppOrigin,
+  groupInviteLinkUrl,
+  groupInviteShortUrl,
+} from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -35,6 +39,9 @@ export async function createInviteLink(
   return {
     id: minted.link.id,
     inviteUrl: groupInviteLinkUrl(args.origin, minted.link.token),
+    shortUrl: minted.link.shortCode
+      ? groupInviteShortUrl(args.origin, minted.link.shortCode)
+      : null,
     createdAt: minted.link.createdAt,
     expiresAt: minted.link.expiresAt,
   };

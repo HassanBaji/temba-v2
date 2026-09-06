@@ -225,6 +225,13 @@
       "when": 1788354257821,
       "tag": "0031_regular_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1788679419568,
+      "tag": "0032_great_changeling",
+      "breakpoints": true
     }
   ]
 }

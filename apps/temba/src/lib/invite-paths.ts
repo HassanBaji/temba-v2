@@ -6,6 +6,10 @@ export function groupInviteLinkPath(token: string) {
   return `/invites/group/link/${token}`;
 }
 
+export function groupInviteShortPath(code: string) {
+  return `/gr/${code}`;
+}
+
 export function teamInviteLinkPath(token: string) {
   return `/invites/team/link/${token}`;
 }

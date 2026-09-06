@@ -12,6 +12,7 @@ export const groupInviteLinks = pgTable("group_invite_links", {
     .references(() => user.id, { onDelete: "restrict" })
     .notNull(),
   token: varchar("token", { length: 64 }).notNull().unique(),
+  shortCode: varchar("short_code", { length: 8 }).unique(),
   revokedAt: timestamp("revoked_at"),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),

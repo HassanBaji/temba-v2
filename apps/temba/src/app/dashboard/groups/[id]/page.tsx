@@ -132,7 +132,7 @@ export default function GroupHomePage({
         groupInviteClipboardText({
           groupName: group.data?.name,
           sport: group.data?.sport,
-          inviteUrl: result.inviteUrl,
+          inviteUrl: result.shortUrl ?? result.inviteUrl,
         }),
       );
       toast.success("Invite link copied");
@@ -506,7 +506,7 @@ export default function GroupHomePage({
         canManageLookupInvites={data.canManageLookupInvites}
         canManageInviteLinks={data.canManageInviteLinks}
         lookupInvites={lookupInvites.data}
-        inviteUrl={inviteLink.data?.inviteUrl}
+        inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
         sendPending={sendLookupInvite.isPending}
         revokePending={revokeLookupInvite.isPending}
         copyPending={createInviteLink.isPending}

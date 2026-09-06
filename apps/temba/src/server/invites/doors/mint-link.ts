@@ -19,7 +19,49 @@ import type {
   MintLinkResult,
 } from "~/server/invites/doors/utils";
 
-const GAME_INVITE_SHORT_CODE_ATTEMPTS = 8;
+const INVITE_SHORT_CODE_ATTEMPTS = 8;
+
+type ShortCodeLinkRow = {
+  id: string;
+  token: string;
+  shortCode: string | null;
+  createdAt: Date;
+  expiresAt: Date;
+};
+
+async function insertLinkWithShortCode(
+  insert: (shortCode: string) => Promise<ShortCodeLinkRow | undefined>,
+): Promise<MintLinkResult> {
+  for (let attempt = 0; attempt < INVITE_SHORT_CODE_ATTEMPTS; attempt++) {
+    try {
+      const created = await insert(createGameInviteShortCode());
+      if (!created?.shortCode) {
+        return { ok: false, reason: "insert_failed" };
+      }
+      return {
+        ok: true,
+        link: {
+          id: created.id,
+          token: created.token,
+          shortCode: created.shortCode,
+          createdAt: created.createdAt,
+          expiresAt: created.expiresAt,
+        },
+      };
+    } catch (error) {
+      if (
+        !isUniqueViolation(error) ||
+        attempt === INVITE_SHORT_CODE_ATTEMPTS - 1
+      ) {
+        if (isUniqueViolation(error)) {
+          return { ok: false, reason: "insert_failed" };
+        }
+        throw error;
+      }
+    }
+  }
+  return { ok: false, reason: "insert_failed" };
+}
 
 export async function mintLink(
   database: InviteDb,
@@ -57,22 +99,18 @@ export async function mintLink(
     };
   }
   if (host.kind === "group") {
-    const [created] = await writeDb(database)
-      .insert(groupInviteLinks)
-      .values({ ...values, groupId: host.id })
-      .returning();
-    if (!created) {
-      return { ok: false, reason: "insert_failed" };
-    }
-    return {
-      ok: true,
-      link: {
-        id: created.id,
-        token: created.token,
-        createdAt: created.createdAt,
-        expiresAt: created.expiresAt,
-      },
-    };
+    return insertLinkWithShortCode(async (shortCode) => {
+      const [created] = await writeDb(database)
+        .insert(groupInviteLinks)
+        .values({
+          ...values,
+          token: createOpaqueToken(),
+          shortCode,
+          groupId: host.id,
+        })
+        .returning();
+      return created;
+    });
   }
   if (host.kind === "team") {
     const [created] = await writeDb(database)
@@ -92,41 +130,16 @@ export async function mintLink(
       },
     };
   }
-  for (let attempt = 0; attempt < GAME_INVITE_SHORT_CODE_ATTEMPTS; attempt++) {
-    try {
-      const [created] = await writeDb(database)
-        .insert(gameInviteLinks)
-        .values({
-          ...values,
-          token: createOpaqueToken(),
-          shortCode: createGameInviteShortCode(),
-          gameId: host.id,
-        })
-        .returning();
-      if (!created?.shortCode) {
-        return { ok: false, reason: "insert_failed" };
-      }
-      return {
-        ok: true,
-        link: {
-          id: created.id,
-          token: created.token,
-          shortCode: created.shortCode,
-          createdAt: created.createdAt,
-          expiresAt: created.expiresAt,
-        },
-      };
-    } catch (error) {
-      if (
-        !isUniqueViolation(error) ||
-        attempt === GAME_INVITE_SHORT_CODE_ATTEMPTS - 1
-      ) {
-        if (isUniqueViolation(error)) {
-          return { ok: false, reason: "insert_failed" };
-        }
-        throw error;
-      }
-    }
-  }
-  return { ok: false, reason: "insert_failed" };
+  return insertLinkWithShortCode(async (shortCode) => {
+    const [created] = await writeDb(database)
+      .insert(gameInviteLinks)
+      .values({
+        ...values,
+        token: createOpaqueToken(),
+        shortCode,
+        gameId: host.id,
+      })
+      .returning();
+    return created;
+  });
 }

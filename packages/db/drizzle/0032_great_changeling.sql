@@ -1,0 +1,2 @@
+ALTER TABLE "group_invite_links" ADD COLUMN "short_code" varchar(8);--> statement-breakpoint
+ALTER TABLE "group_invite_links" ADD CONSTRAINT "group_invite_links_short_code_unique" UNIQUE("short_code");

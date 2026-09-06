@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 
-const inviteUrl = "https://app.example/invites/group/link/token";
+const inviteUrl = "https://app.example/gr/A3F8K2PQ";
 
 describe("groupInviteClipboardText", () => {
   it("writes an invitation with the Group name, sport label, and join URL", () => {

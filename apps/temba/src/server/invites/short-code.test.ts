@@ -5,6 +5,7 @@ import {
   GAME_INVITE_SHORT_CODE_ALPHABET,
   parseGameInviteShortCode,
   preferredGameInviteUrl,
+  preferredGroupInviteUrl,
 } from "~/server/invites/tokens";
 
 describe("Game Invite short codes", () => {
@@ -38,5 +39,20 @@ describe("Game Invite short codes", () => {
         shortCode: null,
       }),
     ).toBe("https://app.example/invites/game/link/tok");
+  });
+
+  it("prefers the Group short URL when a code exists and the long token URL otherwise", () => {
+    expect(
+      preferredGroupInviteUrl("https://app.example", {
+        token: "tok",
+        shortCode: "A3F8K2PQ",
+      }),
+    ).toBe("https://app.example/gr/A3F8K2PQ");
+    expect(
+      preferredGroupInviteUrl("https://app.example", {
+        token: "tok",
+        shortCode: null,
+      }),
+    ).toBe("https://app.example/invites/group/link/tok");
   });
 });

@@ -11,6 +11,7 @@ export { getLiveLink } from "~/server/invites/doors/get-live-link";
 export { previewLink } from "~/server/invites/doors/preview-link";
 export { acceptLink } from "~/server/invites/doors/accept-link";
 export { findGameInviteLinkByShortCode } from "~/server/invites/doors/find-game-invite-link-by-short-code";
+export { findGroupInviteLinkByShortCode } from "~/server/invites/doors/find-group-invite-link-by-short-code";
 export {
   frozenAcceptMessage,
   frozenMintMessage,

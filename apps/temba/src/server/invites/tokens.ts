@@ -5,6 +5,7 @@ import {
   gameInviteLinkPath,
   gameInviteShortPath,
   groupInviteLinkPath,
+  groupInviteShortPath,
   teamInviteLinkPath,
 } from "~/lib/invite-paths";
 
@@ -58,6 +59,20 @@ export function groupInviteLinkUrl(origin: string, token: string) {
   return `${origin}${groupInviteLinkPath(token)}`;
 }
 
+export function groupInviteShortUrl(origin: string, code: string) {
+  return `${origin}${groupInviteShortPath(code)}`;
+}
+
+export function preferredGroupInviteUrl(
+  origin: string,
+  link: { token: string; shortCode?: string | null },
+) {
+  if (link.shortCode) {
+    return groupInviteShortUrl(origin, link.shortCode);
+  }
+  return groupInviteLinkUrl(origin, link.token);
+}
+
 export function teamInviteLinkUrl(origin: string, token: string) {
   return `${origin}${teamInviteLinkPath(token)}`;
 }
@@ -89,5 +104,6 @@ export {
   gameInviteLinkPath,
   gameInviteShortPath,
   groupInviteLinkPath,
+  groupInviteShortPath,
   teamInviteLinkPath,
 };

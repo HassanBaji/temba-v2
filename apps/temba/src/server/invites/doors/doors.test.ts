@@ -6,8 +6,10 @@ import {
   gameInviteLinks,
   gameMemberInvites,
   games,
+  groupInviteLinks,
   groups,
   matches,
+  teams,
   user,
   venues,
   GameFormatEnum,
@@ -20,6 +22,7 @@ import {
   acceptLink,
   acceptLookup,
   findGameInviteLinkByShortCode,
+  findGroupInviteLinkByShortCode,
   mintLink,
   mintLookup,
   previewLink,
@@ -323,6 +326,157 @@ describe("Invite doors", () => {
     }
   });
 
+  it("leaves Team Invite link mint on the long token path without a short code", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "doors-team-short@example.com");
+      const [team] = await db
+        .insert(teams)
+        .values({
+          name: "No Short Team",
+          createdBy: owner.id,
+        })
+        .returning({ id: teams.id });
+      if (!team) {
+        throw new Error("Failed to insert team");
+      }
+      const minted = await mintLink(
+        db,
+        { kind: "team", id: team.id },
+        { createdBy: owner.id },
+      );
+      expect(minted.ok).toBe(true);
+      if (!minted.ok) {
+        return;
+      }
+      expect(minted.link.shortCode).toBeUndefined();
+      expect(minted.link.token.length).toBeGreaterThan(8);
+    } finally {
+      await close();
+    }
+  });
+
+  it("mints a unique 8-character Group Invite short code on the same row as the token", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "doors-group-short-owner@example.com");
+      const group = await insertLooseGroup(db, owner.id);
+      const minted = await mintLink(
+        db,
+        { kind: "group", id: group.id },
+        { createdBy: owner.id },
+      );
+      expect(minted.ok).toBe(true);
+      if (!minted.ok) {
+        return;
+      }
+      expect(minted.link.shortCode).toMatch(
+        new RegExp(`^[${GAME_INVITE_SHORT_CODE_ALPHABET}]{8}$`),
+      );
+      expect(minted.link.shortCode).toBe(minted.link.shortCode?.toUpperCase());
+
+      const row = await db.query.groupInviteLinks.findFirst({
+        where: eq(groupInviteLinks.token, minted.link.token),
+      });
+      expect(row?.shortCode).toBe(minted.link.shortCode);
+      expect(
+        (
+          await findGroupInviteLinkByShortCode(
+            db,
+            minted.link.shortCode!.toLowerCase(),
+          )
+        )?.token,
+      ).toBe(minted.link.token);
+      expect(
+        await findGroupInviteLinkByShortCode(db, "0O1ILUAB"),
+      ).toBeUndefined();
+      expect(
+        await findGroupInviteLinkByShortCode(db, "ZZZZZZZZ"),
+      ).toBeUndefined();
+    } finally {
+      await close();
+    }
+  });
+
+  it("recopies a new Group token and short code while older doors still admit until they expire", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(
+        db,
+        "doors-group-recopy-owner@example.com",
+      );
+      const invitee = await insertUser(
+        db,
+        "doors-group-recopy-invitee@example.com",
+      );
+      const group = await insertLooseGroup(db, owner.id);
+      const host = { kind: "group" as const, id: group.id };
+      const first = await mintLink(db, host, { createdBy: owner.id });
+      const second = await mintLink(db, host, { createdBy: owner.id });
+      expect(first.ok).toBe(true);
+      expect(second.ok).toBe(true);
+      if (!first.ok || !second.ok) {
+        return;
+      }
+      expect(second.link.token).not.toBe(first.link.token);
+      expect(second.link.shortCode).not.toBe(first.link.shortCode);
+
+      expect(await previewLink(db, "group", first.link.token)).toMatchObject({
+        ok: true,
+        status: "ready",
+      });
+      expect(await previewLink(db, "group", second.link.token)).toMatchObject({
+        ok: true,
+        status: "ready",
+      });
+
+      const acceptedOld = await acceptLink(db, "group", {
+        token: first.link.token,
+        userId: invitee.id,
+      });
+      expect(acceptedOld).toMatchObject({ ok: true, hostId: group.id });
+    } finally {
+      await close();
+    }
+  });
+
+  it("still admits a legacy Group Invite link row with a null short code on the token path", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "doors-group-legacy-code@example.com");
+      const invitee = await insertUser(
+        db,
+        "doors-group-legacy-invitee@example.com",
+      );
+      const group = await insertLooseGroup(db, owner.id);
+      const [legacy] = await db
+        .insert(groupInviteLinks)
+        .values({
+          groupId: group.id,
+          createdBy: owner.id,
+          token: "legacy-group-token-without-short-code",
+          shortCode: null,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        })
+        .returning();
+      if (!legacy) {
+        throw new Error("Failed to insert legacy Group Invite link");
+      }
+      expect(legacy.shortCode).toBeNull();
+      expect(await previewLink(db, "group", legacy.token)).toMatchObject({
+        ok: true,
+        status: "ready",
+      });
+      const accepted = await acceptLink(db, "group", {
+        token: legacy.token,
+        userId: invitee.id,
+      });
+      expect(accepted).toMatchObject({ ok: true, hostId: group.id });
+    } finally {
+      await close();
+    }
+  });
+
   it("recopies a new token and short code while older doors still admit until they expire", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -483,6 +637,21 @@ describe("Invite doors", () => {
     }
   });
 });
+
+async function insertLooseGroup(
+  database: TestDatabase,
+  createdBy: string,
+  name = "Loose Group",
+) {
+  const [group] = await database
+    .insert(groups)
+    .values({ name, createdBy })
+    .returning({ id: groups.id });
+  if (!group) {
+    throw new Error("Failed to insert group");
+  }
+  return group;
+}
 
 async function insertFriendlyGame(database: TestDatabase, createdBy: string) {
   const [venue] = await database
