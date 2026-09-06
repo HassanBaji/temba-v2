@@ -123,17 +123,7 @@ export function GamePlayersPanel({
 
   return (
     <div className="space-y-8">
-      <Section
-        title={
-          game.format === "americano"
-            ? "Player pool"
-            : game.registrationMode === "individual"
-              ? friendlyRoster
-                ? "Teams"
-                : "Sides"
-              : "Registered"
-        }
-      >
+      <div>
         {friendlyRoster ? (
           <div className="space-y-4">
             {cancelledNote ? (
@@ -345,7 +335,7 @@ export function GamePlayersPanel({
               ))}
           </RowList>
         )}
-      </Section>
+      </div>
 
       <Section title="Waitlist">
         {game.waitlist.length === 0 ? (
