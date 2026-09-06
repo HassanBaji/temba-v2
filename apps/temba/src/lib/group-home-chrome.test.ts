@@ -7,8 +7,10 @@ import {
   groupHomeHeroMeta,
   groupHomeMemberGamesLabel,
   groupHomeRecord,
+  groupHomeSetScoreLine,
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
+  groupHomeVenueCourtLine,
 } from "./group-home-chrome";
 
 describe("groupHomeSportLabel", () => {
@@ -116,5 +118,35 @@ describe("groupHomeMemberGamesLabel", () => {
   it("uses Games from Games played", () => {
     assert.equal(groupHomeMemberGamesLabel(0), "0 Games");
     assert.equal(groupHomeMemberGamesLabel(3), "3 Games");
+  });
+});
+
+describe("groupHomeVenueCourtLine", () => {
+  it("joins Venue and Court when both are known", () => {
+    assert.equal(
+      groupHomeVenueCourtLine("Padel Club", "Court 1"),
+      "Padel Club · Court 1",
+    );
+  });
+
+  it("omits the missing side", () => {
+    assert.equal(groupHomeVenueCourtLine("Padel Club", null), "Padel Club");
+    assert.equal(groupHomeVenueCourtLine(null, "Court 1"), "Court 1");
+  });
+});
+
+describe("groupHomeSetScoreLine", () => {
+  it("formats scored Sets and invents nothing when scores are missing", () => {
+    assert.equal(
+      groupHomeSetScoreLine([
+        { slot1GamesWon: 6, slot2GamesWon: 4 },
+        { slot1GamesWon: null, slot2GamesWon: null },
+      ]),
+      "6-4",
+    );
+    assert.equal(
+      groupHomeSetScoreLine([{ slot1GamesWon: null, slot2GamesWon: null }]),
+      null,
+    );
   });
 });

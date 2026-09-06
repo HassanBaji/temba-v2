@@ -26,6 +26,7 @@ import {
   groupHomeCanManageInvites,
   groupHomeCanShowCreateGame,
   groupHomeCtaFamily,
+  groupHomeNextJoinableGame,
   groupHomeOverflowItems,
 } from "~/lib/group-home-cta";
 import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
@@ -261,6 +262,9 @@ export default function GroupHomePage({
   });
   const ctaFamily = groupHomeCtaFamily({
     canJoin: data.canJoin,
+    nextJoinableGameId:
+      groupHomeNextJoinableGame(data.upcomingGames, Boolean(data.membership))
+        ?.id ?? null,
     hasCreateAccess,
     canCreateGame: data.canCreateGame,
     canManageLookupInvites: data.canManageLookupInvites,
@@ -391,8 +395,9 @@ export default function GroupHomePage({
             <GroupGamesTab
               upcomingGames={data.upcomingGames}
               gameHistory={data.gameHistory}
-              groupName={groupName}
+              groupId={id}
               isCommunityArchived={data.isCommunityArchived}
+              canShowCreateGame={canShowCreateGame}
             />
           </TabsContent>
           <TabsContent

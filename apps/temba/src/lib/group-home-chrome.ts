@@ -90,3 +90,36 @@ export function filterGroupMembersByName<T extends { name: string }>(
 export function groupHomeMemberGamesLabel(totalGamesPlayed: number) {
   return `${totalGamesPlayed} Games`;
 }
+
+export function groupHomeVenueCourtLine(
+  venueName: string | null | undefined,
+  courtName: string | null | undefined,
+) {
+  if (venueName && courtName) {
+    return `${venueName} · ${courtName}`;
+  }
+  return venueName ?? courtName ?? null;
+}
+
+export function groupHomeSetScoreLine(
+  sets:
+    | readonly {
+        slot1GamesWon: number | null;
+        slot2GamesWon: number | null;
+      }[]
+    | null
+    | undefined,
+) {
+  if (!sets) {
+    return null;
+  }
+  const scored = sets.filter(
+    (set) => set.slot1GamesWon != null && set.slot2GamesWon != null,
+  );
+  if (scored.length === 0) {
+    return null;
+  }
+  return scored
+    .map((set) => `${set.slot1GamesWon}-${set.slot2GamesWon}`)
+    .join(", ");
+}

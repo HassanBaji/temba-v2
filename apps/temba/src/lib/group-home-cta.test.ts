@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   groupHomeCtaFamily,
+  groupHomeNextJoinableGame,
   groupHomeOverflowItems,
   type GroupHomeCtaInput,
 } from "./group-home-cta";
@@ -10,6 +11,7 @@ import {
 function cta(overrides: Partial<GroupHomeCtaInput> = {}): GroupHomeCtaInput {
   return {
     canJoin: false,
+    nextJoinableGameId: null,
     hasCreateAccess: false,
     canCreateGame: false,
     canManageLookupInvites: false,
@@ -90,6 +92,71 @@ describe("groupHomeCtaFamily", () => {
   it("has no action bar when join, create, and invite are all closed", () => {
     assert.deepEqual(groupHomeCtaFamily(cta()), { kind: "none" });
   });
+
+  it("does not let Join game replace Join Group", () => {
+    assert.deepEqual(
+      groupHomeCtaFamily(cta({ canJoin: true, nextJoinableGameId: "game-1" })),
+      { kind: "join_group", secondary: null },
+    );
+  });
+
+  it("uses Join game as a primary link when join is closed and a next Open Game exists", () => {
+    assert.deepEqual(
+      groupHomeCtaFamily(
+        cta({
+          nextJoinableGameId: "game-1",
+          hasCreateAccess: true,
+          canCreateGame: true,
+        }),
+      ),
+      { kind: "join_game", gameId: "game-1", secondary: "create_game" },
+    );
+  });
+});
+
+describe("groupHomeNextJoinableGame", () => {
+  const openGame = {
+    id: "soonest",
+    registrationStatus: "open",
+    joinFrozen: false,
+    isRegistered: false,
+    isWaitlisted: false,
+    isPublic: true,
+  };
+
+  it("picks the soonest Open Game the viewer is not on", () => {
+    assert.deepEqual(
+      groupHomeNextJoinableGame([openGame, { ...openGame, id: "later" }], true),
+      { id: "soonest" },
+    );
+  });
+
+  it("skips full, closed, frozen, registered, and waitlisted Games", () => {
+    assert.equal(
+      groupHomeNextJoinableGame(
+        [
+          { ...openGame, id: "full", registrationStatus: "full" },
+          { ...openGame, id: "closed", registrationStatus: "closed" },
+          { ...openGame, id: "frozen", joinFrozen: true },
+          { ...openGame, id: "seated", isRegistered: true },
+          { ...openGame, id: "wait", isWaitlisted: true },
+        ],
+        true,
+      ),
+      null,
+    );
+  });
+
+  it("requires membership or a public Game for the join gate", () => {
+    assert.equal(
+      groupHomeNextJoinableGame([{ ...openGame, isPublic: false }], false),
+      null,
+    );
+    assert.deepEqual(
+      groupHomeNextJoinableGame([{ ...openGame, isPublic: false }], true),
+      { id: "soonest" },
+    );
+  });
 });
 
 describe("groupHomeOverflowItems", () => {
@@ -156,6 +223,25 @@ describe("groupHomeOverflowItems", () => {
         canDelete: false,
       }),
       ["create_game", "manage_invites"],
+    );
+  });
+
+  it("omits Create game from overflow when Join game already shows it", () => {
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        family: {
+          kind: "join_game",
+          gameId: "game-1",
+          secondary: "create_game",
+        },
+        hasCommunity: false,
+        canShowCreateGame: true,
+        isLoosePublic: false,
+        canManageInvites: true,
+        isMember: true,
+        canDelete: false,
+      }),
+      ["manage_invites", "leave"],
     );
   });
 });

@@ -2,12 +2,14 @@ export type GroupHomeCtaSecondary = "create_game" | "invite" | null;
 
 export type GroupHomeCtaFamily =
   | { kind: "join_group"; secondary: GroupHomeCtaSecondary }
+  | { kind: "join_game"; gameId: string; secondary: GroupHomeCtaSecondary }
   | { kind: "create_game"; secondary: "invite" | null }
   | { kind: "invite" }
   | { kind: "none" };
 
 export type GroupHomeCtaInput = {
   canJoin: boolean;
+  nextJoinableGameId: string | null;
   hasCreateAccess: boolean;
   canCreateGame: boolean;
   canManageLookupInvites: boolean;
@@ -75,6 +77,16 @@ export function groupHomeCtaFamily(
       }),
     };
   }
+  if (input.nextJoinableGameId) {
+    return {
+      kind: "join_game",
+      gameId: input.nextJoinableGameId,
+      secondary: createOrInviteSecondary({
+        canShowCreateGame,
+        canManageInvites,
+      }),
+    };
+  }
   if (canShowCreateGame) {
     return {
       kind: "create_game",
@@ -90,7 +102,8 @@ export function groupHomeCtaFamily(
 export function groupHomeCreateOnActionBar(family: GroupHomeCtaFamily) {
   return (
     family.kind === "create_game" ||
-    (family.kind === "join_group" && family.secondary === "create_game")
+    (family.kind === "join_group" && family.secondary === "create_game") ||
+    (family.kind === "join_game" && family.secondary === "create_game")
   );
 }
 
@@ -98,8 +111,38 @@ export function groupHomeInviteOnActionBar(family: GroupHomeCtaFamily) {
   return (
     family.kind === "invite" ||
     (family.kind === "create_game" && family.secondary === "invite") ||
-    (family.kind === "join_group" && family.secondary === "invite")
+    (family.kind === "join_group" && family.secondary === "invite") ||
+    (family.kind === "join_game" && family.secondary === "invite")
   );
+}
+
+export function groupHomeNextJoinableGame(
+  upcoming: readonly {
+    id: string;
+    registrationStatus: string;
+    joinFrozen: boolean;
+    isRegistered: boolean;
+    isWaitlisted: boolean;
+    isPublic: boolean;
+  }[],
+  isMember: boolean,
+): { id: string } | null {
+  for (const game of upcoming) {
+    if (game.registrationStatus !== "open") {
+      continue;
+    }
+    if (game.joinFrozen) {
+      continue;
+    }
+    if (game.isRegistered || game.isWaitlisted) {
+      continue;
+    }
+    if (!isMember && !game.isPublic) {
+      continue;
+    }
+    return { id: game.id };
+  }
+  return null;
 }
 
 export function groupHomeOverflowItems(
