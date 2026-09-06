@@ -49,7 +49,7 @@ function FormBar({ bar }: { bar: RecentFormBar }) {
   if (bar.kind === "empty") {
     return (
       <div
-        className={`border-primary flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed`}
+        className={`border-primary flex size-6 items-center justify-center rounded-full border-2 border-dashed lg:size-12`}
       >
         -
       </div>
@@ -59,11 +59,11 @@ function FormBar({ bar }: { bar: RecentFormBar }) {
   return (
     <div
       className={cn(
-        `flex h-8 w-8 items-center justify-center rounded-full border-2`,
+        `flex size-6 items-center justify-center rounded-full border-2 lg:size-12`,
         bar.outcome === "won"
-          ? "border-success"
+          ? "border-success bg-success/10 text-success"
           : bar.outcome === "lost"
-            ? "border-destructive"
+            ? "border-destructive bg-destructive/10 text-destructive"
             : "border-primary/35",
       )}
     >
@@ -180,9 +180,9 @@ export function HomeRecentFormCard({ className }: { className?: string }) {
         </div>
         <StreakReadout streak={form.streak} />
 
-        <div className="mt-4 flex flex-wrap items-stretch gap-x-4 gap-y-4">
+        <div className="mt-4">
           <ol
-            className="flex flex-1 items-end gap-1"
+            className="flex w-full flex-row justify-between gap-2"
             aria-label={`Recent results, oldest to newest: ${resultsLabel}. ${form.streak.label}. Win rate ${form.winRatePercent} percent`}
           >
             {form.bars.map((bar, index) => (

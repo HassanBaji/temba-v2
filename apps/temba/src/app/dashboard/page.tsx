@@ -60,7 +60,7 @@ export default function HomePage() {
       hideMobileTopBar
       // icon={<TembaTextLogo className="mt-2 h-6 w-auto" />}
     >
-      <div className="min-w-0 space-y-2 lg:space-y-6">
+      <div className="mt-6 min-w-0 space-y-2 lg:mt-2">
         <div className="flex items-center justify-between">
           {user ? (
             <div className="flex min-w-0 items-center gap-3">
