@@ -129,6 +129,8 @@ export async function gameById(
       name: true,
       city: true,
       country: true,
+      latitude: true,
+      longitude: true,
       archivedAt: true,
       logoImageUrl: true,
     },
@@ -270,6 +272,8 @@ export async function gameById(
           name: venue.name,
           city: venue.city,
           country: venue.country,
+          latitude: venue.latitude,
+          longitude: venue.longitude,
           archivedAt: venue.archivedAt,
           logoImageUrl: venue.logoImageUrl,
         }

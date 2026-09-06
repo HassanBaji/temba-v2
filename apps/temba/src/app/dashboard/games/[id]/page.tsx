@@ -690,6 +690,8 @@ export default function GameHomePage({
             windowStart={data.windowStart}
             durationInMinutes={firstMatch?.durationInMinutes}
             venueName={data.venue?.name}
+            venueLatitude={data.venue?.latitude}
+            venueLongitude={data.venue?.longitude}
             courtName={firstMatch?.courtName}
             registeredUserCount={data.registeredUserCount}
             playersAllowed={data.playersAllowed}

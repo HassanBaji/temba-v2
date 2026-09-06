@@ -5,6 +5,7 @@ import { formatAbsoluteDay, formatGameClock } from "./format-game-start";
 import {
   friendlyGameDateDurationLine,
   friendlyGameDateTimeLine,
+  friendlyGameDirectionsUrl,
   friendlyGameHomeTitle,
   friendlyGameOccupancyLabel,
   friendlyGamePriceRow,
@@ -93,6 +94,23 @@ describe("friendlyGameOccupancyLabel", () => {
   });
 });
 
+describe("friendlyGameDirectionsUrl", () => {
+  it("builds the maps query URL when both coordinates parse to a number", () => {
+    assert.equal(
+      friendlyGameDirectionsUrl("26.228509", "50.58605"),
+      "https://www.google.com/maps/search/?api=1&query=26.228509,50.58605",
+    );
+  });
+
+  it("is omitted when either coordinate is missing or not a number", () => {
+    assert.equal(friendlyGameDirectionsUrl(null, "50.58605"), null);
+    assert.equal(friendlyGameDirectionsUrl("26.228509", null), null);
+    assert.equal(friendlyGameDirectionsUrl(undefined, undefined), null);
+    assert.equal(friendlyGameDirectionsUrl("", "50.58605"), null);
+    assert.equal(friendlyGameDirectionsUrl("26.228509", "east"), null);
+  });
+});
+
 describe("friendlyGameVenueLine", () => {
   it("joins Venue and Court when both exist", () => {
     assert.equal(
@@ -111,7 +129,10 @@ describe("friendlyGameVenueLine", () => {
 describe("friendlyGameDateDurationLine", () => {
   it("is the date when duration is unset", () => {
     const start = new Date(2026, 8, 6, 19, 0, 0);
-    assert.equal(friendlyGameDateDurationLine(start, null), formatAbsoluteDay(start));
+    assert.equal(
+      friendlyGameDateDurationLine(start, null),
+      formatAbsoluteDay(start),
+    );
   });
 
   it("appends duration when the first Match has minutes", () => {

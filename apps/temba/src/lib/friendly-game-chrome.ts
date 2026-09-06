@@ -1,4 +1,5 @@
 import { formatAbsoluteDay, formatGameClock } from "~/lib/format-game-start";
+import { parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import type { GameViewerStatus } from "~/lib/game-summary-cta";
 
@@ -44,6 +45,21 @@ export function friendlyGameOccupancyLabel(
       : `${registeredUserCount} players`;
   }
   return `${registeredUserCount} of ${playersAllowed} players`;
+}
+
+export function friendlyGameDirectionsUrl(
+  latitude: string | null | undefined,
+  longitude: string | null | undefined,
+) {
+  if (latitude == null || longitude == null) {
+    return null;
+  }
+  const lat = parseOptionalCoord(latitude);
+  const lng = parseOptionalCoord(longitude);
+  if (lat == null || lng == null) {
+    return null;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
 export function friendlyGameVenueLine(

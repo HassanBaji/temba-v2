@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { ListRow, RowList } from "~/components/common/row-list";
+import { FriendlyGameDirectionsLink } from "~/components/games/friendly-game-directions-link";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import {
   friendlyGameDateTimeLine,
+  friendlyGameDirectionsUrl,
   friendlyGameOccupancyLabel,
   friendlyGamePriceRow,
 } from "~/lib/friendly-game-chrome";
@@ -30,6 +32,10 @@ export function FriendlyGameOverviewPanel({
     game.playersAllowed,
   );
   const courtName = firstMatch?.courtName ?? null;
+  const directionsUrl = friendlyGameDirectionsUrl(
+    game.venue?.latitude,
+    game.venue?.longitude,
+  );
 
   return (
     <div className="space-y-6">
@@ -40,7 +46,16 @@ export function FriendlyGameOverviewPanel({
           meta={duration}
         />
         {game.venue ? (
-          <ListRow title="Venue" subtitle={game.venue.name} meta={courtName} />
+          <ListRow
+            title="Venue"
+            subtitle={game.venue.name}
+            meta={courtName}
+            trailing={
+              directionsUrl ? (
+                <FriendlyGameDirectionsLink href={directionsUrl} />
+              ) : undefined
+            }
+          />
         ) : courtName ? (
           <ListRow title="Venue" subtitle={courtName} />
         ) : null}

@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import { Ban, MapPin } from "lucide-react";
 
 import { AvatarStack } from "~/components/common/avatar-stack";
+import { FriendlyGameDirectionsLink } from "~/components/games/friendly-game-directions-link";
 import { GameRegistrationStatusBadge } from "~/components/temba/typed-labels";
 import {
   friendlyGameDateDurationLine,
+  friendlyGameDirectionsUrl,
   friendlyGameOccupancyLabel,
   friendlyGameVenueLine,
   friendlyGameViewerLine,
@@ -18,6 +20,8 @@ export function FriendlyGameHomeHero({
   windowStart,
   durationInMinutes,
   venueName,
+  venueLatitude,
+  venueLongitude,
   courtName,
   registeredUserCount,
   playersAllowed,
@@ -32,6 +36,8 @@ export function FriendlyGameHomeHero({
   windowStart: Date | string | null;
   durationInMinutes: number | null | undefined;
   venueName: string | null | undefined;
+  venueLatitude: string | null | undefined;
+  venueLongitude: string | null | undefined;
   courtName: string | null | undefined;
   registeredUserCount: number;
   playersAllowed: number | null | undefined;
@@ -49,6 +55,10 @@ export function FriendlyGameHomeHero({
     durationInMinutes,
   );
   const venueLine = friendlyGameVenueLine(venueName, courtName);
+  const directionsUrl = friendlyGameDirectionsUrl(
+    venueLatitude,
+    venueLongitude,
+  );
   const occupancy = friendlyGameOccupancyLabel(
     registeredUserCount,
     playersAllowed,
@@ -99,15 +109,22 @@ export function FriendlyGameHomeHero({
             </h1>
           </div>
 
-          {venueLine ? (
-            <p className="text-body text-muted-foreground flex min-w-0 items-start gap-1.5">
-              <MapPin
-                aria-hidden="true"
-                className="mt-0.5 size-4 shrink-0"
-                strokeWidth={2}
-              />
-              <span className="min-w-0 break-words">{venueLine}</span>
-            </p>
+          {venueLine || directionsUrl ? (
+            <div className="space-y-1">
+              {venueLine ? (
+                <p className="text-body text-muted-foreground flex min-w-0 items-start gap-1.5">
+                  <MapPin
+                    aria-hidden="true"
+                    className="mt-0.5 size-4 shrink-0"
+                    strokeWidth={2}
+                  />
+                  <span className="min-w-0 break-words">{venueLine}</span>
+                </p>
+              ) : null}
+              {directionsUrl ? (
+                <FriendlyGameDirectionsLink href={directionsUrl} />
+              ) : null}
+            </div>
           ) : null}
 
           <div className="flex min-w-0 flex-wrap items-center gap-3">
