@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  filterGroupMembersByName,
+  groupHomeHasStandingResults,
   groupHomeHeroMeta,
+  groupHomeMemberGamesLabel,
   groupHomeRecord,
+  groupHomeShowsMemberSearch,
   groupHomeSportLabel,
 } from "./group-home-chrome";
 
@@ -63,5 +67,54 @@ describe("groupHomeRecord", () => {
       }),
       { kind: "stats", games: 4, sets: 7, points: 21 },
     );
+  });
+});
+
+describe("groupHomeHasStandingResults", () => {
+  it("is false when every member is still at zero", () => {
+    assert.equal(
+      groupHomeHasStandingResults([
+        { totalSetsWon: 0, totalPointsWon: 0, totalGamesPlayed: 0 },
+      ]),
+      false,
+    );
+  });
+
+  it("is true when anyone has sets, points, or Games", () => {
+    assert.equal(
+      groupHomeHasStandingResults([
+        { totalSetsWon: 0, totalPointsWon: 0, totalGamesPlayed: 1 },
+      ]),
+      true,
+    );
+  });
+});
+
+describe("filterGroupMembersByName", () => {
+  const members = [{ name: "Ada" }, { name: "Lin" }, { name: "Ada Lovelace" }];
+
+  it("filters the already-loaded list by name", () => {
+    assert.deepEqual(filterGroupMembersByName(members, "ada"), [
+      { name: "Ada" },
+      { name: "Ada Lovelace" },
+    ]);
+  });
+
+  it("returns everyone when the query is blank", () => {
+    assert.deepEqual(filterGroupMembersByName(members, "  "), members);
+  });
+});
+
+describe("groupHomeShowsMemberSearch", () => {
+  it("shows search only when there are more than eight members", () => {
+    assert.equal(groupHomeShowsMemberSearch(8), false);
+    assert.equal(groupHomeShowsMemberSearch(9), true);
+  });
+});
+
+describe("groupHomeMemberGamesLabel", () => {
+  it("uses Games from Games played", () => {
+    assert.equal(groupHomeMemberGamesLabel(0), "0 Games");
+    assert.equal(groupHomeMemberGamesLabel(3), "3 Games");
   });
 });

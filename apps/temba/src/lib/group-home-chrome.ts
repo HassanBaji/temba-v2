@@ -56,3 +56,37 @@ export function groupHomeRecord(
     points: membership.totalPointsWon,
   };
 }
+
+export function groupHomeHasStandingResults(
+  members: readonly {
+    totalSetsWon: number;
+    totalPointsWon: number;
+    totalGamesPlayed: number;
+  }[],
+) {
+  return members.some(
+    (member) =>
+      member.totalSetsWon > 0 ||
+      member.totalPointsWon > 0 ||
+      member.totalGamesPlayed > 0,
+  );
+}
+
+export function groupHomeShowsMemberSearch(memberCount: number) {
+  return memberCount > 8;
+}
+
+export function filterGroupMembersByName<T extends { name: string }>(
+  members: readonly T[],
+  query: string,
+): T[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return [...members];
+  }
+  return members.filter((member) => member.name.toLowerCase().includes(needle));
+}
+
+export function groupHomeMemberGamesLabel(totalGamesPlayed: number) {
+  return `${totalGamesPlayed} Games`;
+}

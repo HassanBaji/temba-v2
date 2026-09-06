@@ -380,6 +380,8 @@ export default function GroupHomePage({
             <GroupStandingTab
               isMember={Boolean(data.membership)}
               leaderboard={data.standing.leaderboard}
+              groupId={id}
+              canShowCreateGame={canShowCreateGame}
             />
           </TabsContent>
           <TabsContent
@@ -402,7 +404,12 @@ export default function GroupHomePage({
                 userId: entry.userId,
                 name: entry.name ?? "Member",
                 image: entry.image,
+                totalGamesPlayed: entry.totalGamesPlayed,
+                isViewer: entry.isViewer,
+                isCreator: entry.userId === data.createdBy,
               }))}
+              canInvite={canManageInvites}
+              onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
         </Tabs>
