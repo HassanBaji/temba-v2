@@ -19,6 +19,7 @@ import { FriendlyGameHomeHero } from "~/components/games/friendly-game-home-hero
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
 import { FriendlyGameOverviewPanel } from "~/components/games/friendly-game-overview-panel";
+import { FriendlyGameResultsPanel } from "~/components/games/friendly-game-results-panel";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
@@ -833,49 +834,82 @@ export default function GameHomePage({
             value="results"
             className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
           >
-            <GameResultsPanel
-              format={data.format}
-              matches={data.matches}
-              gameTeams={data.gameTeams}
-              isOrganizer={data.isOrganizer}
-              cancelled={Boolean(data.cancelledAt)}
-              courts={courts.data ?? []}
-              scorePending={scoreSet.isPending}
-              completePending={completeMatch.isPending}
-              cancelPending={cancelMatch.isPending}
-              onScoreSet={(input) =>
-                scoreSet.mutate({
-                  gameId: id,
-                  matchId: input.matchId,
-                  setId: input.setId,
-                  slot1GamesWon: input.slot1GamesWon,
-                  slot2GamesWon: input.slot2GamesWon,
-                })
-              }
-              onComplete={(matchId) =>
-                completeMatch.mutate({ gameId: id, matchId })
-              }
-              onUpdateCourt={(input) =>
-                updateMatch.mutate({
-                  gameId: id,
-                  matchId: input.matchId,
-                  courtId: input.courtId,
-                })
-              }
-              onUpdateSlots={(input) =>
-                updateMatch.mutate({
-                  gameId: id,
-                  matchId: input.matchId,
-                  startTime: input.startTime,
-                  endTime: input.endTime,
-                  durationInMinutes: input.durationInMinutes,
-                  courtId: input.courtId,
-                  slot1GameTeamId: input.slot1GameTeamId,
-                  slot2GameTeamId: input.slot2GameTeamId,
-                })
-              }
-              onCancelMatch={(matchId) => setCancelMatchId(matchId)}
-            />
+            {usesFriendlyChrome ? (
+              <FriendlyGameResultsPanel
+                matches={data.matches}
+                gameTeams={data.gameTeams}
+                isOrganizer={data.isOrganizer}
+                cancelled={Boolean(data.cancelledAt)}
+                courts={courts.data ?? []}
+                scorePending={scoreSet.isPending}
+                completePending={completeMatch.isPending}
+                cancelPending={cancelMatch.isPending}
+                onScoreSet={(input) =>
+                  scoreSet.mutateAsync({
+                    gameId: id,
+                    matchId: input.matchId,
+                    setId: input.setId,
+                    slot1GamesWon: input.slot1GamesWon,
+                    slot2GamesWon: input.slot2GamesWon,
+                  })
+                }
+                onComplete={(matchId) =>
+                  completeMatch.mutate({ gameId: id, matchId })
+                }
+                onUpdateCourt={(input) =>
+                  updateMatch.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    courtId: input.courtId,
+                  })
+                }
+                onCancelMatch={(matchId) => setCancelMatchId(matchId)}
+              />
+            ) : (
+              <GameResultsPanel
+                format={data.format}
+                matches={data.matches}
+                gameTeams={data.gameTeams}
+                isOrganizer={data.isOrganizer}
+                cancelled={Boolean(data.cancelledAt)}
+                courts={courts.data ?? []}
+                scorePending={scoreSet.isPending}
+                completePending={completeMatch.isPending}
+                cancelPending={cancelMatch.isPending}
+                onScoreSet={(input) =>
+                  scoreSet.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    setId: input.setId,
+                    slot1GamesWon: input.slot1GamesWon,
+                    slot2GamesWon: input.slot2GamesWon,
+                  })
+                }
+                onComplete={(matchId) =>
+                  completeMatch.mutate({ gameId: id, matchId })
+                }
+                onUpdateCourt={(input) =>
+                  updateMatch.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    courtId: input.courtId,
+                  })
+                }
+                onUpdateSlots={(input) =>
+                  updateMatch.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    startTime: input.startTime,
+                    endTime: input.endTime,
+                    durationInMinutes: input.durationInMinutes,
+                    courtId: input.courtId,
+                    slot1GameTeamId: input.slot1GameTeamId,
+                    slot2GameTeamId: input.slot2GameTeamId,
+                  })
+                }
+                onCancelMatch={(matchId) => setCancelMatchId(matchId)}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
