@@ -1,6 +1,6 @@
 "use client";
 
-import { notFound } from "next/navigation";
+import { notFound, usePathname, useRouter } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
@@ -14,6 +14,12 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
+import { FriendlyGameHomeHero } from "~/components/games/friendly-game-home-hero";
+import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
+import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
+import { FriendlyGameOverviewPanel } from "~/components/games/friendly-game-overview-panel";
+import { FriendlyGameResultsPanel } from "~/components/games/friendly-game-results-panel";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
@@ -29,13 +35,19 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
-import { gameViewerStatus } from "~/lib/game-summary-cta";
+import {
+  friendlyGameCanMintInvite,
+  friendlyGameCtaFamily,
+  friendlyGameOverflowItems,
+} from "~/lib/friendly-game-cta";
+import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
+import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
+import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
   splitGameWindow,
 } from "~/lib/game-window";
-import { gameHomeTabFromQuery } from "~/lib/game-home-tab";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   LEVEL_BAND_SELECT_NONE,
@@ -60,10 +72,23 @@ export default function GameHomePage({
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
-  const initialTab = gameHomeTabFromQuery(tabParam);
+  const tab = gameHomeTabFromQuery(tabParam);
+  const router = useRouter();
+  const pathname = usePathname() ?? `/dashboard/games/${id}`;
   const utils = api.useUtils();
+
+  function setTab(next: string) {
+    const resolved = gameHomeTabFromQuery(next);
+    if (resolved === tab) {
+      return;
+    }
+    router.replace(`${pathname}${gameHomeTabQuery(resolved)}`, {
+      scroll: false,
+    });
+  }
   const game = api.games.byId.useQuery({ id });
   const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const mobileMenuTriggerRef = React.useRef<HTMLButtonElement>(null);
   const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const levelSummaryRef = React.useRef<HTMLDivElement>(null);
@@ -106,6 +131,7 @@ export default function GameHomePage({
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
   const [cancelMatchId, setCancelMatchId] = React.useState<string | null>(null);
+  const [joinPickerOpen, setJoinPickerOpen] = React.useState(false);
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
@@ -375,9 +401,13 @@ export default function GameHomePage({
       ),
     },
   );
-  const canManageGameInvites = Boolean(
-    data?.isOrganizer && !data.cancelledAt && !data.joinFrozen,
+  const usesFriendlyChrome = Boolean(
+    data && showsFriendlyRoster(data.format, data.registrationMode),
   );
+  const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
+  const canManageGameInvites = usesFriendlyChrome
+    ? canMintInvite
+    : Boolean(data?.isOrganizer && !data.cancelledAt && !data.joinFrozen);
   const canSendGameLookup = Boolean(
     canManageGameInvites && data?.registrationMode !== "team_only",
   );
@@ -462,10 +492,136 @@ export default function GameHomePage({
   }
 
   const gameName = data.name ?? "Game";
+  const shellTitle = usesFriendlyChrome
+    ? friendlyGameHomeTitle(data.groupId, data.groupName)
+    : gameName;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
+  const firstMatch = data.matches[0];
+  const canScoreSets = data.matches.some((match) => match.canScoreSets);
+  const ctaFamily = usesFriendlyChrome
+    ? friendlyGameCtaFamily({
+        cancelled: Boolean(data.cancelledAt),
+        canScoreSets,
+        tab,
+        canWaitlist: data.canWaitlist,
+        isWaitlisted: data.isWaitlisted,
+        waitlistPlace: data.waitlistPlace,
+        canRegister: data.canRegister,
+        isSeated: data.isSeated,
+        isRegistered: data.isRegistered,
+        canMintInvite,
+      })
+    : { kind: "none" as const };
+  const overflowItems = usesFriendlyChrome
+    ? friendlyGameOverflowItems({
+        isOrganizer: data.isOrganizer,
+        cancelled: Boolean(data.cancelledAt),
+        registrationClosed: Boolean(data.registrationClosedAt),
+        canMintInvite,
+        isSeated: data.isSeated,
+        isRegistered: data.isRegistered,
+        isWaitlisted: data.isWaitlisted,
+        canLeave: data.canLeave,
+      })
+    : [];
+  const headerActions = usesFriendlyChrome ? null : (
+    <>
+      {canManageGameInvites ? (
+        <Button
+          ref={inviteButtonRef}
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setInvitesOpen(true)}
+        >
+          Invite
+        </Button>
+      ) : null}
+      {primaryLeave ? (
+        <Button
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setLeaveGameOpen(true)}
+        >
+          Leave Game
+        </Button>
+      ) : null}
+      {primaryLeaveWaitlist ? (
+        <Button
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setLeaveWaitlistOpen(true)}
+        >
+          Leave waitlist
+        </Button>
+      ) : null}
+    </>
+  );
+  const overflowHandlers = {
+    closePending: closeRegistration.isPending,
+    reopenPending: reopenRegistration.isPending,
+    onEdit: () => setEditOpen(true),
+    onCloseRegistration: () => closeRegistration.mutate({ gameId: id }),
+    onReopenRegistration: () => reopenRegistration.mutate({ gameId: id }),
+    onInvite: () => setInvitesOpen(true),
+    onShare: () => createInviteLink.mutate({ gameId: id }),
+    onLeave: () => setLeaveGameOpen(true),
+    onLeaveWaitlist: () => setLeaveWaitlistOpen(true),
+    onCancelGame: () => setCancelGameOpen(true),
+  };
+  const mobileOverflow =
+    usesFriendlyChrome && overflowItems.length > 0 ? (
+      <FriendlyGameOverflowMenu
+        items={overflowItems}
+        triggerRef={mobileMenuTriggerRef}
+        {...overflowHandlers}
+      />
+    ) : null;
+  const desktopOverflow =
+    usesFriendlyChrome && overflowItems.length > 0 ? (
+      <FriendlyGameOverflowMenu
+        items={overflowItems}
+        triggerRef={menuTriggerRef}
+        {...overflowHandlers}
+      />
+    ) : null;
+  const organizerMenu = usesFriendlyChrome ? null : showMenu ? (
+    <ActionMenu triggerRef={menuTriggerRef} label="Game actions">
+      <ActionMenuItem onSelect={() => setEditOpen(true)}>
+        Edit Game
+      </ActionMenuItem>
+      {data.registrationClosedAt ? (
+        <ActionMenuItem
+          disabled={data.joinFrozen || reopenRegistration.isPending}
+          onSelect={() => reopenRegistration.mutate({ gameId: id })}
+        >
+          Reopen registration
+        </ActionMenuItem>
+      ) : (
+        <ActionMenuItem
+          disabled={closeRegistration.isPending}
+          onSelect={() => closeRegistration.mutate({ gameId: id })}
+        >
+          Close registration
+        </ActionMenuItem>
+      )}
+      {canManageGameInvites ? (
+        <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+          Invite
+        </ActionMenuItem>
+      ) : null}
+      <ActionMenuSeparator />
+      <ActionMenuItem
+        variant="destructive"
+        onSelect={() => setCancelGameOpen(true)}
+      >
+        Cancel Game
+      </ActionMenuItem>
+    </ActionMenu>
+  ) : null;
 
   function saveWindow() {
     const gameWindow = parseRequiredGameWindow(
@@ -522,88 +678,70 @@ export default function GameHomePage({
   }
 
   return (
-    <DashboardShell title={gameName} hidePageHeader>
-      <div className="space-y-6">
-        <GameHomeHeader
-          name={gameName}
-          groupId={data.groupId}
-          groupName={data.groupName}
-          sport={data.sport}
-          isPublic={data.isPublic}
-          format={data.format}
-          registrationMode={data.registrationMode}
-          registrationStatus={data.registrationStatus}
-          viewerStatus={gameViewerStatus(data)}
-          primaryAction={
-            <>
-              {canManageGameInvites ? (
-                <Button
-                  ref={inviteButtonRef}
-                  type="button"
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setInvitesOpen(true)}
-                >
-                  Invite
-                </Button>
-              ) : null}
-              {primaryLeave ? (
-                <Button
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setLeaveGameOpen(true)}
-                >
-                  Leave Game
-                </Button>
-              ) : null}
-              {primaryLeaveWaitlist ? (
-                <Button
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setLeaveWaitlistOpen(true)}
-                >
-                  Leave waitlist
-                </Button>
-              ) : null}
-            </>
-          }
-          actions={
-            showMenu ? (
-              <ActionMenu triggerRef={menuTriggerRef} label="Game actions">
-                <ActionMenuItem onSelect={() => setEditOpen(true)}>
-                  Edit Game
-                </ActionMenuItem>
-                {data.registrationClosedAt ? (
-                  <ActionMenuItem
-                    disabled={data.joinFrozen || reopenRegistration.isPending}
-                    onSelect={() => reopenRegistration.mutate({ gameId: id })}
-                  >
-                    Reopen registration
-                  </ActionMenuItem>
-                ) : (
-                  <ActionMenuItem
-                    disabled={closeRegistration.isPending}
-                    onSelect={() => closeRegistration.mutate({ gameId: id })}
-                  >
-                    Close registration
-                  </ActionMenuItem>
-                )}
-                {canManageGameInvites ? (
-                  <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-                    Invite
-                  </ActionMenuItem>
-                ) : null}
-                <ActionMenuSeparator />
-                <ActionMenuItem
-                  variant="destructive"
-                  onSelect={() => setCancelGameOpen(true)}
-                >
-                  Cancel Game
-                </ActionMenuItem>
-              </ActionMenu>
-            ) : null
-          }
-        />
+    <DashboardShell title={shellTitle} hidePageHeader action={mobileOverflow}>
+      <div
+        className={
+          ctaFamily.kind !== "none" ? "space-y-6 max-lg:pb-20" : "space-y-6"
+        }
+      >
+        {usesFriendlyChrome ? (
+          <FriendlyGameHomeHero
+            name={data.name}
+            windowStart={data.windowStart}
+            durationInMinutes={firstMatch?.durationInMinutes}
+            venueName={data.venue?.name}
+            venueLatitude={data.venue?.latitude}
+            venueLongitude={data.venue?.longitude}
+            courtName={firstMatch?.courtName}
+            registeredUserCount={data.registeredUserCount}
+            playersAllowed={data.playersAllowed}
+            people={data.registeredPlayers.map((player) => ({
+              name: player.name ?? "Player",
+              image: player.image,
+            }))}
+            registrationStatus={data.registrationStatus}
+            viewerStatus={gameViewerStatus(data)}
+            cancelled={Boolean(data.cancelledAt)}
+            actions={
+              desktopOverflow ? (
+                <div className="max-lg:hidden">{desktopOverflow}</div>
+              ) : null
+            }
+          />
+        ) : (
+          <GameHomeHeader
+            name={gameName}
+            groupId={data.groupId}
+            groupName={data.groupName}
+            sport={data.sport}
+            isPublic={data.isPublic}
+            format={data.format}
+            registrationMode={data.registrationMode}
+            registrationStatus={data.registrationStatus}
+            viewerStatus={gameViewerStatus(data)}
+            primaryAction={headerActions}
+            actions={organizerMenu}
+          />
+        )}
+
+        {usesFriendlyChrome && ctaFamily.kind !== "none" ? (
+          <div className="max-lg:contents">
+            <FriendlyGameCtaBar
+              family={ctaFamily}
+              joinPending={registerSeat.isPending}
+              waitlistPending={leaveWaitlist.isPending}
+              onJoin={() => setJoinPickerOpen(true)}
+              onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
+              onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
+              onEnterScore={() => setTab("results")}
+              onInvite={
+                ctaFamily.kind === "playing" && ctaFamily.showInvite
+                  ? () => setInvitesOpen(true)
+                  : undefined
+              }
+            />
+          </div>
+        ) : null}
 
         {data.joinFrozen && !data.cancelledAt ? (
           <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
@@ -611,7 +749,7 @@ export default function GameHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        <Tabs defaultValue={initialTab} className="gap-4">
+        <Tabs value={tab} onValueChange={setTab} className="gap-4">
           <TabsList
             variant="line"
             className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
@@ -639,7 +777,14 @@ export default function GameHomePage({
             value="overview"
             className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
           >
-            <GameOverviewPanel game={data} />
+            {usesFriendlyChrome ? (
+              <FriendlyGameOverviewPanel
+                game={data}
+                onSelectPlayers={() => setTab("players")}
+              />
+            ) : (
+              <GameOverviewPanel game={data} />
+            )}
           </TabsContent>
           <TabsContent
             value="players"
@@ -691,49 +836,82 @@ export default function GameHomePage({
             value="results"
             className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
           >
-            <GameResultsPanel
-              format={data.format}
-              matches={data.matches}
-              gameTeams={data.gameTeams}
-              isOrganizer={data.isOrganizer}
-              cancelled={Boolean(data.cancelledAt)}
-              courts={courts.data ?? []}
-              scorePending={scoreSet.isPending}
-              completePending={completeMatch.isPending}
-              cancelPending={cancelMatch.isPending}
-              onScoreSet={(input) =>
-                scoreSet.mutate({
-                  gameId: id,
-                  matchId: input.matchId,
-                  setId: input.setId,
-                  slot1GamesWon: input.slot1GamesWon,
-                  slot2GamesWon: input.slot2GamesWon,
-                })
-              }
-              onComplete={(matchId) =>
-                completeMatch.mutate({ gameId: id, matchId })
-              }
-              onUpdateCourt={(input) =>
-                updateMatch.mutate({
-                  gameId: id,
-                  matchId: input.matchId,
-                  courtId: input.courtId,
-                })
-              }
-              onUpdateSlots={(input) =>
-                updateMatch.mutate({
-                  gameId: id,
-                  matchId: input.matchId,
-                  startTime: input.startTime,
-                  endTime: input.endTime,
-                  durationInMinutes: input.durationInMinutes,
-                  courtId: input.courtId,
-                  slot1GameTeamId: input.slot1GameTeamId,
-                  slot2GameTeamId: input.slot2GameTeamId,
-                })
-              }
-              onCancelMatch={(matchId) => setCancelMatchId(matchId)}
-            />
+            {usesFriendlyChrome ? (
+              <FriendlyGameResultsPanel
+                matches={data.matches}
+                gameTeams={data.gameTeams}
+                isOrganizer={data.isOrganizer}
+                cancelled={Boolean(data.cancelledAt)}
+                courts={courts.data ?? []}
+                scorePending={scoreSet.isPending}
+                completePending={completeMatch.isPending}
+                cancelPending={cancelMatch.isPending}
+                onScoreSet={(input) =>
+                  scoreSet.mutateAsync({
+                    gameId: id,
+                    matchId: input.matchId,
+                    setId: input.setId,
+                    slot1GamesWon: input.slot1GamesWon,
+                    slot2GamesWon: input.slot2GamesWon,
+                  })
+                }
+                onComplete={(matchId) =>
+                  completeMatch.mutate({ gameId: id, matchId })
+                }
+                onUpdateCourt={(input) =>
+                  updateMatch.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    courtId: input.courtId,
+                  })
+                }
+                onCancelMatch={(matchId) => setCancelMatchId(matchId)}
+              />
+            ) : (
+              <GameResultsPanel
+                format={data.format}
+                matches={data.matches}
+                gameTeams={data.gameTeams}
+                isOrganizer={data.isOrganizer}
+                cancelled={Boolean(data.cancelledAt)}
+                courts={courts.data ?? []}
+                scorePending={scoreSet.isPending}
+                completePending={completeMatch.isPending}
+                cancelPending={cancelMatch.isPending}
+                onScoreSet={(input) =>
+                  scoreSet.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    setId: input.setId,
+                    slot1GamesWon: input.slot1GamesWon,
+                    slot2GamesWon: input.slot2GamesWon,
+                  })
+                }
+                onComplete={(matchId) =>
+                  completeMatch.mutate({ gameId: id, matchId })
+                }
+                onUpdateCourt={(input) =>
+                  updateMatch.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    courtId: input.courtId,
+                  })
+                }
+                onUpdateSlots={(input) =>
+                  updateMatch.mutate({
+                    gameId: id,
+                    matchId: input.matchId,
+                    startTime: input.startTime,
+                    endTime: input.endTime,
+                    durationInMinutes: input.durationInMinutes,
+                    courtId: input.courtId,
+                    slot1GameTeamId: input.slot1GameTeamId,
+                    slot2GameTeamId: input.slot2GameTeamId,
+                  })
+                }
+                onCancelMatch={(matchId) => setCancelMatchId(matchId)}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -779,6 +957,19 @@ export default function GameHomePage({
           levelSummaryRef={levelSummaryRef}
           levelPending={updateLevelRange.isPending}
           onSaveLevelRange={saveLevelRange}
+        />
+      ) : null}
+
+      {usesFriendlyChrome ? (
+        <FriendlyGameJoinSheet
+          open={joinPickerOpen}
+          onOpenChange={setJoinPickerOpen}
+          title={gameName}
+          sides={data.sides}
+          pending={registerSeat.isPending}
+          onPickSeat={(sideIndex, position) =>
+            registerSeat.mutate({ gameId: id, sideIndex, position })
+          }
         />
       ) : null}
 
@@ -828,6 +1019,7 @@ export default function GameHomePage({
         open={leaveGameOpen}
         onOpenChange={setLeaveGameOpen}
         title={`Leave ${gameName}?`}
+        description="Your spot can open for someone else."
         confirmLabel="Leave Game"
         pending={leaveGame.isPending}
         onConfirm={async () => {
@@ -839,6 +1031,7 @@ export default function GameHomePage({
         open={leaveWaitlistOpen}
         onOpenChange={setLeaveWaitlistOpen}
         title="Leave waitlist?"
+        description="You'll lose your place on the Waitlist."
         confirmLabel="Leave waitlist"
         pending={leaveWaitlist.isPending}
         onConfirm={async () => {

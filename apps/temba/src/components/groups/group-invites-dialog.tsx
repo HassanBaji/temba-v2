@@ -62,9 +62,6 @@ export function GroupInvitesDialog({
       <ResponsiveDialogContent restoreFocusRef={restoreFocusRef}>
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>Manage invites</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>
-            Lookup invites and Invite links for this Group.
-          </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { EmptyState } from "~/components/common/empty-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { FriendlyGameSeatBlocks } from "~/components/games/friendly-game-seat-blocks";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import {
   formatGameSideLabel,
@@ -14,6 +15,7 @@ import {
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { Section } from "~/components/layout/section";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
@@ -34,6 +36,11 @@ import {
   fieldErrorMessage,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
+import {
+  friendlyGameCanKickPlayer,
+  friendlyGamePlayersCancelledNote,
+} from "~/lib/friendly-game-players";
+import { showsFriendlyRoster } from "~/lib/game-summary-cta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];
@@ -103,6 +110,14 @@ export function GamePlayersPanel({
 }) {
   const individualSeats =
     game.registrationMode === "individual" && game.format !== "americano";
+  const friendlyRoster = showsFriendlyRoster(
+    game.format,
+    game.registrationMode,
+  );
+  const cancelled = Boolean(game.cancelledAt);
+  const cancelledNote = friendlyRoster
+    ? friendlyGamePlayersCancelledNote(cancelled)
+    : null;
   const registeredWithoutTeams =
     game.gameTeams.length === 0 && game.registeredPlayers.length === 0;
 
@@ -113,11 +128,95 @@ export function GamePlayersPanel({
           game.format === "americano"
             ? "Player pool"
             : game.registrationMode === "individual"
-              ? "Sides"
+              ? friendlyRoster
+                ? "Teams"
+                : "Sides"
               : "Registered"
         }
       >
-        {individualSeats ? (
+        {friendlyRoster ? (
+          <div className="space-y-4">
+            {cancelledNote ? (
+              <p className="text-body text-muted-foreground">{cancelledNote}</p>
+            ) : game.canPickSeat ? (
+              <p className="text-body text-muted-foreground">
+                Pick a vacant Position to sit.
+              </p>
+            ) : null}
+            <FriendlyGameSeatBlocks
+              sides={game.sides}
+              viewerUserId={game.viewerUserId}
+              cancelled={cancelled}
+              canMove={game.canMove}
+              canRegister={game.canRegister}
+              canPickSeat={game.canPickSeat}
+              canWaitlist={game.canWaitlist}
+              isOrganizer={game.isOrganizer}
+              joining={registerSeatPending}
+              moving={moveSeatPending}
+              kickPending={kickPending}
+              onJoin={(sideIndex, position) =>
+                onRegisterSeat({ sideIndex, position })
+              }
+              onMove={onMoveSeat}
+              onKick={onKick}
+            />
+            {game.unseatedPlayers.length > 0 ? (
+              <div className="space-y-2">
+                <h3 className="text-body text-muted-foreground font-semibold">
+                  Not seated yet
+                </h3>
+                <RowList>
+                  {game.unseatedPlayers.map((player) => {
+                    const isViewer = player.id === game.viewerUserId;
+                    const canKick = friendlyGameCanKickPlayer({
+                      isOrganizer: game.isOrganizer,
+                      cancelled,
+                      isViewer,
+                    });
+                    return (
+                      <ListRow
+                        key={player.id}
+                        leading={
+                          <UserAvatar
+                            name={player.name}
+                            image={player.image}
+                            size="lg"
+                          />
+                        }
+                        title={
+                          <>
+                            {player.name}
+                            {isViewer ? (
+                              <Badge
+                                variant="outline"
+                                className="ml-2 align-middle"
+                              >
+                                You
+                              </Badge>
+                            ) : null}
+                          </>
+                        }
+                        trailing={
+                          canKick ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onKick(player.id)}
+                              disabled={kickPending}
+                            >
+                              Kick
+                            </Button>
+                          ) : undefined
+                        }
+                      />
+                    );
+                  })}
+                </RowList>
+              </div>
+            ) : null}
+          </div>
+        ) : individualSeats ? (
           <div className="space-y-4">
             <GameSeatGrid
               sides={game.sides}
@@ -131,7 +230,7 @@ export function GamePlayersPanel({
               canMove={game.canMove}
               moving={moveSeatPending}
               isOrganizer={game.isOrganizer}
-              cancelled={Boolean(game.cancelledAt)}
+              cancelled={cancelled}
               kickPending={kickPending}
               onJoin={(sideIndex, position) =>
                 onRegisterSeat({ sideIndex, position })
@@ -158,7 +257,7 @@ export function GamePlayersPanel({
                       }
                       title={player.name}
                       trailing={
-                        game.isOrganizer && !game.cancelledAt ? (
+                        game.isOrganizer && !cancelled ? (
                           <Button
                             variant="outline"
                             size="sm"

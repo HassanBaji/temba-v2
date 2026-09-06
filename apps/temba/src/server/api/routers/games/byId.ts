@@ -129,6 +129,8 @@ export async function gameById(
       name: true,
       city: true,
       country: true,
+      latitude: true,
+      longitude: true,
       archivedAt: true,
       logoImageUrl: true,
     },
@@ -144,6 +146,13 @@ export async function gameById(
       row.userId === args.userId ||
       (row.teamId !== null && myTeamIds.includes(row.teamId)),
   );
+  const waitlistIndex = waitlistRows.findIndex(
+    (row) =>
+      row.userId === args.userId ||
+      (row.teamId !== null && myTeamIds.includes(row.teamId)),
+  );
+  const waitlistPlace =
+    isWaitlisted && waitlistIndex >= 0 ? waitlistIndex + 1 : null;
   const eligibleTeams = [];
   if (game.registrationMode === "team_only" && myTeamIds.length > 0) {
     const memberRows = await database.query.teamMembers.findMany({
@@ -263,6 +272,8 @@ export async function gameById(
           name: venue.name,
           city: venue.city,
           country: venue.country,
+          latitude: venue.latitude,
+          longitude: venue.longitude,
           archivedAt: venue.archivedAt,
           logoImageUrl: venue.logoImageUrl,
         }
@@ -280,10 +291,12 @@ export async function gameById(
     createdBy: game.createdBy,
     createdAt: game.createdAt,
     isOrganizer: organizer,
+    viewerUserId: args.userId,
     joinFrozen: await isClubGroupGameJoinFrozen(database, game),
     isRegistered: alreadyOnGame,
     isSeated,
     isWaitlisted,
+    waitlistPlace,
     registrationStatus,
     canRegister:
       registrationStatus === "open" &&

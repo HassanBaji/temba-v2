@@ -78,16 +78,6 @@ export function LookupInvitePanel({
 
   return (
     <section className="space-y-4">
-      {!compact ? (
-        <div>
-          <h3 className="text-title font-semibold">Lookup invite</h3>
-          {description ? (
-            <p className="text-body text-muted-foreground mt-1">
-              {description}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
       <FormErrorSummary ref={summaryRef} message={formError} />
       {refused && refused.length > 0 ? (
         <ul className="text-destructive space-y-1 text-sm">
@@ -122,7 +112,7 @@ export function LookupInvitePanel({
               onQueryChange={onSearchQueryChange}
               options={searchResults}
               selected={selected}
-              onSelectedChange={setSelected}
+              onSelectedChange={(val) => setSelected(val)}
               selection={selection}
               pending={searchPending}
               disabled={sendPending}
