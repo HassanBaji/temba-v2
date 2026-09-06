@@ -1,6 +1,6 @@
 "use client";
 
-import { notFound } from "next/navigation";
+import { notFound, usePathname, useRouter } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
@@ -14,6 +14,8 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { FriendlyGameHomeHero } from "~/components/games/friendly-game-home-hero";
+import { FriendlyGameOverviewPanel } from "~/components/games/friendly-game-overview-panel";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
@@ -29,13 +31,14 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
-import { gameViewerStatus } from "~/lib/game-summary-cta";
+import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
+import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
+import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
   splitGameWindow,
 } from "~/lib/game-window";
-import { gameHomeTabFromQuery } from "~/lib/game-home-tab";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   LEVEL_BAND_SELECT_NONE,
@@ -60,8 +63,20 @@ export default function GameHomePage({
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
-  const initialTab = gameHomeTabFromQuery(tabParam);
+  const tab = gameHomeTabFromQuery(tabParam);
+  const router = useRouter();
+  const pathname = usePathname() ?? `/dashboard/games/${id}`;
   const utils = api.useUtils();
+
+  function setTab(next: string) {
+    const resolved = gameHomeTabFromQuery(next);
+    if (resolved === tab) {
+      return;
+    }
+    router.replace(`${pathname}${gameHomeTabQuery(resolved)}`, {
+      scroll: false,
+    });
+  }
   const game = api.games.byId.useQuery({ id });
   const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
   const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -462,10 +477,85 @@ export default function GameHomePage({
   }
 
   const gameName = data.name ?? "Game";
+  const usesFriendlyChrome = showsFriendlyRoster(
+    data.format,
+    data.registrationMode,
+  );
+  const shellTitle = usesFriendlyChrome
+    ? friendlyGameHomeTitle(data.groupId, data.groupName)
+    : gameName;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
+  const firstMatch = data.matches[0];
+  const headerActions = (
+    <>
+      {canManageGameInvites ? (
+        <Button
+          ref={inviteButtonRef}
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setInvitesOpen(true)}
+        >
+          Invite
+        </Button>
+      ) : null}
+      {primaryLeave ? (
+        <Button
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setLeaveGameOpen(true)}
+        >
+          Leave Game
+        </Button>
+      ) : null}
+      {primaryLeaveWaitlist ? (
+        <Button
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setLeaveWaitlistOpen(true)}
+        >
+          Leave waitlist
+        </Button>
+      ) : null}
+    </>
+  );
+  const organizerMenu = showMenu ? (
+    <ActionMenu triggerRef={menuTriggerRef} label="Game actions">
+      <ActionMenuItem onSelect={() => setEditOpen(true)}>
+        Edit Game
+      </ActionMenuItem>
+      {data.registrationClosedAt ? (
+        <ActionMenuItem
+          disabled={data.joinFrozen || reopenRegistration.isPending}
+          onSelect={() => reopenRegistration.mutate({ gameId: id })}
+        >
+          Reopen registration
+        </ActionMenuItem>
+      ) : (
+        <ActionMenuItem
+          disabled={closeRegistration.isPending}
+          onSelect={() => closeRegistration.mutate({ gameId: id })}
+        >
+          Close registration
+        </ActionMenuItem>
+      )}
+      {canManageGameInvites ? (
+        <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+          Invite
+        </ActionMenuItem>
+      ) : null}
+      <ActionMenuSeparator />
+      <ActionMenuItem
+        variant="destructive"
+        onSelect={() => setCancelGameOpen(true)}
+      >
+        Cancel Game
+      </ActionMenuItem>
+    </ActionMenu>
+  ) : null;
 
   function saveWindow() {
     const gameWindow = parseRequiredGameWindow(
@@ -522,88 +612,42 @@ export default function GameHomePage({
   }
 
   return (
-    <DashboardShell title={gameName} hidePageHeader>
+    <DashboardShell title={shellTitle} hidePageHeader>
       <div className="space-y-6">
-        <GameHomeHeader
-          name={gameName}
-          groupId={data.groupId}
-          groupName={data.groupName}
-          sport={data.sport}
-          isPublic={data.isPublic}
-          format={data.format}
-          registrationMode={data.registrationMode}
-          registrationStatus={data.registrationStatus}
-          viewerStatus={gameViewerStatus(data)}
-          primaryAction={
-            <>
-              {canManageGameInvites ? (
-                <Button
-                  ref={inviteButtonRef}
-                  type="button"
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setInvitesOpen(true)}
-                >
-                  Invite
-                </Button>
-              ) : null}
-              {primaryLeave ? (
-                <Button
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setLeaveGameOpen(true)}
-                >
-                  Leave Game
-                </Button>
-              ) : null}
-              {primaryLeaveWaitlist ? (
-                <Button
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setLeaveWaitlistOpen(true)}
-                >
-                  Leave waitlist
-                </Button>
-              ) : null}
-            </>
-          }
-          actions={
-            showMenu ? (
-              <ActionMenu triggerRef={menuTriggerRef} label="Game actions">
-                <ActionMenuItem onSelect={() => setEditOpen(true)}>
-                  Edit Game
-                </ActionMenuItem>
-                {data.registrationClosedAt ? (
-                  <ActionMenuItem
-                    disabled={data.joinFrozen || reopenRegistration.isPending}
-                    onSelect={() => reopenRegistration.mutate({ gameId: id })}
-                  >
-                    Reopen registration
-                  </ActionMenuItem>
-                ) : (
-                  <ActionMenuItem
-                    disabled={closeRegistration.isPending}
-                    onSelect={() => closeRegistration.mutate({ gameId: id })}
-                  >
-                    Close registration
-                  </ActionMenuItem>
-                )}
-                {canManageGameInvites ? (
-                  <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-                    Invite
-                  </ActionMenuItem>
-                ) : null}
-                <ActionMenuSeparator />
-                <ActionMenuItem
-                  variant="destructive"
-                  onSelect={() => setCancelGameOpen(true)}
-                >
-                  Cancel Game
-                </ActionMenuItem>
-              </ActionMenu>
-            ) : null
-          }
-        />
+        {usesFriendlyChrome ? (
+          <FriendlyGameHomeHero
+            name={data.name}
+            windowStart={data.windowStart}
+            durationInMinutes={firstMatch?.durationInMinutes}
+            venueName={data.venue?.name}
+            courtName={firstMatch?.courtName}
+            registeredUserCount={data.registeredUserCount}
+            playersAllowed={data.playersAllowed}
+            people={data.registeredPlayers.map((player) => ({
+              name: player.name ?? "Player",
+              image: player.image,
+            }))}
+            registrationStatus={data.registrationStatus}
+            viewerStatus={gameViewerStatus(data)}
+            cancelled={Boolean(data.cancelledAt)}
+            primaryAction={headerActions}
+            actions={organizerMenu}
+          />
+        ) : (
+          <GameHomeHeader
+            name={gameName}
+            groupId={data.groupId}
+            groupName={data.groupName}
+            sport={data.sport}
+            isPublic={data.isPublic}
+            format={data.format}
+            registrationMode={data.registrationMode}
+            registrationStatus={data.registrationStatus}
+            viewerStatus={gameViewerStatus(data)}
+            primaryAction={headerActions}
+            actions={organizerMenu}
+          />
+        )}
 
         {data.joinFrozen && !data.cancelledAt ? (
           <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
@@ -611,7 +655,7 @@ export default function GameHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        <Tabs defaultValue={initialTab} className="gap-4">
+        <Tabs value={tab} onValueChange={setTab} className="gap-4">
           <TabsList
             variant="line"
             className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
@@ -639,7 +683,14 @@ export default function GameHomePage({
             value="overview"
             className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
           >
-            <GameOverviewPanel game={data} />
+            {usesFriendlyChrome ? (
+              <FriendlyGameOverviewPanel
+                game={data}
+                onSelectPlayers={() => setTab("players")}
+              />
+            ) : (
+              <GameOverviewPanel game={data} />
+            )}
           </TabsContent>
           <TabsContent
             value="players"
