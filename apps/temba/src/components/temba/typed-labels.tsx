@@ -83,8 +83,13 @@ export function GameRegistrationStatusBadge({ status }: { status: string }) {
       : null;
 
   return (
-    <Badge
-      variant={value ? GAME_REGISTRATION_STATUS_VARIANTS[value] : "outline"}
+    <div
+      className={cn(
+        "flex items-center gap-1 font-semibold",
+        value
+          ? "text-" + GAME_REGISTRATION_STATUS_VARIANTS[value]
+          : "bg-current",
+      )}
     >
       <span
         aria-hidden="true"
@@ -94,6 +99,6 @@ export function GameRegistrationStatusBadge({ status }: { status: string }) {
         )}
       />
       {labelFromMap(status, GAME_REGISTRATION_STATUS_LABELS)}
-    </Badge>
+    </div>
   );
 }

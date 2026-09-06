@@ -8,16 +8,18 @@ import {
   friendlyGameDateDurationLine,
   friendlyGameDirectionsUrl,
   friendlyGameOccupancyLabel,
+  friendlyGameOpenSpotsLabel,
   friendlyGameVenueLine,
   friendlyGameViewerLine,
 } from "~/lib/friendly-game-chrome";
-import { formatGameClock } from "~/lib/format-game-start";
+import { formatGameClock, formatGameTimeWindow } from "~/lib/format-game-start";
 import type { GameViewerStatus } from "~/lib/game-summary-cta";
 import { cn } from "~/lib/utils";
 
 export function FriendlyGameHomeHero({
   name,
   windowStart,
+  windowEnd,
   durationInMinutes,
   venueName,
   venueLatitude,
@@ -34,6 +36,7 @@ export function FriendlyGameHomeHero({
 }: {
   name: string | null;
   windowStart: Date | string | null;
+  windowEnd: Date | string | null;
   durationInMinutes: number | null | undefined;
   venueName: string | null | undefined;
   venueLatitude: string | null | undefined;
@@ -49,7 +52,9 @@ export function FriendlyGameHomeHero({
   actions?: ReactNode;
 }) {
   const heading = name ?? "Game";
-  const clock = windowStart ? formatGameClock(windowStart) : "Time unset";
+  const clock = windowStart
+    ? formatGameTimeWindow(windowStart, windowEnd, windowStart)
+    : "Time unset";
   const dateDuration = friendlyGameDateDurationLine(
     windowStart,
     durationInMinutes,
@@ -60,6 +65,11 @@ export function FriendlyGameHomeHero({
     venueLongitude,
   );
   const occupancy = friendlyGameOccupancyLabel(
+    registeredUserCount,
+    playersAllowed,
+  );
+
+  const openSpotsLabel = friendlyGameOpenSpotsLabel(
     registeredUserCount,
     playersAllowed,
   );
@@ -90,35 +100,25 @@ export function FriendlyGameHomeHero({
           <div className="space-y-1">
             <p
               className={cn(
-                "text-display font-bold tabular-nums tracking-tight",
+                "text-2xl font-bold tabular-nums tracking-tight",
                 cancelled ? "text-muted-foreground line-through" : null,
               )}
             >
               {clock}
             </p>
-            {dateDuration ? (
-              <p className="text-body text-muted-foreground">{dateDuration}</p>
-            ) : null}
-            <h1
-              className={cn(
-                "text-lead text-muted-foreground min-w-0 break-words font-semibold",
-                name ? null : "sr-only",
-              )}
-            >
-              {heading}
-            </h1>
+            {dateDuration ? <p className="font-light">{dateDuration}</p> : null}
           </div>
 
           {venueLine || directionsUrl ? (
             <div className="space-y-1">
               {venueLine ? (
-                <p className="text-body text-muted-foreground flex min-w-0 items-start gap-1.5">
-                  <MapPin
-                    aria-hidden="true"
-                    className="mt-0.5 size-4 shrink-0"
-                    strokeWidth={2}
-                  />
+                <p className="flex min-w-0 items-start gap-1.5 font-semibold">
                   <span className="min-w-0 break-words">{venueLine}</span>
+                </p>
+              ) : null}
+              {courtName ? (
+                <p className="text-muted-foreground text-sm font-light">
+                  {courtName}
                 </p>
               ) : null}
               {directionsUrl ? (
@@ -127,24 +127,27 @@ export function FriendlyGameHomeHero({
             </div>
           ) : null}
 
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <div className="mt-4 flex min-w-0 flex-wrap items-center gap-3">
             {people.length > 0 ? (
-              <AvatarStack people={people} size="sm" />
+              <AvatarStack
+                people={people}
+                openSeats={
+                  playersAllowed ? playersAllowed - registeredUserCount : 0
+                }
+              />
             ) : null}
-            <p className="text-meta text-muted-foreground">{occupancy}</p>
+            <div className="flex flex-col">
+              <p className="text-lg font-semibold">{occupancy}</p>
+              <p className="text-muted-foreground text-sm font-light">
+                {openSpotsLabel}
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-4">
             <GameRegistrationStatusBadge status={registrationStatus} />
             {viewerLine ? (
-              <p
-                className={cn(
-                  "text-meta font-semibold",
-                  viewerStatus === "in" ? "text-success" : "text-warning",
-                )}
-              >
-                {viewerLine}
-              </p>
+              <p className={cn("mt-1 font-light")}>{viewerLine}</p>
             ) : null}
           </div>
         </div>

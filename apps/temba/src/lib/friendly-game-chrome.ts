@@ -47,6 +47,18 @@ export function friendlyGameOccupancyLabel(
   return `${registeredUserCount} of ${playersAllowed} players`;
 }
 
+export function friendlyGameOpenSpotsLabel(
+  registeredUserCount: number,
+  playersAllowed: number | null | undefined,
+) {
+  if (playersAllowed == null) {
+    return null;
+  }
+
+  const openSpots = playersAllowed - registeredUserCount;
+  return openSpots === 1 ? "1 spot left" : `${openSpots} spots left`;
+}
+
 export function friendlyGameDirectionsUrl(
   latitude: string | null | undefined,
   longitude: string | null | undefined,
@@ -67,7 +79,7 @@ export function friendlyGameVenueLine(
   courtName: string | null | undefined,
 ) {
   if (venueName && courtName) {
-    return `${venueName} · ${courtName}`;
+    return `${venueName}`;
   }
   return venueName ?? courtName ?? null;
 }
@@ -92,5 +104,5 @@ export function friendlyGameDateTimeLine(
   if (!windowStart) {
     return null;
   }
-  return `${formatAbsoluteDay(windowStart)} · ${formatGameClock(windowStart)}`;
+  return formatAbsoluteDay(windowStart);
 }

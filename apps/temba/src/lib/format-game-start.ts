@@ -22,9 +22,9 @@ export function formatGameTimeWindow(
   windowEnd: Date | string | null | undefined,
   startTime: Date | string,
 ) {
-  // if (windowStart && windowEnd) {
-  //   return `${formatGameClock(windowStart)} - ${formatGameClock(windowEnd)}`;
-  // }
+  if (windowStart && windowEnd) {
+    return `${formatGameClock(windowStart)} - ${formatGameClock(windowEnd)}`;
+  }
   return formatGameClock(startTime);
 }
 
@@ -80,8 +80,8 @@ export function formatRelativeDay(
 export function formatAbsoluteDay(startTime: Date | string) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
   return date.toLocaleDateString("en-GB", {
-    weekday: "short",
+    weekday: "long",
+    month: "long",
     day: "numeric",
-    month: "short",
   });
 }

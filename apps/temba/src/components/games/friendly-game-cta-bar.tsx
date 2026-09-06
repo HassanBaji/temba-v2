@@ -36,13 +36,12 @@ export function FriendlyGameCtaBar({
     <div
       data-slot="friendly-game-cta-bar"
       className={cn(
-        "bg-background border-border max-lg:border-t max-lg:px-4 max-lg:py-3",
+        "bg-background border-border max-lg:border-t max-lg:px-4 max-lg:py-3 max-lg:pb-6",
         "max-lg:fixed max-lg:inset-x-0 max-lg:z-40",
-        "lg:static lg:bottom-auto lg:bg-card lg:rounded-2xl lg:border lg:p-4",
+        "lg:bg-card lg:static lg:bottom-auto lg:rounded-2xl lg:border lg:p-4",
       )}
       style={{
-        bottom:
-          "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))",
+        bottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
       {family.kind === "browse" ? (

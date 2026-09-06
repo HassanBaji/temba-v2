@@ -678,16 +678,25 @@ export default function GameHomePage({
   }
 
   return (
-    <DashboardShell title={shellTitle} hidePageHeader action={mobileOverflow}>
+    <DashboardShell
+      title={shellTitle}
+      hidePageHeader
+      action={mobileOverflow}
+      isSubPage={true}
+      hideNav={true}
+    >
       <div
         className={
-          ctaFamily.kind !== "none" ? "space-y-6 max-lg:pb-20" : "space-y-6"
+          ctaFamily.kind !== "none"
+            ? "mt-6 space-y-6 max-lg:pb-20"
+            : "space-y-6"
         }
       >
         {usesFriendlyChrome ? (
           <FriendlyGameHomeHero
             name={data.name}
             windowStart={data.windowStart}
+            windowEnd={data.windowEnd}
             durationInMinutes={firstMatch?.durationInMinutes}
             venueName={data.venue?.name}
             venueLatitude={data.venue?.latitude}
@@ -751,32 +760,20 @@ export default function GameHomePage({
 
         <Tabs value={tab} onValueChange={setTab} className="gap-4">
           <TabsList
-            variant="line"
-            className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
+            // variant="line"
+            className="sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-between overflow-x-auto overflow-y-hidden lg:top-0"
           >
-            <TabsTrigger
-              value="overview"
-              className="min-h-11 min-w-11 flex-none px-3"
-            >
+            <TabsTrigger value="overview" className="w-[33%]">
               Overview
             </TabsTrigger>
-            <TabsTrigger
-              value="players"
-              className="min-h-11 min-w-11 flex-none px-3"
-            >
+            <TabsTrigger value="players" className="w-[33%]">
               Players
             </TabsTrigger>
-            <TabsTrigger
-              value="results"
-              className="min-h-11 min-w-11 flex-none px-3"
-            >
+            <TabsTrigger value="results" className="w-[33%]">
               Results
             </TabsTrigger>
           </TabsList>
-          <TabsContent
-            value="overview"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+          <TabsContent value="overview">
             {usesFriendlyChrome ? (
               <FriendlyGameOverviewPanel
                 game={data}

@@ -228,7 +228,7 @@ export function GameSummaryCard({
   const occupancy = gameOccupancy(registeredUserCount ?? 0, playersAllowed);
   const dayLabel = formatRelativeDay(startTime, { sameDayLabel: "Today" });
   const timeLabel = venueLed
-    ? formatGameTimeWindow(windowStart, windowEnd, startTime)
+    ? formatGameTimeWindow(null, null, startTime)
     : formatGameClock(startTime);
   const venueLine =
     venueName == null

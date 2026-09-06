@@ -13,17 +13,20 @@ export function MobileTopBar({
   backHref,
   action,
   icon,
+  isSubPage,
 }: {
   title?: string;
   icon?: ReactNode;
   backHref?: string;
   action?: ReactNode;
+  isSubPage?: boolean;
 }) {
   return (
     <header
       className={cn(
         "bg-card sticky top-0 z-40 flex min-h-11 items-center gap-2 py-2 pt-4 lg:hidden",
         pageGutterX,
+        isSubPage && "border-border border-b",
       )}
     >
       {backHref && (
@@ -36,7 +39,12 @@ export function MobileTopBar({
         </Link>
       )}
       {title ? (
-        <p className="min-w-0 flex-1 truncate text-3xl font-bold tracking-[-0.01em]">
+        <p
+          className={cn(
+            "min-w-0 flex-1 truncate text-3xl font-bold tracking-[-0.01em]",
+            isSubPage && "text-foreground text-center text-base",
+          )}
+        >
           {title}
         </p>
       ) : null}
@@ -74,14 +82,17 @@ export function MobileTopBarFromPath({
   title,
   icon,
   action,
+  isSubPage,
 }: {
   title: string;
   icon?: ReactNode;
   action?: ReactNode;
+  isSubPage?: boolean;
 }) {
   const pathname = usePathname();
   return (
     <MobileTopBar
+      isSubPage={isSubPage}
       title={title}
       backHref={detailBackHref(pathname)}
       action={action}

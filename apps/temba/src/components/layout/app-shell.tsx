@@ -19,6 +19,8 @@ export function AppShell({
   width = "content",
   hidePageHeader = false,
   hideMobileTopBar = false,
+  isSubPage = false,
+  hideNav = false,
 }: {
   children: ReactNode;
   title?: string;
@@ -28,6 +30,8 @@ export function AppShell({
   width?: "content" | "wide";
   hidePageHeader?: boolean;
   hideMobileTopBar?: boolean;
+  isSubPage?: boolean;
+  hideNav?: boolean;
 }) {
   return (
     <SidebarProvider
@@ -47,6 +51,7 @@ export function AppShell({
               title={title ?? ""}
               icon={icon}
               action={hidePageHeader ? action : undefined}
+              isSubPage={isSubPage}
             />
           )}
           <main
@@ -71,7 +76,7 @@ export function AppShell({
           </main>
         </div>
       </div>
-      <BottomNav />
+      {hideNav ? null : <BottomNav />}
     </SidebarProvider>
   );
 }

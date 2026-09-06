@@ -26,6 +26,7 @@ export function ListRow({
   asChild = false,
   className,
   children,
+  icon,
   ...props
 }: {
   leading?: React.ReactNode;
@@ -36,6 +37,7 @@ export function ListRow({
   asChild?: boolean;
   className?: string;
   children?: React.ReactNode;
+  icon?: React.ReactNode;
 } & Omit<React.ComponentProps<"div">, "title" | "children">) {
   const navigates = asChild;
   const rowClass = cn(
@@ -52,14 +54,20 @@ export function ListRow({
   const body = (
     <>
       {leading ? <div className="shrink-0">{leading}</div> : null}
-      <div className="min-w-0 flex-1">
-        <p className="text-lead truncate font-semibold">{title}</p>
-        {subtitle ? (
-          <p className="text-body text-muted-foreground truncate">{subtitle}</p>
-        ) : null}
-        {meta ? (
-          <p className="text-meta text-muted-foreground truncate">{meta}</p>
-        ) : null}
+      <div className="flex items-center gap-4">
+        {icon ? <div className="shrink-0">{icon}</div> : null}
+        <div className="min-w-0 flex-1">
+          <p className="text-lead truncate font-semibold">{title}</p>
+
+          {subtitle ? (
+            <p className="text-muted-foreground truncate text-sm font-light">
+              {subtitle}
+            </p>
+          ) : null}
+          {meta ? (
+            <p className="text-meta text-muted-foreground truncate">{meta}</p>
+          ) : null}
+        </div>
       </div>
       {trailing ? <div className="shrink-0">{trailing}</div> : null}
       {navigates ? (

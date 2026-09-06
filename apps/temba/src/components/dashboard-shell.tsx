@@ -12,6 +12,8 @@ export function DashboardShell({
   hidePageHeader,
   hidePageTitle,
   hideMobileTopBar,
+  isSubPage,
+  hideNav,
 }: {
   children: React.ReactNode;
   title?: string;
@@ -22,6 +24,8 @@ export function DashboardShell({
   hidePageHeader?: boolean;
   hidePageTitle?: boolean;
   hideMobileTopBar?: boolean;
+  isSubPage?: boolean;
+  hideNav?: boolean;
 }) {
   return (
     <AppShell
@@ -32,6 +36,8 @@ export function DashboardShell({
       width={width}
       hidePageHeader={hidePageHeader}
       hideMobileTopBar={hideMobileTopBar}
+      isSubPage={isSubPage}
+      hideNav={hideNav}
     >
       {children}
     </AppShell>
