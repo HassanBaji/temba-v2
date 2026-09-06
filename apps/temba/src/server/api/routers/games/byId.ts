@@ -144,6 +144,13 @@ export async function gameById(
       row.userId === args.userId ||
       (row.teamId !== null && myTeamIds.includes(row.teamId)),
   );
+  const waitlistIndex = waitlistRows.findIndex(
+    (row) =>
+      row.userId === args.userId ||
+      (row.teamId !== null && myTeamIds.includes(row.teamId)),
+  );
+  const waitlistPlace =
+    isWaitlisted && waitlistIndex >= 0 ? waitlistIndex + 1 : null;
   const eligibleTeams = [];
   if (game.registrationMode === "team_only" && myTeamIds.length > 0) {
     const memberRows = await database.query.teamMembers.findMany({
@@ -284,6 +291,7 @@ export async function gameById(
     isRegistered: alreadyOnGame,
     isSeated,
     isWaitlisted,
+    waitlistPlace,
     registrationStatus,
     canRegister:
       registrationStatus === "open" &&

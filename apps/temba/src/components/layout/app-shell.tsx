@@ -43,7 +43,11 @@ export function AppShell({
         <AppRail />
         <div className="flex min-w-0 flex-1 flex-col">
           {hideMobileTopBar ? null : (
-            <MobileTopBarFromPath title={title ?? ""} icon={icon} />
+            <MobileTopBarFromPath
+              title={title ?? ""}
+              icon={icon}
+              action={hidePageHeader ? action : undefined}
+            />
           )}
           <main
             className={cn(
