@@ -4,6 +4,10 @@
 
 Specs live locally under `.scratch/`; implementation tickets live in Linear. See `docs/agents/issue-tracker.md`.
 
+### Triage labels
+
+Default triage label vocabulary (label string equals role name). See `docs/agents/triage-labels.md`.
+
 ### Domain docs
 
 Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
