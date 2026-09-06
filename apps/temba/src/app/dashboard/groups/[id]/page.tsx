@@ -1,46 +1,55 @@
 "use client";
 
-import Link from "next/link";
-import { notFound, useRouter } from "next/navigation";
+import { notFound, usePathname, useRouter } from "next/navigation";
 import { use, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import {
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
-} from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
-import { StatStrip } from "~/components/common/stat-strip";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
+import { GroupHomeActionBar } from "~/components/groups/group-home-action-bar";
 import { GroupHomeHeader } from "~/components/groups/group-home-header";
+import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
+import { GroupHomeRecordStrip } from "~/components/groups/group-home-record-strip";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
+import { GroupHomeTopBar } from "~/components/groups/group-home-top-bar";
 import { GroupInvitesDialog } from "~/components/groups/group-invites-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
-import { Card } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { groupHomeRecord } from "~/lib/group-home-chrome";
+import {
+  groupHomeCanManageInvites,
+  groupHomeCanShowCreateGame,
+  groupHomeCtaFamily,
+  groupHomeOverflowItems,
+} from "~/lib/group-home-cta";
 import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
+import { groupHomeTabFromQuery, groupHomeTabQuery } from "~/lib/group-home-tab";
 import { isNotFoundError } from "~/lib/is-not-found-error";
-import { stickyAsideClass } from "~/lib/page-layout";
 import { api } from "~/trpc/react";
 
 export default function GroupHomePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const { id } = use(params);
+  const query = use(searchParams);
+  const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  const tab = groupHomeTabFromQuery(tabParam);
   const { hasCreateAccess } = useCreateAccess();
   const router = useRouter();
+  const pathname = usePathname() ?? `/dashboard/groups/${id}`;
   const utils = api.useUtils();
-  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const desktopMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
@@ -48,6 +57,9 @@ export default function GroupHomePage({
   const [lookupRefused, setLookupRefused] = useState<
     { name: string; message: string }[] | null
   >(null);
+  const [restoreFocus, setRestoreFocus] = useState<"mobile" | "desktop">(
+    "desktop",
+  );
 
   const group = api.groups.byId.useQuery({ id });
 
@@ -172,6 +184,16 @@ export default function GroupHomePage({
 
   const joinPending = joinClubPublic.isPending || joinLoosePublic.isPending;
 
+  function setTab(next: string) {
+    const resolved = groupHomeTabFromQuery(next);
+    if (resolved === tab) {
+      return;
+    }
+    router.replace(`${pathname}${groupHomeTabQuery(resolved)}`, {
+      scroll: false,
+    });
+  }
+
   function onJoin() {
     if (group.data?.canJoinLoosePublic) {
       joinLoosePublic.mutate({ groupId: id });
@@ -194,7 +216,7 @@ export default function GroupHomePage({
 
   if (group.isLoading) {
     return (
-      <DashboardShell title="Group" width="wide" hidePageHeader>
+      <DashboardShell title="Group" hidePageHeader hideMobileTopBar>
         <GroupHomeSkeleton />
       </DashboardShell>
     );
@@ -202,7 +224,7 @@ export default function GroupHomePage({
 
   if (group.error) {
     return (
-      <DashboardShell title="Group" width="wide" hidePageHeader>
+      <DashboardShell title="Group" hidePageHeader>
         <ErrorState
           title="Group could not be loaded"
           message={group.error.message}
@@ -216,7 +238,7 @@ export default function GroupHomePage({
 
   if (!group.data) {
     return (
-      <DashboardShell title="Group" width="wide" hidePageHeader>
+      <DashboardShell title="Group" hidePageHeader>
         <ErrorState
           title="Group could not be loaded"
           onRetry={() => {
@@ -229,132 +251,58 @@ export default function GroupHomePage({
 
   const data = group.data;
   const groupName = data.name ?? "Group";
-  const canShowCreateGame = hasCreateAccess && data.canCreateGame;
-  const canManageInvites =
-    data.canManageLookupInvites || data.canManageInviteLinks;
-  const showMenu =
-    data.community != null ||
-    canShowCreateGame ||
-    (data.isLoose && data.type === "public") ||
-    canManageInvites ||
-    data.membership != null ||
-    data.canDelete;
+  const canShowCreateGame = groupHomeCanShowCreateGame({
+    hasCreateAccess,
+    canCreateGame: data.canCreateGame,
+  });
+  const canManageInvites = groupHomeCanManageInvites({
+    canManageLookupInvites: data.canManageLookupInvites,
+    canManageInviteLinks: data.canManageInviteLinks,
+  });
+  const ctaFamily = groupHomeCtaFamily({
+    canJoin: data.canJoin,
+    hasCreateAccess,
+    canCreateGame: data.canCreateGame,
+    canManageLookupInvites: data.canManageLookupInvites,
+    canManageInviteLinks: data.canManageInviteLinks,
+  });
+  const overflowItems = groupHomeOverflowItems({
+    family: ctaFamily,
+    hasCommunity: data.community != null,
+    canShowCreateGame,
+    isLoosePublic: data.isLoose && data.type === "public",
+    canManageInvites,
+    isMember: data.membership != null,
+    canDelete: data.canDelete,
+  });
+  const record = groupHomeRecord(data.membership);
+  const restoreFocusRef =
+    restoreFocus === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef;
 
-  const headerActions = (
-    <>
-      {data.canJoin ? (
-        <Button className="min-h-11" onClick={onJoin} disabled={joinPending}>
-          {joinPending ? "Joining…" : "Join"}
-        </Button>
-      ) : null}
-      {showMenu ? (
-        <ActionMenu triggerRef={menuTriggerRef} label="Group actions">
-          {data.community ? (
-            <ActionMenuItem asChild>
-              <Link href={`/dashboard/communities/${data.community.id}`}>
-                Open {data.community.name}
-              </Link>
-            </ActionMenuItem>
-          ) : null}
-          {data.community ? (
-            <ActionMenuItem asChild>
-              <Link href="/dashboard/communities">All Communities</Link>
-            </ActionMenuItem>
-          ) : null}
-          {canShowCreateGame ? (
-            <ActionMenuItem asChild>
-              <Link href={`/dashboard/games/new?groupId=${id}`}>
-                Create Game
-              </Link>
-            </ActionMenuItem>
-          ) : null}
-          {data.isLoose && data.type === "public" ? (
-            <ActionMenuItem onSelect={() => void copyGroupUrl()}>
-              Copy Group URL
-            </ActionMenuItem>
-          ) : null}
-          {canManageInvites ? (
-            <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-              Manage invites
-            </ActionMenuItem>
-          ) : null}
-          {data.membership || data.canDelete ? <ActionMenuSeparator /> : null}
-          {data.membership ? (
-            <ActionMenuItem
-              variant="destructive"
-              onSelect={() => setLeaveOpen(true)}
-            >
-              Leave Group
-            </ActionMenuItem>
-          ) : null}
-          {data.canDelete ? (
-            <ActionMenuItem
-              variant="destructive"
-              onSelect={() => setDeleteOpen(true)}
-            >
-              Delete Group
-            </ActionMenuItem>
-          ) : null}
-        </ActionMenu>
-      ) : null}
-    </>
-  );
-
-  const standingStrip = data.membership ? (
-    <StatStrip
-      tone="dark"
-      items={[
-        {
-          label: "Position",
-          value:
-            data.membership.standingPosition != null
-              ? `#${data.membership.standingPosition} of ${data.standing.memberCount}`
-              : `— of ${data.standing.memberCount}`,
-        },
-        { label: "Sets won", value: data.membership.totalSetsWon },
-        { label: "Points won", value: data.membership.totalPointsWon },
-        { label: "Games played", value: data.totalGamesPlayed },
-      ]}
+  const overflowMenu = (which: "mobile" | "desktop") => (
+    <GroupHomeOverflowMenu
+      items={overflowItems}
+      groupId={id}
+      communityId={data.community?.id ?? null}
+      communityName={data.community?.name ?? null}
+      triggerRef={
+        which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
+      }
+      onCopyGroupUrl={() => void copyGroupUrl()}
+      onManageInvites={() => {
+        setRestoreFocus(which);
+        setInvitesOpen(true);
+      }}
+      onLeave={() => {
+        setRestoreFocus(which);
+        setLeaveOpen(true);
+      }}
+      onDelete={() => {
+        setRestoreFocus(which);
+        setDeleteOpen(true);
+      }}
     />
-  ) : null;
-
-  const communityCard = data.community ? (
-    <Card variant="raised">
-      <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-        Community
-      </p>
-      <p className="text-lead font-semibold">{data.community.name}</p>
-      <Button asChild variant="outline" className="min-h-11 w-full">
-        <Link href={`/dashboard/communities/${data.community.id}`}>
-          Open {data.community.name}
-        </Link>
-      </Button>
-    </Card>
-  ) : null;
-
-  const staffCard =
-    canShowCreateGame || canManageInvites ? (
-      <Card variant="raised" className="gap-2">
-        <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-          Actions
-        </p>
-        {canShowCreateGame ? (
-          <Button asChild className="min-h-11 w-full">
-            <Link href={`/dashboard/games/new?groupId=${id}`}>Create Game</Link>
-          </Button>
-        ) : null}
-        {canManageInvites ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11 w-full"
-            onClick={() => setInvitesOpen(true)}
-          >
-            Manage invites
-          </Button>
-        ) : null}
-      </Card>
-    ) : null;
+  );
 
   const banners = (
     <>
@@ -383,87 +331,81 @@ export default function GroupHomePage({
     </>
   );
 
-  const tabs = (
-    <Tabs defaultValue="standing" className="gap-4">
-      <TabsList
-        variant="line"
-        className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
-      >
-        <TabsTrigger
-          value="standing"
-          className="min-h-11 min-w-11 flex-none px-3"
-        >
-          Standing
-        </TabsTrigger>
-        <TabsTrigger value="games" className="min-h-11 min-w-11 flex-none px-3">
-          Games
-        </TabsTrigger>
-        <TabsTrigger
-          value="members"
-          className="min-h-11 min-w-11 flex-none px-3"
-        >
-          Members
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent
-        value="standing"
-        className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-      >
-        <GroupStandingTab
-          isMember={Boolean(data.membership)}
-          leaderboard={data.standing.leaderboard}
-        />
-      </TabsContent>
-      <TabsContent
-        value="games"
-        className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-      >
-        <GroupGamesTab
-          upcomingGames={data.upcomingGames}
-          gameHistory={data.gameHistory}
-          groupName={groupName}
-          isCommunityArchived={data.isCommunityArchived}
-        />
-      </TabsContent>
-      <TabsContent
-        value="members"
-        className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-      >
-        <GroupMembersTab
-          members={data.standing.leaderboard.map((entry) => ({
-            userId: entry.userId,
-            name: entry.name ?? "Member",
-            image: entry.image,
-          }))}
-        />
-      </TabsContent>
-    </Tabs>
-  );
-
   return (
-    <DashboardShell title={groupName} width="wide" hidePageHeader>
+    <DashboardShell title={groupName} hidePageHeader hideMobileTopBar>
+      <div className="md:-mt-6 lg:mt-0">
+        <GroupHomeTopBar name={groupName} overflow={overflowMenu("mobile")} />
+      </div>
+
       <div className="space-y-6">
         <GroupHomeHeader
           name={groupName}
-          isLoose={data.isLoose}
-          type={data.type ?? null}
           sport={data.sport ?? null}
+          memberCount={data.standing.memberCount}
           communityName={data.community?.name ?? null}
-          isCommunityArchived={data.isCommunityArchived}
-          actions={headerActions}
+          actions={overflowMenu("desktop")}
         />
 
         {banners}
 
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_17.5rem]">
-          <div className="min-w-0 space-y-6 lg:hidden">{standingStrip}</div>
-          <div className="min-w-0">{tabs}</div>
-          <aside className={stickyAsideClass}>
-            {standingStrip}
-            {communityCard}
-            {staffCard}
-          </aside>
-        </div>
+        <GroupHomeRecordStrip record={record} />
+
+        <GroupHomeActionBar
+          family={ctaFamily}
+          groupId={id}
+          joinPending={joinPending}
+          onJoin={onJoin}
+          onInvite={() => setInvitesOpen(true)}
+        />
+
+        <Tabs value={tab} onValueChange={setTab} className="gap-4">
+          <TabsList
+            variant="line"
+            className="bg-background sticky top-[52px] z-20 h-11 min-h-11 w-full max-w-full justify-stretch overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
+          >
+            <TabsTrigger value="standing" className="min-h-11 min-w-11 flex-1">
+              Standing
+            </TabsTrigger>
+            <TabsTrigger value="games" className="min-h-11 min-w-11 flex-1">
+              Games
+            </TabsTrigger>
+            <TabsTrigger value="members" className="min-h-11 min-w-11 flex-1">
+              Members
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent
+            value="standing"
+            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+          >
+            <GroupStandingTab
+              isMember={Boolean(data.membership)}
+              leaderboard={data.standing.leaderboard}
+            />
+          </TabsContent>
+          <TabsContent
+            value="games"
+            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+          >
+            <GroupGamesTab
+              upcomingGames={data.upcomingGames}
+              gameHistory={data.gameHistory}
+              groupName={groupName}
+              isCommunityArchived={data.isCommunityArchived}
+            />
+          </TabsContent>
+          <TabsContent
+            value="members"
+            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+          >
+            <GroupMembersTab
+              members={data.standing.leaderboard.map((entry) => ({
+                userId: entry.userId,
+                name: entry.name ?? "Member",
+                image: entry.image,
+              }))}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <ConfirmDialog
@@ -473,7 +415,7 @@ export default function GroupHomePage({
         description="You will leave this Group. Cancelling does nothing."
         confirmLabel="Leave Group"
         pending={leaveGroup.isPending}
-        restoreFocusRef={menuTriggerRef}
+        restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {
           await leaveGroup.mutateAsync({ groupId: id });
         }}
@@ -486,7 +428,7 @@ export default function GroupHomePage({
         description="This cannot be undone. Cancelling does nothing."
         confirmLabel="Delete Group"
         pending={deleteGroup.isPending}
-        restoreFocusRef={menuTriggerRef}
+        restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {
           await deleteGroup.mutateAsync({ groupId: id });
         }}
@@ -501,7 +443,7 @@ export default function GroupHomePage({
             setLookupRefused(null);
           }
         }}
-        restoreFocusRef={menuTriggerRef}
+        restoreFocusRef={restoreFocusRef}
         isLoose={data.isLoose}
         canManageLookupInvites={data.canManageLookupInvites}
         canManageInviteLinks={data.canManageInviteLinks}
