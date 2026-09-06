@@ -287,6 +287,7 @@ export async function gameById(
     createdBy: game.createdBy,
     createdAt: game.createdAt,
     isOrganizer: organizer,
+    viewerUserId: args.userId,
     joinFrozen: await isClubGroupGameJoinFrozen(database, game),
     isRegistered: alreadyOnGame,
     isSeated,
