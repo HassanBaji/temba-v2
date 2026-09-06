@@ -61,37 +61,46 @@ export function GroupInvitesDialog({
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent restoreFocusRef={restoreFocusRef}>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Manage invites</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>Invite</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription className="sr-only">
+            Lookup invite or copy an Invite link.
+          </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
+        <div className="space-y-6 px-4 pb-4 md:px-0 md:pb-0">
           {canManageLookupInvites ? (
-            <LookupInvitePanel
-              description={
-                isLoose
-                  ? "Only you can search existing Users and send Lookup invites. The invitee accepts on Invites. Lookup invites do not expire."
-                  : "Owner or Admin can search any existing User. Accept auto-admits them as Community Member then joins this Group. The Group creator may invite existing Members only. Invitees accept on Invites."
-              }
-              lookupInvites={lookupInvites}
-              sendPending={sendPending}
-              revokePending={revokePending}
-              sendError={sendError}
-              searchQuery={searchQuery}
-              onSearchQueryChange={onSearchQueryChange}
-              searchResults={searchResults}
-              searchPending={searchPending}
-              refused={refused}
-              onSendUserIds={onSendLookup}
-              onRevokeLookup={onRevokeLookup}
-            />
+            <section className="space-y-3">
+              <h3 className="text-title font-semibold">Lookup invite</h3>
+              <LookupInvitePanel
+                description={
+                  isLoose
+                    ? "Only you can search existing Users and send Lookup invites. The invitee accepts on Invites. Lookup invites do not expire."
+                    : "Owner or Admin can search any existing User. Accept auto-admits them as Community Member then joins this Group. The Group creator may invite existing Members only. Invitees accept on Invites."
+                }
+                lookupInvites={lookupInvites}
+                sendPending={sendPending}
+                revokePending={revokePending}
+                sendError={sendError}
+                searchQuery={searchQuery}
+                onSearchQueryChange={onSearchQueryChange}
+                searchResults={searchResults}
+                searchPending={searchPending}
+                refused={refused}
+                onSendUserIds={onSendLookup}
+                onRevokeLookup={onRevokeLookup}
+              />
+            </section>
           ) : null}
 
           {canManageInviteLinks ? (
-            <InviteLinkPanel
-              inviteUrl={inviteUrl}
-              copyPending={copyPending}
-              onCopy={onCopyInviteLink}
-            />
+            <section className="space-y-3">
+              <h3 className="text-title font-semibold">Invite link</h3>
+              <InviteLinkPanel
+                inviteUrl={inviteUrl}
+                copyPending={copyPending}
+                onCopy={onCopyInviteLink}
+              />
+            </section>
           ) : null}
         </div>
       </ResponsiveDialogContent>

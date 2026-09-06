@@ -12,7 +12,11 @@ import {
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
-import { isStaffRole, mayCreateGameOnGroup } from "~/server/games/access";
+import {
+  isStaffRole,
+  mayCreateGameOnGroup,
+  registrationStatusFromState,
+} from "~/server/games/access";
 import { groupHasGames } from "~/server/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "~/server/groups/helpers/group-has-non-creator-members";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
@@ -65,6 +69,107 @@ async function mayDeleteEmptyGroup(args: {
   }
 
   return true;
+}
+
+type GroupHomeGameRow = {
+  id: string;
+  name: string | null;
+  windowStart: Date | null;
+  windowEnd: Date | null;
+  pricePerPlayerCents: number | null;
+  levelMinTenths: number | null;
+  levelMaxTenths: number | null;
+  cancelledAt: Date | null;
+  createdAt: Date;
+  format: string;
+  sport: string | null;
+  groupId: string | null;
+  isPublic: boolean;
+  playersAllowed: number | null;
+  teamsAllowed: number | null;
+  registrationClosedAt: Date | null;
+  registrationMode: string;
+  venue: { name: string } | null;
+  players: {
+    userId: string | null;
+    user: { name: string; image: string | null } | null;
+  }[];
+  waitlist: { userId: string | null }[];
+  teams: { id: string }[];
+  matches: {
+    startTime: Date | null;
+    status: string | null;
+    court: { name: string } | null;
+    sets: {
+      slot1GamesWon: number | null;
+      slot2GamesWon: number | null;
+    }[];
+  }[];
+};
+
+function toGroupHomeGameCard(
+  game: GroupHomeGameRow,
+  args: { userId: string; joinFrozen: boolean; now: Date },
+) {
+  const registeredUserCount = game.players.length;
+  const registeredTeamCount = game.teams.length;
+  const registrationStatus = registrationStatusFromState(
+    game,
+    args.now,
+    registeredUserCount,
+    registeredTeamCount,
+    args.joinFrozen,
+  );
+  const isRegistered = game.players.some(
+    (player) => player.userId === args.userId,
+  );
+  const isWaitlisted = game.waitlist.some((row) => row.userId === args.userId);
+  let courtName: string | null = null;
+  for (const match of game.matches) {
+    if (match.court?.name) {
+      courtName = match.court.name;
+      break;
+    }
+  }
+  const setScores = game.matches.flatMap((match) =>
+    match.sets.flatMap((set) =>
+      set.slot1GamesWon != null && set.slot2GamesWon != null
+        ? [
+            {
+              slot1GamesWon: set.slot1GamesWon,
+              slot2GamesWon: set.slot2GamesWon,
+            },
+          ]
+        : [],
+    ),
+  );
+
+  return {
+    id: game.id,
+    name: game.name,
+    startTime: gameListTime(game),
+    windowStart: game.windowStart,
+    windowEnd: game.windowEnd,
+    pricePerPlayerCents: game.pricePerPlayerCents,
+    levelMinTenths: game.levelMinTenths,
+    levelMaxTenths: game.levelMaxTenths,
+    format: game.format,
+    cancelledAt: game.cancelledAt,
+    sport: game.sport,
+    isPublic: game.isPublic,
+    venueName: game.venue?.name ?? null,
+    courtName,
+    registeredUserCount,
+    playersAllowed: game.playersAllowed,
+    registrationStatus,
+    joinFrozen: args.joinFrozen,
+    seatedPeople: game.players.flatMap((player) =>
+      player.user ? [{ name: player.user.name, image: player.user.image }] : [],
+    ),
+    isRegistered,
+    isWaitlisted,
+    setScores: setScores.length > 0 ? setScores : null,
+  };
 }
 
 export async function groupById(
@@ -194,34 +299,62 @@ export async function groupById(
       format: true,
       sport: true,
       groupId: true,
+      isPublic: true,
+      playersAllowed: true,
+      teamsAllowed: true,
+      registrationClosedAt: true,
+      registrationMode: true,
     },
     with: {
+      venue: {
+        columns: { name: true },
+      },
+      players: {
+        columns: { userId: true },
+        with: {
+          user: {
+            columns: { name: true, image: true },
+          },
+        },
+      },
+      waitlist: {
+        columns: { userId: true },
+      },
+      teams: {
+        columns: { id: true },
+      },
       matches: {
         columns: {
           startTime: true,
           status: true,
         },
+        with: {
+          court: {
+            columns: { name: true },
+          },
+          sets: {
+            columns: {
+              slot1GamesWon: true,
+              slot2GamesWon: true,
+            },
+          },
+        },
       },
     },
   });
+
+  const joinFrozen = archive.freeze("join");
+  const cardArgs = {
+    userId: args.userId,
+    joinFrozen,
+    now,
+  };
 
   const upcomingGames = filterAndSortHomeUpcomingGames(
     groupGameRows,
     new Set([group.id]),
     now,
-  ).map((game) => ({
-    id: game.id,
-    name: game.name,
-    startTime: gameListTime(game),
-    windowStart: game.windowStart,
-    windowEnd: game.windowEnd,
-    pricePerPlayerCents: game.pricePerPlayerCents,
-    levelMinTenths: game.levelMinTenths,
-    levelMaxTenths: game.levelMaxTenths,
-    format: game.format,
-    cancelledAt: game.cancelledAt,
-    sport: game.sport,
-  }));
+  ).map((game) => toGroupHomeGameCard(game, cardArgs));
 
   const gameHistory = groupGameRows
     .filter((game) => {
@@ -232,19 +365,7 @@ export async function groupById(
     })
     .sort((a, b) => gameListTime(b).getTime() - gameListTime(a).getTime())
     .slice(0, GROUP_GAME_HISTORY_LIMIT)
-    .map((game) => ({
-      id: game.id,
-      name: game.name,
-      startTime: gameListTime(game),
-      windowStart: game.windowStart,
-      windowEnd: game.windowEnd,
-      pricePerPlayerCents: game.pricePerPlayerCents,
-      levelMinTenths: game.levelMinTenths,
-      levelMaxTenths: game.levelMaxTenths,
-      format: game.format,
-      cancelledAt: game.cancelledAt,
-      sport: game.sport,
-    }));
+    .map((game) => toGroupHomeGameCard(game, cardArgs));
 
   return {
     id: group.id,
