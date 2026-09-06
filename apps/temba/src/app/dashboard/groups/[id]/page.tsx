@@ -26,6 +26,7 @@ import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { stickyAsideClass } from "~/lib/page-layout";
 import { api } from "~/trpc/react";
@@ -127,7 +128,13 @@ export default function GroupHomePage({
   const createInviteLink = api.groups.createInviteLink.useMutation({
     onSuccess: async (result) => {
       await utils.groups.getInviteLink.invalidate({ groupId: id });
-      await navigator.clipboard.writeText(result.inviteUrl);
+      await navigator.clipboard.writeText(
+        groupInviteClipboardText({
+          groupName: group.data?.name,
+          sport: group.data?.sport,
+          inviteUrl: result.inviteUrl,
+        }),
+      );
       toast.success("Invite link copied");
     },
     onError: (error) => {
