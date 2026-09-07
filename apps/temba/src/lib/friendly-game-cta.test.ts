@@ -41,10 +41,7 @@ function overflow(
     cancelled: false,
     registrationClosed: false,
     canMintInvite: false,
-    isSeated: false,
-    isRegistered: false,
     isWaitlisted: false,
-    canLeave: false,
     ...overrides,
   };
 }
@@ -242,12 +239,12 @@ describe("friendlyGameCanMintInvite", () => {
 });
 
 describe("friendlyGameOverflowItems", () => {
-  it("lists Organizer tools including Share only when mint is allowed", () => {
+  it("lists Organizer registration/invite tools, never Edit or Cancel game", () => {
     assert.deepEqual(
       friendlyGameOverflowItems(
         overflow({ isOrganizer: true, canMintInvite: true }),
       ),
-      ["edit", "close_registration", "invite", "share", "cancel_game"],
+      ["close_registration", "invite", "share"],
     );
     assert.deepEqual(
       friendlyGameOverflowItems(
@@ -257,16 +254,13 @@ describe("friendlyGameOverflowItems", () => {
           canMintInvite: false,
         }),
       ),
-      ["edit", "reopen_registration", "cancel_game"],
+      ["reopen_registration"],
     );
   });
 
-  it("hides overflow when empty and keeps seated non-Organizer to Leave", () => {
+  it("hides overflow when empty and never lists Leave game (footer-only)", () => {
     assert.deepEqual(friendlyGameOverflowItems(overflow()), []);
-    assert.deepEqual(
-      friendlyGameOverflowItems(overflow({ isSeated: true, canLeave: true })),
-      ["leave"],
-    );
+    assert.deepEqual(friendlyGameOverflowItems(overflow()), []);
     assert.deepEqual(
       friendlyGameOverflowItems(overflow({ isWaitlisted: true })),
       ["leave_waitlist"],
@@ -278,7 +272,7 @@ describe("friendlyGameOverflowItems", () => {
       friendlyGameOverflowItems(
         overflow({ isOrganizer: true, canMintInvite: true }),
       ),
-      ["edit", "close_registration", "invite", "share", "cancel_game"],
+      ["close_registration", "invite", "share"],
     );
   });
 

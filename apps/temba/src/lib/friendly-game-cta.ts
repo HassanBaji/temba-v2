@@ -170,25 +170,27 @@ export function friendlyGameLevelUpdatedLine(
   return `${displayLabelFromStoredBand(newLevelBand)} · ${newLevel.toFixed(1)} after this game`;
 }
 
+/**
+ * Organizer overflow menu items (game-details redesign, TEM-184 note: "edit",
+ * "cancel_game", and "leave" moved out of this menu entirely and into the new
+ * bottom-of-page organiser actions footer — a destructive/editing action
+ * must never render inside an overflow menu on this screen). Only the
+ * non-destructive registration/invite tools and "leave waitlist" (a distinct
+ * action from "Leave game", untouched by this ticket) remain here.
+ */
 export type FriendlyGameOverflowItem =
-  | "edit"
   | "close_registration"
   | "reopen_registration"
   | "invite"
   | "share"
-  | "leave"
-  | "leave_waitlist"
-  | "cancel_game";
+  | "leave_waitlist";
 
 export type FriendlyGameOverflowInput = {
   isOrganizer: boolean;
   cancelled: boolean;
   registrationClosed: boolean;
   canMintInvite: boolean;
-  isSeated: boolean;
-  isRegistered: boolean;
   isWaitlisted: boolean;
-  canLeave: boolean;
 };
 
 export type FriendlyGameJoinSeat = {
@@ -221,24 +223,16 @@ export function friendlyGameOverflowItems(
   const items: FriendlyGameOverflowItem[] = [];
 
   if (game.isOrganizer && !game.cancelled) {
-    items.push("edit");
     items.push(
       game.registrationClosed ? "reopen_registration" : "close_registration",
     );
     if (game.canMintInvite) {
       items.push("invite", "share");
     }
-    items.push("cancel_game");
   }
 
   if (game.isWaitlisted) {
     items.push("leave_waitlist");
-  } else if (
-    !game.isOrganizer &&
-    (game.isSeated || game.isRegistered) &&
-    game.canLeave
-  ) {
-    items.push("leave");
   }
 
   return items;

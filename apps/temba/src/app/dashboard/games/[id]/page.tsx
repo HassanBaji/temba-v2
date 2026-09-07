@@ -15,6 +15,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
@@ -136,6 +137,8 @@ export default function GameHomePage({
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
   const [cancelMatchId, setCancelMatchId] = React.useState<string | null>(null);
   const [joinPickerOpen, setJoinPickerOpen] = React.useState(false);
+  const [markAsNotPlayedOpen, setMarkAsNotPlayedOpen] = React.useState(false);
+  const [reportWrongScoreOpen, setReportWrongScoreOpen] = React.useState(false);
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
@@ -357,6 +360,17 @@ export default function GameHomePage({
     },
   });
 
+  const reportWrongScore = api.games.reportWrongScore.useMutation({
+    onSuccess: async () => {
+      toast.success("Score reopened");
+      await refreshGame();
+      await utils.ratings.me.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const sendLookupInvite = api.games.sendLookupInvite.useMutation({
     onSuccess: async (result) => {
       setLookupRefused(result.refused);
@@ -556,12 +570,18 @@ export default function GameHomePage({
         cancelled: Boolean(data.cancelledAt),
         registrationClosed: Boolean(data.registrationClosedAt),
         canMintInvite,
-        isSeated: data.isSeated,
-        isRegistered: data.isRegistered,
         isWaitlisted: data.isWaitlisted,
-        canLeave: data.canLeave,
       })
     : [];
+  // Organiser actions footer (game-details redesign, TEM-184): a
+  // non-organizer sees "Leave game" at the very bottom of the page in every
+  // phase, mirroring the condition the overflow menu's now-removed "leave"
+  // item used to gate on (existing `leave` door/`canLeave` check, unchanged).
+  const nonOrganizerCanLeaveGame =
+    !data.isOrganizer &&
+    (data.isSeated || data.isRegistered) &&
+    data.canLeave &&
+    !data.isWaitlisted;
   const headerActions = usesFriendlyChrome ? null : (
     <>
       {canManageGameInvites ? (
@@ -598,14 +618,11 @@ export default function GameHomePage({
   const overflowHandlers = {
     closePending: closeRegistration.isPending,
     reopenPending: reopenRegistration.isPending,
-    onEdit: () => setEditOpen(true),
     onCloseRegistration: () => closeRegistration.mutate({ gameId: id }),
     onReopenRegistration: () => reopenRegistration.mutate({ gameId: id }),
     onInvite: () => setInvitesOpen(true),
     onShare: () => createInviteLink.mutate({ gameId: id }),
-    onLeave: () => setLeaveGameOpen(true),
     onLeaveWaitlist: () => setLeaveWaitlistOpen(true),
-    onCancelGame: () => setCancelGameOpen(true),
   };
   const mobileOverflow =
     usesFriendlyChrome && overflowItems.length > 0 ? (
@@ -833,14 +850,15 @@ export default function GameHomePage({
         ) : null}
 
         {usesFriendlyChrome ? (
-          // Hero + Line-up + Score + Rating impact scope (game-details
-          // redesign, TEM-179/TEM-180/TEM-181/TEM-182): the tab bar and
+          // Hero + Line-up + Score + Rating impact + organiser actions
+          // footer scope (game-details redesign,
+          // TEM-179/TEM-180/TEM-181/TEM-182/TEM-184): the tab bar and
           // Overview tab are gone for this Game format, the Players tab
           // content is replaced by the Line-up section, the Results tab
-          // content is replaced by the Score section, and the Rating
-          // impact block (Final phase only) explains why the viewer's Home
-          // level card changed — no organiser/destructive actions inside
-          // this scroll (that footer is TEM-184's scope, not built yet).
+          // content is replaced by the Score section, the Rating impact
+          // block (Final phase only) explains why the viewer's Home level
+          // card changed, and the organiser actions footer is the only place
+          // on the page a destructive/editing action renders.
           <div className="space-y-6">
             <GameLineupSection
               sides={data.sides}
@@ -881,6 +899,23 @@ export default function GameHomePage({
             ) : null}
             {data.phase === "final" && data.ratingImpact ? (
               <GameRatingImpactBlock ratingImpact={data.ratingImpact} />
+            ) : null}
+            {data.phase && data.phase !== "cancelled" && firstMatch ? (
+              <FriendlyGameActionsFooter
+                phase={data.phase}
+                isOrganizer={data.isOrganizer}
+                canLeaveGame={nonOrganizerCanLeaveGame}
+                canReportWrongScore={data.canReportWrongScore}
+                cancelGamePending={cancelGame.isPending}
+                markAsNotPlayedPending={cancelMatch.isPending}
+                reportWrongScorePending={reportWrongScore.isPending}
+                leaveGamePending={leaveGame.isPending}
+                onEditGame={() => setEditOpen(true)}
+                onCancelGame={() => setCancelGameOpen(true)}
+                onMarkAsNotPlayed={() => setMarkAsNotPlayedOpen(true)}
+                onReportWrongScore={() => setReportWrongScoreOpen(true)}
+                onLeaveGame={() => setLeaveGameOpen(true)}
+              />
             ) : null}
           </div>
         ) : (
@@ -1090,12 +1125,54 @@ export default function GameHomePage({
         open={cancelGameOpen}
         onOpenChange={setCancelGameOpen}
         title={`Cancel ${gameName}?`}
-        description="This cannot be undone."
-        confirmLabel="Cancel Game"
+        // "Cancel game" copy fix (game-details redesign, TEM-184): the
+        // individual Friendly game details page states the
+        // consequence-for-others line instead of the generic "This cannot be
+        // undone." — every other Game format is left with its existing
+        // copy, out of scope for this ticket.
+        description={
+          usesFriendlyChrome
+            ? "Removes it from the calendar for all three players"
+            : "This cannot be undone."
+        }
+        confirmLabel={usesFriendlyChrome ? "Cancel game" : "Cancel Game"}
         pending={cancelGame.isPending}
         restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
           await cancelGame.mutateAsync({ gameId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={markAsNotPlayedOpen}
+        onOpenChange={setMarkAsNotPlayedOpen}
+        title="Mark as not played?"
+        description="No result is recorded and nobody's level changes"
+        confirmLabel="Mark as not played"
+        pending={cancelMatch.isPending}
+        onConfirm={async () => {
+          if (!firstMatch) {
+            return;
+          }
+          await cancelMatch.mutateAsync({ gameId: id, matchId: firstMatch.id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={reportWrongScoreOpen}
+        onOpenChange={setReportWrongScoreOpen}
+        title="Report a wrong score?"
+        description="The other three players are asked to check it again"
+        confirmLabel="Report a wrong score"
+        pending={reportWrongScore.isPending}
+        onConfirm={async () => {
+          if (!firstMatch) {
+            return;
+          }
+          await reportWrongScore.mutateAsync({
+            gameId: id,
+            matchId: firstMatch.id,
+          });
         }}
       />
 
