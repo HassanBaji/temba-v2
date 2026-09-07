@@ -60,7 +60,8 @@ describe("formatLevelTenths", () => {
     expect(formatLevelTenths(undefined)).toBeNull();
     expect(formatLevelTenths(0)).toBe("0.0");
     expect(formatLevelTenths(42)).toBe("4.2");
-    expect(formatLevelTenths(30)).toBe("3.0");
+    expect(formatLevelTenths(34)).toBe("3.4");
+    expect(formatLevelTenths(34)).not.toMatch(/[A-D]\+?/);
   });
 });
 
@@ -133,7 +134,7 @@ describe("parseLevelBandSelectTenths", () => {
     expect(parseLevelBandSelectTenths("A", "max")).toBe(70);
   });
 
-  it("makes min C+ + max C inverted on tenths", () => {
+  it("refuses inverted display range min C+ and max C", () => {
     const minTenths = parseLevelBandSelectTenths("C+", "min");
     const maxTenths = parseLevelBandSelectTenths("C", "max");
     expect(minTenths).toBe(35);
@@ -199,6 +200,7 @@ describe("LEVEL_RANGE_FIELD_DESCRIPTION", () => {
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).not.toMatch(/one decimal/i);
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).not.toContain("0.0–7.0");
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).not.toMatch(/matchmaking/i);
+    expect(LEVEL_RANGE_FIELD_DESCRIPTION).not.toMatch(/D3|C3–A|letterNumber/i);
   });
 });
 

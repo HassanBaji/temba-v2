@@ -39,6 +39,18 @@ describe("displayLabelFromStoredBand", () => {
       RESERVED_DISPLAY_LEVEL_BAND,
     );
   });
+
+  it("lists the seven assignable picker rungs in product order", () => {
+    expect([...ASSIGNABLE_DISPLAY_LEVEL_BANDS]).toEqual([
+      "D",
+      "D+",
+      "C",
+      "C+",
+      "B",
+      "B+",
+      "A",
+    ]);
+  });
 });
 
 describe("nextDistinctDisplayRung", () => {
