@@ -24,5 +24,9 @@ describe("flattenSidesToHomeSeats", () => {
       seats.every((seat) => !("left" in seat || "right" in seat)),
       true,
     );
+    assert.equal(seats[0]?.sideLabel, "A");
+    assert.equal(seats[1]?.sideLabel, "A");
+    assert.equal(seats[2]?.sideLabel, "B");
+    assert.equal(seats[3]?.sideLabel, "B");
   });
 });

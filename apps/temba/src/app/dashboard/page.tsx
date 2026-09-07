@@ -53,7 +53,7 @@ export default function HomePage() {
 
   return (
     <DashboardShell width="content" hidePageHeader={true} hideMobileTopBar>
-      <div className="mx-auto mt-6 w-full min-w-0 max-w-[420px] space-y-[26px] lg:mt-2">
+      <div className="mx-auto mt-6 w-full min-w-0 max-w-[1000px] space-y-[26px] lg:mt-2">
         <HomeHeader
           name={displayName}
           image={image}

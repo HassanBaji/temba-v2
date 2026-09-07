@@ -18,7 +18,7 @@ type SidePair = {
   right: SideOccupant;
 };
 
-/** Flatten 2×2 (or any side pair) at the Home call site. Seat UI never sees sides. */
+/** Flatten 2×2 (or any side pair) at the Home call site. `sideLabel` lets the seat row split teams. */
 export function flattenSidesToHomeSeats(
   sides: readonly SidePair[],
 ): HomeSeatView[] {

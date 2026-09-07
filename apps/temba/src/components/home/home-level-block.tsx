@@ -17,6 +17,7 @@ import {
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import type { LevelBand, SelfDeclareChoice } from "~/lib/level-bands";
 import { api } from "~/trpc/react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
 function polyline(points: { x: number; y: number }[]) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
@@ -65,10 +66,7 @@ export function HomeLevelBlock({
         : `last ${parsed.matchCount} matches`
       : null;
   const delta = parsed?.delta ?? 0;
-  const deltaLabel =
-    delta === 0
-      ? "0.0"
-      : `${delta > 0 ? "+" : "−"}${Math.abs(delta).toFixed(1)}`;
+  const deltaLabel = delta === 0 ? "0.0" : `${Math.abs(delta).toFixed(1)}`;
   const chartLabel = provisional
     ? `Level over ${played} rated matches; not yet confirmed`
     : `Level over ${played} rated matches`;
@@ -77,26 +75,42 @@ export function HomeLevelBlock({
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <div className="flex items-stretch gap-4 p-[22px]">
+      <div className="flex items-center justify-between px-6 pt-4">
+        <p className="text-muted-foreground text-sm font-normal">Padel Level</p>
+      </div>
+      <div className="mt-4 flex items-stretch gap-4 p-[22px] pt-0">
         <p className="font-expanded text-[88px] leading-none">{band}</p>
         <div className="bg-rule w-px self-stretch" />
         <div className="flex min-w-0 flex-col justify-center gap-1">
-          <p className="text-muted-foreground text-meta">Level</p>
-          <p className="font-expanded text-[26px] tabular-nums leading-none">
-            {level}
-          </p>
-          {windowLabel ? (
-            <p className="text-meta tabular-nums">
-              <span aria-hidden="true">
-                {delta > 0 ? "↑" : delta < 0 ? "↓" : "→"}{" "}
-              </span>
-              {deltaLabel} {windowLabel}
+          <div className="flex items-center gap-2">
+            <p className="font-expanded text-2xl tabular-nums leading-none">
+              {level}{" "}
             </p>
+            <span className="text-muted-foreground mt-1 text-sm font-normal">
+              Rating
+            </span>
+          </div>
+          {windowLabel ? (
+            <div className="flex items-center gap-1">
+              {delta > 0 ? (
+                <ArrowUpRight className="size-8" />
+              ) : delta < 0 ? (
+                <ArrowDownRight className="size-6" />
+              ) : (
+                <ArrowRight className="size-6" />
+              )}
+              <div className="flex items-center gap-2">
+                <p className="font-expanded text-2xl">{deltaLabel}</p>
+                <p className="text-muted-foreground mt-1 text-sm font-normal">
+                  {windowLabel}
+                </p>
+              </div>
+            </div>
           ) : null}
         </div>
       </div>
 
-      <div className="border-rule border-t p-[22px]">
+      {/* <div className="border-rule border-t p-[22px]">
         <svg
           viewBox={`0 0 ${HOME_CHART_WIDTH} ${HOME_CHART_HEIGHT}`}
           className="h-[58px] w-full"
@@ -162,7 +176,7 @@ export function HomeLevelBlock({
             Not yet confirmed
           </p>
         ) : null}
-      </div>
+      </div> */}
 
       {atTopBand ? (
         <p className="border-rule text-meta border-t px-[22px] py-3">
@@ -192,19 +206,17 @@ export function HomeLevelBlock({
         </div>
       )}
 
-      <div className="border-rule text-meta flex items-start gap-2 border-t px-[22px] py-3">
+      <div className="border-rule text-meta flex items-center gap-2 border-t px-[22px] py-3">
         <span
           aria-hidden="true"
           className={
-            provisional
-              ? "hatch mt-0.5 size-3 shrink-0 rounded-sm"
-              : "bg-ink mt-0.5 size-3 shrink-0 rounded-sm"
+            provisional ? "hatch size-3 shrink-0" : "bg-ink size-3 shrink-0"
           }
         />
         {provisional ? (
           <p>
-            <span className="font-semibold">Provisional level.</span> Hatched
-            means unconfirmed — play about {ratedMatchesRemaining} more rated{" "}
+            <span className="font-semibold">Provisional level.</span> play about{" "}
+            {ratedMatchesRemaining} more rated{" "}
             {ratedMatchesRemaining === 1 ? "game" : "games"} and your level
             confirms.
           </p>
