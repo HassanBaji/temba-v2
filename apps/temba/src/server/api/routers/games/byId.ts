@@ -1,17 +1,21 @@
 import { TRPCError } from "@trpc/server";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  MatchStatusEnum,
   gamePlayers,
   gameTeams,
   gameWaitlist,
   groups,
   matches,
+  ratingEvents,
+  ratings,
   teamMembers,
   venues,
 } from "@repo/db";
 
+import { showsFriendlyRoster } from "~/lib/game-summary-cta";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -25,22 +29,115 @@ import {
   requireGame,
   userPassesJoinGate,
 } from "~/server/games/access";
+import {
+  homeCarouselPhase,
+  type HomeCarouselCandidate,
+  type HomeCarouselPhase,
+} from "~/server/home/carousel-games";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import { viewerLevelRangeFields } from "~/server/games/level-range-requests";
+import {
+  matchResultConfirmedUserIds,
+  matchSeatedUserIds,
+} from "~/server/games/match-result-confirmations";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
   listGameSides,
   sitsOnCompletedMatch,
+  type SeatOccupant,
 } from "~/server/games/seats";
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { setWinsForGames } from "~/server/games/set-wins-for-games";
+import {
+  bandFromLevel,
+  bandWithHysteresis,
+  formatLevel,
+  isProvisional,
+  levelFromMu,
+  ratedMatchesRemainingToConfirm,
+  type LevelBand,
+} from "~/server/ratings/level";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Individual Friendly game details phase (game-details redesign, TEM-177).
+ * `needs_results` reuses `isHomeCarouselNeedsResults`/`homeCarouselPhase`'s
+ * exact rule shape (`~/server/home/carousel-games.ts`), adapted to this
+ * Game's single Match rather than a hub list's many-Game/many-Match scan.
+ */
+export type GameDetailsPhase = HomeCarouselPhase | "final" | "cancelled";
+
+type GameDetailsPhaseGame = {
+  id: string;
+  groupId: string | null;
+  cancelledAt: Date | null;
+  windowStart: Date | null;
+  windowEnd: Date | null;
+  createdAt: Date;
+  format: string;
+  createdBy: string;
+  registrationMode: string;
+  playersAllowed: number | null;
+  teamsAllowed: number | null;
+};
+
+function individualFriendlyGamePhase(args: {
+  game: GameDetailsPhaseGame;
+  match: { status: string | null; startTime: Date | null } | undefined;
+  registeredUserCount: number;
+  registeredTeamCount: number;
+  now: Date;
+}): GameDetailsPhase {
+  const { game, match, registeredUserCount, registeredTeamCount, now } = args;
+
+  if (game.cancelledAt !== null || match?.status === MatchStatusEnum.CANCELLED) {
+    return "cancelled";
+  }
+  if (match?.status === MatchStatusEnum.COMPLETED) {
+    return "final";
+  }
+
+  const candidate: HomeCarouselCandidate = {
+    id: game.id,
+    groupId: game.groupId,
+    cancelledAt: game.cancelledAt,
+    windowStart: game.windowStart,
+    windowEnd: game.windowEnd,
+    createdAt: game.createdAt,
+    format: game.format,
+    matches: match ? [{ startTime: match.startTime, status: match.status }] : [],
+    createdBy: game.createdBy,
+    // Neither field is read by isHomeCarouselNeedsResults/homeCarouselPhase —
+    // this door computes phase for the Game's own details page, not a
+    // viewer-scoped carousel membership list.
+    viewerHasGameAdmit: false,
+    viewerIsOrganizer: false,
+    registrationMode: game.registrationMode,
+    playersAllowed: game.playersAllowed,
+    teamsAllowed: game.teamsAllowed,
+    registeredUserCount,
+    registeredTeamCount,
+  };
+
+  const phase = homeCarouselPhase(candidate, now);
+  if (phase) {
+    return phase;
+  }
+
+  // homeCarouselPhase returns null only when the Game is neither live nor
+  // needs_results (its window ended without ever reaching cap, so its one
+  // Match never had a chance to be scored). Home simply drops such a Game
+  // from the carousel; the details screen has no "drop it" option and the
+  // same "nobody has entered a result" description still applies, so it
+  // resolves to needs_results here too.
+  return "needs_results";
+}
 
 export async function gameById(
   database: DbClient,
@@ -258,6 +355,134 @@ export async function gameById(
       })
     : [];
 
+  // `sides[].left/right` per-seat Level band (TEM-177): joined from the
+  // existing `ratings` table for every seated User across every side, `null`
+  // when the seated User has no Rating yet for this Game's sport.
+  const seatedOccupantUserIds = [
+    ...new Set(
+      sides.flatMap((side) =>
+        [side.left?.userId, side.right?.userId].filter(
+          (userId): userId is string => Boolean(userId),
+        ),
+      ),
+    ),
+  ];
+  const ratingSport: "padel" | "football" =
+    game.sport === "football" ? "football" : "padel";
+  const levelBandByUserId = new Map<string, LevelBand>();
+  if (seatedOccupantUserIds.length > 0) {
+    const seatedRatingRows = await database.query.ratings.findMany({
+      where: and(
+        inArray(ratings.userId, seatedOccupantUserIds),
+        eq(ratings.sport, ratingSport),
+      ),
+      columns: { userId: true, levelBand: true },
+    });
+    for (const row of seatedRatingRows) {
+      levelBandByUserId.set(row.userId, row.levelBand);
+    }
+  }
+  const withLevelBand = (occupant: SeatOccupant | null) =>
+    occupant
+      ? {
+          ...occupant,
+          levelBand: levelBandByUserId.get(occupant.userId) ?? null,
+        }
+      : null;
+  const sidesWithLevelBand = sides.map((side) => ({
+    ...side,
+    left: withLevelBand(side.left),
+    right: withLevelBand(side.right),
+  }));
+
+  // Individual Friendly game (`showsFriendlyRoster`) additive read model
+  // (TEM-177): derived `phase`, Match result confirmation state (ADR-0011,
+  // TEM-176), and viewer-scoped rating-impact fields for the Final phase.
+  // Americano, Friendly tournament, and team_only Games get `null` for all
+  // three — this screen's redesign is scoped to individual Friendly games
+  // only (`.scratch/game-details-redesign/spec.md`).
+  const isIndividualFriendlyGame = showsFriendlyRoster(
+    game.format,
+    game.registrationMode,
+  );
+  const friendlyMatch = isIndividualFriendlyGame ? matchRows[0] : undefined;
+
+  const phase: GameDetailsPhase | null =
+    isIndividualFriendlyGame && friendlyMatch
+      ? individualFriendlyGamePhase({
+          game,
+          match: {
+            status: friendlyMatch.status,
+            startTime: friendlyMatch.startTime,
+          },
+          registeredUserCount: userCount,
+          registeredTeamCount: teamCount,
+          now,
+        })
+      : null;
+
+  let matchResultConfirmation: {
+    confirmedUserIds: string[];
+    requiredUserIds: string[];
+    viewerHasConfirmed: boolean;
+  } | null = null;
+
+  let ratingImpact: {
+    levelChange: number;
+    newLevel: number;
+    newLevelBand: LevelBand;
+    isProvisional: boolean;
+    ratedMatchesRemainingToConfirm: number | null;
+  } | null = null;
+
+  if (isIndividualFriendlyGame && friendlyMatch) {
+    const [requiredUserIds, confirmedUserIds] = await Promise.all([
+      matchSeatedUserIds(database, friendlyMatch),
+      matchResultConfirmedUserIds(database, friendlyMatch.id),
+    ]);
+    matchResultConfirmation = {
+      confirmedUserIds,
+      requiredUserIds,
+      viewerHasConfirmed: confirmedUserIds.includes(args.userId),
+    };
+
+    if (phase === "final") {
+      const viewerRatingEvent = await database.query.ratingEvents.findFirst({
+        where: and(
+          eq(ratingEvents.matchId, friendlyMatch.id),
+          eq(ratingEvents.userId, args.userId),
+        ),
+        columns: { muBefore: true, muAfter: true, phiAfter: true },
+      });
+      if (viewerRatingEvent) {
+        const beforeLevel = levelFromMu(viewerRatingEvent.muBefore);
+        const afterLevel = levelFromMu(viewerRatingEvent.muAfter);
+        const newLevel = Number(formatLevel(afterLevel));
+        const levelChange =
+          Math.round((newLevel - Number(formatLevel(beforeLevel))) * 10) / 10;
+        // ratingEvents stores only before/after μ/φ/σ, not the stored Level
+        // band that was in effect immediately before this Match — so the
+        // hysteresis anchor is the strict band for the before-Level. This
+        // matches applyRatedMatch's own bandWithHysteresis(after, before)
+        // shape without reimplementing it.
+        const newLevelBand = bandWithHysteresis(
+          afterLevel,
+          bandFromLevel(beforeLevel),
+        );
+        const viewerIsProvisional = isProvisional(viewerRatingEvent.phiAfter);
+        ratingImpact = {
+          levelChange,
+          newLevel,
+          newLevelBand,
+          isProvisional: viewerIsProvisional,
+          ratedMatchesRemainingToConfirm: viewerIsProvisional
+            ? ratedMatchesRemainingToConfirm(viewerRatingEvent.phiAfter)
+            : null,
+        };
+      }
+    }
+  }
+
   return {
     id: game.id,
     name: game.name,
@@ -385,7 +610,10 @@ export async function gameById(
           : [],
       ),
     })),
-    sides,
+    sides: sidesWithLevelBand,
+    phase,
+    matchResultConfirmation,
+    ratingImpact,
     unseatedPlayers,
     registeredPlayers: playerRows.flatMap((row) =>
       row.user

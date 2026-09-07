@@ -5,10 +5,18 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatSeatSideHeading } from "~/components/games/game-side-label";
 import { cn } from "~/lib/utils";
-import { type RouterOutputs } from "~/trpc/react";
 
-type GameSide = RouterOutputs["games"]["byId"]["sides"][number];
-type SeatOccupant = NonNullable<GameSide["left"]>;
+// Self-contained rather than derived from `RouterOutputs["games"]["byId"]`:
+// this grid also renders invite-preview sides (`~/server/games/utils`'s
+// plain `GameSide`), which don't carry `byId`'s additive per-seat fields
+// (e.g. `levelBand`, TEM-177) that this component doesn't read anyway.
+type SeatOccupant = { userId: string; name: string; image: string | null };
+type GameSide = {
+  sideIndex: number;
+  gameTeamId: string | null;
+  left: SeatOccupant | null;
+  right: SeatOccupant | null;
+};
 
 function VacantAvatar({ joinable }: { joinable: boolean }) {
   return (

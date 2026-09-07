@@ -75,6 +75,20 @@ export async function clearMatchResultConfirmationsExceptUser(
     );
 }
 
+/** The seated User ids who have confirmed a Match's entered result so far. */
+export async function matchResultConfirmedUserIds(
+  database: DbClient,
+  matchId: string,
+): Promise<string[]> {
+  const confirmations = await database.query.matchResultConfirmations.findMany(
+    {
+      where: eq(matchResultConfirmations.matchId, matchId),
+      columns: { userId: true },
+    },
+  );
+  return confirmations.map((row) => row.userId);
+}
+
 /** Whether every seated User on the Match's two Game teams has confirmed. */
 export async function matchResultFullyConfirmed(
   database: DbClient,
