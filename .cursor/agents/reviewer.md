@@ -1,4 +1,3 @@
-```md
 ---
 name: reviewer
 description: Independently reviews completed implementations against their specification, tickets, codebase standards, architecture, regression risks, and tests. Use after implementation is complete and before merging significant changes.
@@ -276,4 +275,3 @@ Implementation is fundamentally correct, with non-blocking improvements recommen
 One or more Critical or Major findings should be resolved before merge.
 
 Then provide a short rationale for the verdict.
-```

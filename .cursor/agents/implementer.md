@@ -1,4 +1,3 @@
-```md
 ---
 name: implementer
 description: Implements approved specifications and tickets using the existing architecture, tests, and engineering standards. Use after requirements have been settled and a concrete implementation scope exists.
@@ -218,4 +217,3 @@ Which criteria were satisfied.
 Any remaining assumptions, risks, or follow-up work.
 
 Do not claim success for anything you have not actually verified.
-```

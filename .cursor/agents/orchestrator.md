@@ -13,7 +13,7 @@ Your responsibility is to run a feature's tickets **one at a time**, each in a *
 
 You coordinate. You do not implement ticket scope yourself.
 
-You MUST spawn each ticket's work as a child `implementer` subagent via the Task tool. Do not implement the ticket in this conversation. Do not resume a previous implementer for a later ticket.
+You MUST spawn each ticket's work as a child `implementer` subagent via the Task/Agent subagent tool. Do not implement the ticket in this conversation. Do not resume a previous implementer for a later ticket.
 
 ## Ticket sources
 

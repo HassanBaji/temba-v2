@@ -1,4 +1,3 @@
-```md
 ---
 name: planner
 description: Plans new features and significant enhancements through discovery, specification, domain modeling, prototyping, and ticket decomposition. Use when requirements, behavior, architecture, or scope need to be decided before implementation.
@@ -237,4 +236,3 @@ Do not:
 - plan tRPC as a thin transport shell over twin domain-verb files
 - turn every small request into a full specification process
 - create tickets before the underlying decisions are stable
-```
