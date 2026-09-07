@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { HomeHeader } from "~/components/home/home-header";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { createHomeFixtures, type HomeFixture } from "~/fixtures/home";
@@ -60,16 +61,12 @@ function HomeColumn({
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[26px]">
       <h2 className="text-title font-semibold">{title}</h2>
-      <BlockScaffold label="Header">
-        <p className="text-lead font-semibold">{fixture.userName}</p>
-        <p className="text-muted-foreground text-meta">
-          {fixture.pendingInviteCount > 0
-            ? `${fixture.pendingInviteCount} invites waiting`
-            : fixture.bookedGameCount > 0
-              ? `${fixture.bookedGameCount} games booked`
-              : "No state line"}
-        </p>
-      </BlockScaffold>
+      <HomeHeader
+        name={fixture.userName}
+        pendingInviteCount={fixture.pendingInviteCount}
+        bookedGameCount={fixture.bookedGameCount}
+        ready
+      />
       {nextGame ? (
         <div className="bg-ink text-paper rounded-xl p-[22px]">
           <p className="text-dim text-meta mb-2">Next game</p>

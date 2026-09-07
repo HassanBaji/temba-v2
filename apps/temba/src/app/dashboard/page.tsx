@@ -1,34 +1,21 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { BellIcon } from "lucide-react";
-import Link from "next/link";
 
 import { ErrorState } from "~/components/common/error-state";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { UpcomingGamesCarousel } from "~/components/games/upcoming-games-carousel";
+import { HomeHeader } from "~/components/home/home-header";
 import { HomeRatingCard } from "~/components/home/home-rating-card";
 import { HomeRecentFormCard } from "~/components/home/home-recent-form-card";
 import { HomeStatsCard } from "~/components/home/home-stats-card";
 import { Section } from "~/components/layout/section";
-import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
-import TembaTextLogo from "~/components/ui/icons/temba-text-logo";
 import { Skeleton } from "~/components/ui/skeleton";
-import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { api } from "~/trpc/react";
-
-function inviteWaitingCopy(count: number) {
-  return count === 1
-    ? "You have 1 invite waiting"
-    : `You have ${count} invites waiting`;
-}
 
 function HomeSkeleton() {
   return (
     <div aria-busy="true" className="space-y-6">
-      <Skeleton className="h-16 w-full" />
       <Skeleton className="h-56 w-full rounded-[1.75rem]" />
       <Skeleton className="h-36 w-full rounded-[1.75rem]" />
       <Skeleton className="h-28 w-full rounded-xl" />
@@ -44,56 +31,25 @@ function HomeSkeleton() {
 export default function HomePage() {
   const { user } = useUser();
   const home = api.users.home.useQuery();
-  const invites = usePendingInviteCount();
 
-  const firstName = user?.firstName;
   const displayName =
     user?.fullName ?? user?.firstName ?? user?.username ?? "You";
   const image = user?.imageUrl;
 
   const heroGames = home.data?.carouselGames ?? [];
-
-  const todayDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const bookedGameCount = heroGames.length;
+  const pendingInviteCount = home.data?.pendingInviteCount ?? 0;
 
   return (
-    <DashboardShell
-      width="content"
-      hidePageHeader={true}
-      hideMobileTopBar
-      // icon={<TembaTextLogo className="mt-2 h-6 w-auto" />}
-    >
-      <div className="mt-6 min-w-0 space-y-2 lg:mt-2">
-        <div className="flex items-center justify-between">
-          {user ? (
-            <div className="flex min-w-0 items-center gap-3">
-              <UserAvatar
-                name={displayName}
-                image={image}
-                className="size-10"
-              />
-              <div className="flex flex-col">
-                <p className="text-muted-foreground lg:text-meta text-xs">
-                  {todayDate}
-                </p>
-                <p className="lg:text-h2 min-w-0 truncate text-xl font-semibold tracking-[-0.02em] lg:font-semibold">
-                  Hi, {firstName ?? displayName}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-          )}
-          <Button variant="ghost" size="icon">
-            <BellIcon className="size-6" />
-          </Button>
-        </div>
+    <DashboardShell width="content" hidePageHeader={true} hideMobileTopBar>
+      <div className="mt-6 min-w-0 space-y-6 lg:mt-2">
+        <HomeHeader
+          name={displayName}
+          image={image}
+          pendingInviteCount={pendingInviteCount}
+          bookedGameCount={bookedGameCount}
+          ready={home.data != null}
+        />
 
         {home.isLoading ? <HomeSkeleton /> : null}
 
@@ -108,73 +64,51 @@ export default function HomePage() {
         ) : null}
 
         {home.data ? (
-          <div className="min-w-0 lg:space-y-6">
-            <div className="grid min-w-0 gap-2 lg:gap-8">
-              <div className="min-w-0 space-y-6">
-                {heroGames.length > 0 ? (
-                  <Section title="Next games" className="mt-4 min-w-0">
-                    <UpcomingGamesCarousel
-                      games={heroGames.map((game) => {
-                        const addResults =
-                          game.phase === "needs_results" && game.canAddResults;
-                        return {
-                          id: game.id,
-                          startTime: game.startTime,
-                          sport: game.sport,
-                          format: game.format,
-                          venueName: game.venue?.name ?? null,
-                          registeredUserCount: game.registeredUserCount,
-                          playersAllowed: game.playersAllowed,
-                          sides: game.sides,
-                          levelMinTenths: game.levelMinTenths,
-                          levelMaxTenths: game.levelMaxTenths,
-                          href: addResults
-                            ? `/dashboard/games/${game.id}?tab=results`
-                            : `/dashboard/games/${game.id}`,
-                          actionLabel: addResults
-                            ? "Add results"
-                            : "View game details",
-                          endTime: game.windowEnd ?? game.startTime,
-                        };
-                      })}
-                    />
-                  </Section>
-                ) : null}
+          <div className="min-w-0 space-y-6 lg:space-y-6">
+            {heroGames.length > 0 ? (
+              <Section title="Next games" className="min-w-0">
+                <UpcomingGamesCarousel
+                  games={heroGames.map((game) => {
+                    const addResults =
+                      game.phase === "needs_results" && game.canAddResults;
+                    return {
+                      id: game.id,
+                      startTime: game.startTime,
+                      sport: game.sport,
+                      format: game.format,
+                      venueName: game.venue?.name ?? null,
+                      registeredUserCount: game.registeredUserCount,
+                      playersAllowed: game.playersAllowed,
+                      sides: game.sides,
+                      levelMinTenths: game.levelMinTenths,
+                      levelMaxTenths: game.levelMaxTenths,
+                      href: addResults
+                        ? `/dashboard/games/${game.id}?tab=results`
+                        : `/dashboard/games/${game.id}`,
+                      actionLabel: addResults
+                        ? "Add results"
+                        : "View game details",
+                      endTime: game.windowEnd ?? game.startTime,
+                    };
+                  })}
+                />
+              </Section>
+            ) : null}
 
-                <Section title="Your level" className="min-w-0">
-                  <HomeRatingCard className="mt-2" />
-                </Section>
+            <Section title="Your level" className="min-w-0">
+              <HomeRatingCard className="mt-2" />
+            </Section>
 
-                <Section title="Your recent form" className="min-w-0">
-                  <HomeRecentFormCard />
-                </Section>
+            <Section title="Your recent form" className="min-w-0">
+              <HomeRecentFormCard />
+            </Section>
 
-                <Section title="Your overall stats" className="min-w-0">
-                  <HomeStatsCard
-                    gamesPlayed={home.data.gamesPlayed}
-                    gamesWon={home.data.gamesWon}
-                  />
-                </Section>
-              </div>
-
-              <div className="space-y-6">
-                {invites.showCount ? (
-                  <Card variant="outlined" className="p-0">
-                    <Link
-                      href="/dashboard/invites"
-                      className="focus-visible:ring-ring/50 flex min-h-11 items-center justify-between gap-3 p-4 outline-none focus-visible:ring-[3px]"
-                    >
-                      <p className="text-lead font-semibold">
-                        {inviteWaitingCopy(invites.count)}
-                      </p>
-                      <span className="text-body text-foreground font-semibold">
-                        Review
-                      </span>
-                    </Link>
-                  </Card>
-                ) : null}
-              </div>
-            </div>
+            <Section title="Your overall stats" className="min-w-0">
+              <HomeStatsCard
+                gamesPlayed={home.data.gamesPlayed}
+                gamesWon={home.data.gamesWon}
+              />
+            </Section>
           </div>
         ) : null}
       </div>

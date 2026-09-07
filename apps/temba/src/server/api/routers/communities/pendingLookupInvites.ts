@@ -5,8 +5,9 @@ import { communityMemberInvites } from "@repo/db";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db;
+type DbClient = typeof db | TestDatabase;
 
 export async function pendingLookupInvites(
   database: DbClient,

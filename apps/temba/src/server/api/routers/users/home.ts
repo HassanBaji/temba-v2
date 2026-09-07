@@ -9,6 +9,9 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import { pendingLookupInvites as pendingCommunityInvites } from "~/server/api/routers/communities/pendingLookupInvites";
+import { pendingLookupInvites as pendingGroupInvites } from "~/server/api/routers/groups/pendingLookupInvites";
+import { pendingInvites as pendingTeamInvites } from "~/server/api/routers/teams/pendingInvites";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -128,10 +131,19 @@ function homeMatchStatsFromCompletedMatches(
 export async function loadHome(database: DbClient, args: { userId: string }) {
   const now = new Date();
 
-  const communityMemberships = await database.query.communityMembers.findMany({
-    where: eq(communityMembers.userId, args.userId),
-    columns: { id: true },
-  });
+  const [communityMemberships, communityInvites, groupInvites, teamInvites] =
+    await Promise.all([
+      database.query.communityMembers.findMany({
+        where: eq(communityMembers.userId, args.userId),
+        columns: { id: true },
+      }),
+      pendingCommunityInvites(database, { userId: args.userId }),
+      pendingGroupInvites(database, { userId: args.userId }),
+      pendingTeamInvites(database, { userId: args.userId }),
+    ]);
+
+  const pendingInviteCount =
+    communityInvites.length + groupInvites.length + teamInvites.length;
 
   const myGroupMemberships = await database.query.groupMembers.findMany({
     where: eq(groupMembers.userId, args.userId),
@@ -252,6 +264,7 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
     gamesPlayed: stats.gamesPlayed,
     gamesWon: stats.gamesWon,
     setsWon: stats.setsWon,
+    pendingInviteCount,
     communitiesCount: communityMemberships.length,
     groupsCount: myGroupMemberships.length,
     carouselGames,

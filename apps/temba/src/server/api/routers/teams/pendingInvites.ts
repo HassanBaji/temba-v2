@@ -5,9 +5,10 @@ import { teamMemberInvites, type GroupSportEnum } from "@repo/db";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import type { TestDatabase } from "~/server/test/pglite";
 import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 
-type DbClient = typeof db;
+type DbClient = typeof db | TestDatabase;
 
 export async function pendingInvites(
   database: DbClient,
