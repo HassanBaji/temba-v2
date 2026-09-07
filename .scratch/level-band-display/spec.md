@@ -2,6 +2,8 @@
 
 Status: ready-for-agent
 
+Tickets (Linear, `ready-for-agent`): [TEM-173](https://linear.app/temba-app/issue/TEM-173/display-map-module-and-level-band-tests) Display-map module and Level band tests → [TEM-174](https://linear.app/temba-app/issue/TEM-174/you-home-and-self-declare-show-ddc-labels) You, Home, and self-declare show D/D+/C labels and [TEM-175](https://linear.app/temba-app/issue/TEM-175/game-level-range-pickers-and-band-letter-faces) Game Level range pickers and band-letter faces (both blocked by TEM-173).
+
 Related: [user-ratings](../user-ratings/spec.md), [game-level-range](../game-level-range/spec.md), [home-level-redesign](../home-level-redesign/spec.md), [ADR-0009](../../docs/adr/0009-glicko-2-user-ratings.md).
 
 ## Problem Statement
