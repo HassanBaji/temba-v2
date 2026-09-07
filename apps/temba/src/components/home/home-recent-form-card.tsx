@@ -132,7 +132,7 @@ export function HomeRecentFormCard({ className }: { className?: string }) {
 
   if (history.isLoading) {
     return (
-      <div className={cn("mt-4 min-w-0", className)}>
+      <div className={cn("mt-2 min-w-0", className)}>
         <HomeRecentFormSkeleton />
       </div>
     );
@@ -163,7 +163,7 @@ export function HomeRecentFormCard({ className }: { className?: string }) {
     .join(", ");
 
   return (
-    <div className={cn("mt-4 min-w-0", className)}>
+    <div className={cn("mt-2 min-w-0", className)}>
       <Card data-slot="home-recent-form-card" className="w-full">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

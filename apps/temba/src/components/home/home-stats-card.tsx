@@ -50,7 +50,7 @@ export function HomeStatsCard({
   const summary = formSummary(gamesPlayed, gamesWon, winRate);
 
   return (
-    <Card className={cn("mt-4 w-full overflow-hidden", className)}>
+    <Card className={cn("mt-2 w-full overflow-hidden", className)}>
       <div className="flex min-w-0 items-center gap-3">
         <span
           aria-hidden="true"

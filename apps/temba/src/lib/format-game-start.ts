@@ -17,6 +17,15 @@ export function formatGameClock(startTime: Date | string) {
   });
 }
 
+export function formatDurationInMinutes(
+  startTime: Date,
+  endTime: Date,
+): string {
+  const duration = endTime.getTime() - startTime.getTime();
+  const minutes = Math.floor(duration / (1000 * 60)).toString();
+  return `${minutes}m`;
+}
+
 export function formatGameTimeWindow(
   windowStart: Date | string | null | undefined,
   windowEnd: Date | string | null | undefined,

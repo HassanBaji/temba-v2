@@ -7,7 +7,11 @@ import { AvatarStack } from "~/components/common/avatar-stack";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { SPORT_LABELS, type SportValue } from "~/components/temba/sport-badge";
 import { Button } from "~/components/ui/button";
-import { formatGameClock, formatRelativeDay } from "~/lib/format-game-start";
+import {
+  formatDurationInMinutes,
+  formatGameClock,
+  formatRelativeDay,
+} from "~/lib/format-game-start";
 import { formatLevelRangeLabel } from "~/lib/level-range";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
@@ -66,6 +70,7 @@ export function UpcomingGameHeroCard({
   levelMaxTenths,
   actionLabel = "View game details",
   className,
+  endTime,
 }: {
   href: string;
   startTime: Date | string;
@@ -79,6 +84,7 @@ export function UpcomingGameHeroCard({
   levelMaxTenths?: number | null;
   actionLabel?: string;
   className?: string;
+  endTime: Date | string;
 }) {
   const sportLabel = sportEyebrow(sport);
   const formatLabel = formatEyebrow(format);
@@ -88,6 +94,10 @@ export function UpcomingGameHeroCard({
       ? `${registeredUserCount}/${playersAllowed}`
       : `${registeredUserCount}`;
   const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
+  const durationLabel = formatDurationInMinutes(
+    new Date(startTime),
+    new Date(endTime),
+  );
 
   return (
     <article
@@ -124,14 +134,11 @@ export function UpcomingGameHeroCard({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <p className="text-[1.5rem] font-bold leading-tight tracking-[-0.03em] sm:text-[1.75rem]">
-            <span className="break-words">
-              {formatRelativeDay(startTime, { sameDayLabel: "Today" })}
-            </span>
-            <span className="mx-1.5 text-white/45">·</span>
-            <span className="whitespace-nowrap">
-              {formatGameClock(startTime)}
-            </span>
+          <p className="text-4xl font-bold leading-tight tracking-[-0.03em]">
+            {formatGameClock(startTime)}
+          </p>
+          <p className="leading-tight text-white/75">
+            {formatRelativeDay(startTime)} • {durationLabel}
           </p>
           {venueName ? (
             <p className="flex min-w-0 items-start gap-1.5 text-sm text-white/75">

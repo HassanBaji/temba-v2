@@ -63,11 +63,7 @@ export function AppRail() {
                         href={item.href}
                         aria-current={active ? "page" : undefined}
                       >
-                        <Icon
-                          aria-hidden="true"
-                          className="size-5"
-                          strokeWidth={2}
-                        />
+                        {Icon}
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>

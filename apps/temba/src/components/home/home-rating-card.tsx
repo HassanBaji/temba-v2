@@ -281,12 +281,12 @@ function RatedLevelCard({
       ) : null}
 
       <BandProgress progressPercent={progressPercent} nextBand={nextBand} />
-
+      {/* 
       {provisional ? (
-        <span className="bg-warning/10 rounded-4xl text-warning mt-4 w-full p-2 text-xs font-medium">
+        <span className="bg-warning/10 rounded-4xl text-warning mt-4 w-full p-2 px-4 text-center text-xs font-medium">
           {provisionalNoteCopy(ratedMatchesRemaining)}
         </span>
-      ) : null}
+      ) : null} */}
     </Card>
   );
 }

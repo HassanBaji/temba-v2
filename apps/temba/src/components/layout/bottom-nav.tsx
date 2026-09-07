@@ -41,15 +41,10 @@ export function BottomNav() {
             {active ? (
               <span
                 aria-hidden="true"
-                className="bg-foreground absolute inset-x-0 top-0 h-0.5"
+                className="absolute inset-x-0 top-0 h-0.5"
               />
             ) : null}
-            <Icon
-              aria-hidden="true"
-              className="size-6"
-              strokeWidth={2}
-              fill={active ? "currentColor" : "none"}
-            />
+            {Icon}
             <span>{item.title}</span>
           </Link>
         );

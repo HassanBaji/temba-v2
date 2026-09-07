@@ -53,6 +53,12 @@ export default function HomePage() {
 
   const heroGames = home.data?.carouselGames ?? [];
 
+  const todayDate = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
   return (
     <DashboardShell
       width="content"
@@ -64,10 +70,19 @@ export default function HomePage() {
         <div className="flex items-center justify-between">
           {user ? (
             <div className="flex min-w-0 items-center gap-3">
-              <UserAvatar name={displayName} image={image} size="lg" />
-              <p className="lg:text-h2 min-w-0 truncate text-xl font-semibold tracking-[-0.02em] lg:font-semibold">
-                Hi, {firstName ?? displayName} 👋
-              </p>
+              <UserAvatar
+                name={displayName}
+                image={image}
+                className="size-10"
+              />
+              <div className="flex flex-col">
+                <p className="text-muted-foreground lg:text-meta text-xs">
+                  {todayDate}
+                </p>
+                <p className="lg:text-h2 min-w-0 truncate text-xl font-semibold tracking-[-0.02em] lg:font-semibold">
+                  Hi, {firstName ?? displayName}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -119,6 +134,7 @@ export default function HomePage() {
                           actionLabel: addResults
                             ? "Add results"
                             : "View game details",
+                          endTime: game.windowEnd ?? game.startTime,
                         };
                       })}
                     />
@@ -126,7 +142,7 @@ export default function HomePage() {
                 ) : null}
 
                 <Section title="Your level" className="min-w-0">
-                  <HomeRatingCard className="mt-4" />
+                  <HomeRatingCard className="mt-2" />
                 </Section>
 
                 <Section title="Your recent form" className="min-w-0">

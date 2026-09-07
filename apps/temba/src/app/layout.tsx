@@ -3,22 +3,18 @@ import "~/styles/globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import { type Metadata } from "next";
-import { Geist } from "next/font/google";
 
 import { ThemeProvider } from "~/components/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
+
+import { mono, sans } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Temba - the future of competitive sports",
   description: "Temba - the future of competitive sport",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
 
 const clerkAppearance = {
   theme: shadcn,
@@ -40,7 +36,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={geist.variable} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${sans.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"

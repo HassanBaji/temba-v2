@@ -168,6 +168,10 @@ _Avoid_: Game (the parent event), session, fixture (when you mean a Match; not a
 A scored unit inside a Match, added after play. A Match may have any number of Sets. A Set may be drawn (equal games).
 _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temba term)
 
+**Match result**:
+A completed Match's outcome for one User: won, lost, or draw. A draw is equal Set wins on both sides; Glicko-2 scores it 0.5. A draw is played, not won, so Played never equals Won plus Lost.
+_Avoid_: score (Sets carry the score), win rate (that is a derived percentage), outcome (when you mean this entity)
+
 **Americano**:
 A Game format with individual-only registration and rotating partners across multiple Matches. Matches are generated after registration.
 _Avoid_: Friendly tournament, Friendly game, tournament, team-only (illegal on this format)
@@ -215,6 +219,10 @@ _Avoid_: player (when you mean User), member (when you mean the Community role)
 **Home**:
 The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
+
+**Standing**:
+A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
+_Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank
 
 **Rating**:
 A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.
