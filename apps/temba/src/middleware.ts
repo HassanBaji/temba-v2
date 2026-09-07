@@ -4,11 +4,18 @@ import { NextResponse } from "next/server";
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isDesignPreview = createRouteMatcher(["/dashboard/design(.*)"]);
 const isAuthRoute = createRouteMatcher(["/login(.*)", "/signup(.*)"]);
 const isWebhookRoute = createRouteMatcher(["/api/webhooks(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isWebhookRoute(req)) {
+    return NextResponse.next();
+  }
+
+  // Fixture-fed Home preview is development-only (page 404s in production).
+  // Skip auth so the hatch device can be checked without a seeded User.
+  if (process.env.NODE_ENV === "development" && isDesignPreview(req)) {
     return NextResponse.next();
   }
 

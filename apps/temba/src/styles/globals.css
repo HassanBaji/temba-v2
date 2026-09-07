@@ -50,10 +50,12 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans:
+    var(--font-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono:
+    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -102,7 +104,7 @@
 
 :root {
   --radius: 0.75rem;
-  --background: #ffffff;
+  --background: #f4f4f4;
   --foreground: oklch(0.145 0 0);
   --surface-raised: #fafaf8;
   --card: #ffffff;
@@ -207,7 +209,9 @@
 @utility font-expanded {
   font-weight: 700;
   letter-spacing: -0.03em;
-  font-variation-settings: "wdth" 115, "wght" 700;
+  font-variation-settings:
+    "wdth" 115,
+    "wght" 700;
 }
 
 /* Light hatch: `hatch`. Black-surface variant: `hatch hatch-on-ink`. */
