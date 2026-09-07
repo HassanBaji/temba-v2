@@ -8,7 +8,7 @@ import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
 import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
 import { HomeLevel } from "~/components/home/home-level-block";
-import { HomeRecentFormCard } from "~/components/home/home-recent-form-card";
+import { HomeRecentForm } from "~/components/home/home-recent-form-row";
 import { HomeStatsCard } from "~/components/home/home-stats-card";
 import { Section } from "~/components/layout/section";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
@@ -98,9 +98,7 @@ export default function HomePage() {
               }))}
             />
             <HomeLevel />
-            <Section title="Your recent form" className="min-w-0">
-              <HomeRecentFormCard />
-            </Section>
+            <HomeRecentForm />
             <Section title="Your overall stats" className="min-w-0">
               <HomeStatsCard
                 gamesPlayed={home.data.gamesPlayed}

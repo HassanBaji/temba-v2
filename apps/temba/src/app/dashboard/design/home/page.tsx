@@ -7,6 +7,8 @@ import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
 import { HomeLevelBlock } from "~/components/home/home-level-block";
 import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
+import { deriveRecentForm } from "~/components/home/home-recent-form";
+import { HomeRecentFormBlock } from "~/components/home/home-recent-form-row";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { createHomeFixtures, type HomeFixture } from "~/fixtures/home";
@@ -110,13 +112,14 @@ function HomeColumn({
           </p>
         </div>
       )}
-      <BlockScaffold label="Recent form">
-        <p className="text-meta">
-          {fixture.recentForm.length === 0
-            ? "Ten unplayed slots"
-            : fixture.recentForm.join(" · ")}
-        </p>
-      </BlockScaffold>
+      <HomeRecentFormBlock
+        form={deriveRecentForm(
+          fixture.recentForm.map((outcome) => ({
+            outcome,
+            scoredSets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
+          })),
+        )}
+      />
       <BlockScaffold label="All time">
         <p className="text-meta">
           Played {fixture.gamesPlayed} · Won {fixture.gamesWon} · Lost{" "}
