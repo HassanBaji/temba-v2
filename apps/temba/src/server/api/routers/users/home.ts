@@ -9,6 +9,9 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import { pendingLookupInvites as pendingCommunityInvites } from "~/server/api/routers/communities/pendingLookupInvites";
+import { pendingLookupInvites as pendingGroupInvites } from "~/server/api/routers/groups/pendingLookupInvites";
+import { pendingInvites as pendingTeamInvites } from "~/server/api/routers/teams/pendingInvites";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -23,10 +26,10 @@ import type { TestDatabase } from "~/server/test/pglite";
 type DbClient = typeof db | TestDatabase;
 
 /**
- * Home strip labels use "Games played / Games won / Sets won" (user-facing).
- * Counts are completed Matches the User sat on via a Game team slot; Sets won
- * are Set-wins on those Matches. Cancelled Games do not count. Draws are
- * played, not won.
+ * Home all-time figures use "Played / Won / Lost" (user-facing). Counts are
+ * completed Matches the User sat on via a Game team slot. Cancelled Games do
+ * not count. Drawn Matches are played but neither won nor lost, so the three
+ * figures do not sum. Sets won remain on the payload for existing callers.
  */
 type MatchSetScore = {
   slot1GamesWon: number | null;
@@ -41,12 +44,14 @@ type CompletedMatchForStats = {
 type HomeMatchStats = {
   gamesPlayed: number;
   gamesWon: number;
+  gamesLost: number;
   setsWon: number;
 };
 
 const EMPTY_HOME_MATCH_STATS: HomeMatchStats = {
   gamesPlayed: 0,
   gamesWon: 0,
+  gamesLost: 0,
   setsWon: 0,
 };
 
@@ -67,28 +72,38 @@ function userSlotOnMatch(
   return onSlot1 ? 1 : 2;
 }
 
-function summarizeCompletedMatchStats(
+export function summarizeCompletedMatchStats(
   matches: readonly CompletedMatchForStats[],
 ): HomeMatchStats {
   let gamesWon = 0;
+  let gamesLost = 0;
   let setsWon = 0;
   for (const match of matches) {
     const outcome = matchOutcome(match.sets);
+    const won =
+      match.userSlot === 1
+        ? outcome.result === "slot1"
+        : outcome.result === "slot2";
+    const lost =
+      match.userSlot === 1
+        ? outcome.result === "slot2"
+        : outcome.result === "slot1";
     if (match.userSlot === 1) {
       setsWon += outcome.slot1SetWins;
-      if (outcome.result === "slot1") {
-        gamesWon += 1;
-      }
     } else {
       setsWon += outcome.slot2SetWins;
-      if (outcome.result === "slot2") {
-        gamesWon += 1;
-      }
+    }
+    if (won) {
+      gamesWon += 1;
+    }
+    if (lost) {
+      gamesLost += 1;
     }
   }
   return {
     gamesPlayed: matches.length,
     gamesWon,
+    gamesLost,
     setsWon,
   };
 }
@@ -118,20 +133,29 @@ function homeMatchStatsFromCompletedMatches(
 
 /**
  * Home metrics, carousel Games, and per-Group standing for the signed-in User.
- * Stats (Games played / Games won / Sets won) are completed Matches the User
- * sat on, including zeros when they have not played. The Home carousel is a
- * dedicated live-Game list (Game admit or Organizer), not the My Games hub
- * filter. Soft-archived Club Group Games still appear when live if the viewer
- * qualifies. Standing position is among that Group's members only — not a
- * global rank.
+ * Stats (Played / Won / Lost) are completed Matches the User sat on, including
+ * zeros when they have not played. Drawn Matches count as played only. The
+ * Home carousel is a dedicated live-Game list (Game admit or Organizer), not
+ * the My Games hub filter. Soft-archived Club Group Games still appear when
+ * live if the viewer qualifies. Standing position is among that Group's
+ * members only — not a global rank, and not a heading on the Level surface.
  */
 export async function loadHome(database: DbClient, args: { userId: string }) {
   const now = new Date();
 
-  const communityMemberships = await database.query.communityMembers.findMany({
-    where: eq(communityMembers.userId, args.userId),
-    columns: { id: true },
-  });
+  const [communityMemberships, communityInvites, groupInvites, teamInvites] =
+    await Promise.all([
+      database.query.communityMembers.findMany({
+        where: eq(communityMembers.userId, args.userId),
+        columns: { id: true },
+      }),
+      pendingCommunityInvites(database, { userId: args.userId }),
+      pendingGroupInvites(database, { userId: args.userId }),
+      pendingTeamInvites(database, { userId: args.userId }),
+    ]);
+
+  const pendingInviteCount =
+    communityInvites.length + groupInvites.length + teamInvites.length;
 
   const myGroupMemberships = await database.query.groupMembers.findMany({
     where: eq(groupMembers.userId, args.userId),
@@ -251,7 +275,9 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
   return {
     gamesPlayed: stats.gamesPlayed,
     gamesWon: stats.gamesWon,
+    gamesLost: stats.gamesLost,
     setsWon: stats.setsWon,
+    pendingInviteCount,
     communitiesCount: communityMemberships.length,
     groupsCount: myGroupMemberships.length,
     carouselGames,

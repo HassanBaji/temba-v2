@@ -3,6 +3,9 @@ import { describe, it } from "vitest";
 
 import {
   deriveRecentForm,
+  recentFormRecord,
+  recentFormStatus,
+  recentFormWinRateCopy,
   type RecentFormHistoryRow,
 } from "./home-recent-form";
 
@@ -28,20 +31,22 @@ function losses(count: number): RecentFormHistoryRow[] {
 }
 
 describe("deriveRecentForm", () => {
-  it("hides the card when History is empty", () => {
-    assert.equal(deriveRecentForm([]), null);
+  it("renders ten empty slots when History is empty", () => {
+    const form = deriveRecentForm([]);
+    assert.equal(form.bars.length, 10);
+    assert.ok(form.bars.every((bar) => bar.kind === "empty"));
+    assert.equal(recentFormRecord(form), "0–0");
+    assert.equal(recentFormStatus(form), "Ten slots left to fill");
   });
 
-  it("pads 1–9 played games to 10 bars with empty slots on the right", () => {
+  it("puts the most recent result on the left and pads empty slots to the right", () => {
     const form = deriveRecentForm([row("won"), row("lost"), row("draw")]);
-    assert.ok(form);
-    assert.equal(form.bars.length, 10);
     assert.deepEqual(
       form.bars.map((bar) => (bar.kind === "played" ? bar.label : "empty")),
       [
-        "D",
-        "L",
         "W",
+        "L",
+        "D",
         "empty",
         "empty",
         "empty",
@@ -56,64 +61,44 @@ describe("deriveRecentForm", () => {
   it("uses the most recent 10 as bars when History is longer", () => {
     const rows = [row("won"), ...losses(9), row("draw")];
     const form = deriveRecentForm(rows);
-    assert.ok(form);
-    assert.equal(form.bars.length, 10);
     assert.ok(form.bars.every((bar) => bar.kind === "played"));
     assert.deepEqual(
       form.bars.map((bar) => (bar.kind === "played" ? bar.label : "empty")),
-      ["L", "L", "L", "L", "L", "L", "L", "L", "L", "W"],
+      ["W", "L", "L", "L", "L", "L", "L", "L", "L", "L"],
     );
   });
 
-  it("hides trend when History has fewer than 20 Games", () => {
-    const form = deriveRecentForm([...wins(7), ...losses(8)]);
-    assert.ok(form);
-    assert.equal(form.trendPoints, null);
+  it("includes draws in the record only when a draw exists", () => {
+    const withDraw = deriveRecentForm([row("won"), row("lost"), row("draw")]);
+    assert.equal(recentFormRecord(withDraw), "1–1–1");
+    const without = deriveRecentForm([row("won"), row("lost")]);
+    assert.equal(recentFormRecord(without), "1–1");
   });
 
-  it("compares win rate to the previous 10 when n ≥ 20", () => {
-    const form = deriveRecentForm([
-      ...wins(7),
-      ...losses(3),
-      ...wins(5),
-      ...losses(5),
-    ]);
-    assert.ok(form);
-    assert.equal(form.winRatePercent, 70);
-    assert.equal(form.trendPoints, 20);
+  it("invites the User to fill slots until the row is full", () => {
+    const form = deriveRecentForm([row("won")]);
+    assert.equal(recentFormStatus(form), "Nine slots left to fill");
   });
 
-  it("maps outcomes and Set games-won differential / 18 to fill", () => {
-    const form = deriveRecentForm([
-      row("won", [
-        [6, 0],
-        [6, 0],
-      ]),
-      row("lost", [
-        [0, 6],
-        [0, 6],
-        [0, 6],
-      ]),
-      row("draw", [
-        [6, 6],
-        [6, 6],
-      ]),
-    ]);
-    assert.ok(form);
-    assert.deepEqual(
-      form.bars
-        .filter((bar) => bar.kind === "played")
-        .map((bar) => ({
-          label: bar.label,
-          outcome: bar.outcome,
-          fillRatio: bar.fillRatio,
-        })),
-      [
-        { label: "D", outcome: "draw", fillRatio: 0 },
-        { label: "L", outcome: "lost", fillRatio: 1 },
-        { label: "W", outcome: "won", fillRatio: 12 / 18 },
-      ],
-    );
+  it("uses streak copy once ten slots are filled", () => {
+    const form = deriveRecentForm(wins(10));
+    assert.equal(recentFormStatus(form), "On a 10 games Win streak");
+  });
+
+  it("hides win rate until three games exist", () => {
+    const form = deriveRecentForm([row("lost")]);
+    assert.deepEqual(recentFormWinRateCopy(form), {
+      value: "—",
+      caption: "win rate after 3 games",
+    });
+  });
+
+  it("shows win rate from three games", () => {
+    const form = deriveRecentForm([...wins(2), row("lost")]);
+    assert.deepEqual(recentFormWinRateCopy(form), {
+      value: "67%",
+      caption: "win rate",
+    });
   });
 
   it("counts a win streak from the newest qualifying Game", () => {
@@ -123,37 +108,33 @@ describe("deriveRecentForm", () => {
       row("won"),
       row("lost"),
     ]);
-    assert.ok(form);
     assert.deepEqual(form.streak, {
       kind: "won",
       count: 3,
-      label: "3 Wins",
+      label: "On a 3 games Win streak",
     });
   });
 
   it("counts a loss streak and uses singular copy", () => {
     const form = deriveRecentForm([row("lost"), row("won")]);
-    assert.ok(form);
     assert.deepEqual(form.streak, {
       kind: "lost",
       count: 1,
-      label: "1 Loss",
+      label: "Painful loss",
     });
   });
 
   it("uses singular copy for a one-game win streak", () => {
     const form = deriveRecentForm([row("won"), row("lost")]);
-    assert.ok(form);
     assert.deepEqual(form.streak, {
       kind: "won",
       count: 1,
-      label: "1 Win",
+      label: "Building that win streak",
     });
   });
 
   it("breaks the streak on a newest Draw", () => {
     const form = deriveRecentForm([row("draw"), row("won"), row("won")]);
-    assert.ok(form);
     assert.deepEqual(form.streak, { kind: "none", label: "No streak" });
   });
 
@@ -164,35 +145,15 @@ describe("deriveRecentForm", () => {
       row("draw"),
       row("won"),
     ]);
-    assert.ok(form);
     assert.deepEqual(form.streak, {
       kind: "won",
       count: 2,
-      label: "2 Wins",
+      label: "On a 2 games Win streak",
     });
   });
 
   it("counts Draws as played, not won, in the last-10 rate", () => {
     const form = deriveRecentForm([...wins(6), row("draw"), ...losses(3)]);
-    assert.ok(form);
     assert.equal(form.winRatePercent, 60);
-  });
-
-  it("shows muted 0 trend points when current and previous rates match", () => {
-    const form = deriveRecentForm([
-      ...wins(5),
-      ...losses(5),
-      ...wins(5),
-      ...losses(5),
-    ]);
-    assert.ok(form);
-    assert.equal(form.winRatePercent, 50);
-    assert.equal(form.trendPoints, 0);
-  });
-
-  it("rounds win rate the same way as overall stats", () => {
-    const form = deriveRecentForm([...wins(2), ...losses(1)]);
-    assert.ok(form);
-    assert.equal(form.winRatePercent, 67);
   });
 });

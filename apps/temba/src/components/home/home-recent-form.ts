@@ -10,7 +10,6 @@ export type RecentFormBar =
       kind: "played";
       outcome: RecentFormHistoryRow["outcome"];
       label: "W" | "L" | "D";
-      fillRatio: number;
     }
   | { kind: "empty" };
 
@@ -22,14 +21,14 @@ export type RecentFormStreak =
 export type RecentFormView = {
   wins: number;
   losses: number;
+  draws: number;
   bars: RecentFormBar[];
   streak: RecentFormStreak;
   winRatePercent: number;
-  trendPoints: number | null;
+  playedCount: number;
 };
 
 const WINDOW = 10;
-const HEIGHT_CAP = 18;
 
 const OUTCOME_LABEL: Record<RecentFormHistoryRow["outcome"], "W" | "L" | "D"> =
   {
@@ -37,18 +36,6 @@ const OUTCOME_LABEL: Record<RecentFormHistoryRow["outcome"], "W" | "L" | "D"> =
     lost: "L",
     draw: "D",
   };
-
-function setDifferential(sets: RecentFormHistoryRow["scoredSets"]): number {
-  let total = 0;
-  for (const set of sets) {
-    total += Math.abs(set.slot1GamesWon - set.slot2GamesWon);
-  }
-  return total;
-}
-
-function fillRatio(sets: RecentFormHistoryRow["scoredSets"]): number {
-  return Math.min(1, Math.max(0, setDifferential(sets) / HEIGHT_CAP));
-}
 
 function winRatePercent(rows: readonly RecentFormHistoryRow[]): number {
   if (rows.length === 0) {
@@ -58,7 +45,7 @@ function winRatePercent(rows: readonly RecentFormHistoryRow[]): number {
   return Math.round((100 * wins) / rows.length);
 }
 
-function streakFromNewestFirst(
+export function streakFromNewestFirst(
   rows: readonly RecentFormHistoryRow[],
 ): RecentFormStreak {
   const newest = rows[0];
@@ -94,23 +81,12 @@ function streakFromNewestFirst(
 
 export function deriveRecentForm(
   rows: readonly RecentFormHistoryRow[],
-): RecentFormView | null {
-  if (rows.length === 0) {
-    return null;
-  }
-
+): RecentFormView {
   const current = rows.slice(0, WINDOW);
-  const previous = rows.slice(WINDOW, WINDOW * 2);
-  const trendPoints =
-    rows.length >= WINDOW * 2
-      ? winRatePercent(current) - winRatePercent(previous)
-      : null;
-
-  const played: RecentFormBar[] = [...current].reverse().map((row) => ({
+  const played: RecentFormBar[] = current.map((row) => ({
     kind: "played",
     outcome: row.outcome,
     label: OUTCOME_LABEL[row.outcome],
-    fillRatio: fillRatio(row.scoredSets),
   }));
   const empty: RecentFormBar[] = Array.from(
     { length: WINDOW - played.length },
@@ -120,9 +96,53 @@ export function deriveRecentForm(
   return {
     wins: current.filter((row) => row.outcome === "won").length,
     losses: current.filter((row) => row.outcome === "lost").length,
+    draws: current.filter((row) => row.outcome === "draw").length,
     bars: [...played, ...empty],
     streak: streakFromNewestFirst(current),
     winRatePercent: winRatePercent(current),
-    trendPoints,
+    playedCount: current.length,
   };
+}
+
+export function recentFormRecord(form: RecentFormView): string {
+  if (form.draws > 0) {
+    return `${form.wins}–${form.losses}–${form.draws}`;
+  }
+  return `${form.wins}–${form.losses}`;
+}
+
+const SLOT_WORDS = [
+  "",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+] as const;
+
+export function recentFormStatus(form: RecentFormView): string {
+  const unfilled = WINDOW - form.playedCount;
+  if (unfilled === 1) {
+    return "One slot left to fill";
+  }
+  if (unfilled > 1) {
+    const word = SLOT_WORDS[unfilled] ?? String(unfilled);
+    return `${word} slots left to fill`;
+  }
+  return form.streak.label;
+}
+
+export function recentFormWinRateCopy(form: RecentFormView): {
+  value: string;
+  caption: string;
+} {
+  if (form.playedCount < 3) {
+    return { value: "—", caption: "win rate after 3 games" };
+  }
+  return { value: `${form.winRatePercent}%`, caption: "win rate" };
 }

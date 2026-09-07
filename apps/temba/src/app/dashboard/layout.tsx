@@ -7,7 +7,7 @@ export default function DashboardLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <HydrateClient>
-      <div className="text-foreground min-h-screen bg-white">{children}</div>
+      <div className="text-foreground bg-wash min-h-screen">{children}</div>
     </HydrateClient>
   );
 }

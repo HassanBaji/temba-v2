@@ -38,13 +38,24 @@
   --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
   --shadow-md: 0 4px 12px oklch(0 0 0 / 0.08);
   --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.12);
+
+  /* Near-monochrome Home tokens. Do not add faint (#9A9A9A) — 2.56:1 on wash. */
+  --color-ink: #000000;
+  --color-paper: #ffffff;
+  --color-rule: #e6e6e6;
+  --color-wash: #f4f4f4;
+  --color-dim: #8e8e8e;
+  --color-dimrule: #2e2e2e;
+  --color-raised: #1c1c1c;
 }
 
 @theme inline {
-  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans:
+    var(--font-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono:
+    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -93,7 +104,7 @@
 
 :root {
   --radius: 0.75rem;
-  --background: #ffffff;
+  --background: #f4f4f4;
   --foreground: oklch(0.145 0 0);
   --surface-raised: #fafaf8;
   --card: #ffffff;
@@ -101,8 +112,8 @@
   --popover: #ffffff;
   --popover-foreground: var(--foreground);
   --muted: oklch(0.97 0 0);
-  /* ~gray-700; meets AA contrast at 12–13px meta text sizes */
-  --muted-foreground: oklch(0.4 0 0);
+  /* #6E6E6E — 4.64:1 on wash / 5.10:1 on paper (WCAG AA) */
+  --muted-foreground: #6e6e6e;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --accent: oklch(0.97 0 0);
@@ -188,7 +199,36 @@
   }
   body {
     @apply bg-background text-body text-foreground font-sans antialiased;
+    font-feature-settings: "tnum" 1;
   }
+}
+
+/* Always emit Home foundation utilities so later tickets can apply them. */
+@source inline("font-expanded hatch hatch-on-ink");
+
+@utility font-expanded {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variation-settings:
+    "wdth" 115,
+    "wght" 700;
+}
+
+/* Light hatch: `hatch`. Black-surface variant: `hatch hatch-on-ink`. */
+@utility hatch {
+  --hatch-stroke: #dcdcdc;
+  --hatch-inset: var(--color-rule);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--hatch-stroke) 0 1px,
+    transparent 1px 5px
+  );
+  box-shadow: inset 0 0 0 1px var(--hatch-inset);
+}
+
+@utility hatch-on-ink {
+  --hatch-stroke: #333333;
+  --hatch-inset: var(--color-dimrule);
 }
 
 @media (prefers-reduced-motion: reduce) {
