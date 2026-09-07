@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
+import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { createHomeFixtures, type HomeFixture } from "~/fixtures/home";
@@ -68,31 +70,27 @@ function HomeColumn({
         ready
       />
       {nextGame ? (
-        <div className="bg-ink text-paper rounded-xl p-[22px]">
-          <p className="text-dim text-meta mb-2">Next game</p>
-          <p className="font-expanded text-h2">{nextGame.venueName}</p>
-          <p className="text-dim text-meta">
-            {nextGame.phase} · {nextGame.formatLabel}
-          </p>
-        </div>
+        <HomeNextGame
+          id={nextGame.id}
+          phase={nextGame.phase}
+          venueName={nextGame.venueName}
+          courtLabel={nextGame.courtLabel}
+          formatLabel={nextGame.formatLabel}
+          startsAt={new Date(nextGame.startsAt)}
+          seats={nextGame.seats}
+        />
       ) : (
-        <div className="border-rule bg-paper rounded-xl border p-[22px]">
-          <p className="font-semibold">No games booked</p>
-        </div>
+        <HomeNoGames />
       )}
-      <BlockScaffold label="Coming up">
-        {fixture.comingUp.length === 0 ? (
-          <p className="text-muted-foreground text-meta">No later games</p>
-        ) : (
-          <ul className="text-meta space-y-2">
-            {fixture.comingUp.map((game) => (
-              <li key={game.id}>
-                {game.venueName} · {game.seatsTaken}/{game.seatsTotal}
-              </li>
-            ))}
-          </ul>
-        )}
-      </BlockScaffold>
+      <HomeComingUp
+        games={fixture.comingUp.map((game) => ({
+          id: game.id,
+          venueName: game.venueName,
+          startsAt: new Date(game.startsAt),
+          seatsTaken: game.seatsTaken,
+          seatsTotal: game.seatsTotal,
+        }))}
+      />
       <BlockScaffold label="Level">
         {fixture.level.band && fixture.level.level ? (
           <>
