@@ -20,14 +20,24 @@ import {
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
 import { cn } from "~/lib/utils";
-import { LEVEL_BANDS, type SelfDeclareChoice } from "~/lib/level-bands";
+import {
+  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
+  selfDeclareChoiceFromDisplay,
+  type AssignableDisplayLevelBand,
+  type SelfDeclareChoice,
+} from "~/lib/level-bands";
 
 const FIELD_IDS = { choice: "declare-level-choice" };
 
 const UNKNOWN_CHOICE = "unknown" as const;
 
-const CHOICES: { value: SelfDeclareChoice; label: string }[] = [
-  ...LEVEL_BANDS.map((band) => ({ value: band, label: band })),
+type DeclarePickerValue = AssignableDisplayLevelBand | typeof UNKNOWN_CHOICE;
+
+const CHOICES: { value: DeclarePickerValue; label: string }[] = [
+  ...ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
+    value: band,
+    label: band,
+  })),
   { value: UNKNOWN_CHOICE, label: "I don’t know" },
 ];
 
@@ -50,7 +60,7 @@ export function DeclareLevelDialog({
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const [choice, setChoice] = React.useState<SelfDeclareChoice | "">("");
+  const [choice, setChoice] = React.useState<DeclarePickerValue | "">("");
   const choiceError = fieldErrorMessage(error, "choice");
 
   React.useEffect(() => {
@@ -71,7 +81,7 @@ export function DeclareLevelDialog({
     if (pending || choice === "") {
       return;
     }
-    onDeclare(choice);
+    onDeclare(selfDeclareChoiceFromDisplay(choice));
   }
 
   return (
