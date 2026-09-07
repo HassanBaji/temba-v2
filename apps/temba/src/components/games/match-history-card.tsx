@@ -127,7 +127,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
     sameDayLabel: "Today",
   });
   const timeLabel = formatGameClock(row.displayTime);
-  const href = `/dashboard/games/${row.id}?tab=results`;
+  const href = `/dashboard/games/${row.id}`;
   const formatText = formatLabel(row.format);
 
   return (

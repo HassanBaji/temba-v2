@@ -67,6 +67,45 @@ function FormSlot({ bar }: { bar: RecentFormBar }) {
   );
 }
 
+/**
+ * Standalone 46px W/L mark for the Final Game-details hero (game-details
+ * redesign, TEM-179): the exact solid-ink-fill (win) / ink-outline (loss)
+ * rule as `FormSlot` above, at a size no existing component renders (form
+ * slots are 38px and always inline in a row, never standalone).
+ */
+export function WinLossMark({ outcome }: { outcome: "won" | "lost" | "draw" }) {
+  const label =
+    outcome === "won" ? "Win" : outcome === "lost" ? "Loss" : "Draw";
+  const glyph = outcome === "won" ? "W" : outcome === "lost" ? "L" : "D";
+
+  if (outcome === "won") {
+    return (
+      <div className="bg-ink text-paper flex size-[46px] shrink-0 items-center justify-center rounded-[7px] text-xl font-semibold">
+        <span className="sr-only">{label}</span>
+        <span aria-hidden="true">{glyph}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-ink bg-paper text-ink relative flex size-[46px] shrink-0 items-center justify-center overflow-hidden rounded-[7px] border-[1.5px] text-xl font-semibold">
+      {outcome === "draw" ? (
+        <span
+          aria-hidden="true"
+          className="bg-ink absolute inset-0 origin-center opacity-80"
+          style={{
+            clipPath: "polygon(100% 0, 100% 1.5px, 1.5px 100%, 0 100%)",
+          }}
+        />
+      ) : null}
+      <span className="sr-only">{label}</span>
+      <span aria-hidden="true" className="relative">
+        {glyph}
+      </span>
+    </div>
+  );
+}
+
 export function HomeRecentFormBlock({ form }: { form: RecentFormView }) {
   const record = recentFormRecord(form);
   const status = recentFormStatus(form);

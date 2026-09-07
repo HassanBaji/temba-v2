@@ -1,4 +1,7 @@
-import { formatRelativeDay } from "~/lib/format-game-start";
+import {
+  formatGameClockWithoutMeridiem,
+  formatRelativeDay,
+} from "~/lib/format-game-start";
 
 const MINUTE_MS = 60_000;
 
@@ -20,6 +23,49 @@ export function formatHomeCountdown(startsAt: Date, now: Date): string | null {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `in ${hours}h ${minutes}m`;
+}
+
+/**
+ * Live countdown for the Game-details hero's Upcoming/Ongoing treatment
+ * (game-details redesign, TEM-179). `formatHomeCountdown` returns `null`
+ * once `startsAt` is no longer in the future, which is correct for Home
+ * (an ongoing Game simply drops the countdown) but would leave the hero's
+ * countdown slot blank while `ongoing` visually collapses into the Upcoming
+ * treatment — this wraps it with the one small addition Home doesn't need:
+ * "Starting now" for the window between kickoff and the countdown running
+ * out, so the hero never shows a negative or missing duration.
+ */
+export function formatHeroCountdown(
+  phase: "upcoming" | "ongoing",
+  startsAt: Date,
+  now: Date,
+): string | null {
+  const countdown = formatHomeCountdown(startsAt, now);
+  if (countdown) {
+    return countdown;
+  }
+  return phase === "ongoing" ? "Starting now" : null;
+}
+
+/**
+ * Composite "PM until 10:30" trailing string for the Game-details hero's
+ * 54px time treatment (game-details redesign, TEM-179): the kickoff's own
+ * meridiem plus an explicit end-time trailer. This composite does not
+ * replace `formatHomeKickoff` — Home's own hero (`home-next-game.tsx`)
+ * keeps using that as-is.
+ */
+export function formatHeroKickoffTrailer(
+  startsAt: Date,
+  windowEnd: Date | string | null | undefined,
+): string {
+  const kickoff = formatHomeKickoff(startsAt);
+  if (!windowEnd) {
+    return kickoff.meridiem;
+  }
+  const endClock = formatGameClockWithoutMeridiem(windowEnd);
+  return kickoff.meridiem
+    ? `${kickoff.meridiem} until ${endClock}`
+    : `until ${endClock}`;
 }
 
 export function formatHomeKickoff(startsAt: Date): {

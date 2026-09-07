@@ -94,3 +94,38 @@ export function formatAbsoluteDay(startTime: Date | string) {
     day: "numeric",
   });
 }
+
+/**
+ * Strips a trailing AM/PM off a locale clock string, e.g. `"10:30 PM"` ->
+ * `"10:30"`. Game-details hero (TEM-179) composite time strings need the
+ * bare clock digits without repeating the meridiem a second time.
+ */
+function stripMeridiem(clock: string) {
+  const parts = clock.trim().split(/\s+/);
+  return parts.length > 1 ? parts.slice(0, -1).join(" ") : clock;
+}
+
+/** Bare clock digits with no AM/PM suffix, e.g. `"10:30"`. */
+export function formatGameClockWithoutMeridiem(time: Date | string) {
+  return stripMeridiem(formatGameClock(time));
+}
+
+/**
+ * Relative-past phrasing for a Friendly game's "Needs a score" hero
+ * (game-details redesign, TEM-179): "Played today" / "Played 1 day ago" /
+ * "Played N days ago". Every other relative-day helper in this module is
+ * relative-future (`formatRelativeDay`) — this is the past-facing mirror,
+ * reusing the same local-day math.
+ */
+export function formatPlayedRelativeDay(startTime: Date | string) {
+  const date = startTime instanceof Date ? startTime : new Date(startTime);
+  const daysAgo = -daysUntilLocalDay(date);
+
+  if (daysAgo <= 0) {
+    return "Played today";
+  }
+  if (daysAgo === 1) {
+    return "Played 1 day ago";
+  }
+  return `Played ${daysAgo} days ago`;
+}

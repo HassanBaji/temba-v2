@@ -1,5 +1,6 @@
 "use client";
 
+import { Ban } from "lucide-react";
 import { notFound, usePathname, useRouter } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
@@ -15,10 +16,9 @@ import { ErrorState } from "~/components/common/error-state";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
-import { FriendlyGameHomeHero } from "~/components/games/friendly-game-home-hero";
+import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
-import { FriendlyGameOverviewPanel } from "~/components/games/friendly-game-overview-panel";
 import { FriendlyGameResultsPanel } from "~/components/games/friendly-game-results-panel";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
@@ -92,6 +92,7 @@ export default function GameHomePage({
   const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const levelSummaryRef = React.useRef<HTMLDivElement>(null);
+  const resultsSectionRef = React.useRef<HTMLDivElement>(null);
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
   const [selectedPartner, setSelectedPartner] = React.useState<
@@ -501,11 +502,24 @@ export default function GameHomePage({
   const primaryLeaveWaitlist = data.isWaitlisted;
   const firstMatch = data.matches[0];
   const canScoreSets = data.matches.some((match) => match.canScoreSets);
+  // The Friendly-chrome page has no tab control any more (game-details
+  // redesign, TEM-179) — the Score section always renders on the page, so
+  // `friendlyGameCtaFamily`'s "already on the results tab" suppression no
+  // longer applies. Passing a constant here (rather than the URL-derived
+  // `tab`) is the minimal fix; reworking the CTA family's shape around the
+  // new `phase` prop is TEM-183's sticky-bottom-bar scope, not this ticket's.
+  const friendlyCtaTab: typeof tab = "overview";
+  const viewerGameTeamId =
+    data.sides.find(
+      (side) =>
+        side.left?.userId === data.viewerUserId ||
+        side.right?.userId === data.viewerUserId,
+    )?.gameTeamId ?? null;
   const ctaFamily = usesFriendlyChrome
     ? friendlyGameCtaFamily({
         cancelled: Boolean(data.cancelledAt),
         canScoreSets,
-        tab,
+        tab: friendlyCtaTab,
         canWaitlist: data.canWaitlist,
         isWaitlisted: data.isWaitlisted,
         waitlistPlace: data.waitlistPlace,
@@ -693,30 +707,54 @@ export default function GameHomePage({
         }
       >
         {usesFriendlyChrome ? (
-          <FriendlyGameHomeHero
-            name={data.name}
-            windowStart={data.windowStart}
-            windowEnd={data.windowEnd}
-            durationInMinutes={firstMatch?.durationInMinutes}
-            venueName={data.venue?.name}
-            venueLatitude={data.venue?.latitude}
-            venueLongitude={data.venue?.longitude}
-            courtName={firstMatch?.courtName}
-            registeredUserCount={data.registeredUserCount}
-            playersAllowed={data.playersAllowed}
-            people={data.registeredPlayers.map((player) => ({
-              name: player.name ?? "Player",
-              image: player.image,
-            }))}
-            registrationStatus={data.registrationStatus}
-            viewerStatus={gameViewerStatus(data)}
-            cancelled={Boolean(data.cancelledAt)}
-            actions={
-              desktopOverflow ? (
-                <div className="max-lg:hidden">{desktopOverflow}</div>
-              ) : null
-            }
-          />
+          <>
+            {data.cancelledAt ? (
+              <section
+                role="status"
+                className="bg-destructive/10 text-destructive rounded-xl p-4"
+              >
+                <div className="flex gap-3">
+                  <Ban
+                    aria-hidden="true"
+                    className="mt-0.5 size-5 shrink-0"
+                    strokeWidth={2}
+                  />
+                  <p className="text-title font-semibold tracking-[-0.01em]">
+                    This Game is cancelled
+                  </p>
+                </div>
+              </section>
+            ) : null}
+            {desktopOverflow ? (
+              <div className="hidden justify-end lg:flex">
+                {desktopOverflow}
+              </div>
+            ) : null}
+            {data.phase && data.phase !== "cancelled" ? (
+              <FriendlyGameDetailsHero
+                phase={data.phase}
+                windowStart={data.windowStart}
+                windowEnd={data.windowEnd}
+                venueName={data.venue?.name ?? null}
+                venueCity={data.venue?.city ?? null}
+                courtName={firstMatch?.courtName ?? null}
+                pricePerPlayerCents={data.pricePerPlayerCents}
+                match={
+                  firstMatch
+                    ? {
+                        startTime: firstMatch.startTime,
+                        durationInMinutes: firstMatch.durationInMinutes,
+                        slot1GameTeamId: firstMatch.slot1GameTeamId,
+                        slot2GameTeamId: firstMatch.slot2GameTeamId,
+                        sets: firstMatch.sets,
+                        outcome: firstMatch.outcome,
+                      }
+                    : null
+                }
+                viewerGameTeamId={viewerGameTeamId}
+              />
+            ) : null}
+          </>
         ) : (
           <GameHomeHeader
             name={gameName}
@@ -742,7 +780,12 @@ export default function GameHomePage({
               onJoin={() => setJoinPickerOpen(true)}
               onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
               onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
-              onEnterScore={() => setTab("results")}
+              onEnterScore={() =>
+                resultsSectionRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
               onInvite={
                 ctaFamily.kind === "playing" && ctaFamily.showInvite
                   ? () => setInvitesOpen(true)
@@ -758,35 +801,14 @@ export default function GameHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        <Tabs value={tab} onValueChange={setTab} className="gap-4">
-          <TabsList
-            // variant="line"
-            className="sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-between overflow-x-auto overflow-y-hidden lg:top-0"
-          >
-            <TabsTrigger value="overview" className="w-[33%]">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="players" className="w-[33%]">
-              Players
-            </TabsTrigger>
-            <TabsTrigger value="results" className="w-[33%]">
-              Results
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview">
-            {usesFriendlyChrome ? (
-              <FriendlyGameOverviewPanel
-                game={data}
-                onSelectPlayers={() => setTab("players")}
-              />
-            ) : (
-              <GameOverviewPanel game={data} />
-            )}
-          </TabsContent>
-          <TabsContent
-            value="players"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+        {usesFriendlyChrome ? (
+          // Hero-only scope (game-details redesign, TEM-179): the tab bar
+          // and Overview tab are gone for this Game format, but the
+          // Line-up/Score sections that replace this stack (TEM-180/181)
+          // aren't built yet. This renders the existing Players/Results
+          // panels directly, without a tab wrapper, purely so the page still
+          // compiles and works — not a preview of the redesigned sections.
+          <div className="space-y-6">
             <GamePlayersPanel
               game={data}
               partnerQuery={partnerQuery}
@@ -828,12 +850,7 @@ export default function GameHomePage({
                 registerTeam.mutate({ gameId: id, teamId: nextTeamId })
               }
             />
-          </TabsContent>
-          <TabsContent
-            value="results"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
-            {usesFriendlyChrome ? (
+            <div ref={resultsSectionRef}>
               <FriendlyGameResultsPanel
                 matches={data.matches}
                 gameTeams={data.gameTeams}
@@ -864,7 +881,77 @@ export default function GameHomePage({
                 }
                 onCancelMatch={(matchId) => setCancelMatchId(matchId)}
               />
-            ) : (
+            </div>
+          </div>
+        ) : (
+          <Tabs value={tab} onValueChange={setTab} className="gap-4">
+            <TabsList
+              // variant="line"
+              className="sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-between overflow-x-auto overflow-y-hidden lg:top-0"
+            >
+              <TabsTrigger value="overview" className="w-[33%]">
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="players" className="w-[33%]">
+                Players
+              </TabsTrigger>
+              <TabsTrigger value="results" className="w-[33%]">
+                Results
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview">
+              <GameOverviewPanel game={data} />
+            </TabsContent>
+            <TabsContent
+              value="players"
+              className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+            >
+              <GamePlayersPanel
+                game={data}
+                partnerQuery={partnerQuery}
+                selectedPartner={selectedPartner}
+                partnerSide={partnerSide}
+                partnerPosition={partnerPosition}
+                teamId={teamId}
+                partnerSearch={partnerSearch.data}
+                partnerSearchPending={partnerSearch.isFetching}
+                registerWithPartnerPending={registerWithPartner.isPending}
+                partnerError={registerWithPartner.error}
+                registerSeatPending={registerSeat.isPending}
+                moveSeatPending={moveSeat.isPending}
+                kickPending={kick.isPending}
+                registerTeamPending={registerTeam.isPending}
+                onPartnerQueryChange={setPartnerQuery}
+                onSelectedPartnerChange={setSelectedPartner}
+                onPartnerSideChange={setPartnerSide}
+                onPartnerPositionChange={setPartnerPosition}
+                onTeamIdChange={setTeamId}
+                onRegisterSeat={(input) =>
+                  registerSeat.mutate({
+                    gameId: id,
+                    sideIndex: input?.sideIndex,
+                    position: input?.position,
+                  })
+                }
+                onMoveSeat={(sideIndex, position) =>
+                  moveSeat.mutate({ gameId: id, sideIndex, position })
+                }
+                onKick={(userId) => kick.mutate({ gameId: id, userId })}
+                onKickWaitlist={(waitlistId) =>
+                  kick.mutate({ gameId: id, waitlistId })
+                }
+                onRegisterWithPartner={(input) =>
+                  registerWithPartner.mutate({ gameId: id, ...input })
+                }
+                onRegisterTeam={(nextTeamId) =>
+                  registerTeam.mutate({ gameId: id, teamId: nextTeamId })
+                }
+              />
+            </TabsContent>
+            <TabsContent
+              value="results"
+              className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
+            >
               <GameResultsPanel
                 format={data.format}
                 matches={data.matches}
@@ -908,9 +995,9 @@ export default function GameHomePage({
                 }
                 onCancelMatch={(matchId) => setCancelMatchId(matchId)}
               />
-            )}
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
 
       {isOrganizerActive ? (

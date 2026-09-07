@@ -48,7 +48,7 @@ export function HomeNextGame({
   const hasOpenSeat = seats.some((seat) => !seat.filled);
   const primary =
     phase === "needs_results"
-      ? { href: `/dashboard/games/${id}?tab=results`, label: "Add results" }
+      ? { href: `/dashboard/games/${id}`, label: "Add results" }
       : phase === "upcoming" && hasOpenSeat
         ? { href: `/dashboard/games/${id}`, label: "Invite a player" }
         : { href: `/dashboard/games/${id}`, label: "View game" };
