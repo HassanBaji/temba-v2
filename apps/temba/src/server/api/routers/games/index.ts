@@ -10,6 +10,7 @@ import { cancel } from "./cancel";
 import { cancelMatchProcedure as cancelMatch } from "./cancelMatch";
 import { closeRegistrationProcedure as closeRegistration } from "./closeRegistration";
 import { completeMatchProcedure as completeMatch } from "./completeMatch";
+import { confirmMatchResultProcedure as confirmMatchResult } from "./confirmMatchResult";
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
@@ -83,6 +84,7 @@ export const gamesRouter = createTRPCRouter({
   scoreSet,
   removeSet,
   completeMatch,
+  confirmMatchResult,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,

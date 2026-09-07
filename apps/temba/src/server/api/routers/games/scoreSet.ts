@@ -10,7 +10,14 @@ import { type db } from "~/server/db";
 import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { assertMayWriteSets } from "~/server/games/assert-may-write-sets";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
+import { matchOutcome } from "~/server/games/match-outcome";
+import {
+  clearMatchResultConfirmationsExceptUser,
+  matchResultFullyConfirmed,
+  recordMatchResultConfirmation,
+} from "~/server/games/match-result-confirmations";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
+import { runMatchCompletionEffect } from "~/server/games/run-match-completion-effect";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -45,6 +52,9 @@ export async function scoreSet(
       message: "Set not found",
     });
   }
+  const valuesChanged =
+    set.slot1GamesWon !== args.slot1GamesWon ||
+    set.slot2GamesWon !== args.slot2GamesWon;
   const [updated] = await database
     .update(matchSets)
     .set({
@@ -60,6 +70,30 @@ export async function scoreSet(
       message: "Failed to save Set",
     });
   }
+
+  // ADR-0011: the User who enters the Set that produces (or changes) a Match
+  // result is confirmed automatically. Editing games-won values after at
+  // least one confirmation already exists clears the others, so a changed
+  // score requires re-agreement rather than surviving on stale confirmations.
+  const allSets = await database.query.matchSets.findMany({
+    where: eq(matchSets.matchId, match.id),
+    columns: { slot1GamesWon: true, slot2GamesWon: true },
+  });
+  const outcome = matchOutcome(allSets);
+  if (outcome.result !== "none") {
+    if (valuesChanged) {
+      await clearMatchResultConfirmationsExceptUser(
+        database,
+        match.id,
+        args.userId,
+      );
+    }
+    await recordMatchResultConfirmation(database, match.id, args.userId);
+    if (await matchResultFullyConfirmed(database, match)) {
+      await runMatchCompletionEffect(database, game, match.id);
+    }
+  }
+
   return { ok: true as const };
 }
 

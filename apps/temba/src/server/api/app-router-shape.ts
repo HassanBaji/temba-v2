@@ -88,6 +88,7 @@ type ExpectedGames =
   | "scoreSet"
   | "removeSet"
   | "completeMatch"
+  | "confirmMatchResult"
   | "searchLookupUsers"
   | "sendLookupInvite"
   | "listLookupInvites"
