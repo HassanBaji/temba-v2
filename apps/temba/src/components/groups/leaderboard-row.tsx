@@ -1,4 +1,5 @@
-import { Award, Medal, Trophy } from "lucide-react";
+import { Award, ChevronRight, Medal, Trophy } from "lucide-react";
+import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { Badge } from "~/components/ui/badge";
@@ -47,6 +48,7 @@ export function LeaderboardRow({
   totalPointsWon,
   totalGamesPlayed,
   isViewer,
+  showRank = true,
 }: {
   position: number;
   name: string;
@@ -55,17 +57,15 @@ export function LeaderboardRow({
   totalPointsWon: number;
   totalGamesPlayed: number;
   isViewer: boolean;
+  showRank?: boolean;
 }) {
-  return (
-    <li
-      className={cn(
-        "flex min-h-16 min-w-11 items-center gap-3 px-4 py-3",
-        isViewer && "bg-muted border-l-foreground border-l-2",
-      )}
-    >
-      <div className="w-12 shrink-0">
-        <RankSlot position={position} />
-      </div>
+  const body = (
+    <>
+      {showRank ? (
+        <div className="w-12 shrink-0">
+          <RankSlot position={position} />
+        </div>
+      ) : null}
       <UserAvatar name={name} image={image} size="lg" />
       <div className="min-w-0 flex-1">
         <p className="text-lead truncate font-semibold">
@@ -80,6 +80,30 @@ export function LeaderboardRow({
           {totalSetsWon} sets · {totalPointsWon} pts · {totalGamesPlayed} Games
         </p>
       </div>
-    </li>
+      {isViewer ? (
+        <ChevronRight
+          aria-hidden="true"
+          className="text-muted-foreground size-4 shrink-0"
+          strokeWidth={1.75}
+        />
+      ) : null}
+    </>
   );
+
+  const rowClass = cn(
+    "flex min-h-16 min-w-11 items-center gap-3 px-4 py-3",
+    isViewer && "bg-muted",
+  );
+
+  if (isViewer) {
+    return (
+      <li className="p-0">
+        <Link href="/dashboard/you" className={rowClass}>
+          {body}
+        </Link>
+      </li>
+    );
+  }
+
+  return <li className={rowClass}>{body}</li>;
 }
