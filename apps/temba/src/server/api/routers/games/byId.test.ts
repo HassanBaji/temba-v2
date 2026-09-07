@@ -520,3 +520,59 @@ describe("gameById ratingImpact (TEM-177)", () => {
     }
   });
 });
+
+describe("gameById canReportWrongScore (TEM-185)", () => {
+  it("is eligible for the organizer once Final; null before Final and for a non-organizer viewer", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const windowStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const windowEnd = new Date(Date.now() - 60 * 60 * 1000);
+      const { game, matchId, sets, a, b, c, d } = await setUpSeatedFriendlyGame(
+        db,
+        { windowStart, windowEnd },
+      );
+      const firstSet = sets[0];
+      if (!firstSet) {
+        throw new Error("Expected a Set shell");
+      }
+
+      await scoreSet(db, {
+        gameId: game.id,
+        matchId,
+        setId: firstSet.id,
+        userId: a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+
+      // `a` is both the seated Set-enterer and the Game's organizer
+      // (`setUpSeatedFriendlyGame` creates the Game with `createdBy: a.id`).
+      const beforeFinal = await gameById(db, {
+        gameId: game.id,
+        userId: a.id,
+      });
+      expect(beforeFinal.phase).toBe("needs_results");
+      expect(beforeFinal.canReportWrongScore).toBeNull();
+
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: b.id });
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: c.id });
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: d.id });
+
+      const organizerView = await gameById(db, {
+        gameId: game.id,
+        userId: a.id,
+      });
+      expect(organizerView.phase).toBe("final");
+      expect(organizerView.canReportWrongScore).toEqual({ eligible: true });
+
+      // A non-organizer seated viewer does not get this organizer-only read.
+      const nonOrganizerView = await gameById(db, {
+        gameId: game.id,
+        userId: b.id,
+      });
+      expect(nonOrganizerView.canReportWrongScore).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});

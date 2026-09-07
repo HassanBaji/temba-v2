@@ -36,6 +36,7 @@ import { registerWithPartnerProcedure as registerWithPartner } from "./registerW
 import { rejectLevelRangeRequestProcedure as rejectLevelRangeRequest } from "./rejectLevelRangeRequest";
 import { removeSetProcedure as removeSet } from "./removeSet";
 import { reopenRegistrationProcedure as reopenRegistration } from "./reopenRegistration";
+import { reportWrongScoreProcedure as reportWrongScore } from "./reportWrongScore";
 import { requestLevelRangeProcedure as requestLevelRange } from "./requestLevelRange";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { scoreSetProcedure as scoreSet } from "./scoreSet";
@@ -85,6 +86,7 @@ export const gamesRouter = createTRPCRouter({
   removeSet,
   completeMatch,
   confirmMatchResult,
+  reportWrongScore,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,

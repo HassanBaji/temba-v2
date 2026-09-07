@@ -61,6 +61,10 @@ import {
   ratedMatchesRemainingToConfirm,
   type LevelBand,
 } from "~/server/ratings/level";
+import {
+  wrongScoreReversalEligibility,
+  type WrongScoreReversalEligibility,
+} from "~/server/games/wrong-score-reversal";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 
@@ -447,6 +451,13 @@ export async function gameById(
     ratedMatchesRemainingToConfirm: number | null;
   } | null = null;
 
+  // Final-phase-only, organizer-only "Report a wrong score" eligibility read
+  // (TEM-185): lets the UI render the disabled/support-routed state without
+  // a failed `reportWrongScore` round-trip. Same eligibility rule the door
+  // enforces (Option A, `.scratch/game-details-redesign/spec.md` "Resolved
+  // decision"), read-only here.
+  let canReportWrongScore: WrongScoreReversalEligibility | null = null;
+
   if (isIndividualFriendlyGame && friendlyMatch) {
     const [requiredUserIds, confirmedUserIds] = await Promise.all([
       matchSeatedUserIds(database, friendlyMatch),
@@ -496,6 +507,13 @@ export async function gameById(
             ? ratedMatchesRemainingToConfirm(viewerRatingEvent.phiAfter)
             : null,
         };
+      }
+
+      if (organizer) {
+        canReportWrongScore = await wrongScoreReversalEligibility(
+          database,
+          friendlyMatch.id,
+        );
       }
     }
   }
@@ -631,6 +649,7 @@ export async function gameById(
     phase,
     matchResultConfirmation,
     ratingImpact,
+    canReportWrongScore,
     unseatedPlayers,
     registeredPlayers: playerRows.flatMap((row) =>
       row.user
