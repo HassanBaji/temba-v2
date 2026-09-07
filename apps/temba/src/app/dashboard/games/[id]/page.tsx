@@ -25,6 +25,7 @@ import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameLineupSection } from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
+import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
@@ -826,12 +827,14 @@ export default function GameHomePage({
         ) : null}
 
         {usesFriendlyChrome ? (
-          // Hero + Line-up + Score scope (game-details redesign,
-          // TEM-179/TEM-180/TEM-181): the tab bar and Overview tab are gone
-          // for this Game format, the Players tab content is replaced by
-          // the Line-up section, and the Results tab content is replaced by
-          // the Score section below — no organiser/destructive actions
-          // inside it (that footer is TEM-184's scope, not built yet).
+          // Hero + Line-up + Score + Rating impact scope (game-details
+          // redesign, TEM-179/TEM-180/TEM-181/TEM-182): the tab bar and
+          // Overview tab are gone for this Game format, the Players tab
+          // content is replaced by the Line-up section, the Results tab
+          // content is replaced by the Score section, and the Rating
+          // impact block (Final phase only) explains why the viewer's Home
+          // level card changed — no organiser/destructive actions inside
+          // this scroll (that footer is TEM-184's scope, not built yet).
           <div className="space-y-6">
             <GameLineupSection
               sides={data.sides}
@@ -869,6 +872,9 @@ export default function GameHomePage({
                   }
                 />
               </div>
+            ) : null}
+            {data.phase === "final" && data.ratingImpact ? (
+              <GameRatingImpactBlock ratingImpact={data.ratingImpact} />
             ) : null}
           </div>
         ) : (
