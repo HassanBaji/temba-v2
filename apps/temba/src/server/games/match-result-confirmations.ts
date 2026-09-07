@@ -80,12 +80,10 @@ export async function matchResultConfirmedUserIds(
   database: DbClient,
   matchId: string,
 ): Promise<string[]> {
-  const confirmations = await database.query.matchResultConfirmations.findMany(
-    {
-      where: eq(matchResultConfirmations.matchId, matchId),
-      columns: { userId: true },
-    },
-  );
+  const confirmations = await database.query.matchResultConfirmations.findMany({
+    where: eq(matchResultConfirmations.matchId, matchId),
+    columns: { userId: true },
+  });
   return confirmations.map((row) => row.userId);
 }
 

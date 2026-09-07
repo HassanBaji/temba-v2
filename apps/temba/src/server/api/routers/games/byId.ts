@@ -96,7 +96,10 @@ function individualFriendlyGamePhase(args: {
 }): GameDetailsPhase {
   const { game, match, registeredUserCount, registeredTeamCount, now } = args;
 
-  if (game.cancelledAt !== null || match?.status === MatchStatusEnum.CANCELLED) {
+  if (
+    game.cancelledAt !== null ||
+    match?.status === MatchStatusEnum.CANCELLED
+  ) {
     return "cancelled";
   }
   if (match?.status === MatchStatusEnum.COMPLETED) {
@@ -111,7 +114,9 @@ function individualFriendlyGamePhase(args: {
     windowEnd: game.windowEnd,
     createdAt: game.createdAt,
     format: game.format,
-    matches: match ? [{ startTime: match.startTime, status: match.status }] : [],
+    matches: match
+      ? [{ startTime: match.startTime, status: match.status }]
+      : [],
     createdBy: game.createdBy,
     // Neither field is read by isHomeCarouselNeedsResults/homeCarouselPhase —
     // this door computes phase for the Game's own details page, not a

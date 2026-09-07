@@ -389,9 +389,7 @@ describe("gameById matchResultConfirmation (TEM-177)", () => {
       });
 
       const viewerA = await gameById(db, { gameId: game.id, userId: a.id });
-      expect(viewerA.matchResultConfirmation?.confirmedUserIds).toEqual([
-        a.id,
-      ]);
+      expect(viewerA.matchResultConfirmation?.confirmedUserIds).toEqual([a.id]);
       expect(viewerA.matchResultConfirmation?.requiredUserIds).toHaveLength(4);
       expect(viewerA.matchResultConfirmation?.viewerHasConfirmed).toBe(true);
 
@@ -409,8 +407,10 @@ describe("gameById ratingImpact (TEM-177)", () => {
     try {
       const windowStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
       const windowEnd = new Date(Date.now() - 60 * 60 * 1000);
-      const { game, matchId, sets, a, b, c, d } =
-        await setUpSeatedFriendlyGame(db, { windowStart, windowEnd });
+      const { game, matchId, sets, a, b, c, d } = await setUpSeatedFriendlyGame(
+        db,
+        { windowStart, windowEnd },
+      );
       const firstSet = sets[0];
       if (!firstSet) {
         throw new Error("Expected a Set shell");
