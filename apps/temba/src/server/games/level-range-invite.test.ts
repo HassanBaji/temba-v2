@@ -440,7 +440,7 @@ describe("Game Level range Lookup, Invite link, and promote", () => {
         return;
       }
       const fields = await loadGameInviteOpenGraph(db, minted.link.shortCode!);
-      expect(fields.description).toContain("Level C2–B3");
+      expect(fields.description).toContain("Level C–B");
       expect(fields.description).not.toMatch(/og-range-owner|5\.2/);
     } finally {
       await close();

@@ -88,7 +88,6 @@ function HomeColumn({
           ratedMatchesRemaining={fixture.level.ratedMatchesRemaining}
           history={fixture.level.history}
           progressPercent={fixture.level.progressPercent}
-          nextBand={fixture.level.nextBand}
         />
       ) : (
         <div className="border-rule bg-paper rounded-xl border p-[22px]">
