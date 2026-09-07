@@ -1,0 +1,209 @@
+import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
+
+import { EmptyState } from "~/components/common/empty-state";
+import { DashboardShell } from "~/components/dashboard-shell";
+import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
+import { createHomeFixtures, type HomeFixture } from "~/fixtures/home";
+
+function HatchSwatches() {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-title font-semibold">Hatch</h2>
+      <div className="flex flex-wrap gap-6">
+        <div className="space-y-2">
+          <div
+            aria-hidden="true"
+            className="hatch border-rule size-16 rounded-[5px] border"
+          />
+          <p className="text-muted-foreground text-meta">
+            Light hatch — not yet
+          </p>
+        </div>
+        <div className="bg-ink space-y-2 rounded-xl p-3">
+          <div
+            aria-hidden="true"
+            className="hatch hatch-on-ink size-16 rounded-[5px]"
+          />
+          <p className="text-dim text-meta">Black-surface hatch — not yet</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BlockScaffold({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-rule bg-paper rounded-xl border p-[22px]">
+      <p className="text-muted-foreground text-meta mb-3">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function HomeColumn({
+  title,
+  fixture,
+}: {
+  title: string;
+  fixture: HomeFixture;
+}) {
+  const nextGame = fixture.nextGame;
+
+  return (
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[26px]">
+      <h2 className="text-title font-semibold">{title}</h2>
+      <BlockScaffold label="Header">
+        <p className="text-lead font-semibold">{fixture.userName}</p>
+        <p className="text-muted-foreground text-meta">
+          {fixture.pendingInviteCount > 0
+            ? `${fixture.pendingInviteCount} invites waiting`
+            : fixture.bookedGameCount > 0
+              ? `${fixture.bookedGameCount} games booked`
+              : "No state line"}
+        </p>
+      </BlockScaffold>
+      {nextGame ? (
+        <div className="bg-ink text-paper rounded-xl p-[22px]">
+          <p className="text-dim text-meta mb-2">Next game</p>
+          <p className="font-expanded text-h2">{nextGame.venueName}</p>
+          <p className="text-dim text-meta">
+            {nextGame.phase} · {nextGame.formatLabel}
+          </p>
+        </div>
+      ) : (
+        <div className="border-rule bg-paper rounded-xl border p-[22px]">
+          <p className="font-semibold">No games booked</p>
+        </div>
+      )}
+      <BlockScaffold label="Coming up">
+        {fixture.comingUp.length === 0 ? (
+          <p className="text-muted-foreground text-meta">No later games</p>
+        ) : (
+          <ul className="text-meta space-y-2">
+            {fixture.comingUp.map((game) => (
+              <li key={game.id}>
+                {game.venueName} · {game.seatsTaken}/{game.seatsTotal}
+              </li>
+            ))}
+          </ul>
+        )}
+      </BlockScaffold>
+      <BlockScaffold label="Level">
+        {fixture.level.band && fixture.level.level ? (
+          <>
+            <p className="font-expanded text-h1">{fixture.level.band}</p>
+            <p className="text-meta">
+              Level {fixture.level.level}
+              {fixture.level.provisional ? " · Provisional" : " · Confirmed"}
+            </p>
+          </>
+        ) : (
+          <p className="text-meta">Declare prompt (no Rating)</p>
+        )}
+      </BlockScaffold>
+      <BlockScaffold label="Recent form">
+        <p className="text-meta">
+          {fixture.recentForm.length === 0
+            ? "Ten unplayed slots"
+            : fixture.recentForm.join(" · ")}
+        </p>
+      </BlockScaffold>
+      <BlockScaffold label="All time">
+        <p className="text-meta">
+          Played {fixture.gamesPlayed} · Won {fixture.gamesWon} · Lost{" "}
+          {fixture.gamesLost}
+        </p>
+      </BlockScaffold>
+      <BlockScaffold label="Standing">
+        {fixture.standing.length === 0 ? (
+          <p className="text-muted-foreground text-meta">No Groups</p>
+        ) : (
+          <ul className="text-meta space-y-2">
+            {fixture.standing.map((row) => (
+              <li key={row.groupId}>
+                {row.groupName} · #{row.position} of {row.memberCount}
+              </li>
+            ))}
+          </ul>
+        )}
+      </BlockScaffold>
+    </div>
+  );
+}
+
+function EmptyScaffolds({ fixture }: { fixture: HomeFixture }) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-title font-semibold">Empty states</h2>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <p className="text-muted-foreground text-meta">No games</p>
+          <EmptyState
+            title="No games booked"
+            description="Browse public pickup or create a Game."
+            action={<Button type="button">Create Game</Button>}
+            className="py-6"
+          />
+        </Card>
+        <Card>
+          <p className="text-muted-foreground text-meta">No Rating</p>
+          <EmptyState
+            title="Declare your Level"
+            description={
+              fixture.level.canSelfDeclare
+                ? "No Rating yet — the declare prompt hosts the existing dialog."
+                : "Cannot self-declare"
+            }
+            action={<Button type="button">Declare Level</Button>}
+            className="py-6"
+          />
+        </Card>
+        <Card>
+          <p className="text-muted-foreground text-meta">No games played</p>
+          <div className="flex gap-1 py-6">
+            {Array.from({ length: 10 }, (_, index) => (
+              <div
+                key={index}
+                aria-hidden="true"
+                className="hatch h-[38px] min-w-0 flex-1 rounded-[5px]"
+              />
+            ))}
+          </div>
+          <p className="text-muted-foreground text-meta text-center">
+            Played {fixture.gamesPlayed} · Won {fixture.gamesWon} · Lost{" "}
+            {fixture.gamesLost}
+          </p>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+export default function HomeDesignPreviewPage() {
+  if (process.env.NODE_ENV !== "development") {
+    notFound();
+  }
+
+  const { provisional, confirmed, empty } = createHomeFixtures();
+
+  return (
+    <DashboardShell title="Home preview" width="wide">
+      <div className="space-y-10">
+        <HatchSwatches />
+        <div className="grid items-start gap-10 lg:grid-cols-2">
+          <HomeColumn title="Provisional" fixture={provisional} />
+          <HomeColumn title="Confirmed" fixture={confirmed} />
+        </div>
+        <EmptyScaffolds fixture={empty} />
+      </div>
+    </DashboardShell>
+  );
+}
