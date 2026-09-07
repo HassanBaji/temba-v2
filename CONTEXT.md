@@ -201,8 +201,8 @@ Of a Group Game: that Group’s creator, and for a Club Group also Community Own
 _Avoid_: creator (when you mean this set), host, admin (when you mean this)
 
 **Game Level range**:
-Optional inclusive minimum and/or maximum Level band bounds (letterNumber D3–A) on a Game, stored as tenths. Both unset means no Level gate. Distinct from a User’s continuous Level.
-_Avoid_: rank range, ELO range, skill cap (when you mean this)
+Optional inclusive minimum and/or maximum Level band bounds (D–A) on a Game, stored as tenths. Both unset means no Level gate. Distinct from a User’s continuous Level.
+_Avoid_: rank range, ELO range, skill cap (when you mean this), letterNumber D3–A (stored thirds, not the product face)
 
 **Game Level range request**:
 A User asking Organizers to waive that Game’s Level range for themselves. Distinct from a Community join request and from Game admit. No message. No expiry.
@@ -233,12 +233,12 @@ The continuous 0.0–7.0 skill face derived from a Rating’s μ (one decimal in
 _Avoid_: rank, ELO, Level band (that is the discrete label)
 
 **Level band**:
-The discrete skill label D3–D2–D1–C3–C2–C1–B3–B2–B1–A (A highest) derived from Level with hysteresis.
-_Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO
+The discrete skill label D–D+–C–C+–B–B+–A–PRO (PRO highest) shown in the App, derived from Level with hysteresis. PRO is reserved for an elite override and is not assigned from Level.
+_Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
 UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling).
-_Avoid_: unranked, unrated (a User may already have a Level)
+_Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
 
 **Rated Match**:
 A completed, non-cancelled Match that produced rating events for the Users on its two Game teams.
