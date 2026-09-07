@@ -8,7 +8,10 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { admit as admitCommunityMember } from "~/server/community-membership";
-import { loadHome } from "~/server/api/routers/users/home";
+import {
+  loadHome,
+  summarizeCompletedMatchStats,
+} from "~/server/api/routers/users/home";
 import { acceptLookup, mintLookup } from "~/server/invites/doors";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
@@ -149,5 +152,55 @@ describe("loadHome pendingInviteCount", () => {
     } finally {
       await close();
     }
+  });
+});
+
+describe("summarizeCompletedMatchStats", () => {
+  const winSets = [{ slot1GamesWon: 6, slot2GamesWon: 4 }];
+  const lossSets = [{ slot1GamesWon: 4, slot2GamesWon: 6 }];
+  const drawSets = [
+    { slot1GamesWon: 6, slot2GamesWon: 4 },
+    { slot1GamesWon: 4, slot2GamesWon: 6 },
+  ];
+
+  it("counts a win as played and won, not lost", () => {
+    expect(
+      summarizeCompletedMatchStats([{ userSlot: 1, sets: winSets }]),
+    ).toEqual({
+      gamesPlayed: 1,
+      gamesWon: 1,
+      gamesLost: 0,
+      setsWon: 1,
+    });
+  });
+
+  it("counts a loss as played and lost, not won", () => {
+    expect(
+      summarizeCompletedMatchStats([{ userSlot: 1, sets: lossSets }]),
+    ).toEqual({
+      gamesPlayed: 1,
+      gamesWon: 0,
+      gamesLost: 1,
+      setsWon: 0,
+    });
+  });
+
+  it("counts a drawn Match as played but neither won nor lost", () => {
+    expect(
+      summarizeCompletedMatchStats([{ userSlot: 1, sets: drawSets }]),
+    ).toEqual({
+      gamesPlayed: 1,
+      gamesWon: 0,
+      gamesLost: 0,
+      setsWon: 1,
+    });
+    expect(
+      summarizeCompletedMatchStats([{ userSlot: 2, sets: drawSets }]),
+    ).toEqual({
+      gamesPlayed: 1,
+      gamesWon: 0,
+      gamesLost: 0,
+      setsWon: 1,
+    });
   });
 });

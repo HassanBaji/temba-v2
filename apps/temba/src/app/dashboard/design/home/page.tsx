@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
-import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { HomeAllTime } from "~/components/home/home-all-time";
 import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
 import { HomeLevelBlock } from "~/components/home/home-level-block";
 import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
 import { deriveRecentForm } from "~/components/home/home-recent-form";
 import { HomeRecentFormBlock } from "~/components/home/home-recent-form-row";
+import { HomeStanding } from "~/components/home/home-standing";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { createHomeFixtures, type HomeFixture } from "~/fixtures/home";
@@ -36,21 +37,6 @@ function HatchSwatches() {
         </div>
       </div>
     </section>
-  );
-}
-
-function BlockScaffold({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="border-rule bg-paper rounded-xl border p-[22px]">
-      <p className="text-muted-foreground text-meta mb-3">{label}</p>
-      {children}
-    </div>
   );
 }
 
@@ -120,25 +106,12 @@ function HomeColumn({
           })),
         )}
       />
-      <BlockScaffold label="All time">
-        <p className="text-meta">
-          Played {fixture.gamesPlayed} · Won {fixture.gamesWon} · Lost{" "}
-          {fixture.gamesLost}
-        </p>
-      </BlockScaffold>
-      <BlockScaffold label="Standing">
-        {fixture.standing.length === 0 ? (
-          <p className="text-muted-foreground text-meta">No Groups</p>
-        ) : (
-          <ul className="text-meta space-y-2">
-            {fixture.standing.map((row) => (
-              <li key={row.groupId}>
-                {row.groupName} · #{row.position} of {row.memberCount}
-              </li>
-            ))}
-          </ul>
-        )}
-      </BlockScaffold>
+      <HomeAllTime
+        gamesPlayed={fixture.gamesPlayed}
+        gamesWon={fixture.gamesWon}
+        gamesLost={fixture.gamesLost}
+      />
+      <HomeStanding rows={fixture.standing} />
     </div>
   );
 }
@@ -181,10 +154,11 @@ function EmptyScaffolds({ fixture }: { fixture: HomeFixture }) {
               />
             ))}
           </div>
-          <p className="text-muted-foreground text-meta text-center">
-            Played {fixture.gamesPlayed} · Won {fixture.gamesWon} · Lost{" "}
-            {fixture.gamesLost}
-          </p>
+          <HomeAllTime
+            gamesPlayed={fixture.gamesPlayed}
+            gamesWon={fixture.gamesWon}
+            gamesLost={fixture.gamesLost}
+          />
         </Card>
       </div>
     </section>

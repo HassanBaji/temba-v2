@@ -759,6 +759,7 @@ describe("Home carousel list", () => {
       expect(result.carouselGames[0]?.phase).toBe("upcoming");
       expect(result.gamesPlayed).toBe(0);
       expect(result.gamesWon).toBe(0);
+      expect(result.gamesLost).toBe(0);
       expect(result.setsWon).toBe(0);
 
       const hubIds = (await listMyGamesHubRows(db, viewer.id, NOW)).map(

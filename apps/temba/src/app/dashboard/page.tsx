@@ -4,13 +4,13 @@ import { useUser } from "@clerk/nextjs";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { HomeAllTime } from "~/components/home/home-all-time";
 import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
 import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
 import { HomeLevel } from "~/components/home/home-level-block";
 import { HomeRecentForm } from "~/components/home/home-recent-form-row";
-import { HomeStatsCard } from "~/components/home/home-stats-card";
-import { Section } from "~/components/layout/section";
+import { HomeStanding } from "~/components/home/home-standing";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
 import { flattenSidesToHomeSeats } from "~/lib/home-seats";
@@ -99,12 +99,12 @@ export default function HomePage() {
             />
             <HomeLevel />
             <HomeRecentForm />
-            <Section title="Your overall stats" className="min-w-0">
-              <HomeStatsCard
-                gamesPlayed={home.data.gamesPlayed}
-                gamesWon={home.data.gamesWon}
-              />
-            </Section>
+            <HomeAllTime
+              gamesPlayed={home.data.gamesPlayed}
+              gamesWon={home.data.gamesWon}
+              gamesLost={home.data.gamesLost}
+            />
+            <HomeStanding rows={home.data.standing} />
           </>
         ) : null}
       </div>
