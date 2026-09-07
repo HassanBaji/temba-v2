@@ -23,6 +23,7 @@ import { FriendlyGameResultsPanel } from "~/components/games/friendly-game-resul
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
+import { GameLineupSection } from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
@@ -515,6 +516,18 @@ export default function GameHomePage({
         side.left?.userId === data.viewerUserId ||
         side.right?.userId === data.viewerUserId,
     )?.gameTeamId ?? null;
+  // Line-up section's winning-team "Won" tag (game-details redesign,
+  // TEM-180): the Match's own Game-team id for whichever slot the outcome
+  // names, resolved once here rather than re-deriving it inside the section
+  // component. `null` on a draw/no-result outcome (no tag renders).
+  const winningGameTeamId =
+    data.phase === "final" && firstMatch
+      ? firstMatch.outcome.result === "slot1"
+        ? firstMatch.slot1GameTeamId
+        : firstMatch.outcome.result === "slot2"
+          ? firstMatch.slot2GameTeamId
+          : null
+      : null;
   const ctaFamily = usesFriendlyChrome
     ? friendlyGameCtaFamily({
         cancelled: Boolean(data.cancelledAt),
@@ -802,53 +815,22 @@ export default function GameHomePage({
         ) : null}
 
         {usesFriendlyChrome ? (
-          // Hero-only scope (game-details redesign, TEM-179): the tab bar
-          // and Overview tab are gone for this Game format, but the
-          // Line-up/Score sections that replace this stack (TEM-180/181)
-          // aren't built yet. This renders the existing Players/Results
-          // panels directly, without a tab wrapper, purely so the page still
-          // compiles and works — not a preview of the redesigned sections.
+          // Hero + Line-up scope (game-details redesign, TEM-179/TEM-180):
+          // the tab bar and Overview tab are gone for this Game format, and
+          // the Players tab content is replaced by the Line-up section
+          // below. The Score section that will finish replacing this stack
+          // (TEM-181) isn't built yet, so `FriendlyGameResultsPanel` still
+          // renders directly here, without a tab wrapper, purely so the
+          // page still compiles and works — not a preview of the
+          // redesigned Score section.
           <div className="space-y-6">
-            <GamePlayersPanel
-              game={data}
-              partnerQuery={partnerQuery}
-              selectedPartner={selectedPartner}
-              partnerSide={partnerSide}
-              partnerPosition={partnerPosition}
-              teamId={teamId}
-              partnerSearch={partnerSearch.data}
-              partnerSearchPending={partnerSearch.isFetching}
-              registerWithPartnerPending={registerWithPartner.isPending}
-              partnerError={registerWithPartner.error}
-              registerSeatPending={registerSeat.isPending}
-              moveSeatPending={moveSeat.isPending}
-              kickPending={kick.isPending}
-              registerTeamPending={registerTeam.isPending}
-              onPartnerQueryChange={setPartnerQuery}
-              onSelectedPartnerChange={setSelectedPartner}
-              onPartnerSideChange={setPartnerSide}
-              onPartnerPositionChange={setPartnerPosition}
-              onTeamIdChange={setTeamId}
-              onRegisterSeat={(input) =>
-                registerSeat.mutate({
-                  gameId: id,
-                  sideIndex: input?.sideIndex,
-                  position: input?.position,
-                })
-              }
-              onMoveSeat={(sideIndex, position) =>
-                moveSeat.mutate({ gameId: id, sideIndex, position })
-              }
-              onKick={(userId) => kick.mutate({ gameId: id, userId })}
-              onKickWaitlist={(waitlistId) =>
-                kick.mutate({ gameId: id, waitlistId })
-              }
-              onRegisterWithPartner={(input) =>
-                registerWithPartner.mutate({ gameId: id, ...input })
-              }
-              onRegisterTeam={(nextTeamId) =>
-                registerTeam.mutate({ gameId: id, teamId: nextTeamId })
-              }
+            <GameLineupSection
+              sides={data.sides}
+              viewerUserId={data.viewerUserId}
+              isFinal={data.phase === "final"}
+              winningGameTeamId={winningGameTeamId}
+              canMintInvite={canMintInvite}
+              onInvite={() => setInvitesOpen(true)}
             />
             <div ref={resultsSectionRef}>
               <FriendlyGameResultsPanel
