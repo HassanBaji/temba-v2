@@ -7,7 +7,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
 import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
-import { HomeRatingCard } from "~/components/home/home-rating-card";
+import { HomeLevel } from "~/components/home/home-level-block";
 import { HomeRecentFormCard } from "~/components/home/home-recent-form-card";
 import { HomeStatsCard } from "~/components/home/home-stats-card";
 import { Section } from "~/components/layout/section";
@@ -97,9 +97,7 @@ export default function HomePage() {
                 seatsTotal: game.playersAllowed ?? game.sides.length * 2,
               }))}
             />
-            <Section title="Your level" className="min-w-0">
-              <HomeRatingCard className="mt-2" />
-            </Section>
+            <HomeLevel />
             <Section title="Your recent form" className="min-w-0">
               <HomeRecentFormCard />
             </Section>

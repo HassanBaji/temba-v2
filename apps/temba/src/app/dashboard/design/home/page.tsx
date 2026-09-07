@@ -5,6 +5,7 @@ import { EmptyState } from "~/components/common/empty-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
+import { HomeLevelBlock } from "~/components/home/home-level-block";
 import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -91,19 +92,24 @@ function HomeColumn({
           seatsTotal: game.seatsTotal,
         }))}
       />
-      <BlockScaffold label="Level">
-        {fixture.level.band && fixture.level.level ? (
-          <>
-            <p className="font-expanded text-h1">{fixture.level.band}</p>
-            <p className="text-meta">
-              Level {fixture.level.level}
-              {fixture.level.provisional ? " · Provisional" : " · Confirmed"}
-            </p>
-          </>
-        ) : (
-          <p className="text-meta">Declare prompt (no Rating)</p>
-        )}
-      </BlockScaffold>
+      {fixture.level.band && fixture.level.level ? (
+        <HomeLevelBlock
+          band={fixture.level.band}
+          level={fixture.level.level}
+          provisional={fixture.level.provisional}
+          ratedMatchesRemaining={fixture.level.ratedMatchesRemaining}
+          history={fixture.level.history}
+          progressPercent={fixture.level.progressPercent}
+          nextBand={fixture.level.nextBand}
+        />
+      ) : (
+        <div className="border-rule bg-paper rounded-xl border p-[22px]">
+          <p className="text-lead font-semibold">Declare your Level</p>
+          <p className="text-muted-foreground text-meta mt-1">
+            No Rating yet — the declare prompt hosts the existing dialog.
+          </p>
+        </div>
+      )}
       <BlockScaffold label="Recent form">
         <p className="text-meta">
           {fixture.recentForm.length === 0
