@@ -4,11 +4,22 @@ import Link from "next/link";
 
 import { Button } from "~/components/ui/button";
 import {
+  friendlyGameLevelUpdatedLine,
+  friendlyGameVacantSeatLine,
   friendlyGameWaitlistLine,
   type FriendlyGameCtaFamily,
 } from "~/lib/friendly-game-cta";
 import { cn } from "~/lib/utils";
 
+/**
+ * Sticky bottom action bar (game-details redesign, TEM-183). Renders one of
+ * the three phase-driven states — Upcoming, Needs a score, Final — plus the
+ * pre-existing browse/waitlist/registration states, off a single
+ * `FriendlyGameCtaFamily` value. The viewer's own registration/seat status
+ * is stated here and nowhere else on the page (no `text-success` "You're
+ * playing" copy any more — that was green usage #2 being removed by this
+ * ticket).
+ */
 export function FriendlyGameCtaBar({
   family,
   joinPending,
@@ -16,8 +27,9 @@ export function FriendlyGameCtaBar({
   onJoin,
   onJoinWaitlist,
   onLeaveWaitlist,
-  onEnterScore,
+  onAddResult,
   onInvite,
+  onShareResult,
 }: {
   family: FriendlyGameCtaFamily;
   joinPending: boolean;
@@ -25,8 +37,9 @@ export function FriendlyGameCtaBar({
   onJoin: () => void;
   onJoinWaitlist: () => void;
   onLeaveWaitlist: () => void;
-  onEnterScore: () => void;
+  onAddResult: () => void;
   onInvite?: () => void;
+  onShareResult?: () => void;
 }) {
   if (family.kind === "none") {
     return null;
@@ -47,12 +60,6 @@ export function FriendlyGameCtaBar({
       {family.kind === "browse" ? (
         <Button asChild className="w-full">
           <Link href="/dashboard/games">Browse open games</Link>
-        </Button>
-      ) : null}
-
-      {family.kind === "enter_score" ? (
-        <Button type="button" className="w-full" onClick={onEnterScore}>
-          Enter score
         </Button>
       ) : null}
 
@@ -95,14 +102,57 @@ export function FriendlyGameCtaBar({
         </Button>
       ) : null}
 
-      {family.kind === "playing" ? (
+      {family.kind === "upcoming" ? (
         <div className="flex items-center gap-3">
-          <p className="text-body text-success min-w-0 flex-1 font-semibold">
-            You&apos;re playing
-          </p>
+          <div className="min-w-0 flex-1">
+            <p className="text-body font-semibold">You&apos;re in</p>
+            {friendlyGameVacantSeatLine(family.vacantSeatCount) ? (
+              <p className="text-muted-foreground text-meta">
+                {friendlyGameVacantSeatLine(family.vacantSeatCount)}
+              </p>
+            ) : null}
+          </div>
           {family.showInvite && onInvite ? (
             <Button type="button" className="shrink-0" onClick={onInvite}>
-              Invite
+              Invite a player
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {family.kind === "needs_score" ? (
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-body font-semibold">Add the score</p>
+            <p className="text-muted-foreground text-meta">
+              Counts once the others confirm
+            </p>
+          </div>
+          <Button type="button" className="shrink-0" onClick={onAddResult}>
+            Add result
+          </Button>
+        </div>
+      ) : null}
+
+      {family.kind === "final" ? (
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-body font-semibold">Level updated</p>
+            <p className="text-muted-foreground text-meta">
+              {friendlyGameLevelUpdatedLine(
+                family.newLevelBand,
+                family.newLevel,
+              )}
+            </p>
+          </div>
+          {onShareResult ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="shrink-0"
+              onClick={onShareResult}
+            >
+              Share result
             </Button>
           ) : null}
         </div>

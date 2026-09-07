@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import type { GameHomeTab } from "./game-home-tab";
 import {
   friendlyGameCanMintInvite,
   friendlyGameCtaFamily,
+  friendlyGameLevelUpdatedLine,
   friendlyGameOverflowItems,
+  friendlyGameVacantSeatLine,
   friendlyGameWaitlistLine,
   vacantJoinSeats,
   type FriendlyGameCtaInput,
@@ -17,8 +18,8 @@ function cta(
 ): FriendlyGameCtaInput {
   return {
     cancelled: false,
+    phase: null,
     canScoreSets: false,
-    tab: "overview",
     canWaitlist: false,
     isWaitlisted: false,
     waitlistPlace: null,
@@ -26,6 +27,8 @@ function cta(
     isSeated: false,
     isRegistered: false,
     canMintInvite: false,
+    vacantSeatCount: 0,
+    ratingImpact: null,
     ...overrides,
   };
 }
@@ -47,27 +50,89 @@ function overflow(
 }
 
 describe("friendlyGameCtaFamily", () => {
-  it("maps cancelled to Browse open games", () => {
+  it("maps cancelled to Browse open games regardless of phase", () => {
     assert.deepEqual(
       friendlyGameCtaFamily(
-        cta({ cancelled: true, canRegister: true, canScoreSets: true }),
+        cta({ cancelled: true, canRegister: true, phase: "final" }),
       ),
       { kind: "browse" },
     );
   });
 
-  it("maps Enter score off Results and hides it on Results", () => {
+  it("maps Upcoming phase for a seated viewer to You're in with vacancy and invite gating", () => {
     assert.deepEqual(
       friendlyGameCtaFamily(
-        cta({ canScoreSets: true, canRegister: true, tab: "players" }),
+        cta({ phase: "upcoming", isSeated: true, vacantSeatCount: 1 }),
       ),
-      { kind: "enter_score" },
+      { kind: "upcoming", vacantSeatCount: 1, showInvite: false },
     );
     assert.deepEqual(
       friendlyGameCtaFamily(
-        cta({ canScoreSets: true, canRegister: true, tab: "results" }),
+        cta({
+          phase: "upcoming",
+          isRegistered: true,
+          vacantSeatCount: 0,
+          canMintInvite: true,
+        }),
       ),
-      { kind: "join" },
+      { kind: "upcoming", vacantSeatCount: 0, showInvite: true },
+    );
+  });
+
+  it("collapses ongoing into the same Upcoming bar as upcoming", () => {
+    assert.deepEqual(
+      friendlyGameCtaFamily(
+        cta({ phase: "ongoing", isSeated: true, vacantSeatCount: 2 }),
+      ),
+      { kind: "upcoming", vacantSeatCount: 2, showInvite: false },
+    );
+  });
+
+  it("maps Needs a score phase with score permission to Add result", () => {
+    assert.deepEqual(
+      friendlyGameCtaFamily(
+        cta({
+          phase: "needs_results",
+          canScoreSets: true,
+          isSeated: true,
+        }),
+      ),
+      { kind: "needs_score" },
+    );
+  });
+
+  it("has no sticky CTA in Needs a score phase without score permission", () => {
+    assert.deepEqual(
+      friendlyGameCtaFamily(
+        cta({
+          phase: "needs_results",
+          canScoreSets: false,
+          isSeated: true,
+        }),
+      ),
+      { kind: "none" },
+    );
+  });
+
+  it("maps Final phase with a viewer rating impact to Level updated", () => {
+    assert.deepEqual(
+      friendlyGameCtaFamily(
+        cta({
+          phase: "final",
+          isSeated: true,
+          ratingImpact: { newLevelBand: "C2", newLevel: 2.9 },
+        }),
+      ),
+      { kind: "final", newLevelBand: "C2", newLevel: 2.9 },
+    );
+  });
+
+  it("has no sticky CTA in Final phase when the viewer has no rating impact", () => {
+    assert.deepEqual(
+      friendlyGameCtaFamily(
+        cta({ phase: "final", isSeated: true, ratingImpact: null }),
+      ),
+      { kind: "none" },
     );
   });
 
@@ -90,17 +155,6 @@ describe("friendlyGameCtaFamily", () => {
     });
   });
 
-  it("maps seated or registered to You're playing, with Invite when mint is allowed", () => {
-    assert.deepEqual(friendlyGameCtaFamily(cta({ isSeated: true })), {
-      kind: "playing",
-      showInvite: false,
-    });
-    assert.deepEqual(
-      friendlyGameCtaFamily(cta({ isRegistered: true, canMintInvite: true })),
-      { kind: "playing", showInvite: true },
-    );
-  });
-
   it("offers Join to an Organizer who is not seated when they may register", () => {
     assert.deepEqual(
       friendlyGameCtaFamily(cta({ canRegister: true, canMintInvite: true })),
@@ -111,10 +165,38 @@ describe("friendlyGameCtaFamily", () => {
   it("has no sticky CTA when closed, completed, or viewer-only", () => {
     assert.deepEqual(friendlyGameCtaFamily(cta()), { kind: "none" });
     assert.deepEqual(
-      friendlyGameCtaFamily(
-        cta({ tab: "results" as GameHomeTab, canScoreSets: false }),
-      ),
+      friendlyGameCtaFamily(cta({ isSeated: true, phase: null })),
       { kind: "none" },
+    );
+  });
+});
+
+describe("friendlyGameVacantSeatLine", () => {
+  it("is null when the court is full", () => {
+    assert.equal(friendlyGameVacantSeatLine(0), null);
+  });
+
+  it("singularizes exactly one spot", () => {
+    assert.equal(friendlyGameVacantSeatLine(1), "One spot left to fill");
+  });
+
+  it("pluralizes more than one spot", () => {
+    assert.equal(friendlyGameVacantSeatLine(3), "3 spots left to fill");
+  });
+});
+
+describe("friendlyGameLevelUpdatedLine", () => {
+  it("renders the display band remap, not the raw stored band", () => {
+    assert.equal(
+      friendlyGameLevelUpdatedLine("C2", 2.9),
+      "C · 2.9 after this game",
+    );
+  });
+
+  it("renders the collapsed-plus display rung for a plus-tier stored band", () => {
+    assert.equal(
+      friendlyGameLevelUpdatedLine("C1", 3.1),
+      "C+ · 3.1 after this game",
     );
   });
 });

@@ -41,6 +41,7 @@ import {
   friendlyGameCanMintInvite,
   friendlyGameCtaFamily,
   friendlyGameOverflowItems,
+  vacantJoinSeats,
 } from "~/lib/friendly-game-cta";
 import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
@@ -515,13 +516,6 @@ export default function GameHomePage({
   const primaryLeaveWaitlist = data.isWaitlisted;
   const firstMatch = data.matches[0];
   const canScoreSets = data.matches.some((match) => match.canScoreSets);
-  // The Friendly-chrome page has no tab control any more (game-details
-  // redesign, TEM-179) — the Score section always renders on the page, so
-  // `friendlyGameCtaFamily`'s "already on the results tab" suppression no
-  // longer applies. Passing a constant here (rather than the URL-derived
-  // `tab`) is the minimal fix; reworking the CTA family's shape around the
-  // new `phase` prop is TEM-183's sticky-bottom-bar scope, not this ticket's.
-  const friendlyCtaTab: typeof tab = "overview";
   const viewerGameTeamId =
     data.sides.find(
       (side) =>
@@ -543,8 +537,8 @@ export default function GameHomePage({
   const ctaFamily = usesFriendlyChrome
     ? friendlyGameCtaFamily({
         cancelled: Boolean(data.cancelledAt),
+        phase: data.phase,
         canScoreSets,
-        tab: friendlyCtaTab,
         canWaitlist: data.canWaitlist,
         isWaitlisted: data.isWaitlisted,
         waitlistPlace: data.waitlistPlace,
@@ -552,6 +546,8 @@ export default function GameHomePage({
         isSeated: data.isSeated,
         isRegistered: data.isRegistered,
         canMintInvite,
+        vacantSeatCount: vacantJoinSeats(data.sides).length,
+        ratingImpact: data.ratingImpact,
       })
     : { kind: "none" as const };
   const overflowItems = usesFriendlyChrome
@@ -805,15 +801,25 @@ export default function GameHomePage({
               onJoin={() => setJoinPickerOpen(true)}
               onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
               onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
-              onEnterScore={() =>
+              onAddResult={() =>
                 resultsSectionRef.current?.scrollIntoView({
                   behavior: "smooth",
                   block: "start",
                 })
               }
               onInvite={
-                ctaFamily.kind === "playing" && ctaFamily.showInvite
+                ctaFamily.kind === "upcoming" && ctaFamily.showInvite
                   ? () => setInvitesOpen(true)
+                  : undefined
+              }
+              onShareResult={
+                ctaFamily.kind === "final"
+                  ? () => {
+                      void navigator.clipboard.writeText(
+                        window.location.href,
+                      );
+                      toast.success("Link copied");
+                    }
                   : undefined
               }
             />
