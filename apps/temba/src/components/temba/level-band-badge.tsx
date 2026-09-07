@@ -1,5 +1,5 @@
 import { Badge } from "~/components/ui/badge";
-import { type LevelBand } from "~/lib/level-bands";
+import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { cn } from "~/lib/utils";
 
 /** Monochrome D → A ramp: lightest gray for D, black (primary) for A. */
@@ -11,14 +11,15 @@ const BAND_GROUP_STYLES: Record<string, string> = {
 };
 
 export function LevelBandBadge({ band }: { band: LevelBand }) {
-  const group = band.charAt(0);
+  const label = displayLabelFromStoredBand(band);
+  const group = label.charAt(0);
   return (
     <Badge
       variant="outline"
-      aria-label={`Level band ${band}`}
+      aria-label={`Level band ${label}`}
       className={cn(BAND_GROUP_STYLES[group])}
     >
-      {band}
+      {label}
     </Badge>
   );
 }

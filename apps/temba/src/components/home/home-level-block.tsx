@@ -15,7 +15,12 @@ import {
   plottedFraction,
 } from "~/lib/home-level-chart";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import type { LevelBand, SelfDeclareChoice } from "~/lib/level-bands";
+import {
+  displayLabelFromStoredBand,
+  nextDistinctDisplayRung,
+  type LevelBand,
+  type SelfDeclareChoice,
+} from "~/lib/level-bands";
 import { api } from "~/trpc/react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
@@ -30,7 +35,6 @@ export function HomeLevelBlock({
   ratedMatchesRemaining,
   history,
   progressPercent,
-  nextBand,
 }: {
   band: LevelBand;
   level: string;
@@ -38,7 +42,6 @@ export function HomeLevelBlock({
   ratedMatchesRemaining: number;
   history: string[];
   progressPercent: number | null;
-  nextBand: LevelBand | null;
 }) {
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
@@ -70,7 +73,9 @@ export function HomeLevelBlock({
   const chartLabel = provisional
     ? `Level over ${played} rated matches; not yet confirmed`
     : `Level over ${played} rated matches`;
-  const atTopBand = nextBand == null;
+  const displayBand = displayLabelFromStoredBand(band);
+  const displayNext = nextDistinctDisplayRung(band);
+  const atTopBand = displayNext == null;
   const fillPercent = Math.min(100, Math.max(0, progressPercent ?? 0));
 
   return (
@@ -185,7 +190,7 @@ export function HomeLevelBlock({
       ) : (
         <div className="border-rule space-y-2 border-t p-[22px]">
           <p className="text-muted-foreground text-meta">
-            {fillPercent}% of the way to {nextBand}
+            {fillPercent}% of the way to {displayNext}
           </p>
           <div
             aria-hidden="true"
@@ -318,7 +323,6 @@ export function HomeLevel() {
       ratedMatchesRemaining={me.data.rating.ratedMatchesRemaining}
       history={me.data.history}
       progressPercent={me.data.progressPercent}
-      nextBand={me.data.nextBand}
     />
   );
 }

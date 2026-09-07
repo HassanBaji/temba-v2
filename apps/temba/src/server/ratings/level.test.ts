@@ -1,12 +1,58 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  selfDeclareChoiceFromDisplay,
+  storedBandFromDisplayLabel,
+} from "~/lib/level-bands";
+
+import {
+  BAND_MIDPOINTS,
   INITIAL_PHI,
   PROVISIONAL_PHI_THRESHOLD,
   RATED_MATCHES_TO_CONFIRM,
+  bandFromLevel,
+  bandWithHysteresis,
+  initialRatingFromChoice,
+  levelFromMu,
   progressToNextBand,
   ratedMatchesRemainingToConfirm,
 } from "./level";
+
+describe("bandFromLevel", () => {
+  it("still uses stored D3…A, not display letters", () => {
+    expect(bandFromLevel(0.35)).toBe("D3");
+    expect(bandFromLevel(1.05)).toBe("D2");
+    expect(bandFromLevel(2.45)).toBe("C3");
+    expect(bandFromLevel(3.15)).toBe("C2");
+    expect(bandFromLevel(6.65)).toBe("A");
+    expect(bandFromLevel(3.15)).not.toBe("C");
+  });
+
+  it("keeps hysteresis on the stored 0.7 table", () => {
+    expect(bandWithHysteresis(2.75, "C2")).toBe("C2");
+    expect(bandWithHysteresis(3.55, "C2")).toBe("C2");
+    expect(bandWithHysteresis(2.7, "C2")).toBe("C3");
+    expect(bandWithHysteresis(3.6, "C2")).toBe("C1");
+  });
+});
+
+describe("self-declare write-down midpoints", () => {
+  it("keeps unknown as C2 / 3.0 and display picks as stored midpoints", () => {
+    const unknown = initialRatingFromChoice(
+      selfDeclareChoiceFromDisplay("unknown"),
+    );
+    expect(unknown.levelBand).toBe("C2");
+    expect(levelFromMu(unknown.mu)).toBe(3.0);
+
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("D")]).toBe(0.35);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("D+")]).toBe(1.75);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("C")]).toBe(2.45);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("C+")]).toBe(3.85);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B")]).toBe(4.55);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B+")]).toBe(5.95);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("A")]).toBe(6.65);
+  });
+});
 
 describe("progressToNextBand", () => {
   it("returns mid-band progress toward the next Level band", () => {

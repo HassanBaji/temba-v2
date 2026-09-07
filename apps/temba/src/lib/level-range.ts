@@ -1,11 +1,20 @@
-import { LEVEL_BANDS, type LevelBand } from "~/lib/level-bands";
+import {
+  displayLabelFromStoredBand,
+  isAssignableDisplayLevelBand,
+  LEVEL_BANDS,
+  type AssignableDisplayLevelBand,
+  type LevelBand,
+} from "~/lib/level-bands";
 
 export const LEVEL_TENTHS_MIN = 0;
 export const LEVEL_TENTHS_MAX = 70;
 
 export const LEVEL_BAND_SELECT_NONE = "none" as const;
 
-export type LevelBandSelectValue = LevelBand | typeof LEVEL_BAND_SELECT_NONE;
+export type LevelBandSelectValue =
+  | LevelBand
+  | AssignableDisplayLevelBand
+  | typeof LEVEL_BAND_SELECT_NONE;
 
 /** Inclusive displayed tenths at the lower edge of each Level band. */
 export const LEVEL_BAND_MIN_TENTHS: Record<LevelBand, number> = {
@@ -151,7 +160,19 @@ export function tenthsToLevelBandSelectValue(
   if (tenths == null) {
     return LEVEL_BAND_SELECT_NONE;
   }
-  return tenthsToLevelBand(tenths);
+  return displayLabelFromStoredBand(tenthsToLevelBand(tenths));
+}
+
+function displayTenthsForBound(
+  label: AssignableDisplayLevelBand,
+  bound: "min" | "max",
+): number {
+  const tenths = LEVEL_BANDS.filter(
+    (band) => displayLabelFromStoredBand(band) === label,
+  ).map((band) =>
+    bound === "min" ? LEVEL_BAND_MIN_TENTHS[band] : LEVEL_BAND_MAX_TENTHS[band],
+  );
+  return bound === "min" ? Math.min(...tenths) : Math.max(...tenths);
 }
 
 export function parseLevelBandSelectTenths(
@@ -162,12 +183,15 @@ export function parseLevelBandSelectTenths(
   if (trimmed === "" || trimmed === LEVEL_BAND_SELECT_NONE) {
     return null;
   }
-  if (!isLevelBand(trimmed)) {
-    return null;
+  if (isAssignableDisplayLevelBand(trimmed)) {
+    return displayTenthsForBound(trimmed, bound);
   }
-  return bound === "min"
-    ? LEVEL_BAND_MIN_TENTHS[trimmed]
-    : LEVEL_BAND_MAX_TENTHS[trimmed];
+  if (isLevelBand(trimmed)) {
+    return bound === "min"
+      ? LEVEL_BAND_MIN_TENTHS[trimmed]
+      : LEVEL_BAND_MAX_TENTHS[trimmed];
+  }
+  return null;
 }
 
 export const LEVEL_RANGE_OUTSIDE_MESSAGE =
@@ -193,28 +217,32 @@ export function formatLevelRangeGateCopy(args: {
   const range =
     formatLevelRangeLabel(args.levelMinTenths, args.levelMaxTenths) ??
     "this Game's range";
-  return `This Game is for ${range}. Your Level is ${tenthsToLevelBand(args.viewerLevelTenths)}.`;
+  return `This Game is for ${range}. Your Level is ${displayLabelFromStoredBand(tenthsToLevelBand(args.viewerLevelTenths))}.`;
 }
 
 export function formatLevelRangeLabel(
   levelMinTenths: number | null | undefined,
   levelMaxTenths: number | null | undefined,
 ): string | null {
-  const minBand =
-    levelMinTenths == null ? null : tenthsToLevelBand(levelMinTenths);
-  const maxBand =
-    levelMaxTenths == null ? null : tenthsToLevelBand(levelMaxTenths);
-  if (minBand && maxBand) {
-    if (minBand === maxBand) {
-      return `Level ${minBand}`;
+  const minLabel =
+    levelMinTenths == null
+      ? null
+      : displayLabelFromStoredBand(tenthsToLevelBand(levelMinTenths));
+  const maxLabel =
+    levelMaxTenths == null
+      ? null
+      : displayLabelFromStoredBand(tenthsToLevelBand(levelMaxTenths));
+  if (minLabel && maxLabel) {
+    if (minLabel === maxLabel) {
+      return `Level ${minLabel}`;
     }
-    return `Level ${minBand}–${maxBand}`;
+    return `Level ${minLabel}–${maxLabel}`;
   }
-  if (minBand) {
-    return `Level ${minBand}+`;
+  if (minLabel) {
+    return `Level ${minLabel} and up`;
   }
-  if (maxBand) {
-    return `Level ${maxBand} and under`;
+  if (maxLabel) {
+    return `Level ${maxLabel} and under`;
   }
   return null;
 }

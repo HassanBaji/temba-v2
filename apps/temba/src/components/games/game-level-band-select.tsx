@@ -7,9 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { LEVEL_BANDS } from "~/lib/level-bands";
 import {
-  isLevelBand,
+  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
+  isAssignableDisplayLevelBand,
+} from "~/lib/level-bands";
+import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
 } from "~/lib/level-range";
@@ -31,7 +33,10 @@ export function GameLevelBandSelect({
     <Select
       value={value}
       onValueChange={(next) => {
-        if (next === LEVEL_BAND_SELECT_NONE || isLevelBand(next)) {
+        if (
+          next === LEVEL_BAND_SELECT_NONE ||
+          isAssignableDisplayLevelBand(next)
+        ) {
           onValueChange(next);
         }
       }}
@@ -46,7 +51,7 @@ export function GameLevelBandSelect({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={LEVEL_BAND_SELECT_NONE}>None</SelectItem>
-        {LEVEL_BANDS.map((band) => (
+        {ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => (
           <SelectItem key={band} value={band}>
             {band}
           </SelectItem>
