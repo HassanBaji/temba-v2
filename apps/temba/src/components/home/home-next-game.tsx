@@ -59,10 +59,14 @@ export function HomeNextGame({
     <article className="bg-ink text-paper rounded-xl p-[22px]">
       <div className="text-dim text-meta flex items-start justify-between gap-3">
         <p className="min-w-0 truncate">{venueName}</p>
-        {status ? <p className="shrink-0 tabular-nums">{status}</p> : null}
+        {status ? (
+          <p className="min-w-[11ch] shrink-0 text-right tabular-nums">
+            {status}
+          </p>
+        ) : null}
       </div>
       <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
-        <span className="font-expanded text-[56px] leading-none">
+        <span className="font-expanded text-[56px] tabular-nums leading-none">
           {kickoff.time}
         </span>
         <span className="text-dim text-[20px] leading-none">

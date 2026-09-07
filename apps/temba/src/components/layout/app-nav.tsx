@@ -13,35 +13,42 @@ export const APP_NAV_SLOTS: AppNavItem[] = [
   {
     title: "Home",
     href: "/dashboard",
-    icon: <House />,
+    icon: <House className="size-[21px]" aria-hidden="true" />,
     match: "exact",
     slot: "home",
   },
   {
     title: "Games",
     href: "/dashboard/games",
-    icon: <Field />,
+    icon: (
+      <Field
+        className="size-[21px]"
+        width={21}
+        height={21}
+        aria-hidden="true"
+      />
+    ),
     match: "prefix",
     slot: "games",
   },
   {
     title: "Groups",
     href: "/dashboard/groups",
-    icon: <Users />,
+    icon: <Users className="size-[21px]" aria-hidden="true" />,
     match: "prefix",
     slot: "groups",
   },
   {
     title: "Communities",
     href: "/dashboard/communities",
-    icon: <Building2 />,
+    icon: <Building2 className="size-[21px]" aria-hidden="true" />,
     match: "prefix",
     slot: "communities",
   },
   {
     title: "You",
     href: "/dashboard/you",
-    icon: <CircleUser />,
+    icon: <CircleUser className="size-[21px]" aria-hidden="true" />,
     match: "prefix",
     slot: "you",
   },

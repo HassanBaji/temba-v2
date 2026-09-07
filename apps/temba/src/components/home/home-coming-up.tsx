@@ -56,6 +56,7 @@ export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
                   {bars.map((kind, index) => (
                     <span
                       key={`${game.id}-${index}`}
+                      aria-hidden="true"
                       className={cn(
                         "h-full w-1 rounded-sm",
                         kind === "taken" ? "bg-ink" : "hatch",
@@ -66,7 +67,9 @@ export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
                 <span className="sr-only">
                   {open === 0
                     ? "All seats filled"
-                    : `${open} open ${open === 1 ? "seat" : "seats"}`}
+                    : open === 1
+                      ? "Open seat"
+                      : `${open} open seats`}
                 </span>
               </Link>
             </li>

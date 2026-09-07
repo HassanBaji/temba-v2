@@ -111,7 +111,7 @@ export function HomeLevelBlock({
               height={HOME_CHART_HEIGHT}
               aria-hidden="true"
             >
-              <div className="hatch h-full w-full" />
+              <div aria-hidden="true" className="hatch h-full w-full" />
             </foreignObject>
           ) : null}
           {line ? (
@@ -174,6 +174,7 @@ export function HomeLevelBlock({
             {fillPercent}% of the way to {nextBand}
           </p>
           <div
+            aria-hidden="true"
             className={
               provisional
                 ? "hatch h-2 w-full overflow-hidden rounded-full"
@@ -209,7 +210,7 @@ export function HomeLevelBlock({
           </p>
         ) : (
           <p>
-            <span className="font-semibold">Level confirmed.</span> Your rating
+            <span className="font-semibold">Level confirmed.</span> Your Level
             now moves with every rated game you play.
           </p>
         )}

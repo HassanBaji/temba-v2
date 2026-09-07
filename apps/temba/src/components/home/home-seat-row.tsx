@@ -39,16 +39,26 @@ export function HomeSeatRow({ seats }: { seats: HomeSeatView[] }) {
             <div
               key={seat.id}
               className={cn(
-                "flex h-[52px] min-w-0 flex-1 flex-col items-center justify-center rounded-[5px]",
-                seat.filled ? "bg-raised" : "hatch-on-ink hatch",
+                "relative flex h-[52px] min-w-0 flex-1 flex-col items-center justify-center rounded-[5px]",
+                seat.filled ? "bg-raised" : null,
               )}
             >
               {seat.filled ? (
-                <span className="text-paper text-meta truncate px-1">
-                  {caption}
-                </span>
+                <>
+                  <span className="sr-only">{seat.name ?? "Filled seat"}</span>
+                  <span
+                    aria-hidden="true"
+                    className="text-paper text-meta truncate px-1"
+                  >
+                    {caption}
+                  </span>
+                </>
               ) : (
                 <>
+                  <span
+                    aria-hidden="true"
+                    className="hatch hatch-on-ink absolute inset-0 rounded-[5px]"
+                  />
                   <span aria-hidden="true" className="text-paper text-lead">
                     +
                   </span>
