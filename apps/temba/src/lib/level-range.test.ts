@@ -124,20 +124,20 @@ describe("parseLevelBandSelectTenths", () => {
     expect(parseLevelBandSelectTenths("  ", "max")).toBeNull();
   });
 
-  it("persists a min band's lower tenths and a max band's upper tenths", () => {
-    expect(parseLevelBandSelectTenths("C3", "min")).toBe(21);
-    expect(parseLevelBandSelectTenths("C1", "max")).toBe(41);
-    expect(parseLevelBandSelectTenths("C1", "min")).toBe(35);
-    expect(parseLevelBandSelectTenths("C3", "max")).toBe(27);
-    expect(parseLevelBandSelectTenths("D3", "min")).toBe(0);
+  it("round-trips display rungs to inclusive tenths", () => {
+    expect(parseLevelBandSelectTenths("D", "min")).toBe(0);
+    expect(parseLevelBandSelectTenths("D", "max")).toBe(13);
+    expect(parseLevelBandSelectTenths("C+", "min")).toBe(35);
+    expect(parseLevelBandSelectTenths("C+", "max")).toBe(41);
+    expect(parseLevelBandSelectTenths("A", "min")).toBe(63);
     expect(parseLevelBandSelectTenths("A", "max")).toBe(70);
   });
 
-  it("makes min C1 + max C3 inverted on tenths (C1 is above C3)", () => {
-    const minTenths = parseLevelBandSelectTenths("C1", "min");
-    const maxTenths = parseLevelBandSelectTenths("C3", "max");
+  it("makes min C+ + max C inverted on tenths", () => {
+    const minTenths = parseLevelBandSelectTenths("C+", "min");
+    const maxTenths = parseLevelBandSelectTenths("C", "max");
     expect(minTenths).toBe(35);
-    expect(maxTenths).toBe(27);
+    expect(maxTenths).toBe(34);
     expect(
       minTenths != null && maxTenths != null && minTenths > maxTenths,
     ).toBe(true);
@@ -145,13 +145,14 @@ describe("parseLevelBandSelectTenths", () => {
 });
 
 describe("tenthsToLevelBandSelectValue", () => {
-  it("prefills None when unset and the Level band otherwise", () => {
+  it("prefills None when unset and display rungs otherwise", () => {
     expect(tenthsToLevelBandSelectValue(null)).toBe("none");
     expect(tenthsToLevelBandSelectValue(undefined)).toBe("none");
-    expect(tenthsToLevelBandSelectValue(0)).toBe("D3");
-    expect(tenthsToLevelBandSelectValue(21)).toBe("C3");
-    expect(tenthsToLevelBandSelectValue(41)).toBe("C1");
-    expect(tenthsToLevelBandSelectValue(30)).toBe("C2");
+    expect(tenthsToLevelBandSelectValue(0)).toBe("D");
+    expect(tenthsToLevelBandSelectValue(7)).toBe("D");
+    expect(tenthsToLevelBandSelectValue(14)).toBe("D+");
+    expect(tenthsToLevelBandSelectValue(30)).toBe("C");
+    expect(tenthsToLevelBandSelectValue(35)).toBe("C+");
   });
 });
 
@@ -161,18 +162,22 @@ describe("formatLevelRangeLabel", () => {
     expect(formatLevelRangeLabel(undefined, undefined)).toBeNull();
   });
 
-  it("formats min and max, min-only, and max-only as Level bands", () => {
-    expect(formatLevelRangeLabel(21, 41)).toBe("Level C3–C1");
-    expect(formatLevelRangeLabel(21, null)).toBe("Level C3+");
-    expect(formatLevelRangeLabel(null, 41)).toBe("Level C1 and under");
-    expect(formatLevelRangeLabel(30, 45)).toBe("Level C2–B3");
-    expect(formatLevelRangeLabel(30, null)).toBe("Level C2+");
-    expect(formatLevelRangeLabel(null, 45)).toBe("Level B3 and under");
+  it("formats min and max, min-only, and max-only as display labels", () => {
+    expect(formatLevelRangeLabel(21, 41)).toBe("Level C–C+");
+    expect(formatLevelRangeLabel(21, 34)).toBe("Level C");
+    expect(formatLevelRangeLabel(21, null)).toBe("Level C and up");
+    expect(formatLevelRangeLabel(null, 41)).toBe("Level C+ and under");
+    expect(formatLevelRangeLabel(30, 45)).toBe("Level C–B");
+    expect(formatLevelRangeLabel(null, 45)).toBe("Level B and under");
   });
 
-  it("collapses the same min and max band to one label", () => {
-    expect(formatLevelRangeLabel(35, 41)).toBe("Level C1");
-    expect(formatLevelRangeLabel(30, 32)).toBe("Level C2");
+  it("collapses the same display min and max to one letter and never writes D++", () => {
+    expect(formatLevelRangeLabel(35, 41)).toBe("Level C+");
+    expect(formatLevelRangeLabel(30, 32)).toBe("Level C");
+    expect(formatLevelRangeLabel(0, null)).toBe("Level D and up");
+    expect(formatLevelRangeLabel(14, null)).toBe("Level D+ and up");
+    expect(formatLevelRangeLabel(0, null)).not.toBe("Level D+");
+    expect(formatLevelRangeLabel(14, null)).not.toContain("D++");
   });
 });
 
@@ -205,14 +210,14 @@ describe("formatLevelRangeGateCopy", () => {
         levelMaxTenths: 45,
         viewerLevelTenths: 52,
       }),
-    ).toBe("This Game is for Level C2–B3. Your Level is B2.");
+    ).toBe("This Game is for Level C–B. Your Level is B.");
     expect(
       formatLevelRangeGateCopy({
         levelMinTenths: 21,
         levelMaxTenths: 41,
         viewerLevelTenths: 52,
       }),
-    ).toBe("This Game is for Level C3–C1. Your Level is B2.");
+    ).toBe("This Game is for Level C–C+. Your Level is B.");
     expect(
       formatLevelRangeGateCopy({
         levelMinTenths: 30,
