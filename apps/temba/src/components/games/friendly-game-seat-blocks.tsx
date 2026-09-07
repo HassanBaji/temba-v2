@@ -71,35 +71,34 @@ function FriendlySeatRow({
       isViewer,
     });
     return (
-      <ListRow
-        leading={
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <UserAvatar name={occupant.name} image={occupant.image} size="lg" />
-        }
-        title={
-          <>
-            {occupant.name}
-            {isViewer ? (
-              <Badge variant="outline" className="ml-2 align-middle">
-                You
-              </Badge>
-            ) : null}
-          </>
-        }
-        subtitle={positionLabel}
-        trailing={
-          canKick ? (
-            <ActionMenu label={`Actions for ${occupant.name}`}>
-              <ActionMenuItem
-                variant="destructive"
-                disabled={kickPending}
-                onClick={() => onKick(occupant.userId)}
-              >
-                Kick
-              </ActionMenuItem>
-            </ActionMenu>
-          ) : undefined
-        }
-      />
+
+          {
+            <>
+              {occupant.name}
+              {isViewer ? (
+                <Badge variant="outline" className="ml-2 align-middle">
+                  You
+                </Badge>
+              ) : null}
+            </>
+          }
+        </div>
+
+        {canKick ? (
+          <ActionMenu label={`Actions for ${occupant.name}`}>
+            <ActionMenuItem
+              variant="destructive"
+              disabled={kickPending}
+              onClick={() => onKick(occupant.userId)}
+            >
+              Kick
+            </ActionMenuItem>
+          </ActionMenu>
+        ) : undefined}
+      </div>
     );
   }
 
@@ -184,18 +183,14 @@ export function FriendlyGameSeatBlocks({
         const fill = friendlyGameSideFill(side);
         const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
         return (
-          <Card
-            key={side.sideIndex}
-            variant="outlined"
-            className="gap-0 overflow-hidden p-0 md:p-0"
-          >
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <h3 className="text-title font-medium">{sideLabel}</h3>
+          <div key={side.sideIndex} className="gap-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-2">
+              <h3 className="text-sm font-medium">{sideLabel}</h3>
               <p className="text-meta text-muted-foreground tabular-nums">
                 {fill.label}
               </p>
             </div>
-            <RowList>
+            <div className="mt-2 flex flex-col gap-2 px-4">
               <FriendlySeatRow
                 sideLabel={sideLabel}
                 positionLabel="Left"
@@ -226,8 +221,8 @@ export function FriendlyGameSeatBlocks({
                 onMove={() => onMove(side.sideIndex, "right")}
                 onKick={onKick}
               />
-            </RowList>
-          </Card>
+            </div>
+          </div>
         );
       })}
     </div>
