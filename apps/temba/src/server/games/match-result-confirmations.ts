@@ -87,6 +87,35 @@ export async function matchResultConfirmedUserIds(
   return confirmations.map((row) => row.userId);
 }
 
+/**
+ * The moment a Match's confirmations were completed: the latest `confirmedAt`
+ * among its confirmation rows. `runMatchCompletionEffect` completes and rates
+ * a Match in the same transaction as the confirmation that reaches the
+ * required count (ADR-0011), so once a Match is `completed`, this timestamp
+ * is that completion moment. `null` when the Match has no confirmation rows
+ * yet. Read-only additive helper (game-details redesign, TEM-181) — no new
+ * table, just an existing column already written by
+ * `recordMatchResultConfirmation`.
+ */
+export async function matchResultConfirmationCompletedAt(
+  database: DbClient,
+  matchId: string,
+): Promise<Date | null> {
+  const confirmations = await database.query.matchResultConfirmations.findMany(
+    {
+      where: eq(matchResultConfirmations.matchId, matchId),
+      columns: { confirmedAt: true },
+    },
+  );
+  if (confirmations.length === 0) {
+    return null;
+  }
+  return confirmations.reduce<Date>(
+    (latest, row) => (row.confirmedAt > latest ? row.confirmedAt : latest),
+    confirmations[0]!.confirmedAt,
+  );
+}
+
 /** Whether every seated User on the Match's two Game teams has confirmed. */
 export async function matchResultFullyConfirmed(
   database: DbClient,

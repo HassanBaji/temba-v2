@@ -441,6 +441,10 @@ describe("gameById ratingImpact (TEM-177)", () => {
       expect(afterFinal.matchResultConfirmation?.confirmedUserIds).toHaveLength(
         4,
       );
+      expect(afterFinal.matchResultConfirmation?.confirmedAt).toBeInstanceOf(
+        Date,
+      );
+      expect(beforeFinal.matchResultConfirmation?.confirmedAt).toBeNull();
       expect(afterFinal.ratingImpact?.newLevel).toBeGreaterThan(3);
       expect(afterFinal.ratingImpact?.levelChange).toBeGreaterThan(0);
       expect(afterFinal.ratingImpact?.isProvisional).toBe(true);

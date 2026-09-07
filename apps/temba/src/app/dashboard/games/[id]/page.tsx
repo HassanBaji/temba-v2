@@ -19,7 +19,6 @@ import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
-import { FriendlyGameResultsPanel } from "~/components/games/friendly-game-results-panel";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
@@ -27,6 +26,7 @@ import { GameLineupSection } from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
+import { GameScoreSection } from "~/components/games/game-score-section";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
@@ -336,6 +336,17 @@ export default function GameHomePage({
   const completeMatch = api.games.completeMatch.useMutation({
     onSuccess: async () => {
       toast.success("Match completed");
+      await refreshGame();
+      await utils.ratings.me.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const confirmMatchResult = api.games.confirmMatchResult.useMutation({
+    onSuccess: async () => {
+      toast.success("Result confirmed");
       await refreshGame();
       await utils.ratings.me.invalidate();
     },
@@ -815,14 +826,12 @@ export default function GameHomePage({
         ) : null}
 
         {usesFriendlyChrome ? (
-          // Hero + Line-up scope (game-details redesign, TEM-179/TEM-180):
-          // the tab bar and Overview tab are gone for this Game format, and
-          // the Players tab content is replaced by the Line-up section
-          // below. The Score section that will finish replacing this stack
-          // (TEM-181) isn't built yet, so `FriendlyGameResultsPanel` still
-          // renders directly here, without a tab wrapper, purely so the
-          // page still compiles and works — not a preview of the
-          // redesigned Score section.
+          // Hero + Line-up + Score scope (game-details redesign,
+          // TEM-179/TEM-180/TEM-181): the tab bar and Overview tab are gone
+          // for this Game format, the Players tab content is replaced by
+          // the Line-up section, and the Results tab content is replaced by
+          // the Score section below — no organiser/destructive actions
+          // inside it (that footer is TEM-184's scope, not built yet).
           <div className="space-y-6">
             <GameLineupSection
               sides={data.sides}
@@ -832,38 +841,35 @@ export default function GameHomePage({
               canMintInvite={canMintInvite}
               onInvite={() => setInvitesOpen(true)}
             />
-            <div ref={resultsSectionRef}>
-              <FriendlyGameResultsPanel
-                matches={data.matches}
-                gameTeams={data.gameTeams}
-                isOrganizer={data.isOrganizer}
-                cancelled={Boolean(data.cancelledAt)}
-                courts={courts.data ?? []}
-                scorePending={scoreSet.isPending}
-                completePending={completeMatch.isPending}
-                cancelPending={cancelMatch.isPending}
-                onScoreSet={(input) =>
-                  scoreSet.mutateAsync({
-                    gameId: id,
-                    matchId: input.matchId,
-                    setId: input.setId,
-                    slot1GamesWon: input.slot1GamesWon,
-                    slot2GamesWon: input.slot2GamesWon,
-                  })
-                }
-                onComplete={(matchId) =>
-                  completeMatch.mutate({ gameId: id, matchId })
-                }
-                onUpdateCourt={(input) =>
-                  updateMatch.mutate({
-                    gameId: id,
-                    matchId: input.matchId,
-                    courtId: input.courtId,
-                  })
-                }
-                onCancelMatch={(matchId) => setCancelMatchId(matchId)}
-              />
-            </div>
+            {data.phase && data.phase !== "cancelled" && firstMatch ? (
+              <div ref={resultsSectionRef}>
+                <GameScoreSection
+                  phase={data.phase}
+                  match={firstMatch}
+                  sides={data.sides}
+                  viewerUserId={data.viewerUserId}
+                  winningGameTeamId={winningGameTeamId}
+                  matchResultConfirmation={data.matchResultConfirmation}
+                  scorePending={scoreSet.isPending}
+                  confirmPending={confirmMatchResult.isPending}
+                  onScoreSet={(input) =>
+                    scoreSet.mutateAsync({
+                      gameId: id,
+                      matchId: firstMatch.id,
+                      setId: input.setId,
+                      slot1GamesWon: input.slot1GamesWon,
+                      slot2GamesWon: input.slot2GamesWon,
+                    })
+                  }
+                  onConfirm={() =>
+                    confirmMatchResult.mutate({
+                      gameId: id,
+                      matchId: firstMatch.id,
+                    })
+                  }
+                />
+              </div>
+            ) : null}
           </div>
         ) : (
           <Tabs value={tab} onValueChange={setTab} className="gap-4">

@@ -37,6 +37,7 @@ import {
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import { viewerLevelRangeFields } from "~/server/games/level-range-requests";
 import {
+  matchResultConfirmationCompletedAt,
   matchResultConfirmedUserIds,
   matchSeatedUserIds,
 } from "~/server/games/match-result-confirmations";
@@ -430,6 +431,12 @@ export async function gameById(
     confirmedUserIds: string[];
     requiredUserIds: string[];
     viewerHasConfirmed: boolean;
+    // Final-phase-only Score section footer copy (TEM-181): "Confirmed by
+    // all four players on [date]." The latest confirmation row's timestamp,
+    // not a proxy off `match.updatedAt` (which any unrelated Match edit,
+    // e.g. a court change, could also touch) — additive read of an existing
+    // column, no schema change.
+    confirmedAt: Date | null;
   } | null = null;
 
   let ratingImpact: {
@@ -445,10 +452,15 @@ export async function gameById(
       matchSeatedUserIds(database, friendlyMatch),
       matchResultConfirmedUserIds(database, friendlyMatch.id),
     ]);
+    const confirmedAt =
+      phase === "final"
+        ? await matchResultConfirmationCompletedAt(database, friendlyMatch.id)
+        : null;
     matchResultConfirmation = {
       confirmedUserIds,
       requiredUserIds,
       viewerHasConfirmed: confirmedUserIds.includes(args.userId),
+      confirmedAt,
     };
 
     if (phase === "final") {

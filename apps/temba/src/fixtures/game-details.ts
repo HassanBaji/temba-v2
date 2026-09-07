@@ -202,6 +202,7 @@ export function createGameDetailsFixtures(
       confirmedUserIds: [],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID],
       viewerHasConfirmed: false,
+      confirmedAt: null,
     },
     ratingImpact: null,
   });
@@ -225,6 +226,7 @@ export function createGameDetailsFixtures(
       confirmedUserIds: [],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       viewerHasConfirmed: false,
+      confirmedAt: null,
     },
     ratingImpact: null,
   });
@@ -248,6 +250,7 @@ export function createGameDetailsFixtures(
       confirmedUserIds: [VIEWER_ID],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       viewerHasConfirmed: true,
+      confirmedAt: null,
     },
     ratingImpact: null,
   });
@@ -274,6 +277,7 @@ export function createGameDetailsFixtures(
       confirmedUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       viewerHasConfirmed: true,
+      confirmedAt: isoMinutesFrom(now, -2 * 24 * 60 + 90),
     },
     ratingImpact: {
       levelChange: 0.2,
