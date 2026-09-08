@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import {
   friendlyGameCanMintInvite,
   friendlyGameCtaFamily,
+  friendlyGameJoinSheetCaption,
   friendlyGameLevelUpdatedLine,
   friendlyGameOverflowItems,
   friendlyGameVacantSeatLine,
@@ -308,6 +309,60 @@ describe("vacantJoinSeats", () => {
         { sideIndex: 2, left: { userId: "c" }, right: { userId: "d" } },
       ]),
       [],
+    );
+  });
+});
+
+describe("friendlyGameJoinSheetCaption", () => {
+  const sides = [
+    { sideIndex: 1, left: { name: "Nasser" }, right: null },
+    { sideIndex: 2, left: null, right: null },
+  ];
+
+  it("counts the open spots when nothing is picked yet", () => {
+    assert.equal(
+      friendlyGameJoinSheetCaption(sides, null),
+      "3 of 4 spots still open. Tap one to take it",
+    );
+  });
+
+  it("uses the singular line for the last open spot", () => {
+    assert.equal(
+      friendlyGameJoinSheetCaption(
+        [
+          { sideIndex: 1, left: { name: "Nasser" }, right: { name: "Ali" } },
+          { sideIndex: 2, left: { name: "Yousif" }, right: null },
+        ],
+        null,
+      ),
+      "One spot still open. Tap it to take it",
+    );
+  });
+
+  it("says the Game is full when no Position is vacant", () => {
+    assert.equal(
+      friendlyGameJoinSheetCaption(
+        [
+          { sideIndex: 1, left: { name: "Nasser" }, right: { name: "Ali" } },
+          { sideIndex: 2, left: { name: "Yousif" }, right: { name: "Omar" } },
+        ],
+        null,
+      ),
+      "Every spot on this Game is taken",
+    );
+  });
+
+  it("names the partner already on the picked Game team", () => {
+    assert.equal(
+      friendlyGameJoinSheetCaption(sides, { sideIndex: 1, position: "right" }),
+      "You'll play with Nasser",
+    );
+  });
+
+  it("flags an open partner Position on the picked Game team", () => {
+    assert.equal(
+      friendlyGameJoinSheetCaption(sides, { sideIndex: 2, position: "left" }),
+      "Your partner spot is still open — anyone can take it",
     );
   });
 });

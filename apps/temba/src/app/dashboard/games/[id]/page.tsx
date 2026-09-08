@@ -1086,6 +1086,7 @@ export default function GameHomePage({
           title={gameName}
           sides={data.sides}
           pending={registerSeat.isPending}
+          pricePerPlayerCents={data.pricePerPlayerCents}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })
           }

@@ -339,16 +339,16 @@ export default function GamesHubPage({
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="gap-4">
-        <TabsList className="w-full max-w-full justify-between rounded-2xl p-1">
-          <TabsTrigger value="my-games" className="w-[33%] flex-none px-3">
+        <TabsList className="bg-paper w-full justify-between">
+          <TabsTrigger value="my-games" className="w-[33%]">
             My Games
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
-          <TabsTrigger value="public" className="w-[33%] flex-none px-3">
+          <TabsTrigger value="public" className="w-[33%]">
             Public
             <TabCount count={pickup.data?.length} />
           </TabsTrigger>
-          <TabsTrigger value="history" className="w-[33%] flex-none px-3">
+          <TabsTrigger value="history" className="w-[33%]">
             History
             <TabCount count={history.data?.length} />
           </TabsTrigger>

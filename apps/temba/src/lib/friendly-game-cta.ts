@@ -237,3 +237,37 @@ export function friendlyGameOverflowItems(
 
   return items;
 }
+
+/**
+ * Caption under the join sheet's line-up diagram (join-sheet redesign). Once
+ * a Position is picked it answers the only question left ("who am I playing
+ * with?"); before that it states how much of the Game is still open. Copy
+ * uses "spot", matching `friendlyGameVacantSeatLine`'s bottom-bar wording
+ * rather than the domain noun Position (CONTEXT.md keeps "Position" for
+ * naming, not for player-facing copy).
+ */
+export function friendlyGameJoinSheetCaption(
+  sides: readonly {
+    sideIndex: number;
+    left: { name: string } | null;
+    right: { name: string } | null;
+  }[],
+  picked: FriendlyGameJoinSeat | null,
+): string {
+  if (picked) {
+    const side = sides.find((row) => row.sideIndex === picked.sideIndex);
+    const partner = picked.position === "left" ? side?.right : side?.left;
+    return partner
+      ? `You'll play with ${partner.name}`
+      : "Your partner spot is still open — anyone can take it";
+  }
+
+  const vacantCount = vacantJoinSeats(sides).length;
+  if (vacantCount === 0) {
+    return "Every spot on this Game is taken";
+  }
+  if (vacantCount === 1) {
+    return "One spot still open. Tap it to take it";
+  }
+  return `${vacantCount} of ${sides.length * 2} spots still open. Tap one to take it`;
+}

@@ -3,13 +3,7 @@
 import Link from "next/link";
 import * as React from "react";
 
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "~/components/common/responsive-dialog";
+import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
@@ -44,10 +38,6 @@ function gameFormatLabel(format: string | null | undefined): string | null {
     return GAME_FORMAT_LABELS[format as keyof typeof GAME_FORMAT_LABELS];
   }
   return format.replaceAll("_", " ");
-}
-
-function seatLabel(sideIndex: number, position: "left" | "right") {
-  return `Team ${sideIndex} ${position === "left" ? "Left" : "Right"}`;
 }
 
 function vacantSeats(sides: HubListSide[]) {
@@ -339,32 +329,15 @@ export function GameSummaryCard({
     ) : null;
 
   const picker = (
-    <ResponsiveDialog open={pickerOpen} onOpenChange={setPickerOpen}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Pick your spot</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>
-            Open Positions on {title}.
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
-        <div className="flex flex-col gap-2 p-4 pt-0">
-          {vacantSeats(sides ?? []).map((seat) => (
-            <Button
-              key={`${seat.sideIndex}-${seat.position}`}
-              type="button"
-              variant="outline"
-              disabled={actionPending}
-              onClick={() => {
-                setPickerOpen(false);
-                onJoinSeat?.(seat.sideIndex, seat.position);
-              }}
-            >
-              {seatLabel(seat.sideIndex, seat.position)}
-            </Button>
-          ))}
-        </div>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
+    <FriendlyGameJoinSheet
+      open={pickerOpen}
+      onOpenChange={setPickerOpen}
+      title={title}
+      sides={sides ?? []}
+      pending={actionPending}
+      pricePerPlayerCents={pricePerPlayerCents}
+      onPickSeat={(sideIndex, position) => onJoinSeat?.(sideIndex, position)}
+    />
   );
 
   const showPrice = priceAmount != null;
