@@ -140,7 +140,7 @@ function SetScore({ set }: { set: { us: number; them: number } }) {
   return (
     <span className="tabular-nums">
       <span className={won ? "text-ink" : "text-dim"}>{set.us}</span>
-      <span className="text-rule">&ndash;</span>
+      <span className="text-dim">&ndash;</span>
       <span className={won ? "text-dim" : "text-ink"}>{set.them}</span>
     </span>
   );
