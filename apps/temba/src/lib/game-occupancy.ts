@@ -36,3 +36,13 @@ export function gameOccupancy(
 export function seatsLeftLabel(seatsLeft: number) {
   return seatsLeft === 1 ? "1 spot left" : `${seatsLeft} spots left`;
 }
+
+export function spotsOpenLabel(openSpots: number) {
+  if (openSpots <= 0) {
+    return "Full";
+  }
+  if (openSpots === 1) {
+    return "One spot open";
+  }
+  return `${openSpots} spots open`;
+}

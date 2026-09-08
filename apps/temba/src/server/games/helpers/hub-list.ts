@@ -177,6 +177,7 @@ export async function viewerHubContext(database: HubListDb, userId: string) {
 
 function occupantFromLink(
   link: HubQueryRow["teams"][number]["players"][number],
+  viewerUserId: string,
 ): HubListSideOccupant | null {
   const user = link.gamePlayer?.user;
   if (!user) {
@@ -186,10 +187,11 @@ function occupantFromLink(
     userId: user.id,
     name: user.name,
     image: user.image,
+    isViewer: user.id === viewerUserId,
   };
 }
 
-function sidesFromRow(row: HubQueryRow): HubListSide[] {
+function sidesFromRow(row: HubQueryRow, viewerUserId: string): HubListSide[] {
   if (row.format !== "friendly_game" || row.registrationMode !== "individual") {
     return [];
   }
@@ -206,7 +208,7 @@ function sidesFromRow(row: HubQueryRow): HubListSide[] {
     let right: HubListSideOccupant | null = null;
     if (team) {
       for (const link of team.players) {
-        const occupant = occupantFromLink(link);
+        const occupant = occupantFromLink(link, viewerUserId);
         if (!occupant) {
           continue;
         }
@@ -380,7 +382,7 @@ export function toHubListRow(
       passesGate &&
       !isRegistered &&
       !isWaitlisted,
-    sides: sidesFromRow(row),
+    sides: sidesFromRow(row, viewer.userId),
   };
 }
 

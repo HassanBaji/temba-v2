@@ -26,6 +26,23 @@ export function formatDurationInMinutes(
   return `${minutes}m`;
 }
 
+export function formatWindowDuration(
+  windowStart: Date | string | null | undefined,
+  windowEnd: Date | string | null | undefined,
+): string | null {
+  if (!windowStart || !windowEnd) {
+    return null;
+  }
+  const start =
+    windowStart instanceof Date ? windowStart : new Date(windowStart);
+  const end = windowEnd instanceof Date ? windowEnd : new Date(windowEnd);
+  const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
+  if (!Number.isFinite(minutes) || minutes < 1) {
+    return null;
+  }
+  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+}
+
 export function formatGameTimeWindow(
   windowStart: Date | string | null | undefined,
   windowEnd: Date | string | null | undefined,
@@ -93,6 +110,24 @@ export function formatAbsoluteDay(startTime: Date | string) {
     month: "long",
     day: "numeric",
   });
+}
+
+/** Hub Game card day: Today / Tomorrow / `Thursday 11 Sep`. */
+export function formatGameCardDay(startTime: Date | string) {
+  const date = startTime instanceof Date ? startTime : new Date(startTime);
+  const diffDays = daysUntilLocalDay(date);
+
+  if (diffDays === 0) {
+    return "Today";
+  }
+  if (diffDays === 1) {
+    return "Tomorrow";
+  }
+
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  const day = date.getDate();
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  return `${weekday} ${day} ${month}`;
 }
 
 /**

@@ -75,6 +75,8 @@ Order of sections. Each reuses an existing primitive.
 4. **Waitlist** — below registered entries, unbounded FIFO. Primitive: `RowList` + `ListRow`.
 5. **Game Lookup invite and Game Invite link** — `ResponsiveDialog` from the `ActionMenu`. Same mint-on-copy six-hour token rules as other Invite links. Do not re-specify.
 
+**Amended for the individual Friendly game case only** — `.scratch/game-details-redesign/spec.md`. This section's tab bar (Overview/Players/Results — shipped as TEM-156–TEM-160) and the ordering above are superseded for individual-registration Friendly games by: hero → line-up → score → organiser actions, one scrolling page, sticky bottom action bar, no tab control, no separate Overview section (its facts move into the hero and are not repeated). Americano, Friendly tournament, and team_only Games keep this section's contract unchanged. That spec also introduces **Match result confirmation** (ADR-0011) gating when a Match reaches completed and rates, and a derived `needs_results` phase for the single-Match case (reusing `apps/temba/src/server/home/carousel-games.ts`'s naming and derivation shape) — neither changes anything in Part 1 or Part 2 of this file outside §1.5.
+
 Also reuse `StatStrip` (caps / registered counts when available), `AvatarStack` (registered Users), `EmptyState`, `ErrorState`.
 
 ## 1.6 States a Game surface must express

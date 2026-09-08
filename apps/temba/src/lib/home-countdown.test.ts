@@ -33,6 +33,16 @@ describe("formatHomeCountdown", () => {
     const start = new Date(now.getTime() + 20 * 1000);
     assert.equal(formatHomeCountdown(start, now), "in 1m");
   });
+
+  it("switches to days once a full day remains", () => {
+    const start = new Date(now.getTime() + (4 * 24 * 60 + 8) * 60 * 1000);
+    assert.equal(formatHomeCountdown(start, now), "in 4 days");
+  });
+
+  it("keeps a singular day under two days", () => {
+    const start = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+    assert.equal(formatHomeCountdown(start, now), "in 1 day");
+  });
 });
 
 describe("formatHomeKickoff", () => {

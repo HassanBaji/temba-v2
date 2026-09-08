@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { gameOccupancy, seatsLeftLabel } from "./game-occupancy";
+import {
+  gameOccupancy,
+  seatsLeftLabel,
+  spotsOpenLabel,
+} from "./game-occupancy";
 
 describe("gameOccupancy", () => {
   it("omits occupancy when the Game has no player cap", () => {
@@ -46,5 +50,19 @@ describe("seatsLeftLabel", () => {
 
   it("pluralizes multiple spots", () => {
     assert.equal(seatsLeftLabel(2), "2 spots left");
+  });
+});
+
+describe("spotsOpenLabel", () => {
+  it("reads as Full when no seats remain", () => {
+    assert.equal(spotsOpenLabel(0), "Full");
+  });
+
+  it("uses One spot open for the last vacant seat", () => {
+    assert.equal(spotsOpenLabel(1), "One spot open");
+  });
+
+  it("pluralizes multiple open spots", () => {
+    assert.equal(spotsOpenLabel(2), "2 spots open");
   });
 });

@@ -247,10 +247,12 @@ describe("My Games hub rows", () => {
       expect(row?.sides[0]?.left).toMatchObject({
         userId: viewer.id,
         image: photoUrl,
+        isViewer: true,
       });
       expect(row?.sides[0]?.right).toMatchObject({
         userId: partner.id,
         image: null,
+        isViewer: false,
       });
       expect(row?.sides[0]?.left && row.sides[0].right).toBeTruthy();
     } finally {

@@ -78,14 +78,14 @@ export function HomeAllTime({
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <h2 className="text-muted-foreground text-meta px-[22px] pb-3 pt-[22px]">
+      <h2 className="text-muted-foreground px-[22px] pb-3 pt-[22px] text-sm">
         All time
       </h2>
       <div className="divide-rule border-rule flex divide-x border-t px-[22px] pb-[22px]">
         {FIGURES.map((figure) => (
           <div
             key={figure.key}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1 px-3 first:pl-0 last:pr-0"
+            className="mt-4 flex min-w-0 flex-1 flex-col items-center gap-1 px-3 first:pl-0 last:pr-0"
           >
             <p className="font-expanded text-[34px] tabular-nums leading-none">
               {values[figure.key]}

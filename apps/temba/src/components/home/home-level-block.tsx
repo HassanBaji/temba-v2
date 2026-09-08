@@ -75,6 +75,7 @@ export function HomeLevelBlock({
     : `Level over ${played} rated matches`;
   const displayBand = displayLabelFromStoredBand(band);
   const displayNext = nextDistinctDisplayRung(band);
+
   const atTopBand = displayNext == null;
   const fillPercent = Math.min(100, Math.max(0, progressPercent ?? 0));
 
@@ -84,7 +85,7 @@ export function HomeLevelBlock({
         <p className="text-muted-foreground text-sm font-normal">Padel Level</p>
       </div>
       <div className="mt-4 flex items-stretch gap-4 p-[22px] pt-0">
-        <p className="font-expanded text-[88px] leading-none">{band}</p>
+        <p className="font-expanded text-[88px] leading-none">{displayBand}</p>
         <div className="bg-rule w-px self-stretch" />
         <div className="flex min-w-0 flex-col justify-center gap-1">
           <div className="flex items-center gap-2">

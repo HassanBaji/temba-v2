@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronRight, MapPin } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -11,27 +10,27 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
-import { GameViewerStatusBadge } from "~/components/temba/game-viewer-status-badge";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
-  formatGameClock,
-  formatGameTimeWindow,
-  formatRelativeDay,
+  formatGameCardDay,
+  formatWindowDuration,
 } from "~/lib/format-game-start";
-import { gameOccupancy, type GameOccupancy } from "~/lib/game-occupancy";
+import { gameOccupancy, spotsOpenLabel } from "~/lib/game-occupancy";
 import {
-  gameSummaryCtaLabel,
+  gameCardActionLabel,
+  gameCardActionSolid,
   type GameSummaryCta,
   type GameViewerStatus,
 } from "~/lib/game-summary-cta";
+import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
 import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerCardMeta } from "~/lib/price-per-player";
+import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
+import { UserAvatar } from "../common/user-avatar";
 
 type HubListSide =
   RouterOutputs["games"]["listMyGames"][number]["sides"][number];
@@ -64,86 +63,75 @@ function vacantSeats(sides: HubListSide[]) {
   return vacant;
 }
 
-function Hairline() {
-  return <div aria-hidden="true" className="bg-muted h-px w-full" />;
+function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] ?? name;
 }
 
-function FillStatus({ occupancy }: { occupancy: GameOccupancy }) {
-  if (occupancy.tone === "full") {
-    return (
-      <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs font-medium">
-        <span aria-hidden="true" className="bg-success size-1.5 rounded-full" />
-        Confirmed
-      </span>
-    );
+function seatLetter(name: string) {
+  const grapheme = Array.from(firstName(name))[0];
+  return grapheme ? grapheme.toUpperCase() : "?";
+}
+
+function venueSubtitle(
+  venueName: string | null | undefined,
+  location: string | null | undefined,
+  gameName: string | null | undefined,
+) {
+  const parts: string[] = [];
+  const name = gameName?.trim();
+  if (name) {
+    parts.push(name);
   }
-
-  return (
-    <span className="text-warning inline-flex items-center gap-1.5 text-xs font-medium">
-      <span aria-hidden="true" className="bg-warning size-1.5 rounded-full" />
-      <span className="tabular-nums">{occupancy.label} players</span>
-    </span>
-  );
+  const city = location?.trim();
+  if (city && city !== venueName) {
+    parts.push(city);
+  }
+  return parts.length > 0 ? parts.join(" — ") : null;
 }
 
-function PlayerColumn({
-  occupant,
-  joinable,
-}: {
-  occupant: HubListSideOccupant | null;
-  joinable: boolean;
-}) {
+function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
   if (occupant) {
     return (
-      <div className="flex w-14 min-w-0 flex-col items-center gap-1.5">
-        <UserAvatar
-          name={occupant.name}
-          image={occupant.image}
-          // size="xl"
-          className="border-border size-16 border"
-        />
-        <span className="w-full truncate text-center text-xs font-medium leading-tight">
-          {occupant.name}
-        </span>
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 flex-col items-center gap-[5px]",
+          occupant.isViewer ? "text-ink" : null,
+        )}
+      >
+        <div className="bg-wash flex h-[46px] w-full flex-col items-center justify-center gap-1 rounded-lg">
+          <UserAvatar
+            name={occupant.name}
+            image={occupant.image}
+            className="size-8"
+          />
+        </div>
+        <p
+          className={cn(
+            "text-muted-foreground max-w-full truncate text-xs font-light leading-none",
+          )}
+        >
+          {occupant.isViewer ? "You" : firstName(occupant.name)}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex w-14 min-w-0 flex-col items-center gap-1.5">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "border-border flex size-16 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-lg font-semibold",
-          joinable
-            ? "border-foreground bg-muted text-foreground"
-            : "border-border text-muted-foreground/70",
-        )}
-      >
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
+      <div className="hatch text-dim flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
         +
-      </span>
-      <span
-        className={cn(
-          "w-full truncate text-center text-xs leading-tight",
-          joinable ? "text-foreground font-medium" : "text-muted-foreground",
-        )}
-      >
+      </div>
+      <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
         Open
-      </span>
+      </small>
     </div>
   );
 }
 
-function FriendlyRoster({
-  sides,
-  joinable,
-}: {
-  sides: HubListSide[];
-  joinable: boolean;
-}) {
+function FriendlyRoster({ sides }: { sides: HubListSide[] }) {
   return (
     <div
-      className="flex items-center justify-between px-1"
+      className="border-rule mt-[18px] flex items-center gap-2.5 border-t pt-[18px]"
       data-slot="friendly-roster"
     >
       {sides.map((side, index) => (
@@ -151,18 +139,62 @@ function FriendlyRoster({
           {index > 0 ? (
             <span
               aria-hidden="true"
-              className="text-muted-foreground/40 shrink-0 text-xs font-semibold tracking-wide"
+              className="text-dim shrink-0 text-xs font-semibold"
             >
-              VS
+              vs
             </span>
           ) : null}
-          <div className="flex gap-4">
-            <PlayerColumn occupant={side.left} joinable={joinable} />
-            <PlayerColumn occupant={side.right} joinable={joinable} />
+          <div className="flex min-w-0 flex-1 gap-1.5">
+            <SeatChip occupant={side.left} />
+            <SeatChip occupant={side.right} />
           </div>
         </React.Fragment>
       ))}
     </div>
+  );
+}
+
+function MetaCell({
+  value,
+  note,
+  ruled,
+}: {
+  value: string;
+  note: string | null;
+  ruled?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 flex-1",
+        ruled ? "border-rule border-l pl-4" : null,
+      )}
+    >
+      <b className="block text-[17px] font-semibold tracking-[-0.01em]">
+        {value}
+      </b>
+      {note ? (
+        <span className="text-muted-foreground mt-1 block text-[12.5px]">
+          {note}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function OpenFlag({ openSpots }: { openSpots: number }) {
+  if (openSpots <= 0) {
+    return <span className="text-dim">{spotsOpenLabel(0)}</span>;
+  }
+
+  return (
+    <span className="text-ink inline-flex items-center gap-1.5">
+      <i
+        aria-hidden="true"
+        className="hatch inline-block size-[13px] shrink-0 rounded-[3px]"
+      />
+      {spotsOpenLabel(openSpots)}
+    </span>
   );
 }
 
@@ -215,32 +247,45 @@ export function GameSummaryCard({
   onRegister?: () => void;
 }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [now, setNow] = React.useState(() => new Date());
+  const startDate = startTime instanceof Date ? startTime : new Date(startTime);
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date());
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const title = venueName ?? name ?? "Untitled Game";
-  const venueLed = Boolean(venueName);
-  const ctaText = primaryAction ? gameSummaryCtaLabel(primaryAction) : null;
+  const subtitle = venueSubtitle(venueName, location, venueName ? name : null);
+  const formatMeta = gameFormatLabel(format);
+  const durationMeta = formatWindowDuration(windowStart, windowEnd);
+  const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
+  const priceAmount = formatPricePerPlayerCents(pricePerPlayerCents);
+  const occupancy = gameOccupancy(registeredUserCount ?? 0, playersAllowed);
+  const showRoster = Boolean(sides && sides.length > 0);
+  const openSpots = showRoster
+    ? vacantSeats(sides ?? []).length
+    : (occupancy?.seatsLeft ?? 0);
+  const hasOpenCount = showRoster || occupancy != null;
+  const dayLabel = formatGameCardDay(startTime);
+  const kickoff = formatHomeKickoff(startDate);
+  const countdown = formatHomeCountdown(startDate, now);
+  const ctaText = primaryAction
+    ? gameCardActionLabel(primaryAction, {
+        viewerIn: viewerStatus === "in",
+        openSpots,
+      })
+    : null;
   const interactiveCta =
     primaryAction === "join" ||
     primaryAction === "join_waitlist" ||
     primaryAction === "register";
-  const showRoster = Boolean(sides && sides.length > 0);
-  const priceMeta = formatPricePerPlayerCardMeta(pricePerPlayerCents);
-  const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
-  const occupancy = gameOccupancy(registeredUserCount ?? 0, playersAllowed);
-  const dayLabel = formatRelativeDay(startTime, { sameDayLabel: "Today" });
-  const timeLabel = venueLed
-    ? formatGameTimeWindow(null, null, startTime)
-    : formatGameClock(startTime);
-  const venueLine =
-    venueName == null
-      ? null
-      : location && location !== venueName
-        ? `${venueName}`
-        : venueName;
-  const formatMeta = gameFormatLabel(format);
-  const showWaitlisted = viewerStatus === "waitlisted";
-  const showFillStatus = occupancy != null && !cancelled;
-  const showHeader =
-    cancelled || showFillStatus || showWaitlisted || Boolean(levelMeta);
+  const solidCta =
+    Boolean(ctaText) &&
+    primaryAction != null &&
+    gameCardActionSolid(ctaText ?? "", primaryAction);
 
   function handleCta() {
     if (primaryAction === "join") {
@@ -258,12 +303,19 @@ export function GameSummaryCard({
 
   const pendingLabel =
     primaryAction === "register" ? "Registering…" : "Joining…";
+  const actionClass = cn(
+    "relative z-10 h-auto min-h-0 shrink-0 rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
+    solidCta
+      ? null
+      : "border-rule bg-paper text-ink hover:bg-paper hover:text-ink",
+  );
   const actionControl =
     interactiveCta && ctaText ? (
       <Button
         type="button"
         size="sm"
-        className="relative z-10 h-10 min-h-10 rounded-md px-4"
+        variant={solidCta ? "default" : "outline"}
+        className={actionClass}
         disabled={actionPending}
         onClick={(event) => {
           event.preventDefault();
@@ -273,10 +325,16 @@ export function GameSummaryCard({
       >
         {actionPending ? pendingLabel : ctaText}
       </Button>
-    ) : href ? (
-      <span className="text-muted-foreground group-hover:text-foreground inline-flex items-center gap-0.5 text-xs font-medium motion-safe:transition-colors">
-        View match
-        <ChevronRight aria-hidden="true" className="size-3.5" />
+    ) : href && ctaText ? (
+      <span
+        className={cn(
+          "inline-flex items-center rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
+          solidCta
+            ? "bg-ink text-paper border-ink border"
+            : "border-rule bg-paper text-ink border",
+        )}
+      >
+        {ctaText}
       </span>
     ) : null;
 
@@ -309,102 +367,103 @@ export function GameSummaryCard({
     </ResponsiveDialog>
   );
 
+  const showPrice = priceAmount != null;
+  const showFormat =
+    formatMeta != null || durationMeta != null || levelMeta != null;
+
   return (
     <li data-slot="game-summary-card">
       <Card
         className={cn(
-          "shadow-xs group relative gap-4 rounded-2xl p-5 md:p-6",
-          "motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
-          href ? "hover:border-foreground/20 hover:shadow-sm" : null,
+          "border-rule group relative gap-0 overflow-hidden rounded-[14px] p-0",
+          href ? "hover:border-foreground/20" : null,
         )}
       >
         {href ? (
           <Link
             href={href}
-            aria-label={`${title}, ${dayLabel} ${timeLabel}`}
-            className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-[3px]"
+            aria-label={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
+            className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
           />
         ) : null}
 
         <div
           className={cn(
-            "relative z-10 min-w-0 space-y-3",
+            "relative z-10 min-w-0 p-[22px]",
             href ? "pointer-events-none" : null,
           )}
         >
-          {showHeader ? (
-            <div className="flex items-center justify-between">
-              <p className="text-muted-foreground text-sm font-medium">
-                {dayLabel}
-              </p>
-              <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                {cancelled ? <GameStatusBadge status="cancelled" /> : null}
-                {showFillStatus && occupancy ? (
-                  <FillStatus occupancy={occupancy} />
-                ) : null}
-                {showWaitlisted ? (
-                  <GameViewerStatusBadge status="waitlisted" />
-                ) : null}
-              </div>
+          <div className="text-muted-foreground flex items-center justify-between text-sm font-medium">
+            <span>{dayLabel}</span>
+            {cancelled ? (
+              <GameStatusBadge status="cancelled" />
+            ) : hasOpenCount ? (
+              <OpenFlag openSpots={openSpots} />
+            ) : null}
+          </div>
+
+          <div className="mt-3 flex items-baseline gap-2.5">
+            <b className="font-expanded text-[48px] tabular-nums leading-[0.9]">
+              {kickoff.time}
+            </b>
+            <i className="text-muted-foreground text-[18px] font-medium not-italic">
+              {kickoff.meridiem}
+            </i>
+            {countdown ? (
+              <i className="text-muted-foreground ml-auto text-[13.5px] not-italic">
+                {countdown}
+              </i>
+            ) : null}
+          </div>
+
+          <div className="mt-2.5 text-base">
+            {title}
+            {subtitle ? (
+              <small className="text-muted-foreground mt-[3px] block text-[13px]">
+                {subtitle}
+              </small>
+            ) : null}
+          </div>
+
+          {showPrice || showFormat ? (
+            <div className="border-rule mt-4 flex border-t pt-4">
+              {showPrice && priceAmount ? (
+                <MetaCell
+                  value={priceAmount}
+                  note={priceAmount === "Free" ? null : "per player"}
+                />
+              ) : null}
+              {showFormat ? (
+                <MetaCell
+                  value={formatMeta ?? durationMeta ?? levelMeta ?? ""}
+                  note={
+                    formatMeta
+                      ? (durationMeta ?? levelMeta)
+                      : durationMeta
+                        ? levelMeta
+                        : null
+                  }
+                  ruled={showPrice}
+                />
+              ) : null}
             </div>
           ) : null}
-          <div className="mt-2 min-w-0">
-            <p className="wrap-break-word text-4xl font-semibold tabular-nums leading-none tracking-tight md:text-5xl">
-              {timeLabel}
-            </p>
-          </div>
-          {venueLine ? (
-            <p className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-sm font-medium">
-              <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
-              <span className="truncate">{venueLine}</span>
-            </p>
-          ) : null}
-          <div className="flex items-center gap-4">
-            {levelMeta ? (
-              <span className="bg-primary text-primary-foreground rounded-2xl p-1 px-3 text-sm font-medium">
-                {levelMeta}
-              </span>
-            ) : null}
 
-            {priceMeta ? (
-              <p className={cn("truncate text-sm font-medium")}>{priceMeta}</p>
-            ) : null}
-          </div>
+          {showRoster && sides ? <FriendlyRoster sides={sides} /> : null}
         </div>
-
-        {showRoster && sides ? (
-          <>
-            <Hairline />
-            <div
-              className={cn(
-                "relative z-10 min-w-0",
-                href ? "pointer-events-none" : null,
-              )}
-            >
-              <FriendlyRoster
-                sides={sides}
-                joinable={primaryAction === "join"}
-              />
-            </div>
-          </>
-        ) : null}
-
-        <Hairline />
 
         <div
           className={cn(
-            "relative z-10 flex min-w-0 items-center justify-between gap-3",
+            "border-rule relative z-10 flex min-w-0 items-center justify-between gap-3 border-t bg-[#fafafa] px-[22px] py-3.5",
             href ? "pointer-events-none" : null,
           )}
         >
-          <div className="min-w-0 flex-1 space-y-0.5">
-            {formatMeta ? (
-              <p className="truncate text-xs font-medium">{formatMeta}</p>
-            ) : null}
+          <div className="min-w-0 flex-1 text-[13.5px]">
+            {formatMeta ? <p className="truncate">{formatMeta}</p> : null}
             {groupName ? (
-              <p className="text-muted-foreground truncate text-xs">
+              <small className="text-muted-foreground mt-0.5 block truncate text-[12.5px]">
                 {groupName}
-              </p>
+              </small>
             ) : null}
           </div>
           {actionControl ? (

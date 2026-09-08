@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  gameCardActionLabel,
+  gameCardActionSolid,
   gameSummaryPrimaryAction,
   gameViewerStatus,
   showsFriendlyRoster,
@@ -155,5 +157,34 @@ describe("showsFriendlyRoster", () => {
       showsFriendlyRoster("friendly_tournament", "individual"),
       false,
     );
+  });
+});
+
+describe("gameCardActionLabel", () => {
+  it("uses Join game for an open Friendly join", () => {
+    assert.equal(gameCardActionLabel("join"), "Join game");
+  });
+
+  it("offers Invite a player when the viewer is in and a seat is open", () => {
+    assert.equal(
+      gameCardActionLabel("view", { viewerIn: true, openSpots: 1 }),
+      "Invite a player",
+    );
+  });
+
+  it("falls back to Details when the Game is full or the viewer is out", () => {
+    assert.equal(
+      gameCardActionLabel("view", { viewerIn: true, openSpots: 0 }),
+      "Details",
+    );
+    assert.equal(gameCardActionLabel("view"), "Details");
+  });
+});
+
+describe("gameCardActionSolid", () => {
+  it("keeps Invite a player and join actions solid", () => {
+    assert.equal(gameCardActionSolid("Invite a player", "view"), true);
+    assert.equal(gameCardActionSolid("Join game", "join"), true);
+    assert.equal(gameCardActionSolid("Details", "view"), false);
   });
 });

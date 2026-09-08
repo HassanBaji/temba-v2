@@ -69,6 +69,29 @@ export function gameSummaryCtaLabel(action: GameSummaryCta) {
   }
 }
 
+export function gameCardActionLabel(
+  action: GameSummaryCta,
+  context?: { viewerIn?: boolean; openSpots?: number },
+) {
+  switch (action) {
+    case "join":
+      return "Join game";
+    case "join_waitlist":
+      return "Join waitlist";
+    case "register":
+      return "Register";
+    case "view":
+      if (context?.viewerIn && (context.openSpots ?? 0) > 0) {
+        return "Invite a player";
+      }
+      return "Details";
+  }
+}
+
+export function gameCardActionSolid(label: string, action: GameSummaryCta) {
+  return action !== "view" || label === "Invite a player";
+}
+
 export type GameViewerStatus = "in" | "waitlisted" | null;
 
 /** Null when the viewer has no standing on the Game, so cards stay quiet. */

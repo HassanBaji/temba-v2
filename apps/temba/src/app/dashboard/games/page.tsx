@@ -59,48 +59,47 @@ function GamesHubTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-card border-border shadow-xs flex flex-col gap-4 rounded-2xl border p-5 md:p-6"
+            className="bg-card border-rule flex flex-col gap-4 overflow-hidden rounded-[14px] border p-[22px]"
           >
-            <div className="flex justify-end gap-3">
-              <Skeleton className="h-4 w-20" />
+            <div className="flex justify-between gap-3">
               <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-28" />
             </div>
-            <div className="space-y-1.5">
-              <Skeleton className="h-3.5 w-14" />
-              <Skeleton className="h-10 w-36 max-w-full md:h-12" />
+            <div className="flex items-baseline gap-2.5">
+              <Skeleton className="h-12 w-28" />
+              <Skeleton className="h-5 w-10" />
+              <Skeleton className="ml-auto h-4 w-16" />
             </div>
-            <Skeleton className="h-4 w-48 max-w-full" />
+            <div className="space-y-1">
+              <Skeleton className="h-5 w-48 max-w-full" />
+              <Skeleton className="h-4 w-32 max-w-full" />
+            </div>
             <Skeleton className="h-px w-full" />
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex flex-1 justify-around gap-2">
-                <div className="flex flex-col items-center gap-1.5">
-                  <Skeleton className="size-11 rounded-full" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
-                <div className="flex flex-col items-center gap-1.5">
-                  <Skeleton className="size-11 rounded-full" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
+            <div className="flex gap-4">
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-3 w-16" />
               </div>
-              <Skeleton className="mt-4 h-3 w-6" />
-              <div className="flex flex-1 justify-around gap-2">
-                <div className="flex flex-col items-center gap-1.5">
-                  <Skeleton className="size-11 rounded-full" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
-                <div className="flex flex-col items-center gap-1.5">
-                  <Skeleton className="size-11 rounded-full" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-3 w-20" />
               </div>
             </div>
             <Skeleton className="h-px w-full" />
-            <div className="flex items-end justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-[46px] flex-1 rounded-lg" />
+              <Skeleton className="h-[46px] flex-1 rounded-lg" />
+              <Skeleton className="h-3 w-4" />
+              <Skeleton className="h-[46px] flex-1 rounded-lg" />
+              <Skeleton className="h-[46px] flex-1 rounded-lg" />
+            </div>
+            <Skeleton className="h-px w-full" />
+            <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1 space-y-1.5">
                 <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-3 w-40 max-w-full" />
+                <Skeleton className="h-3 w-24 max-w-full" />
               </div>
-              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-24 rounded-[9px]" />
             </div>
           </div>
         ))}

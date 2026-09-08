@@ -24,7 +24,7 @@ export function MobileTopBar({
   return (
     <header
       className={cn(
-        "bg-card sticky top-0 z-40 flex min-h-11 items-center gap-2 py-2 pt-4 lg:hidden",
+        "bg-wash sticky top-0 z-40 flex min-h-11 items-center gap-2 py-2 pt-4 lg:hidden",
         pageGutterX,
         isSubPage && "border-border border-b",
       )}

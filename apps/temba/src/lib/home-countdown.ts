@@ -16,6 +16,11 @@ export function formatHomeCountdown(startsAt: Date, now: Date): string | null {
   }
 
   const totalMinutes = Math.floor(remainingMs / MINUTE_MS);
+  const dayMinutes = 24 * 60;
+  if (totalMinutes >= dayMinutes) {
+    const days = Math.floor(totalMinutes / dayMinutes);
+    return days === 1 ? "in 1 day" : `in ${days} days`;
+  }
   if (totalMinutes < 60) {
     return `in ${Math.max(1, totalMinutes)}m`;
   }

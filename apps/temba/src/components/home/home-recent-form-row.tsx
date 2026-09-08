@@ -113,7 +113,13 @@ export function HomeRecentFormBlock({ form }: { form: RecentFormView }) {
 
   return (
     <section className="border-rule bg-paper rounded-xl border p-[22px]">
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm font-normal">Recent Form</p>
+        <p className="text-muted-foreground text-sm font-normal">
+          Last 10 matches
+        </p>
+      </div>
+      <div className="mt-4 flex items-end justify-between gap-3">
         <div>
           <p className="font-expanded text-[52px] tabular-nums leading-none">
             {record}

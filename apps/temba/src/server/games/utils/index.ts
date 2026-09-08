@@ -20,6 +20,7 @@ export type HubListSideOccupant = {
   userId: string;
   name: string;
   image: string | null;
+  isViewer: boolean;
 };
 
 export type HubListSide = {
