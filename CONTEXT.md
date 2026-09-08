@@ -130,7 +130,11 @@ _Avoid_: Team (when you mean a Game side), partnership, pair (when you mean this
 
 **Position**:
 Left or right on a Game team, from that side facing the net. Distinct from a Match slot and from a Court.
-_Avoid_: Court, slot (when you mean this), seat (when you mean this)
+_Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred Position (that is a User's profile default)
+
+**Preferred Position**:
+A User's standing preference for Left or right, or Either. A default for the Game seat picker, not a Position itself.
+_Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
@@ -219,6 +223,10 @@ _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup i
 **User**:
 A person with a Temba account.
 _Avoid_: player (when you mean User), member (when you mean the Community role)
+
+**Onboarding questionnaire**:
+The two questions a new User answers at Route `/onboarding` after Clerk sign-up and before Home: Preferred Position, and a one-time Level declaration. Blocking, with **Either** and **I don't know** as the low-commitment answers. Users who predate it are complete without answering.
+_Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboarding (bare, when you mean this entity), Lookup invite
 
 **Home**:
 The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
