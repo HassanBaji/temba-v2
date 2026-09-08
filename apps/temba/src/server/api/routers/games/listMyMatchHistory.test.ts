@@ -259,6 +259,7 @@ describe("listMyMatchHistoryRows", () => {
         format: GameFormatEnum.FRIENDLY_GAME,
         venue: { name: "Padel Club" },
         matchId: seated.match.id,
+        viewerSlot: 1,
         outcome: "won",
         scoredSets: [
           { slot1GamesWon: 6, slot2GamesWon: 2 },
@@ -554,6 +555,8 @@ describe("listMyMatchHistoryRows", () => {
         outcome: "lost",
       });
       expect(rows.find((row) => row.name === "Draw")?.outcome).toBe("draw");
+      expect(rows.find((row) => row.name === "Older win")?.viewerSlot).toBe(1);
+      expect(rows.find((row) => row.name === "Loss")?.viewerSlot).toBe(2);
       expect(rows.find((row) => row.name === "Loss")?.outcome).toBe("lost");
       expect(rows.find((row) => row.name === "Older win")?.outcome).toBe("won");
       expect(
