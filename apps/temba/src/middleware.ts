@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/onboarding(.*)",
+]);
 const isDesignPreview = createRouteMatcher(["/dashboard/design(.*)"]);
 const isAuthRoute = createRouteMatcher(["/login(.*)", "/signup(.*)"]);
 const isWebhookRoute = createRouteMatcher(["/api/webhooks(.*)"]);

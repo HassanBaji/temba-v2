@@ -11,6 +11,10 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import {
+  LevelChoiceGrid,
+  type LevelChoiceValue,
+} from "~/components/temba/level-choice-grid";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
@@ -19,27 +23,12 @@ import {
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-import { cn } from "~/lib/utils";
 import {
-  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   selfDeclareChoiceFromDisplay,
-  type AssignableDisplayLevelBand,
   type SelfDeclareChoice,
 } from "~/lib/level-bands";
 
 const FIELD_IDS = { choice: "declare-level-choice" };
-
-const UNKNOWN_CHOICE = "unknown" as const;
-
-type DeclarePickerValue = AssignableDisplayLevelBand | typeof UNKNOWN_CHOICE;
-
-const CHOICES: { value: DeclarePickerValue; label: string }[] = [
-  ...ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
-    value: band,
-    label: band,
-  })),
-  { value: UNKNOWN_CHOICE, label: "I don’t know" },
-];
 
 export function DeclareLevelDialog({
   open,
@@ -60,7 +49,7 @@ export function DeclareLevelDialog({
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const [choice, setChoice] = React.useState<DeclarePickerValue | "">("");
+  const [choice, setChoice] = React.useState<LevelChoiceValue | "">("");
   const choiceError = fieldErrorMessage(error, "choice");
 
   React.useEffect(() => {
@@ -113,40 +102,17 @@ export function DeclareLevelDialog({
               <FieldLabel id="declare-level-choice-label">
                 Level band
               </FieldLabel>
-              <div
-                id="declare-level-choice"
-                role="radiogroup"
-                aria-labelledby="declare-level-choice-label"
-                aria-invalid={choiceError ? true : undefined}
-                aria-describedby={
+              <LevelChoiceGrid
+                id={FIELD_IDS.choice}
+                labelledBy="declare-level-choice-label"
+                describedBy={
                   choiceError ? "declare-level-choice-error" : undefined
                 }
-                className="grid grid-cols-3 gap-2 sm:grid-cols-4"
-              >
-                {CHOICES.map((option) => {
-                  const selected = choice === option.value;
-                  return (
-                    <Button
-                      key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      variant={selected ? "default" : "outline"}
-                      className={cn(
-                        "min-h-11",
-                        option.value === UNKNOWN_CHOICE &&
-                          "col-span-3 sm:col-span-4",
-                      )}
-                      disabled={pending}
-                      onClick={() => {
-                        setChoice(option.value);
-                      }}
-                    >
-                      {option.label}
-                    </Button>
-                  );
-                })}
-              </div>
+                invalid={Boolean(choiceError)}
+                value={choice}
+                onSelect={setChoice}
+                disabled={pending}
+              />
               <FieldError id="declare-level-choice-error">
                 {choiceError}
               </FieldError>
