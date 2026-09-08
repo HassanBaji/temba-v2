@@ -1,22 +1,21 @@
 "use client";
 
-import { Calendar, MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
-import { Badge } from "~/components/ui/badge";
 import { Card } from "~/components/ui/card";
 import { formatGameClock, formatRelativeDay } from "~/lib/format-game-start";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
 type MatchHistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
+type MatchHistoryMember = MatchHistoryRow["slot1Members"][number];
 
 const OUTCOME_LABEL: Record<MatchHistoryRow["outcome"], string> = {
-  won: "WON",
-  lost: "LOST",
-  draw: "DRAW",
+  won: "Won",
+  lost: "Lost",
+  draw: "Draw",
 };
 
 function formatLabel(format: string) {
@@ -30,90 +29,151 @@ function cardTitle(row: MatchHistoryRow) {
   if (name) {
     return name;
   }
-  const venue = row.venue.name.trim();
-  if (venue) {
-    return venue;
-  }
-  return "Untitled Game";
+  const venueName = row.venue.name.trim();
+  return venueName ? venueName : "Untitled Game";
 }
 
-function winningSlot(scoredSets: MatchHistoryRow["scoredSets"]): 1 | 2 | null {
-  let slot1SetWins = 0;
-  let slot2SetWins = 0;
-  for (const set of scoredSets) {
-    if (set.slot1GamesWon === set.slot2GamesWon) {
-      continue;
-    }
-    if (set.slot1GamesWon > set.slot2GamesWon) {
-      slot1SetWins += 1;
-    } else {
-      slot2SetWins += 1;
-    }
-  }
-  if (slot1SetWins === slot2SetWins) {
-    return null;
-  }
-  return slot1SetWins > slot2SetWins ? 1 : 2;
+/** Venue, plus the format when the venue is already carrying the title. */
+function cardSubtitle(row: MatchHistoryRow, title: string) {
+  const venueName = row.venue.name.trim();
+  const parts = [
+    venueName === title ? null : venueName,
+    formatLabel(row.format),
+  ];
+  return parts.filter((part) => part != null && part.length > 0).join(" · ");
 }
 
-function TeamAvatars({
-  members,
-  label,
-  winner,
+/** Set scores read as us-vs-them off the slot the viewer actually sat on. */
+function viewerSets(row: MatchHistoryRow) {
+  return row.scoredSets.map((set) =>
+    row.viewerSlot === 1
+      ? { us: set.slot1GamesWon, them: set.slot2GamesWon }
+      : { us: set.slot2GamesWon, them: set.slot1GamesWon },
+  );
+}
+
+function setTally(sets: { us: number; them: number }[]) {
+  let won = 0;
+  let lost = 0;
+  for (const set of sets) {
+    if (set.us > set.them) {
+      won += 1;
+    } else if (set.us < set.them) {
+      lost += 1;
+    }
+  }
+  return { won, lost };
+}
+
+function ResultMark({ outcome }: { outcome: MatchHistoryRow["outcome"] }) {
+  const won = outcome === "won";
+
+  return (
+    <span
+      className={cn(
+        "flex h-6 shrink-0 items-center rounded-md border-[1.5px] px-[9px] text-xs font-medium",
+        won ? "border-ink bg-ink text-paper" : "border-ink text-ink",
+      )}
+    >
+      {OUTCOME_LABEL[outcome]}
+    </span>
+  );
+}
+
+function Seat({
+  member,
+  mine,
 }: {
-  members: MatchHistoryRow["slot1Members"];
-  label: string;
-  winner: boolean;
+  member: MatchHistoryMember | null;
+  mine: boolean;
 }) {
-  if (members.length === 0) {
+  if (!member) {
     return (
-      <span className="text-muted-foreground text-meta" aria-label={label}>
-        —
-      </span>
+      <span
+        aria-hidden="true"
+        className="hatch -ml-[9px] size-9 shrink-0 rounded-full first:ml-0"
+      />
     );
   }
 
   return (
-    <div
-      className="inline-flex items-center gap-1.5"
-      aria-label={winner ? `${label}, winners` : label}
-    >
-      {members.map((member) => (
-        <UserAvatar
-          className={cn(
-            "size-16 border-2",
-            winner ? "border-success" : "border-destructive",
-          )}
-          key={member.id}
-          name={member.name}
-          image={member.image}
-        />
+    <UserAvatar
+      name={member.name}
+      image={member.image}
+      className={cn(
+        "bg-wash -ml-[9px] size-9 shrink-0 first:ml-0",
+        mine ? "border-ink border-[1.5px]" : "border-rule border",
+      )}
+    />
+  );
+}
+
+function Team({
+  members,
+  seats,
+  mine,
+  label,
+}: {
+  members: MatchHistoryMember[];
+  seats: number;
+  mine: boolean;
+  label: string;
+}) {
+  const filled = members.slice(0, seats);
+  const openSeats = Math.max(seats - filled.length, 0);
+
+  return (
+    <div className="flex" aria-label={label}>
+      {filled.map((member) => (
+        <Seat key={member.id} member={member} mine={mine} />
+      ))}
+      {Array.from({ length: openSeats }, (_, index) => (
+        <Seat key={`open-${index}`} member={null} mine={mine} />
       ))}
     </div>
   );
 }
 
-function Matchup({ row }: { row: MatchHistoryRow }) {
-  const winner = winningSlot(row.scoredSets);
+function SetScore({ set }: { set: { us: number; them: number } }) {
+  const won = set.us > set.them;
 
   return (
-    <div className="mt-2 flex w-[90%] flex-row items-center justify-between">
-      <div className="flex w-[40%] justify-center">
-        <TeamAvatars
-          members={row.slot1Members}
-          label="Slot 1"
-          winner={winner === 1}
-        />
+    <span className="tabular-nums">
+      <span className={won ? "text-ink" : "text-dim"}>{set.us}</span>
+      <span className="text-rule">&ndash;</span>
+      <span className={won ? "text-dim" : "text-ink"}>{set.them}</span>
+    </span>
+  );
+}
+
+function ScoreBand({ row }: { row: MatchHistoryRow }) {
+  const sets = viewerSets(row);
+
+  if (sets.length === 0) {
+    return (
+      <div className="border-rule flex items-center justify-between border-t bg-[#fafafa] px-[22px] py-3.5">
+        <span className="text-muted-foreground text-[13px] font-medium">
+          Score pending
+        </span>
+        <span aria-hidden="true" className="flex items-center gap-4">
+          <i className="hatch block h-6 w-[52px] rounded-md" />
+          <i className="hatch block h-6 w-[52px] rounded-md" />
+        </span>
       </div>
-      <span className="text-meta text-muted-foreground w-[10%] text-center font-medium">
-        vs
+    );
+  }
+
+  const tally = setTally(sets);
+
+  return (
+    <div className="border-rule flex items-baseline justify-between border-t bg-[#fafafa] px-[22px] py-3.5">
+      <span className="text-muted-foreground text-xs tabular-nums">
+        Sets {tally.won}&ndash;{tally.lost}
       </span>
-      <div className="flex w-[40%] justify-center">
-        <TeamAvatars
-          members={row.slot2Members}
-          label="Slot 2"
-          winner={winner === 2}
-        />
+      <div className="font-expanded flex items-baseline gap-4 text-[22px]">
+        {sets.map((set, index) => (
+          <SetScore key={`${set.us}-${set.them}-${index}`} set={set} />
+        ))}
       </div>
     </div>
   );
@@ -121,20 +181,23 @@ function Matchup({ row }: { row: MatchHistoryRow }) {
 
 export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
   const title = cardTitle(row);
-  const venueName = row.venue.name.trim();
-  const groupName = row.groupName?.trim();
+  const subtitle = cardSubtitle(row, title);
   const dayLabel = formatRelativeDay(row.displayTime, {
     sameDayLabel: "Today",
   });
   const timeLabel = formatGameClock(row.displayTime);
+  const groupName = row.groupName?.trim();
   const href = `/dashboard/games/${row.id}`;
-  const formatText = formatLabel(row.format);
+
+  const myMembers = row.viewerSlot === 1 ? row.slot1Members : row.slot2Members;
+  const opponents = row.viewerSlot === 1 ? row.slot2Members : row.slot1Members;
+  const seats = Math.max(myMembers.length, opponents.length, 1);
 
   return (
     <li data-slot="match-history-card">
       <Card
         className={cn(
-          "shadow-xs relative gap-3 md:gap-3",
+          "border-rule relative gap-0 overflow-hidden rounded-[14px] p-0",
           "motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
           "hover:border-foreground/20 hover:shadow-sm",
         )}
@@ -142,99 +205,52 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
         <Link
           href={href}
           aria-label={`${title}, ${OUTCOME_LABEL[row.outcome]}`}
-          className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-xl outline-none focus-visible:ring-[3px]"
+          className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
         />
-        <div
-          className={cn("relative z-10 min-w-0 gap-3", "pointer-events-none")}
-        >
-          <div className="flex flex-row justify-between">
-            <div className="flex flex-row items-center gap-2">
-              <Calendar className="size-4" />
-              <p className="text-muted-foreground leading-tight lg:text-lg">
-                {dayLabel} - {timeLabel}
-              </p>
-            </div>
-            <div>
-              {groupName ? (
-                <p className="text-meta text-muted-foreground flex min-w-0 items-center">
-                  <span className="truncate">{groupName}</span>
-                </p>
-              ) : null}
-            </div>
-          </div>
-          <div className="mt-2 min-w-0 flex-1">
-            <div className="flex items-center justify-between">
-              <p className="flex min-w-0 items-center gap-1.5 text-2xl font-semibold">
-                <span className="truncate">{formatText}</span>
-              </p>
-              <p className="text-muted-foreground text-sm font-medium">
-                {row.outcome === "won" ? (
-                  <Badge variant="success">
-                    {
-                      <p className="text-sm font-semibold text-green-700">
-                        {OUTCOME_LABEL[row.outcome]}
-                      </p>
-                    }
-                  </Badge>
-                ) : row.outcome === "lost" ? (
-                  <Badge variant="destructive">
-                    {
-                      <p className="text-sm font-semibold text-white">
-                        {OUTCOME_LABEL[row.outcome]}
-                      </p>
-                    }
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">
-                    {
-                      <p className="text-sm font-semibold">
-                        {OUTCOME_LABEL[row.outcome]}
-                      </p>
-                    }
-                  </Badge>
-                )}
-              </p>
-            </div>
-            {venueName ? (
-              <p className="text-meta text-muted-foreground mt-1 flex min-w-0 items-center gap-1.5">
-                <MapPin aria-hidden={true} className="size-3.5 shrink-0" />
-                <span className="truncate">{venueName}</span>
-              </p>
+
+        <div className="pointer-events-none relative z-10 min-w-0 px-[22px] pb-[18px] pt-[22px]">
+          <div className="text-muted-foreground mb-2 flex items-baseline justify-between gap-3 text-[13px]">
+            <span>
+              {dayLabel} · {timeLabel}
+            </span>
+            {groupName ? (
+              <span className="text-dim min-w-0 truncate">{groupName}</span>
             ) : null}
           </div>
-          {/* <div className="hidden min-w-0 items-center gap-2 sm:flex">
-            <Matchup row={row} />
-          </div> */}
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            {/* <Badge variant="success" size="sm">
-              {OUTCOME_LABEL[row.outcome]}
-            </Badge> */}
+
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="min-w-0 truncate text-xl font-medium tracking-[-0.015em]">
+              {title}
+            </h3>
+            <ResultMark outcome={row.outcome} />
           </div>
-          {/* <ChevronRight
-            aria-hidden={true}
-            className="text-muted-foreground size-5 shrink-0"
-          /> */}
-        </div>
-        <div className="pointer-events-none relative z-10 flex items-center justify-center gap-2">
-          <Matchup row={row} />
-        </div>
-        {row.scoredSets.length > 0 ? (
-          <div className="border-border mt-4 flex flex-row items-center justify-between rounded-2xl border p-2">
-            {row.scoredSets.map((set, index) => (
-              <div
-                className="flex w-[30%] flex-col items-center justify-between"
-                key={`${set.slot1GamesWon}-${set.slot2GamesWon}-${index}`}
-              >
-                <div className="flex flex-col items-center justify-between">
-                  <p className="text-sm">set {index + 1}</p>
-                  <span className="text-2xl font-semibold">
-                    {set.slot1GamesWon} - {set.slot2GamesWon}
-                  </span>
-                </div>
-              </div>
-            ))}
+
+          {subtitle ? (
+            <p className="text-muted-foreground mt-[5px] truncate text-[13px]">
+              {subtitle}
+            </p>
+          ) : null}
+
+          <div className="mt-[18px] flex items-center gap-[10px]">
+            <Team
+              members={myMembers}
+              seats={seats}
+              mine={true}
+              label="Your team"
+            />
+            <span className="text-dim mx-0.5 text-xs font-semibold">vs</span>
+            <Team
+              members={opponents}
+              seats={seats}
+              mine={false}
+              label="Opponents"
+            />
           </div>
-        ) : null}
+        </div>
+
+        <div className="pointer-events-none relative z-10">
+          <ScoreBand row={row} />
+        </div>
       </Card>
     </li>
   );

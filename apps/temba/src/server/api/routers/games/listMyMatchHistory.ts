@@ -28,6 +28,8 @@ export type MatchHistoryRow = {
   slot1Members: MatchHistoryMember[];
   slot2Members: MatchHistoryMember[];
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
+  /** Slot the signed-in User sat on, so cards can read scores as us-vs-them. */
+  viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
 };
 
@@ -315,6 +317,7 @@ export async function listMyMatchHistoryRows(
       slot1Members: membersFromSlot(chosen.match.slot1GameTeam),
       slot2Members: membersFromSlot(chosen.match.slot2GameTeam),
       scoredSets: scoredSetsFromMatch(chosen.match.sets),
+      viewerSlot: chosen.userSlot,
       outcome: chosen.outcome,
     });
   }
