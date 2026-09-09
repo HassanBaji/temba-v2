@@ -1,6 +1,7 @@
 import { SignIn } from "@clerk/nextjs";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
@@ -27,6 +28,9 @@ export default async function LoginPage({
         forceRedirectUrl={redirectUrl ?? undefined}
         fallbackRedirectUrl={authCompleteUrl(redirectUrl)}
       />
+      <div className="mt-6">
+        <OauthButtons flow="sign-in" redirectUrl={redirectUrl} />
+      </div>
     </AuthScreen>
   );
 }
