@@ -17,8 +17,10 @@ import {
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "~/lib/friendly-game-cta";
+import { preferredJoinSeat } from "~/lib/preferred-seat";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
 type SeatPosition = "left" | "right";
 
@@ -184,6 +186,11 @@ function SideColumn({
  *
  * Confirming closes the sheet and leaves the outcome to the caller's
  * mutation toast, matching the pre-redesign behaviour.
+ *
+ * The sheet opens with the viewer's Preferred Position already picked when a
+ * matching Position is free (`preferredJoinSeat`). That is a default and not
+ * a rule: both Positions stay drawn and enabled, one tap moves or clears the
+ * pick, and nothing is submitted until the footer button.
  */
 export function FriendlyGameJoinSheet({
   open,
@@ -202,13 +209,37 @@ export function FriendlyGameJoinSheet({
   pricePerPlayerCents?: number | null;
   onPickSeat: (sideIndex: number, position: SeatPosition) => void;
 }) {
-  const [picked, setPicked] = useState<FriendlyGameJoinSeat | null>(null);
+  // `touched` is what keeps the Preferred Position default a default: until
+  // the viewer taps, the picked Position is derived, so it can appear the
+  // moment `onboardingState` answers and update if a Position is taken while
+  // the sheet is open. After a tap the viewer's own choice stands, including
+  // the empty one they get by tapping the pre-selected Position off again.
+  const [selection, setSelection] = useState<{
+    touched: boolean;
+    seat: FriendlyGameJoinSeat | null;
+  }>({ touched: false, seat: null });
+
+  // Only while the sheet is open: this is a default for a picker, not
+  // something every Game card on a hub needs to fetch on mount.
+  const onboardingState = api.users.onboardingState.useQuery(undefined, {
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open) {
-      setPicked(null);
+      setSelection({ touched: false, seat: null });
     }
   }, [open]);
+
+  const picked = selection.touched
+    ? selection.seat
+    : preferredJoinSeat(sides, onboardingState.data?.preferredPosition);
+
+  function pick(seat: FriendlyGameJoinSeat) {
+    const same =
+      picked?.sideIndex === seat.sideIndex && picked.position === seat.position;
+    setSelection({ touched: true, seat: same ? null : seat });
+  }
 
   const isFull = vacantJoinSeats(sides).length === 0;
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
@@ -243,14 +274,7 @@ export function FriendlyGameJoinSheet({
                     side={side}
                     picked={picked}
                     pending={pending}
-                    onPick={(seat) =>
-                      setPicked((current) =>
-                        current?.sideIndex === seat.sideIndex &&
-                        current.position === seat.position
-                          ? null
-                          : seat,
-                      )
-                    }
+                    onPick={pick}
                   />
                 </Fragment>
               ))}
