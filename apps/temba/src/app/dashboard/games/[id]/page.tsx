@@ -41,6 +41,7 @@ import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
 import {
   friendlyGameCanMintInvite,
   friendlyGameCtaFamily,
+  friendlyGameFooterCanLeaveGame,
   friendlyGameOverflowItems,
   vacantJoinSeats,
 } from "~/lib/friendly-game-cta";
@@ -573,15 +574,15 @@ export default function GameHomePage({
         isWaitlisted: data.isWaitlisted,
       })
     : [];
-  // Organiser actions footer (game-details redesign, TEM-184): a
-  // non-organizer sees "Leave game" at the very bottom of the page in every
-  // phase, mirroring the condition the overflow menu's now-removed "leave"
-  // item used to gate on (existing `leave` door/`canLeave` check, unchanged).
-  const nonOrganizerCanLeaveGame =
-    !data.isOrganizer &&
-    (data.isSeated || data.isRegistered) &&
-    data.canLeave &&
-    !data.isWaitlisted;
+  // Organiser actions footer (game-details redesign, TEM-184, amended
+  // TEM-193): Leave game for every seated/registered non-waitlisted User
+  // who `canLeave`, including an organizer who sits. Distinct from Cancel.
+  const canLeaveGame = friendlyGameFooterCanLeaveGame({
+    isSeated: data.isSeated,
+    isRegistered: data.isRegistered,
+    canLeave: data.canLeave,
+    isWaitlisted: data.isWaitlisted,
+  });
   const headerActions = usesFriendlyChrome ? null : (
     <>
       {canManageGameInvites ? (
@@ -832,9 +833,7 @@ export default function GameHomePage({
               onShareResult={
                 ctaFamily.kind === "final"
                   ? () => {
-                      void navigator.clipboard.writeText(
-                        window.location.href,
-                      );
+                      void navigator.clipboard.writeText(window.location.href);
                       toast.success("Link copied");
                     }
                   : undefined
@@ -867,6 +866,11 @@ export default function GameHomePage({
               winningGameTeamId={winningGameTeamId}
               canMintInvite={canMintInvite}
               onInvite={() => setInvitesOpen(true)}
+              canMove={data.canMove}
+              moving={moveSeat.isPending}
+              onMove={(sideIndex, position) =>
+                moveSeat.mutate({ gameId: id, sideIndex, position })
+              }
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
@@ -904,7 +908,7 @@ export default function GameHomePage({
               <FriendlyGameActionsFooter
                 phase={data.phase}
                 isOrganizer={data.isOrganizer}
-                canLeaveGame={nonOrganizerCanLeaveGame}
+                canLeaveGame={canLeaveGame}
                 canReportWrongScore={data.canReportWrongScore}
                 cancelGamePending={cancelGame.isPending}
                 markAsNotPlayedPending={cancelMatch.isPending}
