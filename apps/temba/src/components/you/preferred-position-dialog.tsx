@@ -11,10 +11,6 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import {
-  LevelChoiceGrid,
-  type LevelChoiceValue,
-} from "~/components/temba/level-choice-grid";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
@@ -24,39 +20,52 @@ import {
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
 import {
-  selfDeclareChoiceFromDisplay,
-  type SelfDeclareChoice,
-} from "~/lib/level-bands";
+  isPreferredPosition,
+  PREFERRED_POSITION_CHOICES,
+  type PreferredPosition,
+} from "~/lib/preferred-position";
 
-const FIELD_IDS = { choice: "declare-level-choice" };
+const FIELD_IDS = { preferredPosition: "preferred-position-choice" };
 
-export function DeclareLevelDialog({
+/**
+ * The You editor for Preferred Position. Unlike the Level declaration this
+ * answer is freely re-editable, so the picker opens on the stored answer and
+ * saving over it is ordinary — there is no once-only state here.
+ */
+export function PreferredPositionDialog({
   open,
   onOpenChange,
+  current,
   pending,
   error,
-  onDeclare,
+  onSave,
   restoreFocusRef,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  current: string | null | undefined;
   pending: boolean;
   error?: {
     message: string;
     data?: { zodError?: unknown } | null;
   } | null;
-  onDeclare: (choice: SelfDeclareChoice) => void;
+  onSave: (preferredPosition: PreferredPosition) => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const [choice, setChoice] = React.useState<LevelChoiceValue | "">("");
-  const choiceError = fieldErrorMessage(error, "choice");
+  const [choice, setChoice] = React.useState<PreferredPosition | "">(
+    isPreferredPosition(current) ? current : "",
+  );
+  const choiceError = fieldErrorMessage(error, "preferredPosition");
 
+  // Only while closed, so a fresh open starts from the stored answer and a
+  // refetch mid-edit never overwrites what the User just picked.
   React.useEffect(() => {
-    if (!open) {
-      setChoice("");
+    if (open) {
+      return;
     }
-  }, [open]);
+    setChoice(isPreferredPosition(current) ? current : "");
+  }, [open, current]);
 
   React.useEffect(() => {
     if (!error) {
@@ -70,7 +79,7 @@ export function DeclareLevelDialog({
     if (pending || choice === "") {
       return;
     }
-    onDeclare(selfDeclareChoiceFromDisplay(choice));
+    onSave(choice);
   }
 
   return (
@@ -86,10 +95,10 @@ export function DeclareLevelDialog({
       <ResponsiveDialogContent restoreFocusRef={restoreFocusRef}>
         <form onSubmit={onSubmit} className="contents">
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Declare your Level</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>Preferred Position</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              Place yourself on the padel ladder once. Pick a Level band, or I
-              don’t know if you are unsure.
+              The side you like on a Game team. It only sets a default when you
+              pick a seat, and you can change it whenever you like.
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
@@ -99,21 +108,40 @@ export function DeclareLevelDialog({
               message={globalFormErrorMessage(error)}
             />
             <Field>
-              <FieldLabel id="declare-level-choice-label">
-                Level band
+              <FieldLabel id="preferred-position-choice-label">
+                Preferred Position
               </FieldLabel>
-              <LevelChoiceGrid
-                id={FIELD_IDS.choice}
-                labelledBy="declare-level-choice-label"
-                describedBy={
-                  choiceError ? "declare-level-choice-error" : undefined
+              <div
+                id={FIELD_IDS.preferredPosition}
+                role="radiogroup"
+                aria-labelledby="preferred-position-choice-label"
+                aria-invalid={choiceError ? true : undefined}
+                aria-describedby={
+                  choiceError ? "preferred-position-choice-error" : undefined
                 }
-                invalid={Boolean(choiceError)}
-                value={choice}
-                onSelect={setChoice}
-                disabled={pending}
-              />
-              <FieldError id="declare-level-choice-error">
+                className="grid grid-cols-3 gap-2"
+              >
+                {PREFERRED_POSITION_CHOICES.map((option) => {
+                  const selected = choice === option.value;
+                  return (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      variant={selected ? "default" : "outline"}
+                      className="min-h-11"
+                      disabled={pending}
+                      onClick={() => {
+                        setChoice(option.value);
+                      }}
+                    >
+                      {option.label}
+                    </Button>
+                  );
+                })}
+              </div>
+              <FieldError id="preferred-position-choice-error">
                 {choiceError}
               </FieldError>
             </Field>
@@ -136,7 +164,7 @@ export function DeclareLevelDialog({
               disabled={pending || choice === ""}
               aria-busy={pending}
             >
-              {pending ? "Saving…" : "Save Level"}
+              {pending ? "Saving…" : "Save"}
             </Button>
           </ResponsiveDialogFooter>
         </form>

@@ -239,6 +239,13 @@
       "when": 1788814270714,
       "tag": "0033_flowery_shriek",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788892734255,
+      "tag": "0034_user_preferred_position_and_onboarding",
+      "breakpoints": true
     }
   ]
 }

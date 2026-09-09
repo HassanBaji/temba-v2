@@ -1,12 +1,32 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
+import { PATHNAME_HEADER } from "~/lib/dashboard-onboarding-gate";
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/onboarding(.*)",
+]);
 const isDesignPreview = createRouteMatcher(["/dashboard/design(.*)"]);
 const isAuthRoute = createRouteMatcher(["/login(.*)", "/signup(.*)"]);
 const isWebhookRoute = createRouteMatcher(["/api/webhooks(.*)"]);
+
+/**
+ * Continue, carrying the requested path plus search on `x-temba-pathname`.
+ * Server Components cannot read the request URL, and the dashboard onboarding
+ * gate needs it to build `redirect_url`. Always `set`, never append, so a
+ * client-supplied header of the same name cannot reach the gate.
+ */
+function nextWithPathname(req: NextRequest) {
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set(
+    PATHNAME_HEADER,
+    `${req.nextUrl.pathname}${req.nextUrl.search}`,
+  );
+
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
 
 export default clerkMiddleware(async (auth, req) => {
   if (isWebhookRoute(req)) {
@@ -16,7 +36,7 @@ export default clerkMiddleware(async (auth, req) => {
   // Fixture-fed Home preview is development-only (page 404s in production).
   // Skip auth so the hatch device can be checked without a seeded User.
   if (process.env.NODE_ENV === "development" && isDesignPreview(req)) {
-    return NextResponse.next();
+    return nextWithPathname(req);
   }
 
   if (isProtectedRoute(req)) {
@@ -35,6 +55,8 @@ export default clerkMiddleware(async (auth, req) => {
   if (req.nextUrl.pathname === "/public") {
     return NextResponse.redirect(new URL("/login", req.url));
   }
+
+  return nextWithPathname(req);
 });
 
 export const config = {

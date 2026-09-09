@@ -145,7 +145,11 @@ type ExpectedTeams =
   | "unlink"
   | "dissolve";
 
-type ExpectedUsers = "home";
+type ExpectedUsers =
+  | "home"
+  | "onboardingState"
+  | "setPreferredPosition"
+  | "completeOnboarding";
 
 type ExpectedVenues =
   | "list"

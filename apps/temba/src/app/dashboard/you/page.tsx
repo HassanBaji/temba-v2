@@ -11,6 +11,7 @@ import { Section } from "~/components/layout/section";
 import { AvatarBadge } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
+import { YouPreferredPositionRow } from "~/components/you/you-preferred-position-row";
 import { YouRatingSection } from "~/components/you/you-rating-section";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 
@@ -26,6 +27,7 @@ function YouPageSkeleton({ showOperator }: { showOperator: boolean }) {
         <Skeleton className="size-8 shrink-0 rounded-full" />
       </div>
       <div className="divide-border overflow-hidden rounded-lg border">
+        <Skeleton className="h-16 w-full rounded-none" />
         <Skeleton className="h-16 w-full rounded-none" />
         <Skeleton className="h-16 w-full rounded-none" />
         {showOperator ? (
@@ -114,6 +116,7 @@ export default function YouPage() {
         <YouRatingSection />
 
         <RowList>
+          <YouPreferredPositionRow />
           <ListRow
             asChild
             leading={

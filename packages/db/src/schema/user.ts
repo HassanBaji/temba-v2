@@ -1,4 +1,5 @@
 import {
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -11,6 +12,22 @@ import {
 import { relations } from "drizzle-orm";
 import { account } from "./account";
 import { session } from "./session";
+
+/**
+ * Preferred Position: a User's standing preference for left or right, or
+ * either. A default for the Game seat picker, not a Position itself — kept
+ * separate from `game_position`, which is the per-Game-team seat.
+ */
+export const USER_PREFERRED_POSITION_VALUES = [
+  "left",
+  "right",
+  "either",
+] as const;
+
+export const userPreferredPositions = pgEnum(
+  "user_preferred_position",
+  USER_PREFERRED_POSITION_VALUES,
+);
 
 export const user = pgTable(
   "user",
@@ -33,6 +50,8 @@ export const user = pgTable(
     numberOfCoachingSessions: integer("number_of_coaching_sessions")
       .notNull()
       .default(0),
+    preferredPosition: userPreferredPositions("preferred_position"),
+    onboardingCompletedAt: timestamp("onboarding_completed_at"),
     createdAt: timestamp("created_at")
       .$defaultFn(() => /* @__PURE__ */ new Date())
       .notNull(),

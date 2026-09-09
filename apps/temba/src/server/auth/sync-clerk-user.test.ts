@@ -185,4 +185,37 @@ describe("Clerk user.created / user.updated upsert", () => {
       await close();
     }
   });
+
+  it("leaves Preferred Position and onboarding completion untouched", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(db, clerkUser({ has_image: true }));
+
+      const created = await storedUser(db, "user_clerk_alex");
+      expect(created.preferredPosition).toBeNull();
+      expect(created.onboardingCompletedAt).toBeNull();
+
+      const completedAt = new Date("2025-03-04T05:06:07.000Z");
+      await db
+        .update(user)
+        .set({ preferredPosition: "left", onboardingCompletedAt: completedAt })
+        .where(eq(user.id, created.id));
+
+      await upsertUserFromClerk(
+        db,
+        clerkUser({
+          has_image: false,
+          first_name: "Sam",
+          last_name: "Lee",
+        }),
+      );
+
+      const row = await storedUser(db, "user_clerk_alex");
+      expect(row.name).toBe("Sam Lee");
+      expect(row.preferredPosition).toBe("left");
+      expect(row.onboardingCompletedAt?.getTime()).toBe(completedAt.getTime());
+    } finally {
+      await close();
+    }
+  });
 });
