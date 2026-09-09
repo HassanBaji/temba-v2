@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import {
   friendlyGameCanMintInvite,
   friendlyGameCtaFamily,
+  friendlyGameFooterCanLeaveGame,
   friendlyGameJoinSheetCaption,
   friendlyGameLevelUpdatedLine,
   friendlyGameOverflowItems,
@@ -287,6 +288,59 @@ describe("friendlyGameOverflowItems", () => {
         }),
       ),
       [],
+    );
+  });
+});
+
+describe("friendlyGameFooterCanLeaveGame", () => {
+  it("shows Leave game for seated or registered Users, including organizers", () => {
+    assert.equal(
+      friendlyGameFooterCanLeaveGame({
+        isSeated: true,
+        isRegistered: true,
+        canLeave: true,
+        isWaitlisted: false,
+      }),
+      true,
+    );
+    assert.equal(
+      friendlyGameFooterCanLeaveGame({
+        isSeated: false,
+        isRegistered: true,
+        canLeave: true,
+        isWaitlisted: false,
+      }),
+      true,
+    );
+  });
+
+  it("hides Leave game for waitlisted, unseated, or canLeave-false viewers", () => {
+    assert.equal(
+      friendlyGameFooterCanLeaveGame({
+        isSeated: false,
+        isRegistered: false,
+        canLeave: true,
+        isWaitlisted: true,
+      }),
+      false,
+    );
+    assert.equal(
+      friendlyGameFooterCanLeaveGame({
+        isSeated: false,
+        isRegistered: false,
+        canLeave: false,
+        isWaitlisted: false,
+      }),
+      false,
+    );
+    assert.equal(
+      friendlyGameFooterCanLeaveGame({
+        isSeated: true,
+        isRegistered: true,
+        canLeave: false,
+        isWaitlisted: false,
+      }),
+      false,
     );
   });
 });

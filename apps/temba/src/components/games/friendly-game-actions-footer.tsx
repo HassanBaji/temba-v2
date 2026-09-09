@@ -8,8 +8,9 @@ import { cn } from "~/lib/utils";
  * details page, above a hairline — never inside the Score section, never
  * inside the organizer overflow menu (that duplicate placement is removed by
  * this ticket, see `friendly-game-cta.ts`/`friendly-game-overflow-menu.tsx`).
- * One organiser action per phase, plus "Leave game" for a non-organizer in
- * every phase:
+ * One organiser action per phase, plus "Leave game" for every seated or
+ * registered (non-waitlisted) User who `canLeave`, including an organizer
+ * who also sits, in every phase:
  *
  * - Upcoming/Ongoing (organizer): "Edit game" (no consequence line — not
  *   destructive) and "Cancel game" (existing `cancel` door, unchanged
@@ -22,8 +23,9 @@ import { cn } from "~/lib/utils";
  *   `canReportWrongScore` eligibility read — eligible renders a live,
  *   confirm-dialog-gated action; ineligible renders disabled/inert with
  *   support-routing copy instead of a button that would fail on tap.
- * - Every phase (non-organizer): "Leave game" (existing `leave` door and
- *   `canLeave` check, unchanged permission).
+ * - Every phase (seated/registered, not waitlisted): "Leave game" (existing
+ *   `leave` door and `canLeave` check, unchanged permission). Distinct from
+ *   Cancel game.
  */
 export type FriendlyGameActionsFooterPhase =
   | "upcoming"
@@ -101,22 +103,8 @@ export function FriendlyGameActionsFooter({
 }) {
   const isUpcoming = phase === "upcoming" || phase === "ongoing";
 
-  if (!isOrganizer) {
-    if (!canLeaveGame) {
-      return null;
-    }
-    return (
-      <div
-        data-slot="friendly-game-actions-footer"
-        className="border-rule divide-rule border-t"
-      >
-        <FooterAction
-          label="Leave game"
-          onClick={onLeaveGame}
-          pending={leaveGamePending}
-        />
-      </div>
-    );
+  if (!isOrganizer && !canLeaveGame) {
+    return null;
   }
 
   return (
@@ -124,7 +112,7 @@ export function FriendlyGameActionsFooter({
       data-slot="friendly-game-actions-footer"
       className="border-rule divide-rule divide-y border-t"
     >
-      {isUpcoming ? (
+      {isOrganizer && isUpcoming ? (
         <>
           <FooterAction label="Edit game" onClick={onEditGame} />
           <FooterAction
@@ -135,7 +123,7 @@ export function FriendlyGameActionsFooter({
           />
         </>
       ) : null}
-      {phase === "needs_results" ? (
+      {isOrganizer && phase === "needs_results" ? (
         <FooterAction
           label="Mark as not played"
           consequence="No result is recorded and nobody's level changes"
@@ -143,7 +131,7 @@ export function FriendlyGameActionsFooter({
           pending={markAsNotPlayedPending}
         />
       ) : null}
-      {phase === "final" ? (
+      {isOrganizer && phase === "final" ? (
         canReportWrongScore?.eligible ? (
           <FooterAction
             label="Report a wrong score"
@@ -158,6 +146,14 @@ export function FriendlyGameActionsFooter({
             disabled
           />
         )
+      ) : null}
+      {canLeaveGame ? (
+        <FooterAction
+          label="Leave game"
+          consequence="Your spot can open for someone else."
+          onClick={onLeaveGame}
+          pending={leaveGamePending}
+        />
       ) : null}
     </div>
   );

@@ -26,6 +26,16 @@ export function friendlyGameVacantSeatAction(input: {
   return null;
 }
 
+/**
+ * Line-up vacant hatch is move-only (TEM-193). Join stays the sticky CTA
+ * sheet; do not reuse `friendlyGameVacantSeatAction`'s join branch here.
+ */
+export function friendlyGameLineupVacantAction(
+  canMove: boolean,
+): Extract<FriendlyGameVacantSeatAction, "move"> | null {
+  return canMove ? "move" : null;
+}
+
 export function friendlyGameVacantSeatLabel(
   action: FriendlyGameVacantSeatAction,
   sideLabel: string,
