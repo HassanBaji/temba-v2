@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
+/**
+ * Theme for remaining Clerk drop-ins (`UserButton` on `/dashboard/you` via
+ * `app-sidebar`, and any other Clerk UI chrome). Custom `/login` and `/signup`
+ * screens do not use this. Keep `@clerk/ui/themes` and the matching
+ * `shadcn.css` import in `globals.css`.
+ */
 const clerkAppearance = {
   theme: shadcn,
   variables: {
