@@ -13,6 +13,7 @@ export function AuthScreen({
   description,
   footer,
   children,
+  padContent = true,
 }: {
   variant?: "default" | "welcome";
   backHref?: string;
@@ -22,6 +23,7 @@ export function AuthScreen({
   description?: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
+  padContent?: boolean;
 }) {
   const welcome = variant === "welcome";
   const showHeader = Boolean(backHref ?? crossLink);
@@ -81,7 +83,12 @@ export function AuthScreen({
           </div>
         ) : null}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-[26px] pb-8 pt-4">
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col",
+            padContent && "px-[26px] pb-8 pt-4",
+          )}
+        >
           {children}
         </div>
 
