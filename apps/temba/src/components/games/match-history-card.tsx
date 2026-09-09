@@ -140,7 +140,7 @@ function SetScore({ set }: { set: { us: number; them: number } }) {
   return (
     <span className="tabular-nums">
       <span className={won ? "text-ink" : "text-dim"}>{set.us}</span>
-      <span className="text-dim">&ndash;</span>
+      <span className="text-dim/50">&ndash;</span>
       <span className={won ? "text-dim" : "text-ink"}>{set.them}</span>
     </span>
   );
@@ -151,7 +151,7 @@ function ScoreBand({ row }: { row: MatchHistoryRow }) {
 
   if (sets.length === 0) {
     return (
-      <div className="border-rule flex items-center justify-between border-t bg-[#fafafa] px-[22px] py-3.5">
+      <div className="border-rule flex items-center justify-between border-t bg-[#fafafa] px-[22px] py-3">
         <span className="text-muted-foreground text-[13px] font-medium">
           Score pending
         </span>
@@ -166,14 +166,16 @@ function ScoreBand({ row }: { row: MatchHistoryRow }) {
   const tally = setTally(sets);
 
   return (
-    <div className="border-rule flex items-baseline justify-between border-t bg-[#fafafa] px-[22px] py-3.5">
-      <span className="text-muted-foreground text-xs tabular-nums">
-        Sets {tally.won}&ndash;{tally.lost}
-      </span>
-      <div className="font-expanded flex items-baseline gap-4 text-[22px]">
-        {sets.map((set, index) => (
-          <SetScore key={`${set.us}-${set.them}-${index}`} set={set} />
-        ))}
+    <div className="border-rule w-full border-t bg-[#fafafa]">
+      <div className="flex items-baseline justify-between px-[22px] py-3">
+        <span className="text-muted-foreground text-xs tabular-nums">
+          Sets {tally.won}&ndash;{tally.lost}
+        </span>
+        <div className="font-expanded flex items-baseline gap-4 text-[22px]">
+          {sets.map((set, index) => (
+            <SetScore key={`${set.us}-${set.them}-${index}`} set={set} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -182,12 +184,14 @@ function ScoreBand({ row }: { row: MatchHistoryRow }) {
 export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
   const title = cardTitle(row);
   const subtitle = cardSubtitle(row, title);
+  const format = formatLabel(row.format);
   const dayLabel = formatRelativeDay(row.displayTime, {
     sameDayLabel: "Today",
   });
   const timeLabel = formatGameClock(row.displayTime);
   const groupName = row.groupName?.trim();
   const href = `/dashboard/games/${row.id}`;
+  const venueName = row.venue.name.trim();
 
   const myMembers = row.viewerSlot === 1 ? row.slot1Members : row.slot2Members;
   const opponents = row.viewerSlot === 1 ? row.slot2Members : row.slot1Members;
@@ -202,14 +206,14 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
           "hover:border-foreground/20 hover:shadow-sm",
         )}
       >
-        <Link
+        {/* <Link
           href={href}
           aria-label={`${title}, ${OUTCOME_LABEL[row.outcome]}`}
           className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
-        />
+        /> */}
 
         <div className="pointer-events-none relative z-10 min-w-0 px-[22px] pb-[18px] pt-[22px]">
-          <div className="text-muted-foreground mb-2 flex items-baseline justify-between gap-3 text-[13px]">
+          <div className="text-muted-foreground flex items-baseline justify-between gap-3 text-sm">
             <span>
               {dayLabel} · {timeLabel}
             </span>
@@ -218,20 +222,18 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
             ) : null}
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="mt-4 flex items-center justify-between gap-3">
             <h3 className="min-w-0 truncate text-xl font-medium tracking-[-0.015em]">
-              {title}
+              {format}
             </h3>
             <ResultMark outcome={row.outcome} />
           </div>
 
-          {subtitle ? (
-            <p className="text-muted-foreground mt-[5px] truncate text-[13px]">
-              {subtitle}
-            </p>
-          ) : null}
+          <p className="text-muted-foreground mt-1 truncate text-sm">
+            {venueName}
+          </p>
 
-          <div className="mt-[18px] flex items-center gap-[10px]">
+          <div className="mt-4 flex items-center gap-2.5">
             <Team
               members={myMembers}
               seats={seats}
@@ -247,8 +249,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
             />
           </div>
         </div>
-
-        <div className="pointer-events-none relative z-10">
+        <div className="w-full">
           <ScoreBand row={row} />
         </div>
       </Card>
