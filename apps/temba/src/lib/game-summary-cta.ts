@@ -110,3 +110,11 @@ export function gameViewerStatus(
 export function showsFriendlyRoster(format: string, registrationMode: string) {
   return format === "friendly_game" && registrationMode === "individual";
 }
+
+/** Footer Join game is omitted when the Friendly roster itself is the join control. */
+export function showsGameCardFooterAction(
+  action: GameSummaryCta,
+  rosterShown: boolean,
+) {
+  return !(action === "join" && rosterShown);
+}

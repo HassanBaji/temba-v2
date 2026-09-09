@@ -4,6 +4,7 @@ import Link from "next/link";
 import * as React from "react";
 
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
+import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
@@ -12,10 +13,13 @@ import {
   formatGameCardDay,
   formatWindowDuration,
 } from "~/lib/format-game-start";
+import { friendlyGameVacantSeatLabel } from "~/lib/friendly-game-players";
+import { nextJoinPosition } from "~/lib/game-card-side-join";
 import { gameOccupancy, spotsOpenLabel } from "~/lib/game-occupancy";
 import {
   gameCardActionLabel,
   gameCardActionSolid,
+  showsGameCardFooterAction,
   type GameSummaryCta,
   type GameViewerStatus,
 } from "~/lib/game-summary-cta";
@@ -118,7 +122,113 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
   );
 }
 
-function FriendlyRoster({ sides }: { sides: HubListSide[] }) {
+function sideJoinAccessibleName(
+  sideIndex: number,
+  position: "left" | "right",
+  partnerName: string | null,
+) {
+  const teamLabel = formatGameSideLabel("friendly_game", sideIndex);
+  const positionLabel = position === "left" ? "Left" : "Right";
+  const base = friendlyGameVacantSeatLabel("join", teamLabel, positionLabel);
+  if (base == null) {
+    return "Join";
+  }
+  return partnerName ? `${base} with ${partnerName}` : base;
+}
+
+function SideJoinButton({
+  sideIndex,
+  position,
+  partnerName,
+  pending,
+  onJoin,
+}: {
+  sideIndex: number;
+  position: "left" | "right";
+  partnerName: string | null;
+  pending: boolean;
+  onJoin: (sideIndex: number, position: "left" | "right") => void;
+}) {
+  return (
+    <div
+      className="pointer-events-auto relative z-10 flex min-h-9 min-w-0 flex-1 items-center"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <Button
+        type="button"
+        size="sm"
+        className="h-auto min-h-9 w-full rounded-lg px-2 py-1.5 text-sm font-semibold"
+        disabled={pending}
+        aria-label={sideJoinAccessibleName(sideIndex, position, partnerName)}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onJoin(sideIndex, position);
+        }}
+      >
+        Join
+      </Button>
+    </div>
+  );
+}
+
+function SideRoster({
+  side,
+  joinPosition,
+  actionPending,
+  onJoinSeat,
+}: {
+  side: HubListSide;
+  joinPosition: "left" | "right" | null;
+  actionPending: boolean;
+  onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
+}) {
+  if (joinPosition == null || onJoinSeat == null) {
+    return (
+      <div className="flex min-w-0 flex-1 gap-1.5">
+        <SeatChip occupant={side.left} />
+        <SeatChip occupant={side.right} />
+      </div>
+    );
+  }
+
+  const partner = joinPosition === "left" ? side.right : side.left;
+  const joinButton = (
+    <SideJoinButton
+      sideIndex={side.sideIndex}
+      position={joinPosition}
+      partnerName={partner?.name ?? null}
+      pending={actionPending}
+      onJoin={onJoinSeat}
+    />
+  );
+
+  if (side.left == null && side.right == null) {
+    return <div className="flex min-w-0 flex-1 items-center">{joinButton}</div>;
+  }
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1.5">
+      {side.left ? <SeatChip occupant={side.left} /> : joinButton}
+      {side.right ? <SeatChip occupant={side.right} /> : joinButton}
+    </div>
+  );
+}
+
+function FriendlyRoster({
+  sides,
+  joinable,
+  actionPending,
+  onJoinSeat,
+}: {
+  sides: HubListSide[];
+  joinable: boolean;
+  actionPending: boolean;
+  onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
+}) {
   return (
     <div
       className="border-rule mt-[18px] flex items-center gap-2.5 border-t pt-[18px]"
@@ -134,10 +244,12 @@ function FriendlyRoster({ sides }: { sides: HubListSide[] }) {
               vs
             </span>
           ) : null}
-          <div className="flex min-w-0 flex-1 gap-1.5">
-            <SeatChip occupant={side.left} />
-            <SeatChip occupant={side.right} />
-          </div>
+          <SideRoster
+            side={side}
+            joinPosition={joinable ? nextJoinPosition(side) : null}
+            actionPending={actionPending}
+            onJoinSeat={onJoinSeat}
+          />
         </React.Fragment>
       ))}
     </div>
@@ -262,12 +374,16 @@ export function GameSummaryCard({
   const dayLabel = formatGameCardDay(startTime);
   const kickoff = formatHomeKickoff(startDate);
   const countdown = formatHomeCountdown(startDate, now);
-  const ctaText = primaryAction
-    ? gameCardActionLabel(primaryAction, {
-        viewerIn: viewerStatus === "in",
-        openSpots,
-      })
-    : null;
+  const showFooterAction =
+    primaryAction != null &&
+    showsGameCardFooterAction(primaryAction, showRoster);
+  const ctaText =
+    showFooterAction && primaryAction
+      ? gameCardActionLabel(primaryAction, {
+          viewerIn: viewerStatus === "in",
+          openSpots,
+        })
+      : null;
   const interactiveCta =
     primaryAction === "join" ||
     primaryAction === "join_waitlist" ||
@@ -422,7 +538,14 @@ export function GameSummaryCard({
             </div>
           ) : null}
 
-          {showRoster && sides ? <FriendlyRoster sides={sides} /> : null}
+          {showRoster && sides ? (
+            <FriendlyRoster
+              sides={sides}
+              joinable={primaryAction === "join"}
+              actionPending={actionPending}
+              onJoinSeat={onJoinSeat}
+            />
+          ) : null}
         </div>
 
         <div
@@ -451,7 +574,7 @@ export function GameSummaryCard({
           ) : null}
         </div>
       </Card>
-      {primaryAction === "join" ? picker : null}
+      {primaryAction === "join" && !showRoster ? picker : null}
     </li>
   );
 }

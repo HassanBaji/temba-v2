@@ -7,6 +7,7 @@ import {
   gameSummaryPrimaryAction,
   gameViewerStatus,
   showsFriendlyRoster,
+  showsGameCardFooterAction,
   type GameSummaryCtaInput,
 } from "./game-summary-cta";
 
@@ -186,5 +187,21 @@ describe("gameCardActionSolid", () => {
     assert.equal(gameCardActionSolid("Invite a player", "view"), true);
     assert.equal(gameCardActionSolid("Join game", "join"), true);
     assert.equal(gameCardActionSolid("Details", "view"), false);
+  });
+});
+
+describe("showsGameCardFooterAction", () => {
+  it("omits Join game when the Friendly roster is shown", () => {
+    assert.equal(showsGameCardFooterAction("join", true), false);
+  });
+
+  it("keeps Join game when there is no roster to join from", () => {
+    assert.equal(showsGameCardFooterAction("join", false), true);
+  });
+
+  it("keeps Join waitlist, Register, and Details with a roster", () => {
+    assert.equal(showsGameCardFooterAction("join_waitlist", true), true);
+    assert.equal(showsGameCardFooterAction("register", true), true);
+    assert.equal(showsGameCardFooterAction("view", true), true);
   });
 });
