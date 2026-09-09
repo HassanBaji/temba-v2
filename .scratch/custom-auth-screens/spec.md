@@ -1,8 +1,26 @@
 # Custom sign-in and sign-up screens
 
-Status: blocked-on-product-decision (the design changes the authentication strategy; see Open Questions 1)
+Status: ready-for-agent
 
-Tickets: not yet published to Linear. Decomposition in Ticket Decomposition below; Phase 1 is publishable once Open Questions 1–3 are answered, Phase 2 only if the phone-first strategy is approved.
+Tickets: published to Linear as TEM-194 … TEM-206, in the dependency order below.
+
+| # | Ticket | Linear |
+| --- | --- | --- |
+| 1 | Auth redirect and Clerk error helpers | TEM-194 |
+| 2 | Auth design tokens and control sizing | TEM-195 |
+| 3 | Auth screen frame | TEM-196 |
+| 4 | Welcome screen at `/` | TEM-197 |
+| 5 | OTP code input primitive and resend countdown | TEM-198 |
+| 6 | Shared OAuth callback route and provider buttons | TEM-199 |
+| 7 | Custom sign-in on `/login` | TEM-200 |
+| 8 | Custom sign-up on `/signup` with code verification | TEM-201 |
+| 9 | Sign-in recovery: forgot password and second factor | TEM-202 |
+| 10 | Retire the Clerk drop-in surface and sweep the route shape | TEM-203 |
+| 11 | **Phase 2** — allow email-less Users (schema + Clerk sync) | TEM-204 |
+| 12 | **Phase 2** — phone number field and formatting | TEM-205 |
+| 13 | **Phase 2** — phone-first sign-up and sign-in | TEM-206 |
+
+Phase 2 (TEM-204 … TEM-206) is approved but gated behind Phase 1 and behind the schema migration in **TEM-204**.
 
 Design: [`design/auth-artboards.html`](./design/auth-artboards.html) — artboards `00a Welcome`, `00b Sign up`, `00c Verify number`, `00d Sign in`. Authoritative for pixels and copy.
 
@@ -16,7 +34,7 @@ The two screens are also the product's front door: they are the first thing a Us
 
 We want Temba-owned components and design on those screens. Clerk stays the identity provider.
 
-**The brief said "keep the same flow as now". The design does not keep the same flow.** That tension is the central unresolved question in this spec and is set out in Open Questions 1. Everything below is written so the visual work can proceed without pre-deciding it.
+**The brief said "keep the same flow as now". The design does not keep the same flow** — it is phone-first passwordless SMS OTP. That tension has been settled by phasing the work; see Decisions 1.
 
 ## Solution
 
@@ -24,7 +42,7 @@ Replace `<SignIn>` and `<SignUp>` with hand-built Temba forms driven by Clerk's 
 
 `/login` and `/signup` stay server components that resolve `redirect_url` exactly as today; each renders a new client form component instead of the drop-in. `AuthShell` is left alone for `/onboarding`; the new screens get their own chrome.
 
-The work is phased. **Phase 1** rebuilds the screens in the design's visual language against the authentication strategy the Clerk instance already has. **Phase 2** — only if approved — migrates the identity model to phone-first passwordless as the artboards actually draw it. Phase 2 carries a schema migration and is blocked on it.
+The work is phased, and both phases are approved (Decisions 1). **Phase 1** rebuilds the screens in the design's visual language against the authentication strategy the Clerk instance already has. **Phase 2** migrates the identity model to phone-first passwordless as the artboards actually draw it. Phase 2 carries a schema migration and every one of its tickets is blocked on it.
 
 ## The flow contract (must not change)
 
@@ -52,7 +70,7 @@ Today the drop-ins receive `forceRedirectUrl={redirectUrl ?? undefined}` and `fa
 - The matcher includes `"/__clerk/:path*"` — Clerk's proxy paths. **Keep it.** The hooks talk to the Frontend API through the same handshake the drop-in used.
 - `/public` redirects to `/login` — unchanged.
 - `nextWithPathname` sets `x-temba-pathname` — unchanged.
-- **If Welcome takes over `/`** (Open Questions 2) that is the one middleware-adjacent change, and it lands in `app/page.tsx`, not in `middleware.ts`.
+- **Welcome takes over the signed-out branch of `/`** (Decisions 2). That is the one middleware-adjacent change, and it lands in `app/page.tsx`, not in `middleware.ts`. `/` is in neither `isAuthRoute` nor `isProtectedRoute`, so no matcher edit follows from it.
 
 ### Onboarding hand-off (ADR-0012)
 
@@ -203,7 +221,7 @@ Archivo variable with the `wdth` axis is already loaded — `apps/temba/src/app/
 
 **Genuinely new, and each needs a decision:**
 
-1. **`#9A9A9A`** — used for the `OR` label, the sign-up terms footer, the disabled Verify label, the "Button unlocks…" helper and the chevron. `globals.css` carries an explicit prohibition: *"Do not add faint (#9A9A9A) — 2.56:1 on wash."* The design uses it on white (3.05:1), which still fails WCAG AA for body text. **Recommendation**: render all of these in `--muted-foreground` (`#6E6E6E`) and accept the small contrast shift, except the genuinely non-text uses (the chevron glyph, the hatch stroke) where it is decorative. Do not add a `faint` token.
+1. **`#9A9A9A`** — used for the `OR` label, the sign-up terms footer, the disabled Verify label, the "Button unlocks…" helper and the chevron. `globals.css` carries an explicit prohibition: *"Do not add faint (#9A9A9A) — 2.56:1 on wash."* The design uses it on white (3.05:1), which still fails WCAG AA for body text. **Decided (Decisions 5)**: every *text* use renders in `--muted-foreground` (`#6E6E6E`); `#9A9A9A` survives only for the decorative chevron glyph and the hatch strokes. No `faint` token is added. These strings read slightly darker than drawn, and that is accepted.
 2. **48px and 32px type** — the ramp tops out at `--text-display` 36px and `--text-h1` 28px. The Welcome headline (48px) and the screen headings (32px) have no token. **Recommendation**: add `--text-hero: 3rem` and `--text-h1-lg: 2rem` to `@theme static` rather than one-off `text-[48px]` classes, since `sports-brand-system` owns the ramp.
 3. **52px controls** — `Input` and `Button size="default"` are both `h-11` (44px) with `rounded-md` (10px). **Recommendation**: add a `size="auth"` variant to `button.tsx` (`h-13 rounded-lg text-base`) and a matching height/radius override on the auth inputs. Do not change the default sizes; every other surface in the App is built on 44px.
 4. **Sora** — used only for the `TEMBA` wordmark. Not in `fonts.ts`. **Recommendation**: add it via `next/font/google` with a `--font-display` variable, weights 300/400 only, and use it nowhere but the wordmark.
@@ -224,9 +242,9 @@ Lucide icons used: `arrow-left`, `chevron-down` — `lucide-react` is already a 
 
 There is no artboard above 390px, and today's `AuthShell` is explicitly a desktop split with a `bg-primary` brand panel carrying "Compete. Level up. Win."
 
-**Recommendation**: centre the 390px frame on a `--color-wash` ground at every width, exactly as the canvas itself presents the artboards — `max-w-[390px] mx-auto`, frame border and 16px radius appearing only at `sm` and up, full-bleed below. It is honest to a mobile-first product and needs no invented layout.
+**Decided (Decisions 3)**: centre the 390px frame on a `--color-wash` ground at every width, exactly as the canvas itself presents the artboards — `max-w-[390px] mx-auto`, frame border and 16px radius appearing only at `sm` and up, full-bleed below. It is honest to a mobile-first product and needs no invented layout.
 
-**The cost, stated so nobody is surprised**: the desktop brand panel and its "Compete. Level up. Win." headline disappear from the auth screens. That copy survives nowhere else. If it should live on, it belongs on Welcome, and Welcome is a mobile frame too. This is a visible regression on desktop and needs sign-off (Open Questions 3).
+**The accepted cost**: the desktop brand panel and its "Compete. Level up. Win." headline disappear from the auth screens, and that copy survives nowhere else in the App. This is a deliberate, signed-off regression on desktop — do not reintroduce a split layout to "fix" it.
 
 ### Auth sub-routes that must still work
 
@@ -278,13 +296,11 @@ It is worse than the `throw`. Three things are coupled to email in that file:
 
 `sync-clerk-user.test.ts` covers this module and will need extending, not rewriting.
 
-**Options**:
+**Decided (Decisions 4)**: relax to phone-or-email. A migration makes `email` nullable, adds `CHECK (email IS NOT NULL OR phone_number IS NOT NULL)`, and promotes `phoneNumber` to a first-class identity key in the upsert. This lands and is verified as TEM-204 **before any phone UI is built**.
 
-- **(a) Relax to phone-or-email.** Migration makes `email` nullable, adds a `CHECK (email IS NOT NULL OR phone_number IS NOT NULL)`, and promotes `phoneNumber` to a first-class identity key in the upsert. Correct for the design; touches the most-depended-on table in the schema. Every `user.email` read site needs an audit.
-- **(b) Keep email mandatory, collect it at sign-up.** Adds an email field to `00b`, contradicting the artboard and its "No password to remember" promise.
-- **(c) Phone for auth, email harvested later** via an onboarding step. Defers the migration but leaves a window where the row cannot exist — which is the failure above.
+Rejected: keeping email mandatory and collecting it at sign-up (contradicts the artboard and its "No password to remember" promise); and harvesting email later via an onboarding step (defers the migration but leaves exactly the window in which the row cannot exist, which is the failure above).
 
-**Recommendation: (a)**, as its own ticket, landed and verified *before* any phone UI is built. (c) does not actually avoid the problem.
+This touches the most-depended-on table in the schema, so every `user.email` read site needs an audit — Lookup invite's search included.
 
 ### Accessibility
 
@@ -342,7 +358,9 @@ Everything else is manual verification against a Clerk development instance, nam
 
 ## Ticket Decomposition
 
-Two phases. **Phase 1 is publishable once Open Questions 1–3 are answered. Phase 2 only if the phone-first strategy is approved.** Publish to Linear in this order so `blocks` relations can reference real ids. Label `ready-for-agent`.
+Two phases, both approved. Published to Linear in this order, with native `blocks` relations, all labelled `ready-for-agent`.
+
+**Several tickets carry a Clerk-instance precondition** — a fact about the Clerk Dashboard nobody has checked yet (Open Questions 1). Each is written into that ticket's acceptance criteria as something to **verify before starting**, not to guess. A ticket whose precondition turns out false ships the reduced scope its criteria describe.
 
 ### Phase 1 — Temba-owned auth screens on the current strategy
 
@@ -368,17 +386,17 @@ Two phases. **Phase 1 is publishable once Open Questions 1–3 are answered. Pha
 
 **5. OTP code input primitive**
 *What to build*: `components/ui/otp-input.tsx` — one real input, six decorative cells, per the accessibility note. Plus `components/auth/resend-countdown.tsx` and `lib/resend-countdown.ts`.
-*Acceptance criteria*: keyboard entry, backspace and arrow navigation work; pasting six digits fills every cell in one action; exactly one element is focusable and it has one accessible name; the active-cell caret and hatched unfilled cells match the artboard; the countdown is not announced per second but "Resend code"'s accessible name reflects availability; `input-otp` is not added as a dependency.
+*Acceptance criteria*: keyboard entry, backspace and arrow navigation work; pasting six digits fills every cell in one action; exactly one element is focusable and it has one accessible name; the active-cell caret and hatched unfilled cells match the artboard; the countdown is not announced per second but "Resend code"'s accessible name reflects availability; `input-otp` is not added as a dependency. **Precondition to verify first**: the countdown window must be at least the Clerk instance's own resend rate limit — read the configured value and set the constant from it, or the button unlocks straight into a `too_many_requests` error. If the instance's limit is unknown at implementation time, take the larger of the design's 24s and Clerk's documented default, and record the value used.
 *Blocked by*: 3
 
 **6. Shared OAuth callback route**
 *What to build*: `components/auth/sso-callback.tsx` wrapping `AuthenticateWithRedirectCallback`, plus `app/login/sso-callback/page.tsx` and `app/signup/sso-callback/page.tsx`, and `components/auth/oauth-buttons.tsx` for the providers the instance actually has enabled.
-*Acceptance criteria*: an OAuth round trip completes the session; `redirect_url` survives it; a refused value lands on `/dashboard`; a sign-up round trip needing more fields routes to `/signup/continue`; `isAuthRoute` still bounces a signed-in visitor off these paths; only enabled providers render.
+*Acceptance criteria*: an OAuth round trip completes the session; `redirect_url` survives it; a refused value lands on `/dashboard`; a sign-up round trip needing more fields routes to `/signup/continue`; `isAuthRoute` still bounces a signed-in visitor off these paths; only enabled providers render. **Precondition to verify first**: list the OAuth providers actually enabled on the Clerk instance. The design draws Apple and Google. **The Apple button ships only if Apple is configured** — it needs an Apple Developer account and a different setup from Google. If it is not configured, ship Google alone and leave the Apple slot out entirely rather than rendering a button that errors; note the omission on the ticket.
 *Blocked by*: 3
 
 **7. Custom sign-in on `/login`**
 *What to build*: `sign-in-form.tsx` in the `00d` layout against the current strategy — identifier field, primary action, OAuth block, footer rule. `setActive`, then redirect via `authCompleteUrl`. Errors through `clerk-auth-error` + `FormErrorSummary`. Remove `<SignIn>` from `app/login/page.tsx`, keeping its server-component shape.
-*Acceptance criteria*: sign-in reaches `/dashboard`; with `?redirect_url=/dashboard/games/x` it reaches that path; a hostile value falls back to `/dashboard`; a bad credential shows Temba copy on the right field and moves focus; the button is busy-and-disabled during the request and double-submit is impossible; the cross-link and Back arrow carry `redirect_url`; keyboard-only sign-in works end to end; `SignInButton mode="redirect"` from the header and both Invite components still land here and complete.
+*Acceptance criteria*: sign-in reaches `/dashboard`; with `?redirect_url=/dashboard/games/x` it reaches that path; a hostile value falls back to `/dashboard`; a bad credential shows Temba copy on the right field and moves focus; the button is busy-and-disabled during the request and double-submit is impossible; the cross-link and Back arrow carry `redirect_url`; keyboard-only sign-in works end to end; `SignInButton mode="redirect"` from the header and both Invite components still land here and complete. **Preconditions to verify first**: (a) which sign-in strategies the instance has enabled — password, email code, username, phone — since that determines the identifier field and whether a password input exists at all; (b) whether any Clerk v7 session task is configured, because a pending task makes `setActive` return active-but-incomplete and our redirect would strand the User — if any is configured, pass `redirectUrl` to `setActive` and verify a task-bearing session routes correctly.
 *Blocked by*: 6
 
 **8. Custom sign-up on `/signup` with code verification**
@@ -387,8 +405,8 @@ Two phases. **Phase 1 is publishable once Open Questions 1–3 are answered. Pha
 *Blocked by*: 7, 5
 
 **9. Sign-in recovery**
-*What to build*: `forgot-password-form.tsx` at `/login/reset-password`, and `second-factor-form.tsx` at `/login/factor-two` only if MFA is enabled. Skipped entirely if Phase 2 is approved and passwords are being retired.
-*Acceptance criteria*: a full reset reaches `authCompleteUrl` with `redirect_url` preserved across all three steps; expired or wrong codes show Temba copy and allow retry without restarting; resend and rate-limit errors are readable; focus moves to each new step's heading.
+*What to build*: `forgot-password-form.tsx` at `/login/reset-password`, and `second-factor-form.tsx` at `/login/factor-two`.
+*Acceptance criteria*: a full reset reaches `authCompleteUrl` with `redirect_url` preserved across all three steps; expired or wrong codes show Temba copy and allow retry without restarting; resend and rate-limit errors are readable; focus moves to each new step's heading. **Preconditions to verify first**: (a) **`/login/factor-two` is built only if MFA is enabled on the instance** — if it is off, ship the reset flow alone and record that the second-factor screen was deliberately not built; (b) if passwords are not an enabled strategy, the reset flow has nothing to reset and this ticket closes as not-applicable — check before starting. Note that Phase 2 (TEM-206) retires passwords, which retires this flow with them.
 *Blocked by*: 8
 
 **10. Retire the drop-in surface and sweep the route shape**
@@ -396,7 +414,9 @@ Two phases. **Phase 1 is publishable once Open Questions 1–3 are answered. Pha
 *Acceptance criteria*: `@clerk/ui` stays a dependency and `UserButton` still renders themed on `/dashboard/you` and in `app-sidebar`; the `shadcn.css` import and `clerkAppearance` block are either documented as still needed or removed with `UserButton` verified after; every sub-path in the sub-route table renders a Temba screen or redirects — none 404s; a signed-in visitor is bounced off all of them; `middleware.ts` unchanged; typecheck and build pass; no `<SignIn>` or `<SignUp>` import remains in `src/`.
 *Blocked by*: 9
 
-### Phase 2 — phone-first passwordless (only if approved)
+### Phase 2 — phone-first passwordless
+
+Approved as its own phase (Decisions 1). Every ticket here is gated behind Phase 1 **and** behind the schema migration in ticket 11.
 
 **11. Allow email-less Users**
 *What to build*: a Drizzle migration making `user.email` nullable with a `CHECK (email IS NOT NULL OR phone_number IS NOT NULL)`; `sync-clerk-user.ts` reworked to accept a phone-only payload, use `phoneNumber` as the secondary identity key when `clerkId` misses, and reject only when both identifiers are absent; `displayName()` fallback chain extended. Extend `sync-clerk-user.test.ts`. Audit every `user.email` read site, Lookup invite search included. **No UI.**
@@ -410,7 +430,7 @@ Two phases. **Phase 1 is publishable once Open Questions 1–3 are answered. Pha
 
 **13. Phone-first sign-up and sign-in**
 *What to build*: switch `sign-up-form.tsx` to `signUp.create({ phoneNumber, firstName, lastName })` → `preparePhoneNumberVerification({ strategy: "phone_code" })`, `verify-code-form.tsx` to `attemptPhoneNumberVerification`, and `sign-in-form.tsx` to `identifier: phone` + `prepareFirstFactor({ strategy: "phone_code" })`. Add the "Use email instead" branch. Retire the password field and, with it, ticket 9's reset flow. Reconcile the "ten minutes / three tries" footer copy with the instance's actual policy.
-*Acceptance criteria*: a phone-only account is created end to end and its Postgres row exists before the User reaches `/dashboard`; `redirect_url` survives every step; "Use email instead" reaches a working email path; existing email/password Users can still sign in through it; the footer copy matches configured Clerk policy or has been changed to match; no password field remains; an SMS delivery failure surfaces a readable error rather than a silent hang.
+*Acceptance criteria*: a phone-only account is created end to end and its Postgres row exists before the User reaches `/dashboard`; `redirect_url` survives every step; "Use email instead" reaches a working email path; existing email/password Users can still sign in through it; no password field remains; an SMS delivery failure surfaces a readable error rather than a silent hang. **Preconditions to verify first**: (a) `phone_code` must be enabled as both a sign-up identifier and a sign-in strategy on the Clerk instance, with SMS delivery confirmed working for `+973` — verify with a real send before building, since country coverage and plan tier both gate it; (b) read the instance's configured code lifetime and attempt limit and **reconcile the `00c` footer copy against them** — "Codes expire after ten minutes. Three wrong tries locks the number for an hour." is a promise about Clerk policy, not about our code, so either configure the instance to match or change the copy. Do not ship the sentence unverified.
 *Blocked by*: 12
 
 ## Out of Scope
@@ -426,50 +446,72 @@ Two phases. **Phase 1 is publishable once Open Questions 1–3 are answered. Pha
 - Any tRPC endpoint
 - Artboard `01 Home` and everything after it in the canvas file
 
+## Decisions
+
+Settled with the user. An implementer reading this cold should not reopen them.
+
+### 1. Phased: visual system now, phone-first as its own phase
+
+The artboards are phone-first passwordless SMS OTP — no password field anywhere, email demoted to a "Use email instead" link on `00d`, and `00b`'s own sub-copy promising "No password to remember". The brief said "keep the same flow as now". Both cannot hold.
+
+**Decided**: Phase 1 rebuilds the screens in the design's visual language against whatever strategy the Clerk instance already has, which honours the brief exactly. Phase 2 adopts phone-first passwordless as a separately-approved product change.
+
+*Why*: the identity migration is a real product decision with SMS cost, country coverage and an existing-User story attached — not something to infer from an artboard. Phasing wastes nothing, because the frame, tokens, OTP control, countdown and OAuth block are all strategy-independent and Phase 1 builds them all.
+
+*Rejected*: building the design as drawn in one pass (defers none of the risk and contradicts the brief); and keeping the current strategy permanently (loses the design precisely where it is most specific).
+
+### 2. Welcome replaces the signed-out branch of `/`
+
+`apps/temba/src/app/page.tsx` is today nothing but `auth()` → `redirect("/dashboard")` when signed in, else `redirect("/login")`.
+
+**Decided**: `00a Welcome` renders at `/` for signed-out visitors. The signed-in redirect to `/dashboard` is unchanged.
+
+*Why*: `/` already exists solely to route the signed-out visitor somewhere, and Welcome is that screen. It needs no new route, no middleware change (`/` is in neither `isAuthRoute` nor `isProtectedRoute`) and no new entry in the sub-route sweep. `Route /public` redirects to `/login` directly and is unaffected.
+
+*Rejected*: a new `/welcome` (an extra route for a screen that already has a natural home); dropping the screen (it is a quarter of the design).
+
+### 3. Centre the 390px frame at all widths
+
+There is no desktop artboard, and today's `AuthShell` is a `lg:grid-cols-2` split with a `bg-primary` brand panel.
+
+**Decided**: `max-w-[390px] mx-auto` on a `--color-wash` ground at every width — full-bleed below `sm`, frame border and 16px radius above — exactly as the canvas presents the artboards.
+
+*Accepted cost*: the desktop brand panel and its "Compete. Level up. Win." headline disappear from the auth screens, and that copy survives nowhere else in the App. This is a deliberate, signed-off regression. **Do not reintroduce a split layout to "fix" it.**
+
+*Why*: it is honest to a mobile-first product and invents no layout the designer never drew.
+
+### 4. Nullable email with a phone-or-email CHECK, before any phone UI
+
+`packages/db/src/schema/user.ts:38` has `email: text("email").notNull().unique()`, and `sync-clerk-user.ts:112` throws without one. A phone-only Clerk user would authenticate into an App where their row is never written, parking them in `dashboard/layout.tsx`'s `provisioning` state forever.
+
+**Decided**: a migration makes `email` nullable and adds `CHECK (email IS NOT NULL OR phone_number IS NOT NULL)`; `phoneNumber` is promoted to a first-class secondary identity key in `upsertUserFromClerk`, taking over the role `email` plays today when `clerkId` misses. This lands and is verified as TEM-204 **before any phone UI exists**.
+
+*Why*: it is the only option that makes the design's primary path work. It touches the most-depended-on table in the schema, so every `user.email` read site needs an audit — Lookup invite's username/email/phone search included.
+
+*Rejected*: keeping email mandatory and collecting it at sign-up (contradicts the artboard); harvesting email later via onboarding (defers the migration but leaves exactly the window in which the row cannot exist).
+
+### 5. `--muted-foreground` for faint text; `#9A9A9A` only for decoration
+
+`globals.css` carries an explicit prohibition: *"Do not add faint (#9A9A9A) — 2.56:1 on wash."* The design uses `#9A9A9A` for the `OR` label, both terms footers, the disabled Verify label and the "Button unlocks…" helper — all real text, 3.05:1 on white, still below WCAG AA.
+
+**Decided**: every text use renders in `--muted-foreground` (`#6E6E6E`). `#9A9A9A` survives only for the decorative chevron glyph and the hatch strokes. No `faint` token is added.
+
+*Accepted cost*: those strings read slightly darker than drawn.
+
 ## Open Questions
 
-### 1. The design changes the authentication strategy — the brief said not to
+One remains, and it is a set of Clerk Dashboard facts rather than a product decision. **It does not block starting.** Where a specific ticket depends on one of these, the dependency is written into that ticket's acceptance criteria as a precondition to verify before starting — never to guess.
 
-The artboards are **phone-first passwordless SMS OTP** with Apple and Google. There is no password field anywhere. Email appears once, as a secondary "Use email instead" link on `00d`. `00b`'s own sub-copy says "No password to remember."
+### 1. What is the Clerk instance actually configured to do?
 
-The brief said "keep the same flow as now". These cannot both be honoured. Options:
+Nobody has read the Dashboard. Five facts are outstanding, each already wired into the ticket that needs it:
 
-- **(a) Build the design as drawn.** Adopt phone-first passwordless. Highest fidelity. Requires the schema migration (ticket 11), Clerk instance reconfiguration to enable `phone_code`, SMS delivery cost and country coverage for `+973`, and a story for every existing User whose identity is an email.
-- **(b) Keep the current strategy, adopt the visual language.** Black-and-white system, 52px controls, 12px radius, the type ramp, the OTP treatment reused for the existing email code. Honours "same flow" exactly. Loses fidelity precisely where the artboards are most specific — `00b` and `00d` become screens the design never drew.
-- **(c) Phased: (b) now, (a) as a separately approved feature.** Phase 1 above is (b); Phase 2 is (a).
+| Fact | Gates | Written into |
+| --- | --- | --- |
+| Which sign-in strategies are enabled — password, email code, username, phone | The sign-in field set, and whether a password input exists at all | TEM-200 (7) |
+| **Is Apple actually configured** | The Apple button ships only if it is; Apple needs an Apple Developer account and a different setup from Google. If not configured, ship Google alone rather than a button that errors | TEM-199 (6) |
+| Is MFA enabled | `/login/factor-two` is built only if it is | TEM-202 (9) |
+| Are any v7 session tasks configured | A pending task makes `setActive` return active-but-incomplete; our redirect would strand the User unless `setActive` gets a `redirectUrl` | TEM-200 (7) |
+| Code expiry, attempt limit, and resend rate limit | The `0:24` countdown must be at least the instance's resend limit or the button unlocks into `too_many_requests`; and `00c`'s "Codes expire after ten minutes. Three wrong tries locks the number for an hour." is a promise about Clerk policy, not our code — configure the instance to match or change the copy | TEM-198 (5), TEM-206 (13) |
 
-**Recommendation: (c).** The user's own constraint governs the current change, and the identity migration is a real product decision with cost and an existing-User story — not something to infer from an artboard. Phase 1 delivers the visual ask in full and leaves every Phase 2 door open, because the frame, tokens, OTP control, countdown and OAuth block are all strategy-independent. Put (a) to the user explicitly as its own decision.
-
-### 2. `00a Welcome` has no route today
-
-`app/page.tsx` currently redirects: signed-in to `/dashboard`, signed-out to `/login`. Options: mount Welcome at `/` in place of the signed-out redirect; give it a new `/welcome`; or drop it.
-
-**Recommendation: replace the signed-out redirect at `/`.** `/` already exists solely to route the signed-out visitor somewhere, Welcome is exactly that screen, and it needs no new route, no middleware change (`/` is not in `isAuthRoute` or `isProtectedRoute`) and no new entry in the sub-route sweep. The signed-in redirect to `/dashboard` stays. Confirm that nothing depends on `/` redirecting to `/login` — `Route /public` redirects to `/login` directly and is unaffected.
-
-### 3. There is no desktop artboard
-
-Today's `AuthShell` is a `lg:grid-cols-2` split with a brand panel carrying "Compete. Level up. Win.", which survives nowhere else in the App.
-
-**Recommendation: centre the 390px frame at all widths** (see the Desktop section) and accept losing the panel. If that copy matters, it needs a home on Welcome — but Welcome is a mobile frame too, so that is a design request, not an implementation choice.
-
-### 4. `user.email` is `NOT NULL UNIQUE` — Phase 2 cannot ship without a migration
-
-Detailed under "The email invariant" above, with options (a)/(b)/(c). **Recommendation: (a)** — nullable email with a phone-or-email `CHECK`, phone promoted to a secondary identity key, landed and verified as ticket 11 before any phone UI is built. This is the single largest risk in the feature and it sits in the most-depended-on table in the schema.
-
-### 5. `#9A9A9A` is explicitly prohibited in `globals.css`
-
-*"Do not add faint (#9A9A9A) — 2.56:1 on wash."* The design uses it for the `OR` label, terms footers, the disabled Verify label and helper text — all real text, at 3.05:1 on white, still below WCAG AA.
-
-**Recommendation**: render all text uses in `--muted-foreground` (`#6E6E6E`) and keep `#9A9A9A` only for the decorative chevron and hatch strokes. Do not add a `faint` token. Needs the designer's acknowledgement that these read slightly darker than drawn.
-
-### 6. "Codes expire after ten minutes. Three wrong tries locks the number for an hour."
-
-Code lifetime and attempt limits are Clerk instance policy, not App code. **Either configure the instance to match this copy or change the copy.** Do not ship a promise we do not control. Same for the `0:24` resend window, which must not be shorter than Clerk's own resend rate limit or the button will unlock into an error.
-
-### 7. Which providers, strategies and policies does the Clerk instance actually have?
-
-Still unanswered and still gating: enabled sign-in strategies (password? email code? username? phone?); **is Apple configured** — the design shows it and it needs an Apple Developer account, an unlike-Google setup; is MFA on (decides ticket 9's second half); are any v7 session tasks configured (decides whether `setActive` needs a `redirectUrl`).
-
-### 8. What does sign-up collect, and does Clerk agree?
-
-`00b` collects **Full name** and **Mobile number**. Clerk's instance config must have name enabled and required, phone as an identifier, and email not required — and `sync-clerk-user` reads `username`, primary email and primary phone off the webhook payload. All four have to line up before ticket 8 or 13.
+A sixth, related: `00b` collects **Full name** and **Mobile number**, so the instance must have name enabled and required, phone as an identifier, and email not required. `sync-clerk-user` reads `username`, primary email and primary phone off the webhook payload, so all of it has to line up before TEM-201 (8) or TEM-206 (13).
