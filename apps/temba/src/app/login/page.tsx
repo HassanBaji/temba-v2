@@ -1,6 +1,7 @@
 import { SignIn } from "@clerk/nextjs";
 
 import { AuthShell } from "~/components/auth/auth-shell";
+import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
 export default async function LoginPage({
@@ -10,9 +11,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const redirectUrl = safeInternalRedirect(params.redirect_url);
-  const signUpUrl = redirectUrl
-    ? `/signup?redirect_url=${encodeURIComponent(redirectUrl)}`
-    : "/signup";
+  const signUpUrl = authCrossLinkUrl("/signup", redirectUrl);
 
   return (
     <AuthShell>
@@ -21,7 +20,7 @@ export default async function LoginPage({
         path="/login"
         signUpUrl={signUpUrl}
         forceRedirectUrl={redirectUrl ?? undefined}
-        fallbackRedirectUrl={redirectUrl ?? "/dashboard"}
+        fallbackRedirectUrl={authCompleteUrl(redirectUrl)}
       />
     </AuthShell>
   );
