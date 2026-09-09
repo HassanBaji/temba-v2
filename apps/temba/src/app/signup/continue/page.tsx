@@ -1,8 +1,7 @@
-import { AuthScreen } from "~/components/auth/auth-screen";
-import { authCrossLinkUrl } from "~/lib/auth-redirect";
+import { SignUpContinueForm } from "~/components/auth/sign-up-continue-form";
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
-export default async function SignupContinuePage({
+export default async function SignUpContinuePage({
   searchParams,
 }: {
   searchParams: Promise<{ redirect_url?: string }>;
@@ -10,15 +9,5 @@ export default async function SignupContinuePage({
   const params = await searchParams;
   const redirectUrl = safeInternalRedirect(params.redirect_url);
 
-  return (
-    <AuthScreen
-      backHref={authCrossLinkUrl("/signup", redirectUrl)}
-      backLabel="Back"
-      title="Continue"
-    >
-      <p className="text-body text-muted-foreground">
-        A few more details are needed to finish your account.
-      </p>
-    </AuthScreen>
-  );
+  return <SignUpContinueForm redirectUrl={redirectUrl} />;
 }

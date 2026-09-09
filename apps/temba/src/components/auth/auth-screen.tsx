@@ -7,6 +7,7 @@ import { cn } from "~/lib/utils";
 export function AuthScreen({
   variant = "default",
   backHref,
+  onBack,
   backLabel = "Back",
   crossLink,
   title,
@@ -17,6 +18,7 @@ export function AuthScreen({
 }: {
   variant?: "default" | "welcome";
   backHref?: string;
+  onBack?: () => void;
   backLabel?: string;
   crossLink?: { href: string; label: string };
   title?: string;
@@ -26,7 +28,7 @@ export function AuthScreen({
   padContent?: boolean;
 }) {
   const welcome = variant === "welcome";
-  const showHeader = Boolean(backHref ?? crossLink);
+  const showHeader = Boolean(backHref ?? onBack ?? crossLink);
 
   return (
     <div className="bg-wash flex min-h-svh justify-center overflow-x-hidden sm:items-center">
@@ -40,7 +42,20 @@ export function AuthScreen({
       >
         {showHeader ? (
           <header className="flex items-center justify-between px-[22px] pt-[22px]">
-            {backHref ? (
+            {onBack ? (
+              <button
+                type="button"
+                aria-label={backLabel}
+                onClick={onBack}
+                className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-current outline-none focus-visible:ring-[3px]"
+              >
+                <ArrowLeft
+                  aria-hidden="true"
+                  className="size-5"
+                  strokeWidth={2}
+                />
+              </button>
+            ) : backHref ? (
               <Link
                 href={backHref}
                 aria-label={backLabel}
@@ -71,7 +86,11 @@ export function AuthScreen({
         {(title ?? description) ? (
           <div className="px-[26px] pt-[18px]">
             {title ? (
-              <h1 className="text-h1-lg font-bold leading-[1.05] tracking-[-0.02em] [font-variation-settings:'wdth'_100,'wght'_700]">
+              <h1
+                id="auth-screen-heading"
+                tabIndex={-1}
+                className="text-h1-lg font-bold leading-[1.05] tracking-[-0.02em] outline-none [font-variation-settings:'wdth'_100,'wght'_700]"
+              >
                 {title}
               </h1>
             ) : null}
