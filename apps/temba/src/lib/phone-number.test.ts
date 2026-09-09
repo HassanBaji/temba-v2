@@ -4,6 +4,8 @@ import { describe, it } from "vitest";
 import {
   CALLING_COUNTRIES,
   assembleE164,
+  countryFlagEmoji,
+  formatInternationalNumber,
   formatNationalNumber,
   nationalDigits,
   parseE164,
@@ -19,19 +21,40 @@ const SAMPLES: Record<
   AE: { national: "501234567", e164: "+971501234567", display: "50 123 4567" },
   QA: { national: "33123456", e164: "+97433123456", display: "3312 3456" },
   OM: { national: "91234567", e164: "+96891234567", display: "9123 4567" },
-  EG: {
-    national: "1001234567",
-    e164: "+201001234567",
-    display: "100 123 4567",
-  },
-  IN: { national: "9876543210", e164: "+919876543210", display: "98765 43210" },
-  GB: {
-    national: "7400123456",
-    e164: "+447400123456",
-    display: "7400 123 456",
-  },
-  US: { national: "2025550123", e164: "+12025550123", display: "202 555 0123" },
 };
+
+describe("CALLING_COUNTRIES", () => {
+  it("lists only GCC countries", () => {
+    assert.deepEqual(
+      CALLING_COUNTRIES.map((country) => country.iso),
+      ["BH", "KW", "SA", "AE", "QA", "OM"],
+    );
+  });
+
+  it("has a national placeholder for every listed country", () => {
+    for (const country of CALLING_COUNTRIES) {
+      const sample = SAMPLES[country.iso];
+      assert.ok(sample);
+      assert.equal(country.placeholder, sample.display);
+    }
+  });
+});
+
+describe("countryFlagEmoji", () => {
+  it("builds regional-indicator flags for GCC countries", () => {
+    assert.equal(countryFlagEmoji("BH"), "🇧🇭");
+    assert.equal(countryFlagEmoji("KW"), "🇰🇼");
+    assert.equal(countryFlagEmoji("SA"), "🇸🇦");
+    assert.equal(countryFlagEmoji("AE"), "🇦🇪");
+    assert.equal(countryFlagEmoji("QA"), "🇶🇦");
+    assert.equal(countryFlagEmoji("OM"), "🇴🇲");
+  });
+
+  it("rejects a non-ISO country code", () => {
+    assert.equal(countryFlagEmoji("Bahrain"), "");
+    assert.equal(countryFlagEmoji(""), "");
+  });
+});
 
 describe("assembleE164", () => {
   it("assembles E.164 for every listed country", () => {
@@ -73,9 +96,16 @@ describe("assembleE164", () => {
       ok: false,
       reason: "malformed",
     });
-    assert.deepEqual(assembleE164("US", "202555"), {
+    assert.deepEqual(assembleE164("SA", "50123"), {
       ok: false,
       reason: "malformed",
+    });
+  });
+
+  it("rejects a non-GCC country", () => {
+    assert.deepEqual(assembleE164("US", "2025550123"), {
+      ok: false,
+      reason: "unknown_country",
     });
   });
 });
@@ -97,6 +127,13 @@ describe("formatNationalNumber", () => {
         sample.display,
       );
     }
+  });
+});
+
+describe("formatInternationalNumber", () => {
+  it("prefixes the calling code for display", () => {
+    assert.equal(formatInternationalNumber("BH", "36124408"), "+973 3612 4408");
+    assert.equal(formatInternationalNumber("BH", ""), "");
   });
 });
 

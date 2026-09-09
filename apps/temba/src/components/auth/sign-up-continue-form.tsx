@@ -8,6 +8,7 @@ import * as React from "react";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
+import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
 import { Button } from "~/components/ui/button";
 import {
@@ -19,8 +20,16 @@ import {
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
-import { splitClerkAuthError } from "~/lib/clerk-auth-error";
+import {
+  CLERK_AUTH_ERROR_COPY,
+  splitClerkAuthError,
+} from "~/lib/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
+import {
+  DEFAULT_CALLING_COUNTRY_ISO,
+  assembleE164,
+  formatInternationalNumber,
+} from "~/lib/phone-number";
 import { cn } from "~/lib/utils";
 
 const AUTH_INPUT_CLASS =
@@ -102,7 +111,10 @@ export function SignUpContinueForm({
   const [step, setStep] = React.useState<Step>("fields");
   const [username, setUsername] = React.useState("");
   const [emailAddress, setEmailAddress] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [countryIso, setCountryIso] = React.useState(
+    DEFAULT_CALLING_COUNTRY_ISO,
+  );
+  const [national, setNational] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
@@ -200,6 +212,24 @@ export function SignUpContinueForm({
     if (pending || !signUp) {
       return;
     }
+    let phoneE164: string | undefined;
+    if (isMissing(signUp, "phone_number")) {
+      const assembled = assembleE164(countryIso, national);
+      if (!assembled.ok) {
+        const next: SplitFormError = {
+          fieldErrors: {
+            phoneNumber:
+              CLERK_AUTH_ERROR_COPY.form_param_format_invalid ??
+              "That doesn't look right. Check the format and try again.",
+          },
+          globalMessage: null,
+        };
+        setSplit(next);
+        focusSplit(next, summaryRef.current);
+        return;
+      }
+      phoneE164 = assembled.e164;
+    }
     setPending(true);
     setSplit(null);
     try {
@@ -217,8 +247,8 @@ export function SignUpContinueForm({
       if (isMissing(signUp, "email_address")) {
         payload.emailAddress = emailAddress.trim();
       }
-      if (isMissing(signUp, "phone_number")) {
-        payload.phoneNumber = phoneNumber.trim();
+      if (phoneE164) {
+        payload.phoneNumber = phoneE164;
       }
       if (isMissing(signUp, "password")) {
         payload.password = password;
@@ -355,8 +385,8 @@ export function SignUpContinueForm({
       ? emailAddress.length > 0
         ? emailAddress
         : (signUp.emailAddress ?? "your email")
-      : phoneNumber.length > 0
-        ? phoneNumber
+      : national.length > 0
+        ? formatInternationalNumber(countryIso, national)
         : (signUp.phoneNumber ?? "your number");
 
   if (verifying) {
@@ -486,6 +516,7 @@ export function SignUpContinueForm({
                 id={FIELD_IDS.username}
                 name="username"
                 autoComplete="username"
+                placeholder="Choose a username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 aria-invalid={Boolean(usernameError)}
@@ -525,18 +556,24 @@ export function SignUpContinueForm({
               >
                 Mobile number
               </FieldLabel>
-              <Input
+              <PhoneField
                 id={FIELD_IDS.phoneNumber}
                 name="phone"
-                type="tel"
-                autoComplete="tel"
-                value={phoneNumber}
-                onChange={(event) => setPhoneNumber(event.target.value)}
-                aria-invalid={Boolean(phoneError)}
-                className={cn(AUTH_INPUT_CLASS)}
+                countryIso={countryIso}
+                national={national}
+                onCountryIsoChange={setCountryIso}
+                onNationalChange={setNational}
+                invalid={Boolean(phoneError)}
+                describedBy={
+                  phoneError ? `${FIELD_IDS.phoneNumber}-error` : undefined
+                }
                 disabled={pending}
               />
-              {phoneError ? <FieldError>{phoneError}</FieldError> : null}
+              {phoneError ? (
+                <FieldError id={`${FIELD_IDS.phoneNumber}-error`}>
+                  {phoneError}
+                </FieldError>
+              ) : null}
             </Field>
           ) : null}
           {isMissing(signUp, "password") ? (
@@ -552,6 +589,7 @@ export function SignUpContinueForm({
                 name="password"
                 type="password"
                 autoComplete="new-password"
+                placeholder="Create a password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 aria-invalid={Boolean(passwordError)}

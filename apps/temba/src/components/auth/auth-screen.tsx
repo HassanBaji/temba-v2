@@ -31,10 +31,10 @@ export function AuthScreen({
   const showHeader = Boolean(backHref ?? onBack ?? crossLink);
 
   return (
-    <div className="bg-wash flex min-h-svh justify-center overflow-x-hidden sm:items-center">
+    <div className="flex min-h-svh justify-center overflow-x-hidden bg-black sm:items-center">
       <div
         className={cn(
-          "flex min-h-svh w-full max-w-[390px] flex-col overflow-x-hidden sm:min-h-[844px]",
+          "flex min-h-svh w-full max-w-[1000px] flex-col overflow-x-hidden sm:min-h-[844px]",
           welcome
             ? "bg-ink text-paper sm:border-ink sm:rounded-xl sm:border"
             : "bg-paper text-ink sm:border-rule sm:rounded-xl sm:border",

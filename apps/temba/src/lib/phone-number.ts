@@ -4,12 +4,13 @@ export type CallingCountry = {
   callingCode: string;
   nationalLength: number;
   groups: number[];
+  placeholder: string;
 };
 
 /**
- * Countries the auth phone control can assemble to E.164. Default is Bahrain,
- * matching the artboards. Lengths are the national significant number, not
- * including a trunk prefix.
+ * GCC countries the auth phone control can assemble to E.164. Default is
+ * Bahrain, matching the artboards. Lengths are the national significant
+ * number, not including a trunk prefix.
  */
 export const CALLING_COUNTRIES: readonly CallingCountry[] = [
   {
@@ -18,6 +19,7 @@ export const CALLING_COUNTRIES: readonly CallingCountry[] = [
     callingCode: "973",
     nationalLength: 8,
     groups: [4, 4],
+    placeholder: "3612 4408",
   },
   {
     iso: "KW",
@@ -25,6 +27,7 @@ export const CALLING_COUNTRIES: readonly CallingCountry[] = [
     callingCode: "965",
     nationalLength: 8,
     groups: [4, 4],
+    placeholder: "5000 1234",
   },
   {
     iso: "SA",
@@ -32,6 +35,7 @@ export const CALLING_COUNTRIES: readonly CallingCountry[] = [
     callingCode: "966",
     nationalLength: 9,
     groups: [2, 3, 4],
+    placeholder: "50 123 4567",
   },
   {
     iso: "AE",
@@ -39,6 +43,7 @@ export const CALLING_COUNTRIES: readonly CallingCountry[] = [
     callingCode: "971",
     nationalLength: 9,
     groups: [2, 3, 4],
+    placeholder: "50 123 4567",
   },
   {
     iso: "QA",
@@ -46,6 +51,7 @@ export const CALLING_COUNTRIES: readonly CallingCountry[] = [
     callingCode: "974",
     nationalLength: 8,
     groups: [4, 4],
+    placeholder: "3312 3456",
   },
   {
     iso: "OM",
@@ -53,34 +59,7 @@ export const CALLING_COUNTRIES: readonly CallingCountry[] = [
     callingCode: "968",
     nationalLength: 8,
     groups: [4, 4],
-  },
-  {
-    iso: "EG",
-    name: "Egypt",
-    callingCode: "20",
-    nationalLength: 10,
-    groups: [3, 3, 4],
-  },
-  {
-    iso: "IN",
-    name: "India",
-    callingCode: "91",
-    nationalLength: 10,
-    groups: [5, 5],
-  },
-  {
-    iso: "GB",
-    name: "United Kingdom",
-    callingCode: "44",
-    nationalLength: 10,
-    groups: [4, 3, 3],
-  },
-  {
-    iso: "US",
-    name: "United States",
-    callingCode: "1",
-    nationalLength: 10,
-    groups: [3, 3, 4],
+    placeholder: "9123 4567",
   },
 ] as const;
 
@@ -88,6 +67,20 @@ export const DEFAULT_CALLING_COUNTRY_ISO = "BH";
 
 export function callingCountryByIso(iso: string): CallingCountry | undefined {
   return CALLING_COUNTRIES.find((country) => country.iso === iso);
+}
+
+const REGIONAL_INDICATOR_A = 0x1f1e6;
+
+export function countryFlagEmoji(iso: string): string {
+  const letters = iso.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(letters)) {
+    return "";
+  }
+  return String.fromCodePoint(
+    ...[...letters].map(
+      (char) => REGIONAL_INDICATOR_A + char.charCodeAt(0) - 65,
+    ),
+  );
 }
 
 export function nationalDigits(value: string): string {
@@ -116,6 +109,15 @@ export function formatNationalNumber(iso: string, raw: string): string {
     parts.push(rest);
   }
   return parts.join(" ");
+}
+
+export function formatInternationalNumber(iso: string, raw: string): string {
+  const country = callingCountryByIso(iso);
+  const national = formatNationalNumber(iso, raw);
+  if (!country || national.length === 0) {
+    return national;
+  }
+  return `+${country.callingCode} ${national}`;
 }
 
 export type AssembleE164Result =

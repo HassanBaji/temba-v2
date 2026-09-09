@@ -14,8 +14,8 @@ import {
 import {
   CALLING_COUNTRIES,
   DEFAULT_CALLING_COUNTRY_ISO,
-  assembleE164,
   callingCountryByIso,
+  countryFlagEmoji,
   formatNationalNumber,
   nationalDigits,
 } from "~/lib/phone-number";
@@ -31,6 +31,7 @@ export function PhoneField({
   invalid,
   disabled,
   placeholder,
+  describedBy,
 }: {
   id: string;
   name?: string;
@@ -41,6 +42,7 @@ export function PhoneField({
   invalid?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  describedBy?: string;
 }) {
   const country =
     callingCountryByIso(countryIso) ??
@@ -50,8 +52,6 @@ export function PhoneField({
   }
 
   const digits = nationalDigits(national);
-  const assembled = assembleE164(country.iso, digits);
-  const showInvalid = Boolean(invalid) || (digits.length > 0 && !assembled.ok);
   const accessibleName = `Country calling code, currently ${country.name} +${country.callingCode}`;
 
   return (
@@ -69,7 +69,13 @@ export function PhoneField({
       >
         <Select
           value={country.iso}
-          onValueChange={onCountryIsoChange}
+          onValueChange={(iso) => {
+            const next = callingCountryByIso(iso);
+            onCountryIsoChange(iso);
+            if (next) {
+              onNationalChange(digits.slice(0, next.nationalLength));
+            }
+          }}
           disabled={disabled}
         >
           <SelectTrigger
@@ -77,14 +83,22 @@ export function PhoneField({
             disabled={disabled}
             className="text-ink h-13 min-h-13 data-[size=default]:h-13 data-[size=default]:min-h-13 rounded-none border-0 bg-transparent px-3.5 shadow-none focus-visible:border-0 focus-visible:ring-0 [&>svg]:size-[15px] [&>svg]:text-[#9A9A9A] [&>svg]:opacity-100"
           >
-            <span className="text-base font-medium [font-variation-settings:'wdth'_100,'wght'_500]">
+            <span className="flex items-center gap-1.5 text-base font-medium [font-variation-settings:'wdth'_100,'wght'_500]">
+              <span aria-hidden="true" className="leading-none">
+                {countryFlagEmoji(country.iso)}
+              </span>
               +{country.callingCode}
             </span>
           </SelectTrigger>
           <SelectContent position="popper" align="start">
             {CALLING_COUNTRIES.map((item) => (
               <SelectItem key={item.iso} value={item.iso}>
-                {item.name} +{item.callingCode}
+                <span className="flex items-center gap-2">
+                  <span aria-hidden="true" className="leading-none">
+                    {countryFlagEmoji(item.iso)}
+                  </span>
+                  {item.name} +{item.callingCode}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -96,9 +110,10 @@ export function PhoneField({
         type="tel"
         inputMode="tel"
         autoComplete="tel-national"
-        placeholder={placeholder ?? "3612 4408"}
+        placeholder={placeholder ?? country.placeholder}
         disabled={disabled}
-        aria-invalid={showInvalid}
+        aria-invalid={Boolean(invalid)}
+        aria-describedby={describedBy}
         value={formatNationalNumber(country.iso, digits)}
         onChange={(event) => {
           onNationalChange(

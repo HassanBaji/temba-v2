@@ -5,6 +5,7 @@ import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { GoogleIcon } from "~/components/ui/icons/google";
 import { authCompleteUrl, ssoCallbackUrl } from "~/lib/auth-redirect";
 import { clerkGlobalErrorMessage } from "~/lib/clerk-auth-error";
 
@@ -14,7 +15,11 @@ import { clerkGlobalErrorMessage } from "~/lib/clerk-auth-error";
  * Apple is not configured — omit the button rather than rendering one that errors.
  */
 const ENABLED_OAUTH_PROVIDERS = [
-  { strategy: "oauth_google" as const, label: "Continue with Google" },
+  {
+    strategy: "oauth_google" as const,
+    label: "Continue with Google",
+    Icon: GoogleIcon,
+  },
 ] as const;
 
 export function OauthButtons({
@@ -79,9 +84,9 @@ export function OauthButtons({
         <div className="bg-rule h-px flex-1" />
       </div>
       {error ? <FormErrorSummary message={error} /> : null}
-      {ENABLED_OAUTH_PROVIDERS.map((provider) => (
+      {ENABLED_OAUTH_PROVIDERS.map(({ strategy, label, Icon }) => (
         <Button
-          key={provider.strategy}
+          key={strategy}
           type="button"
           size="auth"
           variant="outline"
@@ -89,10 +94,11 @@ export function OauthButtons({
           disabled={!loaded || pending}
           className="border-rule bg-paper text-body hover:bg-wash w-full font-semibold"
           onClick={() => {
-            void start(provider.strategy);
+            void start(strategy);
           }}
         >
-          {provider.label}
+          <Icon />
+          {label}
         </Button>
       ))}
     </div>

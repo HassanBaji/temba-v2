@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { OauthButtons } from "~/components/auth/oauth-buttons";
+import { PhoneField } from "~/components/auth/phone-field";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -22,6 +23,7 @@ import {
   splitClerkAuthError,
 } from "~/lib/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
+import { DEFAULT_CALLING_COUNTRY_ISO, assembleE164 } from "~/lib/phone-number";
 import { cn } from "~/lib/utils";
 
 const FIELD_IDS = {
@@ -48,24 +50,65 @@ function splitSignInError(err: unknown): SplitFormError {
   return split;
 }
 
+type IdentifierMode = "username" | "phone";
+
 export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
   const router = useRouter();
   const { setActive } = useClerk();
   const { signIn, isLoaded } = useSignIn();
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const [identifier, setIdentifier] = React.useState("");
+  const [mode, setMode] = React.useState<IdentifierMode>("username");
+  const [username, setUsername] = React.useState("");
+  const [countryIso, setCountryIso] = React.useState(
+    DEFAULT_CALLING_COUNTRY_ISO,
+  );
+  const [national, setNational] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [split, setSplit] = React.useState<SplitFormError | null>(null);
+  const shouldFocusIdentifier = React.useRef(false);
 
   const identifierError = split?.fieldErrors.identifier;
   const passwordError = split?.fieldErrors.password;
   const completeUrl = authCompleteUrl(redirectUrl);
+  const usePhone = mode === "phone";
+
+  React.useLayoutEffect(() => {
+    if (!shouldFocusIdentifier.current) {
+      return;
+    }
+    shouldFocusIdentifier.current = false;
+    document.getElementById(FIELD_IDS.identifier)?.focus();
+  }, [mode]);
+
+  function switchMode() {
+    shouldFocusIdentifier.current = true;
+    setMode(usePhone ? "username" : "phone");
+    setSplit(null);
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !signIn) {
       return;
+    }
+    let identifier = username.trim();
+    if (usePhone) {
+      const assembled = assembleE164(countryIso, national);
+      if (!assembled.ok) {
+        const next: SplitFormError = {
+          fieldErrors: {
+            identifier:
+              CLERK_AUTH_ERROR_COPY.form_param_format_invalid ??
+              "That doesn't look right. Check the format and try again.",
+          },
+          globalMessage: null,
+        };
+        setSplit(next);
+        document.getElementById(FIELD_IDS.identifier)?.focus();
+        return;
+      }
+      identifier = assembled.e164;
     }
     setPending(true);
     setSplit(null);
@@ -107,26 +150,53 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
       <FormErrorSummary ref={summaryRef} message={split?.globalMessage} />
       <FieldGroup className="gap-[18px]">
         <Field>
-          <FieldLabel
-            htmlFor={FIELD_IDS.identifier}
-            className="text-meta text-muted-foreground"
-          >
-            Email, username, or phone
-          </FieldLabel>
-          <Input
-            id={FIELD_IDS.identifier}
-            name="identifier"
-            type="text"
-            autoComplete="username"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-            aria-invalid={Boolean(identifierError)}
-            aria-describedby={
-              identifierError ? `${FIELD_IDS.identifier}-error` : undefined
-            }
-            className={cn(AUTH_INPUT_CLASS)}
-            disabled={pending}
-          />
+          <div className="flex items-baseline justify-between gap-3">
+            <FieldLabel
+              htmlFor={FIELD_IDS.identifier}
+              className="text-meta text-muted-foreground"
+            >
+              {usePhone ? "Mobile number" : "Username"}
+            </FieldLabel>
+            <button
+              type="button"
+              className="text-body text-ink underline"
+              onClick={switchMode}
+              disabled={pending}
+            >
+              {usePhone ? "Use username" : "Use phone"}
+            </button>
+          </div>
+          {usePhone ? (
+            <PhoneField
+              id={FIELD_IDS.identifier}
+              name="identifier"
+              countryIso={countryIso}
+              national={national}
+              onCountryIsoChange={setCountryIso}
+              onNationalChange={setNational}
+              invalid={Boolean(identifierError)}
+              describedBy={
+                identifierError ? `${FIELD_IDS.identifier}-error` : undefined
+              }
+              disabled={pending}
+            />
+          ) : (
+            <Input
+              id={FIELD_IDS.identifier}
+              name="identifier"
+              type="text"
+              autoComplete="username"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              aria-invalid={Boolean(identifierError)}
+              aria-describedby={
+                identifierError ? `${FIELD_IDS.identifier}-error` : undefined
+              }
+              className={cn(AUTH_INPUT_CLASS)}
+              disabled={pending}
+            />
+          )}
           {identifierError ? (
             <FieldError id={`${FIELD_IDS.identifier}-error`}>
               {identifierError}
@@ -145,6 +215,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
             name="password"
             type="password"
             autoComplete="current-password"
+            placeholder="Enter your password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             aria-invalid={Boolean(passwordError)}

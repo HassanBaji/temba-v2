@@ -8,6 +8,7 @@ import * as React from "react";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
+import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
 import { Button } from "~/components/ui/button";
 import {
@@ -19,22 +20,29 @@ import {
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
-import { splitClerkAuthError } from "~/lib/clerk-auth-error";
+import {
+  CLERK_AUTH_ERROR_COPY,
+  splitClerkAuthError,
+} from "~/lib/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
+import {
+  DEFAULT_CALLING_COUNTRY_ISO,
+  assembleE164,
+  formatInternationalNumber,
+} from "~/lib/phone-number";
 import { cn } from "~/lib/utils";
 
 const AUTH_INPUT_CLASS =
   "border-rule h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 const FIELD_IDS = {
-  emailAddress: "sign-up-email",
   username: "sign-up-username",
   phoneNumber: "sign-up-phone",
   password: "sign-up-password",
   code: "sign-up-code",
 };
 
-type Step = "details" | "verify-email" | "verify-phone";
+type Step = "details" | "verify-phone";
 
 type SignUpLike = {
   status: string | null;
@@ -44,9 +52,6 @@ type SignUpLike = {
 
 function fieldElementId(param: string): string | undefined {
   switch (param) {
-    case "email_address":
-    case "emailAddress":
-      return FIELD_IDS.emailAddress;
     case "username":
       return FIELD_IDS.username;
     case "phone_number":
@@ -80,9 +85,11 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
   const signInUrl = authCrossLinkUrl("/login", redirectUrl);
 
   const [step, setStep] = React.useState<Step>("details");
-  const [emailAddress, setEmailAddress] = React.useState("");
   const [username, setUsername] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [countryIso, setCountryIso] = React.useState(
+    DEFAULT_CALLING_COUNTRY_ISO,
+  );
+  const [national, setNational] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [code, setCode] = React.useState("");
   const [startedAt, setStartedAt] = React.useState(() => Date.now());
@@ -108,13 +115,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
     return false;
   }
 
-  async function prepareEmail() {
-    await signUp?.prepareEmailAddressVerification({ strategy: "email_code" });
-    setCode("");
-    setStartedAt(Date.now());
-    setStep("verify-email");
-  }
-
   async function preparePhone() {
     await signUp?.preparePhoneNumberVerification({ strategy: "phone_code" });
     setCode("");
@@ -127,10 +127,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
       return;
     }
     const unverified = current.unverifiedFields ?? [];
-    if (unverified.includes("email_address")) {
-      await prepareEmail();
-      return;
-    }
     if (unverified.includes("phone_number")) {
       await preparePhone();
       return;
@@ -146,13 +142,26 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
     if (pending || !signUp) {
       return;
     }
+    const assembled = assembleE164(countryIso, national);
+    if (!assembled.ok) {
+      const next: SplitFormError = {
+        fieldErrors: {
+          phoneNumber:
+            CLERK_AUTH_ERROR_COPY.form_param_format_invalid ??
+            "That doesn't look right. Check the format and try again.",
+        },
+        globalMessage: null,
+      };
+      setSplit(next);
+      focusSplit(next, summaryRef.current);
+      return;
+    }
     setPending(true);
     setSplit(null);
     try {
       const created = await signUp.create({
-        emailAddress,
         username,
-        phoneNumber,
+        phoneNumber: assembled.e164,
         password,
       });
       await continueAfterResource(created);
@@ -172,22 +181,8 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
     setPending(true);
     setSplit(null);
     try {
-      const result =
-        step === "verify-email"
-          ? await signUp.attemptEmailAddressVerification({ code })
-          : await signUp.attemptPhoneNumberVerification({ code });
+      const result = await signUp.attemptPhoneNumberVerification({ code });
       if (await completeIfReady(result.status, result.createdSessionId)) {
-        return;
-      }
-      const unverified = result.unverifiedFields ?? [];
-      if (step === "verify-email" && unverified.includes("phone_number")) {
-        await preparePhone();
-        setPending(false);
-        return;
-      }
-      if (step === "verify-phone" && unverified.includes("email_address")) {
-        await prepareEmail();
-        setPending(false);
         return;
       }
       setPending(false);
@@ -209,15 +204,9 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
     }
     setPending(true);
     try {
-      if (step === "verify-email") {
-        await signUp.prepareEmailAddressVerification({
-          strategy: "email_code",
-        });
-      } else {
-        await signUp.preparePhoneNumberVerification({
-          strategy: "phone_code",
-        });
-      }
+      await signUp.preparePhoneNumberVerification({
+        strategy: "phone_code",
+      });
       setStartedAt(Date.now());
       setPending(false);
     } catch (err) {
@@ -228,8 +217,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
   }
 
   const verifying = step !== "details";
-  const emailError =
-    split?.fieldErrors.email_address ?? split?.fieldErrors.emailAddress;
   const usernameError = split?.fieldErrors.username;
   const phoneError =
     split?.fieldErrors.phone_number ?? split?.fieldErrors.phoneNumber;
@@ -254,7 +241,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
       description={
         verifying
           ? undefined
-          : "We send a six digit code to confirm your email."
+          : "We send a six digit code to confirm your number."
       }
       footer={
         verifying ? (
@@ -279,10 +266,8 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
     >
       {verifying ? (
         <VerifyCodeForm
-          destination={step === "verify-email" ? emailAddress : phoneNumber}
-          changeLabel={
-            step === "verify-email" ? "Change email" : "Change number"
-          }
+          destination={formatInternationalNumber(countryIso, national)}
+          changeLabel="Change number"
           onChangeIdentifier={() => {
             setStep("details");
             setSplit(null);
@@ -312,33 +297,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
           <FieldGroup className="gap-[18px]">
             <Field>
               <FieldLabel
-                htmlFor={FIELD_IDS.emailAddress}
-                className="text-meta text-muted-foreground"
-              >
-                Email
-              </FieldLabel>
-              <Input
-                id={FIELD_IDS.emailAddress}
-                name="email"
-                type="email"
-                autoComplete="email"
-                value={emailAddress}
-                onChange={(event) => setEmailAddress(event.target.value)}
-                aria-invalid={Boolean(emailError)}
-                aria-describedby={
-                  emailError ? `${FIELD_IDS.emailAddress}-error` : undefined
-                }
-                className={cn(AUTH_INPUT_CLASS)}
-                disabled={pending}
-              />
-              {emailError ? (
-                <FieldError id={`${FIELD_IDS.emailAddress}-error`}>
-                  {emailError}
-                </FieldError>
-              ) : null}
-            </Field>
-            <Field>
-              <FieldLabel
                 htmlFor={FIELD_IDS.username}
                 className="text-meta text-muted-foreground"
               >
@@ -349,6 +307,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
                 name="username"
                 type="text"
                 autoComplete="username"
+                placeholder="Choose a username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 aria-invalid={Boolean(usernameError)}
@@ -371,18 +330,17 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
               >
                 Mobile number
               </FieldLabel>
-              <Input
+              <PhoneField
                 id={FIELD_IDS.phoneNumber}
                 name="phone"
-                type="tel"
-                autoComplete="tel"
-                value={phoneNumber}
-                onChange={(event) => setPhoneNumber(event.target.value)}
-                aria-invalid={Boolean(phoneError)}
-                aria-describedby={
+                countryIso={countryIso}
+                national={national}
+                onCountryIsoChange={setCountryIso}
+                onNationalChange={setNational}
+                invalid={Boolean(phoneError)}
+                describedBy={
                   phoneError ? `${FIELD_IDS.phoneNumber}-error` : undefined
                 }
-                className={cn(AUTH_INPUT_CLASS)}
                 disabled={pending}
               />
               {phoneError ? (
@@ -403,6 +361,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
                 name="password"
                 type="password"
                 autoComplete="new-password"
+                placeholder="Create a password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 aria-invalid={Boolean(passwordError)}
