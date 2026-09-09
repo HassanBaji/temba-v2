@@ -18,6 +18,7 @@ export function VerifyCodeForm({
   pending,
   globalMessage,
   codeError,
+  codeInputId = "sign-up-code",
 }: {
   destination: string;
   changeLabel: string;
@@ -30,10 +31,11 @@ export function VerifyCodeForm({
   pending: boolean;
   globalMessage: string | null;
   codeError?: string;
+  codeInputId?: string;
 }) {
   const ready = code.length === 6;
-  const helperId = "verify-code-helper";
-  const errorId = "verify-code-error";
+  const helperId = `${codeInputId}-helper`;
+  const errorId = `${codeInputId}-error`;
 
   return (
     <form
@@ -58,7 +60,7 @@ export function VerifyCodeForm({
       </p>
       <FormErrorSummary message={globalMessage} />
       <OtpInput
-        id="sign-up-code"
+        id={codeInputId}
         value={code}
         onChange={onCodeChange}
         autoFocus

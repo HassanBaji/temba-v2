@@ -2,6 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs";
 import { useSignIn } from "@clerk/nextjs/legacy";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -15,7 +16,7 @@ import {
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
-import { authCompleteUrl } from "~/lib/auth-redirect";
+import { authAppPathUrl, authCompleteUrl } from "~/lib/auth-redirect";
 import {
   CLERK_AUTH_ERROR_COPY,
   splitClerkAuthError,
@@ -76,6 +77,10 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
           redirectUrl: completeUrl,
         });
         router.replace(completeUrl);
+        return;
+      }
+      if (result.status === "needs_second_factor") {
+        router.push(authAppPathUrl("/login/factor-two", redirectUrl));
         return;
       }
       setPending(false);
@@ -156,6 +161,14 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
           ) : null}
         </Field>
       </FieldGroup>
+      <p>
+        <Link
+          href={authAppPathUrl("/login/reset-password", redirectUrl)}
+          className="text-body text-ink underline"
+        >
+          Forgot password
+        </Link>
+      </p>
       <Button
         type="submit"
         size="auth"

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  authAppPathUrl,
   authCompleteUrl,
   authCrossLinkUrl,
   ssoCallbackUrl,
@@ -68,6 +69,30 @@ describe("ssoCallbackUrl", () => {
     assert.equal(
       ssoCallbackUrl("/login", null).includes("redirect_url="),
       false,
+    );
+  });
+});
+
+describe("authAppPathUrl", () => {
+  it("builds login recovery paths without a query when redirectUrl is null", () => {
+    assert.equal(
+      authAppPathUrl("/login/reset-password", null),
+      "/login/reset-password",
+    );
+    assert.equal(
+      authAppPathUrl("/login/factor-two", null),
+      "/login/factor-two",
+    );
+  });
+
+  it("threads redirect_url through recovery paths", () => {
+    assert.equal(
+      authAppPathUrl("/login/reset-password", "/dashboard/games/x"),
+      "/login/reset-password?redirect_url=%2Fdashboard%2Fgames%2Fx",
+    );
+    assert.equal(
+      authAppPathUrl("/login/factor-two", "/dashboard/you"),
+      "/login/factor-two?redirect_url=%2Fdashboard%2Fyou",
     );
   });
 });
