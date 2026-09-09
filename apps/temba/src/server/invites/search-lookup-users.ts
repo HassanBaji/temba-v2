@@ -4,8 +4,9 @@ import { user } from "@repo/db";
 
 import { type db } from "~/server/db";
 import type { LookupUserSearchRow } from "~/server/invites/doors/utils";
+import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db;
+type DbClient = typeof db | TestDatabase;
 
 export const LOOKUP_USER_SEARCH_LIMIT = 20;
 
@@ -41,6 +42,8 @@ export function lookupUserTextFilter(classified: ClassifiedLookupQuery) {
   const filters = [ilike(user.name, pattern), ilike(user.username, pattern)];
 
   if (classified.emailLike) {
+    // NULL emails never match ILIKE, so an email-less User is invisible to an
+    // `@` query. Find them by username, name, or phone instead.
     filters.push(ilike(user.email, pattern));
   }
 
@@ -59,7 +62,7 @@ export function presentLookupUserRow(
     id: string;
     name: string;
     username: string | null;
-    email: string;
+    email: string | null;
     phoneNumber: string | null;
   },
   classified: ClassifiedLookupQuery,

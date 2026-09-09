@@ -35,12 +35,17 @@ export type TeamLinkRequest = {
   id: string;
   createdAt: Date;
   team: { id: string; displayName: string; sport: string };
-  requestedBy: { id: string; name: string; email: string };
+  requestedBy: { id: string; name: string; email: string | null };
 };
 
 export type JoinRequest = {
   id: string;
   status: JoinRequestStatus;
   createdAt: Date;
-  user: { id: string; name: string; email: string; image: string | null };
+  user: {
+    id: string;
+    name: string;
+    email: string | null;
+    image: string | null;
+  };
 };

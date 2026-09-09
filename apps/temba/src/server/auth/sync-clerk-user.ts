@@ -14,6 +14,9 @@ type ClerkUserPayload = Extract<
   { type: "user.created" | "user.updated" }
 >["data"];
 
+export const CLERK_USER_IDENTIFIER_REQUIRED =
+  "Clerk user must have an email address or a phone number";
+
 function clerkUsername(username: string | null) {
   if (!username || username.length === 0) {
     return null;
@@ -30,9 +33,10 @@ function clerkPrimaryEmail(clerkUser: ClerkUserPayload) {
 }
 
 function clerkPrimaryPhone(clerkUser: ClerkUserPayload) {
-  const primary = clerkUser.phone_numbers.find(
-    (phone) => phone.id === clerkUser.primary_phone_number_id,
-  );
+  const primary =
+    clerkUser.phone_numbers.find(
+      (phone) => phone.id === clerkUser.primary_phone_number_id,
+    ) ?? clerkUser.phone_numbers[0];
   if (!primary) {
     return { phoneNumber: null, phoneNumberVerified: false };
   }
@@ -80,12 +84,20 @@ async function availablePhoneNumber(
   return taken ? null : phoneNumber;
 }
 
-function displayName(clerkUser: ClerkUserPayload, email: string) {
+function displayName(
+  clerkUser: ClerkUserPayload,
+  email: string | null,
+  phoneNumber: string | null,
+) {
   const fromNames = [clerkUser.first_name, clerkUser.last_name]
     .filter(Boolean)
     .join(" ");
   return (
-    (fromNames.length > 0 ? fromNames : null) ?? clerkUser.username ?? email
+    (fromNames.length > 0 ? fromNames : null) ??
+    clerkUser.username ??
+    email ??
+    phoneNumber ??
+    "Player"
   );
 }
 
@@ -102,35 +114,52 @@ function clerkStoredImage(clerkUser: ClerkUserPayload): string | null {
 /**
  * Insert or update the Temba User row for a Clerk user.created / user.updated
  * webhook. Lookup invite still matches username, email, and primary phone.
+ * Email may be null when a phone number is present (and the reverse).
  */
 export async function upsertUserFromClerk(
   database: ClerkUserSyncDb,
   clerkUser: ClerkUserPayload,
 ) {
   const primaryEmail = clerkPrimaryEmail(clerkUser);
-  if (!primaryEmail) {
-    throw new Error("Clerk user must have an email address");
+  const { phoneNumber, phoneNumberVerified } = clerkPrimaryPhone(clerkUser);
+  const email = primaryEmail ? primaryEmail.email_address.toLowerCase() : null;
+
+  if (!email && !phoneNumber) {
+    throw new Error(CLERK_USER_IDENTIFIER_REQUIRED);
   }
 
   const clerkId = clerkUser.id;
-  const email = primaryEmail.email_address.toLowerCase();
-  const name = displayName(clerkUser, email);
+  const name = displayName(clerkUser, email, phoneNumber);
   const username = clerkUsername(clerkUser.username);
-  const { phoneNumber, phoneNumberVerified } = clerkPrimaryPhone(clerkUser);
-  const emailVerified = primaryEmail.verification?.status === "verified";
+  const emailVerified = primaryEmail
+    ? primaryEmail.verification?.status === "verified"
+    : false;
   const image = clerkStoredImage(clerkUser);
 
-  const existing =
-    (await database.query.user.findFirst({
-      where: eq(user.clerkId, clerkId),
-    })) ??
-    (await database.query.user.findFirst({
-      where: eq(user.email, email),
-    }));
+  const byClerkId = await database.query.user.findFirst({
+    where: eq(user.clerkId, clerkId),
+  });
+  const byEmail =
+    !byClerkId && email
+      ? await database.query.user.findFirst({
+          where: eq(user.email, email),
+        })
+      : null;
+  const byPhone =
+    !byClerkId && !byEmail && phoneNumber
+      ? await database.query.user.findFirst({
+          where: eq(user.phoneNumber, phoneNumber),
+        })
+      : null;
+  const existing = byClerkId ?? byEmail ?? byPhone ?? null;
 
   if (existing) {
     if (existing.clerkId && existing.clerkId !== clerkId) {
-      throw new Error("Email already belongs to a different Clerk user");
+      throw new Error(
+        byEmail
+          ? "Email already belongs to a different Clerk user"
+          : "Phone number already belongs to a different Clerk user",
+      );
     }
 
     const nextUsername =

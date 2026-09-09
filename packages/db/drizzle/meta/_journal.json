@@ -246,6 +246,13 @@
       "when": 1788892734255,
       "tag": "0034_user_preferred_position_and_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788963718436,
+      "tag": "0035_user_email_or_phone",
+      "breakpoints": true
     }
   ]
 }
