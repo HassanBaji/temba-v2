@@ -1,4 +1,6 @@
-Status: draft
+Status: approved
+
+Tickets (Linear, `ready-for-agent`): [TEM-192](https://linear.app/temba-app/issue/TEM-192/join-an-individual-friendly-game-from-the-vacant-side-on-the-games-hub) Join an individual Friendly game from the vacant side on the Games hub card.
 
 # Game card side Join
 
@@ -123,20 +125,7 @@ Game details still uses the join sheet. Admit rules, Preferred Position (sheet p
 - Parent hub spec: `.scratch/games-hub-tabs-and-cards/spec.md`. Seats: `.scratch/individual-game-seats/spec.md`. Preferred Position: `.scratch/onboarding-questionnaire/spec.md` stories 35–37. Design contract: one Game card, optional props (`.scratch/redesign/games-and-rankings-contract.md`).
 - Shipped footer copy is **Join game**; this slice’s side CTA visible label is **Join** as requested. Game details confirm remains **Join game**.
 - Two Users tapping the same empty side both resolve to left; the second gets the existing conflict toast and a refresh, then can tap the now-partial side for right. Acceptable; same class of race as two people picking the same Position in the sheet.
-- Linear was not authenticated in the planning session, so the implementation ticket was not published. Draft ticket:
 
-  **Title:** Join an individual Friendly game from the vacant side on the Games hub card
+## Comments
 
-  **What to build:** On Games hub My Games and Public, an open individual Friendly game card lets the User join by tapping a compact **Join** button on a vacant side. That tap seats them through the existing seat-register door and leaves them on the list. Occupied sides stay small avatars and still open Game home. Footer Join game goes away on those joinable roster cards; waitlist / Register / Details stay.
-
-  **Blocked by:** None (can start immediately).
-
-  **Acceptance criteria:**
-  - Joinable vacant side (empty or one occupant) is a real **Join** button, smaller than today’s 46px chips, with an accessible name (Team A/B, remaining Position and partner when partial).
-  - Empty side one-taps left then right; partial side one-taps the remaining Position; Preferred Position is not auto-submitted.
-  - Fully occupied sides are not Join controls; tapping them (or time/Venue) opens Game home.
-  - Tapping Join does not navigate; success/error keep existing toasts, stay on the list, and refresh queries.
-  - Footer **Join game** is omitted when the Friendly roster is shown and the primary action is join; **Join waitlist** / **Register** / **Details** / **Invite a player** still appear in the matching states.
-  - Americano, Friendly tournament, team-only, already-in, closed, archived, and Game details join sheet are unchanged.
-  - Overlay Link + `pointer-events-auto` on Join only (no nested button inside a wrapping link). Join min-height stays a usable tap target (~36px).
-  - Helper tests cover empty / partial / full Position resolution. No new tRPC, schema, or admit changes.
+- Published the implementation ticket as [TEM-192](https://linear.app/temba-app/issue/TEM-192/join-an-individual-friendly-game-from-the-vacant-side-on-the-games-hub) (one vertical slice; no blockers).
