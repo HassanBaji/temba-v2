@@ -32,7 +32,7 @@ export type MintLookupResult =
 export type LookupListItem = {
   id: string;
   createdAt: Date;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string | null };
 };
 
 export type LookupUserSearchRow = {

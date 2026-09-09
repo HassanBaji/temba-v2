@@ -23,12 +23,14 @@ function clerkUser(overrides: {
   first_name?: string | null;
   last_name?: string | null;
   username?: string | null;
-  email?: string;
+  email?: string | null;
   phone?: string | null;
 }): ClerkUserPayload {
   const emailId = "idn_email_1";
   const phoneId = "idn_phone_1";
-  const email = overrides.email ?? "alex@example.com";
+  const email =
+    overrides.email === undefined ? "alex@example.com" : overrides.email;
+  const hasEmail = email != null && email.length > 0;
   const hasPhone = overrides.phone != null && overrides.phone.length > 0;
 
   return {
@@ -42,15 +44,17 @@ function clerkUser(overrides: {
       overrides.image_url ??
       (overrides.has_image ? CLERK_PHOTO : CLERK_DEFAULT_IMAGE),
     has_image: overrides.has_image,
-    primary_email_address_id: emailId,
+    primary_email_address_id: hasEmail ? emailId : null,
     primary_phone_number_id: hasPhone ? phoneId : null,
-    email_addresses: [
-      {
-        id: emailId,
-        email_address: email,
-        verification: { status: "verified" },
-      },
-    ],
+    email_addresses: hasEmail
+      ? [
+          {
+            id: emailId,
+            email_address: email,
+            verification: { status: "verified" },
+          },
+        ]
+      : [],
     phone_numbers: hasPhone
       ? [
           {
@@ -214,6 +218,184 @@ describe("Clerk user.created / user.updated upsert", () => {
       expect(row.name).toBe("Sam Lee");
       expect(row.preferredPosition).toBe("left");
       expect(row.onboardingCompletedAt?.getTime()).toBe(completedAt.getTime());
+    } finally {
+      await close();
+    }
+  });
+
+  it("writes a phone-only user.created payload", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(
+        db,
+        clerkUser({
+          has_image: false,
+          email: null,
+          phone: "+97336124408",
+          username: "phoneonly",
+          first_name: null,
+          last_name: null,
+        }),
+      );
+
+      const row = await storedUser(db, "user_clerk_alex");
+      expect(row.email).toBeNull();
+      expect(row.emailVerified).toBe(false);
+      expect(row.phoneNumber).toBe("+97336124408");
+      expect(row.phoneNumberVerified).toBe(true);
+      expect(row.username).toBe("phoneonly");
+      expect(row.name).toBe("phoneonly");
+    } finally {
+      await close();
+    }
+  });
+
+  it("matches a phone-only user.updated on phone when clerkId is missing", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const [seeded] = await db
+        .insert(user)
+        .values({
+          name: "Seeded",
+          email: null,
+          phoneNumber: "+97336124408",
+          username: "seededphone",
+        })
+        .returning();
+      if (!seeded) {
+        throw new Error("Failed to seed phone-only User");
+      }
+
+      await upsertUserFromClerk(
+        db,
+        clerkUser({
+          id: "user_clerk_phone",
+          has_image: false,
+          email: null,
+          phone: "+97336124408",
+          username: "seededphone",
+          first_name: "Mikael",
+          last_name: "Karlsson",
+        }),
+      );
+
+      const matches = await db.query.user.findMany({
+        where: eq(user.phoneNumber, "+97336124408"),
+      });
+      expect(matches).toHaveLength(1);
+      expect(matches[0]?.id).toBe(seeded.id);
+      expect(matches[0]?.clerkId).toBe("user_clerk_phone");
+      expect(matches[0]?.name).toBe("Mikael Karlsson");
+      expect(matches[0]?.email).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("rejects a payload with neither email nor phone", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await expect(
+        upsertUserFromClerk(
+          db,
+          clerkUser({
+            has_image: false,
+            email: null,
+            phone: null,
+          }),
+        ),
+      ).rejects.toThrow(/email address or a phone number/i);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps email uniqueness and phone uniqueness", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(
+        db,
+        clerkUser({
+          id: "user_one",
+          has_image: false,
+          email: "shared@example.com",
+          phone: "+15550000001",
+        }),
+      );
+
+      await expect(
+        upsertUserFromClerk(
+          db,
+          clerkUser({
+            id: "user_two",
+            has_image: false,
+            email: "shared@example.com",
+            phone: "+15550000002",
+            username: "other",
+          }),
+        ),
+      ).rejects.toThrow(/Email already belongs/i);
+
+      await expect(
+        upsertUserFromClerk(
+          db,
+          clerkUser({
+            id: "user_three",
+            has_image: false,
+            email: "other@example.com",
+            phone: "+15550000001",
+            username: "third",
+          }),
+        ),
+      ).rejects.toThrow(/Phone number already belongs/i);
+    } finally {
+      await close();
+    }
+  });
+
+  it("does not rewrite an existing email row when applying phone-only sync to a different user", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(
+        db,
+        clerkUser({
+          id: "user_email_row",
+          has_image: false,
+          email: "keep@example.com",
+          username: "keepemail",
+        }),
+      );
+
+      await upsertUserFromClerk(
+        db,
+        clerkUser({
+          id: "user_phone_row",
+          has_image: false,
+          email: null,
+          phone: "+97339990000",
+          username: "newphone",
+          first_name: null,
+          last_name: null,
+        }),
+      );
+
+      const emailRow = await storedUser(db, "user_email_row");
+      const phoneRow = await storedUser(db, "user_phone_row");
+      expect(emailRow.email).toBe("keep@example.com");
+      expect(emailRow.phoneNumber).toBeNull();
+      expect(phoneRow.email).toBeNull();
+      expect(phoneRow.phoneNumber).toBe("+97339990000");
+    } finally {
+      await close();
+    }
+  });
+
+  it("rejects a database row with neither email nor phone", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await expect(
+        db.insert(user).values({ name: "Nobody" }).returning(),
+      ).rejects.toThrow();
     } finally {
       await close();
     }

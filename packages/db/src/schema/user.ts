@@ -8,8 +8,9 @@ import {
   varchar,
   integer,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { account } from "./account";
 import { session } from "./session";
 
@@ -35,7 +36,7 @@ export const user = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     clerkId: text("clerk_id"),
     name: text("name").notNull(),
-    email: text("email").notNull().unique(),
+    email: text("email").unique(),
     username: text("username").unique(),
     displayUsername: text("display_username"),
     phoneNumber: text("phone_number").unique(),
@@ -61,6 +62,10 @@ export const user = pgTable(
   },
   (table) => ({
     clerkIdIdx: uniqueIndex("user_clerk_id_idx").on(table.clerkId),
+    emailOrPhone: check(
+      "user_email_or_phone_number",
+      sql`${table.email} is not null or ${table.phoneNumber} is not null`,
+    ),
   }),
 );
 

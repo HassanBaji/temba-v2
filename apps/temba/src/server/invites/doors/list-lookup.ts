@@ -68,7 +68,7 @@ export async function listLookup(
 function mapLookupRow(row: {
   id: string;
   createdAt: Date;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string | null };
 }): LookupListItem {
   return {
     id: row.id,

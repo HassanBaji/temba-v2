@@ -8,7 +8,7 @@ import { ThemeProvider } from "~/components/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
-import { mono, sans } from "./fonts";
+import { display, mono, sans } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Temba - the future of competitive sports",
@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
+/**
+ * Theme for remaining Clerk drop-ins (`UserButton` on `/dashboard/you` via
+ * `app-sidebar`, and any other Clerk UI chrome). Custom `/login` and `/signup`
+ * screens do not use this. Keep `@clerk/ui/themes` and the matching
+ * `shadcn.css` import in `globals.css`.
+ */
 const clerkAppearance = {
   theme: shadcn,
   variables: {
@@ -38,7 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${mono.variable}`}
+      className={`${sans.variable} ${mono.variable} ${display.variable}`}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">
@@ -48,7 +54,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <ClerkProvider appearance={clerkAppearance}>
+          <ClerkProvider
+            appearance={clerkAppearance}
+            signInUrl="/login"
+            signUpUrl="/signup"
+            signInFallbackRedirectUrl="/dashboard"
+            signUpFallbackRedirectUrl="/dashboard"
+          >
             <TRPCReactProvider>
               {children}
               <Toaster />

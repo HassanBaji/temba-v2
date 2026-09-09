@@ -1,4 +1,5 @@
 @import "tailwindcss";
+/* Clerk UserButton theme (app-sidebar / dashboard). Auth screens are Temba-owned. */
 @import "@clerk/ui/themes/shadcn.css";
 @import "tw-animate-css";
 
@@ -24,8 +25,12 @@
   --text-h2--line-height: 1.875rem;
   --text-h1: 1.75rem; /* 28px */
   --text-h1--line-height: 2.125rem;
+  --text-h1-lg: 2rem; /* 32px — auth screen headings */
+  --text-h1-lg--line-height: 2.1rem;
   --text-display: 2.25rem; /* 36px */
   --text-display--line-height: 2.375rem;
+  --text-hero: 3rem; /* 48px — Welcome headline */
+  --text-hero--line-height: 2.88rem;
 
   --container-content: 44rem; /* 704px — detail pages, forms */
   --container-wide: 64rem; /* 1024px — list plus aside */
@@ -56,6 +61,7 @@
   --font-mono:
     var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

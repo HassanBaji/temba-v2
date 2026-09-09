@@ -1,7 +1,7 @@
-import { SignUpForm } from "~/components/auth/sign-up-form";
+import { ForgotPasswordForm } from "~/components/auth/forgot-password-form";
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
-export default async function SignUpPage({
+export default async function ResetPasswordPage({
   searchParams,
 }: {
   searchParams: Promise<{ redirect_url?: string }>;
@@ -9,5 +9,5 @@ export default async function SignUpPage({
   const params = await searchParams;
   const redirectUrl = safeInternalRedirect(params.redirect_url);
 
-  return <SignUpForm redirectUrl={redirectUrl} />;
+  return <ForgotPasswordForm redirectUrl={redirectUrl} />;
 }
