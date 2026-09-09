@@ -8,7 +8,7 @@ import { ThemeProvider } from "~/components/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
-import { mono, sans } from "./fonts";
+import { display, mono, sans } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Temba - the future of competitive sports",
@@ -38,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${mono.variable}`}
+      className={`${sans.variable} ${mono.variable} ${display.variable}`}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">
