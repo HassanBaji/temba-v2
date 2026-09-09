@@ -6,6 +6,10 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { Button } from "~/components/ui/button";
 import { vacantJoinSeats } from "~/lib/friendly-game-cta";
+import {
+  friendlyGameLineupVacantAction,
+  friendlyGameVacantSeatLabel,
+} from "~/lib/friendly-game-players";
 import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
@@ -68,6 +72,10 @@ function LineupSeatRow({
   isViewer,
   showInvite,
   onInvite,
+  sideLabel,
+  canMove,
+  moving,
+  onMove,
 }: {
   occupant: GameDetailsSeat | null;
   position: SeatPosition;
@@ -75,13 +83,37 @@ function LineupSeatRow({
   isViewer: boolean;
   showInvite: boolean;
   onInvite: () => void;
+  sideLabel: string;
+  canMove: boolean;
+  moving: boolean;
+  onMove: () => void;
 }) {
   if (vacant || !occupant) {
+    const vacantAction = friendlyGameLineupVacantAction(canMove);
+    const moveLabel = friendlyGameVacantSeatLabel(
+      vacantAction,
+      sideLabel,
+      position === "left" ? "Left" : "Right",
+    );
     return (
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <LineupOpenChip />
-          <span className="sr-only">Open</span>
+          {vacantAction === "move" && moveLabel ? (
+            <button
+              type="button"
+              disabled={moving}
+              aria-label={moveLabel}
+              className="focus-visible:ring-ring/50 flex size-[42px] shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={onMove}
+            >
+              <LineupOpenChip />
+            </button>
+          ) : (
+            <>
+              <LineupOpenChip />
+              <span className="sr-only">Open</span>
+            </>
+          )}
         </div>
         {showInvite ? (
           <Button
@@ -126,6 +158,9 @@ function LineupTeamColumn({
   showInvite,
   onInvite,
   isVacant,
+  canMove,
+  moving,
+  onMove,
 }: {
   side: GameDetailsSide;
   isWinner: boolean;
@@ -134,12 +169,16 @@ function LineupTeamColumn({
   showInvite: boolean;
   onInvite: () => void;
   isVacant: (position: SeatPosition) => boolean;
+  canMove: boolean;
+  moving: boolean;
+  onMove: (position: SeatPosition) => void;
 }) {
+  const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
   return (
     <div className="min-w-0 flex-1 space-y-3">
       <div className="flex items-center gap-1.5">
         <h3 className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-          {formatGameSideLabel("friendly_game", side.sideIndex)}
+          {sideLabel}
         </h3>
         {showWonTag && isWinner ? <WonTag /> : null}
       </div>
@@ -151,6 +190,10 @@ function LineupTeamColumn({
           isViewer={side.left?.userId === viewerUserId}
           showInvite={showInvite}
           onInvite={onInvite}
+          sideLabel={sideLabel}
+          canMove={canMove}
+          moving={moving}
+          onMove={() => onMove("left")}
         />
         <LineupSeatRow
           occupant={side.right}
@@ -159,6 +202,10 @@ function LineupTeamColumn({
           isViewer={side.right?.userId === viewerUserId}
           showInvite={showInvite}
           onInvite={onInvite}
+          sideLabel={sideLabel}
+          canMove={canMove}
+          moving={moving}
+          onMove={() => onMove("right")}
         />
       </div>
     </div>
@@ -171,7 +218,8 @@ function LineupTeamColumn({
  * game details page across all three phases. Distinct from, and deliberately
  * less summarized than, the hero's own compact seat row (`home-seat-row.tsx`
  * pattern) — the hero states the aggregate ("3 of 4 players in"), this
- * section is where an open slot is actionable (per-row Invite).
+ * section is where an open slot is actionable (per-row Invite, and a move
+ * hatch when the viewer is seated and `canMove` — TEM-193).
  */
 export function GameLineupSection({
   sides,
@@ -180,6 +228,9 @@ export function GameLineupSection({
   winningGameTeamId,
   canMintInvite,
   onInvite,
+  canMove,
+  moving,
+  onMove,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
@@ -187,6 +238,9 @@ export function GameLineupSection({
   winningGameTeamId: string | null;
   canMintInvite: boolean;
   onInvite: () => void;
+  canMove: boolean;
+  moving: boolean;
+  onMove: (sideIndex: number, position: SeatPosition) => void;
 }) {
   // Final phase never shows invite affordances in this section, regardless
   // of the caller's organizer-only `canMintInvite` value (spec: "no invite
@@ -231,6 +285,9 @@ export function GameLineupSection({
               showInvite={showInvite}
               onInvite={onInvite}
               isVacant={(position) => vacantLookup(side.sideIndex, position)}
+              canMove={canMove}
+              moving={moving}
+              onMove={(position) => onMove(side.sideIndex, position)}
             />
           </Fragment>
         ))}

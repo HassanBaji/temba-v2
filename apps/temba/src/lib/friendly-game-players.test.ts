@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   friendlyGameCanKickPlayer,
+  friendlyGameLineupVacantAction,
   friendlyGameOccupantActions,
   friendlyGamePlayersCancelledNote,
   friendlyGameSideFill,
@@ -86,6 +87,29 @@ describe("friendlyGameVacantSeatAction", () => {
         canPickSeat: false,
         canWaitlist: false,
       }),
+      null,
+    );
+  });
+});
+
+describe("friendlyGameLineupVacantAction", () => {
+  it("is move-only when canMove, never join", () => {
+    assert.equal(friendlyGameLineupVacantAction(true), "move");
+    assert.equal(friendlyGameLineupVacantAction(false), null);
+    assert.equal(
+      friendlyGameVacantSeatLabel(
+        friendlyGameLineupVacantAction(true),
+        "Team A",
+        "Left",
+      ),
+      "Move to Team A Left",
+    );
+    assert.equal(
+      friendlyGameVacantSeatLabel(
+        friendlyGameLineupVacantAction(false),
+        "Team A",
+        "Left",
+      ),
       null,
     );
   });

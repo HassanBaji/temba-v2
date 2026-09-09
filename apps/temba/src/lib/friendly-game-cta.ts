@@ -198,6 +198,24 @@ export type FriendlyGameJoinSeat = {
   position: "left" | "right";
 };
 
+/**
+ * Footer "Leave game" on individual Friendly details (TEM-193): seated or
+ * registered, `canLeave`, not waitlisted. Organizer status is not a gate —
+ * a seated organizer frees their Position; they do not cancel the Game.
+ */
+export function friendlyGameFooterCanLeaveGame(input: {
+  isSeated: boolean;
+  isRegistered: boolean;
+  canLeave: boolean;
+  isWaitlisted: boolean;
+}): boolean {
+  return (
+    (input.isSeated || input.isRegistered) &&
+    input.canLeave &&
+    !input.isWaitlisted
+  );
+}
+
 export function vacantJoinSeats(
   sides: readonly {
     sideIndex: number;
