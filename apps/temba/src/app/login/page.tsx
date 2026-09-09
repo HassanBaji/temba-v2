@@ -1,8 +1,6 @@
-import { SignIn } from "@clerk/nextjs";
-
 import { AuthScreen } from "~/components/auth/auth-screen";
-import { OauthButtons } from "~/components/auth/oauth-buttons";
-import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
+import { SignInForm } from "~/components/auth/sign-in-form";
+import { authCrossLinkUrl } from "~/lib/auth-redirect";
 import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
 
 export default async function LoginPage({
@@ -20,17 +18,15 @@ export default async function LoginPage({
       backLabel="Back"
       crossLink={{ href: signUpUrl, label: "Create account" }}
       title="Sign in"
+      description="Use the number your groups know you by."
+      footer={
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-meta text-muted-foreground">Invited to a group?</p>
+          <p className="text-meta font-semibold underline">Open the link</p>
+        </div>
+      }
     >
-      <SignIn
-        routing="path"
-        path="/login"
-        signUpUrl={signUpUrl}
-        forceRedirectUrl={redirectUrl ?? undefined}
-        fallbackRedirectUrl={authCompleteUrl(redirectUrl)}
-      />
-      <div className="mt-6">
-        <OauthButtons flow="sign-in" redirectUrl={redirectUrl} />
-      </div>
+      <SignInForm redirectUrl={redirectUrl} />
     </AuthScreen>
   );
 }
