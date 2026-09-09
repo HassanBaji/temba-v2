@@ -234,15 +234,15 @@ export function formatLevelRangeLabel(
       : displayLabelFromStoredBand(tenthsToLevelBand(levelMaxTenths));
   if (minLabel && maxLabel) {
     if (minLabel === maxLabel) {
-      return `Level ${minLabel}`;
+      return `${minLabel}`;
     }
-    return `Level ${minLabel}–${maxLabel}`;
+    return `${minLabel}–${maxLabel}`;
   }
   if (minLabel) {
-    return `Level ${minLabel} and up`;
+    return `${minLabel} and up`;
   }
   if (maxLabel) {
-    return `Level ${maxLabel} and under`;
+    return `${maxLabel} and under`;
   }
   return null;
 }

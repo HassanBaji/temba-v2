@@ -50,7 +50,7 @@ export function AppShell({
             <MobileTopBarFromPath
               title={title ?? ""}
               icon={icon}
-              action={hidePageHeader ? action : undefined}
+              action={action}
               isSubPage={isSubPage}
             />
           )}
@@ -64,14 +64,6 @@ export function AppShell({
                 : "max-w-[var(--container-content)]",
             )}
           >
-            {hidePageHeader ? null : (
-              <PageHeader
-                title={title ?? ""}
-                description={description}
-                action={action}
-                className="mb-6 max-lg:[&>div:first-child>h1]:sr-only"
-              />
-            )}
             {children}
           </main>
         </div>

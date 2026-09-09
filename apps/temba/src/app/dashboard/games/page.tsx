@@ -24,6 +24,7 @@ import {
   showsFriendlyRoster,
 } from "~/lib/game-summary-cta";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { PlusIcon } from "lucide-react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
 type HistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
@@ -236,11 +237,7 @@ function TabCount({ count }: { count: number | undefined }) {
     return null;
   }
 
-  return (
-    <Badge variant="secondary" size="sm" className="tabular-nums">
-      {count}
-    </Badge>
-  );
+  return <p className="text-dim">{count}</p>;
 }
 
 export default function GamesHubPage({
@@ -332,23 +329,25 @@ export default function GamesHubPage({
       title="Games"
       action={
         hasCreateAccess ? (
-          <Button asChild>
-            <Link href="/dashboard/games/new">Create Game</Link>
+          <Button asChild variant={"ghost"} size={"icon"}>
+            <Link href="/dashboard/games/new">
+              <PlusIcon className="size-5" />
+            </Link>
           </Button>
         ) : undefined
       }
     >
-      <Tabs value={tab} onValueChange={setTab} className="gap-4">
+      <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
         <TabsList className="bg-paper w-full justify-between">
-          <TabsTrigger value="my-games" className="w-[33%]">
-            My Games
+          <TabsTrigger value="my-games" className="w-[33%] rounded-r-none">
+            <p className="font-semibold">My Games</p>
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
-          <TabsTrigger value="public" className="w-[33%]">
+          <TabsTrigger value="public" className="w-[33%] rounded-none">
             Public
             <TabCount count={pickup.data?.length} />
           </TabsTrigger>
-          <TabsTrigger value="history" className="w-[33%]">
+          <TabsTrigger value="history" className="w-[33%] rounded-l-none">
             History
             <TabCount count={history.data?.length} />
           </TabsTrigger>

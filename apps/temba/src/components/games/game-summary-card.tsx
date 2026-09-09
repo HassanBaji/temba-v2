@@ -269,7 +269,7 @@ function MetaCell({
     <div
       className={cn(
         "min-w-0 flex-1",
-        ruled ? "border-rule border-l pl-4" : null,
+        // ruled ? "border-rule border-l pl-4" : null,
       )}
     >
       <b className="block text-[17px] font-semibold tracking-[-0.01em]">
@@ -516,12 +516,18 @@ export function GameSummaryCard({
 
           {showPrice || showFormat ? (
             <div className="border-rule mt-4 flex border-t pt-4">
+              {levelMeta ? (
+                <MetaCell value={levelMeta ?? ""} note={"Level"} />
+              ) : null}
+
               {showPrice && priceAmount ? (
                 <MetaCell
+                  ruled={showPrice}
                   value={priceAmount}
                   note={priceAmount === "Free" ? null : "per player"}
                 />
               ) : null}
+
               {showFormat ? (
                 <MetaCell
                   value={formatMeta ?? durationMeta ?? levelMeta ?? ""}

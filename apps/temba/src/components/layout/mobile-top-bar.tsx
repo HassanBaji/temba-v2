@@ -24,7 +24,7 @@ export function MobileTopBar({
   return (
     <header
       className={cn(
-        "bg-wash sticky top-0 z-40 flex min-h-11 items-center gap-2 py-2 pt-4 lg:hidden",
+        "bg-background sticky top-0 z-40 flex min-h-11 items-center justify-between gap-2 py-2 pt-4 lg:hidden",
         pageGutterX,
         isSubPage && "border-border border-b",
       )}
@@ -48,10 +48,9 @@ export function MobileTopBar({
           {title}
         </p>
       ) : null}
+
       {icon ? <div className="size-11 shrink-0">{icon}</div> : null}
-      <div className="flex min-h-11 min-w-11 shrink-0 items-center justify-end">
-        {action}
-      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
     </header>
   );
 }

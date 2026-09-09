@@ -104,7 +104,7 @@
 
 :root {
   --radius: 0.75rem;
-  --background: #f4f4f4;
+  --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --surface-raised: #fafaf8;
   --card: #ffffff;
