@@ -54,7 +54,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <ClerkProvider appearance={clerkAppearance}>
+          <ClerkProvider
+            appearance={clerkAppearance}
+            signInUrl="/login"
+            signUpUrl="/signup"
+            signInFallbackRedirectUrl="/dashboard"
+            signUpFallbackRedirectUrl="/dashboard"
+          >
             <TRPCReactProvider>
               {children}
               <Toaster />

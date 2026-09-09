@@ -40,7 +40,12 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   if (isProtectedRoute(req)) {
-    await auth.protect();
+    const returnPath = `${req.nextUrl.pathname}${req.nextUrl.search}`;
+    const redirectUrl = safeInternalRedirect(returnPath);
+    const unauthenticatedUrl = redirectUrl
+      ? `/login?redirect_url=${encodeURIComponent(redirectUrl)}`
+      : "/login";
+    await auth.protect({ unauthenticatedUrl });
   }
 
   const { userId } = await auth();
