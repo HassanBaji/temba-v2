@@ -1,6 +1,6 @@
 "use client";
 
-import { UserButton, useClerk, useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Building2, Camera, Mail, Users } from "lucide-react";
 
@@ -10,6 +10,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { Section } from "~/components/layout/section";
 import { AvatarBadge } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { YouPreferredPositionRow } from "~/components/you/you-preferred-position-row";
 import { YouRatingSection } from "~/components/you/you-rating-section";
@@ -24,7 +25,6 @@ function YouPageSkeleton({ showOperator }: { showOperator: boolean }) {
           <Skeleton className="h-5 w-40 max-w-full" />
           <Skeleton className="h-3 w-28 max-w-full" />
         </div>
-        <Skeleton className="size-8 shrink-0 rounded-full" />
       </div>
       <div className="divide-border overflow-hidden rounded-lg border">
         <Skeleton className="h-16 w-full rounded-none" />
@@ -34,6 +34,7 @@ function YouPageSkeleton({ showOperator }: { showOperator: boolean }) {
           <Skeleton className="h-16 w-full rounded-none" />
         ) : null}
       </div>
+      <Skeleton className="h-11 w-full" />
     </div>
   );
 }
@@ -75,6 +76,7 @@ function YouIdentityAvatar({
 
 export default function YouPage() {
   const { isLoaded, user } = useUser();
+  const clerk = useClerk();
   const invites = usePendingInviteCount();
   const isOperator = user?.publicMetadata.operator === true;
   const displayName =
@@ -110,7 +112,6 @@ export default function YouPage() {
               </p>
             ) : null}
           </div>
-          {/* <UserButton /> */}
         </div>
 
         <YouRatingSection />
@@ -171,6 +172,17 @@ export default function YouPage() {
             </RowList>
           </Section>
         ) : null}
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            void clerk.signOut({ redirectUrl: "/login" });
+          }}
+        >
+          Sign out
+        </Button>
       </div>
     </DashboardShell>
   );
