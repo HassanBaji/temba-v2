@@ -160,6 +160,7 @@ function SideJoinButton({
       <Button
         type="button"
         size="sm"
+        variant="ghost"
         className="h-auto min-h-9 w-full rounded-lg px-2 py-1.5 text-sm font-semibold"
         disabled={pending}
         aria-label={sideJoinAccessibleName(sideIndex, position, partnerName)}
@@ -169,7 +170,14 @@ function SideJoinButton({
           onJoin(sideIndex, position);
         }}
       >
-        Join
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
+          <div className="hatch text-dim flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
+            +
+          </div>
+          <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
+            Join {position === "left" ? "Left" : "Right"}
+          </small>
+        </div>
       </Button>
     </div>
   );
@@ -207,7 +215,25 @@ function SideRoster({
   );
 
   if (side.left == null && side.right == null) {
-    return <div className="flex min-w-0 flex-1 items-center">{joinButton}</div>;
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <SideJoinButton
+          sideIndex={side.sideIndex}
+          position="left"
+          partnerName={partner?.name ?? null}
+          pending={actionPending}
+          onJoin={onJoinSeat}
+        />
+
+        <SideJoinButton
+          sideIndex={side.sideIndex}
+          position="right"
+          partnerName={partner?.name ?? null}
+          pending={actionPending}
+          onJoin={onJoinSeat}
+        />
+      </div>
+    );
   }
 
   return (
