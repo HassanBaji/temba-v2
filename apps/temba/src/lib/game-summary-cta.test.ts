@@ -8,6 +8,7 @@ import {
   gameViewerStatus,
   showsFriendlyRoster,
   showsGameCardFooterAction,
+  showsGameCardPartnerFooter,
   type GameSummaryCtaInput,
 } from "./game-summary-cta";
 
@@ -203,5 +204,44 @@ describe("showsGameCardFooterAction", () => {
     assert.equal(showsGameCardFooterAction("join_waitlist", true), true);
     assert.equal(showsGameCardFooterAction("register", true), true);
     assert.equal(showsGameCardFooterAction("view", true), true);
+  });
+});
+
+const occupant = { name: "Ada" };
+
+describe("showsGameCardPartnerFooter", () => {
+  it("shows Join with a partner when primary action is join and a side is fully vacant", () => {
+    assert.equal(
+      showsGameCardPartnerFooter("join", [
+        { left: occupant, right: occupant },
+        { left: null, right: null },
+      ]),
+      true,
+    );
+  });
+
+  it("hides when sides are only half-full", () => {
+    assert.equal(
+      showsGameCardPartnerFooter("join", [
+        { left: occupant, right: null },
+        { left: null, right: occupant },
+      ]),
+      false,
+    );
+  });
+
+  it("hides when there is no roster", () => {
+    assert.equal(showsGameCardPartnerFooter("join", undefined), false);
+    assert.equal(showsGameCardPartnerFooter("join", []), false);
+  });
+
+  it("hides for waitlist, view, and register even with a vacant side", () => {
+    const vacant = [
+      { left: occupant, right: occupant },
+      { left: null, right: null },
+    ];
+    assert.equal(showsGameCardPartnerFooter("join_waitlist", vacant), false);
+    assert.equal(showsGameCardPartnerFooter("view", vacant), false);
+    assert.equal(showsGameCardPartnerFooter("register", vacant), false);
   });
 });

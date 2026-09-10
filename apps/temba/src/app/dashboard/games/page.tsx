@@ -12,16 +12,20 @@ import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { MatchHistoryCard } from "~/components/games/match-history-card";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import {
+  friendlyGamePartnerHref,
+  offersPartnerJoin,
+} from "~/lib/friendly-game-partner";
 import { gamesHubTabFromQuery, gamesHubTabQuery } from "~/lib/games-hub-tab";
 import {
   gameSummaryPrimaryAction,
   gameViewerStatus,
   showsFriendlyRoster,
+  showsGameCardPartnerFooter,
 } from "~/lib/game-summary-cta";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { PlusIcon } from "lucide-react";
@@ -128,42 +132,58 @@ function GamesHubTabPanel({
 
   return (
     <ul className="flex flex-col gap-3">
-      {games.map((game) => (
-        <GameSummaryCard
-          key={game.id}
-          name={game.name}
-          startTime={game.startTime}
-          groupName={game.groupName}
-          format={game.format}
-          windowStart={game.windowStart}
-          windowEnd={game.windowEnd}
-          venueName={game.venue?.name}
-          location={game.venue?.city ?? game.venue?.name}
-          registeredUserCount={game.registeredUserCount}
-          playersAllowed={game.playersAllowed}
-          pricePerPlayerCents={game.pricePerPlayerCents}
-          levelMinTenths={game.levelMinTenths}
-          levelMaxTenths={game.levelMaxTenths}
-          sides={
-            showsFriendlyRoster(game.format, game.registrationMode)
-              ? game.sides
-              : undefined
-          }
-          primaryAction={gameSummaryPrimaryAction(game)}
-          viewerStatus={gameViewerStatus(game)}
-          actionPending={pendingGameId === game.id}
-          href={`/dashboard/games/${game.id}`}
-          onJoinSeat={(sideIndex, position) => {
-            onJoinSeat(game.id, sideIndex, position);
-          }}
-          onJoinWaitlist={() => {
-            onJoinWaitlist(game);
-          }}
-          onRegister={() => {
-            onRegister(game.id);
-          }}
-        />
-      ))}
+      {games.map((game) => {
+        const primaryAction = gameSummaryPrimaryAction(game);
+        const rosterSides = showsFriendlyRoster(
+          game.format,
+          game.registrationMode,
+        )
+          ? game.sides
+          : undefined;
+        const partnerHref =
+          showsGameCardPartnerFooter(primaryAction, rosterSides) &&
+          offersPartnerJoin({
+            canRegister: game.canRegister,
+            format: game.format,
+            registrationMode: game.registrationMode,
+            sides: game.sides,
+          })
+            ? friendlyGamePartnerHref(game.id)
+            : undefined;
+        return (
+          <GameSummaryCard
+            key={game.id}
+            name={game.name}
+            startTime={game.startTime}
+            groupName={game.groupName}
+            format={game.format}
+            windowStart={game.windowStart}
+            windowEnd={game.windowEnd}
+            venueName={game.venue?.name}
+            location={game.venue?.city ?? game.venue?.name}
+            registeredUserCount={game.registeredUserCount}
+            playersAllowed={game.playersAllowed}
+            pricePerPlayerCents={game.pricePerPlayerCents}
+            levelMinTenths={game.levelMinTenths}
+            levelMaxTenths={game.levelMaxTenths}
+            sides={rosterSides}
+            primaryAction={primaryAction}
+            viewerStatus={gameViewerStatus(game)}
+            actionPending={pendingGameId === game.id}
+            href={`/dashboard/games/${game.id}`}
+            partnerHref={partnerHref}
+            onJoinSeat={(sideIndex, position) => {
+              onJoinSeat(game.id, sideIndex, position);
+            }}
+            onJoinWaitlist={() => {
+              onJoinWaitlist(game);
+            }}
+            onRegister={() => {
+              onRegister(game.id);
+            }}
+          />
+        );
+      })}
     </ul>
   );
 }

@@ -1,3 +1,8 @@
+import {
+  hasFullyVacantSide,
+  type FriendlyGamePartnerSides,
+} from "~/lib/friendly-game-partner";
+
 export type GameSummaryCta = "join" | "join_waitlist" | "register" | "view";
 
 export type GameSummaryCtaInput = {
@@ -117,4 +122,20 @@ export function showsGameCardFooterAction(
   rosterShown: boolean,
 ) {
   return !(action === "join" && rosterShown);
+}
+
+/**
+ * Footer Join with a partner is only for joinable roster cards that still
+ * have a fully vacant side. Waitlist, view, register, half-full sides, and
+ * cards without a roster stay without it. Presence of the partner href on
+ * the card is what renders the control; this helper is the caller's gate.
+ */
+export function showsGameCardPartnerFooter(
+  action: GameSummaryCta,
+  sides: FriendlyGamePartnerSides | undefined,
+): boolean {
+  if (action !== "join" || sides == null || sides.length === 0) {
+    return false;
+  }
+  return hasFullyVacantSide(sides);
 }
