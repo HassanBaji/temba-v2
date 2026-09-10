@@ -25,6 +25,7 @@ import { listLevelRangeRequestsProcedure as listLevelRangeRequests } from "./lis
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
 import { listMyGames } from "./listMyGames";
 import { listMyMatchHistory } from "./listMyMatchHistory";
+import { listPartnerSuggestionsProcedure as listPartnerSuggestions } from "./listPartnerSuggestions";
 import { listPublicPickup } from "./listPublicPickup";
 import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
@@ -61,6 +62,7 @@ export const gamesRouter = createTRPCRouter({
   registerSeat,
   moveSeat,
   searchPartnerUsers,
+  listPartnerSuggestions,
   registerWithPartner,
   registerTeam,
   leave,

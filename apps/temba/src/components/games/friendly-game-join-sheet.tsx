@@ -1,6 +1,8 @@
 "use client";
 
+import { ArrowLeft, ChevronRight, UserRound, Users } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import {
   ResponsiveDialog,
@@ -10,17 +12,32 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import {
+  FriendlyGamePartnerPicker,
+  type FriendlyGamePartnerPick,
+} from "~/components/games/friendly-game-partner-picker";
+import { FriendlyGamePartnerReview } from "~/components/games/friendly-game-partner-review";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { Button } from "~/components/ui/button";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   friendlyGameJoinSheetCaption,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "~/lib/friendly-game-cta";
+import {
+  firstFullyVacantSideIndex,
+  hasFullyVacantSide,
+  isPartnerVacantSideRace,
+  offersPartnerJoin,
+} from "~/lib/friendly-game-partner";
 import { preferredJoinSeat } from "~/lib/preferred-seat";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+
+type JoinSheetStep = "chooser" | "seat" | "partner" | "partnerConfirm";
 
 type SeatPosition = "left" | "right";
 
@@ -43,6 +60,111 @@ export type FriendlyGameJoinSheetOccupant = {
 
 function positionLabel(position: SeatPosition) {
   return position === "left" ? "Left" : "Right";
+}
+
+/**
+ * Two-seat mini-diagram on the 02b chooser. Hatch is decoration; the
+ * accessible name on the option button carries the meaning.
+ */
+function TwoSeatDiagram({ onInk }: { onInk: boolean }) {
+  return (
+    <span aria-hidden="true" className="flex w-full gap-1.5">
+      <span
+        className={cn(
+          "h-[26px] flex-1 rounded-md",
+          onInk ? "bg-paper" : "bg-ink",
+        )}
+      />
+      <span
+        className={cn(
+          "h-[26px] flex-1 rounded-md",
+          onInk ? "hatch hatch-on-ink" : "hatch",
+        )}
+      />
+    </span>
+  );
+}
+
+function ModeChooser({
+  onJoinAlone,
+  onJoinWithPartner,
+}: {
+  onJoinAlone: () => void;
+  onJoinWithPartner: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-[18px]">
+      <button
+        type="button"
+        onClick={onJoinAlone}
+        aria-label="Join alone. One seat. Someone else takes the other."
+        className={cn(
+          "border-ink bg-paper text-ink flex w-full flex-col gap-2.5 rounded-[14px] border px-5 py-[18px] text-left",
+          "hover:bg-wash outline-none transition-colors",
+          "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        )}
+      >
+        <span className="flex w-full items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="border-rule flex size-[34px] shrink-0 items-center justify-center rounded-lg border"
+          >
+            <UserRound className="size-[17px]" strokeWidth={1.75} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="text-[17px] font-semibold">Join alone</span>
+            <span className="text-muted-foreground mt-0.5 block text-xs">
+              One seat. Someone else takes the other.
+            </span>
+          </span>
+          <ChevronRight
+            aria-hidden="true"
+            className="text-dim size-[18px] shrink-0"
+          />
+        </span>
+        <TwoSeatDiagram onInk={false} />
+        <span className="text-muted-foreground font-mono text-[10px] uppercase tracking-wide">
+          You are in straight away
+        </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={onJoinWithPartner}
+        aria-label="Join with a partner. Both seats. You play as a team. Both seats are booked now; your partner is in straight away."
+        className={cn(
+          "bg-ink text-paper flex w-full flex-col gap-2.5 rounded-[14px] px-5 py-[18px] text-left",
+          "hover:bg-dimrule outline-none transition-colors",
+          "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        )}
+      >
+        <span className="flex w-full items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="bg-raised flex size-[34px] shrink-0 items-center justify-center rounded-lg"
+          >
+            <Users className="size-[17px]" strokeWidth={1.75} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="text-[17px] font-semibold">
+              Join with a partner
+            </span>
+            <span className="text-dim mt-0.5 block text-xs">
+              Both seats. You play as a team.
+            </span>
+          </span>
+          <ChevronRight
+            aria-hidden="true"
+            className="text-dim size-[18px] shrink-0"
+          />
+        </span>
+        <TwoSeatDiagram onInk />
+        <span className="text-dim font-mono text-[10px] uppercase tracking-wide">
+          Both seats booked now
+        </span>
+      </button>
+    </div>
+  );
 }
 
 /**
@@ -191,6 +313,11 @@ function SideColumn({
  * matching Position is free (`preferredJoinSeat`). That is a default and not
  * a rule: both Positions stay drawn and enabled, one tap moves or clears the
  * pick, and nothing is submitted until the footer button.
+ *
+ * On individual Friendly games with a fully vacant side, a mode chooser
+ * (artboard 02b) is the first step: Join alone reaches this picker; Join
+ * with a partner is a minimal search + Position confirm that calls
+ * `games.registerWithPartner`. Tickets 2–3 replace that partner step.
  */
 export function FriendlyGameJoinSheet({
   open,
@@ -200,6 +327,16 @@ export function FriendlyGameJoinSheet({
   pending,
   pricePerPlayerCents,
   onPickSeat,
+  gameId,
+  format,
+  registrationMode,
+  canRegister,
+  windowStart,
+  venueName,
+  groupName,
+  isOrganizer,
+  levelMinTenths,
+  levelMaxTenths,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -208,7 +345,24 @@ export function FriendlyGameJoinSheet({
   pending: boolean;
   pricePerPlayerCents?: number | null;
   onPickSeat: (sideIndex: number, position: SeatPosition) => void;
+  gameId?: string;
+  format?: string;
+  registrationMode?: string;
+  canRegister?: boolean;
+  windowStart?: Date | string | null;
+  venueName?: string | null;
+  groupName?: string | null;
+  isOrganizer?: boolean;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 }) {
+  const offerPartner = offersPartnerJoin({
+    canRegister: canRegister ?? false,
+    format: format ?? "",
+    registrationMode: registrationMode ?? "",
+    sides,
+  });
+
   // `touched` is what keeps the Preferred Position default a default: until
   // the viewer taps, the picked Position is derived, so it can appear the
   // moment `onboardingState` answers and update if a Position is taken while
@@ -218,6 +372,14 @@ export function FriendlyGameJoinSheet({
     touched: boolean;
     seat: FriendlyGameJoinSeat | null;
   }>({ touched: false, seat: null });
+  const [step, setStep] = useState<JoinSheetStep>("seat");
+  const [selectedPartner, setSelectedPartner] =
+    useState<FriendlyGamePartnerPick | null>(null);
+  const [partnerRaceMessage, setPartnerRaceMessage] = useState<string | null>(
+    null,
+  );
+
+  const utils = api.useUtils();
 
   // Only while the sheet is open: this is a default for a picker, not
   // something every Game card on a hub needs to fetch on mount.
@@ -225,10 +387,58 @@ export function FriendlyGameJoinSheet({
     enabled: open,
   });
 
+  const registerWithPartner = api.games.registerWithPartner.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      if (gameId) {
+        await utils.games.byId.invalidate({ id: gameId });
+        await utils.games.searchPartnerUsers.invalidate({ gameId });
+        await utils.games.listPartnerSuggestions.invalidate({ gameId });
+      }
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+      onOpenChange(false);
+    },
+    onError: async (error) => {
+      if (
+        !isPartnerVacantSideRace({
+          message: error.message,
+          data: { code: error.data?.code },
+        })
+      ) {
+        return;
+      }
+      setPartnerRaceMessage(
+        "That side was taken while you were registering. Join alone, or pick another partner if a side is still fully open.",
+      );
+      if (gameId) {
+        const fresh = await utils.games.byId.fetch({ id: gameId });
+        setStep(hasFullyVacantSide(fresh.sides) ? "partner" : "seat");
+        return;
+      }
+      setStep(hasFullyVacantSide(sides) ? "partner" : "seat");
+    },
+  });
+
   useEffect(() => {
     if (open) {
       setSelection({ touched: false, seat: null });
+      setStep(
+        offersPartnerJoin({
+          canRegister: canRegister ?? false,
+          format: format ?? "",
+          registrationMode: registrationMode ?? "",
+          sides,
+        })
+          ? "chooser"
+          : "seat",
+      );
+      setSelectedPartner(null);
+      setPartnerRaceMessage(null);
+      registerWithPartner.reset();
     }
+    // Reset only on open, matching the picker default. Props are read fresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open-gated reset
   }, [open]);
 
   const picked = selection.touched
@@ -243,8 +453,11 @@ export function FriendlyGameJoinSheet({
 
   const isFull = vacantJoinSeats(sides).length === 0;
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
+  const partnerUserId = selectedPartner?.id;
+  const vacantSideIndex = firstFullyVacantSideIndex(sides);
+  const partnerError = registerWithPartner.error;
 
-  function confirm() {
+  function confirmSeat() {
     if (!picked) {
       return;
     }
@@ -252,62 +465,183 @@ export function FriendlyGameJoinSheet({
     onPickSeat(picked.sideIndex, picked.position);
   }
 
+  function goPartner() {
+    registerWithPartner.reset();
+    setPartnerRaceMessage(null);
+    setStep("partner");
+  }
+
+  function confirmPartner(position: SeatPosition) {
+    if (!gameId || !partnerUserId || vacantSideIndex == null) {
+      return;
+    }
+    registerWithPartner.mutate({
+      gameId,
+      partnerUserId,
+      sideIndex: vacantSideIndex,
+      position,
+    });
+  }
+
+  const headerTitle =
+    step === "chooser"
+      ? "How do you want to join?"
+      : isFull
+        ? "Game is full"
+        : "Pick your spot";
+  const headerDescription =
+    step === "chooser"
+      ? "Two seats on the same side are open, so you can take one on your own or bring someone and register as a team."
+      : title;
+  const showSheetHeader = step !== "partner" && step !== "partnerConfirm";
+
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="gap-0 p-0 sm:max-w-[460px]">
-        <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-          <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
-            {isFull ? "Game is full" : "Pick your spot"}
-          </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="text-meta">
-            {title}
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
+        {showSheetHeader ? (
+          <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
+            {offerPartner && step === "seat" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  registerWithPartner.reset();
+                  setStep("chooser");
+                }}
+                className="text-ink focus-visible:ring-ring/50 mb-3 flex size-10 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]"
+                aria-label="Back"
+              >
+                <ArrowLeft
+                  aria-hidden="true"
+                  className="size-5"
+                  strokeWidth={2}
+                />
+              </button>
+            ) : null}
+            <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
+              {headerTitle}
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="text-meta">
+              {headerDescription}
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+        ) : (
+          <ResponsiveDialogHeader className="sr-only">
+            <ResponsiveDialogTitle>
+              {step === "partnerConfirm"
+                ? "Register the team"
+                : "Pick a partner"}
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              You register both seats. Your partner is in straight away.
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+        )}
 
-        <div className="px-[22px] pt-[18px]">
-          <div className="border-rule bg-paper overflow-hidden rounded-xl border">
-            <div className="flex items-start px-4 pb-4 pt-[18px]">
-              {sides.map((side, index) => (
-                <Fragment key={side.sideIndex}>
-                  {index > 0 ? <NetDivider /> : null}
-                  <SideColumn
-                    side={side}
-                    picked={picked}
-                    pending={pending}
-                    onPick={pick}
-                  />
-                </Fragment>
-              ))}
-            </div>
-            <p
-              aria-live="polite"
-              className="border-rule text-muted-foreground text-meta border-t px-4 py-3"
-            >
-              {friendlyGameJoinSheetCaption(sides, picked)}
-            </p>
-          </div>
-        </div>
+        {step === "chooser" ? (
+          <ModeChooser
+            onJoinAlone={() => setStep("seat")}
+            onJoinWithPartner={goPartner}
+          />
+        ) : null}
 
-        <div className="border-rule mt-[22px] flex items-center gap-4 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-4">
-          {priceLabel ? (
-            <div className="shrink-0">
-              <p className="font-expanded text-lead tabular-nums leading-none">
-                {priceLabel}
-              </p>
-              <p className="text-muted-foreground text-eyebrow mt-1.5">
-                per player
-              </p>
+        {step === "seat" ? (
+          <>
+            <div className="px-[22px] pt-[18px]">
+              {partnerRaceMessage ? (
+                <FormErrorSummary
+                  message={partnerRaceMessage}
+                  className="mb-4"
+                />
+              ) : null}
+              <div className="border-rule bg-paper overflow-hidden rounded-xl border">
+                <div className="flex items-start px-4 pb-4 pt-[18px]">
+                  {sides.map((side, index) => (
+                    <Fragment key={side.sideIndex}>
+                      {index > 0 ? <NetDivider /> : null}
+                      <SideColumn
+                        side={side}
+                        picked={picked}
+                        pending={pending}
+                        onPick={pick}
+                      />
+                    </Fragment>
+                  ))}
+                </div>
+                <p
+                  aria-live="polite"
+                  className="border-rule text-muted-foreground text-meta border-t px-4 py-3"
+                >
+                  {friendlyGameJoinSheetCaption(sides, picked)}
+                </p>
+              </div>
             </div>
-          ) : null}
-          <Button
-            type="button"
-            className="h-[52px] flex-1"
-            disabled={!picked || pending}
-            onClick={confirm}
-          >
-            {pending ? "Joining…" : "Join game"}
-          </Button>
-        </div>
+
+            <div className="border-rule mt-[22px] flex items-center gap-4 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-4">
+              {priceLabel ? (
+                <div className="shrink-0">
+                  <p className="font-expanded text-lead tabular-nums leading-none">
+                    {priceLabel}
+                  </p>
+                  <p className="text-muted-foreground text-eyebrow mt-1.5">
+                    per player
+                  </p>
+                </div>
+              ) : null}
+              <Button
+                type="button"
+                className="h-[52px] flex-1"
+                disabled={!picked || pending}
+                onClick={confirmSeat}
+              >
+                {pending ? "Joining…" : "Join game"}
+              </Button>
+            </div>
+          </>
+        ) : null}
+
+        {step === "partner" && gameId ? (
+          <FriendlyGamePartnerPicker
+            gameId={gameId}
+            vacantSeatCount={vacantJoinSeats(sides).length}
+            windowStart={windowStart}
+            venueName={venueName}
+            groupName={groupName}
+            pricePerPlayerCents={pricePerPlayerCents}
+            notice={partnerRaceMessage}
+            selectedPartner={selectedPartner}
+            onSelectedPartnerChange={setSelectedPartner}
+            onBack={() => {
+              registerWithPartner.reset();
+              setStep("chooser");
+            }}
+            onClose={() => onOpenChange(false)}
+            onContinue={() => {
+              registerWithPartner.reset();
+              setPartnerRaceMessage(null);
+              setStep("partnerConfirm");
+            }}
+          />
+        ) : null}
+
+        {step === "partnerConfirm" && selectedPartner ? (
+          <FriendlyGamePartnerReview
+            partner={selectedPartner}
+            viewerPreferredPosition={onboardingState.data?.preferredPosition}
+            windowStart={windowStart}
+            venueName={venueName}
+            isOrganizer={isOrganizer}
+            pricePerPlayerCents={pricePerPlayerCents}
+            levelMinTenths={levelMinTenths}
+            levelMaxTenths={levelMaxTenths}
+            pending={registerWithPartner.isPending}
+            errorMessage={globalFormErrorMessage(partnerError)}
+            onBack={() => {
+              registerWithPartner.reset();
+              setStep("partner");
+            }}
+            onRegister={confirmPartner}
+          />
+        ) : null}
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

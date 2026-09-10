@@ -64,6 +64,7 @@ type ExpectedGames =
   | "registerSeat"
   | "moveSeat"
   | "searchPartnerUsers"
+  | "listPartnerSuggestions"
   | "registerWithPartner"
   | "registerTeam"
   | "leave"
