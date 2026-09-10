@@ -174,25 +174,42 @@ export async function listPartnerSuggestions(
       .filter((userId): userId is string => Boolean(userId)),
   );
 
-  const playedRows = await database
-    .select({
-      userId: partnerGp.userId,
-      gamesTogether: sql<number>`cast(count(distinct ${gameTeams.gameId}) as int)`,
-    })
-    .from(mineGtp)
-    .innerJoin(mineGp, eq(mineGp.id, mineGtp.gamePlayerId))
-    .innerJoin(gameTeams, eq(gameTeams.id, mineGtp.gameTeamId))
-    .innerJoin(games, eq(games.id, gameTeams.gameId))
-    .innerJoin(partnerGtp, eq(partnerGtp.gameTeamId, mineGtp.gameTeamId))
-    .innerJoin(partnerGp, eq(partnerGp.id, partnerGtp.gamePlayerId))
-    .where(
-      and(eq(mineGp.userId, args.userId), ne(partnerGp.userId, args.userId)),
-    )
-    .groupBy(partnerGp.userId)
-    .orderBy(
-      sql`max(coalesce(${games.windowStart}, ${gameTeams.createdAt})) desc`,
-    )
-    .limit(SUGGESTION_CAP);
+  const members = game.groupId
+    ? await database.query.groupMembers.findMany({
+        where: eq(groupMembers.groupId, game.groupId),
+        columns: { userId: true },
+      })
+    : [];
+  const groupMemberIds = members.map((row) => row.userId);
+
+  const playedRows =
+    game.groupId && groupMemberIds.length === 0
+      ? []
+      : await database
+          .select({
+            userId: partnerGp.userId,
+            gamesTogether: sql<number>`cast(count(distinct ${gameTeams.gameId}) as int)`,
+          })
+          .from(mineGtp)
+          .innerJoin(mineGp, eq(mineGp.id, mineGtp.gamePlayerId))
+          .innerJoin(gameTeams, eq(gameTeams.id, mineGtp.gameTeamId))
+          .innerJoin(games, eq(games.id, gameTeams.gameId))
+          .innerJoin(partnerGtp, eq(partnerGtp.gameTeamId, mineGtp.gameTeamId))
+          .innerJoin(partnerGp, eq(partnerGp.id, partnerGtp.gamePlayerId))
+          .where(
+            and(
+              eq(mineGp.userId, args.userId),
+              ne(partnerGp.userId, args.userId),
+              game.groupId
+                ? inArray(partnerGp.userId, groupMemberIds)
+                : undefined,
+            ),
+          )
+          .groupBy(partnerGp.userId)
+          .orderBy(
+            sql`max(coalesce(${games.windowStart}, ${gameTeams.createdAt})) desc`,
+          )
+          .limit(SUGGESTION_CAP);
 
   const playedIds: string[] = [];
   const gamesTogetherByUserId = new Map<string, number>();
@@ -216,10 +233,6 @@ export async function listPartnerSuggestions(
     return { playedWithBefore, fromYourGroups: [] };
   }
 
-  const members = await database.query.groupMembers.findMany({
-    where: eq(groupMembers.groupId, game.groupId),
-    columns: { userId: true },
-  });
   const playedIdSet = new Set(playedIds);
   const groupUserIds = members
     .map((row) => row.userId)

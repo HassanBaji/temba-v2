@@ -11,11 +11,6 @@ export function friendlyGameHomeHref(gameId: string) {
   return `/dashboard/games/${gameId}`;
 }
 
-/** Dedicated Pick a partner screen under that Game's home (TEM-211). */
-export function friendlyGamePartnerHref(gameId: string) {
-  return `/dashboard/games/${gameId}/partner`;
-}
-
 /** Deep link when the Game no longer offers partner join. */
 export const PARTNER_JOIN_UNAVAILABLE_TOAST =
   "This Game is no longer open to join with a partner";

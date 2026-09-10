@@ -253,7 +253,7 @@ function SuggestionSection({
   }
 
   return (
-    <section>
+    <section className="pb-4">
       <div className="flex items-baseline gap-2.5 pb-2.5">
         <h3 className="font-expanded text-[19px] leading-tight">{title}</h3>
         <p className="text-dim text-[13px]">{eyebrow}</p>
@@ -358,18 +358,18 @@ export function FriendlyGamePartnerPicker({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="border-rule border-b px-[22px] pb-0 pt-[22px]">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="border-rule shrink-0 px-[22px] pt-2">
         <div className="flex items-center justify-between">
-          <button
+          {/* <button
             type="button"
             onClick={onBack}
             className="border-rule text-ink focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
             aria-label="Back"
           >
             <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-          </button>
-          <p className="text-muted-foreground text-[13px]">{seatsChip}</p>
+          </button> */}
+
           <button
             type="button"
             onClick={onClose}
@@ -378,35 +378,19 @@ export function FriendlyGamePartnerPicker({
           >
             <X aria-hidden="true" className="size-5" strokeWidth={2} />
           </button>
+          <p className="text-muted-foreground text-[13px]">{seatsChip}</p>
         </div>
-        <h2 className="font-expanded mt-6 text-[32px] leading-none tracking-[-0.03em]">
-          Pick a partner
-        </h2>
-        <p className="text-meta mt-2.5 leading-relaxed">
-          You register both seats. Your partner is in straight away.
-        </p>
       </div>
 
-      <div className="flex flex-col gap-[26px] px-[22px] pt-[22px]">
-        {notice ? <FormErrorSummary message={notice} /> : null}
-        {start ? (
-          <div className="border-rule rounded-[14px] border px-5 py-[18px]">
-            <div className="flex items-center gap-3.5">
-              <div className="w-[86px] shrink-0">
-                <p className="font-expanded text-xl leading-none">{clock}</p>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px]">{venueName ?? "Game"}</p>
-                <p className="text-muted-foreground mt-0.5 truncate text-[13px]">
-                  {day}
-                </p>
-              </div>
-              {priceLabel ? (
-                <p className="text-dim shrink-0 text-[13px]">{priceLabel}</p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+      <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px]">
+        <div className="border-rule mt-6 shrink-0">
+          <h2 className="font-expanded text-[32px] leading-none tracking-[-0.03em]">
+            Pick a partner
+          </h2>
+          <p className="text-meta mt-2 leading-relaxed">
+            You register both seats. Your partner is in straight away.
+          </p>
+        </div>
 
         <RecentsShowcase
           rows={suggestions.data?.playedWithBefore ?? []}
@@ -438,7 +422,7 @@ export function FriendlyGamePartnerPicker({
         />
       </div>
 
-      <div className="border-rule bg-background sticky bottom-0 mt-[22px] flex flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+      <div className="border-rule bg-background mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
           className="h-[52px] w-full"

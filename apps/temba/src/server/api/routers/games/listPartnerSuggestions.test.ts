@@ -208,6 +208,7 @@ describe("listPartnerSuggestions", () => {
       const recent = await insertUser(db, "recent-teammate@example.com");
       const older = await insertUser(db, "older-teammate@example.com");
       const groupOnly = await insertUser(db, "group-only@example.com");
+      const outsider = await insertUser(db, "outsider-teammate@example.com");
       await db.insert(groupMembers).values([
         { groupId: group.id, userId: recent.id },
         { groupId: group.id, userId: older.id },
@@ -239,6 +240,12 @@ describe("listPartnerSuggestions", () => {
         partnerId: recent.id,
         venueId: venue.id,
         windowStart: new Date("2026-09-01T09:00:00Z"),
+      });
+      await insertSharedSide(db, {
+        callerId: caller.id,
+        partnerId: outsider.id,
+        venueId: venue.id,
+        windowStart: new Date("2026-10-01T09:00:00Z"),
       });
 
       const game = await insertFriendly(db, {

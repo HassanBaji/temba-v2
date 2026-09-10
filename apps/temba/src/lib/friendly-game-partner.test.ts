@@ -4,7 +4,6 @@ import { describe, it } from "vitest";
 import {
   firstFullyVacantSideIndex,
   friendlyGameHomeHref,
-  friendlyGamePartnerHref,
   hasFullyVacantSide,
   isPartnerVacantSideRace,
   offersPartnerJoin,
@@ -302,15 +301,6 @@ describe("viewerSidePartnerName", () => {
         ],
       }),
       null,
-    );
-  });
-});
-
-describe("friendlyGamePartnerHref", () => {
-  it("is a Game-home nested route, not a join-sheet path", () => {
-    assert.equal(
-      friendlyGamePartnerHref("game-1"),
-      "/dashboard/games/game-1/partner",
     );
   });
 });

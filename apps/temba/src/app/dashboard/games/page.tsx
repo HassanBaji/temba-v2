@@ -16,10 +16,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import {
-  friendlyGamePartnerHref,
-  offersPartnerJoin,
-} from "~/lib/friendly-game-partner";
+import { offersPartnerJoin } from "~/lib/friendly-game-partner";
 import { gamesHubTabFromQuery, gamesHubTabQuery } from "~/lib/games-hub-tab";
 import {
   gameSummaryPrimaryAction,
@@ -140,23 +137,24 @@ function GamesHubTabPanel({
         )
           ? game.sides
           : undefined;
-        const partnerHref =
+        const showPartnerJoin =
           showsGameCardPartnerFooter(primaryAction, rosterSides) &&
           offersPartnerJoin({
             canRegister: game.canRegister,
             format: game.format,
             registrationMode: game.registrationMode,
             sides: game.sides,
-          })
-            ? friendlyGamePartnerHref(game.id)
-            : undefined;
+          });
         return (
           <GameSummaryCard
             key={game.id}
+            gameId={game.id}
             name={game.name}
             startTime={game.startTime}
             groupName={game.groupName}
             format={game.format}
+            registrationMode={game.registrationMode}
+            canRegister={game.canRegister}
             windowStart={game.windowStart}
             windowEnd={game.windowEnd}
             venueName={game.venue?.name}
@@ -171,7 +169,7 @@ function GamesHubTabPanel({
             viewerStatus={gameViewerStatus(game)}
             actionPending={pendingGameId === game.id}
             href={`/dashboard/games/${game.id}`}
-            partnerHref={partnerHref}
+            showPartnerJoin={showPartnerJoin}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
             }}

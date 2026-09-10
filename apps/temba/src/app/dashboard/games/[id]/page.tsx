@@ -46,10 +46,7 @@ import {
   vacantJoinSeats,
 } from "~/lib/friendly-game-cta";
 import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
-import {
-  friendlyGamePartnerHref,
-  viewerSidePartnerName,
-} from "~/lib/friendly-game-partner";
+import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
 import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
 import {
@@ -1107,13 +1104,16 @@ export default function GameHomePage({
           sides={data.sides}
           pending={registerSeat.isPending}
           pricePerPlayerCents={data.pricePerPlayerCents}
+          gameId={id}
           format={data.format}
           registrationMode={data.registrationMode}
           canRegister={data.canRegister}
-          onJoinWithPartner={() => {
-            setJoinPickerOpen(false);
-            router.push(friendlyGamePartnerHref(id));
-          }}
+          windowStart={data.windowStart}
+          venueName={data.venue?.name ?? null}
+          groupName={data.groupName}
+          isOrganizer={data.isOrganizer}
+          levelMinTenths={data.levelMinTenths}
+          levelMaxTenths={data.levelMaxTenths}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })
           }

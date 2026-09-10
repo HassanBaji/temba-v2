@@ -179,8 +179,8 @@ export function FriendlyGamePartnerReview({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="border-rule border-b px-[22px] pb-0 pt-[22px]">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="border-rule shrink-0 border-b px-[22px] pb-0 pt-[22px]">
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -201,7 +201,7 @@ export function FriendlyGamePartnerReview({
         </p>
       </div>
 
-      <div className="flex flex-col gap-[26px] px-[22px] pt-[22px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px] pt-[22px]">
         {errorMessage ? <FormErrorSummary message={errorMessage} /> : null}
 
         <section>
@@ -280,7 +280,7 @@ export function FriendlyGamePartnerReview({
         ) : null}
       </div>
 
-      <div className="border-rule bg-background sticky bottom-0 mt-[22px] flex flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+      <div className="border-rule bg-background mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
           className="h-[52px] w-full"

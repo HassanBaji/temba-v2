@@ -346,7 +346,11 @@ export function GameSummaryCard({
   primaryAction,
   viewerStatus,
   actionPending = false,
-  partnerHref,
+  showPartnerJoin = false,
+  gameId,
+  registrationMode,
+  canRegister,
+  isOrganizer,
   onJoinSeat,
   onJoinWaitlist,
   onRegister,
@@ -371,12 +375,17 @@ export function GameSummaryCard({
   primaryAction?: GameSummaryCta;
   viewerStatus?: GameViewerStatus;
   actionPending?: boolean;
-  partnerHref?: string;
+  showPartnerJoin?: boolean;
+  gameId?: string;
+  registrationMode?: string | null;
+  canRegister?: boolean;
+  isOrganizer?: boolean;
   onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
   onJoinWaitlist?: () => void;
   onRegister?: () => void;
 }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [startAtPartner, setStartAtPartner] = React.useState(false);
   const [now, setNow] = React.useState(() => new Date());
   const startDate = startTime instanceof Date ? startTime : new Date(startTime);
 
@@ -423,6 +432,7 @@ export function GameSummaryCard({
 
   function handleCta() {
     if (primaryAction === "join") {
+      setStartAtPartner(false);
       setPickerOpen(true);
       return;
     }
@@ -480,6 +490,17 @@ export function GameSummaryCard({
       sides={sides ?? []}
       pending={actionPending}
       pricePerPlayerCents={pricePerPlayerCents}
+      gameId={gameId}
+      format={format ?? undefined}
+      registrationMode={registrationMode ?? undefined}
+      canRegister={canRegister}
+      windowStart={windowStart}
+      venueName={venueName}
+      groupName={groupName}
+      isOrganizer={isOrganizer}
+      levelMinTenths={levelMinTenths}
+      levelMaxTenths={levelMaxTenths}
+      startAtPartner={startAtPartner}
       onPickSeat={(sideIndex, position) => onJoinSeat?.(sideIndex, position)}
     />
   );
@@ -596,9 +617,9 @@ export function GameSummaryCard({
               </small>
             ) : null}
           </div>
-          {partnerHref || actionControl ? (
+          {showPartnerJoin || actionControl ? (
             <div className="flex shrink-0 items-center gap-2">
-              {partnerHref ? (
+              {showPartnerJoin ? (
                 <div
                   className="pointer-events-auto relative z-10 shrink-0"
                   onClick={(event) => {
@@ -606,23 +627,23 @@ export function GameSummaryCard({
                   }}
                 >
                   <Button
-                    asChild
+                    type="button"
                     size="sm"
                     variant="outline"
+                    data-slot="game-card-partner-join"
                     className={cn(
                       "relative z-10 h-auto min-h-0 shrink-0 rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
                       "border-rule bg-paper text-ink hover:bg-paper hover:text-ink",
                     )}
+                    disabled={actionPending}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setStartAtPartner(true);
+                      setPickerOpen(true);
+                    }}
                   >
-                    <Link
-                      href={partnerHref}
-                      data-slot="game-card-partner-join"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                      }}
-                    >
-                      Join with a partner
-                    </Link>
+                    Join with a partner
                   </Button>
                 </div>
               ) : null}
@@ -640,7 +661,9 @@ export function GameSummaryCard({
           ) : null}
         </div>
       </Card>
-      {primaryAction === "join" && !showRoster ? picker : null}
+      {showPartnerJoin || (primaryAction === "join" && !showRoster)
+        ? picker
+        : null}
     </li>
   );
 }

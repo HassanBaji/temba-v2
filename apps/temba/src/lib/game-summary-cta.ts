@@ -127,8 +127,8 @@ export function showsGameCardFooterAction(
 /**
  * Footer Join with a partner is only for joinable roster cards that still
  * have a fully vacant side. Waitlist, view, register, half-full sides, and
- * cards without a roster stay without it. Presence of the partner href on
- * the card is what renders the control; this helper is the caller's gate.
+ * cards without a roster stay without it. The card opens Pick a partner in
+ * the join dialog when this is true.
  */
 export function showsGameCardPartnerFooter(
   action: GameSummaryCta,
