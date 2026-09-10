@@ -70,6 +70,103 @@ function suggestionMetaLine(row: PartnerSuggestion) {
   return head;
 }
 
+function suggestionButtonLabel(row: PartnerSuggestion) {
+  if (row.ineligible) {
+    return `${row.name}. ${suggestionMetaLine(row)}`;
+  }
+  return `Select ${row.name}`;
+}
+
+function RecentPartnerChip({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: PartnerSuggestion;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const blocked = row.ineligible != null;
+
+  return (
+    <button
+      type="button"
+      disabled={blocked}
+      onClick={onSelect}
+      aria-pressed={blocked ? undefined : selected}
+      aria-label={suggestionButtonLabel(row)}
+      className={cn(
+        "flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-[14px] px-1 py-2",
+        "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+        blocked && "hatch text-dim cursor-default",
+        !blocked && selected && "bg-wash",
+      )}
+    >
+      <span className="relative">
+        <UserAvatar
+          name={row.name}
+          image={row.image}
+          size="lg"
+          className={cn("shrink-0", blocked && "opacity-50")}
+        />
+        {!blocked && selected ? (
+          <span
+            aria-hidden="true"
+            className="bg-ink text-paper absolute -bottom-1 -right-1 flex size-[18px] items-center justify-center rounded-full"
+          >
+            <Check className="size-[10px]" strokeWidth={3} />
+          </span>
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          "w-full truncate text-center text-[12px] leading-tight",
+          selected && !blocked ? "font-semibold" : "font-medium",
+          blocked && "text-dim",
+        )}
+      >
+        {row.name}
+      </span>
+    </button>
+  );
+}
+
+function RecentsShowcase({
+  rows,
+  selectedId,
+  onSelect,
+}: {
+  rows: PartnerSuggestion[];
+  selectedId: string | null;
+  onSelect: (row: PartnerSuggestion) => void;
+}) {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <section>
+      <div className="flex items-baseline gap-2.5 pb-2.5">
+        <h3 className="font-expanded text-[19px] leading-tight">
+          Played with before
+        </h3>
+      </div>
+      <div className="-mx-[22px] overflow-x-auto px-[22px]">
+        <div className="flex gap-1">
+          {rows.map((row) => (
+            <RecentPartnerChip
+              key={row.id}
+              row={row}
+              selected={selectedId === row.id}
+              onSelect={() => onSelect(row)}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PartnerSuggestionRow({
   row,
   selected,
@@ -87,11 +184,7 @@ function PartnerSuggestionRow({
       disabled={blocked}
       onClick={onSelect}
       aria-pressed={blocked ? undefined : selected}
-      aria-label={
-        blocked
-          ? `${row.name}. ${suggestionMetaLine(row)}`
-          : `Select ${row.name}`
-      }
+      aria-label={suggestionButtonLabel(row)}
       className={cn(
         "flex w-full items-center gap-3 px-[18px] py-4 text-left",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
@@ -315,6 +408,12 @@ export function FriendlyGamePartnerPicker({
           </div>
         ) : null}
 
+        <RecentsShowcase
+          rows={suggestions.data?.playedWithBefore ?? []}
+          selectedId={selectedPartner?.id ?? null}
+          onSelect={pickSuggestion}
+        />
+
         <Field>
           <FieldLabel htmlFor="partner-picker-search">Search</FieldLabel>
           <LookupUserSelect
@@ -330,13 +429,6 @@ export function FriendlyGamePartnerPicker({
           />
         </Field>
 
-        <SuggestionSection
-          title="Played with before"
-          eyebrow="Sorted by last game"
-          rows={suggestions.data?.playedWithBefore ?? []}
-          selectedId={selectedPartner?.id ?? null}
-          onSelect={pickSuggestion}
-        />
         <SuggestionSection
           title="From your groups"
           eyebrow={groupName?.trim() ?? ""}
