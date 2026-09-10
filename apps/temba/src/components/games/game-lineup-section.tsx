@@ -23,11 +23,11 @@ type SeatPosition = "left" | "right";
 // other Level surface (`home-level-block.tsx`, `you-rating-section.tsx`) —
 // reusing the existing helper rather than re-deriving a second label format.
 function seatSubline(position: SeatPosition, levelBand: LevelBand | null) {
-  const sideLabel = position === "left" ? "Left side" : "Right side";
+  const positionLabel = position === "left" ? "Left seat" : "Right seat";
   if (!levelBand) {
-    return sideLabel;
+    return positionLabel;
   }
-  return `${sideLabel} — level ${displayLabelFromStoredBand(levelBand)}`;
+  return `${positionLabel} — level ${displayLabelFromStoredBand(levelBand)}`;
 }
 
 function YouTag() {
