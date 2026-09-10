@@ -197,8 +197,12 @@ The queue to join a Game after its cap is reached.
 _Avoid_: player (when you mean someone waitlisted), guest
 
 **Game admit**:
-Registered occupancy of a User or complete Team on a Game. Distinct from Waitlist and from creating the Game.
+Registered occupancy of a User, an ad-hoc pair of Users, or a complete Team on a Game. Distinct from Waitlist and from creating the Game.
 _Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window), Game Level range request (that is not occupancy)
+
+**Partner registration**:
+One User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving frees only the leaver’s Position.
+_Avoid_: Team (that is the persistent partnership), Game team (that is the side this creates), Lookup invite (that is a door the invitee must accept), pair registration, team registration (that is registering a complete Team on a team-only Game)
 
 **Price per player**:
 The display-only amount one User pays to occupy a seat on that Game, shown in BD. Optional on the Game; zero means free; unset means the organizer did not state an amount. Not a payment, not per Game team, and not a total for the Game.
