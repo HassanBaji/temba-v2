@@ -346,6 +346,7 @@ export function GameSummaryCard({
   primaryAction,
   viewerStatus,
   actionPending = false,
+  partnerHref,
   onJoinSeat,
   onJoinWaitlist,
   onRegister,
@@ -370,6 +371,7 @@ export function GameSummaryCard({
   primaryAction?: GameSummaryCta;
   viewerStatus?: GameViewerStatus;
   actionPending?: boolean;
+  partnerHref?: string;
   onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
   onJoinWaitlist?: () => void;
   onRegister?: () => void;
@@ -594,14 +596,46 @@ export function GameSummaryCard({
               </small>
             ) : null}
           </div>
-          {actionControl ? (
-            <div
-              className={cn(
-                "relative z-10 shrink-0",
-                interactiveCta ? "pointer-events-auto" : null,
-              )}
-            >
-              {actionControl}
+          {partnerHref || actionControl ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {partnerHref ? (
+                <div
+                  className="pointer-events-auto relative z-10 shrink-0"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                >
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className={cn(
+                      "relative z-10 h-auto min-h-0 shrink-0 rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
+                      "border-rule bg-paper text-ink hover:bg-paper hover:text-ink",
+                    )}
+                  >
+                    <Link
+                      href={partnerHref}
+                      data-slot="game-card-partner-join"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                      }}
+                    >
+                      Join with a partner
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
+              {actionControl ? (
+                <div
+                  className={cn(
+                    "relative z-10 shrink-0",
+                    interactiveCta ? "pointer-events-auto" : null,
+                  )}
+                >
+                  {actionControl}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

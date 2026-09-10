@@ -280,7 +280,7 @@ export function FriendlyGamePartnerReview({
         ) : null}
       </div>
 
-      <div className="border-rule mt-[22px] flex flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+      <div className="border-rule bg-background sticky bottom-0 mt-[22px] flex flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
           className="h-[52px] w-full"

@@ -2,7 +2,6 @@
 
 import { ArrowLeft, ChevronRight, UserRound, Users } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import {
   ResponsiveDialog,
@@ -12,32 +11,20 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
-import {
-  FriendlyGamePartnerPicker,
-  type FriendlyGamePartnerPick,
-} from "~/components/games/friendly-game-partner-picker";
-import { FriendlyGamePartnerReview } from "~/components/games/friendly-game-partner-review";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { Button } from "~/components/ui/button";
-import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   friendlyGameJoinSheetCaption,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "~/lib/friendly-game-cta";
-import {
-  firstFullyVacantSideIndex,
-  hasFullyVacantSide,
-  isPartnerVacantSideRace,
-  offersPartnerJoin,
-} from "~/lib/friendly-game-partner";
+import { offersPartnerJoin } from "~/lib/friendly-game-partner";
 import { preferredJoinSeat } from "~/lib/preferred-seat";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
-type JoinSheetStep = "chooser" | "seat" | "partner" | "partnerConfirm";
+type JoinSheetStep = "chooser" | "seat";
 
 type SeatPosition = "left" | "right";
 
@@ -316,8 +303,7 @@ function SideColumn({
  *
  * On individual Friendly games with a fully vacant side, a mode chooser
  * (artboard 02b) is the first step: Join alone reaches this picker; Join
- * with a partner is a minimal search + Position confirm that calls
- * `games.registerWithPartner`. Tickets 2–3 replace that partner step.
+ * with a partner closes the sheet and opens the Pick a partner route.
  */
 export function FriendlyGameJoinSheet({
   open,
@@ -327,16 +313,10 @@ export function FriendlyGameJoinSheet({
   pending,
   pricePerPlayerCents,
   onPickSeat,
-  gameId,
   format,
   registrationMode,
   canRegister,
-  windowStart,
-  venueName,
-  groupName,
-  isOrganizer,
-  levelMinTenths,
-  levelMaxTenths,
+  onJoinWithPartner,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -345,16 +325,10 @@ export function FriendlyGameJoinSheet({
   pending: boolean;
   pricePerPlayerCents?: number | null;
   onPickSeat: (sideIndex: number, position: SeatPosition) => void;
-  gameId?: string;
   format?: string;
   registrationMode?: string;
   canRegister?: boolean;
-  windowStart?: Date | string | null;
-  venueName?: string | null;
-  groupName?: string | null;
-  isOrganizer?: boolean;
-  levelMinTenths?: number | null;
-  levelMaxTenths?: number | null;
+  onJoinWithPartner?: () => void;
 }) {
   const offerPartner = offersPartnerJoin({
     canRegister: canRegister ?? false,
@@ -373,51 +347,11 @@ export function FriendlyGameJoinSheet({
     seat: FriendlyGameJoinSeat | null;
   }>({ touched: false, seat: null });
   const [step, setStep] = useState<JoinSheetStep>("seat");
-  const [selectedPartner, setSelectedPartner] =
-    useState<FriendlyGamePartnerPick | null>(null);
-  const [partnerRaceMessage, setPartnerRaceMessage] = useState<string | null>(
-    null,
-  );
-
-  const utils = api.useUtils();
 
   // Only while the sheet is open: this is a default for a picker, not
   // something every Game card on a hub needs to fetch on mount.
   const onboardingState = api.users.onboardingState.useQuery(undefined, {
     enabled: open,
-  });
-
-  const registerWithPartner = api.games.registerWithPartner.useMutation({
-    onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
-      if (gameId) {
-        await utils.games.byId.invalidate({ id: gameId });
-        await utils.games.searchPartnerUsers.invalidate({ gameId });
-        await utils.games.listPartnerSuggestions.invalidate({ gameId });
-      }
-      await utils.games.listMyGames.invalidate();
-      await utils.users.home.invalidate();
-      onOpenChange(false);
-    },
-    onError: async (error) => {
-      if (
-        !isPartnerVacantSideRace({
-          message: error.message,
-          data: { code: error.data?.code },
-        })
-      ) {
-        return;
-      }
-      setPartnerRaceMessage(
-        "That side was taken while you were registering. Join alone, or pick another partner if a side is still fully open.",
-      );
-      if (gameId) {
-        const fresh = await utils.games.byId.fetch({ id: gameId });
-        setStep(hasFullyVacantSide(fresh.sides) ? "partner" : "seat");
-        return;
-      }
-      setStep(hasFullyVacantSide(sides) ? "partner" : "seat");
-    },
   });
 
   useEffect(() => {
@@ -433,9 +367,6 @@ export function FriendlyGameJoinSheet({
           ? "chooser"
           : "seat",
       );
-      setSelectedPartner(null);
-      setPartnerRaceMessage(null);
-      registerWithPartner.reset();
     }
     // Reset only on open, matching the picker default. Props are read fresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open-gated reset
@@ -453,9 +384,6 @@ export function FriendlyGameJoinSheet({
 
   const isFull = vacantJoinSeats(sides).length === 0;
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
-  const partnerUserId = selectedPartner?.id;
-  const vacantSideIndex = firstFullyVacantSideIndex(sides);
-  const partnerError = registerWithPartner.error;
 
   function confirmSeat() {
     if (!picked) {
@@ -466,21 +394,8 @@ export function FriendlyGameJoinSheet({
   }
 
   function goPartner() {
-    registerWithPartner.reset();
-    setPartnerRaceMessage(null);
-    setStep("partner");
-  }
-
-  function confirmPartner(position: SeatPosition) {
-    if (!gameId || !partnerUserId || vacantSideIndex == null) {
-      return;
-    }
-    registerWithPartner.mutate({
-      gameId,
-      partnerUserId,
-      sideIndex: vacantSideIndex,
-      position,
-    });
+    onOpenChange(false);
+    onJoinWithPartner?.();
   }
 
   const headerTitle =
@@ -493,49 +408,34 @@ export function FriendlyGameJoinSheet({
     step === "chooser"
       ? "Two seats on the same side are open, so you can take one on your own or bring someone and register as a team."
       : title;
-  const showSheetHeader = step !== "partner" && step !== "partnerConfirm";
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="gap-0 p-0 sm:max-w-[460px]">
-        {showSheetHeader ? (
-          <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-            {offerPartner && step === "seat" ? (
-              <button
-                type="button"
-                onClick={() => {
-                  registerWithPartner.reset();
-                  setStep("chooser");
-                }}
-                className="text-ink focus-visible:ring-ring/50 mb-3 flex size-10 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]"
-                aria-label="Back"
-              >
-                <ArrowLeft
-                  aria-hidden="true"
-                  className="size-5"
-                  strokeWidth={2}
-                />
-              </button>
-            ) : null}
-            <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
-              {headerTitle}
-            </ResponsiveDialogTitle>
-            <ResponsiveDialogDescription className="text-meta">
-              {headerDescription}
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
-        ) : (
-          <ResponsiveDialogHeader className="sr-only">
-            <ResponsiveDialogTitle>
-              {step === "partnerConfirm"
-                ? "Register the team"
-                : "Pick a partner"}
-            </ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>
-              You register both seats. Your partner is in straight away.
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
-        )}
+        <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
+          {offerPartner && step === "seat" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setStep("chooser");
+              }}
+              className="text-ink focus-visible:ring-ring/50 mb-3 flex size-10 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]"
+              aria-label="Back"
+            >
+              <ArrowLeft
+                aria-hidden="true"
+                className="size-5"
+                strokeWidth={2}
+              />
+            </button>
+          ) : null}
+          <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
+            {headerTitle}
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription className="text-meta">
+            {headerDescription}
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         {step === "chooser" ? (
           <ModeChooser
@@ -547,12 +447,6 @@ export function FriendlyGameJoinSheet({
         {step === "seat" ? (
           <>
             <div className="px-[22px] pt-[18px]">
-              {partnerRaceMessage ? (
-                <FormErrorSummary
-                  message={partnerRaceMessage}
-                  className="mb-4"
-                />
-              ) : null}
               <div className="border-rule bg-paper overflow-hidden rounded-xl border">
                 <div className="flex items-start px-4 pb-4 pt-[18px]">
                   {sides.map((side, index) => (
@@ -597,50 +491,6 @@ export function FriendlyGameJoinSheet({
               </Button>
             </div>
           </>
-        ) : null}
-
-        {step === "partner" && gameId ? (
-          <FriendlyGamePartnerPicker
-            gameId={gameId}
-            vacantSeatCount={vacantJoinSeats(sides).length}
-            windowStart={windowStart}
-            venueName={venueName}
-            groupName={groupName}
-            pricePerPlayerCents={pricePerPlayerCents}
-            notice={partnerRaceMessage}
-            selectedPartner={selectedPartner}
-            onSelectedPartnerChange={setSelectedPartner}
-            onBack={() => {
-              registerWithPartner.reset();
-              setStep("chooser");
-            }}
-            onClose={() => onOpenChange(false)}
-            onContinue={() => {
-              registerWithPartner.reset();
-              setPartnerRaceMessage(null);
-              setStep("partnerConfirm");
-            }}
-          />
-        ) : null}
-
-        {step === "partnerConfirm" && selectedPartner ? (
-          <FriendlyGamePartnerReview
-            partner={selectedPartner}
-            viewerPreferredPosition={onboardingState.data?.preferredPosition}
-            windowStart={windowStart}
-            venueName={venueName}
-            isOrganizer={isOrganizer}
-            pricePerPlayerCents={pricePerPlayerCents}
-            levelMinTenths={levelMinTenths}
-            levelMaxTenths={levelMaxTenths}
-            pending={registerWithPartner.isPending}
-            errorMessage={globalFormErrorMessage(partnerError)}
-            onBack={() => {
-              registerWithPartner.reset();
-              setStep("partner");
-            }}
-            onRegister={confirmPartner}
-          />
         ) : null}
       </ResponsiveDialogContent>
     </ResponsiveDialog>

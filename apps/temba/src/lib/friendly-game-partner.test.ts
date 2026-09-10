@@ -3,9 +3,12 @@ import { describe, it } from "vitest";
 
 import {
   firstFullyVacantSideIndex,
+  friendlyGameHomeHref,
+  friendlyGamePartnerHref,
   hasFullyVacantSide,
   isPartnerVacantSideRace,
   offersPartnerJoin,
+  partnerVacantSideRaceRecovery,
   seedPartnerCallerPosition,
   viewerSidePartnerName,
   type OffersPartnerJoinInput,
@@ -299,6 +302,47 @@ describe("viewerSidePartnerName", () => {
         ],
       }),
       null,
+    );
+  });
+});
+
+describe("friendlyGamePartnerHref", () => {
+  it("is a Game-home nested route, not a join-sheet path", () => {
+    assert.equal(
+      friendlyGamePartnerHref("game-1"),
+      "/dashboard/games/game-1/partner",
+    );
+  });
+});
+
+describe("friendlyGameHomeHref", () => {
+  it("is that Game's home", () => {
+    assert.equal(friendlyGameHomeHref("game-1"), "/dashboard/games/game-1");
+  });
+});
+
+describe("partnerVacantSideRaceRecovery", () => {
+  it("stays on Pick a partner when a fully vacant side remains", () => {
+    assert.equal(
+      partnerVacantSideRaceRecovery(
+        sides([
+          { left: occupant, right: occupant },
+          { left: null, right: null },
+        ]),
+      ),
+      "picker",
+    );
+  });
+
+  it("leaves for Game home when no fully vacant side remains", () => {
+    assert.equal(
+      partnerVacantSideRaceRecovery(
+        sides([
+          { left: occupant, right: null },
+          { left: null, right: occupant },
+        ]),
+      ),
+      "game_home",
     );
   });
 });
