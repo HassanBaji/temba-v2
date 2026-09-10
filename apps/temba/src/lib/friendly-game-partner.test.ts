@@ -4,7 +4,9 @@ import { describe, it } from "vitest";
 import {
   firstFullyVacantSideIndex,
   hasFullyVacantSide,
+  isPartnerVacantSideRace,
   offersPartnerJoin,
+  seedPartnerCallerPosition,
   type OffersPartnerJoinInput,
 } from "./friendly-game-partner";
 
@@ -186,5 +188,85 @@ describe("offersPartnerJoin", () => {
 
   it("skips an Americano", () => {
     assert.equal(offersPartnerJoin(input({ format: "americano" })), false);
+  });
+});
+
+describe("seedPartnerCallerPosition", () => {
+  it("satisfies both when preferences are opposite", () => {
+    assert.equal(
+      seedPartnerCallerPosition({
+        viewerPreferred: "left",
+        partnerPreferred: "right",
+      }),
+      "left",
+    );
+    assert.equal(
+      seedPartnerCallerPosition({
+        viewerPreferred: "right",
+        partnerPreferred: "left",
+      }),
+      "right",
+    );
+  });
+
+  it("uses the viewer's Preferred Position when the partner wants the same", () => {
+    assert.equal(
+      seedPartnerCallerPosition({
+        viewerPreferred: "left",
+        partnerPreferred: "left",
+      }),
+      "left",
+    );
+  });
+
+  it("gives the partner their side when the viewer has no preference", () => {
+    assert.equal(
+      seedPartnerCallerPosition({
+        viewerPreferred: "either",
+        partnerPreferred: "right",
+      }),
+      "left",
+    );
+    assert.equal(
+      seedPartnerCallerPosition({
+        viewerPreferred: null,
+        partnerPreferred: "left",
+      }),
+      "right",
+    );
+  });
+
+  it("defaults to left when neither has a side preference", () => {
+    assert.equal(
+      seedPartnerCallerPosition({
+        viewerPreferred: "either",
+        partnerPreferred: null,
+      }),
+      "left",
+    );
+  });
+});
+
+describe("isPartnerVacantSideRace", () => {
+  it("treats CONFLICT and vacant-side messages as a race", () => {
+    assert.equal(
+      isPartnerVacantSideRace({
+        message: "That side already has a User",
+        data: { code: "CONFLICT" },
+      }),
+      true,
+    );
+    assert.equal(
+      isPartnerVacantSideRace({
+        message: "No fully vacant side; pick a seat",
+      }),
+      true,
+    );
+    assert.equal(
+      isPartnerVacantSideRace({
+        message: "That User's Level is outside this Game's range",
+      }),
+      false,
+    );
   });
 });

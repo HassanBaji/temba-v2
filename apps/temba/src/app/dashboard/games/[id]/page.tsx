@@ -1105,6 +1105,9 @@ export default function GameHomePage({
           windowStart={data.windowStart}
           venueName={data.venue?.name ?? null}
           groupName={data.groupName}
+          isOrganizer={data.isOrganizer}
+          levelMinTenths={data.levelMinTenths}
+          levelMaxTenths={data.levelMaxTenths}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })
           }

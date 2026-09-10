@@ -16,17 +16,10 @@ import {
   FriendlyGamePartnerPicker,
   type FriendlyGamePartnerPick,
 } from "~/components/games/friendly-game-partner-picker";
+import { FriendlyGamePartnerReview } from "~/components/games/friendly-game-partner-review";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { Button } from "~/components/ui/button";
-import { Field, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   friendlyGameJoinSheetCaption,
@@ -35,6 +28,8 @@ import {
 } from "~/lib/friendly-game-cta";
 import {
   firstFullyVacantSideIndex,
+  hasFullyVacantSide,
+  isPartnerVacantSideRace,
   offersPartnerJoin,
 } from "~/lib/friendly-game-partner";
 import { preferredJoinSeat } from "~/lib/preferred-seat";
@@ -65,12 +60,6 @@ export type FriendlyGameJoinSheetOccupant = {
 
 function positionLabel(position: SeatPosition) {
   return position === "left" ? "Left" : "Right";
-}
-
-function defaultPartnerPosition(
-  preferredPosition: string | null | undefined,
-): SeatPosition {
-  return preferredPosition === "right" ? "right" : "left";
 }
 
 /**
@@ -345,6 +334,9 @@ export function FriendlyGameJoinSheet({
   windowStart,
   venueName,
   groupName,
+  isOrganizer,
+  levelMinTenths,
+  levelMaxTenths,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -360,6 +352,9 @@ export function FriendlyGameJoinSheet({
   windowStart?: Date | string | null;
   venueName?: string | null;
   groupName?: string | null;
+  isOrganizer?: boolean;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 }) {
   const offerPartner = offersPartnerJoin({
     canRegister: canRegister ?? false,
@@ -380,7 +375,9 @@ export function FriendlyGameJoinSheet({
   const [step, setStep] = useState<JoinSheetStep>("seat");
   const [selectedPartner, setSelectedPartner] =
     useState<FriendlyGamePartnerPick | null>(null);
-  const [partnerPosition, setPartnerPosition] = useState<SeatPosition>("left");
+  const [partnerRaceMessage, setPartnerRaceMessage] = useState<string | null>(
+    null,
+  );
 
   const utils = api.useUtils();
 
@@ -402,6 +399,25 @@ export function FriendlyGameJoinSheet({
       await utils.users.home.invalidate();
       onOpenChange(false);
     },
+    onError: async (error) => {
+      if (
+        !isPartnerVacantSideRace({
+          message: error.message,
+          data: { code: error.data?.code },
+        })
+      ) {
+        return;
+      }
+      setPartnerRaceMessage(
+        "That side was taken while you were registering. Join alone, or pick another partner if a side is still fully open.",
+      );
+      if (gameId) {
+        const fresh = await utils.games.byId.fetch({ id: gameId });
+        setStep(hasFullyVacantSide(fresh.sides) ? "partner" : "seat");
+        return;
+      }
+      setStep(hasFullyVacantSide(sides) ? "partner" : "seat");
+    },
   });
 
   useEffect(() => {
@@ -418,7 +434,7 @@ export function FriendlyGameJoinSheet({
           : "seat",
       );
       setSelectedPartner(null);
-      setPartnerPosition("left");
+      setPartnerRaceMessage(null);
       registerWithPartner.reset();
     }
     // Reset only on open, matching the picker default. Props are read fresh.
@@ -450,14 +466,12 @@ export function FriendlyGameJoinSheet({
   }
 
   function goPartner() {
-    setPartnerPosition(
-      defaultPartnerPosition(onboardingState.data?.preferredPosition),
-    );
     registerWithPartner.reset();
+    setPartnerRaceMessage(null);
     setStep("partner");
   }
 
-  function confirmPartner() {
+  function confirmPartner(position: SeatPosition) {
     if (!gameId || !partnerUserId || vacantSideIndex == null) {
       return;
     }
@@ -465,37 +479,33 @@ export function FriendlyGameJoinSheet({
       gameId,
       partnerUserId,
       sideIndex: vacantSideIndex,
-      position: partnerPosition,
+      position,
     });
   }
 
   const headerTitle =
     step === "chooser"
       ? "How do you want to join?"
-      : step === "partnerConfirm"
-        ? "Join with a partner"
-        : isFull
-          ? "Game is full"
-          : "Pick your spot";
+      : isFull
+        ? "Game is full"
+        : "Pick your spot";
   const headerDescription =
     step === "chooser"
       ? "Two seats on the same side are open, so you can take one on your own or bring someone and register as a team."
-      : step === "partnerConfirm"
-        ? "You register both seats. Your partner is in straight away."
-        : title;
-  const showSheetHeader = step !== "partner";
+      : title;
+  const showSheetHeader = step !== "partner" && step !== "partnerConfirm";
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="gap-0 p-0 sm:max-w-[460px]">
         {showSheetHeader ? (
           <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-            {step === "partnerConfirm" || (offerPartner && step === "seat") ? (
+            {offerPartner && step === "seat" ? (
               <button
                 type="button"
                 onClick={() => {
                   registerWithPartner.reset();
-                  setStep(step === "partnerConfirm" ? "partner" : "chooser");
+                  setStep("chooser");
                 }}
                 className="text-ink focus-visible:ring-ring/50 mb-3 flex size-10 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]"
                 aria-label="Back"
@@ -516,7 +526,11 @@ export function FriendlyGameJoinSheet({
           </ResponsiveDialogHeader>
         ) : (
           <ResponsiveDialogHeader className="sr-only">
-            <ResponsiveDialogTitle>Pick a partner</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>
+              {step === "partnerConfirm"
+                ? "Register the team"
+                : "Pick a partner"}
+            </ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
               You register both seats. Your partner is in straight away.
             </ResponsiveDialogDescription>
@@ -533,6 +547,12 @@ export function FriendlyGameJoinSheet({
         {step === "seat" ? (
           <>
             <div className="px-[22px] pt-[18px]">
+              {partnerRaceMessage ? (
+                <FormErrorSummary
+                  message={partnerRaceMessage}
+                  className="mb-4"
+                />
+              ) : null}
               <div className="border-rule bg-paper overflow-hidden rounded-xl border">
                 <div className="flex items-start px-4 pb-4 pt-[18px]">
                   {sides.map((side, index) => (
@@ -587,67 +607,40 @@ export function FriendlyGameJoinSheet({
             venueName={venueName}
             groupName={groupName}
             pricePerPlayerCents={pricePerPlayerCents}
+            notice={partnerRaceMessage}
             selectedPartner={selectedPartner}
             onSelectedPartnerChange={setSelectedPartner}
-            onBack={() => setStep("chooser")}
+            onBack={() => {
+              registerWithPartner.reset();
+              setStep("chooser");
+            }}
             onClose={() => onOpenChange(false)}
             onContinue={() => {
-              setPartnerPosition(
-                defaultPartnerPosition(onboardingState.data?.preferredPosition),
-              );
               registerWithPartner.reset();
+              setPartnerRaceMessage(null);
               setStep("partnerConfirm");
             }}
           />
         ) : null}
 
-        {step === "partnerConfirm" ? (
-          <div className="flex flex-col gap-4 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-[18px]">
-            <FormErrorSummary message={globalFormErrorMessage(partnerError)} />
-            {selectedPartner ? (
-              <p className="text-meta">
-                Partner:{" "}
-                <span className="text-ink">{selectedPartner.name}</span>
-              </p>
-            ) : null}
-            <Field>
-              <FieldLabel htmlFor="join-partner-position">
-                Your Position
-              </FieldLabel>
-              <Select
-                value={partnerPosition}
-                onValueChange={(value) =>
-                  setPartnerPosition(value as SeatPosition)
-                }
-                disabled={registerWithPartner.isPending}
-              >
-                <SelectTrigger id="join-partner-position" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="left">Left</SelectItem>
-                  <SelectItem value="right">Right</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Button
-              type="button"
-              className="h-[52px] w-full"
-              disabled={
-                registerWithPartner.isPending ||
-                !partnerUserId ||
-                vacantSideIndex == null
-              }
-              onClick={confirmPartner}
-            >
-              {registerWithPartner.isPending
-                ? "Registering…"
-                : "Register with partner"}
-            </Button>
-            <p className="text-muted-foreground text-meta">
-              Both seats are booked now. Your partner is in straight away.
-            </p>
-          </div>
+        {step === "partnerConfirm" && selectedPartner ? (
+          <FriendlyGamePartnerReview
+            partner={selectedPartner}
+            viewerPreferredPosition={onboardingState.data?.preferredPosition}
+            windowStart={windowStart}
+            venueName={venueName}
+            isOrganizer={isOrganizer}
+            pricePerPlayerCents={pricePerPlayerCents}
+            levelMinTenths={levelMinTenths}
+            levelMaxTenths={levelMaxTenths}
+            pending={registerWithPartner.isPending}
+            errorMessage={globalFormErrorMessage(partnerError)}
+            onBack={() => {
+              registerWithPartner.reset();
+              setStep("partner");
+            }}
+            onRegister={confirmPartner}
+          />
         ) : null}
       </ResponsiveDialogContent>
     </ResponsiveDialog>

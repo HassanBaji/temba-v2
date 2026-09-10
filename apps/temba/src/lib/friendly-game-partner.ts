@@ -44,3 +44,50 @@ export function offersPartnerJoin(input: OffersPartnerJoinInput): boolean {
     hasFullyVacantSide(input.sides)
   );
 }
+
+/**
+ * Default caller Position for the Keep/Swap toggle (TEM-209). Preference is
+ * a default, never a rule. When both have a side and they differ, both are
+ * satisfied; otherwise the viewer's Preferred Position wins, then the
+ * partner's, then left.
+ */
+export function seedPartnerCallerPosition(args: {
+  viewerPreferred: string | null | undefined;
+  partnerPreferred: "left" | "right" | null | undefined;
+}): "left" | "right" {
+  const viewer =
+    args.viewerPreferred === "left" || args.viewerPreferred === "right"
+      ? args.viewerPreferred
+      : null;
+  const partner =
+    args.partnerPreferred === "left" || args.partnerPreferred === "right"
+      ? args.partnerPreferred
+      : null;
+
+  if (viewer && partner && viewer !== partner) {
+    return viewer;
+  }
+  if (viewer) {
+    return viewer;
+  }
+  if (partner) {
+    return partner === "left" ? "right" : "left";
+  }
+  return "left";
+}
+
+/** Race: the vacant side filled while the sheet was open. */
+export function isPartnerVacantSideRace(error: {
+  message: string;
+  data?: { code?: string } | null;
+}): boolean {
+  const code = error.data?.code;
+  if (code === "CONFLICT") {
+    return true;
+  }
+  return (
+    error.message.includes("No fully vacant side") ||
+    error.message.includes("That side already has a User") ||
+    error.message.includes("Not enough seats")
+  );
+}

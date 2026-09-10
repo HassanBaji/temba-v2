@@ -7,11 +7,12 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
   formatGameCardDay,
   formatGameClockWithoutMeridiem,
 } from "~/lib/format-game-start";
-import { displayLabelFromStoredBand } from "~/lib/level-bands";
+import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
@@ -24,6 +25,8 @@ export type FriendlyGamePartnerPick = {
   id: string;
   name: string;
   image: string | null;
+  levelBand: LevelBand | null;
+  preferredPosition: "left" | "right" | null;
 };
 
 function ineligibleReason(ineligible: PartnerSuggestion["ineligible"]) {
@@ -192,6 +195,7 @@ export function FriendlyGamePartnerPicker({
   onBack,
   onClose,
   onContinue,
+  notice,
 }: {
   gameId: string;
   vacantSeatCount: number;
@@ -204,6 +208,7 @@ export function FriendlyGamePartnerPicker({
   onBack: () => void;
   onClose: () => void;
   onContinue: () => void;
+  notice?: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [searchSelected, setSearchSelected] = useState<LookupUserSearchRow[]>(
@@ -238,6 +243,8 @@ export function FriendlyGamePartnerPicker({
       id: row.id,
       name: row.name,
       image: row.image,
+      levelBand: row.levelBand,
+      preferredPosition: row.preferredPosition,
     });
   }
 
@@ -245,7 +252,15 @@ export function FriendlyGamePartnerPicker({
     setSearchSelected(next);
     const row = next[0];
     onSelectedPartnerChange(
-      row ? { id: row.id, name: row.name, image: null } : null,
+      row
+        ? {
+            id: row.id,
+            name: row.name,
+            image: null,
+            levelBand: null,
+            preferredPosition: null,
+          }
+        : null,
     );
   }
 
@@ -280,6 +295,7 @@ export function FriendlyGamePartnerPicker({
       </div>
 
       <div className="flex flex-col gap-[26px] px-[22px] pt-[22px]">
+        {notice ? <FormErrorSummary message={notice} /> : null}
         {start ? (
           <div className="border-rule rounded-[14px] border px-5 py-[18px]">
             <div className="flex items-center gap-3.5">
