@@ -1102,6 +1102,9 @@ export default function GameHomePage({
           format={data.format}
           registrationMode={data.registrationMode}
           canRegister={data.canRegister}
+          windowStart={data.windowStart}
+          venueName={data.venue?.name ?? null}
+          groupName={data.groupName}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })
           }

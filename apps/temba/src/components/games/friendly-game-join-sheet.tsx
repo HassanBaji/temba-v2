@@ -12,15 +12,13 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { formatGameSideLabel } from "~/components/games/game-side-label";
-import { LookupUserSelect } from "~/components/invites/lookup-user-select";
-import { Button } from "~/components/ui/button";
 import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "~/components/ui/field";
+  FriendlyGamePartnerPicker,
+  type FriendlyGamePartnerPick,
+} from "~/components/games/friendly-game-partner-picker";
+import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { Button } from "~/components/ui/button";
+import { Field, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
   Select,
@@ -29,10 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import {
-  fieldErrorMessage,
-  globalFormErrorMessage,
-} from "~/lib/form-mutation-error";
+import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   friendlyGameJoinSheetCaption,
   vacantJoinSeats,
@@ -45,10 +40,9 @@ import {
 import { preferredJoinSeat } from "~/lib/preferred-seat";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
-import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { api } from "~/trpc/react";
 
-type JoinSheetStep = "chooser" | "seat" | "partner";
+type JoinSheetStep = "chooser" | "seat" | "partner" | "partnerConfirm";
 
 type SeatPosition = "left" | "right";
 
@@ -348,6 +342,9 @@ export function FriendlyGameJoinSheet({
   format,
   registrationMode,
   canRegister,
+  windowStart,
+  venueName,
+  groupName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -360,6 +357,9 @@ export function FriendlyGameJoinSheet({
   format?: string;
   registrationMode?: string;
   canRegister?: boolean;
+  windowStart?: Date | string | null;
+  venueName?: string | null;
+  groupName?: string | null;
 }) {
   const offerPartner = offersPartnerJoin({
     canRegister: canRegister ?? false,
@@ -378,10 +378,8 @@ export function FriendlyGameJoinSheet({
     seat: FriendlyGameJoinSeat | null;
   }>({ touched: false, seat: null });
   const [step, setStep] = useState<JoinSheetStep>("seat");
-  const [partnerQuery, setPartnerQuery] = useState("");
-  const [selectedPartner, setSelectedPartner] = useState<LookupUserSearchRow[]>(
-    [],
-  );
+  const [selectedPartner, setSelectedPartner] =
+    useState<FriendlyGamePartnerPick | null>(null);
   const [partnerPosition, setPartnerPosition] = useState<SeatPosition>("left");
 
   const utils = api.useUtils();
@@ -392,17 +390,13 @@ export function FriendlyGameJoinSheet({
     enabled: open,
   });
 
-  const partnerSearch = api.games.searchPartnerUsers.useQuery(
-    { gameId: gameId ?? "", query: partnerQuery },
-    { enabled: Boolean(gameId) && open && step === "partner" },
-  );
-
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
       if (gameId) {
         await utils.games.byId.invalidate({ id: gameId });
         await utils.games.searchPartnerUsers.invalidate({ gameId });
+        await utils.games.listPartnerSuggestions.invalidate({ gameId });
       }
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -423,8 +417,7 @@ export function FriendlyGameJoinSheet({
           ? "chooser"
           : "seat",
       );
-      setPartnerQuery("");
-      setSelectedPartner([]);
+      setSelectedPartner(null);
       setPartnerPosition("left");
       registerWithPartner.reset();
     }
@@ -444,7 +437,7 @@ export function FriendlyGameJoinSheet({
 
   const isFull = vacantJoinSeats(sides).length === 0;
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
-  const partnerUserId = selectedPartner[0]?.id;
+  const partnerUserId = selectedPartner?.id;
   const vacantSideIndex = firstFullyVacantSideIndex(sides);
   const partnerError = registerWithPartner.error;
 
@@ -479,7 +472,7 @@ export function FriendlyGameJoinSheet({
   const headerTitle =
     step === "chooser"
       ? "How do you want to join?"
-      : step === "partner"
+      : step === "partnerConfirm"
         ? "Join with a partner"
         : isFull
           ? "Game is full"
@@ -487,38 +480,48 @@ export function FriendlyGameJoinSheet({
   const headerDescription =
     step === "chooser"
       ? "Two seats on the same side are open, so you can take one on your own or bring someone and register as a team."
-      : step === "partner"
+      : step === "partnerConfirm"
         ? "You register both seats. Your partner is in straight away."
         : title;
+  const showSheetHeader = step !== "partner";
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="gap-0 p-0 sm:max-w-[460px]">
-        <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-          {step === "partner" || (offerPartner && step === "seat") ? (
-            <button
-              type="button"
-              onClick={() => {
-                registerWithPartner.reset();
-                setStep("chooser");
-              }}
-              className="text-ink focus-visible:ring-ring/50 mb-3 flex size-10 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]"
-              aria-label="Back"
-            >
-              <ArrowLeft
-                aria-hidden="true"
-                className="size-5"
-                strokeWidth={2}
-              />
-            </button>
-          ) : null}
-          <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
-            {headerTitle}
-          </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="text-meta">
-            {headerDescription}
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
+        {showSheetHeader ? (
+          <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
+            {step === "partnerConfirm" || (offerPartner && step === "seat") ? (
+              <button
+                type="button"
+                onClick={() => {
+                  registerWithPartner.reset();
+                  setStep(step === "partnerConfirm" ? "partner" : "chooser");
+                }}
+                className="text-ink focus-visible:ring-ring/50 mb-3 flex size-10 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]"
+                aria-label="Back"
+              >
+                <ArrowLeft
+                  aria-hidden="true"
+                  className="size-5"
+                  strokeWidth={2}
+                />
+              </button>
+            ) : null}
+            <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
+              {headerTitle}
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="text-meta">
+              {headerDescription}
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+        ) : (
+          <ResponsiveDialogHeader className="sr-only">
+            <ResponsiveDialogTitle>Pick a partner</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              You register both seats. Your partner is in straight away.
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+        )}
 
         {step === "chooser" ? (
           <ModeChooser
@@ -576,56 +579,57 @@ export function FriendlyGameJoinSheet({
           </>
         ) : null}
 
-        {step === "partner" ? (
+        {step === "partner" && gameId ? (
+          <FriendlyGamePartnerPicker
+            gameId={gameId}
+            vacantSeatCount={vacantJoinSeats(sides).length}
+            windowStart={windowStart}
+            venueName={venueName}
+            groupName={groupName}
+            pricePerPlayerCents={pricePerPlayerCents}
+            selectedPartner={selectedPartner}
+            onSelectedPartnerChange={setSelectedPartner}
+            onBack={() => setStep("chooser")}
+            onClose={() => onOpenChange(false)}
+            onContinue={() => {
+              setPartnerPosition(
+                defaultPartnerPosition(onboardingState.data?.preferredPosition),
+              );
+              registerWithPartner.reset();
+              setStep("partnerConfirm");
+            }}
+          />
+        ) : null}
+
+        {step === "partnerConfirm" ? (
           <div className="flex flex-col gap-4 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-[18px]">
             <FormErrorSummary message={globalFormErrorMessage(partnerError)} />
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="join-partner-query">Partner</FieldLabel>
-                <LookupUserSelect
-                  id="join-partner-query"
-                  query={partnerQuery}
-                  onQueryChange={setPartnerQuery}
-                  options={partnerSearch.data}
-                  selected={selectedPartner}
-                  onSelectedChange={setSelectedPartner}
-                  selection="single"
-                  pending={partnerSearch.isFetching}
-                  disabled={registerWithPartner.isPending}
-                  error={Boolean(
-                    fieldErrorMessage(partnerError, "partnerUserId"),
-                  )}
-                  describedBy={
-                    fieldErrorMessage(partnerError, "partnerUserId")
-                      ? "join-partner-query-error"
-                      : undefined
-                  }
-                />
-                <FieldError id="join-partner-query-error">
-                  {fieldErrorMessage(partnerError, "partnerUserId")}
-                </FieldError>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="join-partner-position">
-                  Your Position
-                </FieldLabel>
-                <Select
-                  value={partnerPosition}
-                  onValueChange={(value) =>
-                    setPartnerPosition(value as SeatPosition)
-                  }
-                  disabled={registerWithPartner.isPending}
-                >
-                  <SelectTrigger id="join-partner-position" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="left">Left</SelectItem>
-                    <SelectItem value="right">Right</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </FieldGroup>
+            {selectedPartner ? (
+              <p className="text-meta">
+                Partner:{" "}
+                <span className="text-ink">{selectedPartner.name}</span>
+              </p>
+            ) : null}
+            <Field>
+              <FieldLabel htmlFor="join-partner-position">
+                Your Position
+              </FieldLabel>
+              <Select
+                value={partnerPosition}
+                onValueChange={(value) =>
+                  setPartnerPosition(value as SeatPosition)
+                }
+                disabled={registerWithPartner.isPending}
+              >
+                <SelectTrigger id="join-partner-position" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Left</SelectItem>
+                  <SelectItem value="right">Right</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
             <Button
               type="button"
               className="h-[52px] w-full"
