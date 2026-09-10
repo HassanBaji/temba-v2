@@ -145,6 +145,7 @@ export default function GameHomePage({
     onSuccess: async (result) => {
       toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
       await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
     },
     onError: (error) => {
@@ -156,6 +157,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success("Moved");
       await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
     },
     onError: (error) => {
@@ -171,6 +173,7 @@ export default function GameHomePage({
       setPartnerSide("");
       setPartnerPosition("left");
       await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
       await utils.games.searchPartnerUsers.invalidate({ gameId: id });
       await utils.users.home.invalidate();
     },
@@ -185,6 +188,7 @@ export default function GameHomePage({
         result.waitlisted ? "Team joined waitlist" : "Team registered",
       );
       await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
     },
     onError: (error) => {
@@ -196,6 +200,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success("Left Game");
       await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
     },
     onError: (error) => {
@@ -207,6 +212,8 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success("Left waitlist");
       await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
     },
     onError: (error) => {
       toastGlobalFormError(error);
