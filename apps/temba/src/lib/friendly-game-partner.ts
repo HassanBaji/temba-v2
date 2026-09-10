@@ -6,6 +6,24 @@
  * Every input is already on `games.byId` — do not add a server field for this.
  */
 
+/** Game home for this Game. Close and deep-link recovery land here. */
+export function friendlyGameHomeHref(gameId: string) {
+  return `/dashboard/games/${gameId}`;
+}
+
+/** Dedicated Pick a partner screen under that Game's home (TEM-211). */
+export function friendlyGamePartnerHref(gameId: string) {
+  return `/dashboard/games/${gameId}/partner`;
+}
+
+/** Deep link when the Game no longer offers partner join. */
+export const PARTNER_JOIN_UNAVAILABLE_TOAST =
+  "This Game is no longer open to join with a partner";
+
+/** In-screen copy when the vacant side fills during Partner registration. */
+export const PARTNER_VACANT_SIDE_RACE_MESSAGE =
+  "That side was taken while you were registering. Join alone, or pick another partner if a side is still fully open.";
+
 export type FriendlyGamePartnerSides = readonly {
   sideIndex?: number;
   left: unknown;
@@ -21,6 +39,16 @@ export type OffersPartnerJoinInput = {
 
 export function hasFullyVacantSide(sides: FriendlyGamePartnerSides): boolean {
   return sides.some((side) => side.left == null && side.right == null);
+}
+
+/**
+ * After a vacant-side race: stay on Pick a partner when a fully vacant side
+ * remains; otherwise leave for Game home instead of dead-ending.
+ */
+export function partnerVacantSideRaceRecovery(
+  sides: FriendlyGamePartnerSides,
+): "picker" | "game_home" {
+  return hasFullyVacantSide(sides) ? "picker" : "game_home";
 }
 
 /** First fully vacant side's `sideIndex`, or `null` when none exist. */
