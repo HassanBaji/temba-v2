@@ -76,6 +76,33 @@ export function seedPartnerCallerPosition(args: {
   return "left";
 }
 
+/**
+ * Name of the User seated beside the viewer on the same side, or `null`
+ * when the viewer is not seated or sits alone. The booked-with-a-partner
+ * hero (TEM-210) keys off this — "seated next to someone", not "registered
+ * as a pair".
+ */
+export function viewerSidePartnerName(args: {
+  viewerUserId: string | null | undefined;
+  sides: readonly {
+    left: { userId: string; name: string } | null;
+    right: { userId: string; name: string } | null;
+  }[];
+}): string | null {
+  if (!args.viewerUserId) {
+    return null;
+  }
+  for (const side of args.sides) {
+    if (side.left?.userId === args.viewerUserId) {
+      return side.right?.name ?? null;
+    }
+    if (side.right?.userId === args.viewerUserId) {
+      return side.left?.name ?? null;
+    }
+  }
+  return null;
+}
+
 /** Race: the vacant side filled while the sheet was open. */
 export function isPartnerVacantSideRace(error: {
   message: string;

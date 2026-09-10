@@ -214,6 +214,7 @@ export function FriendlyGameDetailsHero({
   pricePerPlayerCents,
   match,
   viewerGameTeamId,
+  partnerBesideName,
 }: {
   phase: FriendlyGameDetailsHeroPhase;
   windowStart: Date | null;
@@ -224,6 +225,8 @@ export function FriendlyGameDetailsHero({
   pricePerPlayerCents: number | null;
   match: FriendlyGameDetailsHeroMatch | null;
   viewerGameTeamId: string | null;
+  /** Occupant of the other Position on the viewer's side, when both sit. */
+  partnerBesideName?: string | null;
 }) {
   const [now, setNow] = useState(() => new Date());
 
@@ -289,22 +292,39 @@ export function FriendlyGameDetailsHero({
           },
         ];
 
+  const bookedWithPartner = Boolean(partnerBesideName);
+
   return (
     <article className="bg-ink text-paper rounded-xl p-[22px]">
       <div className="text-dim text-meta flex items-start justify-between gap-3">
-        <p className="min-w-0 truncate">{dateLabel}</p>
+        <p className="min-w-0 truncate">
+          {/* ADR-0013: booked now, not "Team confirmed" / seats held. */}
+          {bookedWithPartner ? "Seats booked" : dateLabel}
+        </p>
         {statusLabel ? (
           <p className="min-w-[11ch] shrink-0 text-right tabular-nums">
             {statusLabel}
           </p>
         ) : null}
       </div>
-      <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
-        <span className="font-expanded text-[54px] tabular-nums leading-none">
-          {kickoff.time}
-        </span>
-        <span className="text-dim text-[18px] leading-none">{trailer}</span>
-      </p>
+      {bookedWithPartner ? (
+        <>
+          <p className="font-expanded mt-3 text-[38px] leading-none tracking-[-0.03em]">
+            You and {partnerBesideName}
+          </p>
+          <p className="mt-3 text-[16px] leading-snug">
+            {dateLabel}, {kickoff.time}
+            {trailer ? ` ${trailer}` : ""}
+          </p>
+        </>
+      ) : (
+        <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
+          <span className="font-expanded text-[54px] tabular-nums leading-none">
+            {kickoff.time}
+          </span>
+          <span className="text-dim text-[18px] leading-none">{trailer}</span>
+        </p>
+      )}
       <ScheduleSubline
         venueName={venueName}
         venueCity={venueCity}

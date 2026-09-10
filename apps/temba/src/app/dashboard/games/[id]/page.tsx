@@ -46,6 +46,7 @@ import {
   vacantJoinSeats,
 } from "~/lib/friendly-game-cta";
 import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
+import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
 import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
 import {
@@ -544,6 +545,10 @@ export default function GameHomePage({
         side.left?.userId === data.viewerUserId ||
         side.right?.userId === data.viewerUserId,
     )?.gameTeamId ?? null;
+  const partnerBesideName = viewerSidePartnerName({
+    viewerUserId: data.viewerUserId,
+    sides: data.sides,
+  });
   // Line-up section's winning-team "Won" tag (game-details redesign,
   // TEM-180): the Match's own Game-team id for whichever slot the outcome
   // names, resolved once here rather than re-deriving it inside the section
@@ -798,6 +803,7 @@ export default function GameHomePage({
                     : null
                 }
                 viewerGameTeamId={viewerGameTeamId}
+                partnerBesideName={partnerBesideName}
               />
             ) : null}
           </>

@@ -7,6 +7,7 @@ import {
   isPartnerVacantSideRace,
   offersPartnerJoin,
   seedPartnerCallerPosition,
+  viewerSidePartnerName,
   type OffersPartnerJoinInput,
 } from "./friendly-game-partner";
 
@@ -243,6 +244,61 @@ describe("seedPartnerCallerPosition", () => {
         partnerPreferred: null,
       }),
       "left",
+    );
+  });
+});
+
+describe("viewerSidePartnerName", () => {
+  const viewer = { userId: "viewer", name: "Ada" };
+  const partner = { userId: "partner", name: "Sofia L" };
+  const other = { userId: "other", name: "Jonas B" };
+
+  it("returns the occupant of the other Position on the viewer's side", () => {
+    assert.equal(
+      viewerSidePartnerName({
+        viewerUserId: viewer.userId,
+        sides: [
+          { left: viewer, right: partner },
+          { left: other, right: null },
+        ],
+      }),
+      "Sofia L",
+    );
+    assert.equal(
+      viewerSidePartnerName({
+        viewerUserId: viewer.userId,
+        sides: [
+          { left: partner, right: viewer },
+          { left: null, right: null },
+        ],
+      }),
+      "Sofia L",
+    );
+  });
+
+  it("returns null when the viewer sits alone on their side", () => {
+    assert.equal(
+      viewerSidePartnerName({
+        viewerUserId: viewer.userId,
+        sides: [
+          { left: viewer, right: null },
+          { left: other, right: null },
+        ],
+      }),
+      null,
+    );
+  });
+
+  it("returns null when the viewer is not seated", () => {
+    assert.equal(
+      viewerSidePartnerName({
+        viewerUserId: viewer.userId,
+        sides: [
+          { left: partner, right: other },
+          { left: null, right: null },
+        ],
+      }),
+      null,
     );
   });
 });
