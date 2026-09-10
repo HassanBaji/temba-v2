@@ -15,6 +15,8 @@ export type MatchHistoryMember = {
   id: string;
   name: string;
   image: string | null;
+  /** Marks the signed-in User's own seat, so cards can label it "You". */
+  isViewer: boolean;
 };
 
 export type MatchHistoryRow = {
@@ -75,7 +77,10 @@ function viewerOutcome(
   return result === "slot2" ? "won" : "lost";
 }
 
-function membersFromSlot(team: SlotTeam): MatchHistoryMember[] {
+function membersFromSlot(
+  team: SlotTeam,
+  viewerUserId: string,
+): MatchHistoryMember[] {
   const players = [...(team?.players ?? [])].sort((left, right) => {
     const rank = (position: string | null) =>
       position === "left" ? 0 : position === "right" ? 1 : 2;
@@ -91,6 +96,7 @@ function membersFromSlot(team: SlotTeam): MatchHistoryMember[] {
       id: occupant.id,
       name: occupant.name,
       image: occupant.image,
+      isViewer: occupant.id === viewerUserId,
     });
   }
   return members;
@@ -314,8 +320,8 @@ export async function listMyMatchHistoryRows(
       displayTime: chosen.displayTime,
       matchId: chosen.match.id,
       groupName: game.group?.name ?? null,
-      slot1Members: membersFromSlot(chosen.match.slot1GameTeam),
-      slot2Members: membersFromSlot(chosen.match.slot2GameTeam),
+      slot1Members: membersFromSlot(chosen.match.slot1GameTeam, userId),
+      slot2Members: membersFromSlot(chosen.match.slot2GameTeam, userId),
       scoredSets: scoredSetsFromMatch(chosen.match.sets),
       viewerSlot: chosen.userSlot,
       outcome: chosen.outcome,
