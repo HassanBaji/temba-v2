@@ -13,7 +13,7 @@ import { display, mono, sans } from "./fonts";
 export const metadata: Metadata = {
   title: "Temba - the future of competitive sports",
   description: "Temba - the future of competitive sport",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
 /**
