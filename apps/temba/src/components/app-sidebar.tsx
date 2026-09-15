@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { useCreateAccess } from "~/components/create-access-gate";
 import { NavMain } from "~/components/nav-main";
 import {
   Sidebar,
@@ -65,8 +66,13 @@ const venuesNav = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
+  const { isLoaded, hasCreateAccess } = useCreateAccess();
   const isOperator = user?.publicMetadata.operator === true;
-  const items = isOperator ? [...navMain, venuesNav] : navMain;
+  const items = navMain.filter(
+    (item) =>
+      item.url !== "/dashboard/communities" || (isLoaded && hasCreateAccess),
+  );
+  const navItems = isOperator ? [...items, venuesNav] : items;
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -85,7 +91,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={items} />
+        <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter>
         <div className="flex items-center gap-2 px-2 py-1">
