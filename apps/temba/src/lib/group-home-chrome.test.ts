@@ -4,12 +4,13 @@ import { describe, it } from "vitest";
 import {
   filterGroupMembersByName,
   groupHomeHasStandingResults,
-  groupHomeMemberGamesLabel,
   groupHomeMetaLine,
   groupHomeSetScoreLine,
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
   groupHomeVenueCourtLine,
+  groupMemberRoleCaption,
+  groupStandingRecordLabel,
 } from "./group-home-chrome";
 
 describe("groupHomeSportLabel", () => {
@@ -118,10 +119,39 @@ describe("groupHomeShowsMemberSearch", () => {
   });
 });
 
-describe("groupHomeMemberGamesLabel", () => {
-  it("uses Games from Games played", () => {
-    assert.equal(groupHomeMemberGamesLabel(0), "0 Games");
-    assert.equal(groupHomeMemberGamesLabel(3), "3 Games");
+describe("groupMemberRoleCaption", () => {
+  it("reads Organizer for the creator and Community staff", () => {
+    assert.equal(
+      groupMemberRoleCaption({
+        isOrganizer: true,
+        joinedAt: new Date("2024-02-10T12:00:00Z"),
+      }),
+      "Organizer",
+    );
+  });
+
+  it("falls back to the join month for everyone else", () => {
+    assert.equal(
+      groupMemberRoleCaption({
+        isOrganizer: false,
+        joinedAt: new Date("2024-02-10T12:00:00Z"),
+      }),
+      "Member since Feb",
+    );
+  });
+
+  it("returns null when neither role nor join date is known", () => {
+    assert.equal(
+      groupMemberRoleCaption({ isOrganizer: false, joinedAt: null }),
+      null,
+    );
+  });
+});
+
+describe("groupStandingRecordLabel", () => {
+  it("draws the W-L pair, zero included", () => {
+    assert.equal(groupStandingRecordLabel(18, 6), "18-6");
+    assert.equal(groupStandingRecordLabel(0, 0), "0-0");
   });
 });
 

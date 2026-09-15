@@ -84,8 +84,27 @@ export function filterGroupMembersByName<T extends { name: string }>(
   return members.filter((member) => member.name.toLowerCase().includes(needle));
 }
 
-export function groupHomeMemberGamesLabel(totalGamesPlayed: number) {
-  return `${totalGamesPlayed} Games`;
+/**
+ * The Members tab role/tenure caption: **Organizer** for the Group creator
+ * and — on a Club Group — a Community staff member (spec D8), otherwise
+ * `"Member since {Mon}"` from the `group_members` join date. Returns `null`
+ * when neither is known, so the row renders the name alone rather than an
+ * empty caption.
+ */
+export function groupMemberRoleCaption(member: {
+  isOrganizer: boolean;
+  joinedAt: Date | string | null | undefined;
+}) {
+  if (member.isOrganizer) {
+    return "Organizer";
+  }
+  const since = seasonSinceMonth(member.joinedAt);
+  return since ? `Member since ${since}` : null;
+}
+
+/** The Standing W-L column: `{wins}-{losses}`, drawn even at `0-0`. */
+export function groupStandingRecordLabel(wins: number, losses: number) {
+  return `${wins}-${losses}`;
 }
 
 export function groupHomeVenueCourtLine(

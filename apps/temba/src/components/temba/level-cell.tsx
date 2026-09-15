@@ -14,11 +14,14 @@ import { cn } from "~/lib/utils";
 export function LevelCell({
   band,
   provisional = false,
+  onInk = false,
   className,
 }: {
   /** `null` when the member has no Rating for the Group's sport. */
   band: LevelBand | null | undefined;
   provisional?: boolean;
+  /** Set on an inverted (`bg-ink`) row so the hatch reads on black. */
+  onInk?: boolean;
   className?: string;
 }) {
   if (!band || provisional) {
@@ -28,7 +31,13 @@ export function LevelCell({
         data-provisional="true"
         className={cn("flex items-center justify-end", className)}
       >
-        <span aria-hidden="true" className="hatch h-5 w-11 rounded-[4px]" />
+        <span
+          aria-hidden="true"
+          className={cn(
+            "h-5 w-11 rounded-[4px]",
+            onInk ? "hatch hatch-on-ink" : "hatch",
+          )}
+        />
         <span className="sr-only">Level still Provisional</span>
       </span>
     );

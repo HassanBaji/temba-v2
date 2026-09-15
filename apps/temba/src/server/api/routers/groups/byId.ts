@@ -1,14 +1,17 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   communities,
+  communityMembers,
   games,
   groupMembers,
   GroupTypeEnum,
+  ratings,
   type GroupSportEnum,
 } from "@repo/db";
 
+import type { LevelBand } from "~/lib/level-bands";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -22,10 +25,23 @@ import { groupHasNonCreatorMembers } from "~/server/groups/helpers/group-has-non
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { requireGroup } from "~/server/groups/helpers/require-group";
 import {
+  groupFormMarks,
+  type GroupFormMatch,
+} from "~/server/groups/member-form-marks";
+import {
+  groupMemberWinLoss,
+  type GroupWinLossMatch,
+} from "~/server/groups/member-win-loss";
+import {
+  isHomeCarouselNeedsResults,
+  type HomeCarouselCandidate,
+} from "~/server/home/carousel-games";
+import {
   filterAndSortHomeUpcomingGames,
   gameListTime,
   isGameLive,
 } from "~/server/home/upcoming-games";
+import { isProvisional } from "~/server/ratings/level";
 import { consult } from "~/server/soft-archive";
 import {
   sortStandingMembers,
@@ -71,6 +87,24 @@ async function mayDeleteEmptyGroup(args: {
   return true;
 }
 
+/** A Match slot as the Game teams seat it — `null` before the draw. */
+type SlotTeam = {
+  players: readonly {
+    gamePlayer: { userId: string | null } | null;
+  }[];
+} | null;
+
+function slotUserIds(team: SlotTeam): string[] {
+  const userIds: string[] = [];
+  for (const link of team?.players ?? []) {
+    const userId = link.gamePlayer?.userId;
+    if (userId) {
+      userIds.push(userId);
+    }
+  }
+  return userIds;
+}
+
 type GroupHomeGameRow = {
   id: string;
   name: string | null;
@@ -81,6 +115,7 @@ type GroupHomeGameRow = {
   levelMaxTenths: number | null;
   cancelledAt: Date | null;
   createdAt: Date;
+  createdBy: string;
   format: string;
   sport: string | null;
   groupId: string | null;
@@ -99,7 +134,10 @@ type GroupHomeGameRow = {
   matches: {
     startTime: Date | null;
     status: string | null;
+    createdAt: Date;
     court: { name: string } | null;
+    slot1GameTeam: SlotTeam;
+    slot2GameTeam: SlotTeam;
     sets: {
       slot1GamesWon: number | null;
       slot2GamesWon: number | null;
@@ -174,7 +212,7 @@ function toGroupHomeGameCard(
 
 export async function groupById(
   database: DbClient,
-  args: { groupId: string; userId: string },
+  args: { groupId: string; userId: string; now?: Date },
 ) {
   const group = await requireGroup(database, args.groupId);
 
@@ -262,25 +300,56 @@ export async function groupById(
       totalGamesPlayed: row.totalGamesPlayed,
       name: row.user.name,
       image: row.user.image,
+      joinedAt: row.createdAt,
     })),
   );
-
-  const leaderboard = sortedStanding.map((entry, index) => ({
-    userId: entry.userId,
-    name: entry.name,
-    image: entry.image,
-    totalSetsWon: entry.totalSetsWon,
-    totalPointsWon: entry.totalPointsWon,
-    totalGamesPlayed: entry.totalGamesPlayed,
-    position: index + 1,
-    isViewer: entry.userId === args.userId,
-  }));
 
   const viewerStandingPosition = membership
     ? standingPosition(sortedStanding, args.userId)
     : null;
 
-  const now = new Date();
+  // "Organizer" on the Members tab: the Group creator, or — on a Club Group —
+  // a Community staff member (`.scratch/groups-redesign/spec.md` D8).
+  const staffUserIds = new Set<string>();
+  if (group.communityId && memberUserIds.length > 0) {
+    const communityRoles = await database.query.communityMembers.findMany({
+      where: and(
+        eq(communityMembers.communityId, group.communityId),
+        inArray(communityMembers.userId, memberUserIds),
+      ),
+      columns: { userId: true, role: true },
+    });
+    for (const row of communityRoles) {
+      if (isStaffRole(row.role)) {
+        staffUserIds.add(row.userId);
+      }
+    }
+  }
+
+  // Level reads `ratings` for `(member.userId, group.sport)` — unique on that
+  // pair (D5). A Group with no sport has no Rating to read, so every member
+  // falls back to the hatched Provisional placeholder.
+  const ratingByUserId = new Map<
+    string,
+    { levelBand: LevelBand; provisional: boolean }
+  >();
+  if (group.sport && memberUserIds.length > 0) {
+    const ratingRows = await database.query.ratings.findMany({
+      where: and(
+        eq(ratings.sport, group.sport),
+        inArray(ratings.userId, memberUserIds),
+      ),
+      columns: { userId: true, levelBand: true, phi: true },
+    });
+    for (const row of ratingRows) {
+      ratingByUserId.set(row.userId, {
+        levelBand: row.levelBand,
+        provisional: isProvisional(row.phi),
+      });
+    }
+  }
+
+  const now = args.now ?? new Date();
 
   // Upcoming / history are scoped by this Group id only (excludes null groupId).
   // Soft-archived Communities are not filtered — members still see Games.
@@ -296,6 +365,7 @@ export async function groupById(
       levelMaxTenths: true,
       cancelledAt: true,
       createdAt: true,
+      createdBy: true,
       format: true,
       sport: true,
       groupId: true,
@@ -327,10 +397,35 @@ export async function groupById(
         columns: {
           startTime: true,
           status: true,
+          createdAt: true,
         },
         with: {
           court: {
             columns: { name: true },
+          },
+          // Slot rosters feed the W-L and form-mark derivations below. They
+          // are read, not returned — the response carries no Match rows.
+          slot1GameTeam: {
+            columns: { id: true },
+            with: {
+              players: {
+                columns: { id: true },
+                with: {
+                  gamePlayer: { columns: { userId: true } },
+                },
+              },
+            },
+          },
+          slot2GameTeam: {
+            columns: { id: true },
+            with: {
+              players: {
+                columns: { id: true },
+                with: {
+                  gamePlayer: { columns: { userId: true } },
+                },
+              },
+            },
           },
           sets: {
             columns: {
@@ -367,6 +462,86 @@ export async function groupById(
     .slice(0, GROUP_GAME_HISTORY_LIMIT)
     .map((game) => toGroupHomeGameCard(game, cardArgs));
 
+  // W-L and form marks derive over the Matches already loaded above
+  // (`.scratch/groups-redesign/spec.md` §6.1, §6.2). A cancelled Game never
+  // becomes a result, so it is dropped before the derivations see it.
+  const winLossMatches: GroupWinLossMatch[] = [];
+  const formMatches: GroupFormMatch[] = [];
+  for (const game of groupGameRows) {
+    if (game.cancelledAt !== null) {
+      continue;
+    }
+    for (const match of game.matches) {
+      const occupants = {
+        slot1UserIds: slotUserIds(match.slot1GameTeam),
+        slot2UserIds: slotUserIds(match.slot2GameTeam),
+      };
+      winLossMatches.push({
+        ...occupants,
+        status: match.status,
+        sets: match.sets,
+      });
+      formMatches.push({
+        ...occupants,
+        status: match.status,
+        startTime: match.startTime,
+        createdAt: match.createdAt,
+        sets: match.sets,
+      });
+    }
+  }
+
+  const winLossByUserId = groupMemberWinLoss(winLossMatches, memberUserIds);
+
+  const leaderboard = sortedStanding.map((entry, index) => {
+    const record = winLossByUserId.get(entry.userId) ?? { wins: 0, losses: 0 };
+    const rating = ratingByUserId.get(entry.userId) ?? null;
+    return {
+      userId: entry.userId,
+      name: entry.name,
+      image: entry.image,
+      totalSetsWon: entry.totalSetsWon,
+      totalPointsWon: entry.totalPointsWon,
+      totalGamesPlayed: entry.totalGamesPlayed,
+      position: index + 1,
+      isViewer: entry.userId === args.userId,
+      wins: record.wins,
+      losses: record.losses,
+      levelBand: rating?.levelBand ?? null,
+      levelProvisional: rating?.provisional ?? true,
+      formMarks: groupFormMarks(formMatches, entry.userId, now),
+      joinedAt: entry.joinedAt,
+      isOrganizer:
+        entry.userId === group.createdBy || staffUserIds.has(entry.userId),
+    };
+  });
+
+  // Games whose Matches have started but carry no scored Set, using the
+  // `needs_results` rule shape from `~/server/home/carousel-games.ts` (§3.2).
+  const awaitingScoreCount = groupGameRows.filter((game) => {
+    const candidate: HomeCarouselCandidate = {
+      id: game.id,
+      groupId: game.groupId,
+      cancelledAt: game.cancelledAt,
+      windowStart: game.windowStart,
+      windowEnd: game.windowEnd,
+      createdAt: game.createdAt,
+      format: game.format,
+      matches: game.matches,
+      createdBy: game.createdBy,
+      // Neither field is read by isHomeCarouselNeedsResults — this is a
+      // Group-wide count, not a viewer-scoped carousel membership list.
+      viewerHasGameAdmit: false,
+      viewerIsOrganizer: false,
+      registrationMode: game.registrationMode,
+      playersAllowed: game.playersAllowed,
+      teamsAllowed: game.teamsAllowed,
+      registeredUserCount: game.players.length,
+      registeredTeamCount: game.teams.length,
+    };
+    return isHomeCarouselNeedsResults(candidate, now);
+  }).length;
+
   return {
     id: group.id,
     name: group.name,
@@ -400,6 +575,7 @@ export async function groupById(
     standing: {
       memberCount: memberRows.length,
       leaderboard,
+      awaitingScoreCount,
     },
     upcomingGames,
     gameHistory,
