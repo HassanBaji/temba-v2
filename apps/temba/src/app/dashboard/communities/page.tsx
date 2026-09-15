@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2 } from "lucide-react";
+import { Building2, Lock } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "~/components/common/empty-state";
@@ -40,19 +40,44 @@ function CommunitiesListSkeleton() {
 }
 
 export default function CommunitiesPage() {
-  const mine = api.communities.mine.useQuery();
-  const { hasCreateAccess } = useCreateAccess();
+  const { isLoaded, hasCreateAccess } = useCreateAccess();
+  const mine = api.communities.mine.useQuery(undefined, {
+    enabled: isLoaded && hasCreateAccess,
+  });
+
+  if (!isLoaded) {
+    return (
+      <DashboardShell title="Communities">
+        <CommunitiesListSkeleton />
+      </DashboardShell>
+    );
+  }
+
+  if (!hasCreateAccess) {
+    return (
+      <DashboardShell title="Communities">
+        <EmptyState
+          icon={Lock}
+          title="Communities list is limited"
+          description="This list is set up by Temba staff."
+          action={
+            <Button asChild>
+              <Link href="/dashboard">Back to Home</Link>
+            </Button>
+          }
+        />
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell
       title="Communities"
       description="Communities you belong to, with every Club Group nested. Open a Community or Group to go to its home."
       action={
-        hasCreateAccess ? (
-          <Button asChild>
-            <Link href="/dashboard/communities/new">Create Community</Link>
-          </Button>
-        ) : undefined
+        <Button asChild>
+          <Link href="/dashboard/communities/new">Create Community</Link>
+        </Button>
       }
     >
       {mine.isLoading ? <CommunitiesListSkeleton /> : null}
@@ -73,11 +98,9 @@ export default function CommunitiesPage() {
           title="No Communities yet"
           description="Communities organise Club Groups around a Venue."
           action={
-            hasCreateAccess ? (
-              <Button asChild>
-                <Link href="/dashboard/communities/new">Create Community</Link>
-              </Button>
-            ) : undefined
+            <Button asChild>
+              <Link href="/dashboard/communities/new">Create Community</Link>
+            </Button>
           }
         />
       ) : null}

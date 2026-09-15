@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useCreateAccess } from "~/components/create-access-gate";
 import { pageGutterX } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
@@ -55,7 +56,10 @@ export function MobileTopBar({
   );
 }
 
-export function detailBackHref(pathname: string | null): string | undefined {
+export function detailBackHref(
+  pathname: string | null,
+  hasCreateAccess = false,
+): string | undefined {
   if (!pathname) {
     return undefined;
   }
@@ -63,7 +67,7 @@ export function detailBackHref(pathname: string | null): string | undefined {
     return "/dashboard/groups";
   }
   if (/^\/dashboard\/communities\/(?!new$)[^/]+/.test(pathname)) {
-    return "/dashboard/communities";
+    return hasCreateAccess ? "/dashboard/communities" : "/dashboard";
   }
   if (/^\/dashboard\/teams\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/teams";
@@ -89,11 +93,12 @@ export function MobileTopBarFromPath({
   isSubPage?: boolean;
 }) {
   const pathname = usePathname();
+  const { isLoaded, hasCreateAccess } = useCreateAccess();
   return (
     <MobileTopBar
       isSubPage={isSubPage}
       title={title}
-      backHref={detailBackHref(pathname)}
+      backHref={detailBackHref(pathname, isLoaded && hasCreateAccess)}
       action={action}
       icon={icon}
     />

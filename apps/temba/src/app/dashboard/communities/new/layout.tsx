@@ -12,8 +12,8 @@ export default function NewCommunityLayout({
   return (
     <CreateAccessGate
       title="Communities"
-      backHref="/dashboard/communities"
-      backLabel="Back to Communities"
+      backHref="/dashboard"
+      backLabel="Back to Home"
     >
       {children}
     </CreateAccessGate>

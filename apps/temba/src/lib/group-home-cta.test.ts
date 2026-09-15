@@ -165,6 +165,7 @@ describe("groupHomeOverflowItems", () => {
       groupHomeOverflowItems({
         family: { kind: "none" },
         hasCommunity: false,
+        hasCreateAccess: false,
         canShowCreateGame: false,
         isLoosePublic: false,
         canManageInvites: false,
@@ -180,6 +181,7 @@ describe("groupHomeOverflowItems", () => {
       groupHomeOverflowItems({
         family: { kind: "join_group", secondary: "create_game" },
         hasCommunity: true,
+        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
@@ -201,6 +203,7 @@ describe("groupHomeOverflowItems", () => {
       groupHomeOverflowItems({
         family: { kind: "create_game", secondary: null },
         hasCommunity: false,
+        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: true,
         canManageInvites: false,
@@ -216,6 +219,7 @@ describe("groupHomeOverflowItems", () => {
       groupHomeOverflowItems({
         family: { kind: "none" },
         hasCommunity: false,
+        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
@@ -235,6 +239,7 @@ describe("groupHomeOverflowItems", () => {
           secondary: "create_game",
         },
         hasCommunity: false,
+        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
@@ -242,6 +247,42 @@ describe("groupHomeOverflowItems", () => {
         canDelete: false,
       }),
       ["manage_invites", "leave"],
+    );
+  });
+
+  it("keeps Open Community without the create-access flag and omits All Communities", () => {
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        family: { kind: "none" },
+        hasCommunity: true,
+        hasCreateAccess: false,
+        canShowCreateGame: false,
+        isLoosePublic: false,
+        canManageInvites: false,
+        isMember: false,
+        canDelete: false,
+      }),
+      ["open_community"],
+    );
+  });
+
+  it("includes All Communities only when the create-access flag is true", () => {
+    const base = {
+      family: { kind: "none" } as const,
+      hasCommunity: true,
+      canShowCreateGame: false,
+      isLoosePublic: false,
+      canManageInvites: false,
+      isMember: false,
+      canDelete: false,
+    };
+    assert.deepEqual(
+      groupHomeOverflowItems({ ...base, hasCreateAccess: false }),
+      ["open_community"],
+    );
+    assert.deepEqual(
+      groupHomeOverflowItems({ ...base, hasCreateAccess: true }),
+      ["open_community", "all_communities"],
     );
   });
 });

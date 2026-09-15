@@ -343,6 +343,15 @@ export default function CommunityHomePage({
   const showRequestsTab = data.canManageJoinRequests || data.canManageTeamLinks;
   const requestCount =
     (joinRequests.data?.length ?? 0) + (teamLinkRequests.data?.length ?? 0);
+  const showAllCommunities = hasCreateAccess;
+  const showCommunityOverflow =
+    showAllCommunities ||
+    canManageInvites ||
+    data.canUnarchive ||
+    isMember ||
+    data.canSoftArchive;
+  const showOverflowAboveDestructive =
+    showAllCommunities || canManageInvites || data.canUnarchive;
 
   const headerActions = (
     <>
@@ -355,40 +364,46 @@ export default function CommunityHomePage({
           {requestJoin.isPending ? "Requesting…" : "Request to join"}
         </Button>
       ) : null}
-      <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
-        <ActionMenuItem asChild>
-          <Link href="/dashboard/communities">All Communities</Link>
-        </ActionMenuItem>
-        {canManageInvites ? (
-          <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-            Manage invites
-          </ActionMenuItem>
-        ) : null}
-        {data.canUnarchive ? (
-          <ActionMenuItem
-            onSelect={() => unarchive.mutate({ communityId: id })}
-          >
-            Unarchive
-          </ActionMenuItem>
-        ) : null}
-        {isMember || data.canSoftArchive ? <ActionMenuSeparator /> : null}
-        {isMember ? (
-          <ActionMenuItem
-            variant="destructive"
-            onSelect={() => setLeaveOpen(true)}
-          >
-            Leave Community
-          </ActionMenuItem>
-        ) : null}
-        {data.canSoftArchive ? (
-          <ActionMenuItem
-            variant="destructive"
-            onSelect={() => setArchiveOpen(true)}
-          >
-            Soft-archive
-          </ActionMenuItem>
-        ) : null}
-      </ActionMenu>
+      {showCommunityOverflow ? (
+        <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
+          {showAllCommunities ? (
+            <ActionMenuItem asChild>
+              <Link href="/dashboard/communities">All Communities</Link>
+            </ActionMenuItem>
+          ) : null}
+          {canManageInvites ? (
+            <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+              Manage invites
+            </ActionMenuItem>
+          ) : null}
+          {data.canUnarchive ? (
+            <ActionMenuItem
+              onSelect={() => unarchive.mutate({ communityId: id })}
+            >
+              Unarchive
+            </ActionMenuItem>
+          ) : null}
+          {showOverflowAboveDestructive && (isMember || data.canSoftArchive) ? (
+            <ActionMenuSeparator />
+          ) : null}
+          {isMember ? (
+            <ActionMenuItem
+              variant="destructive"
+              onSelect={() => setLeaveOpen(true)}
+            >
+              Leave Community
+            </ActionMenuItem>
+          ) : null}
+          {data.canSoftArchive ? (
+            <ActionMenuItem
+              variant="destructive"
+              onSelect={() => setArchiveOpen(true)}
+            >
+              Soft-archive
+            </ActionMenuItem>
+          ) : null}
+        </ActionMenu>
+      ) : null}
     </>
   );
 

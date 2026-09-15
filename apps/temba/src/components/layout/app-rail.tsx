@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useCreateAccess } from "~/components/create-access-gate";
 import {
   visibleAppNavItems,
   isNavItemActive,
@@ -20,7 +21,8 @@ import {
 
 export function AppRail() {
   const pathname = usePathname();
-  const items = visibleAppNavItems();
+  const { isLoaded, hasCreateAccess } = useCreateAccess();
+  const items = visibleAppNavItems(isLoaded && hasCreateAccess);
 
   return (
     <Sidebar
