@@ -30,7 +30,9 @@ import {
 import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 import { groupHomeTabFromQuery, groupHomeTabQuery } from "~/lib/group-home-tab";
 import { isNotFoundError } from "~/lib/is-not-found-error";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
+
+type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
 export default function GroupHomePage({
   params,
@@ -180,6 +182,67 @@ export default function GroupHomePage({
       toast.error(error.message);
     },
   });
+
+  // Seat join and register from a Scheduled card: the same doors and the same
+  // invalidation the Games hub runs, plus this Group — one join changes its
+  // Games list, its Standing and its member counts, which are one payload.
+  async function refreshAfterGameJoin() {
+    await Promise.all([
+      utils.groups.byId.invalidate({ id }),
+      utils.games.listMyGames.invalidate(),
+      utils.games.listPublicPickup.invalidate(),
+      utils.games.listMyMatchHistory.invalidate(),
+      utils.users.home.invalidate(),
+      utils.games.byId.invalidate(),
+    ]);
+  }
+
+  const registerSeat = api.games.registerSeat.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      await refreshAfterGameJoin();
+    },
+    onError: async (error) => {
+      toastGlobalFormError(error);
+      await refreshAfterGameJoin();
+    },
+  });
+
+  const registerGame = api.games.register.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      await refreshAfterGameJoin();
+    },
+    onError: async (error) => {
+      toastGlobalFormError(error);
+      await refreshAfterGameJoin();
+    },
+  });
+
+  const pendingGameId =
+    (registerSeat.isPending ? registerSeat.variables?.gameId : null) ??
+    (registerGame.isPending ? registerGame.variables?.gameId : null) ??
+    null;
+
+  function onJoinSeat(
+    gameId: string,
+    sideIndex: number,
+    position: "left" | "right",
+  ) {
+    registerSeat.mutate({ gameId, sideIndex, position });
+  }
+
+  function onJoinWaitlist(game: ScheduledGame) {
+    if (game.format === "americano") {
+      registerGame.mutate({ gameId: game.id });
+      return;
+    }
+    registerSeat.mutate({ gameId: game.id });
+  }
+
+  function onRegisterGame(gameId: string) {
+    registerGame.mutate({ gameId });
+  }
 
   const joinPending = joinClubPublic.isPending || joinLoosePublic.isPending;
 
@@ -386,8 +449,13 @@ export default function GroupHomePage({
               upcomingGames={data.upcomingGames}
               gameHistory={data.gameHistory}
               groupId={id}
+              groupName={data.name}
               isCommunityArchived={data.isCommunityArchived}
               canShowCreateGame={canShowCreateGame}
+              pendingGameId={pendingGameId}
+              onJoinSeat={onJoinSeat}
+              onJoinWaitlist={onJoinWaitlist}
+              onRegister={onRegisterGame}
             />
           </TabsContent>
           <TabsContent

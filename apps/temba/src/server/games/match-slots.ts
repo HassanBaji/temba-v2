@@ -63,3 +63,72 @@ export function outcomeForSlot(
   }
   return result === "slot2" ? "won" : "lost";
 }
+
+/** A User seated on a Match slot, as the cards that read a slot render them. */
+export type MatchSlotMember = {
+  id: string;
+  name: string;
+  image: string | null;
+  /** Marks the signed-in User's own seat, so cards can label it "You". */
+  isViewer: boolean;
+};
+
+/** A slot's Game team with its seated Users — `null` before the draw. */
+export type MatchSlotTeam = {
+  players: readonly {
+    position: string | null;
+    gamePlayer: {
+      user: { id: string; name: string; image: string | null } | null;
+    } | null;
+  }[];
+} | null;
+
+/**
+ * The Users on one slot, left seat first, then right, then anyone unseated.
+ * Shared by the Games hub History card and the Group Played rows, which read
+ * the same slot rosters off the same Match.
+ */
+export function slotMembers(
+  team: MatchSlotTeam,
+  viewerUserId: string | null,
+): MatchSlotMember[] {
+  const players = [...(team?.players ?? [])].sort((left, right) => {
+    const rank = (position: string | null) =>
+      position === "left" ? 0 : position === "right" ? 1 : 2;
+    return rank(left.position) - rank(right.position);
+  });
+  const members: MatchSlotMember[] = [];
+  for (const link of players) {
+    const occupant = link.gamePlayer?.user;
+    if (!occupant) {
+      continue;
+    }
+    members.push({
+      id: occupant.id,
+      name: occupant.name,
+      image: occupant.image,
+      isViewer: occupant.id === viewerUserId,
+    });
+  }
+  return members;
+}
+
+/** A Match's Sets that carry a score, in the order they were read. */
+export function scoredSetsFromMatch(
+  sets: readonly {
+    slot1GamesWon: number | null;
+    slot2GamesWon: number | null;
+  }[],
+): { slot1GamesWon: number; slot2GamesWon: number }[] {
+  const scored: { slot1GamesWon: number; slot2GamesWon: number }[] = [];
+  for (const set of sets) {
+    if (set.slot1GamesWon == null || set.slot2GamesWon == null) {
+      continue;
+    }
+    scored.push({
+      slot1GamesWon: set.slot1GamesWon,
+      slot2GamesWon: set.slot2GamesWon,
+    });
+  }
+  return scored;
+}

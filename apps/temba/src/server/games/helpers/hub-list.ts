@@ -133,7 +133,8 @@ export type HubQueryRow = {
   group: {
     id: string;
     communityId: string | null;
-    name: string;
+    /** Nullable on `groups`; hub rows carry `groupName: null` for an unnamed Group. */
+    name: string | null;
     community: { archivedAt: Date | null } | null;
   } | null;
   venue: { id: string; name: string; city: string } | null;

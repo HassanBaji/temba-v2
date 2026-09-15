@@ -133,8 +133,8 @@ async function insertGroupGame(
   return { game, matchId: match.id };
 }
 
-describe("groupById Game enrichment", () => {
-  it("returns Venue, Court, occupancy, registration status, seated people, and viewer standing", async () => {
+describe("groupById Games tab", () => {
+  it("returns Scheduled Games in the Games hub row shape, seat roster included", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "group-home-viewer@example.com");
@@ -163,29 +163,38 @@ describe("groupById Game enrichment", () => {
       });
       const row = detail.upcomingGames.find((item) => item.id === game.id);
       expect(row).toMatchObject({
-        venueName: "Padel Club",
-        courtName: "Court 1",
+        // The fields `GameSummaryCard` reads, as `games.listMyGames` returns
+        // them — one shape, not a Group-local second one.
+        venue: { name: "Padel Club", city: "Lisbon" },
+        groupName: "Friday Night",
+        registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         registeredUserCount: 1,
         playersAllowed: 4,
         registrationStatus: "open",
         isPublic: true,
         isRegistered: false,
+        isSeated: false,
         isWaitlisted: false,
+        canRegister: true,
         joinFrozen: false,
         pricePerPlayerCents: 500,
       });
-      expect(row?.seatedPeople).toEqual([{ name: seated.name, image: null }]);
+      expect(row?.sides).toEqual([
+        { sideIndex: 1, left: null, right: null },
+        { sideIndex: 2, left: null, right: null },
+      ]);
     } finally {
       await close();
     }
   });
 
-  it("marks the viewer waitlisted and keeps history Set scores only when scored", async () => {
+  it("marks the viewer waitlisted and returns a Played row read from their slot", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "group-home-wait@example.com");
+      const rival = await insertUser(db, "group-home-rival@example.com");
       const venue = await insertVenue(db, "Ocean Padel");
-      const group = await insertGroup(db, viewer.id);
+      const group = await insertGroup(db, viewer.id, { members: [rival.id] });
       const windowStart = new Date(Date.now() + 48 * 60 * 60 * 1000);
       const windowEnd = new Date(Date.now() + 50 * 60 * 60 * 1000);
       const pastStart = new Date(Date.now() - 48 * 60 * 60 * 1000);
@@ -210,19 +219,17 @@ describe("groupById Game enrichment", () => {
         windowStart: pastStart,
         windowEnd: pastEnd,
       });
-      await db
-        .update(matches)
-        .set({ status: MatchStatusEnum.COMPLETED })
-        .where(eq(matches.id, history.matchId));
-      await db.insert(matchSets).values({
+      // The viewer sits on slot 2 and loses, so the row reads their own side
+      // first and the scoreline from slot 2.
+      await seatAndScore(db, {
+        gameId: history.game.id,
         matchId: history.matchId,
-        slot1GamesWon: 6,
-        slot2GamesWon: 4,
-      });
-      await db.insert(matchSets).values({
-        matchId: history.matchId,
-        slot1GamesWon: null,
-        slot2GamesWon: null,
+        slot1UserId: rival.id,
+        slot2UserId: viewer.id,
+        sets: [
+          { slot1GamesWon: 6, slot2GamesWon: 4 },
+          { slot1GamesWon: null, slot2GamesWon: null },
+        ],
       });
 
       const detail = await groupById(db, {
@@ -234,12 +241,137 @@ describe("groupById Game enrichment", () => {
       );
       expect(waitlisted?.isWaitlisted).toBe(true);
       expect(waitlisted?.isRegistered).toBe(false);
+      expect(waitlisted?.canRegister).toBe(false);
 
       const past = detail.gameHistory.find(
         (item) => item.id === history.game.id,
       );
-      expect(past?.setScores).toEqual([{ slot1GamesWon: 6, slot2GamesWon: 4 }]);
-      expect(past?.registrationStatus).toBe("closed");
+      expect(past).toMatchObject({
+        viewerSlot: 2,
+        outcome: "lost",
+        cancelled: false,
+        venueName: "Ocean Padel",
+      });
+      // Unscored Sets are dropped; only the scored one survives.
+      expect(past?.scoredSets).toEqual([
+        { slot1GamesWon: 6, slot2GamesWon: 4 },
+      ]);
+      expect(past?.slot1Members.map((member) => member.isViewer)).toEqual([
+        false,
+      ]);
+      expect(past?.slot2Members.map((member) => member.isViewer)).toEqual([
+        true,
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("reads no result off a Match that is scored but not yet completed", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "group-home-unconfirmed@example.com");
+      const rival = await insertUser(
+        db,
+        "group-home-unconfirmed-2@example.com",
+      );
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, viewer.id, { members: [rival.id] });
+      const game = await insertGroupGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        groupId: group.id,
+        ...pastWindow(48),
+      });
+      await seatAndScore(db, {
+        gameId: game.game.id,
+        matchId: game.matchId,
+        slot1UserId: viewer.id,
+        slot2UserId: rival.id,
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
+        status: MatchStatusEnum.CONFIRMED,
+      });
+
+      const detail = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+      const row = detail.gameHistory.find((item) => item.id === game.game.id);
+      // The score is there to read; the result is not settled (ADR-0011).
+      expect(row).toMatchObject({ viewerSlot: 1, outcome: null });
+      expect(row?.scoredSets).toEqual([{ slot1GamesWon: 6, slot2GamesWon: 2 }]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("gives a Game the viewer did not play in no viewer slot and no result", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "group-home-bystander@example.com");
+      const one = await insertUser(db, "group-home-player-1@example.com");
+      const two = await insertUser(db, "group-home-player-2@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, viewer.id, {
+        members: [one.id, two.id],
+      });
+
+      const played = await insertGroupGame(db, {
+        createdBy: one.id,
+        venueId: venue.id,
+        groupId: group.id,
+        ...pastWindow(48),
+      });
+      await seatAndScore(db, {
+        gameId: played.game.id,
+        matchId: played.matchId,
+        slot1UserId: one.id,
+        slot2UserId: two.id,
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
+      });
+
+      const unscored = await insertGroupGame(db, {
+        createdBy: one.id,
+        venueId: venue.id,
+        groupId: group.id,
+        ...pastWindow(24),
+      });
+      await seatAndScore(db, {
+        gameId: unscored.game.id,
+        matchId: unscored.matchId,
+        slot1UserId: viewer.id,
+        slot2UserId: one.id,
+        sets: [],
+        status: MatchStatusEnum.CONFIRMED,
+      });
+
+      const detail = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+
+      const bystanderRow = detail.gameHistory.find(
+        (item) => item.id === played.game.id,
+      );
+      expect(bystanderRow).toMatchObject({ viewerSlot: null, outcome: null });
+      expect(
+        [
+          ...(bystanderRow?.slot1Members ?? []),
+          ...(bystanderRow?.slot2Members ?? []),
+        ].some((member) => member.isViewer),
+      ).toBe(false);
+      expect(bystanderRow?.scoredSets).toEqual([
+        { slot1GamesWon: 6, slot2GamesWon: 2 },
+      ]);
+
+      // Seated, but the Match carries no score: the row draws **Enter**.
+      const awaitingRow = detail.gameHistory.find(
+        (item) => item.id === unscored.game.id,
+      );
+      expect(awaitingRow).toMatchObject({ viewerSlot: 1, outcome: null });
+      expect(awaitingRow?.scoredSets).toEqual([]);
     } finally {
       await close();
     }

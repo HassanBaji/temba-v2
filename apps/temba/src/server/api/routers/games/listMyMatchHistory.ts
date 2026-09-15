@@ -6,19 +6,19 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { matchOutcome } from "~/server/games/match-outcome";
-import { outcomeForSlot, userSlotOnMatch } from "~/server/games/match-slots";
+import {
+  outcomeForSlot,
+  scoredSetsFromMatch,
+  slotMembers,
+  userSlotOnMatch,
+  type MatchSlotMember,
+} from "~/server/games/match-slots";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
 import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient = typeof db | TestDatabase;
 
-export type MatchHistoryMember = {
-  id: string;
-  name: string;
-  image: string | null;
-  /** Marks the signed-in User's own seat, so cards can label it "You". */
-  isViewer: boolean;
-};
+export type MatchHistoryMember = MatchSlotMember;
 
 export type MatchHistoryRow = {
   id: string;
@@ -35,59 +35,6 @@ export type MatchHistoryRow = {
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
 };
-
-type SlotTeam = {
-  players: readonly {
-    position: string | null;
-    gamePlayer: {
-      user: { id: string; name: string; image: string | null } | null;
-    } | null;
-  }[];
-} | null;
-
-function membersFromSlot(
-  team: SlotTeam,
-  viewerUserId: string,
-): MatchHistoryMember[] {
-  const players = [...(team?.players ?? [])].sort((left, right) => {
-    const rank = (position: string | null) =>
-      position === "left" ? 0 : position === "right" ? 1 : 2;
-    return rank(left.position) - rank(right.position);
-  });
-  const members: MatchHistoryMember[] = [];
-  for (const link of players) {
-    const occupant = link.gamePlayer?.user;
-    if (!occupant) {
-      continue;
-    }
-    members.push({
-      id: occupant.id,
-      name: occupant.name,
-      image: occupant.image,
-      isViewer: occupant.id === viewerUserId,
-    });
-  }
-  return members;
-}
-
-function scoredSetsFromMatch(
-  sets: readonly {
-    slot1GamesWon: number | null;
-    slot2GamesWon: number | null;
-  }[],
-): { slot1GamesWon: number; slot2GamesWon: number }[] {
-  const scored: { slot1GamesWon: number; slot2GamesWon: number }[] = [];
-  for (const set of sets) {
-    if (set.slot1GamesWon == null || set.slot2GamesWon == null) {
-      continue;
-    }
-    scored.push({
-      slot1GamesWon: set.slot1GamesWon,
-      slot2GamesWon: set.slot2GamesWon,
-    });
-  }
-  return scored;
-}
 
 /**
  * Past Friendly games the signed-in User sat on via a completed Match slot.
@@ -288,8 +235,8 @@ export async function listMyMatchHistoryRows(
       displayTime: chosen.displayTime,
       matchId: chosen.match.id,
       groupName: game.group?.name ?? null,
-      slot1Members: membersFromSlot(chosen.match.slot1GameTeam, userId),
-      slot2Members: membersFromSlot(chosen.match.slot2GameTeam, userId),
+      slot1Members: slotMembers(chosen.match.slot1GameTeam, userId),
+      slot2Members: slotMembers(chosen.match.slot2GameTeam, userId),
       scoredSets: scoredSetsFromMatch(chosen.match.sets),
       viewerSlot: chosen.userSlot,
       outcome: chosen.outcome,

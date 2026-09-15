@@ -1,3 +1,5 @@
+import { shortPlayerName } from "~/lib/player-name";
+
 const SPORT_LABELS: Record<string, string> = {
   padel: "Padel",
   football: "Football",
@@ -107,35 +109,80 @@ export function groupStandingRecordLabel(wins: number, losses: number) {
   return `${wins}-${losses}`;
 }
 
-export function groupHomeVenueCourtLine(
-  venueName: string | null | undefined,
-  courtName: string | null | undefined,
+/**
+ * The Games tab Played row (design 06b): a team label such as `"You, Sofia L"`,
+ * the viewer first so the row opens with their own seat. An empty slot — a
+ * past Game whose draw never happened — reads as open seats, matching the
+ * Games hub History card.
+ */
+export function groupPlayedTeamLabel(
+  members: readonly { name: string; isViewer: boolean }[],
 ) {
-  if (venueName && courtName) {
-    return `${venueName} · ${courtName}`;
-  }
-  return venueName ?? courtName ?? null;
+  const ordered = [...members].sort((left, right) => {
+    if (left.isViewer === right.isViewer) {
+      return 0;
+    }
+    return left.isViewer ? -1 : 1;
+  });
+  const names = ordered.map((member) =>
+    member.isViewer ? "You" : shortPlayerName(member.name),
+  );
+  return names.length > 0 ? names.join(", ") : "Open seats";
 }
 
-export function groupHomeSetScoreLine(
-  sets:
-    | readonly {
-        slot1GamesWon: number | null;
-        slot2GamesWon: number | null;
-      }[]
-    | null
-    | undefined,
+/** `"6 Sep"` — the Played row's date, day before month as the design draws it. */
+export function groupPlayedDayLabel(playedAt: Date | string) {
+  const date = playedAt instanceof Date ? playedAt : new Date(playedAt);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  // Composed rather than locale-formatted: `en-GB` reads "6 Sept" and `en-US`
+  // reverses the order. Same composition `formatGameCardDay` uses.
+  return `${date.getDate()} ${date.toLocaleDateString("en-US", { month: "short" })}`;
+}
+
+/** The Played row's second line: the other team, then the date. */
+export function groupPlayedOpponentLine(
+  members: readonly { name: string; isViewer: boolean }[],
+  playedAt: Date | string,
 ) {
-  if (!sets) {
+  const day = groupPlayedDayLabel(playedAt);
+  const label = groupPlayedTeamLabel(members);
+  return day ? `${label}, ${day}` : label;
+}
+
+/**
+ * The Played row scoreline, read from the slot the viewer sat on so their own
+ * games come first: `"6-4 4-6 7-5"`. A Game they did not play in reads from
+ * slot 1. `null` when the Match carries no scored Set — the row draws the
+ * **Enter** affordance instead.
+ */
+export function groupPlayedScoreLine(
+  scoredSets: readonly { slot1GamesWon: number; slot2GamesWon: number }[],
+  viewerSlot: 1 | 2 | null,
+) {
+  if (scoredSets.length === 0) {
     return null;
   }
-  const scored = sets.filter(
-    (set) => set.slot1GamesWon != null && set.slot2GamesWon != null,
-  );
-  if (scored.length === 0) {
-    return null;
+  return scoredSets
+    .map((set) =>
+      viewerSlot === 2
+        ? `${set.slot2GamesWon}-${set.slot1GamesWon}`
+        : `${set.slot1GamesWon}-${set.slot2GamesWon}`,
+    )
+    .join(" ");
+}
+
+/**
+ * The Played row's result mark. A draw, a Match still awaiting a score, and a
+ * Game the viewer did not play in all read `not-played` — the design draws
+ * three marks, the same rule `groupFormMarks` applies.
+ */
+export function groupPlayedMarkVariant(
+  outcome: "won" | "lost" | "draw" | null,
+): "won" | "lost" | "not-played" {
+  if (outcome === "won" || outcome === "lost") {
+    return outcome;
   }
-  return scored
-    .map((set) => `${set.slot1GamesWon}-${set.slot2GamesWon}`)
-    .join(", ");
+  return "not-played";
 }

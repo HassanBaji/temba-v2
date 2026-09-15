@@ -7,6 +7,7 @@ import {
   games,
   groupMembers,
   GroupTypeEnum,
+  MatchStatusEnum,
   ratings,
   type GroupSportEnum,
 } from "@repo/db";
@@ -15,11 +16,22 @@ import type { LevelBand } from "~/lib/level-bands";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
+import { isStaffRole, mayCreateGameOnGroup } from "~/server/games/access";
 import {
-  isStaffRole,
-  mayCreateGameOnGroup,
-  registrationStatusFromState,
-} from "~/server/games/access";
+  applyViewerLevelRangeToHubRows,
+  hubListColumns,
+  hubListWith,
+  toHubListRow,
+  viewerHubContext,
+} from "~/server/games/helpers/hub-list";
+import { matchOutcome } from "~/server/games/match-outcome";
+import {
+  outcomeForSlot,
+  scoredSetsFromMatch,
+  seatedUserSlotOnMatch,
+  slotMembers,
+  type MatchSlotMember,
+} from "~/server/games/match-slots";
 import { groupHasGames } from "~/server/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "~/server/groups/helpers/group-has-non-creator-members";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
@@ -88,13 +100,17 @@ async function mayDeleteEmptyGroup(args: {
 }
 
 /** A Match slot as the Game teams seat it — `null` before the draw. */
-type SlotTeam = {
+type GroupSlotTeam = {
   players: readonly {
-    gamePlayer: { userId: string | null } | null;
+    position: string | null;
+    gamePlayer: {
+      userId: string | null;
+      user: { id: string; name: string; image: string | null } | null;
+    } | null;
   }[];
 } | null;
 
-function slotUserIds(team: SlotTeam): string[] {
+function slotUserIds(team: GroupSlotTeam): string[] {
   const userIds: string[] = [];
   for (const link of team?.players ?? []) {
     const userId = link.gamePlayer?.userId;
@@ -105,108 +121,110 @@ function slotUserIds(team: SlotTeam): string[] {
   return userIds;
 }
 
-type GroupHomeGameRow = {
+/**
+ * One row of the Games tab Played list (design 06b, spec §4.2): the slot
+ * rosters, the scored Sets, and the slot the viewer sat on — `null` when they
+ * did not play. Same fields `games.listMyMatchHistory` returns, read from the
+ * same shared slot derivation.
+ */
+export type GroupPlayedGame = {
   id: string;
   name: string | null;
-  windowStart: Date | null;
-  windowEnd: Date | null;
-  pricePerPlayerCents: number | null;
-  levelMinTenths: number | null;
-  levelMaxTenths: number | null;
-  cancelledAt: Date | null;
+  venueName: string | null;
+  displayTime: Date;
+  cancelled: boolean;
+  slot1Members: MatchSlotMember[];
+  slot2Members: MatchSlotMember[];
+  scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
+  viewerSlot: 1 | 2 | null;
+  outcome: "won" | "lost" | "draw" | null;
+};
+
+type GroupGameMatch = {
+  id: string;
+  startTime: Date | null;
+  status: string | null;
   createdAt: Date;
-  createdBy: string;
-  format: string;
-  sport: string | null;
-  groupId: string | null;
-  isPublic: boolean;
-  playersAllowed: number | null;
-  teamsAllowed: number | null;
-  registrationClosedAt: Date | null;
-  registrationMode: string;
-  venue: { name: string } | null;
-  players: {
-    userId: string | null;
-    user: { name: string; image: string | null } | null;
-  }[];
-  waitlist: { userId: string | null }[];
-  teams: { id: string }[];
-  matches: {
-    startTime: Date | null;
-    status: string | null;
-    createdAt: Date;
-    court: { name: string } | null;
-    slot1GameTeam: SlotTeam;
-    slot2GameTeam: SlotTeam;
-    sets: {
-      slot1GamesWon: number | null;
-      slot2GamesWon: number | null;
-    }[];
+  slot1GameTeam: GroupSlotTeam;
+  slot2GameTeam: GroupSlotTeam;
+  sets: readonly {
+    slot1GamesWon: number | null;
+    slot2GamesWon: number | null;
   }[];
 };
 
-function toGroupHomeGameCard(
-  game: GroupHomeGameRow,
-  args: { userId: string; joinFrozen: boolean; now: Date },
-) {
-  const registeredUserCount = game.players.length;
-  const registeredTeamCount = game.teams.length;
-  const registrationStatus = registrationStatusFromState(
-    game,
-    args.now,
-    registeredUserCount,
-    registeredTeamCount,
-    args.joinFrozen,
-  );
-  const isRegistered = game.players.some(
-    (player) => player.userId === args.userId,
-  );
-  const isWaitlisted = game.waitlist.some((row) => row.userId === args.userId);
-  let courtName: string | null = null;
-  for (const match of game.matches) {
-    if (match.court?.name) {
-      courtName = match.court.name;
-      break;
+/**
+ * The Match a past Game reads as: the latest one the viewer sat on, so the
+ * row speaks about their own result, and otherwise the latest Match on the
+ * Game, so a Game they did not play in still shows both teams and the score.
+ */
+function playedMatchForViewer(
+  matches: readonly GroupGameMatch[],
+  userId: string,
+): { match: GroupGameMatch; viewerSlot: 1 | 2 | null } | null {
+  const sorted = [...matches].sort((a, b) => {
+    const left = a.startTime?.getTime() ?? a.createdAt.getTime();
+    const right = b.startTime?.getTime() ?? b.createdAt.getTime();
+    if (left !== right) {
+      return right - left;
+    }
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+  for (const match of sorted) {
+    const viewerSlot = seatedUserSlotOnMatch(
+      {
+        slot1UserIds: slotUserIds(match.slot1GameTeam),
+        slot2UserIds: slotUserIds(match.slot2GameTeam),
+      },
+      userId,
+    );
+    if (viewerSlot != null) {
+      return { match, viewerSlot };
     }
   }
-  const setScores = game.matches.flatMap((match) =>
-    match.sets.flatMap((set) =>
-      set.slot1GamesWon != null && set.slot2GamesWon != null
-        ? [
-            {
-              slot1GamesWon: set.slot1GamesWon,
-              slot2GamesWon: set.slot2GamesWon,
-            },
-          ]
-        : [],
-    ),
-  );
+  const fallback = sorted[0];
+  return fallback ? { match: fallback, viewerSlot: null } : null;
+}
+
+function toGroupPlayedGame(
+  game: {
+    id: string;
+    name: string | null;
+    groupId: string | null;
+    cancelledAt: Date | null;
+    windowStart: Date | null;
+    windowEnd: Date | null;
+    createdAt: Date;
+    format: string;
+    venue: { name: string } | null;
+    matches: readonly GroupGameMatch[];
+  },
+  userId: string,
+): GroupPlayedGame {
+  const played = playedMatchForViewer(game.matches, userId);
+  const viewerSlot = played?.viewerSlot ?? null;
+  const scoredSets = played ? scoredSetsFromMatch(played.match.sets) : [];
+  // Only a completed Match is a result. A Match awaiting result confirmation
+  // (ADR-0011) still shows its score, but reads as no result — the same rule
+  // `groupFormMarks` applies to the marks on the other tabs.
+  const outcome =
+    played &&
+    viewerSlot != null &&
+    played.match.status === MatchStatusEnum.COMPLETED
+      ? outcomeForSlot(viewerSlot, matchOutcome(played.match.sets).result)
+      : null;
 
   return {
     id: game.id,
     name: game.name,
-    startTime: gameListTime(game),
-    windowStart: game.windowStart,
-    windowEnd: game.windowEnd,
-    pricePerPlayerCents: game.pricePerPlayerCents,
-    levelMinTenths: game.levelMinTenths,
-    levelMaxTenths: game.levelMaxTenths,
-    format: game.format,
-    cancelledAt: game.cancelledAt,
-    sport: game.sport,
-    isPublic: game.isPublic,
     venueName: game.venue?.name ?? null,
-    courtName,
-    registeredUserCount,
-    playersAllowed: game.playersAllowed,
-    registrationStatus,
-    joinFrozen: args.joinFrozen,
-    seatedPeople: game.players.flatMap((player) =>
-      player.user ? [{ name: player.user.name, image: player.user.image }] : [],
-    ),
-    isRegistered,
-    isWaitlisted,
-    setScores: setScores.length > 0 ? setScores : null,
+    displayTime: played?.match.startTime ?? gameListTime(game),
+    cancelled: game.cancelledAt !== null,
+    slot1Members: played ? slotMembers(played.match.slot1GameTeam, userId) : [],
+    slot2Members: played ? slotMembers(played.match.slot2GameTeam, userId) : [],
+    scoredSets,
+    viewerSlot,
+    outcome,
   };
 }
 
@@ -355,63 +373,36 @@ export async function groupById(
   // Soft-archived Communities are not filtered — members still see Games.
   const groupGameRows = await database.query.games.findMany({
     where: eq(games.groupId, group.id),
-    columns: {
-      id: true,
-      name: true,
-      windowStart: true,
-      windowEnd: true,
-      pricePerPlayerCents: true,
-      levelMinTenths: true,
-      levelMaxTenths: true,
-      cancelledAt: true,
-      createdAt: true,
-      createdBy: true,
-      format: true,
-      sport: true,
-      groupId: true,
-      isPublic: true,
-      playersAllowed: true,
-      teamsAllowed: true,
-      registrationClosedAt: true,
-      registrationMode: true,
-    },
+    // The Scheduled cards are the Games hub's own rows, so this reads the hub
+    // column set (`~/server/games/helpers/hub-list`) and hands it to the same
+    // `toHubListRow`. Matches carry their slot rosters and Sets on top, for
+    // the W-L, form-mark and Played derivations below (spec §4, §6).
+    columns: hubListColumns,
     with: {
-      venue: {
-        columns: { name: true },
-      },
-      players: {
-        columns: { userId: true },
-        with: {
-          user: {
-            columns: { name: true, image: true },
-          },
-        },
-      },
-      waitlist: {
-        columns: { userId: true },
-      },
-      teams: {
-        columns: { id: true },
-      },
+      ...hubListWith,
       matches: {
         columns: {
+          id: true,
+          gameId: true,
           startTime: true,
           status: true,
           createdAt: true,
+          slot1GameTeamId: true,
+          slot2GameTeamId: true,
         },
         with: {
-          court: {
-            columns: { name: true },
-          },
-          // Slot rosters feed the W-L and form-mark derivations below. They
-          // are read, not returned — the response carries no Match rows.
           slot1GameTeam: {
             columns: { id: true },
             with: {
               players: {
-                columns: { id: true },
+                columns: { position: true },
                 with: {
-                  gamePlayer: { columns: { userId: true } },
+                  gamePlayer: {
+                    columns: { userId: true },
+                    with: {
+                      user: { columns: { id: true, name: true, image: true } },
+                    },
+                  },
                 },
               },
             },
@@ -420,9 +411,14 @@ export async function groupById(
             columns: { id: true },
             with: {
               players: {
-                columns: { id: true },
+                columns: { position: true },
                 with: {
-                  gamePlayer: { columns: { userId: true } },
+                  gamePlayer: {
+                    columns: { userId: true },
+                    with: {
+                      user: { columns: { id: true, name: true, image: true } },
+                    },
+                  },
                 },
               },
             },
@@ -432,24 +428,29 @@ export async function groupById(
               slot1GamesWon: true,
               slot2GamesWon: true,
             },
+            orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
           },
         },
       },
     },
   });
 
-  const joinFrozen = archive.freeze("join");
-  const cardArgs = {
-    userId: args.userId,
-    joinFrozen,
-    now,
-  };
-
-  const upcomingGames = filterAndSortHomeUpcomingGames(
+  // Scheduled cards are `GameSummaryCard`, the Games hub card, so the rows it
+  // reads are built by the hub's own `toHubListRow` — one shape, not two
+  // (spec §4.1). The viewer's Level range gates `canRegister` here exactly as
+  // it does on the hub.
+  const viewer = await viewerHubContext(database, args.userId);
+  const upcomingRows = filterAndSortHomeUpcomingGames(
     groupGameRows,
     new Set([group.id]),
     now,
-  ).map((game) => toGroupHomeGameCard(game, cardArgs));
+  );
+  const upcomingGames = await applyViewerLevelRangeToHubRows(
+    database,
+    upcomingRows.map((row) => toHubListRow(row, viewer, now)),
+    upcomingRows,
+    args.userId,
+  );
 
   const gameHistory = groupGameRows
     .filter((game) => {
@@ -460,7 +461,7 @@ export async function groupById(
     })
     .sort((a, b) => gameListTime(b).getTime() - gameListTime(a).getTime())
     .slice(0, GROUP_GAME_HISTORY_LIMIT)
-    .map((game) => toGroupHomeGameCard(game, cardArgs));
+    .map((game) => toGroupPlayedGame(game, args.userId));
 
   // W-L and form marks derive over the Matches already loaded above
   // (`.scratch/groups-redesign/spec.md` §6.1, §6.2). A cancelled Game never

@@ -4,6 +4,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { ResultMark } from "~/components/temba/result-mark";
 import { Card } from "~/components/ui/card";
 import { formatRelativeDay } from "~/lib/format-game-start";
+import { shortPlayerName } from "~/lib/player-name";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -41,23 +42,6 @@ function setTally(sets: { us: number; them: number }[]) {
   return { won, lost };
 }
 
-/** "Sofia Lindqvist" -> "Sofia L", so a two-name team row stays on one line. */
-function shortName(name: string) {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter((part) => part.length > 0);
-  const first = parts[0];
-  if (!first) {
-    return name;
-  }
-  if (parts.length === 1) {
-    return first;
-  }
-  const surnameInitial = Array.from(parts[parts.length - 1]!)[0];
-  return surnameInitial ? `${first} ${surnameInitial.toUpperCase()}` : first;
-}
-
 /** The viewer reads as "You", and leads their own team's seats and label. */
 function viewerFirst(members: MatchHistoryMember[]) {
   const index = members.findIndex((member) => member.isViewer);
@@ -69,7 +53,7 @@ function viewerFirst(members: MatchHistoryMember[]) {
 
 function teamLabel(members: MatchHistoryMember[]) {
   const names = members.map((member) =>
-    member.isViewer ? "You" : shortName(member.name),
+    member.isViewer ? "You" : shortPlayerName(member.name),
   );
   if (names.length === 0) {
     return "Open seats";
