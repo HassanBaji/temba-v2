@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { LEVEL_BANDS } from "./level-bands";
 import {
   formatLevelRangeLabel,
+  formatLevelRangeProseLabel,
   formatLevelRangeGateCopy,
   formatLevelTenths,
   LEVEL_BAND_MAX_TENTHS,
@@ -163,22 +164,48 @@ describe("formatLevelRangeLabel", () => {
     expect(formatLevelRangeLabel(undefined, undefined)).toBeNull();
   });
 
-  it("formats min and max, min-only, and max-only as display labels", () => {
-    expect(formatLevelRangeLabel(21, 41)).toBe("Level C–C+");
-    expect(formatLevelRangeLabel(21, 34)).toBe("Level C");
-    expect(formatLevelRangeLabel(21, null)).toBe("Level C and up");
-    expect(formatLevelRangeLabel(null, 41)).toBe("Level C+ and under");
-    expect(formatLevelRangeLabel(30, 45)).toBe("Level C–B");
-    expect(formatLevelRangeLabel(null, 45)).toBe("Level B and under");
+  it("formats captioned slots as a bare band, without a Level prefix", () => {
+    expect(formatLevelRangeLabel(21, 41)).toBe("C–C+");
+    expect(formatLevelRangeLabel(21, 34)).toBe("C");
+    expect(formatLevelRangeLabel(21, null)).toBe("C and up");
+    expect(formatLevelRangeLabel(null, 41)).toBe("C+ and under");
+    expect(formatLevelRangeLabel(30, 45)).toBe("C–B");
+    expect(formatLevelRangeLabel(null, 45)).toBe("B and under");
+    expect(formatLevelRangeLabel(21, 41)).not.toMatch(/^Level /);
   });
 
   it("collapses the same display min and max to one letter and never writes D++", () => {
-    expect(formatLevelRangeLabel(35, 41)).toBe("Level C+");
-    expect(formatLevelRangeLabel(30, 32)).toBe("Level C");
-    expect(formatLevelRangeLabel(0, null)).toBe("Level D and up");
-    expect(formatLevelRangeLabel(14, null)).toBe("Level D+ and up");
-    expect(formatLevelRangeLabel(0, null)).not.toBe("Level D+");
+    expect(formatLevelRangeLabel(35, 41)).toBe("C+");
+    expect(formatLevelRangeLabel(30, 32)).toBe("C");
+    expect(formatLevelRangeLabel(0, null)).toBe("D and up");
+    expect(formatLevelRangeLabel(14, null)).toBe("D+ and up");
+    expect(formatLevelRangeLabel(0, null)).not.toBe("D+");
     expect(formatLevelRangeLabel(14, null)).not.toContain("D++");
+  });
+});
+
+describe("formatLevelRangeProseLabel", () => {
+  it("omits when both bounds are unset", () => {
+    expect(formatLevelRangeProseLabel(null, null)).toBeNull();
+    expect(formatLevelRangeProseLabel(undefined, undefined)).toBeNull();
+  });
+
+  it("prefixes Level for prose callers", () => {
+    expect(formatLevelRangeProseLabel(21, 41)).toBe("Level C–C+");
+    expect(formatLevelRangeProseLabel(21, 34)).toBe("Level C");
+    expect(formatLevelRangeProseLabel(21, null)).toBe("Level C and up");
+    expect(formatLevelRangeProseLabel(null, 41)).toBe("Level C+ and under");
+    expect(formatLevelRangeProseLabel(30, 45)).toBe("Level C–B");
+    expect(formatLevelRangeProseLabel(null, 45)).toBe("Level B and under");
+  });
+
+  it("collapses the same display min and max to one letter and never writes D++", () => {
+    expect(formatLevelRangeProseLabel(35, 41)).toBe("Level C+");
+    expect(formatLevelRangeProseLabel(30, 32)).toBe("Level C");
+    expect(formatLevelRangeProseLabel(0, null)).toBe("Level D and up");
+    expect(formatLevelRangeProseLabel(14, null)).toBe("Level D+ and up");
+    expect(formatLevelRangeProseLabel(0, null)).not.toBe("Level D+");
+    expect(formatLevelRangeProseLabel(14, null)).not.toContain("D++");
   });
 });
 

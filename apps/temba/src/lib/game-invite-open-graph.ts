@@ -3,7 +3,7 @@ import {
   formatGameTimeWindow,
 } from "~/lib/format-game-start";
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
-import { formatLevelRangeLabel } from "~/lib/level-range";
+import { formatLevelRangeProseLabel } from "~/lib/level-range";
 
 export const GENERIC_TEMBA_OPEN_GRAPH = {
   title: "Temba - the future of competitive sports",
@@ -47,7 +47,7 @@ function withLevelRange(
   description: string,
   input: Pick<GameInviteOpenGraphInput, "levelMinTenths" | "levelMaxTenths">,
 ) {
-  const range = formatLevelRangeLabel(
+  const range = formatLevelRangeProseLabel(
     input.levelMinTenths,
     input.levelMaxTenths,
   );

@@ -206,20 +206,6 @@ export const LEVEL_RANGE_PARTNER_MESSAGE =
 export const LEVEL_RANGE_TEAM_MESSAGE =
   "A Team partner's Level is outside this Game's range";
 
-export function formatLevelRangeGateCopy(args: {
-  levelMinTenths: number | null | undefined;
-  levelMaxTenths: number | null | undefined;
-  viewerLevelTenths: number | null | undefined;
-}): string {
-  if (args.viewerLevelTenths == null) {
-    return "You don't have a Level yet. Declare one on You, or request to play.";
-  }
-  const range =
-    formatLevelRangeLabel(args.levelMinTenths, args.levelMaxTenths) ??
-    "this Game's range";
-  return `This Game is for ${range}. Your Level is ${displayLabelFromStoredBand(tenthsToLevelBand(args.viewerLevelTenths))}.`;
-}
-
 export function formatLevelRangeLabel(
   levelMinTenths: number | null | undefined,
   levelMaxTenths: number | null | undefined,
@@ -245,4 +231,26 @@ export function formatLevelRangeLabel(
     return `${maxLabel} and under`;
   }
   return null;
+}
+
+export function formatLevelRangeProseLabel(
+  levelMinTenths: number | null | undefined,
+  levelMaxTenths: number | null | undefined,
+): string | null {
+  const label = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
+  return label ? `Level ${label}` : null;
+}
+
+export function formatLevelRangeGateCopy(args: {
+  levelMinTenths: number | null | undefined;
+  levelMaxTenths: number | null | undefined;
+  viewerLevelTenths: number | null | undefined;
+}): string {
+  if (args.viewerLevelTenths == null) {
+    return "You don't have a Level yet. Declare one on You, or request to play.";
+  }
+  const range =
+    formatLevelRangeProseLabel(args.levelMinTenths, args.levelMaxTenths) ??
+    "this Game's range";
+  return `This Game is for ${range}. Your Level is ${displayLabelFromStoredBand(tenthsToLevelBand(args.viewerLevelTenths))}.`;
 }
