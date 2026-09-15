@@ -1,6 +1,7 @@
 "use client";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { ResultMark } from "~/components/temba/result-mark";
 import { Card } from "~/components/ui/card";
 import { formatRelativeDay } from "~/lib/format-game-start";
 import { cn } from "~/lib/utils";
@@ -77,49 +78,6 @@ function teamLabel(members: MatchHistoryMember[]) {
     return names[0]!;
   }
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]!}`;
-}
-
-/**
- * Temba result mark: a filled disc with a cut-out arc for a win, an outlined
- * disc otherwise. Mirrors `#tembaWon` / `#tembaLost` in the design canvas.
- */
-function ResultMark({ won }: { won: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      aria-hidden="true"
-      className="text-ink mt-0.5 block size-6 shrink-0"
-    >
-      {won ? (
-        <>
-          <circle cx="50" cy="50" r="44" fill="currentColor" />
-          <path
-            d="M6,50 C18,16 82,16 94,50"
-            fill="none"
-            stroke="var(--color-paper)"
-            strokeWidth="5"
-          />
-        </>
-      ) : (
-        <>
-          <circle
-            cx="50"
-            cy="50"
-            r="43"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-          />
-          <path
-            d="M6,50 C18,16 82,16 94,50"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-          />
-        </>
-      )}
-    </svg>
-  );
 }
 
 function SeatTile({
@@ -322,7 +280,10 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
         )}
       >
         <div className="flex items-start gap-3 px-5 py-4">
-          <ResultMark won={won} />
+          <ResultMark
+            variant={won ? "won" : "lost"}
+            className="mt-0.5 size-6"
+          />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
