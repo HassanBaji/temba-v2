@@ -6,6 +6,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { matchOutcome } from "~/server/games/match-outcome";
+import { outcomeForSlot, userSlotOnMatch } from "~/server/games/match-slots";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
 import type { TestDatabase } from "~/server/test/pglite";
 
@@ -43,39 +44,6 @@ type SlotTeam = {
     } | null;
   }[];
 } | null;
-
-function userSlotOnMatch(
-  match: {
-    slot1GameTeamId: string | null;
-    slot2GameTeamId: string | null;
-  },
-  myGameTeamIds: ReadonlySet<string>,
-): 1 | 2 | null {
-  const onSlot1 =
-    match.slot1GameTeamId != null && myGameTeamIds.has(match.slot1GameTeamId);
-  const onSlot2 =
-    match.slot2GameTeamId != null && myGameTeamIds.has(match.slot2GameTeamId);
-  if (onSlot1 === onSlot2) {
-    return null;
-  }
-  return onSlot1 ? 1 : 2;
-}
-
-function viewerOutcome(
-  userSlot: 1 | 2,
-  result: "slot1" | "slot2" | "draw" | "none",
-): "won" | "lost" | "draw" | null {
-  if (result === "none") {
-    return null;
-  }
-  if (result === "draw") {
-    return "draw";
-  }
-  if (userSlot === 1) {
-    return result === "slot1" ? "won" : "lost";
-  }
-  return result === "slot2" ? "won" : "lost";
-}
 
 function membersFromSlot(
   team: SlotTeam,
@@ -285,7 +253,7 @@ export async function listMyMatchHistoryRows(
       if (userSlot == null) {
         continue;
       }
-      const outcome = viewerOutcome(userSlot, matchOutcome(match.sets).result);
+      const outcome = outcomeForSlot(userSlot, matchOutcome(match.sets).result);
       if (outcome == null) {
         continue;
       }
