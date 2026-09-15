@@ -9,19 +9,17 @@ import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
-import { GroupHomeActionBar } from "~/components/groups/group-home-action-bar";
-import { GroupHomeHeader } from "~/components/groups/group-home-header";
+import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
-import { GroupHomeRecordStrip } from "~/components/groups/group-home-record-strip";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
 import { GroupHomeTopBar } from "~/components/groups/group-home-top-bar";
 import { GroupInvitesDialog } from "~/components/groups/group-invites-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Button } from "~/components/ui/button";
+import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { groupHomeRecord } from "~/lib/group-home-chrome";
 import {
   groupHomeCanManageInvites,
   groupHomeCanShowCreateGame,
@@ -279,7 +277,6 @@ export default function GroupHomePage({
     isMember: data.membership != null,
     canDelete: data.canDelete,
   });
-  const record = groupHomeRecord(data.membership);
   const restoreFocusRef =
     restoreFocus === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef;
 
@@ -341,42 +338,33 @@ export default function GroupHomePage({
         <GroupHomeTopBar name={groupName} overflow={overflowMenu("mobile")} />
       </div>
 
-      <div className="space-y-6">
-        <GroupHomeHeader
+      <Tabs value={tab} onValueChange={setTab} className="gap-0">
+        <GroupHomeChrome
+          groupId={id}
           name={groupName}
           sport={data.sport ?? null}
           memberCount={data.standing.memberCount}
-          communityName={data.community?.name ?? null}
-          actions={overflowMenu("desktop")}
-        />
-
-        {banners}
-
-        <GroupHomeRecordStrip record={record} />
-
-        <GroupHomeActionBar
-          family={ctaFamily}
-          groupId={id}
-          joinPending={joinPending}
-          onJoin={onJoin}
+          createdAt={data.createdAt}
+          tab={tab}
+          canInvite={canManageInvites}
+          canCreateGame={canShowCreateGame}
           onInvite={() => setInvitesOpen(true)}
         />
 
-        <Tabs value={tab} onValueChange={setTab} className="gap-4">
-          <TabsList
-            variant="line"
-            className="bg-background sticky top-[52px] z-20 h-11 min-h-11 w-full max-w-full justify-stretch overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
-          >
-            <TabsTrigger value="standing" className="min-h-11 min-w-11 flex-1">
-              Standing
-            </TabsTrigger>
-            <TabsTrigger value="games" className="min-h-11 min-w-11 flex-1">
-              Games
-            </TabsTrigger>
-            <TabsTrigger value="members" className="min-h-11 min-w-11 flex-1">
-              Members
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6 pt-6">
+          {banners}
+
+          {ctaFamily.kind === "join_group" ? (
+            <Button
+              type="button"
+              className="min-h-11 w-full"
+              disabled={joinPending}
+              onClick={onJoin}
+            >
+              {joinPending ? "Joining…" : "Join Group"}
+            </Button>
+          ) : null}
+
           <TabsContent
             value="standing"
             className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
@@ -417,8 +405,8 @@ export default function GroupHomePage({
               onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
 
       <ConfirmDialog
         open={leaveOpen}

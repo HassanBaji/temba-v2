@@ -4,9 +4,8 @@ import { describe, it } from "vitest";
 import {
   filterGroupMembersByName,
   groupHomeHasStandingResults,
-  groupHomeHeroMeta,
   groupHomeMemberGamesLabel,
-  groupHomeRecord,
+  groupHomeMetaLine,
   groupHomeSetScoreLine,
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
@@ -20,54 +19,59 @@ describe("groupHomeSportLabel", () => {
   });
 });
 
-describe("groupHomeHeroMeta", () => {
-  it("joins sport, members, and Community for a Club Group", () => {
+describe("groupHomeMetaLine", () => {
+  it("joins Sport, members, and the season month when every part is present", () => {
     assert.equal(
-      groupHomeHeroMeta({
+      groupHomeMetaLine({
         sport: "padel",
-        memberCount: 12,
-        communityName: "Ocean Club",
+        memberCount: 14,
+        createdAt: new Date("2024-01-15T12:00:00Z"),
       }),
-      "Padel · 12 members · Ocean Club",
+      "Padel, 14 members, season since Jan",
     );
   });
 
-  it("omits Community for a Loose Group", () => {
+  it("drops the Sport when the Group has none", () => {
     assert.equal(
-      groupHomeHeroMeta({
+      groupHomeMetaLine({
+        sport: null,
+        memberCount: 14,
+        createdAt: new Date("2024-01-15T12:00:00Z"),
+      }),
+      "14 members, season since Jan",
+    );
+  });
+
+  it("drops the member count when it is missing", () => {
+    assert.equal(
+      groupHomeMetaLine({
         sport: "football",
+        memberCount: null,
+        createdAt: new Date("2024-09-15T12:00:00Z"),
+      }),
+      "Football, season since Sep",
+    );
+  });
+
+  it("pluralises a single member and drops the season with no createdAt", () => {
+    assert.equal(
+      groupHomeMetaLine({
+        sport: "padel",
         memberCount: 1,
-        communityName: null,
+        createdAt: null,
       }),
-      "Football · 1 member",
-    );
-  });
-});
-
-describe("groupHomeRecord", () => {
-  it("omits the strip for a non-member", () => {
-    assert.deepEqual(groupHomeRecord(null), { kind: "none" });
-  });
-
-  it("uses the muted sentence when the member has 0 Games", () => {
-    assert.deepEqual(
-      groupHomeRecord({
-        totalGamesPlayed: 0,
-        totalSetsWon: 0,
-        totalPointsWon: 0,
-      }),
-      { kind: "empty" },
+      "Padel, 1 member",
     );
   });
 
-  it("uses membership Games, Sets, and Points — not Group totals", () => {
-    assert.deepEqual(
-      groupHomeRecord({
-        totalGamesPlayed: 4,
-        totalSetsWon: 7,
-        totalPointsWon: 21,
+  it("returns an empty string when nothing is known", () => {
+    assert.equal(
+      groupHomeMetaLine({
+        sport: null,
+        memberCount: null,
+        createdAt: null,
       }),
-      { kind: "stats", games: 4, sets: 7, points: 21 },
+      "",
     );
   });
 });

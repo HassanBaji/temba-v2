@@ -1,8 +1,3 @@
-export type GroupHomeRecord =
-  | { kind: "none" }
-  | { kind: "empty" }
-  | { kind: "stats"; games: number; sets: number; points: number };
-
 const SPORT_LABELS: Record<string, string> = {
   padel: "Padel",
   football: "Football",
@@ -16,45 +11,47 @@ export function groupHomeSportLabel(sport: string | null | undefined) {
   return SPORT_LABELS[value] ?? value;
 }
 
-export function groupHomeHeroMeta(input: {
+function seasonSinceMonth(createdAt: Date | string | null | undefined) {
+  if (createdAt == null) {
+    return null;
+  }
+  const date = createdAt instanceof Date ? createdAt : new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleDateString("en-US", { month: "short" });
+}
+
+/**
+ * The Group home header meta line: `"{Sport}, {n} members, season since {Mon}"`.
+ *
+ * Parts with no value are dropped and the remainder joined with `", "`, so a
+ * Group with no sport reads `"14 members, season since Jan"`. Returns an empty
+ * string when nothing is known; the header renders no meta line then.
+ */
+export function groupHomeMetaLine(input: {
   sport: string | null | undefined;
-  memberCount: number;
-  communityName: string | null | undefined;
+  memberCount: number | null | undefined;
+  createdAt: Date | string | null | undefined;
 }) {
   const parts: string[] = [];
+
   const sport = groupHomeSportLabel(input.sport);
   if (sport) {
     parts.push(sport);
   }
-  parts.push(
-    input.memberCount === 1 ? "1 member" : `${input.memberCount} members`,
-  );
-  const community = input.communityName?.trim();
-  if (community) {
-    parts.push(community);
-  }
-  return parts.join(" · ");
-}
 
-export function groupHomeRecord(
-  membership: {
-    totalGamesPlayed: number;
-    totalSetsWon: number;
-    totalPointsWon: number;
-  } | null,
-): GroupHomeRecord {
-  if (membership == null) {
-    return { kind: "none" };
+  const memberCount = input.memberCount;
+  if (memberCount != null && Number.isFinite(memberCount)) {
+    parts.push(memberCount === 1 ? "1 member" : `${memberCount} members`);
   }
-  if (membership.totalGamesPlayed <= 0) {
-    return { kind: "empty" };
+
+  const since = seasonSinceMonth(input.createdAt);
+  if (since) {
+    parts.push(`season since ${since}`);
   }
-  return {
-    kind: "stats",
-    games: membership.totalGamesPlayed,
-    sets: membership.totalSetsWon,
-    points: membership.totalPointsWon,
-  };
+
+  return parts.join(", ");
 }
 
 export function groupHomeHasStandingResults(
