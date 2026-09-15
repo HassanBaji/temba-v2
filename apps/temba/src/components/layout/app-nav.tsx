@@ -1,12 +1,13 @@
 import { Building2, CircleUser, House, Users } from "lucide-react";
 import { Field } from "../ui/icons/field";
+import { type AppNavSlot, visibleAppNavSlots } from "./app-nav-visibility";
 
 export type AppNavItem = {
   title: string;
   href: string;
   icon: React.ReactNode;
   match: "exact" | "prefix";
-  slot: "home" | "games" | "groups" | "communities" | "you";
+  slot: AppNavSlot;
 };
 
 export const APP_NAV_SLOTS: AppNavItem[] = [
@@ -54,8 +55,9 @@ export const APP_NAV_SLOTS: AppNavItem[] = [
   },
 ];
 
-export function visibleAppNavItems() {
-  return APP_NAV_SLOTS;
+export function visibleAppNavItems(hasCreateAccess: boolean) {
+  const slots = new Set(visibleAppNavSlots(hasCreateAccess));
+  return APP_NAV_SLOTS.filter((item) => slots.has(item.slot));
 }
 
 export function isNavItemActive(pathname: string, item: AppNavItem) {

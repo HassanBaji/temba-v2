@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { UserAvatar } from "~/components/common/user-avatar";
 import { ResultMark } from "~/components/temba/result-mark";
 import { Card } from "~/components/ui/card";
@@ -260,10 +262,15 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
           "relative gap-0 overflow-hidden rounded-[14px] p-0",
           won ? "border-ink" : "border-rule",
           "motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
-          "hover:shadow-sm",
+          "hover:border-foreground/20 hover:shadow-sm",
         )}
       >
-        <div className="flex items-start gap-3 px-5 py-4">
+        <Link
+          href={`/dashboard/games/${row.id}`}
+          aria-label={`${OUTCOME_LABEL[row.outcome]}, ${meta}`}
+          className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
+        />
+        <div className="pointer-events-none relative z-10 flex items-start gap-3 px-5 py-4">
           <ResultMark
             variant={won ? "won" : "lost"}
             className="mt-0.5 size-6"
@@ -304,7 +311,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
           ) : null}
         </div>
 
-        <div className="px-5 pb-[18px]">
+        <div className="pointer-events-none relative z-10 px-5 pb-[18px]">
           {scored ? <SetHeader columns={sets.length} /> : null}
           {lost ? [theirs, mine] : [mine, theirs]}
         </div>

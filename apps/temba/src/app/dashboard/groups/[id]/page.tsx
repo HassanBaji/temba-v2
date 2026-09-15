@@ -334,6 +334,7 @@ export default function GroupHomePage({
   const overflowItems = groupHomeOverflowItems({
     family: ctaFamily,
     hasCommunity: data.community != null,
+    hasCreateAccess,
     canShowCreateGame,
     isLoosePublic: data.isLoose && data.type === "public",
     canManageInvites,
