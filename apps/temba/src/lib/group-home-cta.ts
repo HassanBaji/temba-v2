@@ -28,6 +28,7 @@ export type GroupHomeOverflowItem =
 export type GroupHomeOverflowInput = {
   family: GroupHomeCtaFamily;
   hasCommunity: boolean;
+  hasCreateAccess: boolean;
   canShowCreateGame: boolean;
   isLoosePublic: boolean;
   canManageInvites: boolean;
@@ -153,7 +154,10 @@ export function groupHomeOverflowItems(
   const inviteOnBar = groupHomeInviteOnActionBar(input.family);
 
   if (input.hasCommunity) {
-    items.push("open_community", "all_communities");
+    items.push("open_community");
+    if (input.hasCreateAccess) {
+      items.push("all_communities");
+    }
   }
   if (input.canShowCreateGame && !createOnBar) {
     items.push("create_game");
