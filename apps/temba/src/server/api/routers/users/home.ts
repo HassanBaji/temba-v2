@@ -258,6 +258,7 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
             slot1GamesWon: true,
             slot2GamesWon: true,
           },
+          orderBy: (table, { asc }) => [asc(table.setNumber)],
         },
       },
     });

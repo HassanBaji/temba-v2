@@ -428,7 +428,7 @@ export async function groupById(
               slot1GamesWon: true,
               slot2GamesWon: true,
             },
-            orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+            orderBy: (table, { asc }) => [asc(table.setNumber)],
           },
         },
       },

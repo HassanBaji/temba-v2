@@ -8,6 +8,7 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { assertMayWriteSets } from "~/server/games/assert-may-write-sets";
+import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -20,9 +21,10 @@ export async function addSet(
   const match = await requireMatchOnGame(database, game.id, args.matchId);
   const organizer = await isGameOrganizer(database, game, args.userId);
   await assertMayWriteSets(database, game, match, args.userId, organizer);
+  const setNumber = await nextMatchSetNumber(database, match.id);
   const [created] = await database
     .insert(matchSets)
-    .values({ matchId: match.id })
+    .values({ matchId: match.id, setNumber })
     .returning();
   if (!created) {
     throw new TRPCError({

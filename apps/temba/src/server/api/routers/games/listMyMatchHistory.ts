@@ -113,7 +113,7 @@ export async function listMyMatchHistoryRows(
           slot1GamesWon: true,
           slot2GamesWon: true,
         },
-        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+        orderBy: (table, { asc }) => [asc(table.setNumber)],
       },
       slot1GameTeam: {
         with: {

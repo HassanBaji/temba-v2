@@ -19,6 +19,7 @@ import {
 } from "@repo/db/schema";
 
 import { mine } from "~/server/api/routers/groups/mine";
+import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 const NOW = new Date("2026-09-15T12:00:00.000Z");
@@ -180,6 +181,7 @@ async function seatAndScore(
   for (const set of args.sets) {
     await database.insert(matchSets).values({
       matchId: args.matchId,
+      setNumber: await nextMatchSetNumber(database, args.matchId),
       slot1GamesWon: set.slot1GamesWon,
       slot2GamesWon: set.slot2GamesWon,
     });

@@ -114,6 +114,7 @@ export async function mine(
         with: {
           sets: {
             columns: { slot1GamesWon: true, slot2GamesWon: true },
+            orderBy: (table, { asc }) => [asc(table.setNumber)],
           },
           slot1GameTeam: {
             columns: { id: true },

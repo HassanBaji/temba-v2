@@ -16,6 +16,7 @@ import {
   FRIENDLY_TEAMS_ALLOWED,
 } from "~/server/games/access";
 import { assertGameCreateVenueAndCourt } from "~/server/games/assert-game-create-venue-and-court";
+import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import type {
   CreateFriendlyDb,
   CreateFriendlyGameInput,
@@ -54,9 +55,15 @@ export async function backfillFriendlySetShells(database: CreateFriendlyDb) {
       if (missing <= 0) {
         continue;
       }
+      const start = await nextMatchSetNumber(database, match.id);
       await writeDb(database)
         .insert(matchSets)
-        .values(Array.from({ length: missing }, () => ({ matchId: match.id })));
+        .values(
+          Array.from({ length: missing }, (_, index) => ({
+            matchId: match.id,
+            setNumber: start + index,
+          })),
+        );
     }
   }
 }
@@ -129,8 +136,9 @@ export async function createFriendlyGame(
     const shells = await tx
       .insert(matchSets)
       .values(
-        Array.from({ length: FRIENDLY_SET_SHELL_COUNT }, () => ({
+        Array.from({ length: FRIENDLY_SET_SHELL_COUNT }, (_, index) => ({
           matchId: match.id,
+          setNumber: index + 1,
         })),
       )
       .returning({ id: matchSets.id });
