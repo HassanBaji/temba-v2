@@ -22,6 +22,16 @@ One procedure per file under `apps/temba/src/server/api/routers/<domain>/`, with
 
 Do not plan or implement thin tRPC assemblers that only forward to `server/<domain>/<verb>.ts` twins. Do not add service/repository/use-case layers for API doors. Shared glossary modules (Soft-archive, Game admit, Community membership, Invite doors, Friendly Game create, ratings) stay shared.
 
+## Code comments
+
+Do not add unnecessary comments. Code should explain itself through clear names and small functions.
+
+- Do not add comments that restate what the code does (`// increment count`, `// fetch the group`, `// return result`).
+- Do not add comments that narrate the change or the task (`// added for TEM-123`, `// new: …`, `// updated to use X`). That belongs in the commit message or PR.
+- Do not add section-divider or JSDoc boilerplate that only repeats the function name and parameter types.
+- Do not delete or rewrite existing comments unless the code they describe changed.
+- Only comment when the *why* is not obvious from the code: a non-obvious constraint, a workaround, a domain rule, or a deliberate trade-off.
+
 ## Cursor Cloud specific instructions
 
 Cloud Agents use `.cursor/environment.json` (`install` → `.cursor/install.sh`, `start` → `.cursor/start.sh`, terminal `pnpm --filter temba dev` on port 3000).
