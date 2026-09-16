@@ -26,11 +26,19 @@ import { groupById } from "~/server/api/routers/groups/byId";
 import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
-async function insertUser(database: TestDatabase, email: string) {
+async function insertUser(
+  database: TestDatabase,
+  email: string,
+  options?: { image?: string | null },
+) {
   const [row] = await database
     .insert(user)
-    .values({ name: email.split("@")[0] ?? "User", email })
-    .returning({ id: user.id, name: user.name });
+    .values({
+      name: email.split("@")[0] ?? "User",
+      email,
+      image: options?.image,
+    })
+    .returning({ id: user.id, name: user.name, image: user.image });
   if (!row) {
     throw new Error("Failed to insert user");
   }
@@ -572,6 +580,7 @@ describe("groupById standing facts", () => {
         "lost",
         "not-played",
       ]);
+      expect(detail.totalGamesPlayed).toBe(3);
     } finally {
       await close();
     }
@@ -605,7 +614,33 @@ describe("groupById standing facts", () => {
     }
   });
 
-  it("counts Games whose Match still awaits a score, and reports zero when none do", async () => {
+  it("returns each member's stored image on the leaderboard", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const photo = "https://img.clerk.com/standing-photo.png";
+      const viewer = await insertUser(db, "standing-photo@example.com", {
+        image: photo,
+      });
+      const rival = await insertUser(db, "standing-initials@example.com");
+      const group = await insertGroup(db, viewer.id, { members: [rival.id] });
+
+      const detail = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+      const byUserId = new Map(
+        detail.standing.leaderboard.map((entry) => [entry.userId, entry]),
+      );
+
+      expect(byUserId.get(viewer.id)?.image).toBe(photo);
+      expect(byUserId.get(rival.id)?.image).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("counts completed Games as games played, and Games whose Match still awaits a score", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "standing-await@example.com");
@@ -633,6 +668,25 @@ describe("groupById standing facts", () => {
         now: NOW,
       });
       expect(settled.standing.awaitingScoreCount).toBe(0);
+      expect(settled.totalGamesPlayed).toBe(1);
+
+      const cancelled = await insertGroupGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        groupId: group.id,
+        ...pastWindow(36),
+      });
+      await seatAndScore(db, {
+        gameId: cancelled.game.id,
+        matchId: cancelled.matchId,
+        slot1UserId: viewer.id,
+        slot2UserId: rival.id,
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 3 }],
+      });
+      await db
+        .update(games)
+        .set({ cancelledAt: NOW })
+        .where(eq(games.id, cancelled.game.id));
 
       // A full Game whose window has passed with its Match still open.
       const awaiting = await insertGroupGame(db, {
@@ -664,6 +718,7 @@ describe("groupById standing facts", () => {
         now: NOW,
       });
       expect(detail.standing.awaitingScoreCount).toBe(1);
+      expect(detail.totalGamesPlayed).toBe(1);
     } finally {
       await close();
     }

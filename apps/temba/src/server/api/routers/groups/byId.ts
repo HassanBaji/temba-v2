@@ -494,6 +494,14 @@ export async function groupById(
 
   const winLossByUserId = groupMemberWinLoss(winLossMatches, memberUserIds);
 
+  const totalGamesPlayed = groupGameRows.filter((game) => {
+    if (game.cancelledAt !== null) {
+      return false;
+    }
+    return game.matches.some(
+      (match) => match.status === MatchStatusEnum.COMPLETED,
+    );
+  }).length;
   const leaderboard = sortedStanding.map((entry, index) => {
     const record = winLossByUserId.get(entry.userId) ?? { wins: 0, losses: 0 };
     const rating = ratingByUserId.get(entry.userId) ?? null;
@@ -503,7 +511,7 @@ export async function groupById(
       image: entry.image,
       totalSetsWon: entry.totalSetsWon,
       totalPointsWon: entry.totalPointsWon,
-      totalGamesPlayed: entry.totalGamesPlayed,
+      totalGamesPlayed: totalGamesPlayed,
       position: index + 1,
       isViewer: entry.userId === args.userId,
       wins: record.wins,
@@ -517,8 +525,6 @@ export async function groupById(
     };
   });
 
-  // Games whose Matches have started but carry no scored Set, using the
-  // `needs_results` rule shape from `~/server/home/carousel-games.ts` (§3.2).
   const awaitingScoreCount = groupGameRows.filter((game) => {
     const candidate: HomeCarouselCandidate = {
       id: game.id,
@@ -530,8 +536,7 @@ export async function groupById(
       format: game.format,
       matches: game.matches,
       createdBy: game.createdBy,
-      // Neither field is read by isHomeCarouselNeedsResults — this is a
-      // Group-wide count, not a viewer-scoped carousel membership list.
+
       viewerHasGameAdmit: false,
       viewerIsOrganizer: false,
       registrationMode: game.registrationMode,
@@ -551,7 +556,7 @@ export async function groupById(
     sport: group.sport as GroupSportEnum | null,
     communityId: group.communityId,
     isLoose: !group.communityId,
-    totalGamesPlayed: group.totalGamesPlayed,
+    totalGamesPlayed,
     community: community
       ? {
           id: community.id,

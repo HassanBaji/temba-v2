@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { UserAvatar } from "~/components/common/user-avatar";
 import { FormStrip } from "~/components/temba/form-strip";
 import { LevelCell } from "~/components/temba/level-cell";
 import type { ResultMarkVariant } from "~/components/temba/result-mark";
@@ -14,7 +15,6 @@ import {
   groupHomeShowsMemberSearch,
   groupMemberRoleCaption,
 } from "~/lib/group-home-chrome";
-import { initials } from "~/lib/initials";
 import type { LevelBand } from "~/lib/level-bands";
 import { cn } from "~/lib/utils";
 
@@ -24,6 +24,7 @@ const MEMBER_FORM_MARKS = 4;
 type GroupMember = {
   userId: string;
   name: string;
+  image: string | null;
   isViewer: boolean;
   isOrganizer: boolean;
   joinedAt: Date | string | null;
@@ -39,15 +40,17 @@ function MemberRow({ member }: { member: GroupMember }) {
 
   return (
     <li className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0">
-      <span
-        aria-hidden="true"
+      <UserAvatar
+        name={member.name}
+        image={member.image}
+        size="lg"
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-[10px] text-[13px] font-semibold",
-          member.isViewer ? "bg-ink text-paper" : "border-rule border",
+          "rounded-[10px] [&_[data-slot=avatar-fallback]]:rounded-[10px] [&_[data-slot=avatar-fallback]]:text-[13px] [&_[data-slot=avatar-fallback]]:font-semibold",
+          member.isViewer
+            ? "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper"
+            : "border-rule border [&_[data-slot=avatar-fallback]]:bg-transparent",
         )}
-      >
-        {initials(member.name)}
-      </span>
+      />
 
       <div className="min-w-0 flex-1">
         <p

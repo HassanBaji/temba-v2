@@ -397,12 +397,17 @@ export default function GroupHomePage({
   );
 
   return (
-    <DashboardShell title={groupName} hidePageHeader hideMobileTopBar>
-      <div className="md:-mt-6 lg:mt-0">
+    <DashboardShell
+      title={groupName}
+      hidePageHeader
+      hideMobileTopBar
+      hidePageTitle
+    >
+      {/* <div className="md:-mt-6 lg:mt-0">
         <GroupHomeTopBar name={groupName} overflow={overflowMenu("mobile")} />
-      </div>
+      </div> */}
 
-      <Tabs value={tab} onValueChange={setTab} className="gap-0">
+      <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-0">
         <GroupHomeChrome
           groupId={id}
           name={groupName}
@@ -467,6 +472,7 @@ export default function GroupHomePage({
               members={data.standing.leaderboard.map((entry) => ({
                 userId: entry.userId,
                 name: entry.name ?? "Member",
+                image: entry.image,
                 isViewer: entry.isViewer,
                 isOrganizer: entry.isOrganizer,
                 joinedAt: entry.joinedAt,
