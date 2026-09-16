@@ -20,6 +20,7 @@ import {
 } from "@repo/db/schema";
 
 import { listMyMatchHistoryRows } from "~/server/api/routers/games/listMyMatchHistory";
+import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 const NOW = new Date("2026-08-31T16:00:00.000Z");
@@ -165,6 +166,7 @@ async function seatCompletedFriendly(
   for (const set of args.sets) {
     await database.insert(matchSets).values({
       matchId: args.matchId,
+      setNumber: await nextMatchSetNumber(database, args.matchId),
       slot1GamesWon: set.slot1GamesWon,
       slot2GamesWon: set.slot2GamesWon,
     });
@@ -538,6 +540,7 @@ describe("listMyMatchHistoryRows", () => {
       }
       await db.insert(matchSets).values({
         matchId: laterMatch.id,
+        setNumber: await nextMatchSetNumber(db, laterMatch.id),
         slot1GamesWon: 6,
         slot2GamesWon: 4,
       });
@@ -562,6 +565,44 @@ describe("listMyMatchHistoryRows", () => {
       expect(
         rows.find((row) => row.name === "Fallback time")?.displayTime,
       ).toEqual(new Date("2026-08-20T18:00:00.000Z"));
+    } finally {
+      await close();
+    }
+  });
+
+  it("returns scored Sets in play order, not uuid order", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "set-order-viewer@example.com");
+      const partner = await insertUser(db, "set-order-partner@example.com");
+      const oppLeft = await insertUser(db, "set-order-opp-left@example.com");
+      const oppRight = await insertUser(db, "set-order-opp-right@example.com");
+      const venue = await insertVenue(db);
+
+      const game = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        name: "Three-set Friendly",
+      });
+      await seatCompletedFriendly(db, {
+        gameId: game.game.id,
+        matchId: game.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [
+          { slot1GamesWon: 6, slot2GamesWon: 4 },
+          { slot1GamesWon: 4, slot2GamesWon: 6 },
+          { slot1GamesWon: 7, slot2GamesWon: 5 },
+        ],
+      });
+
+      const rows = await listMyMatchHistoryRows(db, viewer.id, NOW);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.scoredSets).toEqual([
+        { slot1GamesWon: 6, slot2GamesWon: 4 },
+        { slot1GamesWon: 4, slot2GamesWon: 6 },
+        { slot1GamesWon: 7, slot2GamesWon: 5 },
+      ]);
     } finally {
       await close();
     }

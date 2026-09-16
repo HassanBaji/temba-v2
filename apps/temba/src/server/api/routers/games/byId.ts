@@ -185,7 +185,7 @@ export async function gameById(
         columns: { id: true, name: true },
       },
       sets: {
-        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+        orderBy: (table, { asc }) => [asc(table.setNumber)],
       },
     },
     orderBy: (table, { asc }) => [asc(table.createdAt)],

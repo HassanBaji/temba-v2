@@ -18,6 +18,7 @@ import {
   createFriendlyGame,
   FRIENDLY_SET_SHELL_COUNT,
 } from "~/server/games/create-friendly";
+import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import { commit } from "~/server/soft-archive";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
@@ -264,7 +265,10 @@ describe("Friendly Game create", () => {
       if (!match) {
         throw new Error("Failed to insert match");
       }
-      await db.insert(matchSets).values({ matchId: match.id });
+      await db.insert(matchSets).values({
+        matchId: match.id,
+        setNumber: await nextMatchSetNumber(db, match.id),
+      });
 
       await backfillFriendlySetShells(db);
       const shells = await db.query.matchSets.findMany({
