@@ -100,12 +100,12 @@ export function HomeNoGames() {
     <div className="border-rule bg-paper rounded-xl border p-[22px]">
       <p className="text-lead font-semibold">No games booked</p>
       <p className="text-muted-foreground text-meta mt-1">
-        Browse public pickup or create a Game.
+        Browse available games.
       </p>
       <div className="mt-4 flex gap-2">
-        <Button asChild className="flex-1">
+        {/* <Button asChild className="flex-1">
           <Link href="/dashboard/games/new">Create Game</Link>
-        </Button>
+        </Button> */}
         <Button asChild variant="outline" className="flex-1">
           <Link href="/dashboard/games">Browse</Link>
         </Button>
