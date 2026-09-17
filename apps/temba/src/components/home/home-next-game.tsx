@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useCreateAccess } from "~/components/create-access-gate";
 import { HomeSeatRow } from "~/components/home/home-seat-row";
 import { Button } from "~/components/ui/button";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
+import { homeNoGamesCreateAction } from "~/lib/home-no-games";
 import type { HomeSeatView } from "~/lib/home-seats";
+import { api } from "~/trpc/react";
 
 export type HomeNextGamePhase = "upcoming" | "ongoing" | "needs_results";
 
@@ -96,16 +99,29 @@ export function HomeNextGame({
 }
 
 export function HomeNoGames() {
+  const { hasCreateAccess } = useCreateAccess();
+  const createGroups = api.games.listCreateGroups.useQuery(undefined, {
+    enabled: hasCreateAccess,
+  });
+  const createAction = homeNoGamesCreateAction({
+    hasCreateAccess,
+    createGroupCount: createGroups.data?.length,
+  });
+
   return (
     <div className="border-rule bg-paper rounded-xl border p-[22px]">
       <p className="text-lead font-semibold">No games booked</p>
       <p className="text-muted-foreground text-meta mt-1">
-        Browse available games.
+        {createAction?.kind === "group"
+          ? "Create a Group first, then you can create a Game."
+          : "Browse available games."}
       </p>
       <div className="mt-4 flex gap-2">
-        {/* <Button asChild className="flex-1">
-          <Link href="/dashboard/games/new">Create Game</Link>
-        </Button> */}
+        {createAction ? (
+          <Button asChild className="flex-1">
+            <Link href={createAction.href}>{createAction.label}</Link>
+          </Button>
+        ) : null}
         <Button asChild variant="outline" className="flex-1">
           <Link href="/dashboard/games">Browse</Link>
         </Button>

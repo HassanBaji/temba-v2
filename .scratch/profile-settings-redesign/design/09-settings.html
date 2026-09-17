@@ -1,0 +1,85 @@
+<!-- Source: claude.ai/design project fea56e1b-5966-4cbb-981f-15fe74a0c7fc, settings.dc.html (frame "09 Settings"), fetched 2026-09-17 -->
+<div id="settings" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">09 / SETTINGS</div>
+      <div data-screen-label="09 Settings" style="width:390px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px">
+        <div style="padding:22px 22px 0;display:flex;align-items:center;gap:6px">
+          <div style="width:44px;height:44px;margin-left:-12px;display:flex;align-items:center;justify-content:center"><i data-lucide="arrow-left" style="width:20px;height:20px"></i></div>
+          <div style="font-size:26px;font-variation-settings:'wdth' 100,'wght' 700;letter-spacing:-0.01em">Settings</div>
+        </div>
+
+        <div style="padding:26px 22px;display:flex;flex-direction:column;gap:28px">
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A;letter-spacing:0.04em">PLAYING</div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px 20px">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+                <div style="min-width:0">
+                  <div style="font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Preferred Position</div>
+                  <div style="font-size:13px;color:#6E6E6E;margin-top:3px;line-height:1.45">Your default side when you pick a Game seat</div>
+                </div>
+                <i data-lucide="arrow-left-right" style="width:20px;height:20px;color:#9A9A9A;flex:none;margin-top:2px"></i>
+              </div>
+              <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#F4F4F4;border-radius:12px;padding:5px">
+                <div>
+                  <sc-if value="{{ sideIsLeft }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pickLeft }}" style="width:100%;min-height:44px;border:none;border-radius:9px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">Left</button></sc-if>
+                  <sc-if value="{{ sideNotLeft }}" hint-placeholder-val="{{ true }}"><button onClick="{{ pickLeft }}" style="width:100%;min-height:44px;border:none;border-radius:9px;background:transparent;color:#6E6E6E;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="color:#000000">Left</button></sc-if>
+                </div>
+                <div>
+                  <sc-if value="{{ sideIsRight }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pickRight }}" style="width:100%;min-height:44px;border:none;border-radius:9px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">Right</button></sc-if>
+                  <sc-if value="{{ sideNotRight }}" hint-placeholder-val="{{ true }}"><button onClick="{{ pickRight }}" style="width:100%;min-height:44px;border:none;border-radius:9px;background:transparent;color:#6E6E6E;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="color:#000000">Right</button></sc-if>
+                </div>
+                <div>
+                  <sc-if value="{{ sideIsEither }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pickEither }}" style="width:100%;min-height:44px;border:none;border-radius:9px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">Either</button></sc-if>
+                  <sc-if value="{{ sideNotEither }}" hint-placeholder-val="{{ true }}"><button onClick="{{ pickEither }}" style="width:100%;min-height:44px;border:none;border-radius:9px;background:transparent;color:#6E6E6E;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="color:#000000">Either</button></sc-if>
+                </div>
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:#9A9A9A">{{ sideNote }}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A;letter-spacing:0.04em">PEOPLE</div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;display:flex;flex-direction:column">
+              <button onClick="{{ noop }}" style="border:none;background:#FFFFFF;text-align:left;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;font-family:'Archivo',sans-serif" style-hover="background:#F4F4F4">
+                <i data-lucide="users" style="width:20px;height:20px;flex:none"></i>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Teams</span>
+                  <span style="display:block;font-size:13px;color:#6E6E6E;margin-top:2px">Partnerships you play as</span>
+                </span>
+                <span style="font-size:13px;color:#9A9A9A;flex:none">4</span>
+                <i data-lucide="chevron-right" style="width:18px;height:18px;color:#9A9A9A;flex:none"></i>
+              </button>
+              <button onClick="{{ noop }}" style="border:none;border-top:1px solid #E6E6E6;background:#FFFFFF;text-align:left;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;font-family:'Archivo',sans-serif" style-hover="background:#F4F4F4">
+                <i data-lucide="mail" style="width:20px;height:20px;flex:none"></i>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Invites</span>
+                  <span style="display:block;font-size:13px;color:#6E6E6E;margin-top:2px">Lookup invites addressed to you</span>
+                </span>
+                <span style="flex:none;min-width:22px;height:22px;padding:0 7px;box-sizing:border-box;border-radius:11px;background:#000000;color:#FFFFFF;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600;display:flex;align-items:center;justify-content:center">2</span>
+                <i data-lucide="chevron-right" style="width:18px;height:18px;color:#9A9A9A;flex:none"></i>
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A;letter-spacing:0.04em">OPERATOR TOOLS</div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden">
+              <button onClick="{{ noop }}" style="width:100%;border:none;background:#FFFFFF;text-align:left;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;font-family:'Archivo',sans-serif;box-sizing:border-box" style-hover="background:#F4F4F4">
+                <i data-lucide="building-2" style="width:20px;height:20px;flex:none"></i>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Venues</span>
+                  <span style="display:block;font-size:13px;color:#6E6E6E;margin-top:2px">Venue and Court catalogue</span>
+                </span>
+                <span style="font-size:13px;color:#9A9A9A;flex:none">3 venues</span>
+                <i data-lucide="chevron-right" style="width:18px;height:18px;color:#9A9A9A;flex:none"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:auto;border-top:1px solid #E6E6E6;padding:20px 22px 26px;display:flex;flex-direction:column;gap:10px">
+          <button onClick="{{ noop }}" style="width:100%;height:52px;border:1px solid #E6E6E6;border-radius:12px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;font-size:15px;font-variation-settings:'wdth' 100,'wght' 500;cursor:pointer" style-hover="background:#F4F4F4">Sign out</button>
+          <div style="text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">MIKAEL KARLSSON · +973 3612 4408</div>
+        </div>
+      </div>
+    </div>
