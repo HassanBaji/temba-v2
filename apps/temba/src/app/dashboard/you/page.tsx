@@ -3,6 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { ProfileAllTime } from "~/components/you/profile-all-time-card";
 import { ProfileForm } from "~/components/you/profile-form-card";
 import { ProfileHeader } from "~/components/you/profile-header";
 import { ProfileIdentity } from "~/components/you/profile-identity";
@@ -30,6 +31,7 @@ export default function YouPage() {
         />
         <ProfileLevel />
         <ProfileForm />
+        <ProfileAllTime />
       </div>
     </DashboardShell>
   );

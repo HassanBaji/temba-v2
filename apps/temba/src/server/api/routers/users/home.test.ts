@@ -8,10 +8,8 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { admit as admitCommunityMember } from "~/server/community-membership";
-import {
-  loadHome,
-  summarizeCompletedMatchStats,
-} from "~/server/api/routers/users/home";
+import { loadHome } from "~/server/api/routers/users/home";
+import { summarizeCompletedMatchStats } from "~/server/stats/completed-matches";
 import { acceptLookup, mintLookup } from "~/server/invites/doors";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
@@ -171,6 +169,7 @@ describe("summarizeCompletedMatchStats", () => {
       gamesWon: 1,
       gamesLost: 0,
       setsWon: 1,
+      setsLost: 0,
     });
   });
 
@@ -182,6 +181,7 @@ describe("summarizeCompletedMatchStats", () => {
       gamesWon: 0,
       gamesLost: 1,
       setsWon: 0,
+      setsLost: 1,
     });
   });
 
@@ -193,6 +193,7 @@ describe("summarizeCompletedMatchStats", () => {
       gamesWon: 0,
       gamesLost: 0,
       setsWon: 1,
+      setsLost: 1,
     });
     expect(
       summarizeCompletedMatchStats([{ userSlot: 2, sets: drawSets }]),
@@ -201,6 +202,7 @@ describe("summarizeCompletedMatchStats", () => {
       gamesWon: 0,
       gamesLost: 0,
       setsWon: 1,
+      setsLost: 1,
     });
   });
 });

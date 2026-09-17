@@ -149,6 +149,7 @@ type ExpectedTeams =
 type ExpectedUsers =
   | "home"
   | "onboardingState"
+  | "profileStats"
   | "setPreferredPosition"
   | "completeOnboarding";
 

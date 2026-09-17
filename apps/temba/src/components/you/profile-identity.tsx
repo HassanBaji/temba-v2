@@ -63,9 +63,18 @@ export function ProfileIdentity({
   const state = api.users.onboardingState.useQuery(undefined, {
     enabled: ready,
   });
+  const stats = api.users.profileStats.useQuery(undefined, {
+    enabled: ready,
+  });
   const positionLine = preferredPositionProfileLine(
     state.data?.preferredPosition,
   );
+  const sinceYear =
+    stats.data?.firstMatchAt != null
+      ? new Date(stats.data.firstMatchAt).getFullYear()
+      : null;
+  const playingSince =
+    sinceYear != null && Number.isFinite(sinceYear) ? sinceYear : null;
 
   if (!ready) {
     return (
@@ -97,6 +106,17 @@ export function ProfileIdentity({
         {positionLine ? (
           <p className="text-meta text-muted-foreground mt-1 truncate">
             {positionLine}
+          </p>
+        ) : null}
+        {playingSince != null ? (
+          <p
+            className={
+              positionLine
+                ? "text-meta text-dim truncate"
+                : "text-meta text-dim mt-1 truncate"
+            }
+          >
+            Playing padel since {playingSince}
           </p>
         ) : null}
       </div>
