@@ -8,8 +8,8 @@ describe("gamesHubTabFromQuery", () => {
     assert.equal(gamesHubTabFromQuery("history"), "history");
   });
 
-  it("opens Public when tab=public", () => {
-    assert.equal(gamesHubTabFromQuery("public"), "public");
+  it("opens My Games when tab=public", () => {
+    assert.equal(gamesHubTabFromQuery("public"), "my-games");
   });
 
   it("defaults to My Games otherwise", () => {
@@ -26,8 +26,7 @@ describe("gamesHubTabQuery", () => {
     assert.equal(gamesHubTabQuery("my-games"), "");
   });
 
-  it("writes tab for History and Public", () => {
+  it("writes tab for History", () => {
     assert.equal(gamesHubTabQuery("history"), "?tab=history");
-    assert.equal(gamesHubTabQuery("public"), "?tab=public");
   });
 });

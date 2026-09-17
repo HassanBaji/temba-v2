@@ -280,7 +280,6 @@ export default function GamesHubPage({
   }
 
   const myGames = api.games.listMyGames.useQuery();
-  const pickup = api.games.listPublicPickup.useQuery();
   const history = api.games.listMyMatchHistory.useQuery();
   const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
@@ -288,7 +287,6 @@ export default function GamesHubPage({
   async function refreshLists() {
     await Promise.all([
       utils.games.listMyGames.invalidate(),
-      utils.games.listPublicPickup.invalidate(),
       utils.games.listMyMatchHistory.invalidate(),
       utils.users.home.invalidate(),
       utils.games.byId.invalidate(),
@@ -357,15 +355,11 @@ export default function GamesHubPage({
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
         <TabsList className="bg-paper w-full justify-between">
-          <TabsTrigger value="my-games" className="w-[33%] rounded-r-none">
+          <TabsTrigger value="my-games" className="w-1/2 rounded-r-none">
             <p className="font-semibold">My Games</p>
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
-          <TabsTrigger value="public" className="w-[33%] rounded-none">
-            Public
-            <TabCount count={pickup.data?.length} />
-          </TabsTrigger>
-          <TabsTrigger value="history" className="w-[33%] rounded-l-none">
+          <TabsTrigger value="history" className="w-1/2 rounded-l-none">
             History
             <TabCount count={history.data?.length} />
           </TabsTrigger>
@@ -384,47 +378,12 @@ export default function GamesHubPage({
                 title="No games yet"
                 description="Games you create or join show up here."
                 action={
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    {hasCreateAccess ? (
-                      <Button asChild>
-                        <Link href="/dashboard/games/new">Create Game</Link>
-                      </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setTab("public");
-                      }}
-                    >
-                      Find a public game
+                  hasCreateAccess ? (
+                    <Button asChild>
+                      <Link href="/dashboard/games/new">Create Game</Link>
                     </Button>
-                  </div>
+                  ) : undefined
                 }
-              />
-            }
-            onJoinSeat={onJoinSeat}
-            onJoinWaitlist={onJoinWaitlist}
-            onRegister={onRegister}
-            pendingGameId={pendingGameId}
-          />
-        </TabsContent>
-        <TabsContent
-          value="public"
-          className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-        >
-          <GamesHubTabPanel
-            isLoading={pickup.isLoading}
-            errorMessage={pickup.error?.message}
-            onRetry={() => {
-              void pickup.refetch();
-            }}
-            games={pickup.data}
-            emptyState={
-              <EmptyState
-                emoji="🌍"
-                title="Nothing open right now"
-                description="Public pickup games show up here as soon as they open."
               />
             }
             onJoinSeat={onJoinSeat}
