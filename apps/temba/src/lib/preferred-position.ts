@@ -50,6 +50,22 @@ export function preferredPositionLabel(value: string | null | undefined) {
     : PREFERRED_POSITION_UNSET_LABEL;
 }
 
+const PREFERRED_POSITION_UNSET_NOTE =
+  "Not set. We start you on the left when you register with a partner.";
+
+const PREFERRED_POSITION_NOTES: Record<PreferredPosition, string> = {
+  left: "We start you on the left when you register with a partner.",
+  right: "We start you on the right when you register with a partner.",
+  either: "Either side. Your partner's preference decides.",
+};
+
+/** Settings note line: how Preferred Position seeds partner-register side. */
+export function preferredPositionNote(value: string | null | undefined) {
+  return isPreferredPosition(value)
+    ? PREFERRED_POSITION_NOTES[value]
+    : PREFERRED_POSITION_UNSET_NOTE;
+}
+
 export function preferredPositionProfileLine(value: string | null | undefined) {
   return isPreferredPosition(value)
     ? PREFERRED_POSITION_PROFILE_LINES[value]
