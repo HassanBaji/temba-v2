@@ -20,7 +20,7 @@ type SeatPosition = "left" | "right";
 
 // Renders the shipped display remap (D / D+ / C / … / A, PR #96), not the
 // raw stored band ("C1"), so this subline reads consistently with every
-// other Level surface (`home-level-block.tsx`, `you-rating-section.tsx`) —
+// other Level surface (`home-level-block.tsx`, `profile-level-card.tsx`) —
 // reusing the existing helper rather than re-deriving a second label format.
 function seatSubline(position: SeatPosition, levelBand: LevelBand | null) {
   const positionLabel = position === "left" ? "Left seat" : "Right seat";

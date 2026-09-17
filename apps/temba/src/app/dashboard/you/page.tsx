@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { ProfileHeader } from "~/components/you/profile-header";
 import { ProfileIdentity } from "~/components/you/profile-identity";
-import { YouRatingSection } from "~/components/you/you-rating-section";
+import { ProfileLevel } from "~/components/you/profile-level-card";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 
 export default function YouPage() {
@@ -27,7 +27,7 @@ export default function YouPage() {
           canEditPhoto={user != null}
           ready={isLoaded}
         />
-        <YouRatingSection />
+        <ProfileLevel />
       </div>
     </DashboardShell>
   );
