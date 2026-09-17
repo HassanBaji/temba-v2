@@ -8,6 +8,7 @@ import {
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
+  groups,
   matches,
   matchResultConfirmations,
   matchSets,
@@ -104,6 +105,17 @@ async function seatFriendlyMatch(
   return { slot1TeamId: slot1Team.id, slot2TeamId: slot2Team.id };
 }
 
+async function insertGroup(database: TestDatabase, createdBy: string) {
+  const [row] = await database
+    .insert(groups)
+    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .returning({ id: groups.id });
+  if (!row) {
+    throw new Error("Failed to insert group");
+  }
+  return row;
+}
+
 async function setUpSeatedFriendlyMatch(database: TestDatabase) {
   const [a, b, c, d, outsider] = await Promise.all([
     insertUser(database, `a-${crypto.randomUUID()}@example.com`),
@@ -116,11 +128,13 @@ async function setUpSeatedFriendlyMatch(database: TestDatabase) {
     throw new Error("Failed to insert Users");
   }
   const venue = await insertVenue(database);
+  const group = await insertGroup(database, a.id);
   const windowStart = new Date();
   const windowEnd = new Date(windowStart.getTime() + 60 * 60 * 1000);
 
   const created = await createFriendlyGame(database, {
     createdBy: a.id,
+    groupId: group.id,
     venueId: venue.id,
     windowStart,
     windowEnd,

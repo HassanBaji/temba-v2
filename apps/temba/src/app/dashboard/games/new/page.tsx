@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "~/components/common/empty-state";
+import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
 import { GameVenueSelect } from "~/components/games/game-venue-select";
@@ -68,12 +70,27 @@ function createVenueCopy(picker: {
   return "Pick a Venue. Court is optional.";
 }
 
+function groupOptionLabel(group: {
+  name: string | null;
+  communityName: string | null;
+}) {
+  const name = group.name ?? "Untitled Group";
+  if (!group.communityName) {
+    return name;
+  }
+  return `${name} · ${group.communityName}`;
+}
+
 function NewGameForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const groupId = searchParams.get("groupId") ?? undefined;
+  const requestedGroupId = searchParams.get("groupId") ?? undefined;
 
   const summaryRef = React.useRef<HTMLDivElement>(null);
+  const [selectedGroupId, setSelectedGroupId] = React.useState("");
+  const [groupFieldError, setGroupFieldError] = React.useState<
+    string | undefined
+  >();
   const [day, setDay] = React.useState(() => formatDateInputValue(new Date()));
   const [startTime, setStartTime] = React.useState("");
   const [finishTime, setFinishTime] = React.useState("");
@@ -96,7 +113,11 @@ function NewGameForm() {
     string | undefined
   >();
 
-  const picker = api.games.listCreateVenues.useQuery({ groupId });
+  const createGroups = api.games.listCreateGroups.useQuery();
+  const picker = api.games.listCreateVenues.useQuery(
+    { groupId: selectedGroupId },
+    { enabled: Boolean(selectedGroupId) },
+  );
   const selectedVenue = picker.data?.venues.find(
     (venue) => venue.id === venueId,
   );
@@ -108,6 +129,23 @@ function NewGameForm() {
   const linkedVenueId = picker.data?.locked
     ? picker.data.venues[0]?.id
     : undefined;
+
+  React.useEffect(() => {
+    if (!createGroups.data) {
+      return;
+    }
+    if (!requestedGroupId) {
+      return;
+    }
+    const match = createGroups.data.some(
+      (group) => group.id === requestedGroupId,
+    );
+    if (match) {
+      setSelectedGroupId((current) => current || requestedGroupId);
+      return;
+    }
+    setGroupFieldError("You cannot create a Game in that Group.");
+  }, [createGroups.data, requestedGroupId]);
 
   React.useEffect(() => {
     if (!linkedVenueId) {
@@ -123,8 +161,8 @@ function NewGameForm() {
       await utils.users.home.invalidate();
       await utils.games.listPublicPickup.invalidate();
       await utils.games.listMyGames.invalidate();
-      if (groupId) {
-        await utils.groups.byId.invalidate({ id: groupId });
+      if (selectedGroupId) {
+        await utils.groups.byId.invalidate({ id: selectedGroupId });
       }
       router.push(`/dashboard/games/${game.id}`);
     },
@@ -133,6 +171,7 @@ function NewGameForm() {
       focusFormFailure(
         error,
         {
+          groupId: "game-group",
           venueId: "game-venue",
           courtId: "game-court",
           pricePerPlayerCents: "game-price-per-player",
@@ -146,9 +185,21 @@ function NewGameForm() {
     },
   });
 
+  function onGroupChange(nextGroupId: string) {
+    setSelectedGroupId(nextGroupId);
+    setGroupFieldError(undefined);
+    setVenueId("");
+    setCourtId("none");
+  }
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (createGame.isPending) {
+      return;
+    }
+    if (!selectedGroupId) {
+      setGroupFieldError("Pick a Group");
+      document.getElementById("game-group")?.focus();
       return;
     }
     const gameWindow = parseRequiredGameWindow(day, startTime, finishTime);
@@ -176,7 +227,7 @@ function NewGameForm() {
     }
     createGame.mutate({
       name: formatGameWindowName(day, startTime, finishTime),
-      groupId,
+      groupId: selectedGroupId,
       isPublic: false,
       format: "friendly_game",
       registrationMode: "individual",
@@ -192,14 +243,55 @@ function NewGameForm() {
     });
   }
 
+  const cancelHref = selectedGroupId
+    ? `/dashboard/groups/${selectedGroupId}`
+    : requestedGroupId
+      ? `/dashboard/groups/${requestedGroupId}`
+      : "/dashboard/games";
+
+  if (createGroups.isLoading) {
+    return (
+      <DashboardShell title="Create Game">
+        <p className="text-muted-foreground text-sm">Loading…</p>
+      </DashboardShell>
+    );
+  }
+
+  if (createGroups.error) {
+    return (
+      <DashboardShell title="Create Game">
+        <ErrorState
+          title="Groups could not be loaded"
+          message={createGroups.error.message}
+          onRetry={() => {
+            void createGroups.refetch();
+          }}
+        />
+      </DashboardShell>
+    );
+  }
+
+  if (createGroups.data && createGroups.data.length === 0) {
+    return (
+      <DashboardShell title="Create Game">
+        <EmptyState
+          emoji="🎾"
+          title="Games are created inside a Group"
+          description="Create a Group first, then you can create a Game."
+          action={
+            <Button asChild>
+              <Link href="/dashboard/groups/new">Create Group</Link>
+            </Button>
+          }
+        />
+      </DashboardShell>
+    );
+  }
+
   return (
     <DashboardShell
       title="Create Game"
-      description={
-        groupId
-          ? "Padel only. A Friendly game creates one Match with caps 4 / 2. This Game belongs to the Group you opened it from."
-          : "Padel only. A Friendly game creates one Match with caps 4 / 2. This Game has no Group. You are the organizer."
-      }
+      description="Padel only. A Friendly game creates one Match with caps 4 / 2. This Game belongs to the chosen Group."
     >
       <Card variant="outlined" className="w-full">
         <form onSubmit={onSubmit} className="space-y-6">
@@ -215,6 +307,44 @@ function NewGameForm() {
           />
           <FieldGroup>
             <Field>
+              <FieldLabel htmlFor="game-group">Group</FieldLabel>
+              <Select
+                value={selectedGroupId || undefined}
+                onValueChange={onGroupChange}
+              >
+                <SelectTrigger
+                  id="game-group"
+                  className="w-full"
+                  aria-invalid={
+                    groupFieldError ||
+                    fieldErrorMessage(createGame.error, "groupId")
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    groupFieldError ||
+                    fieldErrorMessage(createGame.error, "groupId")
+                      ? "game-group-error"
+                      : undefined
+                  }
+                >
+                  <SelectValue placeholder="Select a Group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(createGroups.data ?? []).map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {groupOptionLabel(group)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldError id="game-group-error">
+                {groupFieldError ??
+                  fieldErrorMessage(createGame.error, "groupId")}
+              </FieldError>
+            </Field>
+
+            <Field>
               <FieldLabel htmlFor="game-venue">Venue</FieldLabel>
               <GameVenueSelect
                 id="game-venue"
@@ -224,8 +354,8 @@ function NewGameForm() {
                   setVenueId(nextVenueId);
                   setCourtId("none");
                 }}
-                disabled={picker.data?.locked === true}
-                pending={picker.isLoading}
+                disabled={!selectedGroupId || picker.data?.locked === true}
+                pending={Boolean(selectedGroupId) && picker.isLoading}
                 error={
                   Boolean(fieldErrorMessage(createGame.error, "venueId")) ||
                   emptyCatalog
@@ -237,9 +367,11 @@ function NewGameForm() {
                 }
               />
               <FieldDescription id="game-venue-copy">
-                {picker.data
-                  ? createVenueCopy(picker.data)
-                  : "Pick a Venue. Court is optional."}
+                {selectedGroupId
+                  ? picker.data
+                    ? createVenueCopy(picker.data)
+                    : "Pick a Venue. Court is optional."
+                  : "Pick a Group first. Venue rules depend on the Group."}
               </FieldDescription>
               <FieldError id="game-venue-error">
                 {fieldErrorMessage(createGame.error, "venueId") ??
@@ -251,7 +383,11 @@ function NewGameForm() {
 
             <Field>
               <FieldLabel htmlFor="game-court">Court (optional)</FieldLabel>
-              <Select value={courtId} onValueChange={setCourtId}>
+              <Select
+                value={courtId}
+                onValueChange={setCourtId}
+                disabled={!selectedGroupId}
+              >
                 <SelectTrigger
                   id="game-court"
                   aria-invalid={
@@ -399,13 +535,7 @@ function NewGameForm() {
               {createGame.isPending ? "Creating…" : "Create Game"}
             </Button>
             <Button variant="outline" asChild>
-              <Link
-                href={
-                  groupId ? `/dashboard/groups/${groupId}` : "/dashboard/games"
-                }
-              >
-                Cancel
-              </Link>
+              <Link href={cancelHref}>Cancel</Link>
             </Button>
           </div>
         </form>

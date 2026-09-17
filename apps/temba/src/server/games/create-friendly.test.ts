@@ -53,6 +53,17 @@ async function insertVenue(
   return row;
 }
 
+async function insertGroup(database: TestDatabase, createdBy: string) {
+  const [row] = await database
+    .insert(groups)
+    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .returning({ id: groups.id });
+  if (!row) {
+    throw new Error("Failed to insert group");
+  }
+  return row;
+}
+
 describe("Friendly Game create", () => {
   it("creates a Match and three Set shells", async () => {
     const { db, close } = await createPgliteDb();
@@ -67,6 +78,7 @@ describe("Friendly Game create", () => {
 
       const created = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -95,6 +107,7 @@ describe("Friendly Game create", () => {
 
       const unset = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -103,6 +116,7 @@ describe("Friendly Game create", () => {
 
       const free = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -112,6 +126,7 @@ describe("Friendly Game create", () => {
 
       const priced = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -133,6 +148,7 @@ describe("Friendly Game create", () => {
 
       const unset = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -142,6 +158,7 @@ describe("Friendly Game create", () => {
 
       const zeroMin = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -152,6 +169,7 @@ describe("Friendly Game create", () => {
 
       const both = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -163,6 +181,7 @@ describe("Friendly Game create", () => {
 
       const maxOnly = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: (await insertGroup(db, owner.id)).id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -187,6 +206,7 @@ describe("Friendly Game create", () => {
       await expect(
         createFriendlyGame(db, {
           createdBy: owner.id,
+          groupId: (await insertGroup(db, owner.id)).id,
           venueId: unlocked.id,
           windowStart,
           windowEnd,

@@ -20,6 +20,7 @@ import { kickProcedure as kick } from "./kick";
 import { leave } from "./leave";
 import { leaveWaitlistProcedure as leaveWaitlist } from "./leaveWaitlist";
 import { listCourtsProcedure as listCourts } from "./listCourts";
+import { listCreateGroupsProcedure as listCreateGroups } from "./listCreateGroups";
 import { listCreateVenues } from "./listCreateVenues";
 import { listLevelRangeRequestsProcedure as listLevelRangeRequests } from "./listLevelRangeRequests";
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
@@ -56,6 +57,7 @@ export const gamesRouter = createTRPCRouter({
   listMyMatchHistory,
   listPublicPickup,
   listCreateVenues,
+  listCreateGroups,
   create,
   byId,
   register,

@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { games, user, venues } from "@repo/db/schema";
+import { games, groups, user, venues } from "@repo/db/schema";
 
 import { gameById } from "~/server/api/routers/games/byId";
 import { createFriendlyGame } from "~/server/games/create-friendly";
@@ -35,16 +35,29 @@ async function insertVenue(database: TestDatabase) {
   return row;
 }
 
+async function insertGroup(database: TestDatabase, createdBy: string) {
+  const [row] = await database
+    .insert(groups)
+    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .returning({ id: groups.id });
+  if (!row) {
+    throw new Error("Failed to insert group");
+  }
+  return row;
+}
+
 describe("updateGameLevelRange", () => {
   it("lets an Organizer set, change, and clear the range", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "level-range-owner@example.com");
       const venue = await insertVenue(db);
+      const group = await insertGroup(db, owner.id);
       const windowStart = new Date();
       const windowEnd = new Date(windowStart.getTime() + 60 * 60 * 1000);
       const created = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: group.id,
         venueId: venue.id,
         windowStart,
         windowEnd,
@@ -106,10 +119,12 @@ describe("updateGameLevelRange", () => {
       );
       const other = await insertUser(db, "level-range-other@example.com");
       const venue = await insertVenue(db);
+      const group = await insertGroup(db, owner.id);
       const windowStart = new Date();
       const windowEnd = new Date(windowStart.getTime() + 60 * 60 * 1000);
       const created = await createFriendlyGame(db, {
         createdBy: owner.id,
+        groupId: group.id,
         venueId: venue.id,
         windowStart,
         windowEnd,

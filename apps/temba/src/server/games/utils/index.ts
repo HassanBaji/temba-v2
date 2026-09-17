@@ -81,7 +81,7 @@ export type CreateFriendlyDb = typeof db | AppTx | TestDatabase;
 export type CreateFriendlyGameInput = {
   createdBy: string;
   name?: string | null;
-  groupId?: string | null;
+  groupId: string;
   venueId: string;
   courtId?: string | null;
   windowStart: Date;
@@ -101,7 +101,7 @@ export type CreateFriendlyGameResult = {
 export type CreateGameInput = {
   createdBy: string;
   name?: string;
-  groupId?: string;
+  groupId: string;
   isPublic: boolean;
   format: "friendly_game" | "americano" | "friendly_tournament";
   registrationMode: "individual" | "team_only";

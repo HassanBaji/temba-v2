@@ -58,6 +58,7 @@ type ExpectedGames =
   | "listMyMatchHistory"
   | "listPublicPickup"
   | "listCreateVenues"
+  | "listCreateGroups"
   | "create"
   | "byId"
   | "register"
