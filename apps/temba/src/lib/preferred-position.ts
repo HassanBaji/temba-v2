@@ -30,6 +30,12 @@ const PREFERRED_POSITION_LABELS: Record<PreferredPosition, string> = {
   either: "Either",
 };
 
+const PREFERRED_POSITION_PROFILE_LINES: Record<PreferredPosition, string> = {
+  left: "Left side",
+  right: "Right side",
+  either: "Either side",
+};
+
 /** Narrows a stored column value onto the enum; anything else is unanswered. */
 export function isPreferredPosition(
   value: string | null | undefined,
@@ -42,6 +48,12 @@ export function preferredPositionLabel(value: string | null | undefined) {
   return isPreferredPosition(value)
     ? PREFERRED_POSITION_LABELS[value]
     : PREFERRED_POSITION_UNSET_LABEL;
+}
+
+export function preferredPositionProfileLine(value: string | null | undefined) {
+  return isPreferredPosition(value)
+    ? PREFERRED_POSITION_PROFILE_LINES[value]
+    : null;
 }
 
 /** The choices the picker offers. `Not set` is absent: it is not an answer. */

@@ -6,6 +6,7 @@ import {
   PREFERRED_POSITION_UNSET_LABEL,
   PREFERRED_POSITIONS,
   preferredPositionLabel,
+  preferredPositionProfileLine,
 } from "./preferred-position";
 
 describe("preferredPositionLabel", () => {
@@ -24,6 +25,20 @@ describe("preferredPositionLabel", () => {
     expect(preferredPositionLabel("")).toBe("Not set");
     expect(preferredPositionLabel("centre")).toBe("Not set");
     expect(preferredPositionLabel("LEFT")).toBe("Not set");
+  });
+});
+
+describe("preferredPositionProfileLine", () => {
+  it("reads each stored answer as the Profile identity line", () => {
+    expect(preferredPositionProfileLine("left")).toBe("Left side");
+    expect(preferredPositionProfileLine("right")).toBe("Right side");
+    expect(preferredPositionProfileLine("either")).toBe("Either side");
+  });
+
+  it("omits the line when Preferred Position is unset", () => {
+    expect(preferredPositionProfileLine(null)).toBeNull();
+    expect(preferredPositionProfileLine(undefined)).toBeNull();
+    expect(preferredPositionProfileLine("centre")).toBeNull();
   });
 });
 

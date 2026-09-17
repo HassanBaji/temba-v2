@@ -7,6 +7,7 @@ import {
   ListPageSkeleton,
 } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { titleFromPath } from "~/lib/dashboard-paths";
 
 function isDetailPath(pathname: string) {
   return /\/dashboard\/(groups|communities|teams|venues|games)\/(?!new$)[^/]+/.test(
@@ -14,70 +15,13 @@ function isDetailPath(pathname: string) {
   );
 }
 
-function titleFromPath(pathname: string) {
-  if (pathname === "/dashboard") {
-    return "Home";
-  }
-  if (pathname.startsWith("/dashboard/you")) {
-    return "You";
-  }
-  if (pathname.startsWith("/dashboard/invites")) {
-    return "Invites";
-  }
-  if (pathname.startsWith("/dashboard/groups/new")) {
-    return "Create Group";
-  }
-  if (pathname.startsWith("/dashboard/communities/new")) {
-    return "Create Community";
-  }
-  if (pathname.startsWith("/dashboard/teams/new")) {
-    return "Create Team";
-  }
-  if (pathname.startsWith("/dashboard/venues/new")) {
-    return "Create Venue";
-  }
-  if (pathname.startsWith("/dashboard/games/new")) {
-    return "Create Game";
-  }
-  if (pathname.startsWith("/dashboard/groups/")) {
-    return "Group";
-  }
-  if (pathname.startsWith("/dashboard/communities/")) {
-    return "Community";
-  }
-  if (pathname.startsWith("/dashboard/teams/")) {
-    return "Team";
-  }
-  if (pathname.startsWith("/dashboard/venues/")) {
-    return "Venue";
-  }
-  if (pathname.startsWith("/dashboard/games/")) {
-    return "Game";
-  }
-  if (pathname.startsWith("/dashboard/groups")) {
-    return "Groups";
-  }
-  if (pathname.startsWith("/dashboard/communities")) {
-    return "Communities";
-  }
-  if (pathname.startsWith("/dashboard/teams")) {
-    return "My Teams";
-  }
-  if (pathname.startsWith("/dashboard/venues")) {
-    return "Venues";
-  }
-  if (pathname.startsWith("/dashboard/games")) {
-    return "Games";
-  }
-  return "Home";
-}
-
 export function DashboardRouteLoading() {
   const pathname = usePathname() ?? "/dashboard";
   const title = titleFromPath(pathname);
+  const isSettings = pathname.startsWith("/dashboard/you/settings");
 
   return (
-    <DashboardShell title={title}>
+    <DashboardShell title={title} isSubPage={isSettings}>
       {isDetailPath(pathname) ? <DetailPageSkeleton /> : <ListPageSkeleton />}
     </DashboardShell>
   );

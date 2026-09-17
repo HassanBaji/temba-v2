@@ -1,188 +1,33 @@
 "use client";
 
-import { useClerk, useUser } from "@clerk/nextjs";
-import Link from "next/link";
-import { Building2, Camera, Mail, Users } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 
-import { ListRow, RowList } from "~/components/common/row-list";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Section } from "~/components/layout/section";
-import { AvatarBadge } from "~/components/ui/avatar";
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
-import { Skeleton } from "~/components/ui/skeleton";
-import { YouPreferredPositionRow } from "~/components/you/you-preferred-position-row";
+import { ProfileHeader } from "~/components/you/profile-header";
+import { ProfileIdentity } from "~/components/you/profile-identity";
 import { YouRatingSection } from "~/components/you/you-rating-section";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 
-function YouPageSkeleton({ showOperator }: { showOperator: boolean }) {
-  return (
-    <div aria-busy="true" className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Skeleton className="size-10 shrink-0 rounded-full" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-5 w-40 max-w-full" />
-          <Skeleton className="h-3 w-28 max-w-full" />
-        </div>
-      </div>
-      <div className="divide-border overflow-hidden rounded-lg border">
-        <Skeleton className="h-16 w-full rounded-none" />
-        <Skeleton className="h-16 w-full rounded-none" />
-        <Skeleton className="h-16 w-full rounded-none" />
-        {showOperator ? (
-          <Skeleton className="h-16 w-full rounded-none" />
-        ) : null}
-      </div>
-      <Skeleton className="h-11 w-full" />
-    </div>
-  );
-}
-
-function YouIdentityAvatar({
-  displayName,
-  hasImage,
-  imageUrl,
-}: {
-  displayName: string;
-  hasImage: boolean;
-  imageUrl: string;
-}) {
-  const clerk = useClerk();
-  const { user } = useUser();
-  const photoLabel = hasImage ? "Edit profile photo" : "Add profile photo";
-
-  return (
-    <button
-      type="button"
-      aria-label={photoLabel}
-      className="focus-visible:ring-ring/50 relative size-10 shrink-0 rounded-full outline-none focus-visible:ring-[3px]"
-      onClick={() => {
-        clerk.openUserProfile();
-        void user?.reload();
-      }}
-    >
-      <UserAvatar
-        name={displayName}
-        image={hasImage ? imageUrl : null}
-        size="lg"
-      />
-      <AvatarBadge aria-hidden="true" className="size-3 [&>svg]:size-2">
-        <Camera />
-      </AvatarBadge>
-    </button>
-  );
-}
-
 export default function YouPage() {
   const { isLoaded, user } = useUser();
-  const clerk = useClerk();
   const invites = usePendingInviteCount();
-  const isOperator = user?.publicMetadata.operator === true;
   const displayName =
     user?.fullName ?? user?.firstName ?? user?.username ?? "You";
-  const username = user?.username;
-
-  if (!isLoaded) {
-    return (
-      <DashboardShell title="You">
-        <YouPageSkeleton showOperator={false} />
-      </DashboardShell>
-    );
-  }
 
   return (
-    <DashboardShell title="You">
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          {user ? (
-            <YouIdentityAvatar
-              displayName={displayName}
-              hasImage={user.hasImage}
-              imageUrl={user.imageUrl}
-            />
-          ) : (
-            <UserAvatar name={displayName} size="lg" />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-lead truncate font-semibold">{displayName}</p>
-            {username ? (
-              <p className="text-meta text-muted-foreground truncate">
-                @{username}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
+    <DashboardShell width="content" hidePageHeader hideMobileTopBar>
+      <div className="mx-auto mt-6 w-full min-w-0 max-w-[1000px] space-y-[26px] lg:mt-2">
+        <ProfileHeader
+          pendingInviteCount={invites.showCount ? invites.count : 0}
+        />
+        <ProfileIdentity
+          displayName={displayName}
+          hasImage={user?.hasImage ?? false}
+          imageUrl={user?.imageUrl ?? null}
+          canEditPhoto={user != null}
+          ready={isLoaded}
+        />
         <YouRatingSection />
-
-        <RowList>
-          <YouPreferredPositionRow />
-          <ListRow
-            asChild
-            leading={
-              <Users aria-hidden="true" className="size-5" strokeWidth={2} />
-            }
-            title="Teams"
-            meta="Partnerships you play as"
-          >
-            <Link href="/dashboard/teams" />
-          </ListRow>
-          <ListRow
-            asChild
-            leading={
-              <Mail aria-hidden="true" className="size-5" strokeWidth={2} />
-            }
-            title="Invites"
-            meta="Lookup invites addressed to you"
-            trailing={
-              invites.showCount ? (
-                <span
-                  role="status"
-                  aria-label={`${invites.count} pending invites`}
-                >
-                  <Badge aria-hidden="true">{invites.count}</Badge>
-                </span>
-              ) : invites.isLoading ? (
-                <Skeleton className="h-5 w-8 rounded-full" />
-              ) : null
-            }
-          >
-            <Link href="/dashboard/invites" />
-          </ListRow>
-        </RowList>
-
-        {isOperator ? (
-          <Section title="Operator tools">
-            <RowList>
-              <ListRow
-                asChild
-                leading={
-                  <Building2
-                    aria-hidden="true"
-                    className="size-5"
-                    strokeWidth={2}
-                  />
-                }
-                title="Venues"
-                meta="Venue and Court catalogue"
-              >
-                <Link href="/dashboard/venues" />
-              </ListRow>
-            </RowList>
-          </Section>
-        ) : null}
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => {
-            void clerk.signOut({ redirectUrl: "/login" });
-          }}
-        >
-          Sign out
-        </Button>
       </div>
     </DashboardShell>
   );
