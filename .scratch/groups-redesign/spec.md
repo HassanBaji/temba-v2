@@ -19,6 +19,7 @@ Owners this spec defers to, where they disagree:
 - Game card visual contract: `.scratch/redesign/games-and-rankings-contract.md` §1.1–1.3
 - Per-User Rating / Level / Level band: `.scratch/user-ratings/spec.md` (ADR-0009)
 - Group home mobile chrome: `.scratch/group-home-mobile-chrome/spec.md`
+- Group image (leading monogram on hub rows; optional file at create): `.scratch/group-image/spec.md`
 - tRPC placement: `.cursor/rules/api-one-endpoint-per-file.mdc`
 
 ## Problem Statement
@@ -61,6 +62,7 @@ One `Groups` title with a `plus` action, then three blocks in order: **your Grou
 
 A single bordered card (`border-rule rounded-[14px]`), one row per Group, hairline-divided. Each row carries:
 
+- **Image** — leading `EntityMonogram` with the Group image URL, initials fallback. Specified in `.scratch/group-image/spec.md`. Do not reopen W-L, form, or next Game there.
 - **Name** — 18px, semibold.
 - **Meta** — `"{n} members, you are rank {r}"`. When the viewer has no standing position (no results yet), `"{n} members"`. Pluralise `member`.
 - **Next game** — right-aligned, `font-expanded` weekday abbreviation over a 12px `next game` caption. Drawn from the Group's soonest upcoming Game. When there is none, the design draws a 52×44 hatched block instead — render `<span className="hatch" />` at that size with `aria-hidden`, and no caption.
