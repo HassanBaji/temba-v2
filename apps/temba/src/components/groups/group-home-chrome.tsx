@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeftIcon, PlusIcon, UserPlusIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -40,6 +41,7 @@ export function GroupHomeChrome({
   canInvite,
   canCreateGame,
   onInvite,
+  overflow,
 }: {
   groupId: string;
   name: string;
@@ -51,6 +53,7 @@ export function GroupHomeChrome({
   canInvite: boolean;
   canCreateGame: boolean;
   onInvite: () => void;
+  overflow?: ReactNode;
 }) {
   const meta = groupHomeMetaLine({ sport, memberCount, createdAt });
   const showCreateBox = tab === "games" && canCreateGame;
@@ -67,26 +70,30 @@ export function GroupHomeChrome({
           <ChevronLeftIcon aria-hidden="true" className="size-5" />
         </Link>
 
-        {showInviteBox ? (
-          <button
-            type="button"
-            onClick={onInvite}
-            aria-label="Invite members"
-            className={ACTION_BOX}
-          >
-            <UserPlusIcon aria-hidden="true" className="size-[18px]" />
-          </button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {showInviteBox ? (
+            <button
+              type="button"
+              onClick={onInvite}
+              aria-label="Invite members"
+              className={ACTION_BOX}
+            >
+              <UserPlusIcon aria-hidden="true" className="size-[18px]" />
+            </button>
+          ) : null}
 
-        {showCreateBox ? (
-          <Link
-            href={`/dashboard/games/new?groupId=${groupId}`}
-            aria-label="Create game"
-            className={ACTION_BOX}
-          >
-            <PlusIcon aria-hidden="true" className="size-5" />
-          </Link>
-        ) : null}
+          {showCreateBox ? (
+            <Link
+              href={`/dashboard/games/new?groupId=${groupId}`}
+              aria-label="Create game"
+              className={ACTION_BOX}
+            >
+              <PlusIcon aria-hidden="true" className="size-5" />
+            </Link>
+          ) : null}
+
+          {overflow}
+        </div>
       </div>
 
       <div className="mt-5 flex items-start gap-3">

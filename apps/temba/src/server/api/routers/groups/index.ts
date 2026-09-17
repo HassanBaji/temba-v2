@@ -4,6 +4,7 @@ import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLin
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
 import { approveJoinRequestProcedure as approveJoinRequest } from "./approveJoinRequest";
 import { byId } from "./byId";
+import { clearImageProcedure as clearImage } from "./clearImage";
 import { createClubPrivateProcedure as createClubPrivate } from "./createClubPrivate";
 import { createClubPublicProcedure as createClubPublic } from "./createClubPublic";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
@@ -58,4 +59,5 @@ export const groupsRouter = createTRPCRouter({
   previewInviteLink,
   acceptInviteLink,
   uploadImage,
+  clearImage,
 });

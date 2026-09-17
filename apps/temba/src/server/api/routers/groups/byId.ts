@@ -605,6 +605,7 @@ export async function groupById(
     canManageInviteLinks,
     canDelete,
     canCreateGame,
+    canManageImage: isApprover,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,
   };
