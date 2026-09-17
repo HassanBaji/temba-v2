@@ -47,7 +47,7 @@ export const APP_NAV_SLOTS: AppNavItem[] = [
     slot: "communities",
   },
   {
-    title: "You",
+    title: "Profile",
     href: "/dashboard/you",
     icon: <CircleUser className="size-[21px]" aria-hidden="true" />,
     match: "prefix",

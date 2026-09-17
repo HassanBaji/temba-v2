@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 import { GroupSportEnum, ratingEvents, ratings } from "@repo/db";
 
@@ -14,7 +14,7 @@ import {
   type LevelBand,
 } from "~/server/ratings/level";
 
-type DbClient = typeof db;
+type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** Recent Rated Match Level points for the home sparkline. */
 const HISTORY_EVENT_LIMIT = 15;
@@ -53,6 +53,22 @@ async function padelLevelHistory(
   return history;
 }
 
+async function padelRatedMatchCount(
+  database: DbClient,
+  userId: string,
+): Promise<number> {
+  const [row] = await database
+    .select({ ratedMatchCount: count() })
+    .from(ratingEvents)
+    .where(
+      and(
+        eq(ratingEvents.userId, userId),
+        eq(ratingEvents.sport, GroupSportEnum.PADEL),
+      ),
+    );
+  return Number(row?.ratedMatchCount ?? 0);
+}
+
 /**
  * Current padel Rating for the signed-in User. Idle RD inflation is applied
  * for display (not persisted). Returns product Level / Level band /
@@ -60,11 +76,13 @@ async function padelLevelHistory(
  * the current Level band, typical Rated Matches remaining while Provisional,
  * and recent Level history for the home sparkline.
  */
-export const me = protectedProcedure.query(async ({ ctx }) => {
-  const appUser = await resolveAppUser(ctx.userId);
-  const row = await ctx.db.query.ratings.findFirst({
+export async function loadRatingsMe(
+  database: DbClient,
+  args: { userId: string },
+) {
+  const row = await database.query.ratings.findFirst({
     where: and(
-      eq(ratings.userId, appUser.id),
+      eq(ratings.userId, args.userId),
       eq(ratings.sport, GroupSportEnum.PADEL),
     ),
   });
@@ -73,13 +91,14 @@ export const me = protectedProcedure.query(async ({ ctx }) => {
     return {
       rating: null,
       canSelfDeclare: !(await userHasRatedMatch(
-        ctx.db,
-        appUser.id,
+        database,
+        args.userId,
         GroupSportEnum.PADEL,
       )),
       progressPercent: null as number | null,
       nextBand: null as LevelBand | null,
       history: [] as string[],
+      ratedMatchCount: 0,
     };
   }
 
@@ -87,7 +106,10 @@ export const me = protectedProcedure.query(async ({ ctx }) => {
   // Idle inflation does not change μ; progress uses the same continuous Level
   // as the displayed product number.
   const progress = progressToNextBand(levelFromMu(row.mu), rating.levelBand);
-  const history = await padelLevelHistory(ctx.db, appUser.id);
+  const [history, ratedMatchCount] = await Promise.all([
+    padelLevelHistory(database, args.userId),
+    padelRatedMatchCount(database, args.userId),
+  ]);
 
   return {
     rating,
@@ -95,5 +117,11 @@ export const me = protectedProcedure.query(async ({ ctx }) => {
     progressPercent: progress.progressPercent,
     nextBand: progress.nextBand,
     history,
+    ratedMatchCount,
   };
+}
+
+export const me = protectedProcedure.query(async ({ ctx }) => {
+  const appUser = await resolveAppUser(ctx.userId);
+  return loadRatingsMe(ctx.db, { userId: appUser.id });
 });

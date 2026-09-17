@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useCreateAccess } from "~/components/create-access-gate";
+import { detailBackHref } from "~/lib/dashboard-paths";
 import { pageGutterX } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
@@ -54,31 +55,6 @@ export function MobileTopBar({
       {action ? <div className="shrink-0">{action}</div> : null}
     </header>
   );
-}
-
-export function detailBackHref(
-  pathname: string | null,
-  hasCreateAccess = false,
-): string | undefined {
-  if (!pathname) {
-    return undefined;
-  }
-  if (/^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)) {
-    return "/dashboard/groups";
-  }
-  if (/^\/dashboard\/communities\/(?!new$)[^/]+/.test(pathname)) {
-    return hasCreateAccess ? "/dashboard/communities" : "/dashboard";
-  }
-  if (/^\/dashboard\/teams\/(?!new$)[^/]+/.test(pathname)) {
-    return "/dashboard/teams";
-  }
-  if (/^\/dashboard\/venues\/(?!new$)[^/]+/.test(pathname)) {
-    return "/dashboard/venues";
-  }
-  if (/^\/dashboard\/games\/(?!new$)[^/]+/.test(pathname)) {
-    return "/dashboard/games";
-  }
-  return undefined;
 }
 
 export function MobileTopBarFromPath({
