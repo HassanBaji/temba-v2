@@ -61,15 +61,19 @@ A Community joinable by request if you have the Community URL. Owner or Admin ma
 _Avoid_: open Community, listed Community (as the name of the type), Route `/public`
 
 **Community Private**:
-A Community joinable by Lookup invite or Invite link from Owner or Admin, or by Owner/Admin Club Group Lookup invite or Invite link that auto-admits as Member then joins the Club Group. No request-to-join.
+A Community joinable by Lookup invite or Invite link from Owner or Admin, or by Owner/Admin Club Group Lookup invite or Invite link that auto-admits as Member then joins the Club Group, or by an approved Group join request on one of its Club Group Public. No request-to-join on the Community itself.
 _Avoid_: secret Community, hidden Community, unlisted Community (when you mean this type)
 
 **Directory**:
-A planned App list of live Community Public clubs. Not a shipped surface. Groups are never in the Directory.
+A planned App list of live Community Public clubs. Not a shipped surface. Distinct from the Public Groups list.
 _Avoid_: Group directory, marketplace, feed
 
+**Public Groups list**:
+An App list of live Public padel Groups the User is not in: Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row offers Join or Request to join.
+_Avoid_: Directory, Group directory, marketplace, feed
+
 **Club Group Public**:
-A Club Group any Community Member may join. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
+A Club Group listed on the Public Groups list. A Community Member may join (or request if Require approval is on). A non-Member may send a Group join request; approving it also creates the Community membership. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
 _Avoid_: open Group (when you mean Club Group Public)
 
 **Club Group Private**:
@@ -77,7 +81,7 @@ A Club Group joinable by Lookup invite or Invite link. Owner or Admin may invite
 _Avoid_: secret Group (when you mean Club Group Private)
 
 **Loose Group Public**:
-A Loose Group that is not listed; any authenticated User with the Group URL may join. The creator may also send Lookup invites and mint Invite links.
+A Loose Group listed on the Public Groups list. Any authenticated User with the Group URL may join, unless Require approval is on. The creator may also send Lookup invites and mint Invite links.
 _Avoid_: listed Group, Invite link (that is a different door from Group URL)
 
 **Require approval**:

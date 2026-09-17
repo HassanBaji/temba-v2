@@ -16,6 +16,7 @@ import { joinLoosePublicProcedure as joinLoosePublic } from "./joinLoosePublic";
 import { leave } from "./leave";
 import { listJoinRequestsProcedure as listJoinRequests } from "./listJoinRequests";
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
+import { listPublicProcedure as listPublic } from "./listPublic";
 import { mineProcedure as mine } from "./mine";
 import { mineLooseProcedure as mineLoose } from "./mineLoose";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
@@ -34,6 +35,7 @@ export const groupsRouter = createTRPCRouter({
   createLoosePrivate,
   mineLoose,
   mine,
+  listPublic,
   byId,
   joinClubPublic,
   joinLoosePublic,

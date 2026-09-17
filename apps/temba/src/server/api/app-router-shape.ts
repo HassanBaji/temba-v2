@@ -111,6 +111,7 @@ type ExpectedGroups =
   | "createLoosePrivate"
   | "mineLoose"
   | "mine"
+  | "listPublic"
   | "byId"
   | "joinClubPublic"
   | "joinLoosePublic"
