@@ -54,7 +54,7 @@ export function ListRow({
   const body = (
     <>
       {leading ? <div className="shrink-0">{leading}</div> : null}
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 flex-1 items-center gap-4">
         {icon ? <div className="shrink-0">{icon}</div> : null}
         <div className="min-w-0 flex-1">
           <p className="text-lead truncate font-semibold">{title}</p>
