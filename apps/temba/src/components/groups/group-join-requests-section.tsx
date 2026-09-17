@@ -39,6 +39,7 @@ export function GroupApproverControls({
   rejectPendingId,
   onApprove,
   onReject,
+  communityName,
 }: {
   canSetRequiresApproval: boolean;
   requiresApproval: boolean;
@@ -53,6 +54,7 @@ export function GroupApproverControls({
   rejectPendingId?: string;
   onApprove: (requestId: string) => void;
   onReject: (requestId: string) => void;
+  communityName: string | null;
 }) {
   if (!canSetRequiresApproval && !canDecideJoinRequests) {
     return null;
@@ -116,7 +118,11 @@ export function GroupApproverControls({
                       />
                     }
                     title={name}
-                    meta={`Requested ${formatRequestedAt(request.createdAt)}`}
+                    meta={
+                      request.isCommunityMember === false
+                        ? `Requested ${formatRequestedAt(request.createdAt)} · Not yet a ${communityName ?? "Community"} Member`
+                        : `Requested ${formatRequestedAt(request.createdAt)}`
+                    }
                     approvePending={approvePendingId === request.id}
                     rejectPending={rejectPendingId === request.id}
                     onApprove={() => onApprove(request.id)}

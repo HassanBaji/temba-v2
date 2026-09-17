@@ -142,6 +142,19 @@ export default function GroupHomePage({
         utils.groups.byId.invalidate({ id }),
         utils.groups.mine.invalidate(),
         utils.groups.listJoinRequests.invalidate({ groupId: id }),
+        group.data?.communityId
+          ? utils.communities.byId.invalidate({
+              id: group.data.communityId,
+            })
+          : Promise.resolve(),
+        group.data?.communityId
+          ? utils.communities.mine.invalidate()
+          : Promise.resolve(),
+        group.data?.communityId
+          ? utils.communities.listJoinRequests.invalidate({
+              communityId: group.data.communityId,
+            })
+          : Promise.resolve(),
       ]);
     },
     onError: (error) => {
@@ -452,10 +465,11 @@ export default function GroupHomePage({
 
       {data.communityId &&
       !data.communityMembership &&
-      !data.isCommunityArchived ? (
+      !data.isCommunityArchived &&
+      (data.joinMode === "request" || data.joinMode === "requested") ? (
         <p className="text-body text-muted-foreground">
-          You cannot join this Club Group until you are a member of its
-          Community.
+          If approved, you also become a Member of{" "}
+          {data.community?.name ?? "this Community"}.
         </p>
       ) : null}
     </>
@@ -575,6 +589,7 @@ export default function GroupHomePage({
                 onReject={(requestId) =>
                   rejectJoinRequest.mutate({ requestId })
                 }
+                communityName={data.community?.name ?? null}
               />
               <GroupMembersTab
                 members={data.standing.leaderboard.map((entry) => ({

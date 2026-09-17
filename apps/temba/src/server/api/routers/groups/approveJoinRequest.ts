@@ -3,6 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  communityJoinRequests,
+  CommunityJoinRequestStatusEnum,
+  CommunityRoleEnum,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
@@ -10,6 +13,10 @@ import {
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
+import {
+  admit as admitCommunityMember,
+  throwAdmitFailure,
+} from "~/server/community-membership";
 import { type db } from "~/server/db";
 import { assertGroupApprover } from "~/server/groups/helpers/is-group-approver";
 import { requireGroup } from "~/server/groups/helpers/require-group";
@@ -52,6 +59,40 @@ export async function approveJoinRequest(
   }
 
   await database.transaction(async (tx) => {
+    if (group.communityId) {
+      const admitted = await admitCommunityMember(tx, {
+        communityId: group.communityId,
+        userId: request.userId,
+        role: CommunityRoleEnum.MEMBER,
+      });
+      if (!admitted.ok && admitted.reason !== "already_member") {
+        throwAdmitFailure(admitted);
+      }
+
+      const pendingCommunityRequest =
+        await tx.query.communityJoinRequests.findFirst({
+          where: and(
+            eq(communityJoinRequests.communityId, group.communityId),
+            eq(communityJoinRequests.userId, request.userId),
+            eq(
+              communityJoinRequests.status,
+              CommunityJoinRequestStatusEnum.PENDING,
+            ),
+          ),
+          columns: { id: true },
+        });
+      if (pendingCommunityRequest) {
+        await tx
+          .update(communityJoinRequests)
+          .set({
+            status: CommunityJoinRequestStatusEnum.APPROVED,
+            decidedBy: args.userId,
+            updatedAt: new Date(),
+          })
+          .where(eq(communityJoinRequests.id, pendingCommunityRequest.id));
+      }
+    }
+
     const [updated] = await tx
       .update(groupJoinRequests)
       .set({

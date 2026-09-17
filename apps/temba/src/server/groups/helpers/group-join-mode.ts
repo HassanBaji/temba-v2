@@ -81,7 +81,7 @@ export async function groupJoinMode(
     userId,
   );
   if (!communityMembership) {
-    return "none";
+    return "request";
   }
 
   return group.requiresApproval ? "request" : "join";
