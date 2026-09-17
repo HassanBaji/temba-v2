@@ -26,13 +26,31 @@ function slotLabel(bar: RecentFormBar): string {
   return "Drawn";
 }
 
-function FormSlot({ bar }: { bar: RecentFormBar }) {
+export function FormSlot({
+  bar,
+  size = "default",
+}: {
+  bar: RecentFormBar;
+  size?: "default" | "compact";
+}) {
+  const compact = size === "compact";
+
   if (bar.kind === "empty") {
     return (
-      <div className="relative h-[38px] min-w-0 flex-1">
+      <div
+        className={
+          compact
+            ? "relative h-[26px] min-w-0 flex-1"
+            : "relative h-[38px] min-w-0 flex-1"
+        }
+      >
         <div
           aria-hidden="true"
-          className="hatch absolute inset-0 rounded-[5px]"
+          className={
+            compact
+              ? "hatch absolute inset-0 rounded-[4px]"
+              : "hatch absolute inset-0 rounded-[5px]"
+          }
         />
         <span className="sr-only">{slotLabel(bar)}</span>
       </div>
@@ -41,15 +59,27 @@ function FormSlot({ bar }: { bar: RecentFormBar }) {
 
   if (bar.outcome === "won") {
     return (
-      <div className="bg-ink text-paper flex h-[38px] min-w-0 flex-1 items-center justify-center rounded-[5px] text-sm font-semibold">
+      <div
+        className={
+          compact
+            ? "bg-ink h-[26px] min-w-0 flex-1 rounded-[4px]"
+            : "bg-ink text-paper flex h-[38px] min-w-0 flex-1 items-center justify-center rounded-[5px] text-sm font-semibold"
+        }
+      >
         <span className="sr-only">{slotLabel(bar)}</span>
-        <span aria-hidden="true">{bar.label}</span>
+        {compact ? null : <span aria-hidden="true">{bar.label}</span>}
       </div>
     );
   }
 
   return (
-    <div className="border-ink bg-paper text-ink relative flex h-[38px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-[5px] border-[1.5px] text-sm font-semibold">
+    <div
+      className={
+        compact
+          ? "border-ink bg-paper relative h-[26px] min-w-0 flex-1 overflow-hidden rounded-[4px] border"
+          : "border-ink bg-paper text-ink relative flex h-[38px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-[5px] border-[1.5px] text-sm font-semibold"
+      }
+    >
       {bar.outcome === "draw" ? (
         <span
           aria-hidden="true"
@@ -60,9 +90,11 @@ function FormSlot({ bar }: { bar: RecentFormBar }) {
         />
       ) : null}
       <span className="sr-only">{slotLabel(bar)}</span>
-      <span aria-hidden="true" className="relative">
-        {bar.label}
-      </span>
+      {compact ? null : (
+        <span aria-hidden="true" className="relative">
+          {bar.label}
+        </span>
+      )}
     </div>
   );
 }

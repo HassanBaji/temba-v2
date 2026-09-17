@@ -3,6 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { ProfileForm } from "~/components/you/profile-form-card";
 import { ProfileHeader } from "~/components/you/profile-header";
 import { ProfileIdentity } from "~/components/you/profile-identity";
 import { ProfileLevel } from "~/components/you/profile-level-card";
@@ -28,6 +29,7 @@ export default function YouPage() {
           ready={isLoaded}
         />
         <ProfileLevel />
+        <ProfileForm />
       </div>
     </DashboardShell>
   );
