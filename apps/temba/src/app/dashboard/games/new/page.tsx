@@ -271,7 +271,7 @@ function NewGameForm() {
     );
   }
 
-  if (createGroups.data && createGroups.data.length === 0) {
+  if (createGroups.data?.length === 0) {
     return (
       <DashboardShell title="Create Game">
         <EmptyState
