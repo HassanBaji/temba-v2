@@ -17,6 +17,7 @@ import { admit as admitCommunityMember } from "~/server/community-membership";
 import { isStaffRole, requireGame } from "~/server/games/access";
 import { admitIndividualUser } from "~/server/games/invites";
 import { isIndividualSeatGame } from "~/server/games/seats";
+import { markPendingGroupJoinRequestApproved } from "~/server/groups/helpers/mark-pending-group-join-request-approved";
 import { loadLookupInvite } from "~/server/invites/doors/helpers/load-lookup-invite";
 import { writeDb } from "~/server/invites/doors/helpers/write-db";
 import { assertInviteOpen } from "~/server/invites/doors/consult";
@@ -144,6 +145,11 @@ export async function acceptLookup(
     });
     if (existing) {
       await markLookupAccepted(database, host, args.inviteId);
+      await markPendingGroupJoinRequestApproved(database, {
+        groupId: host.id,
+        userId: args.userId,
+        decidedBy: args.userId,
+      });
       return { ok: true, alreadyMember: true, hostId: host.id };
     }
 
@@ -188,6 +194,11 @@ export async function acceptLookup(
     await writeDb(database).insert(groupMembers).values({
       groupId: host.id,
       userId: args.userId,
+    });
+    await markPendingGroupJoinRequestApproved(database, {
+      groupId: host.id,
+      userId: args.userId,
+      decidedBy: args.userId,
     });
     return { ok: true, alreadyMember: false, hostId: host.id };
   }

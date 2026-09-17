@@ -14,6 +14,7 @@ import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-m
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
 import { GroupHomeTopBar } from "~/components/groups/group-home-top-bar";
 import { GroupInvitesDialog } from "~/components/groups/group-invites-dialog";
+import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
@@ -102,6 +103,60 @@ export default function GroupHomePage({
       toast.success("Joined Group");
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const requestJoin = api.groups.requestJoin.useMutation({
+    onSuccess: async () => {
+      toast.success("Requested to join");
+      await utils.groups.byId.invalidate({ id });
+      await utils.groups.mine.invalidate();
+      await utils.groups.listJoinRequests.invalidate({ groupId: id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const setRequiresApproval = api.groups.setRequiresApproval.useMutation({
+    onSuccess: async () => {
+      await utils.groups.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const joinRequests = api.groups.listJoinRequests.useQuery(
+    { groupId: id },
+    { enabled: Boolean(group.data?.canDecideJoinRequests) },
+  );
+
+  const approveJoinRequest = api.groups.approveJoinRequest.useMutation({
+    onSuccess: async () => {
+      toast.success("Request approved");
+      await Promise.all([
+        utils.groups.byId.invalidate({ id }),
+        utils.groups.mine.invalidate(),
+        utils.groups.listJoinRequests.invalidate({ groupId: id }),
+      ]);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const rejectJoinRequest = api.groups.rejectJoinRequest.useMutation({
+    onSuccess: async () => {
+      toast.success("Request rejected");
+      await Promise.all([
+        utils.groups.byId.invalidate({ id }),
+        utils.groups.mine.invalidate(),
+        utils.groups.listJoinRequests.invalidate({ groupId: id }),
+      ]);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -244,7 +299,10 @@ export default function GroupHomePage({
     registerGame.mutate({ gameId });
   }
 
-  const joinPending = joinClubPublic.isPending || joinLoosePublic.isPending;
+  const joinPending =
+    joinClubPublic.isPending ||
+    joinLoosePublic.isPending ||
+    requestJoin.isPending;
 
   function setTab(next: string) {
     const resolved = groupHomeTabFromQuery(next);
@@ -257,6 +315,10 @@ export default function GroupHomePage({
   }
 
   function onJoin() {
+    if (group.data?.joinMode === "request") {
+      requestJoin.mutate({ groupId: id });
+      return;
+    }
     if (group.data?.canJoinLoosePublic) {
       joinLoosePublic.mutate({ groupId: id });
       return;
@@ -322,7 +384,10 @@ export default function GroupHomePage({
     canManageInviteLinks: data.canManageInviteLinks,
   });
   const ctaFamily = groupHomeCtaFamily({
-    canJoin: data.canJoin,
+    canJoin:
+      data.joinMode === "join" ||
+      data.joinMode === "request" ||
+      data.joinMode === "requested",
     nextJoinableGameId:
       groupHomeNextJoinableGame(data.upcomingGames, Boolean(data.membership))
         ?.id ?? null,
@@ -427,10 +492,18 @@ export default function GroupHomePage({
             <Button
               type="button"
               className="min-h-11 w-full"
-              disabled={joinPending}
+              disabled={data.joinMode === "requested" || joinPending}
               onClick={onJoin}
             >
-              {joinPending ? "Joining…" : "Join Group"}
+              {data.joinMode === "requested"
+                ? "Requested"
+                : data.joinMode === "request"
+                  ? requestJoin.isPending
+                    ? "Requesting…"
+                    : "Request to join"
+                  : joinPending
+                    ? "Joining…"
+                    : "Join Group"}
             </Button>
           ) : null}
 
@@ -468,21 +541,57 @@ export default function GroupHomePage({
             value="members"
             className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
           >
-            <GroupMembersTab
-              members={data.standing.leaderboard.map((entry) => ({
-                userId: entry.userId,
-                name: entry.name ?? "Member",
-                image: entry.image,
-                isViewer: entry.isViewer,
-                isOrganizer: entry.isOrganizer,
-                joinedAt: entry.joinedAt,
-                formMarks: entry.formMarks,
-                levelBand: entry.levelBand,
-                levelProvisional: entry.levelProvisional,
-              }))}
-              canInvite={canManageInvites}
-              onInvite={() => setInvitesOpen(true)}
-            />
+            <div className="flex flex-col gap-[26px]">
+              <GroupApproverControls
+                canSetRequiresApproval={data.canSetRequiresApproval}
+                requiresApproval={data.requiresApproval}
+                requiresApprovalPending={setRequiresApproval.isPending}
+                onRequiresApprovalChange={(next) =>
+                  setRequiresApproval.mutate({
+                    groupId: id,
+                    requiresApproval: next,
+                  })
+                }
+                canDecideJoinRequests={data.canDecideJoinRequests}
+                joinRequests={joinRequests.data}
+                joinLoading={joinRequests.isLoading}
+                joinError={joinRequests.error?.message}
+                onRetryJoin={() => {
+                  void joinRequests.refetch();
+                }}
+                approvePendingId={
+                  approveJoinRequest.isPending
+                    ? approveJoinRequest.variables?.requestId
+                    : undefined
+                }
+                rejectPendingId={
+                  rejectJoinRequest.isPending
+                    ? rejectJoinRequest.variables?.requestId
+                    : undefined
+                }
+                onApprove={(requestId) =>
+                  approveJoinRequest.mutate({ requestId })
+                }
+                onReject={(requestId) =>
+                  rejectJoinRequest.mutate({ requestId })
+                }
+              />
+              <GroupMembersTab
+                members={data.standing.leaderboard.map((entry) => ({
+                  userId: entry.userId,
+                  name: entry.name ?? "Member",
+                  image: entry.image,
+                  isViewer: entry.isViewer,
+                  isOrganizer: entry.isOrganizer,
+                  joinedAt: entry.joinedAt,
+                  formMarks: entry.formMarks,
+                  levelBand: entry.levelBand,
+                  levelProvisional: entry.levelProvisional,
+                }))}
+                canInvite={canManageInvites}
+                onInvite={() => setInvitesOpen(true)}
+              />
+            </div>
           </TabsContent>
         </div>
       </Tabs>

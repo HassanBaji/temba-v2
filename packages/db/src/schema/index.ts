@@ -33,6 +33,7 @@ export * from "./team-link-requests";
 export * from "./group-member-invites";
 export * from "./group-email-invites";
 export * from "./group-invite-links";
+export * from "./group-join-requests";
 export * from "./communities";
 export * from "./community-members";
 export * from "./community-sports";

@@ -6,8 +6,8 @@ import {
   communitySports,
   groupMembers,
   groups,
+  GroupTypeEnum,
   type GroupSportEnum,
-  type GroupTypeEnum,
 } from "@repo/db";
 
 import { requireStaff } from "~/server/groups/helpers/require-staff";
@@ -24,6 +24,7 @@ export async function createClubGroup(args: {
   sport: "padel" | "football";
   type: GroupTypeEnum;
   createdBy: string;
+  requiresApproval?: boolean;
 }) {
   const community = await args.database.query.communities.findFirst({
     where: eq(communities.id, args.communityId),
@@ -66,6 +67,10 @@ export async function createClubGroup(args: {
         sport: args.sport,
         communityId: community.id,
         createdBy: args.createdBy,
+        requiresApproval:
+          args.type === GroupTypeEnum.PUBLIC
+            ? Boolean(args.requiresApproval)
+            : false,
       })
       .returning();
 

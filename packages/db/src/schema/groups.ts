@@ -4,6 +4,7 @@ import {
   varchar,
   timestamp,
   integer,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { games } from "./games";
@@ -18,6 +19,7 @@ import { relations } from "drizzle-orm";
 import { groupMemberInvites } from "./group-member-invites";
 import { groupEmailInvites } from "./group-email-invites";
 import { groupInviteLinks } from "./group-invite-links";
+import { groupJoinRequests } from "./group-join-requests";
 
 export {
   groupSports,
@@ -36,6 +38,7 @@ export const groups = pgTable("groups", {
   communityId: uuid("community_id").references(() => communities.id, {
     onDelete: "restrict",
   }),
+  requiresApproval: boolean("requires_approval").notNull().default(false),
   createdBy: uuid("created_by")
     .references(() => user.id, { onDelete: "cascade" })
     .notNull(),
@@ -53,4 +56,5 @@ export const groupRelations = relations(groups, ({ one, many }) => ({
   memberInvites: many(groupMemberInvites),
   emailInvites: many(groupEmailInvites),
   inviteLinks: many(groupInviteLinks),
+  joinRequests: many(groupJoinRequests),
 }));

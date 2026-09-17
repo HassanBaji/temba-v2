@@ -80,6 +80,18 @@ _Avoid_: secret Group (when you mean Club Group Private)
 A Loose Group that is not listed; any authenticated User with the Group URL may join. The creator may also send Lookup invites and mint Invite links.
 _Avoid_: listed Group, Invite link (that is a different door from Group URL)
 
+**Require approval**:
+A flag on a Public Group (Loose or Club). When it is on, the Group URL join becomes a Group join request instead of an immediate admit. Off by default. Private Groups have no open join door, so the flag does not apply. Turning it off does not admit pending requests.
+_Avoid_: closed Group, moderated Group (when you mean this flag)
+
+**Group join request**:
+A User asking a Group approver to admit them to a Public Group that requires approval. No message. No expiry. A rejected or leftover approved row may be reset to pending (same as a Community join request). Distinct from a Community join request and from a Game Level range request.
+_Avoid_: invitation, Invite, Community join request (when you mean this Group request)
+
+**Group approver**:
+Who may set Require approval and decide Group join requests. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived.
+_Avoid_: Group owner, organizer (when you mean this write permission)
+
 **Loose Group Private**:
 A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it.
 _Avoid_: secret Loose Group

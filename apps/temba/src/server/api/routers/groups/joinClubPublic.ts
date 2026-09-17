@@ -33,6 +33,13 @@ export async function joinClubPublic(
     });
   }
 
+  if (group.requiresApproval) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This Group requires approval. Request to join instead.",
+    });
+  }
+
   const community = await database.query.communities.findFirst({
     where: eq(communities.id, group.communityId),
   });

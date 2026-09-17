@@ -19,6 +19,7 @@ import {
   recordTeamInviteLinkConsent,
 } from "~/server/games/invites";
 import { isIndividualSeatGame } from "~/server/games/seats";
+import { markPendingGroupJoinRequestApproved } from "~/server/groups/helpers/mark-pending-group-join-request-approved";
 import { writeDb } from "~/server/invites/doors/helpers/write-db";
 import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { assertInviteOpen } from "~/server/invites/doors/consult";
@@ -93,6 +94,11 @@ export async function acceptLink(
       columns: { id: true },
     });
     if (existing) {
+      await markPendingGroupJoinRequestApproved(database, {
+        groupId: host.id,
+        userId: args.userId,
+        decidedBy: args.userId,
+      });
       return { ok: false, reason: "already_member" };
     }
     if (group.communityId) {
@@ -108,6 +114,11 @@ export async function acceptLink(
     await writeDb(database).insert(groupMembers).values({
       groupId: host.id,
       userId: args.userId,
+    });
+    await markPendingGroupJoinRequestApproved(database, {
+      groupId: host.id,
+      userId: args.userId,
+      decidedBy: args.userId,
     });
     return { ok: true, alreadyMember: false, hostId: host.id };
   }

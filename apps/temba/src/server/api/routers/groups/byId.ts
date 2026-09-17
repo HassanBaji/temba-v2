@@ -34,6 +34,8 @@ import {
 } from "~/server/games/match-slots";
 import { groupHasGames } from "~/server/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "~/server/groups/helpers/group-has-non-creator-members";
+import { groupJoinMode } from "~/server/groups/helpers/group-join-mode";
+import { isGroupApprover } from "~/server/groups/helpers/is-group-approver";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { requireGroup } from "~/server/groups/helpers/require-group";
 import {
@@ -266,11 +268,10 @@ export async function groupById(
   const archive = consult({
     archivedAt: community?.archivedAt ?? null,
   });
-  const live = !archive.freeze("join");
-  const canJoinClubPublic =
-    isClubPublic && Boolean(communityMembership) && !membership && live;
-  const canJoinLoosePublic = isLoosePublic && !membership;
-  const canJoin = canJoinClubPublic || canJoinLoosePublic;
+  const joinMode = await groupJoinMode(database, group, args.userId);
+  const canJoinClubPublic = joinMode === "join" && isClubPublic;
+  const canJoinLoosePublic = joinMode === "join" && isLoosePublic;
+  const canJoin = joinMode === "join";
   const canManageLookupInvites =
     ((isLoosePublic || isLoosePrivate) && group.createdBy === args.userId) ||
     ((isClubPublic || isClubPrivate) &&
@@ -294,6 +295,10 @@ export async function groupById(
     group,
     args.userId,
   );
+  const isApprover = await isGroupApprover(database, group, args.userId);
+  const canSetRequiresApproval =
+    isApprover && group.type === GroupTypeEnum.PUBLIC;
+  const canDecideJoinRequests = canSetRequiresApproval;
 
   const memberRows = await database.query.groupMembers.findMany({
     where: eq(groupMembers.groupId, group.id),
@@ -591,6 +596,10 @@ export async function groupById(
     canJoin,
     canJoinLoosePublic,
     canJoinClubPublic,
+    joinMode,
+    requiresApproval: group.requiresApproval,
+    canDecideJoinRequests,
+    canSetRequiresApproval,
     canManageLookupInvites,
     canManageInviteLinks,
     canDelete,

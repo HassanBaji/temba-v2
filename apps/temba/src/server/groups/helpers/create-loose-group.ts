@@ -3,8 +3,8 @@ import { TRPCError } from "@trpc/server";
 import {
   groupMembers,
   groups,
+  GroupTypeEnum,
   type GroupSportEnum,
-  type GroupTypeEnum,
 } from "@repo/db";
 
 import { type db } from "~/server/db";
@@ -18,6 +18,7 @@ export async function createLooseGroup(args: {
   sport: "padel" | "football";
   type: GroupTypeEnum;
   createdBy: string;
+  requiresApproval?: boolean;
 }) {
   const created = await args.database.transaction(async (tx) => {
     const [group] = await tx
@@ -29,6 +30,10 @@ export async function createLooseGroup(args: {
         sport: args.sport,
         communityId: null,
         createdBy: args.createdBy,
+        requiresApproval:
+          args.type === GroupTypeEnum.PUBLIC
+            ? Boolean(args.requiresApproval)
+            : false,
       })
       .returning();
 
