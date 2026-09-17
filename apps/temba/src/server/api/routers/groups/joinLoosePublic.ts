@@ -31,6 +31,13 @@ export async function joinLoosePublic(
     });
   }
 
+  if (group.requiresApproval) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This Group requires approval. Request to join instead.",
+    });
+  }
+
   const existing = await database.query.groupMembers.findFirst({
     where: and(
       eq(groupMembers.groupId, group.id),

@@ -707,11 +707,12 @@ export default function CommunityHomePage({
           privatePending={createClubPrivate.isPending}
           publicError={createClubPublic.error}
           privateError={createClubPrivate.error}
-          onCreatePublic={(name) =>
+          onCreatePublic={(name, requiresApproval) =>
             createClubPublic.mutate({
               communityId: id,
               name,
               sport: "padel",
+              requiresApproval,
             })
           }
           onCreatePrivate={(name) =>

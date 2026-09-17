@@ -36,11 +36,125 @@ const createFormatSchema = z.enum([
   "friendly_tournament",
 ]);
 
+export const createGameInputSchema = z
+  .object({
+    name: z.string().trim().max(255).optional(),
+    groupId: z.string().uuid({ message: "Pick a Group" }),
+    isPublic: z.boolean(),
+    format: createFormatSchema.default("friendly_game"),
+    registrationMode: registrationModeSchema,
+    playersAllowed: z.number().int().optional(),
+    teamsAllowed: z.number().int().optional(),
+    windowStart: z.coerce.date(),
+    windowEnd: z.coerce.date(),
+    venueId: z.string().uuid({ message: "Pick a Venue" }),
+    courtId: z.string().uuid().nullable().optional(),
+    courtIds: z.array(z.string().uuid()).optional(),
+    pricePerPlayerCents: z
+      .number()
+      .int()
+      .min(0)
+      .max(PRICE_PER_PLAYER_MAX_CENTS)
+      .nullable()
+      .optional(),
+    levelMinTenths: z
+      .number()
+      .int()
+      .min(LEVEL_TENTHS_MIN)
+      .max(LEVEL_TENTHS_MAX)
+      .nullable()
+      .optional(),
+    levelMaxTenths: z
+      .number()
+      .int()
+      .min(LEVEL_TENTHS_MIN)
+      .max(LEVEL_TENTHS_MAX)
+      .nullable()
+      .optional(),
+  })
+  .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
+    message: "Finish time must be at or after start time",
+    path: ["windowEnd"],
+  })
+  .refine(
+    (value) =>
+      value.format !== "americano" || value.registrationMode === "individual",
+    { message: "Americano is individual-only" },
+  )
+  .refine(
+    (value) => {
+      if (value.format !== "americano") {
+        return true;
+      }
+      const cap = value.playersAllowed;
+      return cap != null && cap >= 4 && cap % 4 === 0;
+    },
+    {
+      message: "Americano players allowed must be a multiple of 4, minimum 4",
+    },
+  )
+  .refine(
+    (value) => {
+      if (value.format !== "friendly_tournament") {
+        return true;
+      }
+      if (value.registrationMode === "team_only") {
+        return (value.teamsAllowed ?? 0) >= 2;
+      }
+      const cap = value.playersAllowed;
+      return cap != null && cap >= 4 && cap % 4 === 0;
+    },
+    {
+      message:
+        "Tournament cap must be players allowed ×4 (min 4) or teams allowed ≥ 2",
+    },
+  )
+  .superRefine((value, ctx) => {
+    if (value.format === "friendly_game" && value.courtIds !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Friendly game does not accept courtIds",
+        path: ["courtIds"],
+      });
+    }
+    if (value.format !== "friendly_game" && value.courtId !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "courtId is only for Friendly game",
+        path: ["courtId"],
+      });
+    }
+    if (
+      value.courtIds != null &&
+      new Set(value.courtIds).size !== value.courtIds.length
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Duplicate courtIds",
+        path: ["courtIds"],
+      });
+    }
+    if (
+      value.levelMinTenths != null &&
+      value.levelMaxTenths != null &&
+      value.levelMinTenths > value.levelMaxTenths
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: LEVEL_RANGE_INVERTED_MESSAGE,
+        path: ["levelMinTenths"],
+      });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: LEVEL_RANGE_INVERTED_MESSAGE,
+        path: ["levelMaxTenths"],
+      });
+    }
+  });
+
 export async function createGame(database: DbClient, input: CreateGameInput) {
-  if (input.groupId) {
-    const group = await requireGroup(database, input.groupId);
-    await assertMayCreateGameOnGroup(database, group, input.createdBy);
-  }
+  const group = await requireGroup(database, input.groupId);
+  await assertMayCreateGameOnGroup(database, group, input.createdBy);
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";
@@ -86,7 +200,7 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
         name: input.name && input.name.length > 0 ? input.name : null,
         format: formatEnum,
         registrationMode,
-        groupId: input.groupId ?? null,
+        groupId: input.groupId,
         venueId: input.venueId,
         isPublic: false,
         windowStart,
@@ -126,128 +240,7 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
 }
 
 export const create = protectedProcedure
-  .input(
-    z
-      .object({
-        name: z.string().trim().max(255).optional(),
-        groupId: z.string().uuid().optional(),
-        isPublic: z.boolean(),
-        format: createFormatSchema.default("friendly_game"),
-        registrationMode: registrationModeSchema,
-        playersAllowed: z.number().int().optional(),
-        teamsAllowed: z.number().int().optional(),
-        windowStart: z.coerce.date(),
-        windowEnd: z.coerce.date(),
-        venueId: z.string().uuid({ message: "Pick a Venue" }),
-        courtId: z.string().uuid().nullable().optional(),
-        courtIds: z.array(z.string().uuid()).optional(),
-        pricePerPlayerCents: z
-          .number()
-          .int()
-          .min(0)
-          .max(PRICE_PER_PLAYER_MAX_CENTS)
-          .nullable()
-          .optional(),
-        levelMinTenths: z
-          .number()
-          .int()
-          .min(LEVEL_TENTHS_MIN)
-          .max(LEVEL_TENTHS_MAX)
-          .nullable()
-          .optional(),
-        levelMaxTenths: z
-          .number()
-          .int()
-          .min(LEVEL_TENTHS_MIN)
-          .max(LEVEL_TENTHS_MAX)
-          .nullable()
-          .optional(),
-      })
-      .refine(
-        (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
-        {
-          message: "Finish time must be at or after start time",
-          path: ["windowEnd"],
-        },
-      )
-      .refine(
-        (value) =>
-          value.format !== "americano" ||
-          value.registrationMode === "individual",
-        { message: "Americano is individual-only" },
-      )
-      .refine(
-        (value) => {
-          if (value.format !== "americano") {
-            return true;
-          }
-          const cap = value.playersAllowed;
-          return cap != null && cap >= 4 && cap % 4 === 0;
-        },
-        {
-          message:
-            "Americano players allowed must be a multiple of 4, minimum 4",
-        },
-      )
-      .refine(
-        (value) => {
-          if (value.format !== "friendly_tournament") {
-            return true;
-          }
-          if (value.registrationMode === "team_only") {
-            return (value.teamsAllowed ?? 0) >= 2;
-          }
-          const cap = value.playersAllowed;
-          return cap != null && cap >= 4 && cap % 4 === 0;
-        },
-        {
-          message:
-            "Tournament cap must be players allowed ×4 (min 4) or teams allowed ≥ 2",
-        },
-      )
-      .superRefine((value, ctx) => {
-        if (value.format === "friendly_game" && value.courtIds !== undefined) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Friendly game does not accept courtIds",
-            path: ["courtIds"],
-          });
-        }
-        if (value.format !== "friendly_game" && value.courtId !== undefined) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "courtId is only for Friendly game",
-            path: ["courtId"],
-          });
-        }
-        if (
-          value.courtIds != null &&
-          new Set(value.courtIds).size !== value.courtIds.length
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Duplicate courtIds",
-            path: ["courtIds"],
-          });
-        }
-        if (
-          value.levelMinTenths != null &&
-          value.levelMaxTenths != null &&
-          value.levelMinTenths > value.levelMaxTenths
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: LEVEL_RANGE_INVERTED_MESSAGE,
-            path: ["levelMinTenths"],
-          });
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: LEVEL_RANGE_INVERTED_MESSAGE,
-            path: ["levelMaxTenths"],
-          });
-        }
-      }),
-  )
+  .input(createGameInputSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
     return createGame(ctx.db, {

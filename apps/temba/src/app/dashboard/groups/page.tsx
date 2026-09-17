@@ -2,6 +2,8 @@
 
 import { PlusIcon, Users } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { use } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
@@ -11,11 +13,14 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { FormStrip } from "~/components/temba/form-strip";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
+import { groupsTabFromQuery, groupsTabQuery } from "~/lib/groups-tab";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type GroupRow = RouterOutputs["groups"]["mine"][number];
 type GroupInvite = RouterOutputs["groups"]["pendingLookupInvites"][number];
+type PublicGroupRow = RouterOutputs["groups"]["listPublic"][number];
 
 const CARD = "border-rule overflow-hidden rounded-[14px] border";
 
@@ -171,16 +176,147 @@ function StartAGroupCard() {
   );
 }
 
-export default function GroupsIndexPage() {
+function PublicGroupRows({
+  groups,
+  pendingGroupId,
+  onJoin,
+  onRequest,
+}: {
+  groups: PublicGroupRow[];
+  pendingGroupId: string | null;
+  onJoin: (group: PublicGroupRow) => void;
+  onRequest: (groupId: string) => void;
+}) {
+  return (
+    <ul className={CARD}>
+      {groups.map((group) => {
+        const isPending = pendingGroupId === group.id;
+        const members =
+          group.memberCount === 1 ? "1 member" : `${group.memberCount} members`;
+        const meta = group.requiresApproval
+          ? `${members} · Requires approval`
+          : members;
+        return (
+          <li
+            key={group.id}
+            className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0"
+          >
+            <Link
+              href={`/dashboard/groups/${group.id}`}
+              className="focus-visible:ring-ring/50 min-w-0 flex-1 outline-none focus-visible:ring-[3px]"
+            >
+              <p className="break-words text-[18px] font-semibold leading-6">
+                {group.name ?? "Untitled Group"}
+              </p>
+              {group.communityName ? (
+                <p className="text-meta text-muted-foreground mt-0.5 break-words">
+                  {group.communityName}
+                </p>
+              ) : null}
+              <p className="text-meta text-muted-foreground mt-0.5 break-words">
+                {meta}
+              </p>
+            </Link>
+            <Button
+              type="button"
+              variant={group.joinMode === "join" ? "default" : "outline"}
+              disabled={group.joinMode === "requested" || isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (group.joinMode === "request") {
+                  onRequest(group.id);
+                  return;
+                }
+                if (group.joinMode === "join") {
+                  onJoin(group);
+                }
+              }}
+              className="h-10 min-h-10 shrink-0 rounded-[10px] font-semibold"
+            >
+              {group.joinMode === "requested"
+                ? "Requested"
+                : group.joinMode === "request"
+                  ? isPending
+                    ? "Requesting…"
+                    : "Request to join"
+                  : isPending
+                    ? "Joining…"
+                    : "Join"}
+            </Button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export default function GroupsIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const query = use(searchParams);
+  const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  const tab = groupsTabFromQuery(tabParam);
+  const router = useRouter();
+  const pathname = usePathname() ?? "/dashboard/groups";
   const groups = api.groups.mine.useQuery();
+  const publicGroups = api.groups.listPublic.useQuery(undefined, {
+    enabled: tab === "public",
+  });
   const invites = api.groups.pendingLookupInvites.useQuery();
   const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
+
+  function setTab(next: string) {
+    const resolved = groupsTabFromQuery(next);
+    if (resolved === tab) {
+      return;
+    }
+    router.replace(`${pathname}${groupsTabQuery(resolved)}`, {
+      scroll: false,
+    });
+  }
 
   const acceptInvite = api.groups.acceptLookupInvite.useMutation({
     onSuccess: async () => {
       toast.success("Joined Group");
       await utils.groups.pendingLookupInvites.invalidate();
+      await utils.groups.mine.invalidate();
+      await utils.groups.listPublic.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
+    onSuccess: async () => {
+      toast.success("Joined Group");
+      await utils.groups.listPublic.invalidate();
+      await utils.groups.mine.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const joinClubPublic = api.groups.joinClubPublic.useMutation({
+    onSuccess: async () => {
+      toast.success("Joined Group");
+      await utils.groups.listPublic.invalidate();
+      await utils.groups.mine.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const requestJoin = api.groups.requestJoin.useMutation({
+    onSuccess: async () => {
+      toast.success("Requested to join");
+      await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
     onError: (error) => {
@@ -191,6 +327,11 @@ export default function GroupsIndexPage() {
   const pendingInviteId = acceptInvite.isPending
     ? (acceptInvite.variables?.inviteId ?? null)
     : null;
+  const pendingPublicGroupId =
+    (joinLoosePublic.isPending ? joinLoosePublic.variables?.groupId : null) ??
+    (joinClubPublic.isPending ? joinClubPublic.variables?.groupId : null) ??
+    (requestJoin.isPending ? requestJoin.variables?.groupId : null) ??
+    null;
 
   const groupRows = groups.data ?? [];
   const inviteRows = invites.data ?? [];
@@ -217,41 +358,96 @@ export default function GroupsIndexPage() {
         ) : undefined
       }
     >
-      <div className="flex flex-col gap-[26px] py-2">
-        {groups.isLoading ? <GroupRowsSkeleton /> : null}
+      <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
+        <TabsList className="bg-paper w-full justify-between">
+          <TabsTrigger value="mine" className="w-1/2 rounded-r-none">
+            Mine
+          </TabsTrigger>
+          <TabsTrigger value="public" className="w-1/2 rounded-l-none">
+            Public
+          </TabsTrigger>
+        </TabsList>
 
-        {groups.error ? (
-          <ErrorState
-            title="Groups could not be loaded"
-            message={groups.error.message}
-            onRetry={() => {
-              void groups.refetch();
-            }}
-          />
-        ) : null}
+        <TabsContent value="mine">
+          <div className="flex flex-col gap-[26px] py-2">
+            {groups.isLoading ? <GroupRowsSkeleton /> : null}
 
-        {showGroups ? <GroupRowCard groups={groupRows} /> : null}
+            {groups.error ? (
+              <ErrorState
+                title="Groups could not be loaded"
+                message={groups.error.message}
+                onRetry={() => {
+                  void groups.refetch();
+                }}
+              />
+            ) : null}
 
-        {showInvites ? (
-          <InvitationsCard
-            invites={inviteRows}
-            pendingInviteId={pendingInviteId}
-            onAccept={(inviteId) => {
-              acceptInvite.mutate({ inviteId });
-            }}
-          />
-        ) : null}
+            {showGroups ? <GroupRowCard groups={groupRows} /> : null}
 
-        {hasCreateAccess ? <StartAGroupCard /> : null}
+            {showInvites ? (
+              <InvitationsCard
+                invites={inviteRows}
+                pendingInviteId={pendingInviteId}
+                onAccept={(inviteId) => {
+                  acceptInvite.mutate({ inviteId });
+                }}
+              />
+            ) : null}
 
-        {showEmpty ? (
-          <EmptyState
-            icon={Users}
-            title="No Groups yet"
-            description="Groups are where you play and where your Standing lives."
-          />
-        ) : null}
-      </div>
+            {hasCreateAccess ? <StartAGroupCard /> : null}
+
+            {showEmpty ? (
+              <EmptyState
+                icon={Users}
+                title="No Groups yet"
+                description="Groups are where you play and where your Standing lives."
+              />
+            ) : null}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="public">
+          <div className="flex flex-col gap-[26px] py-2">
+            {publicGroups.isLoading ? <GroupRowsSkeleton /> : null}
+
+            {publicGroups.error ? (
+              <ErrorState
+                title="Public Groups could not be loaded"
+                message={publicGroups.error.message}
+                onRetry={() => {
+                  void publicGroups.refetch();
+                }}
+              />
+            ) : null}
+
+            {publicGroups.data && publicGroups.data.length > 0 ? (
+              <PublicGroupRows
+                groups={publicGroups.data}
+                pendingGroupId={pendingPublicGroupId}
+                onJoin={(group) => {
+                  if (group.communityName) {
+                    joinClubPublic.mutate({ groupId: group.id });
+                    return;
+                  }
+                  joinLoosePublic.mutate({ groupId: group.id });
+                }}
+                onRequest={(groupId) => {
+                  requestJoin.mutate({ groupId });
+                }}
+              />
+            ) : null}
+
+            {!publicGroups.isLoading &&
+            !publicGroups.error &&
+            publicGroups.data?.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No public Groups to join right now."
+              />
+            ) : null}
+          </div>
+        </TabsContent>
+      </Tabs>
     </DashboardShell>
   );
 }

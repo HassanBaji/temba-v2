@@ -19,6 +19,7 @@ export async function createClubPublic(
     description?: string;
     sport: "padel" | "football";
     userId: string;
+    requiresApproval?: boolean;
   },
 ) {
   return createClubGroup({
@@ -29,6 +30,7 @@ export async function createClubPublic(
     sport: args.sport,
     type: GroupTypeEnum.PUBLIC,
     createdBy: args.userId,
+    requiresApproval: args.requiresApproval,
   });
 }
 
@@ -39,6 +41,7 @@ export const createClubPublicProcedure = protectedProcedure
       name: z.string().trim().min(1).max(255),
       description: z.string().trim().max(255).optional(),
       sport: sportSchema,
+      requiresApproval: z.boolean().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -49,5 +52,6 @@ export const createClubPublicProcedure = protectedProcedure
       description: input.description,
       sport: input.sport,
       userId: appUser.id,
+      requiresApproval: input.requiresApproval,
     });
   });

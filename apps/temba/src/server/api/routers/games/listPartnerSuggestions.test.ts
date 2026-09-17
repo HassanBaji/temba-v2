@@ -109,7 +109,7 @@ async function insertFriendly(
   const created = await createFriendlyGame(database, {
     createdBy: args.createdBy,
     venueId: args.venueId,
-    groupId: args.groupId,
+    groupId: args.groupId ?? (await insertGroup(database, args.createdBy)).id,
     windowStart,
     windowEnd: new Date(windowStart.getTime() + 60 * 60 * 1000),
     levelMinTenths: args.levelMinTenths,
@@ -411,6 +411,10 @@ describe("listPartnerSuggestions", () => {
         venueId: venue.id,
         isPublic: true,
       });
+      await db
+        .update(games)
+        .set({ groupId: null })
+        .where(eq(games.id, game.id));
 
       const result = await listPartnerSuggestions(db, {
         gameId: game.id,

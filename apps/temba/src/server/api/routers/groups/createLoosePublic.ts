@@ -18,6 +18,7 @@ export async function createLoosePublic(
     description?: string;
     sport: "padel" | "football";
     userId: string;
+    requiresApproval?: boolean;
   },
 ) {
   return createLooseGroup({
@@ -27,6 +28,7 @@ export async function createLoosePublic(
     sport: args.sport,
     type: GroupTypeEnum.PUBLIC,
     createdBy: args.userId,
+    requiresApproval: args.requiresApproval,
   });
 }
 
@@ -36,6 +38,7 @@ export const createLoosePublicProcedure = protectedProcedure
       name: z.string().trim().min(1).max(255),
       description: z.string().trim().max(255).optional(),
       sport: sportSchema,
+      requiresApproval: z.boolean().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -45,5 +48,6 @@ export const createLoosePublicProcedure = protectedProcedure
       description: input.description,
       sport: input.sport,
       userId: appUser.id,
+      requiresApproval: input.requiresApproval,
     });
   });

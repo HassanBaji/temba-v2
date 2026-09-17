@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "~/components/ui/button";
-import { Field, FieldError, FieldLabel } from "~/components/ui/field";
+import { Checkbox } from "~/components/ui/checkbox";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import {
@@ -43,13 +49,21 @@ export function CommunityCreateGroupDialog({
     message: string;
     data?: { zodError?: unknown } | null;
   } | null;
-  onCreatePublic: (name: string) => void;
+  onCreatePublic: (name: string, requiresApproval: boolean) => void;
   onCreatePrivate: (name: string) => void;
 }) {
   const publicSummaryRef = useRef<HTMLDivElement>(null);
   const privateSummaryRef = useRef<HTMLDivElement>(null);
+  const [requiresApproval, setRequiresApproval] = useState(false);
   const publicNameError = fieldErrorMessage(publicError, "name");
   const privateNameError = fieldErrorMessage(privateError, "name");
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+    setRequiresApproval(false);
+  }, [open]);
 
   useEffect(() => {
     if (!publicError) {
@@ -100,12 +114,13 @@ export function CommunityCreateGroupDialog({
               if (!name) {
                 return;
               }
-              onCreatePublic(name);
+              onCreatePublic(name, requiresApproval);
             }}
           >
             <h3 className="text-title font-semibold">Club Group Public</h3>
             <p className="text-body text-muted-foreground">
-              Open to Community members. You join as a Group member.
+              Open to Community members. You join as a Group member, or they
+              request if you require approval.
             </p>
             <FormErrorSummary
               ref={publicSummaryRef}
@@ -132,6 +147,24 @@ export function CommunityCreateGroupDialog({
               <FieldError id="club-group-public-name-error">
                 {publicNameError}
               </FieldError>
+            </Field>
+            <Field>
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="club-group-requires-approval"
+                  checked={requiresApproval}
+                  onCheckedChange={(checked) =>
+                    setRequiresApproval(checked === true)
+                  }
+                />
+                <FieldLabel htmlFor="club-group-requires-approval">
+                  Require approval
+                </FieldLabel>
+              </div>
+              <FieldDescription>
+                Community Members request to join. You approve or reject them on
+                Group home.
+              </FieldDescription>
             </Field>
           </form>
 

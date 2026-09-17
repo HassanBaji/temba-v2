@@ -8,6 +8,7 @@ import {
   gameTeamPlayers,
   gameTeams,
   games,
+  groups,
   matches,
   matchSets,
   ratings,
@@ -59,13 +60,26 @@ async function insertVenue(
   return row;
 }
 
+async function insertGroup(database: TestDatabase, createdBy: string) {
+  const [row] = await database
+    .insert(groups)
+    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .returning({ id: groups.id });
+  if (!row) {
+    throw new Error("Failed to insert group");
+  }
+  return row;
+}
+
 async function insertFriendlyGame(
   database: TestDatabase,
   args: { createdBy: string; venueId: string },
 ) {
+  const group = await insertGroup(database, args.createdBy);
   const windowStart = new Date();
   const created = await createFriendlyGame(database, {
     createdBy: args.createdBy,
+    groupId: group.id,
     venueId: args.venueId,
     windowStart,
     windowEnd: new Date(windowStart.getTime() + 60 * 60 * 1000),
@@ -229,8 +243,10 @@ async function setUpSeatedFriendlyGame(
   }
   const venue = await insertVenue(database);
 
+  const group = await insertGroup(database, a.id);
   const created = await createFriendlyGame(database, {
     createdBy: a.id,
+    groupId: group.id,
     venueId: venue.id,
     windowStart: args.windowStart,
     windowEnd: args.windowEnd,
@@ -316,8 +332,10 @@ describe("gameById phase (TEM-177)", () => {
       const venue = await insertVenue(db);
       const windowStart = new Date();
       const windowEnd = new Date(windowStart.getTime() + 60 * 60 * 1000);
+      const group = await insertGroup(db, owner.id);
       const americano = await createGame(db, {
         createdBy: owner.id,
+        groupId: group.id,
         isPublic: false,
         format: "americano",
         registrationMode: "individual",
@@ -473,8 +491,10 @@ describe("gameById ratingImpact (TEM-177)", () => {
       const venue = await insertVenue(db);
       const windowStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
       const windowEnd = new Date(Date.now() - 60 * 60 * 1000);
+      const group = await insertGroup(db, organizer.id);
       const created = await createFriendlyGame(db, {
         createdBy: organizer.id,
+        groupId: group.id,
         venueId: venue.id,
         windowStart,
         windowEnd,

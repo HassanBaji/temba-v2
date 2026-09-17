@@ -61,15 +61,19 @@ A Community joinable by request if you have the Community URL. Owner or Admin ma
 _Avoid_: open Community, listed Community (as the name of the type), Route `/public`
 
 **Community Private**:
-A Community joinable by Lookup invite or Invite link from Owner or Admin, or by Owner/Admin Club Group Lookup invite or Invite link that auto-admits as Member then joins the Club Group. No request-to-join.
+A Community joinable by Lookup invite or Invite link from Owner or Admin, or by Owner/Admin Club Group Lookup invite or Invite link that auto-admits as Member then joins the Club Group, or by an approved Group join request on one of its Club Group Public. No request-to-join on the Community itself.
 _Avoid_: secret Community, hidden Community, unlisted Community (when you mean this type)
 
 **Directory**:
-A planned App list of live Community Public clubs. Not a shipped surface. Groups are never in the Directory.
+A planned App list of live Community Public clubs. Not a shipped surface. Distinct from the Public Groups list.
 _Avoid_: Group directory, marketplace, feed
 
+**Public Groups list**:
+An App list of live Public padel Groups the User is not in: Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row offers Join or Request to join.
+_Avoid_: Directory, Group directory, marketplace, feed
+
 **Club Group Public**:
-A Club Group any Community Member may join. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
+A Club Group listed on the Public Groups list. A Community Member may join (or request if Require approval is on). A non-Member may send a Group join request; approving it also creates the Community membership. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
 _Avoid_: open Group (when you mean Club Group Public)
 
 **Club Group Private**:
@@ -77,8 +81,20 @@ A Club Group joinable by Lookup invite or Invite link. Owner or Admin may invite
 _Avoid_: secret Group (when you mean Club Group Private)
 
 **Loose Group Public**:
-A Loose Group that is not listed; any authenticated User with the Group URL may join. The creator may also send Lookup invites and mint Invite links.
+A Loose Group listed on the Public Groups list. Any authenticated User with the Group URL may join, unless Require approval is on. The creator may also send Lookup invites and mint Invite links.
 _Avoid_: listed Group, Invite link (that is a different door from Group URL)
+
+**Require approval**:
+A flag on a Public Group (Loose or Club). When it is on, the Group URL join becomes a Group join request instead of an immediate admit. Off by default. Private Groups have no open join door, so the flag does not apply. Turning it off does not admit pending requests.
+_Avoid_: closed Group, moderated Group (when you mean this flag)
+
+**Group join request**:
+A User asking a Group approver to admit them to a Public Group that requires approval. No message. No expiry. A rejected or leftover approved row may be reset to pending (same as a Community join request). Distinct from a Community join request and from a Game Level range request.
+_Avoid_: invitation, Invite, Community join request (when you mean this Group request)
+
+**Group approver**:
+Who may set Require approval and decide Group join requests. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived.
+_Avoid_: Group owner, organizer (when you mean this write permission)
 
 **Loose Group Private**:
 A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it.
@@ -161,7 +177,7 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A Game may belong to a Group and does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator.
+The parent event that contains one or more Matches. A new Game must belong to a Group; groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Match**:

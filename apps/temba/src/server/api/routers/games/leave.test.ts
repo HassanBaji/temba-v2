@@ -6,6 +6,7 @@ import {
   gameTeamPlayers,
   gameTeams,
   games,
+  groups,
   user,
   venues,
 } from "@repo/db/schema";
@@ -46,13 +47,26 @@ async function insertVenue(database: TestDatabase) {
   return row;
 }
 
+async function insertGroup(database: TestDatabase, createdBy: string) {
+  const [row] = await database
+    .insert(groups)
+    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .returning({ id: groups.id });
+  if (!row) {
+    throw new Error("Failed to insert group");
+  }
+  return row;
+}
+
 async function insertPublicFriendly(
   database: TestDatabase,
   args: { createdBy: string; venueId: string },
 ) {
+  const group = await insertGroup(database, args.createdBy);
   const windowStart = new Date(Date.now() + 60 * 60 * 1000);
   const created = await createFriendlyGame(database, {
     createdBy: args.createdBy,
+    groupId: group.id,
     venueId: args.venueId,
     windowStart,
     windowEnd: new Date(windowStart.getTime() + 90 * 60 * 1000),
