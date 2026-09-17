@@ -4,7 +4,7 @@ Status: ready-for-agent
 
 Tickets (Linear, `ready-for-agent`), in dependency order:
 
-- [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-the-groups-hub) Add optional Group image at create and show it on the Groups hub — no blockers
+- [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-groups-hub-group) Add optional Group image at create and show it on Groups hub, Group home, and Invitations — no blockers
 - [TEM-234](https://linear.app/temba-app/issue/TEM-234/let-a-group-approver-replace-or-remove-the-group-image) Let a Group approver replace or remove the Group image — blocked by TEM-233
 
 Settled grilling: `.scratch/group-image/decisions.md`.
@@ -24,7 +24,7 @@ A User creating a **Group** can set a name, sport, Public/Private, and Require a
 
 Treat image as an optional attribute of Group (Club Group and Loose Group). At create, the existing forms gain an optional file control. After the Group row exists, the App uploads JPEG/PNG/WebP (≤ 2 MB) to a public-read Supabase bucket and stores the public URL on the Group (`imageUrl`), using the same blob shape as Venue logos (ADR-0006) without sharing the Venue bucket or Clerk.
 
-`/dashboard/groups` Mine and Public rows show that image in a leading `EntityMonogram`; if there is no URL or the file fails to load, initials from the Group name. A second slice lets a **Group approver** replace or remove the image from Group home overflow so a wrong or skipped upload is not permanent.
+`/dashboard/groups` Mine, Public, and Invitations rows, and Group home header, show that image in an `EntityMonogram`; if there is no URL or the file fails to load, initials from the Group name. A second slice lets a **Group approver** replace or remove the image from Group home overflow so a wrong or skipped upload is not permanent.
 
 Approving this spec approves the Test seams in Testing Decisions. No new `CONTEXT.md` term. ADR-0006 stays Venue-only; add sibling ADR-0015. Keep **Group**, **Club Group**, **Loose Group**, **Public Groups list**, **Group approver**, **User**, **App**, **Operator**, **Venue**, **Community**.
 
@@ -54,7 +54,7 @@ Approving this spec approves the Test seams in Testing Decisions. No new `CONTEX
 
 12. As a User, I want no cropper on Group create, so that the App does not invent a second image editor beside Clerk’s User photo crop.
 
-13. As a User after a successful create with an image, I want to land on Group home as today, and then see that image on `/dashboard/groups` Mine, so that the Groups section shows what I just added.
+13. As a User after a successful create with an image, I want to land on Group home as today and see that image in the Group home header, and then also see it on `/dashboard/groups` Mine, so that the first screen after create already shows the picture I added.
 
 14. As a User after a successful create without an image, I want the Mine row to show initials from the Group name, so that rows without a picture still have entity chrome.
 
@@ -64,57 +64,67 @@ Approving this spec approves the Test seams in Testing Decisions. No new `CONTEX
 
 17. As a User on Public, I want Join / Request to join to behave as today, so that an image is not a new admit rule.
 
-18. As a User viewing a row whose `imageUrl` is null, empty, or fails to load, I want initials, so that a broken CDN URL does not leave a blank tile.
+18. As a User with a pending Group Lookup invite, I want the Groups hub Invitations card to show that Group’s image or initials beside the name and “Invited by …”, so that I recognise the squad before I Join.
 
-19. As a User of a Group named with one word, two words, or empty/Untitled, I want initials to follow the existing `initials` helper, so that Group chrome matches other entity monograms.
+19. As a User on Invitations, I want Join / Joining to behave as today, so that an image is not a new accept rule.
 
-20. As a User, I want the leading monogram decorative (`aria-hidden`) because the Group name is the row title, so that the image is not an extra unlabelled tab stop.
+20. As a User on Group home, I want the header to show the Group image or initials beside the name and meta, so that Group home matches the hub row I came from.
 
-21. As a User whose image upload fails after the Group row exists (Storage down, placeholder keys), I want a toast that the Group was created but the image was not saved, and I want to be taken to that Group rather than stuck on create, so that retrying Create Group does not duplicate the Group.
+21. As a User on Group home, I want back, invite/create boxes, name, meta, tabs, and overflow unchanged except for that leading monogram, so that Groups-redesign chrome is not restyled.
 
-22. As a Group approver after a failed or skipped upload, I want Change image on Group home overflow (second slice), so that I can attach a picture without deleting the Group.
+22. As a User, I want the header monogram to be display-only (not a photo editor); Change image and Remove image stay in overflow (second slice), so that we do not invent a header tap-to-edit.
 
-23. As a Group approver, I want Change image to replace the stored file and URL, so that a wrong picture is not permanent.
+23. As a User viewing a row or header whose `imageUrl` is null, empty, or fails to load, I want initials, so that a broken CDN URL does not leave a blank tile.
 
-24. As a Group approver when an image is present, I want Remove image, so that the Group can return to initials.
+24. As a User of a Group named with one word, two words, or empty/Untitled, I want initials to follow the existing `initials` helper, so that Group chrome matches other entity monograms.
 
-25. As a Loose Group creator, I want to be the Group approver for image writes, so that image follows Require approval’s writer set.
+25. As a User, I want hub and Invitations monograms decorative (`aria-hidden`) because the Group name is the row title, and the Group home header monogram decorative because the name is the `h1`, so that the image is not an extra unlabelled tab stop.
 
-26. As a Community Owner or Admin on a Club Group, I want to change or remove that Group’s image, so that staff can fix Club Group chrome.
+26. As a User whose image upload fails after the Group row exists (Storage down, placeholder keys), I want a toast that the Group was created but the image was not saved, and I want to be taken to that Group rather than stuck on create, so that retrying Create Group does not duplicate the Group.
 
-27. As a Club Group creator who is still a Community Member, I want to change or remove the image, so that the person who created the squad can fix it without being Owner.
+27. As a Group approver after a failed or skipped upload, I want Change image on Group home overflow (second slice), so that I can attach a picture without deleting the Group.
 
-28. As a Club Group creator who left the Community, I want image writes refused, so that Group approver stays the existing membership rule.
+28. As a Group approver, I want Change image to replace the stored file and URL, so that a wrong picture is not permanent. After replace I want Groups hub, Invitations, and Group home header to show the new file.
 
-29. As a User who is only a Group member, I want no Change/Remove image, so that members cannot overwrite squad chrome.
+29. As a Group approver when an image is present, I want Remove image, so that the Group can return to initials on those same surfaces.
 
-30. As an Operator who is not a Group approver on that Group, I want no Group image control, so that Operator stays Venue work.
+30. As a Loose Group creator, I want to be the Group approver for image writes, so that image follows Require approval’s writer set.
 
-31. As a Group approver of a Club Group whose Community is Soft-archived, I want upload and clear refused, so that host-freeze matches Require approval.
+31. As a Community Owner or Admin on a Club Group, I want to change or remove that Group’s image, so that staff can fix Club Group chrome.
 
-32. As a member of a Soft-archived Club Group, I still want to see the stored image on Mine if I can already see that Group, so that Soft-archive does not strip chrome.
+32. As a Club Group creator who is still a Community Member, I want to change or remove the image, so that the person who created the squad can fix it without being Owner.
 
-33. As a User deleting an empty Group I am allowed to delete, I want delete to succeed even if Storage object removal fails, so that a down bucket does not trap an empty Group.
+33. As a Club Group creator who left the Community, I want image writes refused, so that Group approver stays the existing membership rule.
 
-34. As a maintainer, I want empty-Group delete to attempt to remove the Storage object, so that most deletes do not leave orphans.
+34. As a User who is only a Group member, I want no Change/Remove image, so that members cannot overwrite squad chrome.
 
-35. As a User, I want create name, sport (padel), Public/Private, Require approval, and community rules unchanged, so that image is only an extra optional file.
+35. As an Operator who is not a Group approver on that Group, I want no Group image control, so that Operator stays Venue work.
 
-36. As a User, I want join, request, Lookup invite, Invite link, leave, and empty delete rules unchanged aside from best-effort object removal on delete.
+36. As a Group approver of a Club Group whose Community is Soft-archived, I want upload and clear refused, so that host-freeze matches Require approval.
 
-37. As a User on Invitations, Community Groups, nested Community-hub Group rows, Group home header, or `/gr/{code}`, I want those surfaces unchanged this spec, so that we do not redesign every Group name into a poster.
+37. As a member of a Soft-archived Club Group, I still want to see the stored image on Mine and Group home if I can already see that Group, so that Soft-archive does not strip chrome.
 
-38. As a User, I want Football create to stay hatched and non-interactive, so that image does not unlock a second sport.
+38. As a User deleting an empty Group I am allowed to delete, I want delete to succeed even if Storage object removal fails, so that a down bucket does not trap an empty Group.
 
-39. As a Cloud Agent or local App without real Supabase keys, I want the App to boot with a placeholder `SUPABASE_GROUP_IMAGES_BUCKET`, so that `/login` still renders; live Group image upload needs real keys like Venue logos.
+39. As a maintainer, I want empty-Group delete to attempt to remove the Storage object, so that most deletes do not leave orphans.
 
-40. As a User, I want Venue logos, Clerk User photos, Coach `imageUrl`, and Community monograms unchanged, so that this slice is only Group image.
+40. As a User, I want create name, sport (padel), Public/Private, Require approval, and community rules unchanged, so that image is only an extra optional file.
 
-41. As a User activating Change image, I want a named, keyboard-accessible control, so that overflow is not colour-only.
+41. As a User, I want join, request, Lookup invite, Invite link, leave, and empty delete rules unchanged aside from best-effort object removal on delete.
 
-42. As a User who uploads twice quickly, I want the last successful upsert to win at `{groupId}/image`, so that Temba does not invent merge rules.
+42. As a User on Community Groups, nested Community-hub Group rows, `/dashboard/invites`, or `/gr/{code}`, I want those surfaces unchanged this spec, so that we do not redesign every Group name into a poster.
 
-43. As a User, I want product copy to say image, not logo or player photo, so that language stays with Group and not Venue or User.
+43. As a User, I want Football create to stay hatched and non-interactive, so that image does not unlock a second sport.
+
+44. As a Cloud Agent or local App without real Supabase keys, I want the App to boot with a placeholder `SUPABASE_GROUP_IMAGES_BUCKET`, so that `/login` still renders; live Group image upload needs real keys like Venue logos.
+
+45. As a User, I want Venue logos, Clerk User photos, Coach `imageUrl`, and Community monograms unchanged, so that this slice is only Group image.
+
+46. As a User activating Change image, I want a named, keyboard-accessible control, so that overflow is not colour-only.
+
+47. As a User who uploads twice quickly, I want the last successful upsert to win at `{groupId}/image`, so that Temba does not invent merge rules.
+
+48. As a User, I want product copy to say image, not logo or player photo, so that language stays with Group and not Venue or User.
 
 ## Implementation Decisions
 
@@ -130,11 +140,13 @@ Approving this spec approves the Test seams in Testing Decisions. No new `CONTEX
 
 - **Create UI.** Loose `/dashboard/groups/new` and `CommunityCreateGroupDialog`: optional file field, `accept="image/jpeg,image/png,image/webp"`, client size/type checks copied from Venue detail (`fileToBase64` may be copied; a tiny shared helper is allowed if both Group create surfaces would duplicate it — do not refactor Venue detail). On success of create: if a file is selected, `uploadImage`; then existing invalidate + navigate/toast. If upload fails: toast that the Group was created without an image; still navigate/close. `CreateAccessGate` unchanged.
 
-- **Read-models.** `groups.mine` and `groups.listPublic` add `imageUrl: string | null`. Ticket 02: `groups.byId` adds `imageUrl` and `canManageImage` (true iff `isGroupApprover`). Do not add image to `mineLoose`, Community `byId.groups`, `communities.mine` nested groups, or `previewInviteLink` this spec.
+- **Read-models.** `groups.mine`, `groups.listPublic`, `groups.pendingLookupInvites`, and `groups.byId` add `imageUrl: string | null`. Ticket 02: `groups.byId` also adds `canManageImage` (true iff `isGroupApprover`). Do not add image to `mineLoose`, Community `byId.groups`, `communities.mine` nested groups, `previewInviteLink`, or `/dashboard/invites` this spec.
 
-- **Groups hub UI.** Mine `GroupRowCard` and Public `PublicGroupRows`: leading `EntityMonogram` (`name`, `image={imageUrl}`, size `lg`). Keep the rest of the redesigned row. Invitations card unchanged. Loading skeleton may add a square placeholder if it still reads as the same card; do not bring back `ListPageSkeleton`.
+- **Groups hub UI.** Mine `GroupRowCard`, Public `PublicGroupRows`, and Invitations card rows: leading `EntityMonogram` (`name`, `image={imageUrl}`, size `lg`). Keep the rest of the redesigned row (Invitations still name over `Invited by {name}` and Join). Loading skeleton may add a square placeholder if it still reads as the same card; do not bring back `ListPageSkeleton`.
 
-- **Replace/clear UI (ticket 02).** Group home overflow items `change_image` / `remove_image` when `canManageImage` (remove only when `imageUrl` present). Hidden file input for change; confirm dialog for remove (match Venue clear confirm). Do not add header monogram; do not add a Logo-style settings section.
+- **Group home header UI.** `GroupHomeChrome`: below the back/action row, leading `EntityMonogram` size `lg` beside the name + meta stack (Community home identity pattern). Display only. Do not restyle tabs, meta, or overflow. Do not add the monogram to the collapsed sticky top bar.
+
+- **Replace/clear UI (ticket 02).** Group home overflow items `change_image` / `remove_image` when `canManageImage` (remove only when `imageUrl` present). Hidden file input for change; confirm dialog for remove (match Venue clear confirm). Header monogram is not the editor. Do not add a Logo-style settings section. After success, invalidate `groups.byId`, `groups.mine`, `groups.listPublic`, and `groups.pendingLookupInvites`.
 
 - **Delete.** Existing `deleteGroup` transaction: after auth/empty checks, best-effort remove Storage object when `imageUrl` is set (ignore Storage errors), then existing invite-link cleanup and row delete.
 
@@ -142,17 +154,17 @@ Approving this spec approves the Test seams in Testing Decisions. No new `CONTEX
 
 - **Copy.** Add image / Change image / Remove image. Errors: “Image must be a JPEG, PNG, or WebP image”; “Image must be at most 2 MB”; “Image file is empty”; “Failed to upload Group image”; “Failed to clear Group image”. Do not say logo.
 
-- **Unchanged.** Join/admit/invite; Require approval semantics; create staff/sport/archive checks; Groups-redesign W-L/form/next Game; Group home header; padel-only gate; Clerk User photos; Venue upload/clear.
+- **Unchanged.** Join/admit/invite; Require approval semantics; create staff/sport/archive checks; Groups-redesign W-L/form/next Game and header facts other than the leading monogram; padel-only gate; Clerk User photos; Venue upload/clear; `/dashboard/invites`.
 
 ## Testing Decisions
 
 ### What a good test is
 
-Test external behaviour: optional skip; client-rejected type/size; approver vs member vs frozen Community; Mine/Public payload `imageUrl`; list initials vs URL; create still succeeds when upload is not called; delete still succeeds if remove throws. Do not assert CSS class names, folder names, or live Supabase in CI. Prefer Vitest + PGLite. Do not add Playwright or a new runner.
+Test external behaviour: optional skip; client-rejected type/size; approver vs member vs frozen Community; Mine/Public/Invitations/`byId` payload `imageUrl`; list, Invitations, and Group home header initials vs URL; create still succeeds when upload is not called; delete still succeeds if remove throws. Do not assert CSS class names, folder names, or live Supabase in CI. Prefer Vitest + PGLite. Do not add Playwright or a new runner.
 
 ### Test seams
 
-Highest seam (two, matching the tickets): (1) create a Group with or without an image pick, persist URL via `uploadImage`, see it on `groups.mine` / `listPublic` and the Groups hub; (2) Group approver replaces/clears from Group home overflow; members and frozen Club Groups cannot.
+Highest seam (two, matching the tickets): (1) create a Group with or without an image pick, persist URL via `uploadImage`, see it on `groups.mine` / `listPublic` / `pendingLookupInvites` / `byId` and on the Groups hub (Mine, Public, Invitations) plus Group home header; (2) Group approver replaces/clears from Group home overflow; members and frozen Club Groups cannot; header and hub update.
 
 If you implement this spec, you implement these seams:
 
@@ -162,14 +174,14 @@ If you implement this spec, you implement these seams:
 - After create with a file, UI calls `uploadImage` with that Group id
 - `uploadImage` FORBIDDEN for a non-approver; BAD_REQUEST for empty/oversize/wrong magic bytes (throws before Storage)
 - `uploadImage` refused on host-frozen Club Group
-- PGLite: `mine` / `listPublic` return a stored `imageUrl` when the column is set (insert URL; no bucket)
+- PGLite: `mine` / `listPublic` / `pendingLookupInvites` / `byId` return a stored `imageUrl` when the column is set (insert URL; no bucket)
 - PGLite: null `imageUrl` is returned as null
 - `deleteGroup` still deletes when Storage remove fails
 - Ticket 02: `clearImage` nulls URL after successful remove; FORBIDDEN/frozen same as upload; overflow Change/Remove only if `canManageImage`
 - `app-router-shape` includes `uploadImage` and (after ticket 02) `clearImage`
 - Existing `mine.test.ts`, `listPublic.test.ts`, join-request, and create-helper suites stay green
 - Venue logo procedures and Clerk User image behaviour unchanged
-- Manual (real Supabase keys): create with image, see Mine and Public; skip image, see initials; failed keys toast-and-navigate
+- Manual (real Supabase keys): create with image, see Group home header then Mine, Public, and Invitations; skip image, see initials; failed keys toast-and-navigate
 
 Approving this spec approves these seams.
 
@@ -194,8 +206,8 @@ Approving this spec approves these seams.
 - Changing who may create a Group
 - Changing join, request, Lookup invite, Invite link, leave, or empty-delete *rules* (object cleanup on delete is in scope)
 - Redesigning Groups list beyond the leading monogram
-- Group home header image; Members tab is still User avatars
-- Invitations card images; Community Groups lists; `mineLoose`
+- Members tab is still User avatars
+- Community Groups lists; `mineLoose`; `/dashboard/invites`; collapsed Group home sticky name
 - Directory; football create
 - A generic multi-entity Storage Package
 - Janitor for orphan objects
@@ -205,15 +217,19 @@ Approving this spec approves these seams.
 
 - Settled grilling: `.scratch/group-image/decisions.md`.
 - Feature slug `group-image` (not `group-logo`).
-- Amends `.scratch/groups-redesign/spec.md` §1.1: rows gain a leading `EntityMonogram`. Do not reopen W-L, form, next Game, or Invitations.
-- Ticket 01 is demoable on `/dashboard/groups` after create. Ticket 02 is blocked by 01 because overflow calls the same `uploadImage` and the column/bucket must exist.
+- Amends `.scratch/groups-redesign/spec.md` §1.1, §1.2, and §2: hub rows, Invitations, and Group home header gain an `EntityMonogram`. Do not reopen W-L, form, next Game, Join, or header facts other than the image.
+- Ticket 01 is demoable on Group home after create and on `/dashboard/groups` (Mine, Public, Invitations). Ticket 02 is blocked by 01 because overflow calls the same `uploadImage` and the column/bucket must exist.
 - Shared create helpers stay shared; they do not learn Storage.
-- `EntityMonogram` already accepts `image`; Groups hub simply starts passing it.
-- Live upload needs real `SUPABASE_*` keys; Cloud placeholders boot the App but Storage calls fail (story 21).
+- `EntityMonogram` already accepts `image`; these surfaces simply start passing it.
+- Live upload needs real `SUPABASE_*` keys; Cloud placeholders boot the App but Storage calls fail (story 26).
 
 ## Implementation tickets
 
-Published to Linear. Frontier is [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-the-groups-hub).
+Published to Linear. Frontier is [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-groups-hub-group).
 
-1. [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-the-groups-hub) Add optional Group image at create and show it on the Groups hub — unblocked.
+1. [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-groups-hub-group) Add optional Group image at create and show it on Groups hub, Group home, and Invitations — unblocked.
 2. [TEM-234](https://linear.app/temba-app/issue/TEM-234/let-a-group-approver-replace-or-remove-the-group-image) Let a Group approver replace or remove the Group image — blocked by TEM-233.
+
+## Comments
+
+- 2026-09-17: Scope expanded after planning — Group home header and Groups hub Invitations card now show the image. `/dashboard/invites` and `/gr/{code}` stay deferred.

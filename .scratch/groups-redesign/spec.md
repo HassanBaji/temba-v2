@@ -19,7 +19,7 @@ Owners this spec defers to, where they disagree:
 - Game card visual contract: `.scratch/redesign/games-and-rankings-contract.md` §1.1–1.3
 - Per-User Rating / Level / Level band: `.scratch/user-ratings/spec.md` (ADR-0009)
 - Group home mobile chrome: `.scratch/group-home-mobile-chrome/spec.md`
-- Group image (leading monogram on hub rows; optional file at create): `.scratch/group-image/spec.md`
+- Group image (create file, hub Mine/Public/Invitations, Group home header): `.scratch/group-image/spec.md`
 - tRPC placement: `.cursor/rules/api-one-endpoint-per-file.mdc`
 
 ## Problem Statement
@@ -74,7 +74,7 @@ The whole row is the link to `/dashboard/groups/{id}`.
 
 ### 1.2 Invitations
 
-Rendered only when `groups.pendingLookupInvites` returns at least one row. A bordered card with a 13px `Invitations` header rule, then one row per invite: Group name over `Invited by {name}`, and a 40px outlined **Join** button that calls `groups.acceptLookupInvite`.
+Rendered only when `groups.pendingLookupInvites` returns at least one row. A bordered card with a 13px `Invitations` header rule, then one row per invite: leading `EntityMonogram` (Group image URL, initials fallback — `.scratch/group-image/spec.md`), Group name over `Invited by {name}`, and a 40px outlined **Join** button that calls `groups.acceptLookupInvite`.
 
 On success: toast, invalidate `groups.pendingLookupInvites` and `groups.mine`, and the Group appears in the list above. The button shows a pending state and is disabled while the mutation runs.
 
@@ -93,6 +93,7 @@ Rendered only when `useCreateAccess().hasCreateAccess`. Title `Start a group`, t
 A single header block above a hairline, shared by the three tabs:
 
 - Back chevron at 40×40 in a `border-rule rounded-[10px]` box, left. A 40×40 action box, right — `user-plus` opening the invites dialog on Standing and Members, `plus` linking to Game create on Games. The right box is omitted when the viewer has neither permission.
+- **Image** — below that row, a leading `EntityMonogram` size `lg` beside the name + meta stack. Group image URL, initials fallback. Specified in `.scratch/group-image/spec.md`. Display only; Change/Remove stay in overflow.
 - Group name at 28px bold, `tracking-[-0.01em]`.
 - Meta at 13px: `"{Sport}, {n} members, season since {Mon}"`, built from `sport`, `standing.memberCount`, and `createdAt`. Parts with no value are dropped, and the remainder joined with `", "`.
 - **Segmented tab control** — one `border-rule rounded-[12px]` strip, three equal segments, the active one filled `bg-ink text-paper`. This replaces the current `variant="line"` `TabsList`. Keep the existing `Tabs` primitive, the `?tab=` query wiring (`groupHomeTabFromQuery` / `groupHomeTabQuery`), and the 44px minimum touch targets.

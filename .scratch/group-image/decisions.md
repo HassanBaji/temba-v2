@@ -1,6 +1,6 @@
 # Group image — settled decisions
 
-Status: spec published — `.scratch/group-image/spec.md` (ready-for-agent). Linear: [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-the-groups-hub) (frontier) blocks [TEM-234](https://linear.app/temba-app/issue/TEM-234/let-a-group-approver-replace-or-remove-the-group-image).
+Status: spec published — `.scratch/group-image/spec.md` (ready-for-agent). Linear: [TEM-233](https://linear.app/temba-app/issue/TEM-233/add-optional-group-image-at-create-and-show-it-on-groups-hub-group) (frontier) blocks [TEM-234](https://linear.app/temba-app/issue/TEM-234/let-a-group-approver-replace-or-remove-the-group-image).
 
 Autonomous planner: no live user. Forks locked from existing architecture and the request. Prefer Venue-shaped Supabase Storage as a **sibling** of ADR-0006, image as an attribute of Group (no new glossary term), Groups hub as the display surface named in the request.
 
@@ -30,13 +30,13 @@ Autonomous planner: no live user. Forks locked from existing architecture and th
 
 11. **`uploadImage` authorization is Group approver** (`assertGroupApprover`: Loose creator; Club Community Owner/Admin, or creator while still a Community Member; nobody while the Club Group’s Community is Soft-archived / host-frozen). At create time the creator is that approver. Reject “any member”. Reject Operator-only.
 
-12. **Replace/clear is in this spec, second slice.** Create-only would leave a wrong or failed upload stuck (there is no Group edit page). `uploadImage` upserts (replace). `groups.clearImage` is ticket 02. UI for later change: Group home overflow **Change image** / **Remove image** for `canManageImage`, not a settings page, not a Groups-redesign header restyle. Reject inventing Group settings. Reject adding a leading image to Group home header this spec (redesign §2 is name + meta).
+12. **Replace/clear is in this spec, second slice.** Create-only would leave a wrong or failed upload stuck (there is no Group edit page). `uploadImage` upserts (replace). `groups.clearImage` is ticket 02. UI for later change: Group home overflow **Change image** / **Remove image** for `canManageImage`, not a settings page. Reject inventing Group settings. The header image is display-only; it is not a click-to-edit photo control (that stays overflow).
 
-13. **Display in scope: `/dashboard/groups` Mine and Public rows.** That is the Groups section. Leading `EntityMonogram` with `image={imageUrl}`, initials fallback, `aria-hidden` (name is the row title). Do not otherwise restyle the redesigned row. `groups.mine` and `groups.listPublic` return `imageUrl`. This **amends** groups-redesign §1.1 (rows were specified without a leading image).
+13. **Display in scope: Groups hub Mine, Public, and Invitations, plus Group home header.** Leading `EntityMonogram` with `image={imageUrl}`, initials fallback, `aria-hidden` (the Group name is the title/heading). Do not otherwise restyle redesigned rows or header facts. `groups.mine`, `groups.listPublic`, `groups.pendingLookupInvites`, and `groups.byId` return `imageUrl`. This **amends** groups-redesign §1.1, §1.2, and §2.
 
 14. **Fallback is initials, not hatch.** Hatch on this screen means empty next Game / Provisional elsewhere. `EntityMonogram` + `initials(name)` already exists; Radix `AvatarFallback` covers failed loads. Untitled Group uses `initials("Untitled Group")`. Reject empty circle. Reject sport-icon fallback.
 
-15. **Surfaces deferred:** Group home header; Community Groups tab; Communities-hub nested Club Group rows; Invitations card; `/gr/{code}` / `previewInviteLink`; Open Graph; Game cards; `groups.mineLoose`. Same URL is stored; those UIs just do not read it yet.
+15. **Surfaces deferred:** Community Groups tab; Communities-hub nested Club Group rows; `/dashboard/invites` (canonical Invites still leads with inviter User photo); `/gr/{code}` / `previewInviteLink`; Open Graph; Game cards; `groups.mineLoose`; Group home collapsed sticky name. Same URL is stored; those UIs just do not read it yet.
 
 16. **Create-then-upload failure:** Group row is kept. Toast that the Group was created and the image failed; still navigate/close (retrying create would duplicate). Ticket 02 is the retry. Leftover object if Storage succeeded and DB URL update failed: next upsert overwrites `{groupId}/image` (same as Venue). Do not roll back the Group. Do not delete leftover objects with a janitor this spec.
 
@@ -47,6 +47,12 @@ Autonomous planner: no live user. Forks locked from existing architecture and th
 19. **Tests:** PGLite for persist/auth/read-models (set `imageUrl` without live Supabase; FORBIDDEN/frozen/validation that throw before Storage). Unit-test magic-byte helpers. Do not require a real bucket in CI. Manual signed-in create+list needs real Supabase keys (same as Venue). Prior art: `groups/mine.test.ts`, `listPublic.test.ts`, create helpers used by those suites; Venue logo has **no** PGLite suite.
 
 20. **Cloud env:** `install.sh` / `.env.example` / `env.js` gain `SUPABASE_GROUP_IMAGES_BUCKET` with a syntactically valid placeholder when unset (mirror Venue). Live upload needs real keys. App boot without real keys still works.
+
+## Grill (round 3) — locked (user follow-up)
+
+21. **Group home header shows the image.** After create the User lands on Group home, so header chrome must match the hub. Below the back/action row, a leading `EntityMonogram` size `lg` sits beside the name + meta stack (Community home identity pattern). Do not restyle tabs, meta copy, or overflow. Do not put the monogram in the collapsed sticky top bar.
+
+22. **Invitations card shows the same Group image.** Groups hub Invitations rows get a leading `EntityMonogram` size `lg`. Join / pending copy unchanged. `groups.pendingLookupInvites` returns `imageUrl`. `/dashboard/invites` stays out (inviter User photo, not Group chrome).
 
 ## Out of this program
 
