@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -237,6 +238,40 @@ describe("listPublic", () => {
         alpha.id,
         beta.id,
       ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("returns a stored imageUrl when the column is set, and null otherwise", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "public-image-viewer@example.com");
+      const creator = await insertUser(db, "public-image-creator@example.com");
+      const pictured = await createLoosePublic(db, {
+        name: "Pictured Public",
+        sport: "padel",
+        userId: creator.id,
+      });
+      const plain = await createLoosePublic(db, {
+        name: "Plain Public",
+        sport: "padel",
+        userId: creator.id,
+      });
+      await db
+        .update(groups)
+        .set({
+          imageUrl:
+            "https://example.supabase.co/storage/v1/object/public/group-images/public/image",
+        })
+        .where(eq(groups.id, pictured.id));
+
+      const rows = await listPublic(db, { userId: viewer.id });
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      expect(byId.get(pictured.id)?.imageUrl).toBe(
+        "https://example.supabase.co/storage/v1/object/public/group-images/public/image",
+      );
+      expect(byId.get(plain.id)?.imageUrl).toBeNull();
     } finally {
       await close();
     }

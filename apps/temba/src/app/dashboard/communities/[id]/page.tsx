@@ -33,6 +33,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { stickyAsideClass } from "~/lib/page-layout";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import {
+  GROUP_CREATED_WITHOUT_IMAGE_TOAST,
+  groupImageUploadInput,
+} from "~/lib/group-image-file";
 import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({
@@ -207,30 +211,18 @@ export default function CommunityHomePage({
   });
 
   const createClubPublic = api.groups.createClubPublic.useMutation({
-    onSuccess: async () => {
-      toast.success("Club Group Public created");
-      await utils.communities.byId.invalidate({ id });
-      await utils.communities.mine.invalidate();
-      await utils.groups.mine.invalidate();
-      setCreateGroupOpen(false);
-    },
     onError: (error) => {
       toastGlobalFormError(error);
     },
   });
 
   const createClubPrivate = api.groups.createClubPrivate.useMutation({
-    onSuccess: async () => {
-      toast.success("Club Group Private created");
-      await utils.communities.byId.invalidate({ id });
-      await utils.communities.mine.invalidate();
-      await utils.groups.mine.invalidate();
-      setCreateGroupOpen(false);
-    },
     onError: (error) => {
       toastGlobalFormError(error);
     },
   });
+
+  const uploadGroupImage = api.groups.uploadImage.useMutation();
 
   const leaveCommunity = api.communities.leave.useMutation({
     onSuccess: async () => {
@@ -288,13 +280,44 @@ export default function CommunityHomePage({
   const canRequestJoin =
     isPublic && isLive && !isMember && joinStatus !== "pending";
   const createClubPending =
-    createClubPublic.isPending || createClubPrivate.isPending;
+    createClubPublic.isPending ||
+    createClubPrivate.isPending ||
+    uploadGroupImage.isPending;
   const viewerUserId = community.data?.membership?.userId;
   const isLastOwnerBlockedLeave =
     community.data?.membership?.role === "owner" &&
     community.data.canLeave === false &&
     !community.data.linkedTeamBlocksLeave;
   const linkedTeamBlocksLeave = Boolean(community.data?.linkedTeamBlocksLeave);
+
+  async function finishClubGroupCreate(
+    group: { id: string },
+    image: File | null,
+    successMessage: string,
+  ) {
+    if (image) {
+      try {
+        const input = await groupImageUploadInput(image);
+        await uploadGroupImage.mutateAsync({
+          groupId: group.id,
+          contentType: input.contentType,
+          dataBase64: input.dataBase64,
+        });
+      } catch {
+        toast.success(GROUP_CREATED_WITHOUT_IMAGE_TOAST);
+        await utils.communities.byId.invalidate({ id });
+        await utils.communities.mine.invalidate();
+        await utils.groups.mine.invalidate();
+        setCreateGroupOpen(false);
+        return;
+      }
+    }
+    toast.success(successMessage);
+    await utils.communities.byId.invalidate({ id });
+    await utils.communities.mine.invalidate();
+    await utils.groups.mine.invalidate();
+    setCreateGroupOpen(false);
+  }
 
   if (isNotFoundError(community.error)) {
     notFound();
@@ -703,25 +726,51 @@ export default function CommunityHomePage({
           open={createGroupOpen}
           onOpenChange={setCreateGroupOpen}
           pending={createClubPending}
-          publicPending={createClubPublic.isPending}
-          privatePending={createClubPrivate.isPending}
+          publicPending={
+            createClubPublic.isPending || uploadGroupImage.isPending
+          }
+          privatePending={
+            createClubPrivate.isPending || uploadGroupImage.isPending
+          }
           publicError={createClubPublic.error}
           privateError={createClubPrivate.error}
-          onCreatePublic={(name, requiresApproval) =>
-            createClubPublic.mutate({
-              communityId: id,
-              name,
-              sport: "padel",
-              requiresApproval,
-            })
-          }
-          onCreatePrivate={(name) =>
-            createClubPrivate.mutate({
-              communityId: id,
-              name,
-              sport: "padel",
-            })
-          }
+          onCreatePublic={(name, requiresApproval, image) => {
+            void (async () => {
+              try {
+                const group = await createClubPublic.mutateAsync({
+                  communityId: id,
+                  name,
+                  sport: "padel",
+                  requiresApproval,
+                });
+                await finishClubGroupCreate(
+                  group,
+                  image,
+                  "Club Group Public created",
+                );
+              } catch {
+                return;
+              }
+            })();
+          }}
+          onCreatePrivate={(name, image) => {
+            void (async () => {
+              try {
+                const group = await createClubPrivate.mutateAsync({
+                  communityId: id,
+                  name,
+                  sport: "padel",
+                });
+                await finishClubGroupCreate(
+                  group,
+                  image,
+                  "Club Group Private created",
+                );
+              } catch {
+                return;
+              }
+            })();
+          }}
         />
       ) : null}
 

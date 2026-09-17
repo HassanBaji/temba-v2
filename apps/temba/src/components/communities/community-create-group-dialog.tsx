@@ -19,11 +19,13 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { GroupImageField } from "~/components/groups/group-image-field";
 import {
   fieldErrorMessage,
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
+import { groupImageFileError } from "~/lib/group-image-file";
 
 export function CommunityCreateGroupDialog({
   open,
@@ -49,12 +51,22 @@ export function CommunityCreateGroupDialog({
     message: string;
     data?: { zodError?: unknown } | null;
   } | null;
-  onCreatePublic: (name: string, requiresApproval: boolean) => void;
-  onCreatePrivate: (name: string) => void;
+  onCreatePublic: (
+    name: string,
+    requiresApproval: boolean,
+    image: File | null,
+  ) => void;
+  onCreatePrivate: (name: string, image: File | null) => void;
 }) {
   const publicSummaryRef = useRef<HTMLDivElement>(null);
   const privateSummaryRef = useRef<HTMLDivElement>(null);
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [publicImage, setPublicImage] = useState<File | null>(null);
+  const [privateImage, setPrivateImage] = useState<File | null>(null);
+  const [publicImageError, setPublicImageError] = useState<string | null>(null);
+  const [privateImageError, setPrivateImageError] = useState<string | null>(
+    null,
+  );
   const publicNameError = fieldErrorMessage(publicError, "name");
   const privateNameError = fieldErrorMessage(privateError, "name");
 
@@ -63,6 +75,10 @@ export function CommunityCreateGroupDialog({
       return;
     }
     setRequiresApproval(false);
+    setPublicImage(null);
+    setPrivateImage(null);
+    setPublicImageError(null);
+    setPrivateImageError(null);
   }, [open]);
 
   useEffect(() => {
@@ -114,7 +130,14 @@ export function CommunityCreateGroupDialog({
               if (!name) {
                 return;
               }
-              onCreatePublic(name, requiresApproval);
+              if (publicImage) {
+                const pickedError = groupImageFileError(publicImage);
+                if (pickedError) {
+                  setPublicImageError(pickedError);
+                  return;
+                }
+              }
+              onCreatePublic(name, requiresApproval, publicImage);
             }}
           >
             <h3 className="text-title font-semibold">Club Group Public</h3>
@@ -166,6 +189,14 @@ export function CommunityCreateGroupDialog({
                 Group home.
               </FieldDescription>
             </Field>
+            <GroupImageField
+              id="club-group-public-image"
+              file={publicImage}
+              error={publicImageError}
+              disabled={pending}
+              onFileChange={setPublicImage}
+              onError={setPublicImageError}
+            />
           </form>
 
           <form
@@ -184,7 +215,14 @@ export function CommunityCreateGroupDialog({
               if (!name) {
                 return;
               }
-              onCreatePrivate(name);
+              if (privateImage) {
+                const pickedError = groupImageFileError(privateImage);
+                if (pickedError) {
+                  setPrivateImageError(pickedError);
+                  return;
+                }
+              }
+              onCreatePrivate(name, privateImage);
             }}
           >
             <h3 className="text-title font-semibold">Club Group Private</h3>
@@ -220,6 +258,14 @@ export function CommunityCreateGroupDialog({
                 {privateNameError}
               </FieldError>
             </Field>
+            <GroupImageField
+              id="club-group-private-image"
+              file={privateImage}
+              error={privateImageError}
+              disabled={pending}
+              onFileChange={setPrivateImage}
+              onError={setPrivateImageError}
+            />
           </form>
         </div>
       </ResponsiveDialogContent>

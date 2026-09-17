@@ -37,6 +37,7 @@ export async function pendingLookupInvites(
     id: row.id,
     groupId: row.groupId,
     groupName: row.group.name,
+    imageUrl: row.group.imageUrl ?? null,
     invitedBy: {
       id: row.invitedBy.id,
       name: row.invitedBy.name,

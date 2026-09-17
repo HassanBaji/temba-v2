@@ -7,6 +7,10 @@ import {
   GameRegistrationModeEnum,
   GroupSportEnum,
   MatchStatusEnum,
+  communities,
+  communityMembers,
+  CommunityRoleEnum,
+  communitySports,
   courts,
   gamePlayers,
   gameTeamPlayers,
@@ -23,7 +27,9 @@ import {
 } from "@repo/db/schema";
 
 import { groupById } from "~/server/api/routers/groups/byId";
+import { createClubPublic } from "~/server/api/routers/groups/createClubPublic";
 import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
+import { commit } from "~/server/soft-archive";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 async function insertUser(
@@ -719,6 +725,107 @@ describe("groupById standing facts", () => {
       });
       expect(detail.standing.awaitingScoreCount).toBe(1);
       expect(detail.totalGamesPlayed).toBe(1);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById imageUrl", () => {
+  it("returns a stored imageUrl when the column is set, and null otherwise", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "byid-image@example.com");
+      const pictured = await insertGroup(db, viewer.id);
+      const plain = await insertGroup(db, viewer.id);
+      await db
+        .update(groups)
+        .set({
+          imageUrl:
+            "https://example.supabase.co/storage/v1/object/public/group-images/home/image",
+        })
+        .where(eq(groups.id, pictured.id));
+
+      const picturedDetail = await groupById(db, {
+        groupId: pictured.id,
+        userId: viewer.id,
+      });
+      const plainDetail = await groupById(db, {
+        groupId: plain.id,
+        userId: viewer.id,
+      });
+      expect(picturedDetail.imageUrl).toBe(
+        "https://example.supabase.co/storage/v1/object/public/group-images/home/image",
+      );
+      expect(plainDetail.imageUrl).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById canManageImage", () => {
+  it("is true only for a Group approver", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "byid-image-creator@example.com");
+      const member = await insertUser(db, "byid-image-member@example.com");
+      const group = await insertGroup(db, creator.id, {
+        members: [member.id],
+      });
+
+      const asCreator = await groupById(db, {
+        groupId: group.id,
+        userId: creator.id,
+      });
+      const asMember = await groupById(db, {
+        groupId: group.id,
+        userId: member.id,
+      });
+      expect(asCreator.canManageImage).toBe(true);
+      expect(asMember.canManageImage).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("is false for a Club Group whose Community is Soft-archived", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "byid-image-frozen@example.com");
+      const [community] = await db
+        .insert(communities)
+        .values({
+          name: "Frozen Club",
+          type: "public",
+          createdBy: owner.id,
+        })
+        .returning({ id: communities.id });
+      if (!community) {
+        throw new Error("Failed to insert community");
+      }
+      await db.insert(communitySports).values({
+        communityId: community.id,
+        sport: GroupSportEnum.PADEL,
+      });
+      await db.insert(communityMembers).values({
+        communityId: community.id,
+        userId: owner.id,
+        role: CommunityRoleEnum.OWNER,
+      });
+      const group = await createClubPublic(db, {
+        communityId: community.id,
+        name: "Frozen Crew",
+        sport: "padel",
+        userId: owner.id,
+      });
+      await commit(db, { communityId: community.id }, "archived");
+
+      const detail = await groupById(db, {
+        groupId: group.id,
+        userId: owner.id,
+      });
+      expect(detail.canManageImage).toBe(false);
     } finally {
       await close();
     }

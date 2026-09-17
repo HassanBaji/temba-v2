@@ -39,6 +39,7 @@ export const groups = pgTable("groups", {
     onDelete: "restrict",
   }),
   requiresApproval: boolean("requires_approval").notNull().default(false),
+  imageUrl: varchar("image_url", { length: 255 }),
   createdBy: uuid("created_by")
     .references(() => user.id, { onDelete: "cascade" })
     .notNull(),
