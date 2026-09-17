@@ -131,7 +131,8 @@ type ExpectedGroups =
   | "getInviteLink"
   | "createInviteLink"
   | "previewInviteLink"
-  | "acceptInviteLink";
+  | "acceptInviteLink"
+  | "uploadImage";
 
 type ExpectedRatings = "me" | "selfDeclare";
 

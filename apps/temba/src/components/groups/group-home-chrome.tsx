@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeftIcon, PlusIcon, UserPlusIcon } from "lucide-react";
 
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { groupHomeMetaLine } from "~/lib/group-home-chrome";
 import type { GroupHomeTab } from "~/lib/group-home-tab";
@@ -31,6 +32,7 @@ const TAB_SEGMENT =
 export function GroupHomeChrome({
   groupId,
   name,
+  imageUrl,
   sport,
   memberCount,
   createdAt,
@@ -41,6 +43,7 @@ export function GroupHomeChrome({
 }: {
   groupId: string;
   name: string;
+  imageUrl?: string | null;
   sport: string | null;
   memberCount: number | null;
   createdAt: Date | string | null;
@@ -86,14 +89,19 @@ export function GroupHomeChrome({
         ) : null}
       </div>
 
-      <h1 className="text-h1 mt-5 min-w-0 break-words font-bold tracking-[-0.01em]">
-        {name}
-      </h1>
-      {meta ? (
-        <p className="text-meta text-muted-foreground mt-1 min-w-0 break-words">
-          {meta}
-        </p>
-      ) : null}
+      <div className="mt-5 flex items-start gap-3">
+        <EntityMonogram name={name} image={imageUrl} size="lg" />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-h1 min-w-0 break-words font-bold tracking-[-0.01em]">
+            {name}
+          </h1>
+          {meta ? (
+            <p className="text-meta text-muted-foreground mt-1 min-w-0 break-words">
+              {meta}
+            </p>
+          ) : null}
+        </div>
+      </div>
 
       <TabsList className="border-rule bg-paper mt-5 w-full max-w-full justify-stretch overflow-hidden rounded-[12px] border p-0 group-data-[orientation=horizontal]/tabs:h-auto">
         <TabsTrigger value="standing" className={TAB_SEGMENT}>

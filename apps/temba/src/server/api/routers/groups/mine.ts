@@ -194,6 +194,7 @@ export async function mine(
       description: group.description,
       type: group.type,
       sport: group.sport as GroupSportEnum | null,
+      imageUrl: group.imageUrl ?? null,
       community: community
         ? {
             id: community.id,

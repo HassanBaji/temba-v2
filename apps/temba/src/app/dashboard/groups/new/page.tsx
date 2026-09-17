@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GroupImageField } from "~/components/groups/group-image-field";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -31,6 +32,11 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import {
+  GROUP_CREATED_WITHOUT_IMAGE_TOAST,
+  groupImageFileError,
+  groupImageUploadInput,
+} from "~/lib/group-image-file";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type GroupType = NonNullable<RouterOutputs["groups"]["byId"]["type"]>;
@@ -44,13 +50,10 @@ export default function NewLooseGroupPage() {
   const [name, setName] = React.useState("");
   const [visibility, setVisibility] = React.useState<GroupType>("public");
   const [requiresApproval, setRequiresApproval] = React.useState(false);
+  const [imageFile, setImageFile] = React.useState<File | null>(null);
+  const [imageError, setImageError] = React.useState<string | null>(null);
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation({
-    onSuccess: async (group) => {
-      toast.success("Group created");
-      await utils.groups.mine.invalidate();
-      router.push(`/dashboard/groups/${group.id}`);
-    },
     onError: (error) => {
       toastGlobalFormError(error);
       focusFormFailure(error, FIELD_IDS, summaryRef.current);
@@ -58,35 +61,72 @@ export default function NewLooseGroupPage() {
   });
 
   const createLoosePrivate = api.groups.createLoosePrivate.useMutation({
-    onSuccess: async (group) => {
-      toast.success("Group Private created");
-      await utils.groups.mine.invalidate();
-      router.push(`/dashboard/groups/${group.id}`);
-    },
     onError: (error) => {
       toastGlobalFormError(error);
       focusFormFailure(error, FIELD_IDS, summaryRef.current);
     },
   });
 
-  const isPending = createLoosePublic.isPending || createLoosePrivate.isPending;
+  const uploadImage = api.groups.uploadImage.useMutation();
+
+  const isPending =
+    createLoosePublic.isPending ||
+    createLoosePrivate.isPending ||
+    uploadImage.isPending;
   const submitError = createLoosePublic.error ?? createLoosePrivate.error;
   const nameError = fieldErrorMessage(submitError, "name");
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function afterCreate(group: { id: string }, successMessage: string) {
+    if (imageFile) {
+      try {
+        const input = await groupImageUploadInput(imageFile);
+        await uploadImage.mutateAsync({
+          groupId: group.id,
+          contentType: input.contentType,
+          dataBase64: input.dataBase64,
+        });
+      } catch {
+        toast.success(GROUP_CREATED_WITHOUT_IMAGE_TOAST);
+        await utils.groups.mine.invalidate();
+        router.push(`/dashboard/groups/${group.id}`);
+        return;
+      }
+    }
+    toast.success(successMessage);
+    await utils.groups.mine.invalidate();
+    router.push(`/dashboard/groups/${group.id}`);
+  }
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isPending) {
       return;
     }
-    if (visibility === "private") {
-      createLoosePrivate.mutate({ name, sport: "padel" });
+    if (imageFile) {
+      const pickedError = groupImageFileError(imageFile);
+      if (pickedError) {
+        setImageError(pickedError);
+        return;
+      }
+    }
+    try {
+      if (visibility === "private") {
+        const group = await createLoosePrivate.mutateAsync({
+          name,
+          sport: "padel",
+        });
+        await afterCreate(group, "Group Private created");
+        return;
+      }
+      const group = await createLoosePublic.mutateAsync({
+        name,
+        sport: "padel",
+        requiresApproval,
+      });
+      await afterCreate(group, "Group created");
+    } catch {
       return;
     }
-    createLoosePublic.mutate({
-      name,
-      sport: "padel",
-      requiresApproval,
-    });
   }
 
   return (
@@ -166,6 +206,15 @@ export default function NewLooseGroupPage() {
                 </FieldDescription>
               </Field>
             ) : null}
+
+            <GroupImageField
+              id="group-image"
+              file={imageFile}
+              error={imageError}
+              disabled={isPending}
+              onFileChange={setImageFile}
+              onError={setImageError}
+            />
           </FieldGroup>
 
           <div className="flex items-center gap-3">

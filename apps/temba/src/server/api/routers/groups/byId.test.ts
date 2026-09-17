@@ -724,3 +724,36 @@ describe("groupById standing facts", () => {
     }
   });
 });
+
+describe("groupById imageUrl", () => {
+  it("returns a stored imageUrl when the column is set, and null otherwise", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "byid-image@example.com");
+      const pictured = await insertGroup(db, viewer.id);
+      const plain = await insertGroup(db, viewer.id);
+      await db
+        .update(groups)
+        .set({
+          imageUrl:
+            "https://example.supabase.co/storage/v1/object/public/group-images/home/image",
+        })
+        .where(eq(groups.id, pictured.id));
+
+      const picturedDetail = await groupById(db, {
+        groupId: pictured.id,
+        userId: viewer.id,
+      });
+      const plainDetail = await groupById(db, {
+        groupId: plain.id,
+        userId: viewer.id,
+      });
+      expect(picturedDetail.imageUrl).toBe(
+        "https://example.supabase.co/storage/v1/object/public/group-images/home/image",
+      );
+      expect(plainDetail.imageUrl).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});

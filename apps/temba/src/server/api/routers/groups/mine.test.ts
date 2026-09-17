@@ -364,4 +364,37 @@ describe("groups.mine list facts", () => {
       await close();
     }
   });
+
+  it("returns a stored imageUrl when the column is set, and null otherwise", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "mine-image@example.com");
+      const pictured = await insertGroup(db, {
+        name: "Pictured",
+        createdBy: viewer.id,
+        members: [{ userId: viewer.id }],
+      });
+      const plain = await insertGroup(db, {
+        name: "Plain",
+        createdBy: viewer.id,
+        members: [{ userId: viewer.id }],
+      });
+      await db
+        .update(groups)
+        .set({
+          imageUrl:
+            "https://example.supabase.co/storage/v1/object/public/group-images/mine/image",
+        })
+        .where(eq(groups.id, pictured.id));
+
+      const rows = await mine(db, { userId: viewer.id, now: NOW });
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      expect(byId.get(pictured.id)?.imageUrl).toBe(
+        "https://example.supabase.co/storage/v1/object/public/group-images/mine/image",
+      );
+      expect(byId.get(plain.id)?.imageUrl).toBeNull();
+    } finally {
+      await close();
+    }
+  });
 });

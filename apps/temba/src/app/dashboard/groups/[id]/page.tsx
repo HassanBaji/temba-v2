@@ -490,6 +490,7 @@ export default function GroupHomePage({
         <GroupHomeChrome
           groupId={id}
           name={groupName}
+          imageUrl={data.imageUrl}
           sport={data.sport ?? null}
           memberCount={data.standing.memberCount}
           createdAt={data.createdAt}

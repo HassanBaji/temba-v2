@@ -16,6 +16,7 @@ export const env = createEnv({
     SUPABASE_URL: z.string().url(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     SUPABASE_VENUE_LOGOS_BUCKET: z.string().min(1),
+    SUPABASE_GROUP_IMAGES_BUCKET: z.string().min(1),
   },
 
   /**
@@ -41,6 +42,7 @@ export const env = createEnv({
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     SUPABASE_VENUE_LOGOS_BUCKET: process.env.SUPABASE_VENUE_LOGOS_BUCKET,
+    SUPABASE_GROUP_IMAGES_BUCKET: process.env.SUPABASE_GROUP_IMAGES_BUCKET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

@@ -27,6 +27,7 @@ import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLooku
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
+import { uploadImageProcedure as uploadImage } from "./uploadImage";
 
 export const groupsRouter = createTRPCRouter({
   createClubPublic,
@@ -56,4 +57,5 @@ export const groupsRouter = createTRPCRouter({
   createInviteLink,
   previewInviteLink,
   acceptInviteLink,
+  uploadImage,
 });

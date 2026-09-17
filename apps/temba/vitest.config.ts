@@ -16,6 +16,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     env: {
       TEMBA_DRIZZLE_MIGRATIONS: resolve(appRoot, "../../packages/db/drizzle"),
+      SKIP_ENV_VALIDATION: "true",
     },
   },
 });

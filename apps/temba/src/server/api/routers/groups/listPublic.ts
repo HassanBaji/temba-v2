@@ -24,6 +24,7 @@ export type PublicGroupRow = {
   memberCount: number;
   requiresApproval: boolean;
   joinMode: PublicGroupJoinMode;
+  imageUrl: string | null;
 };
 
 const PUBLIC_LIST_LIMIT = 100;
@@ -116,6 +117,7 @@ export async function listPublic(
       memberCount: memberCountByGroup.get(group.id) ?? 0,
       requiresApproval: group.requiresApproval,
       joinMode,
+      imageUrl: group.imageUrl ?? null,
     });
   }
 
