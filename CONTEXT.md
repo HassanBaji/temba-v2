@@ -201,8 +201,32 @@ A Game format with individual-only registration and rotating partners across mul
 _Avoid_: Friendly tournament, Friendly game, tournament, team-only (illegal on this format)
 
 **Friendly tournament**:
-A Game format with multiple Matches and the same sides on every Match. The organizer adds each Match by hand.
-_Avoid_: Americano, Friendly game, bracket (a later style of Friendly tournament)
+A Game format whose Game teams are drawn at random into Pools, each Pool playing a full round robin across several Rounds. The Pool draw generates the Matches; the organizer does not add them by hand.
+_Avoid_: Americano, Friendly game, league, bracket (a later slice of this format)
+
+**Pool draw**:
+The random assignment of a Friendly tournament's Game teams to its Pools. Drafted and re-rollable first, then posted, which generates every Pool Match and freezes the seats. Never a Match result.
+_Avoid_: draw (bare — that is a tied Match result), seeding (nobody is seeded), allocation, sorting
+
+**Round**:
+One slice of a Friendly tournament's schedule: the Pool Matches sharing a date. Numbered from 1.
+_Avoid_: Match, Set, leg, fixture, week, stage
+
+**Half team**:
+A Game team on a Friendly tournament with one Position taken and the other vacant, before the Pool draw. An organizer may merge two Half teams into one Game team. Distinct from an incomplete Team, which is the persistent partnership with one seat.
+_Avoid_: incomplete Team, solo, single, orphan seat
+
+**Pool**:
+One subset of a Friendly tournament's Game teams that plays a full round robin against itself. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games.
+_Avoid_: Group, group stage group, division, section, bracket
+
+**Pool table**:
+The ordered list of a Pool's Game teams by their Pool records. Not a Standing: a Standing is a User's position among a Group's members, a Pool table ranks Game teams inside one Pool.
+_Avoid_: Standing, Standings, leaderboard, league table, ranking
+
+**Pool record**:
+One Game team's played, won, drawn, and lost counts inside its Pool. Ordered by wins, then head to head, then Set difference, then games difference.
+_Avoid_: score (Sets carry the score), Standing, stats, results
 
 **Friendly game**:
 A Game format with exactly one Match, created with the Game.
@@ -254,7 +278,7 @@ _Avoid_: feed, lobby, dashboard (when you mean this surface)
 
 **Standing**:
 A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
-_Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank
+_Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
 
 **Rating**:
 A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.
