@@ -7,6 +7,7 @@ import { use } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -32,9 +33,12 @@ function GroupRowsSkeleton() {
           key={index}
           className="border-rule flex items-start justify-between gap-3.5 border-t p-5 first:border-t-0"
         >
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-5 w-40 max-w-full" />
-            <Skeleton className="h-4 w-32 max-w-full" />
+          <div className="flex min-w-0 flex-1 items-start gap-3.5">
+            <Skeleton className="size-10 shrink-0 rounded-lg" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-5 w-40 max-w-full" />
+              <Skeleton className="h-4 w-32 max-w-full" />
+            </div>
           </div>
           <Skeleton className="h-11 w-[52px] shrink-0 rounded-lg" />
         </div>
@@ -73,16 +77,23 @@ function GroupRowCard({ groups }: { groups: GroupRow[] }) {
             className="focus-visible:ring-ring/50 flex flex-col gap-3.5 p-5 outline-none focus-visible:ring-[3px]"
           >
             <div className="flex items-start justify-between gap-3.5">
-              <div className="min-w-0">
-                <p className="break-words text-[18px] font-semibold leading-6">
-                  {group.name ?? "Untitled Group"}
-                </p>
-                <p className="text-meta text-muted-foreground mt-0.5 break-words">
-                  {groupRowMetaLine({
-                    memberCount: group.memberCount,
-                    standingPosition: group.standingPosition,
-                  })}
-                </p>
+              <div className="flex min-w-0 items-start gap-3.5">
+                <EntityMonogram
+                  name={group.name ?? "Untitled Group"}
+                  image={group.imageUrl}
+                  size="lg"
+                />
+                <div className="min-w-0">
+                  <p className="break-words text-[18px] font-semibold leading-6">
+                    {group.name ?? "Untitled Group"}
+                  </p>
+                  <p className="text-meta text-muted-foreground mt-0.5 break-words">
+                    {groupRowMetaLine({
+                      memberCount: group.memberCount,
+                      standingPosition: group.standingPosition,
+                    })}
+                  </p>
+                </div>
               </div>
               <NextGameCell startTime={group.nextGameStartTime} />
             </div>
@@ -124,6 +135,11 @@ function InvitationsCard({
               key={invite.id}
               className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0"
             >
+              <EntityMonogram
+                name={invite.groupName ?? "Untitled Group"}
+                image={invite.imageUrl}
+                size="lg"
+              />
               <div className="min-w-0 flex-1">
                 <p className="text-body break-words">
                   {invite.groupName ?? "Untitled Group"}
@@ -201,6 +217,11 @@ function PublicGroupRows({
             key={group.id}
             className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0"
           >
+            <EntityMonogram
+              name={group.name ?? "Untitled Group"}
+              image={group.imageUrl}
+              size="lg"
+            />
             <Link
               href={`/dashboard/groups/${group.id}`}
               className="focus-visible:ring-ring/50 min-w-0 flex-1 outline-none focus-visible:ring-[3px]"

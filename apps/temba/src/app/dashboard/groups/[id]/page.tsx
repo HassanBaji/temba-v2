@@ -1,7 +1,7 @@
 "use client";
 
 import { notFound, usePathname, useRouter } from "next/navigation";
-import { use, useRef, useState } from "react";
+import { use, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
@@ -12,7 +12,6 @@ import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
-import { GroupHomeTopBar } from "~/components/groups/group-home-top-bar";
 import { GroupInvitesDialog } from "~/components/groups/group-invites-dialog";
 import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
@@ -28,8 +27,13 @@ import {
   groupHomeNextJoinableGame,
   groupHomeOverflowItems,
 } from "~/lib/group-home-cta";
-import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 import { groupHomeTabFromQuery, groupHomeTabQuery } from "~/lib/group-home-tab";
+import {
+  GROUP_IMAGE_ACCEPT,
+  groupImageFileError,
+  groupImageUploadInput,
+} from "~/lib/group-image-file";
+import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -52,8 +56,10 @@ export default function GroupHomePage({
   const utils = api.useUtils();
   const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const desktopMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [removeImageOpen, setRemoveImageOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [lookupQuery, setLookupQuery] = useState("");
   const [lookupRefused, setLookupRefused] = useState<
@@ -206,6 +212,32 @@ export default function GroupHomePage({
     },
   });
 
+  async function invalidateGroupImage() {
+    await Promise.all([
+      utils.groups.byId.invalidate({ id }),
+      utils.groups.mine.invalidate(),
+      utils.groups.listPublic.invalidate(),
+      utils.groups.pendingLookupInvites.invalidate(),
+    ]);
+  }
+
+  const uploadImage = api.groups.uploadImage.useMutation({
+    onSuccess: async () => {
+      toast.success("Image saved");
+      await invalidateGroupImage();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const clearImage = api.groups.clearImage.useMutation({
+    onSuccess: async () => {
+      toast.success("Image removed");
+      await invalidateGroupImage();
+    },
+  });
+
   const createInviteLink = api.groups.createInviteLink.useMutation({
     onSuccess: async (result) => {
       await utils.groups.getInviteLink.invalidate({ groupId: id });
@@ -347,6 +379,28 @@ export default function GroupHomePage({
     toast.success("Group URL copied");
   }
 
+  function onChangeImageFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || uploadImage.isPending) {
+      return;
+    }
+    const pickedError = groupImageFileError(file);
+    if (pickedError) {
+      toast.error(pickedError);
+      return;
+    }
+    void groupImageUploadInput(file)
+      .then((input) =>
+        uploadImage.mutateAsync({
+          groupId: id,
+          contentType: input.contentType,
+          dataBase64: input.dataBase64,
+        }),
+      )
+      .catch(() => undefined);
+  }
+
   if (isNotFoundError(group.error)) {
     notFound();
   }
@@ -416,6 +470,8 @@ export default function GroupHomePage({
     canShowCreateGame,
     isLoosePublic: data.isLoose && data.type === "public",
     canManageInvites,
+    canManageImage: data.canManageImage,
+    hasImage: Boolean(data.imageUrl),
     isMember: data.membership != null,
     canDelete: data.canDelete,
   });
@@ -435,6 +491,16 @@ export default function GroupHomePage({
       onManageInvites={() => {
         setRestoreFocus(which);
         setInvitesOpen(true);
+      }}
+      onChangeImage={() => {
+        setRestoreFocus(which);
+        window.setTimeout(() => {
+          imageInputRef.current?.click();
+        }, 0);
+      }}
+      onRemoveImage={() => {
+        setRestoreFocus(which);
+        setRemoveImageOpen(true);
       }}
       onLeave={() => {
         setRestoreFocus(which);
@@ -490,6 +556,7 @@ export default function GroupHomePage({
         <GroupHomeChrome
           groupId={id}
           name={groupName}
+          imageUrl={data.imageUrl}
           sport={data.sport ?? null}
           memberCount={data.standing.memberCount}
           createdAt={data.createdAt}
@@ -497,6 +564,7 @@ export default function GroupHomePage({
           canInvite={canManageInvites}
           canCreateGame={canShowCreateGame}
           onInvite={() => setInvitesOpen(true)}
+          overflow={overflowMenu("desktop")}
         />
 
         <div className="space-y-6 pt-6">
@@ -636,6 +704,31 @@ export default function GroupHomePage({
           await deleteGroup.mutateAsync({ groupId: id });
         }}
       />
+
+      <ConfirmDialog
+        open={removeImageOpen}
+        onOpenChange={setRemoveImageOpen}
+        title={`Remove image for ${groupName}?`}
+        description="The current image will be removed. Cancelling does nothing."
+        confirmLabel="Remove image"
+        pending={clearImage.isPending}
+        restoreFocusRef={restoreFocusRef}
+        onConfirm={async () => {
+          await clearImage.mutateAsync({ groupId: id });
+        }}
+      />
+
+      {data.canManageImage ? (
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept={GROUP_IMAGE_ACCEPT}
+          className="hidden"
+          tabIndex={-1}
+          disabled={uploadImage.isPending || clearImage.isPending}
+          onChange={onChangeImageFile}
+        />
+      ) : null}
 
       <GroupInvitesDialog
         open={invitesOpen}

@@ -557,6 +557,7 @@ export async function groupById(
     id: group.id,
     name: group.name,
     description: group.description,
+    imageUrl: group.imageUrl ?? null,
     type: group.type,
     sport: group.sport as GroupSportEnum | null,
     communityId: group.communityId,
@@ -604,6 +605,7 @@ export async function groupById(
     canManageInviteLinks,
     canDelete,
     canCreateGame,
+    canManageImage: isApprover,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,
   };

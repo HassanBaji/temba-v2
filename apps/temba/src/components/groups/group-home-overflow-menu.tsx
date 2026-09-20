@@ -18,6 +18,8 @@ export function GroupHomeOverflowMenu({
   triggerRef,
   onCopyGroupUrl,
   onManageInvites,
+  onChangeImage,
+  onRemoveImage,
   onLeave,
   onDelete,
 }: {
@@ -28,6 +30,8 @@ export function GroupHomeOverflowMenu({
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onCopyGroupUrl: () => void;
   onManageInvites: () => void;
+  onChangeImage: () => void;
+  onRemoveImage: () => void;
   onLeave: () => void;
   onDelete: () => void;
 }) {
@@ -75,6 +79,16 @@ export function GroupHomeOverflowMenu({
             {item === "manage_invites" ? (
               <ActionMenuItem onSelect={onManageInvites}>
                 Manage invites
+              </ActionMenuItem>
+            ) : null}
+            {item === "change_image" ? (
+              <ActionMenuItem onSelect={onChangeImage}>
+                Change image
+              </ActionMenuItem>
+            ) : null}
+            {item === "remove_image" ? (
+              <ActionMenuItem onSelect={onRemoveImage}>
+                Remove image
               </ActionMenuItem>
             ) : null}
             {item === "leave" ? (

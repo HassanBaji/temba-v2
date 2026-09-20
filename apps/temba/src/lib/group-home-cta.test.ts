@@ -169,6 +169,8 @@ describe("groupHomeOverflowItems", () => {
         canShowCreateGame: false,
         isLoosePublic: false,
         canManageInvites: false,
+        canManageImage: false,
+        hasImage: false,
         isMember: false,
         canDelete: false,
       }),
@@ -185,6 +187,8 @@ describe("groupHomeOverflowItems", () => {
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
+        canManageImage: false,
+        hasImage: false,
         isMember: true,
         canDelete: true,
       }),
@@ -207,6 +211,8 @@ describe("groupHomeOverflowItems", () => {
         canShowCreateGame: true,
         isLoosePublic: true,
         canManageInvites: false,
+        canManageImage: false,
+        hasImage: false,
         isMember: false,
         canDelete: false,
       }),
@@ -223,6 +229,8 @@ describe("groupHomeOverflowItems", () => {
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
+        canManageImage: false,
+        hasImage: false,
         isMember: false,
         canDelete: false,
       }),
@@ -243,6 +251,8 @@ describe("groupHomeOverflowItems", () => {
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
+        canManageImage: false,
+        hasImage: false,
         isMember: true,
         canDelete: false,
       }),
@@ -259,6 +269,8 @@ describe("groupHomeOverflowItems", () => {
         canShowCreateGame: false,
         isLoosePublic: false,
         canManageInvites: false,
+        canManageImage: false,
+        hasImage: false,
         isMember: false,
         canDelete: false,
       }),
@@ -273,6 +285,8 @@ describe("groupHomeOverflowItems", () => {
       canShowCreateGame: false,
       isLoosePublic: false,
       canManageInvites: false,
+      canManageImage: false,
+      hasImage: false,
       isMember: false,
       canDelete: false,
     };
@@ -283,6 +297,43 @@ describe("groupHomeOverflowItems", () => {
     assert.deepEqual(
       groupHomeOverflowItems({ ...base, hasCreateAccess: true }),
       ["open_community", "all_communities"],
+    );
+  });
+
+  it("lists Change image when the viewer may manage the image, and Remove image only when an image is present", () => {
+    const base = {
+      family: { kind: "none" } as const,
+      hasCommunity: false,
+      hasCreateAccess: false,
+      canShowCreateGame: false,
+      isLoosePublic: false,
+      canManageInvites: false,
+      isMember: false,
+      canDelete: false,
+    };
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        ...base,
+        canManageImage: false,
+        hasImage: true,
+      }),
+      [],
+    );
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        ...base,
+        canManageImage: true,
+        hasImage: false,
+      }),
+      ["change_image"],
+    );
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        ...base,
+        canManageImage: true,
+        hasImage: true,
+      }),
+      ["change_image", "remove_image"],
     );
   });
 });

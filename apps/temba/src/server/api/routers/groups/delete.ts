@@ -11,6 +11,7 @@ import { groupHasGames } from "~/server/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "~/server/groups/helpers/group-has-non-creator-members";
 import { requireGroup } from "~/server/groups/helpers/require-group";
 import { requireStaff } from "~/server/groups/helpers/require-staff";
+import { removeGroupImageObject } from "~/server/storage/group-images";
 
 type DbClient = typeof db;
 
@@ -51,6 +52,14 @@ export async function deleteGroup(
       code: "BAD_REQUEST",
       message: "Cannot delete a Group that has members besides the creator",
     });
+  }
+
+  if (group.imageUrl) {
+    try {
+      await removeGroupImageObject(group.id);
+    } catch {
+      // Storage failure must not trap empty-Group delete.
+    }
   }
 
   await database.transaction(async (tx) => {

@@ -22,6 +22,8 @@ export type GroupHomeOverflowItem =
   | "create_game"
   | "copy_group_url"
   | "manage_invites"
+  | "change_image"
+  | "remove_image"
   | "leave"
   | "delete";
 
@@ -32,6 +34,8 @@ export type GroupHomeOverflowInput = {
   canShowCreateGame: boolean;
   isLoosePublic: boolean;
   canManageInvites: boolean;
+  canManageImage: boolean;
+  hasImage: boolean;
   isMember: boolean;
   canDelete: boolean;
 };
@@ -167,6 +171,12 @@ export function groupHomeOverflowItems(
   }
   if (input.canManageInvites && !inviteOnBar) {
     items.push("manage_invites");
+  }
+  if (input.canManageImage) {
+    items.push("change_image");
+    if (input.hasImage) {
+      items.push("remove_image");
+    }
   }
   if (input.isMember) {
     items.push("leave");
