@@ -7,6 +7,8 @@ import {
   queryHubGames,
   toHubListRow,
   applyViewerLevelRangeToHubRows,
+  expandDrawnTournamentHubRows,
+  sortExpandedHubListRows,
   viewerHubContext,
   viewerIsParticipantOnRow,
   type HubQueryRow,
@@ -54,10 +56,20 @@ export async function listMyGamesHubRows(
     viewer.userId,
     now,
   );
-  return applyViewerLevelRangeToHubRows(
+  const hubRows = await applyViewerLevelRangeToHubRows(
     database,
     filtered.map((row) => toHubListRow(row, viewer, now)),
     filtered,
     userId,
+  );
+  const byId = new Map(filtered.map((row) => [row.id, row]));
+  return sortExpandedHubListRows(
+    hubRows.flatMap((row) => {
+      const source = byId.get(row.id);
+      if (!source) {
+        return [row];
+      }
+      return expandDrawnTournamentHubRows(source, row, userId);
+    }),
   );
 }

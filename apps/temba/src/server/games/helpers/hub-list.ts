@@ -2,6 +2,7 @@ import { eq, inArray, or, type SQL } from "drizzle-orm";
 
 import { gamePlayers, gameWaitlist, groupMembers, teamMembers } from "@repo/db";
 
+import { isPoolTournament } from "~/lib/tournament-rounds";
 import { registrationStatusFromState } from "~/server/games/access";
 import { type db } from "~/server/db";
 import { gameListTime } from "~/server/home/upcoming-games";
@@ -36,6 +37,8 @@ export const hubListColumns = {
   sport: true,
   playersAllowed: true,
   teamsAllowed: true,
+  poolCount: true,
+  drawPostedAt: true,
 } as const;
 
 export const hubListWith = {
@@ -68,6 +71,15 @@ export const hubListWith = {
       status: true,
       slot1GameTeamId: true,
       slot2GameTeamId: true,
+      roundNumber: true,
+      courtId: true,
+    },
+    with: {
+      court: {
+        columns: {
+          name: true,
+        },
+      },
     },
   },
   players: {
@@ -130,6 +142,8 @@ export type HubQueryRow = {
   sport: string | null;
   playersAllowed: number | null;
   teamsAllowed: number | null;
+  poolCount: number | null;
+  drawPostedAt: Date | null;
   group: {
     id: string;
     communityId: string | null;
@@ -145,6 +159,9 @@ export type HubQueryRow = {
     status: string | null;
     slot1GameTeamId: string | null;
     slot2GameTeamId: string | null;
+    roundNumber: number | null;
+    courtId: string | null;
+    court: { name: string } | null;
   }[];
   players: { id: string; userId: string | null }[];
   waitlist: { userId: string | null; teamId: string | null }[];
@@ -384,7 +401,138 @@ export function toHubListRow(
       !isRegistered &&
       !isWaitlisted,
     sides: sidesFromRow(row, viewer.userId),
+    matchId: null,
+    roundNumber: null,
+    roundCount: null,
+    courtName: null,
   };
+}
+
+function sidesFromMatch(
+  row: HubQueryRow,
+  match: HubQueryRow["matches"][number],
+  viewerUserId: string,
+): HubListSide[] {
+  function sideForTeam(teamId: string | null, sideIndex: number): HubListSide {
+    const team = row.teams.find((item) => item.id === teamId);
+    let left: HubListSideOccupant | null = null;
+    let right: HubListSideOccupant | null = null;
+    if (team) {
+      for (const link of team.players) {
+        const occupant = occupantFromLink(link, viewerUserId);
+        if (!occupant) {
+          continue;
+        }
+        if (link.position === "left") {
+          left = occupant;
+        } else if (link.position === "right") {
+          right = occupant;
+        }
+      }
+    }
+    return { sideIndex, left, right };
+  }
+  return [
+    sideForTeam(match.slot1GameTeamId, 1),
+    sideForTeam(match.slot2GameTeamId, 2),
+  ];
+}
+
+function poolRoundCount(row: HubQueryRow) {
+  let max = 0;
+  for (const match of row.matches) {
+    if (match.roundNumber != null && match.roundNumber > max) {
+      max = match.roundNumber;
+    }
+  }
+  return max > 0 ? max : null;
+}
+
+function viewerSitsOnMatch(
+  row: HubQueryRow,
+  match: HubQueryRow["matches"][number],
+  userId: string,
+) {
+  return row.teams.some(
+    (team) =>
+      (team.id === match.slot1GameTeamId ||
+        team.id === match.slot2GameTeamId) &&
+      team.players.some((link) => link.gamePlayer?.user?.id === userId),
+  );
+}
+
+function isOpenPoolMatch(match: HubQueryRow["matches"][number]) {
+  return match.status !== "completed" && match.status !== "cancelled";
+}
+
+/**
+ * My Games and the Home carousel expand a posted Pool tournament into one
+ * row per Pool Match the viewer sits on (ADR-0018). Group home and pickup
+ * keep calling `toHubListRow` only.
+ */
+export function expandDrawnTournamentHubRows(
+  row: HubQueryRow,
+  hubRow: HubListRow,
+  viewerUserId: string,
+): HubListRow[] {
+  if (
+    !isPoolTournament(row.format, row.poolCount) ||
+    row.drawPostedAt == null
+  ) {
+    return [hubRow];
+  }
+  const mine = row.matches.filter(
+    (match) =>
+      isOpenPoolMatch(match) && viewerSitsOnMatch(row, match, viewerUserId),
+  );
+  if (mine.length === 0) {
+    return [hubRow];
+  }
+  const roundCount = poolRoundCount(row);
+  return [...mine]
+    .sort((left, right) => {
+      const leftTime = left.startTime?.getTime() ?? 0;
+      const rightTime = right.startTime?.getTime() ?? 0;
+      if (leftTime !== rightTime) {
+        return leftTime - rightTime;
+      }
+      return left.id.localeCompare(right.id);
+    })
+    .map((match) => {
+      const sides = sidesFromMatch(row, match, viewerUserId);
+      const registeredUserCount = sides.reduce(
+        (count, side) => count + (side.left ? 1 : 0) + (side.right ? 1 : 0),
+        0,
+      );
+      return {
+        ...hubRow,
+        startTime: match.startTime ?? hubRow.startTime,
+        matchId: match.id,
+        roundNumber: match.roundNumber,
+        roundCount,
+        courtName: match.court?.name ?? null,
+        sides,
+        registeredUserCount,
+        playersAllowed: 4,
+        canRegister: false,
+        canWaitlist: false,
+      };
+    });
+}
+
+export function sortExpandedHubListRows(rows: HubListRow[]) {
+  return [...rows].sort((left, right) => {
+    const leftIn = left.isRegistered || left.isSeated || left.isWaitlisted;
+    const rightIn = right.isRegistered || right.isSeated || right.isWaitlisted;
+    if (leftIn !== rightIn) {
+      return leftIn ? -1 : 1;
+    }
+    const byTime = left.startTime.getTime() - right.startTime.getTime();
+    if (byTime !== 0) {
+      return byTime;
+    }
+    return (left.matchId ?? left.id).localeCompare(right.matchId ?? right.id);
+  });
 }
 
 export async function applyViewerLevelRangeToHubRows(

@@ -16,6 +16,7 @@ import {
   isStaffRole,
 } from "~/server/games/access";
 import {
+  expandDrawnTournamentHubRows,
   queryHubGames,
   toHubListRow,
   viewerHubContext,
@@ -124,7 +125,7 @@ export function isHomeCarouselGame(
   return homeCarouselPhase(game, now) != null;
 }
 
-function compareHomeCarouselGames(
+function compareHomeCarouselCandidates(
   a: HomeCarouselCandidate,
   b: HomeCarouselCandidate,
   now: Date,
@@ -139,13 +140,60 @@ function compareHomeCarouselGames(
   return gameListTime(a).getTime() - gameListTime(b).getTime();
 }
 
+function compareHomeCarouselGames(
+  a: {
+    phase: HomeCarouselPhase;
+    startTime: Date;
+    matchId: string | null;
+    id: string;
+  },
+  b: {
+    phase: HomeCarouselPhase;
+    startTime: Date;
+    matchId: string | null;
+    id: string;
+  },
+): number {
+  const orderA = PHASE_ORDER[a.phase];
+  const orderB = PHASE_ORDER[b.phase];
+  if (orderA !== orderB) {
+    return orderA - orderB;
+  }
+  const byTime = a.startTime.getTime() - b.startTime.getTime();
+  if (byTime !== 0) {
+    return byTime;
+  }
+  return (a.matchId ?? a.id).localeCompare(b.matchId ?? b.id);
+}
+
+export function homeCarouselPhaseForPoolMatch(
+  game: HomeCarouselCandidate,
+  match: { startTime: Date | null; status: string | null },
+  now: Date,
+): HomeCarouselPhase | null {
+  if (!matchIsOpenForSets(match.status)) {
+    return null;
+  }
+  if (isHomeCarouselNeedsResults(game, now)) {
+    return "needs_results";
+  }
+  if (!isGameLive(game, now)) {
+    return null;
+  }
+  const start = match.startTime ?? gameListTime(game);
+  if (start.getTime() > now.getTime()) {
+    return "upcoming";
+  }
+  return "ongoing";
+}
+
 export function filterAndSortHomeCarouselGames<T extends HomeCarouselCandidate>(
   games: readonly T[],
   now: Date,
 ): T[] {
   return games
     .filter((game) => isHomeCarouselGame(game, now))
-    .sort((a, b) => compareHomeCarouselGames(a, b, now));
+    .sort((a, b) => compareHomeCarouselCandidates(a, b, now));
 }
 
 async function organizerGroupIdsForViewer(
@@ -286,15 +334,27 @@ export async function listHomeCarouselGames(
     ...occupancyFromRow(row),
   }));
   const filtered = filterAndSortHomeCarouselGames(candidates, now);
-
-  return filtered.map((row) => {
-    const phase = homeCarouselPhase(row, now) ?? "upcoming";
-    return {
-      ...toHubListRow(row, viewer, now),
-      phase,
-      canAddResults:
-        phase === "needs_results" &&
-        viewerCanAddResults(row, userId, row.viewerIsOrganizer),
-    };
-  });
+  const expanded: HomeCarouselGame[] = [];
+  for (const row of filtered) {
+    const hubRow = toHubListRow(row, viewer, now);
+    const hubRows = expandDrawnTournamentHubRows(row, hubRow, userId);
+    for (const item of hubRows) {
+      const match = item.matchId
+        ? row.matches.find((candidate) => candidate.id === item.matchId)
+        : null;
+      const phase = match
+        ? (homeCarouselPhaseForPoolMatch(row, match, now) ?? "upcoming")
+        : (homeCarouselPhase(row, now) ?? "upcoming");
+      expanded.push({
+        ...item,
+        phase,
+        canAddResults:
+          phase === "needs_results" &&
+          (match
+            ? viewerCanScoreMatch(row, match, userId, row.viewerIsOrganizer)
+            : viewerCanAddResults(row, userId, row.viewerIsOrganizer)),
+      });
+    }
+  }
+  return expanded.sort(compareHomeCarouselGames);
 }

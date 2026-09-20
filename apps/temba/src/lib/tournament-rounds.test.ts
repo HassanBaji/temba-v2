@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import { formatAbsoluteDay } from "./format-game-start";
 import {
   isPoolTournament,
+  poolRoundLabel,
   showsPoolTournamentSeats,
   tournamentRoundSummary,
 } from "./tournament-rounds";
@@ -37,6 +38,17 @@ describe("showsPoolTournamentSeats", () => {
       showsPoolTournamentSeats("friendly_game", 3, "individual"),
       false,
     );
+  });
+});
+
+describe("poolRoundLabel", () => {
+  it("labels a Round against the tournament total", () => {
+    assert.equal(poolRoundLabel(2, 3), "R2 of 3");
+  });
+
+  it("is null without a Round number or total", () => {
+    assert.equal(poolRoundLabel(null, 3), null);
+    assert.equal(poolRoundLabel(2, null), null);
   });
 });
 

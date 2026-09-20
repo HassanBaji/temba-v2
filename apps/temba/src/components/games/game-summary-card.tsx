@@ -70,11 +70,16 @@ function venueSubtitle(
   venueName: string | null | undefined,
   location: string | null | undefined,
   gameName: string | null | undefined,
+  courtName?: string | null,
 ) {
   const parts: string[] = [];
   const name = gameName?.trim();
   if (name) {
     parts.push(name);
+  }
+  const court = courtName?.trim();
+  if (court) {
+    parts.push(court);
   }
   const city = location?.trim();
   if (city && city !== venueName) {
@@ -354,6 +359,8 @@ export function GameSummaryCard({
   onJoinSeat,
   onJoinWaitlist,
   onRegister,
+  roundLabel,
+  courtName,
 }: {
   name: string | null;
   startTime: Date | string;
@@ -383,6 +390,8 @@ export function GameSummaryCard({
   onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
   onJoinWaitlist?: () => void;
   onRegister?: () => void;
+  roundLabel?: string | null;
+  courtName?: string | null;
 }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [startAtPartner, setStartAtPartner] = React.useState(false);
@@ -397,8 +406,13 @@ export function GameSummaryCard({
   }, []);
 
   const title = venueName ?? name ?? "Untitled Game";
-  const subtitle = venueSubtitle(venueName, location, venueName ? name : null);
-  const formatMeta = gameFormatLabel(format);
+  const subtitle = venueSubtitle(
+    venueName,
+    location,
+    venueName ? name : null,
+    courtName,
+  );
+  const formatMeta = roundLabel ?? gameFormatLabel(format);
   const durationMeta = formatWindowDuration(windowStart, windowEnd);
   const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
   const priceAmount = formatPricePerPlayerCents(pricePerPlayerCents);

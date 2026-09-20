@@ -37,9 +37,11 @@ export type MatchHistoryRow = {
 };
 
 /**
- * Past Friendly games the signed-in User sat on via a completed Match slot.
+ * Past Matches the signed-in User sat on via a completed Match slot.
  * Soft-archived Club Group Games are included when they otherwise qualify.
- * Friendly tournament and Americano are excluded this slice.
+ * Friendly games appear once the Game is no longer live, one row per Game.
+ * Friendly tournament Pool Matches appear as they complete, one row each.
+ * Americano is excluded this slice.
  */
 export async function listMyMatchHistoryRows(
   database: DbClient,
@@ -164,13 +166,20 @@ export async function listMyMatchHistoryRows(
     if (!game) {
       continue;
     }
-    if (game.format !== "friendly_game") {
+    if (game.format === "americano") {
+      continue;
+    }
+    if (
+      game.format !== "friendly_game" &&
+      game.format !== "friendly_tournament"
+    ) {
       continue;
     }
     if (game.cancelledAt != null) {
       continue;
     }
     if (
+      game.format === "friendly_game" &&
       isGameLive(
         {
           id: game.id,
@@ -218,29 +227,30 @@ export async function listMyMatchHistoryRows(
       }
       return b.match.createdAt.getTime() - a.match.createdAt.getTime();
     });
-    const chosen = candidates[0];
-    if (!chosen) {
-      continue;
-    }
+    const chosenMatches =
+      game.format === "friendly_tournament"
+        ? candidates
+        : candidates.slice(0, 1);
     const venueName = game.venue?.name;
     if (!venueName) {
       continue;
     }
-
-    rows.push({
-      id: game.id,
-      name: game.name,
-      format: game.format,
-      venue: { name: venueName },
-      displayTime: chosen.displayTime,
-      matchId: chosen.match.id,
-      groupName: game.group?.name ?? null,
-      slot1Members: slotMembers(chosen.match.slot1GameTeam, userId),
-      slot2Members: slotMembers(chosen.match.slot2GameTeam, userId),
-      scoredSets: scoredSetsFromMatch(chosen.match.sets),
-      viewerSlot: chosen.userSlot,
-      outcome: chosen.outcome,
-    });
+    for (const chosen of chosenMatches) {
+      rows.push({
+        id: game.id,
+        name: game.name,
+        format: game.format,
+        venue: { name: venueName },
+        displayTime: chosen.displayTime,
+        matchId: chosen.match.id,
+        groupName: game.group?.name ?? null,
+        slot1Members: slotMembers(chosen.match.slot1GameTeam, userId),
+        slot2Members: slotMembers(chosen.match.slot2GameTeam, userId),
+        scoredSets: scoredSetsFromMatch(chosen.match.sets),
+        viewerSlot: chosen.userSlot,
+        outcome: chosen.outcome,
+      });
+    }
   }
 
   return rows.sort((a, b) => b.displayTime.getTime() - a.displayTime.getTime());

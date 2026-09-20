@@ -5,6 +5,7 @@ import { cn } from "~/lib/utils";
 
 export type HomeComingUpRow = {
   id: string;
+  rowKey?: string;
   venueName: string;
   startsAt: Date;
   seatsTaken: number;
@@ -33,7 +34,7 @@ export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
             ...Array.from({ length: open }, () => "open" as const),
           ];
           return (
-            <li key={game.id}>
+            <li key={game.rowKey ?? game.id}>
               <Link
                 href={`/dashboard/games/${game.id}`}
                 className="focus-visible:ring-ring/50 flex items-center gap-3 px-[22px] py-3 outline-none focus-visible:ring-[3px]"

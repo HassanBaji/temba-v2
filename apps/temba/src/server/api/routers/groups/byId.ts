@@ -394,8 +394,13 @@ export async function groupById(
           createdAt: true,
           slot1GameTeamId: true,
           slot2GameTeamId: true,
+          roundNumber: true,
+          courtId: true,
         },
         with: {
+          court: {
+            columns: { name: true },
+          },
           slot1GameTeam: {
             columns: { id: true },
             with: {

@@ -31,6 +31,16 @@ export type TournamentRoundSummary = {
   dateLines: string[];
 };
 
+export function poolRoundLabel(
+  roundNumber: number | null | undefined,
+  roundCount: number | null | undefined,
+) {
+  if (roundNumber == null || roundCount == null) {
+    return null;
+  }
+  return `R${roundNumber} of ${roundCount}`;
+}
+
 export function tournamentRoundSummary(args: {
   poolCount: number | null | undefined;
   teamCount: number | null | undefined;
