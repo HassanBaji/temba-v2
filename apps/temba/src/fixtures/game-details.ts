@@ -1,4 +1,8 @@
-import { GameFormatEnum, GameRegistrationModeEnum, GameSportEnum } from "@repo/db";
+import {
+  GameFormatEnum,
+  GameRegistrationModeEnum,
+  GameSportEnum,
+} from "@repo/db";
 
 import { matchOutcome } from "~/server/games/match-outcome";
 import { setWinsForGames } from "~/server/games/set-wins-for-games";
@@ -67,9 +71,7 @@ const venue: GameDetailsFixture["venue"] = {
   logoImageUrl: null,
 };
 
-function sidesFor(args: {
-  openSeat: boolean;
-}): GameDetailsFixture["sides"] {
+function sidesFor(args: { openSeat: boolean }): GameDetailsFixture["sides"] {
   const sideA: GameDetailsSide = {
     sideIndex: 1,
     gameTeamId: "game-team-a",
@@ -106,6 +108,7 @@ function matchFor(args: {
     startTime,
     endTime: null,
     durationInMinutes: 90,
+    roundNumber: null,
     status,
     courtId: "court-1",
     courtName: "Court 1",
@@ -175,9 +178,7 @@ function baseFixture(args: {
  * - `final` — fully seated, Match completed and rated, viewer-scoped
  *   rating-impact fields populated.
  */
-export function createGameDetailsFixtures(
-  now = new Date(),
-): {
+export function createGameDetailsFixtures(now = new Date()): {
   upcoming: GameDetailsFixture;
   needsScore: GameDetailsFixture;
   needsScorePartiallyConfirmed: GameDetailsFixture;
