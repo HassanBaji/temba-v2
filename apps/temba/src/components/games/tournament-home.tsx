@@ -1,15 +1,27 @@
 "use client";
 
+import { useState } from "react";
+
 import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHero } from "~/components/games/tournament-hero";
+import {
+  TournamentMergeBanner,
+  TournamentMergeDrawer,
+  TournamentMergeEntry,
+} from "~/components/games/tournament-merge-drawer";
 import { TournamentSeatsGrid } from "~/components/games/tournament-seats-grid";
 import { TournamentTeamsSection } from "~/components/games/tournament-teams-section";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
 import { Button } from "~/components/ui/button";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import {
+  canOpenOrganizerMergeDrawer,
+  halfTeamsFromSides,
+  showOrganizerMergeBanner,
+} from "~/lib/tournament-half-teams";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
@@ -48,6 +60,8 @@ export function TournamentHome({
   kickPending,
   closePending,
   reopenPending,
+  mergePending,
+  mergeError,
   onShare,
   onInvite,
   onJoin,
@@ -60,6 +74,7 @@ export function TournamentHome({
   onCancelGame,
   onKick,
   onKickWaitlist,
+  onMerge,
 }: {
   data: GameDetail;
   sharePending: boolean;
@@ -68,6 +83,8 @@ export function TournamentHome({
   kickPending: boolean;
   closePending: boolean;
   reopenPending: boolean;
+  mergePending: boolean;
+  mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
   onShare?: () => void;
   onInvite?: () => void;
   onJoin?: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
@@ -80,7 +97,14 @@ export function TournamentHome({
   onCancelGame?: () => void;
   onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
+  onMerge: (input: {
+    firstGameTeamId: string;
+    secondGameTeamId: string;
+    firstPosition: "left" | "right";
+    secondPosition: "left" | "right";
+  }) => void | Promise<void>;
 }) {
+  const [mergeOpen, setMergeOpen] = useState(false);
   const sizing =
     data.poolCount != null && data.teamsAllowed != null
       ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
@@ -112,6 +136,16 @@ export function TournamentHome({
   });
   const drawn = data.drawPostedAt != null;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
+  const halfTeams = halfTeamsFromSides(data.sides);
+  const mergeGate = {
+    isOrganizer: data.isOrganizer,
+    cancelled: Boolean(data.cancelledAt),
+    drawPosted: drawn,
+    halfTeamCount: halfTeams.length,
+  };
+  const showMergeBanner = showOrganizerMergeBanner(mergeGate);
+  const showMergeEntry =
+    canOpenOrganizerMergeDrawer(mergeGate) && !showMergeBanner;
   const canLeaveGame =
     (data.isSeated || data.isRegistered) && data.canLeave && !data.isWaitlisted;
   const schedule =
@@ -157,6 +191,16 @@ export function TournamentHome({
           canTakeSeat={data.canRegister && !seated}
           venueName={data.venue?.name ?? null}
           schedule={schedule}
+          teamCount={data.teamsAllowed}
+          showMergeBanner={showMergeBanner}
+          showMergeEntry={showMergeEntry}
+          halfTeamCount={halfTeams.length}
+          mergeOpen={mergeOpen}
+          mergePending={mergePending}
+          mergeError={mergeError}
+          onOpenMerge={() => setMergeOpen(true)}
+          onMergeOpenChange={setMergeOpen}
+          onMerge={onMerge}
           onTakeSeat={
             onJoin
               ? (seat) => {
@@ -220,6 +264,16 @@ function TournamentPredrawTree({
   canTakeSeat,
   venueName,
   schedule,
+  teamCount,
+  showMergeBanner,
+  showMergeEntry,
+  halfTeamCount,
+  mergeOpen,
+  mergePending,
+  mergeError,
+  onOpenMerge,
+  onMergeOpenChange,
+  onMerge,
   onTakeSeat,
   onInvite,
 }: {
@@ -228,6 +282,21 @@ function TournamentPredrawTree({
   canTakeSeat: boolean;
   venueName: string | null;
   schedule: TournamentRoundScheduleEntry[];
+  teamCount: number | null;
+  showMergeBanner: boolean;
+  showMergeEntry: boolean;
+  halfTeamCount: number;
+  mergeOpen: boolean;
+  mergePending: boolean;
+  mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
+  onOpenMerge: () => void;
+  onMergeOpenChange: (open: boolean) => void;
+  onMerge: (input: {
+    firstGameTeamId: string;
+    secondGameTeamId: string;
+    firstPosition: "left" | "right";
+    secondPosition: "left" | "right";
+  }) => void | Promise<void>;
   onTakeSeat?: (seat: {
     sideIndex: number;
     position: "left" | "right";
@@ -236,6 +305,28 @@ function TournamentPredrawTree({
 }) {
   return (
     <div className="space-y-6">
+      {showMergeBanner ? (
+        <TournamentMergeBanner
+          sides={sides}
+          teamCount={teamCount}
+          onOpen={onOpenMerge}
+        />
+      ) : null}
+      {showMergeEntry ? (
+        <TournamentMergeEntry
+          halfTeamCount={halfTeamCount}
+          onOpen={onOpenMerge}
+        />
+      ) : null}
+      <TournamentMergeDrawer
+        open={mergeOpen}
+        onOpenChange={onMergeOpenChange}
+        sides={sides}
+        teamCount={teamCount}
+        mergePending={mergePending}
+        mergeError={mergeError}
+        onMerge={onMerge}
+      />
       <TournamentTeamsSection
         sides={sides}
         viewerUserId={viewerUserId}

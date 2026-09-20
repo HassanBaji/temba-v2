@@ -29,7 +29,6 @@ import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
-import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
 import { TournamentHome } from "~/components/games/tournament-home";
 import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
@@ -887,6 +886,14 @@ export default function GameHomePage({
               kickPending={kick.isPending}
               closePending={closeRegistration.isPending}
               reopenPending={reopenRegistration.isPending}
+              mergePending={mergeHalfTeams.isPending}
+              mergeError={mergeHalfTeams.error}
+              onMerge={async (input) => {
+                await mergeHalfTeams.mutateAsync({
+                  gameId: id,
+                  ...input,
+                });
+              }}
               onShare={
                 canManageGameInvites
                   ? () => createInviteLink.mutate({ gameId: id })
@@ -1131,22 +1138,6 @@ export default function GameHomePage({
               className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
             >
               <div className="space-y-6">
-                {data.isOrganizer &&
-                usesPoolTournamentSeats &&
-                !data.cancelledAt ? (
-                  <TournamentHalfTeamsPanel
-                    sides={data.sides}
-                    format={data.format}
-                    mergePending={mergeHalfTeams.isPending}
-                    mergeError={mergeHalfTeams.error}
-                    onMerge={async (input) => {
-                      await mergeHalfTeams.mutateAsync({
-                        gameId: id,
-                        ...input,
-                      });
-                    }}
-                  />
-                ) : null}
                 <GamePlayersPanel
                   game={data}
                   partnerQuery={partnerQuery}
