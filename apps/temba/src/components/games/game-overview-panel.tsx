@@ -11,11 +11,12 @@ type GameDetail = RouterOutputs["games"]["byId"];
 export function GameOverviewPanel({ game }: { game: GameDetail }) {
   const firstMatch = game.matches[0];
   const courtNames = [
-    ...new Set(
-      game.matches.flatMap((match) =>
+    ...new Set([
+      ...game.recordedCourts.map((court) => court.name),
+      ...game.matches.flatMap((match) =>
         match.courtName ? [match.courtName] : [],
       ),
-    ),
+    ]),
   ];
   const teamOnly = game.registrationMode === "team_only";
   const registeredCount = teamOnly

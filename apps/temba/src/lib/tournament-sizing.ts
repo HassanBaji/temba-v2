@@ -53,7 +53,17 @@ export function poolCountOptions(teamCount: number): number[] {
   return Array.from({ length: max }, (_, index) => index + 1);
 }
 
-function poolSizesFor(teamCount: number, poolCount: number): number[] {
+export function poolCountForDrawnField(
+  completeTeamCount: number,
+  requestedPoolCount: number,
+): number {
+  return Math.min(requestedPoolCount, maxPoolCount(completeTeamCount));
+}
+
+export function balancedPoolSizes(
+  teamCount: number,
+  poolCount: number,
+): number[] {
   const base = Math.floor(teamCount / poolCount);
   const extra = teamCount % poolCount;
   return Array.from({ length: poolCount }, (_, index) =>
@@ -103,7 +113,7 @@ export function sizeFriendlyTournament(
     };
   }
 
-  const poolSizes = poolSizesFor(teamCount, poolCount);
+  const poolSizes = balancedPoolSizes(teamCount, poolCount);
   const maxPoolSize = Math.max(...poolSizes);
   const matchesPerTeam = poolSizes.map((size) => size - 1);
 

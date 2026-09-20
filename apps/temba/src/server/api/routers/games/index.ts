@@ -14,6 +14,7 @@ import { confirmMatchResultProcedure as confirmMatchResult } from "./confirmMatc
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { createTournamentProcedure as createTournament } from "./createTournament";
+import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { getSecretMessage } from "./getSecretMessage";
 import { hello } from "./hello";
@@ -62,6 +63,7 @@ export const gamesRouter = createTRPCRouter({
   listCreateGroups,
   create,
   createTournament,
+  drawPools,
   byId,
   register,
   registerSeat,

@@ -30,6 +30,8 @@ import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-blo
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
+import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
+import { TournamentUndrawnNotice } from "~/components/games/tournament-undrawn-notice";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
@@ -50,7 +52,10 @@ import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
 import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
 import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
-import { showsPoolTournamentSeats } from "~/lib/tournament-rounds";
+import {
+  isPoolTournament,
+  showsPoolTournamentSeats,
+} from "~/lib/tournament-rounds";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
@@ -202,6 +207,18 @@ export default function GameHomePage({
   const mergeHalfTeams = api.games.mergeHalfTeams.useMutation({
     onSuccess: async () => {
       toast.success("Merged");
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const drawPools = api.games.drawPools.useMutation({
+    onSuccess: async () => {
+      toast.success("Pools drawn");
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -994,7 +1011,32 @@ export default function GameHomePage({
               </TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
-              <GameOverviewPanel game={data} />
+              <div className="space-y-6">
+                {data.isOrganizer &&
+                isPoolTournament(data.format, data.poolCount) &&
+                !data.cancelledAt ? (
+                  <TournamentPoolDrawPanel
+                    gameTeams={data.gameTeams}
+                    poolCount={data.poolCount}
+                    teamCount={data.teamsAllowed}
+                    windowStart={data.windowStart}
+                    windowEnd={data.windowEnd}
+                    courtNames={data.recordedCourts.map((court) => court.name)}
+                    drawPending={drawPools.isPending}
+                    drawError={drawPools.error}
+                    onDraw={async () => {
+                      await drawPools.mutateAsync({ gameId: id });
+                    }}
+                  />
+                ) : null}
+                {!data.isOrganizer &&
+                isPoolTournament(data.format, data.poolCount) &&
+                data.matches.length === 0 &&
+                !data.cancelledAt ? (
+                  <TournamentUndrawnNotice />
+                ) : null}
+                <GameOverviewPanel game={data} />
+              </div>
             </TabsContent>
             <TabsContent
               value="players"
@@ -1010,7 +1052,10 @@ export default function GameHomePage({
                     mergePending={mergeHalfTeams.isPending}
                     mergeError={mergeHalfTeams.error}
                     onMerge={async (input) => {
-                      await mergeHalfTeams.mutateAsync({ gameId: id, ...input });
+                      await mergeHalfTeams.mutateAsync({
+                        gameId: id,
+                        ...input,
+                      });
                     }}
                   />
                 ) : null}

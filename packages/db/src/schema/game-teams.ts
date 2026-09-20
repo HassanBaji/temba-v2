@@ -25,6 +25,7 @@ export const gameTeams = pgTable(
     }),
     name: varchar("name", { length: 255 }),
     sideIndex: integer("side_index"),
+    poolIndex: integer("pool_index"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

@@ -61,6 +61,7 @@ type ExpectedGames =
   | "listCreateGroups"
   | "create"
   | "createTournament"
+  | "drawPools"
   | "byId"
   | "register"
   | "registerSeat"

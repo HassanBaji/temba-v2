@@ -3,9 +3,11 @@ import { describe, it } from "vitest";
 
 import {
   ONE_DAY_OVERRUN_MESSAGE,
+  balancedPoolSizes,
   defaultPoolCount,
   maxPoolCount,
   oneDayFit,
+  poolCountForDrawnField,
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_POOL_COUNT,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
@@ -196,6 +198,27 @@ describe("oneDayFit", () => {
     );
     assert.match(ONE_DAY_OVERRUN_MESSAGE, /Court/u);
     assert.match(ONE_DAY_OVERRUN_MESSAGE, /Game teams/u);
+  });
+});
+
+describe("balancedPoolSizes", () => {
+  it("gives the first remainder Pools one extra team", () => {
+    assert.deepEqual(balancedPoolSizes(10, 3), [4, 3, 3]);
+    assert.deepEqual(balancedPoolSizes(8, 2), [4, 4]);
+    assert.deepEqual(balancedPoolSizes(6, 2), [3, 3]);
+  });
+});
+
+describe("poolCountForDrawnField", () => {
+  it("keeps the requested Pool count when it still fits", () => {
+    assert.equal(poolCountForDrawnField(10, 3), 3);
+    assert.equal(poolCountForDrawnField(12, 3), 3);
+  });
+
+  it("clamps to a third of the real Game team count", () => {
+    assert.equal(poolCountForDrawnField(6, 3), 2);
+    assert.equal(poolCountForDrawnField(8, 3), 2);
+    assert.equal(poolCountForDrawnField(4, 3), 1);
   });
 });
 

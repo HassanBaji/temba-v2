@@ -281,6 +281,13 @@
       "when": 1789897319152,
       "tag": "0039_romantic_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1789899737063,
+      "tag": "0040_vengeful_cargill",
+      "breakpoints": true
     }
   ]
 }

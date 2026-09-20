@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   MatchStatusEnum,
+  gameCourts,
   gamePlayers,
   gameTeams,
   gameWaitlist,
@@ -189,6 +190,13 @@ export async function gameById(
       },
     },
     orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+
+  const recordedCourtRows = await database.query.gameCourts.findMany({
+    where: eq(gameCourts.gameId, game.id),
+    with: {
+      court: { columns: { id: true, name: true } },
+    },
   });
 
   const teamRows = await database.query.gameTeams.findMany({
@@ -633,6 +641,7 @@ export async function gameById(
       teamId: row.teamId,
       name: row.name,
       sideIndex: row.sideIndex,
+      poolIndex: row.poolIndex,
       members: row.players.flatMap((link) =>
         link.gamePlayer.user
           ? [
@@ -663,6 +672,17 @@ export async function gameById(
           ]
         : [],
     ),
+    recordedCourts: recordedCourtRows
+      .flatMap((row) =>
+        row.court ? [{ id: row.court.id, name: row.court.name }] : [],
+      )
+      .sort((left, right) => {
+        const byName = left.name.localeCompare(right.name);
+        if (byName !== 0) {
+          return byName;
+        }
+        return left.id.localeCompare(right.id);
+      }),
     eligibleTeams,
     ...levelRange,
     pendingLevelRangeRequests,

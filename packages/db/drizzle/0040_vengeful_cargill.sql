@@ -1,0 +1,1 @@
+ALTER TABLE "game_teams" ADD COLUMN "pool_index" integer;
