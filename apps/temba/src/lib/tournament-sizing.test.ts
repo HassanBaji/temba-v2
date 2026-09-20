@@ -5,6 +5,8 @@ import {
   ONE_DAY_OVERRUN_MESSAGE,
   balancedPoolSizes,
   defaultPoolCount,
+  formatMatchesPerTeam,
+  formatPoolSizeLine,
   maxPoolCount,
   oneDayFit,
   poolCountForDrawnField,
@@ -228,5 +230,67 @@ describe("defaults", () => {
     assert.equal(TOURNAMENT_DEFAULT_POOL_COUNT, 3);
     assert.equal(defaultPoolCount(12), 3);
     assert.equal(defaultPoolCount(4), 1);
+  });
+});
+
+describe("formatPoolSizeLine", () => {
+  it("names even Pools, never Groups", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(formatPoolSizeLine(result.sizing), "3 Pools of 4");
+    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+  });
+
+  it("names a single Pool", () => {
+    const result = sizeFriendlyTournament(12, 1);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(formatPoolSizeLine(result.sizing), "1 Pool of 12");
+  });
+
+  it("names uneven Pools without calling them Groups", () => {
+    const result = sizeFriendlyTournament(10, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      formatPoolSizeLine(result.sizing),
+      "1 Pool of 4, 2 Pools of 3",
+    );
+    assert.equal(result.sizing.uneven, true);
+    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+  });
+});
+
+describe("formatMatchesPerTeam", () => {
+  it("uses one count when Pools are even", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      formatMatchesPerTeam(result.sizing),
+      "Each Game team plays 3 Matches",
+    );
+  });
+
+  it("names both sizes when Pools are uneven", () => {
+    const result = sizeFriendlyTournament(10, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      formatMatchesPerTeam(result.sizing),
+      "Game teams in a larger Pool play 3 Matches; Game teams in a smaller Pool play 2 Matches",
+    );
+    assert.equal(/group/iu.test(formatMatchesPerTeam(result.sizing)), false);
   });
 });

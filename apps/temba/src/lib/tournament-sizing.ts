@@ -162,3 +162,23 @@ export function oneDayFit(input: {
     overruns: lastFinish.getTime() > input.finish.getTime(),
   };
 }
+
+export function formatPoolSizeLine(sizing: TournamentSizing) {
+  const counts = new Map<number, number>();
+  for (const size of sizing.poolSizes) {
+    counts.set(size, (counts.get(size) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(
+      ([size, count]) =>
+        `${count} ${count === 1 ? "Pool" : "Pools"} of ${size}`,
+    )
+    .join(", ");
+}
+
+export function formatMatchesPerTeam(sizing: TournamentSizing) {
+  if (sizing.matchesPerTeamMin === sizing.matchesPerTeamMax) {
+    return `Each Game team plays ${sizing.matchesPerTeamMin} Matches`;
+  }
+  return `Game teams in a larger Pool play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller Pool play ${sizing.matchesPerTeamMin} Matches`;
+}
