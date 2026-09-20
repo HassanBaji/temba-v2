@@ -163,7 +163,7 @@ export function TournamentDrawDrawer({
             <DrawerTitle className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
               {DRAW_DRAWER_TITLE}
             </DrawerTitle>
-            <DrawerDescription className="mt-2.5 text-[15px] leading-relaxed">
+            <DrawerDescription className="text-ink mt-2.5 text-[15px] leading-relaxed">
               {drawDrawerLead(teamCount)}
             </DrawerDescription>
           </div>
