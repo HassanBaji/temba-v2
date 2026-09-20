@@ -30,7 +30,6 @@ import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-blo
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHome } from "~/components/games/tournament-home";
-import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
@@ -54,10 +53,7 @@ import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
 import { gameViewerStatus } from "~/lib/game-summary-cta";
 import { gameDetailsChrome } from "~/lib/tournament-home";
-import {
-  isPoolTournament,
-  showsPoolTournamentSeats,
-} from "~/lib/tournament-rounds";
+import { showsPoolTournamentSeats } from "~/lib/tournament-rounds";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
@@ -894,6 +890,21 @@ export default function GameHomePage({
                   ...input,
                 });
               }}
+              drawPending={drawPools.isPending}
+              drawError={drawPools.error}
+              onDraw={async () => {
+                await drawPools.mutateAsync({ gameId: id });
+              }}
+              postPending={postPoolDraw.isPending}
+              postError={postPoolDraw.error}
+              onPost={async () => {
+                await postPoolDraw.mutateAsync({ gameId: id });
+              }}
+              undoPending={undoPoolDraw.isPending}
+              undoError={undoPoolDraw.error}
+              onUndo={async () => {
+                await undoPoolDraw.mutateAsync({ gameId: id });
+              }}
               onShare={
                 canManageGameInvites
                   ? () => createInviteLink.mutate({ gameId: id })
@@ -1099,34 +1110,6 @@ export default function GameHomePage({
             </TabsList>
             <TabsContent value="overview">
               <div className="space-y-6">
-                {data.isOrganizer &&
-                isPoolTournament(data.format, data.poolCount) &&
-                !data.cancelledAt ? (
-                  <TournamentPoolDrawPanel
-                    gameTeams={data.gameTeams}
-                    poolCount={data.poolCount}
-                    teamCount={data.teamsAllowed}
-                    windowStart={data.windowStart}
-                    windowEnd={data.windowEnd}
-                    courtNames={data.recordedCourts.map((court) => court.name)}
-                    drawPostedAt={data.drawPostedAt}
-                    drawPending={drawPools.isPending}
-                    drawError={drawPools.error}
-                    onDraw={async () => {
-                      await drawPools.mutateAsync({ gameId: id });
-                    }}
-                    postPending={postPoolDraw.isPending}
-                    postError={postPoolDraw.error}
-                    onPost={async () => {
-                      await postPoolDraw.mutateAsync({ gameId: id });
-                    }}
-                    undoPending={undoPoolDraw.isPending}
-                    undoError={undoPoolDraw.error}
-                    onUndo={async () => {
-                      await undoPoolDraw.mutateAsync({ gameId: id });
-                    }}
-                  />
-                ) : null}
                 {data.drawPostedAt && data.poolTables?.pools.length ? (
                   <TournamentPoolTablesPanel poolTables={data.poolTables} />
                 ) : null}

@@ -5,6 +5,11 @@ import { useState } from "react";
 import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
+import {
+  TournamentDrawDrawer,
+  TournamentDrawEntry,
+  TournamentUndoPoolDraw,
+} from "~/components/games/tournament-draw-drawer";
 import { TournamentHero } from "~/components/games/tournament-hero";
 import {
   TournamentMergeBanner,
@@ -42,6 +47,11 @@ import {
   tournamentStatusLine,
   tournamentViewerSide,
 } from "~/lib/tournament-home";
+import {
+  canOpenOrganizerDrawDrawer,
+  canShowUndoPoolDraw,
+  hasDraftPoolDraw,
+} from "~/lib/tournament-pool-draw";
 import { viewerTournamentTotalCents } from "~/lib/tournament-price";
 import {
   tournamentRoundSchedule,
@@ -62,6 +72,12 @@ export function TournamentHome({
   reopenPending,
   mergePending,
   mergeError,
+  drawPending,
+  drawError,
+  postPending,
+  postError,
+  undoPending,
+  undoError,
   onShare,
   onInvite,
   onJoin,
@@ -85,6 +101,12 @@ export function TournamentHome({
   reopenPending: boolean;
   mergePending: boolean;
   mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
+  drawPending: boolean;
+  drawError: { message: string; data?: { zodError?: unknown } | null } | null;
+  postPending: boolean;
+  postError: { message: string; data?: { zodError?: unknown } | null } | null;
+  undoPending: boolean;
+  undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onShare?: () => void;
   onInvite?: () => void;
   onJoin?: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
@@ -103,8 +125,12 @@ export function TournamentHome({
     firstPosition: "left" | "right";
     secondPosition: "left" | "right";
   }) => void | Promise<void>;
+  onDraw: () => void | Promise<void>;
+  onPost: () => void | Promise<void>;
+  onUndo: () => void | Promise<void>;
 }) {
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [drawOpen, setDrawOpen] = useState(false);
   const sizing =
     data.poolCount != null && data.teamsAllowed != null
       ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
@@ -146,6 +172,13 @@ export function TournamentHome({
   const showMergeBanner = showOrganizerMergeBanner(mergeGate);
   const showMergeEntry =
     canOpenOrganizerMergeDrawer(mergeGate) && !showMergeBanner;
+  const drawGate = {
+    isOrganizer: data.isOrganizer,
+    cancelled: Boolean(data.cancelledAt),
+    drawPosted: drawn,
+  };
+  const showDrawEntry = canOpenOrganizerDrawDrawer(drawGate);
+  const showUndo = canShowUndoPoolDraw(drawGate);
   const canLeaveGame =
     (data.isSeated || data.isRegistered) && data.canLeave && !data.isWaitlisted;
   const schedule =
@@ -183,7 +216,12 @@ export function TournamentHome({
       />
 
       {drawn ? (
-        <TournamentStandingsTree />
+        <TournamentStandingsTree
+          showUndo={showUndo}
+          undoPending={undoPending}
+          undoError={undoError}
+          onUndo={onUndo}
+        />
       ) : (
         <TournamentPredrawTree
           sides={data.sides}
@@ -192,15 +230,31 @@ export function TournamentHome({
           venueName={data.venue?.name ?? null}
           schedule={schedule}
           teamCount={data.teamsAllowed}
+          completeTeams={field.full}
+          gameTeams={data.gameTeams}
+          poolCount={data.poolCount}
+          windowStart={data.windowStart}
+          windowEnd={data.windowEnd}
+          courtNames={data.recordedCourts.map((court) => court.name)}
           showMergeBanner={showMergeBanner}
           showMergeEntry={showMergeEntry}
+          showDrawEntry={showDrawEntry}
           halfTeamCount={halfTeams.length}
           mergeOpen={mergeOpen}
           mergePending={mergePending}
           mergeError={mergeError}
+          drawOpen={drawOpen}
+          drawPending={drawPending}
+          drawError={drawError}
+          postPending={postPending}
+          postError={postError}
           onOpenMerge={() => setMergeOpen(true)}
           onMergeOpenChange={setMergeOpen}
           onMerge={onMerge}
+          onOpenDraw={() => setDrawOpen(true)}
+          onDrawOpenChange={setDrawOpen}
+          onDraw={onDraw}
+          onPost={onPost}
           onTakeSeat={
             onJoin
               ? (seat) => {
@@ -265,15 +319,31 @@ function TournamentPredrawTree({
   venueName,
   schedule,
   teamCount,
+  completeTeams,
+  gameTeams,
+  poolCount,
+  windowStart,
+  windowEnd,
+  courtNames,
   showMergeBanner,
   showMergeEntry,
+  showDrawEntry,
   halfTeamCount,
   mergeOpen,
   mergePending,
   mergeError,
+  drawOpen,
+  drawPending,
+  drawError,
+  postPending,
+  postError,
   onOpenMerge,
   onMergeOpenChange,
   onMerge,
+  onOpenDraw,
+  onDrawOpenChange,
+  onDraw,
+  onPost,
   onTakeSeat,
   onInvite,
 }: {
@@ -283,12 +353,24 @@ function TournamentPredrawTree({
   venueName: string | null;
   schedule: TournamentRoundScheduleEntry[];
   teamCount: number | null;
+  completeTeams: number;
+  gameTeams: GameDetail["gameTeams"];
+  poolCount: number | null;
+  windowStart: Date | string | null;
+  windowEnd: Date | string | null;
+  courtNames: readonly string[];
   showMergeBanner: boolean;
   showMergeEntry: boolean;
+  showDrawEntry: boolean;
   halfTeamCount: number;
   mergeOpen: boolean;
   mergePending: boolean;
   mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
+  drawOpen: boolean;
+  drawPending: boolean;
+  drawError: { message: string; data?: { zodError?: unknown } | null } | null;
+  postPending: boolean;
+  postError: { message: string; data?: { zodError?: unknown } | null } | null;
   onOpenMerge: () => void;
   onMergeOpenChange: (open: boolean) => void;
   onMerge: (input: {
@@ -297,12 +379,17 @@ function TournamentPredrawTree({
     firstPosition: "left" | "right";
     secondPosition: "left" | "right";
   }) => void | Promise<void>;
+  onOpenDraw: () => void;
+  onDrawOpenChange: (open: boolean) => void;
+  onDraw: () => void | Promise<void>;
+  onPost: () => void | Promise<void>;
   onTakeSeat?: (seat: {
     sideIndex: number;
     position: "left" | "right";
   }) => void;
   onInvite?: () => void;
 }) {
+  const fieldSize = teamCount ?? sides.length;
   return (
     <div className="space-y-6">
       {showMergeBanner ? (
@@ -318,6 +405,14 @@ function TournamentPredrawTree({
           onOpen={onOpenMerge}
         />
       ) : null}
+      {showDrawEntry ? (
+        <TournamentDrawEntry
+          completeTeams={completeTeams}
+          teamCount={fieldSize}
+          hasDraft={hasDraftPoolDraw(gameTeams)}
+          onOpen={onOpenDraw}
+        />
+      ) : null}
       <TournamentMergeDrawer
         open={mergeOpen}
         onOpenChange={onMergeOpenChange}
@@ -326,6 +421,22 @@ function TournamentPredrawTree({
         mergePending={mergePending}
         mergeError={mergeError}
         onMerge={onMerge}
+      />
+      <TournamentDrawDrawer
+        open={drawOpen}
+        onOpenChange={onDrawOpenChange}
+        gameTeams={gameTeams}
+        poolCount={poolCount}
+        teamCount={fieldSize}
+        windowStart={windowStart}
+        windowEnd={windowEnd}
+        courtNames={courtNames}
+        drawPending={drawPending}
+        drawError={drawError}
+        onDraw={onDraw}
+        postPending={postPending}
+        postError={postError}
+        onPost={onPost}
       />
       <TournamentTeamsSection
         sides={sides}
@@ -343,8 +454,27 @@ function TournamentPredrawTree({
   );
 }
 
-function TournamentStandingsTree() {
-  return null;
+function TournamentStandingsTree({
+  showUndo,
+  undoPending,
+  undoError,
+  onUndo,
+}: {
+  showUndo: boolean;
+  undoPending: boolean;
+  undoError: { message: string; data?: { zodError?: unknown } | null } | null;
+  onUndo: () => void | Promise<void>;
+}) {
+  if (!showUndo) {
+    return null;
+  }
+  return (
+    <TournamentUndoPoolDraw
+      undoPending={undoPending}
+      undoError={undoError}
+      onUndo={onUndo}
+    />
+  );
 }
 
 function TournamentHomeActions({
