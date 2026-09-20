@@ -517,7 +517,7 @@ function NewTournamentForm() {
     (group) => group.id === selectedGroupId,
   );
   const selectedGroupName = selectedGroup
-    ? selectedGroup.name?.trim() || "Untitled Group"
+    ? (selectedGroup.name ?? "Untitled Group")
     : undefined;
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
