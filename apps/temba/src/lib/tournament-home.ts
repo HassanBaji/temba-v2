@@ -246,7 +246,7 @@ function teamRowName(
   right: TournamentHomeOccupant | null,
 ): string {
   const names = [left?.name, right?.name].filter((name): name is string =>
-    Boolean(name && name.trim()),
+    Boolean(name?.trim()),
   );
   if (names.length === 0) {
     return "Open";

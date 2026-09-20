@@ -4,6 +4,7 @@ import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHero } from "~/components/games/tournament-hero";
+import { Button } from "~/components/ui/button";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import {
@@ -27,7 +28,6 @@ import {
 } from "~/lib/tournament-home";
 import { viewerTournamentTotalCents } from "~/lib/tournament-price";
 import { sizeFriendlyTournament } from "~/lib/tournament-sizing";
-import { Button } from "~/components/ui/button";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];
