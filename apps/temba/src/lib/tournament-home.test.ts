@@ -9,12 +9,18 @@ import {
   COUNTS_FOR_RATING_YES,
   GROUP_ROW_LABEL,
   INVITE_ACTION_LABEL,
+  INVITE_FROM_A_GROUP_LABEL,
+  LEAVE_THE_SEAT_LABEL,
   LEFT_SEAT_LABEL,
+  NOT_DRAWN_TRAILER,
   OPEN_POSITION_SR_LABEL,
   ORGANIZER_ROW_LABEL,
   PRICE_PER_MATCH_SUFFIX,
   PRICE_ROW_LABEL,
   RIGHT_SEAT_LABEL,
+  SEATS_HEADING,
+  TAKE_SEAT_LABEL,
+  TEAMS_HEADING,
   TOURNAMENT_CLOSING_LINE,
   TOURNAMENT_DRAW_RANDOM_CLAUSE,
   TOURNAMENT_DRAW_WHEN_FULL_COPY,
@@ -23,15 +29,22 @@ import {
   TOURNAMENT_YOU_ARE_IN_COPY,
   YOU_OWE_AFTER_EACH_MATCH,
   YOU_OWE_ROW_LABEL,
+  YOUR_ROUNDS_PREDRAW_CAPTION,
   YOUR_TEAM_LABEL,
+  YOUR_TEAM_TAG,
   gameDetailsChrome,
+  tournamentCollapsedTeamsLabel,
   tournamentEyebrow,
   tournamentFieldSummary,
+  tournamentOpenPositionSubline,
   tournamentOrganizerName,
+  tournamentSeatsTakenLine,
+  tournamentSeatsTakenSrLabel,
   tournamentSizeLine,
   tournamentStartLine,
   tournamentStatusLine,
   tournamentTeamRows,
+  tournamentTeamsCountLine,
   tournamentViewerSide,
   type TournamentHomeSide,
 } from "./tournament-home";
@@ -169,11 +182,36 @@ describe("tournamentTeamRows", () => {
       ada.userId,
     );
     assert.equal(rows.collapsedCount, 0);
+    assert.equal(rows.collapsed.length, 0);
     assert.equal(rows.tail.length, 0);
     assert.equal(rows.head.length, 4);
     assert.equal(
       rows.head.some((row) => row.isViewer),
       true,
+    );
+    assert.equal(
+      rows.head.every((row) =>
+        row.hasOpenPosition
+          ? row.openPosition != null
+          : row.openPosition == null,
+      ),
+      true,
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 2)?.openPosition,
+      "right",
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 2)?.isHalfOpen,
+      true,
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 3)?.openPosition,
+      "left",
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 4)?.isHalfOpen,
+      false,
     );
   });
 
@@ -188,30 +226,54 @@ describe("tournamentTeamRows", () => {
     ];
     const rows = tournamentTeamRows(sides, ada.userId);
     assert.ok(rows.collapsedCount >= 3);
+    assert.equal(rows.collapsed.length, rows.collapsedCount);
     assert.equal(
       rows.head.some((row) => row.isViewer),
       true,
     );
     assert.equal(
-      [...rows.head, ...rows.tail].some((row) => row.isViewer),
-      true,
+      rows.collapsed.some((row) => row.isViewer),
+      false,
     );
-    const collapsedWouldHideViewer = !rows.head.some((row) => row.isViewer);
-    assert.equal(collapsedWouldHideViewer, false);
-    for (const row of [...rows.head, ...rows.tail]) {
-      if (row.hasOpenPosition) {
-        assert.ok(true);
-      }
-    }
-    const openRows = sides
-      .map((item, index) => ({ item, index }))
-      .filter(({ item }) => item.left == null || item.right == null);
-    for (const { item } of openRows) {
+    assert.equal(
+      rows.tail.some((row) => row.isViewer),
+      false,
+    );
+    const openRows = sides.filter(
+      (item) => item.left == null || item.right == null,
+    );
+    for (const item of openRows) {
       const visible = [...rows.head, ...rows.tail].some(
         (row) => row.sideIndex === item.sideIndex,
       );
       assert.equal(visible, true);
+      assert.equal(
+        rows.collapsed.some((row) => row.sideIndex === item.sideIndex),
+        false,
+      );
     }
+  });
+
+  it("keeps a viewer later in the field in head rather than collapsed", () => {
+    const sides: TournamentHomeSide[] = [
+      ...Array.from({ length: 8 }, (_, index) =>
+        fullSide(index + 1, `l${index}`, `r${index}`),
+      ),
+      side(9, ada, sofia),
+      ...Array.from({ length: 4 }, (_, index) =>
+        fullSide(index + 10, `x${index}`, `y${index}`),
+      ),
+      side(14, rashid, null),
+    ];
+    const rows = tournamentTeamRows(sides, ada.userId);
+    assert.equal(
+      rows.head.some((row) => row.isViewer && row.sideIndex === 9),
+      true,
+    );
+    assert.equal(
+      rows.collapsed.some((row) => row.isViewer),
+      false,
+    );
   });
 
   it("never collapses a Game team with an open Position", () => {
@@ -222,11 +284,64 @@ describe("tournamentTeamRows", () => {
       side(9, rashid, null),
     ];
     const rows = tournamentTeamRows(sides, "nobody");
+    assert.equal(
+      rows.collapsed.some((row) => row.hasOpenPosition),
+      false,
+    );
     const visible = [...rows.head, ...rows.tail];
     assert.equal(
       visible.some((row) => row.sideIndex === 9 && row.hasOpenPosition),
       true,
     );
+    assert.equal(
+      visible.find((row) => row.sideIndex === 9)?.openPosition,
+      "right",
+    );
+  });
+});
+
+describe("tournamentTeamsCountLine", () => {
+  it("states how many Game teams are full and how many have a Position open", () => {
+    assert.equal(
+      tournamentTeamsCountLine(11, 2),
+      "11 full, 2 with a Position open",
+    );
+    assert.equal(
+      tournamentTeamsCountLine(1, 1),
+      "1 full, 1 with a Position open",
+    );
+    assert.equal(tournamentTeamsCountLine(12, 0), "12 full");
+  });
+});
+
+describe("tournamentCollapsedTeamsLabel", () => {
+  it("names the collapsed run of full Game teams", () => {
+    assert.equal(tournamentCollapsedTeamsLabel(6), "Six more full teams");
+  });
+});
+
+describe("tournamentSeatsTakenLine", () => {
+  it("matches tournamentFieldSummary counts", () => {
+    const field = tournamentFieldSummary([
+      fullSide(1, "a", "b"),
+      side(2, ada, null),
+      side(3, null, null),
+    ]);
+    assert.equal(
+      tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal),
+      "3 of 6",
+    );
+    assert.equal(
+      tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal),
+      "3 of 6 seats taken",
+    );
+  });
+});
+
+describe("tournamentOpenPositionSubline", () => {
+  it("names the open Position", () => {
+    assert.equal(tournamentOpenPositionSubline("left"), "Left seat open");
+    assert.equal(tournamentOpenPositionSubline("right"), "Right seat open");
   });
 });
 
@@ -332,7 +447,15 @@ describe("copy does not advertise a knockout or a message", () => {
       YOU_OWE_ROW_LABEL,
       YOU_OWE_AFTER_EACH_MATCH,
       INVITE_ACTION_LABEL,
+      INVITE_FROM_A_GROUP_LABEL,
+      LEAVE_THE_SEAT_LABEL,
       PRICE_PER_MATCH_SUFFIX,
+      TEAMS_HEADING,
+      TAKE_SEAT_LABEL,
+      YOUR_TEAM_TAG,
+      SEATS_HEADING,
+      YOUR_ROUNDS_PREDRAW_CAPTION,
+      NOT_DRAWN_TRAILER,
     ].join("\n");
     assert.equal(FORBIDDEN.test(copy), false);
   });

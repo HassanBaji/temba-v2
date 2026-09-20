@@ -48,6 +48,7 @@ import {
   friendlyGameFooterCanLeaveGame,
   friendlyGameOverflowItems,
   vacantJoinSeats,
+  type FriendlyGameJoinSeat,
 } from "~/lib/friendly-game-cta";
 import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
 import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
@@ -148,6 +149,8 @@ export default function GameHomePage({
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
   const [cancelMatchId, setCancelMatchId] = React.useState<string | null>(null);
   const [joinPickerOpen, setJoinPickerOpen] = React.useState(false);
+  const [joinPickerSeat, setJoinPickerSeat] =
+    React.useState<FriendlyGameJoinSeat | null>(null);
   const [markAsNotPlayedOpen, setMarkAsNotPlayedOpen] = React.useState(false);
   const [reportWrongScoreOpen, setReportWrongScoreOpen] = React.useState(false);
 
@@ -669,7 +672,7 @@ export default function GameHomePage({
           type="button"
           className="min-h-11"
           disabled={registerSeat.isPending}
-          onClick={() => setJoinPickerOpen(true)}
+          onClick={() => openJoinPicker()}
         >
           Join
         </Button>
@@ -829,6 +832,11 @@ export default function GameHomePage({
     });
   }
 
+  function openJoinPicker(seat?: FriendlyGameJoinSeat) {
+    setJoinPickerSeat(seat ?? null);
+    setJoinPickerOpen(true);
+  }
+
   return (
     <DashboardShell
       title={shellTitle}
@@ -887,7 +895,7 @@ export default function GameHomePage({
               onInvite={
                 canManageGameInvites ? () => setInvitesOpen(true) : undefined
               }
-              onJoin={() => setJoinPickerOpen(true)}
+              onJoin={(seat) => openJoinPicker(seat)}
               onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
               onLeaveGame={() => setLeaveGameOpen(true)}
               onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
@@ -1281,7 +1289,12 @@ export default function GameHomePage({
       {usesFriendlyChrome || usesPoolTournamentSeats ? (
         <FriendlyGameJoinSheet
           open={joinPickerOpen}
-          onOpenChange={setJoinPickerOpen}
+          onOpenChange={(open) => {
+            setJoinPickerOpen(open);
+            if (!open) {
+              setJoinPickerSeat(null);
+            }
+          }}
           title={gameName}
           sides={data.sides}
           pending={registerSeat.isPending}
@@ -1296,6 +1309,7 @@ export default function GameHomePage({
           isOrganizer={data.isOrganizer}
           levelMinTenths={data.levelMinTenths}
           levelMaxTenths={data.levelMaxTenths}
+          initialSeat={joinPickerSeat}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })
           }

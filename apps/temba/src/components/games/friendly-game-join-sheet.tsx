@@ -477,6 +477,7 @@ export function FriendlyGameJoinSheet({
   levelMinTenths,
   levelMaxTenths,
   startAtPartner = false,
+  initialSeat = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -496,6 +497,7 @@ export function FriendlyGameJoinSheet({
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
   startAtPartner?: boolean;
+  initialSeat?: FriendlyGameJoinSeat | null;
 }) {
   const offerPartner = offersPartnerJoin({
     canRegister: canRegister ?? false,
@@ -576,7 +578,15 @@ export function FriendlyGameJoinSheet({
       });
       const openPartner = startAtPartner && offer;
       setOpenedAtPartner(openPartner);
-      setStep(openPartner ? "partner" : offer ? "chooser" : "seat");
+      setStep(
+        openPartner
+          ? "partner"
+          : initialSeat
+            ? "seat"
+            : offer
+              ? "chooser"
+              : "seat",
+      );
       setSelectedPartner(null);
       setPartnerRaceMessage(null);
       registerWithPartner.reset();
@@ -587,7 +597,8 @@ export function FriendlyGameJoinSheet({
 
   const picked = selection.touched
     ? selection.seat
-    : defaultJoinSeat(sides, onboardingState.data?.preferredPosition);
+    : (initialSeat ??
+      defaultJoinSeat(sides, onboardingState.data?.preferredPosition));
 
   function pick(seat: FriendlyGameJoinSeat) {
     const same =

@@ -26,7 +26,15 @@ export const COUNTS_FOR_RATING_YES = "Yes";
 export const YOU_OWE_ROW_LABEL = "You owe";
 export const YOU_OWE_AFTER_EACH_MATCH = "after each Match";
 export const INVITE_ACTION_LABEL = "Invite";
+export const INVITE_FROM_A_GROUP_LABEL = "Invite from a group";
 export const PRICE_PER_MATCH_SUFFIX = "per Match";
+export const TEAMS_HEADING = "Teams";
+export const TAKE_SEAT_LABEL = "Take seat";
+export const YOUR_TEAM_TAG = "your team";
+export const SEATS_HEADING = "Seats";
+export const LEAVE_THE_SEAT_LABEL = "Leave the seat";
+export const YOUR_ROUNDS_PREDRAW_CAPTION = "Opponents after the draw";
+export const NOT_DRAWN_TRAILER = "Not drawn";
 
 const TEAM_LIST_LEADING_FULL = 4;
 const TEAM_LIST_MIN_COLLAPSE = 3;
@@ -55,11 +63,14 @@ export type TournamentTeamRow = {
   name: string;
   isViewer: boolean;
   hasOpenPosition: boolean;
+  openPosition: "left" | "right" | null;
+  isHalfOpen: boolean;
 };
 
 export type TournamentTeamRowsView = {
   head: TournamentTeamRow[];
   collapsedCount: number;
+  collapsed: TournamentTeamRow[];
   tail: TournamentTeamRow[];
 };
 
@@ -125,12 +136,16 @@ export function tournamentTeamRows(
   const rows: TournamentTeamRow[] = sides.map((side, index) => {
     const isViewer =
       side.left?.userId === viewerUserId || side.right?.userId === viewerUserId;
+    const openPosition = firstOpenPosition(side);
+    const isHalfOpen = (side.left == null) !== (side.right == null);
     return {
       sideIndex: side.sideIndex,
       indexLabel: String(index + 1).padStart(2, "0"),
       name: teamRowName(side.left, side.right),
       isViewer,
-      hasOpenPosition: side.left == null || side.right == null,
+      hasOpenPosition: openPosition != null,
+      openPosition,
+      isHalfOpen,
     };
   });
 
@@ -166,14 +181,51 @@ export function tournamentTeamRows(
 
   const collapsedCount = suffixStart - headEnd;
   if (collapsedCount < TEAM_LIST_MIN_COLLAPSE) {
-    return { head: rows, collapsedCount: 0, tail: [] };
+    return { head: rows, collapsedCount: 0, collapsed: [], tail: [] };
   }
 
   return {
     head: rows.slice(0, headEnd),
     collapsedCount,
+    collapsed: rows.slice(headEnd, suffixStart),
     tail: rows.slice(suffixStart),
   };
+}
+
+export function tournamentTeamsCountLine(full: number, open: number): string {
+  const fullPart = `${full} full`;
+  if (open <= 0) {
+    return fullPart;
+  }
+  const openPart =
+    open === 1 ? "1 with a Position open" : `${open} with a Position open`;
+  return `${fullPart}, ${openPart}`;
+}
+
+export function tournamentCollapsedTeamsLabel(count: number): string {
+  const amount = collapseCountWord(count);
+  const teamWord = count === 1 ? "full team" : "full teams";
+  return `${amount} more ${teamWord}`;
+}
+
+export function tournamentSeatsTakenLine(
+  seatsTaken: number,
+  seatTotal: number,
+): string {
+  return `${seatsTaken} of ${seatTotal}`;
+}
+
+export function tournamentSeatsTakenSrLabel(
+  seatsTaken: number,
+  seatTotal: number,
+): string {
+  return `${seatsTaken} of ${seatTotal} seats taken`;
+}
+
+export function tournamentOpenPositionSubline(
+  position: "left" | "right",
+): string {
+  return `${positionSeatLabel(position)} open`;
 }
 
 export function tournamentSizeLine(sizing: TournamentSizing): string {
@@ -288,4 +340,34 @@ function drawWhenFullClause(organizerName: string | null): string {
 function firstName(name: string | null): string | null {
   const token = name?.trim().split(/\s+/)[0];
   return token && token.length > 0 ? token : null;
+}
+
+function firstOpenPosition(side: TournamentHomeSide): "left" | "right" | null {
+  if (side.left == null) {
+    return "left";
+  }
+  if (side.right == null) {
+    return "right";
+  }
+  return null;
+}
+
+const COLLAPSE_COUNT_WORDS = [
+  "Zero",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+  "Eleven",
+  "Twelve",
+] as const;
+
+function collapseCountWord(count: number): string {
+  return COLLAPSE_COUNT_WORDS[count] ?? String(count);
 }

@@ -4,6 +4,9 @@ import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHero } from "~/components/games/tournament-hero";
+import { TournamentSeatsGrid } from "~/components/games/tournament-seats-grid";
+import { TournamentTeamsSection } from "~/components/games/tournament-teams-section";
+import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
 import { Button } from "~/components/ui/button";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
@@ -11,6 +14,7 @@ import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
   GROUP_ROW_LABEL,
+  LEAVE_THE_SEAT_LABEL,
   ORGANIZER_ROW_LABEL,
   PRICE_PER_MATCH_SUFFIX,
   PRICE_ROW_LABEL,
@@ -27,6 +31,10 @@ import {
   tournamentViewerSide,
 } from "~/lib/tournament-home";
 import { viewerTournamentTotalCents } from "~/lib/tournament-price";
+import {
+  tournamentRoundSchedule,
+  type TournamentRoundScheduleEntry,
+} from "~/lib/tournament-rounds";
 import { sizeFriendlyTournament } from "~/lib/tournament-sizing";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -62,7 +70,7 @@ export function TournamentHome({
   reopenPending: boolean;
   onShare?: () => void;
   onInvite?: () => void;
-  onJoin?: () => void;
+  onJoin?: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
   onJoinWaitlist?: () => void;
   onLeaveGame?: () => void;
   onLeaveWaitlist?: () => void;
@@ -106,6 +114,14 @@ export function TournamentHome({
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const canLeaveGame =
     (data.isSeated || data.isRegistered) && data.canLeave && !data.isWaitlisted;
+  const schedule =
+    sizing?.ok && data.windowStart && data.windowEnd
+      ? tournamentRoundSchedule({
+          windowStart: data.windowStart,
+          windowEnd: data.windowEnd,
+          roundCount: sizing.sizing.roundCount,
+        })
+      : [];
 
   return (
     <div className="space-y-6">
@@ -132,9 +148,38 @@ export function TournamentHome({
         onInvite={onInvite}
       />
 
-      {drawn ? <TournamentStandingsTree /> : <TournamentPredrawTree />}
+      {drawn ? (
+        <TournamentStandingsTree />
+      ) : (
+        <TournamentPredrawTree
+          sides={data.sides}
+          viewerUserId={data.viewerUserId}
+          canTakeSeat={data.canRegister && !seated}
+          venueName={data.venue?.name ?? null}
+          schedule={schedule}
+          onTakeSeat={
+            onJoin
+              ? (seat) => {
+                  onJoin(seat);
+                }
+              : undefined
+          }
+          onInvite={onInvite}
+        />
+      )}
 
       <TournamentDetailRows rows={detailRows} />
+      {canLeaveGame && onLeaveGame ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 w-full"
+          disabled={leavePending}
+          onClick={onLeaveGame}
+        >
+          {LEAVE_THE_SEAT_LABEL}
+        </Button>
+      ) : null}
       <p className="text-muted-foreground text-meta leading-relaxed">
         {TOURNAMENT_CLOSING_LINE}
       </p>
@@ -143,7 +188,6 @@ export function TournamentHome({
         canRegister={data.canRegister}
         canWaitlist={data.canWaitlist}
         isWaitlisted={data.isWaitlisted}
-        canLeaveGame={canLeaveGame}
         isOrganizerActive={isOrganizerActive}
         registrationClosed={Boolean(data.registrationClosedAt)}
         joinFrozen={data.joinFrozen}
@@ -156,7 +200,6 @@ export function TournamentHome({
         waitlist={data.waitlist}
         onJoin={onJoin}
         onJoinWaitlist={onJoinWaitlist}
-        onLeaveGame={onLeaveGame}
         onLeaveWaitlist={onLeaveWaitlist}
         onEdit={onEdit}
         onCloseRegistration={onCloseRegistration}
@@ -171,8 +214,42 @@ export function TournamentHome({
   );
 }
 
-function TournamentPredrawTree() {
-  return null;
+function TournamentPredrawTree({
+  sides,
+  viewerUserId,
+  canTakeSeat,
+  venueName,
+  schedule,
+  onTakeSeat,
+  onInvite,
+}: {
+  sides: GameDetail["sides"];
+  viewerUserId: string;
+  canTakeSeat: boolean;
+  venueName: string | null;
+  schedule: TournamentRoundScheduleEntry[];
+  onTakeSeat?: (seat: {
+    sideIndex: number;
+    position: "left" | "right";
+  }) => void;
+  onInvite?: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <TournamentTeamsSection
+        sides={sides}
+        viewerUserId={viewerUserId}
+        canTakeSeat={canTakeSeat}
+        onTakeSeat={onTakeSeat}
+      />
+      <TournamentSeatsGrid sides={sides} onInvite={onInvite} />
+      <TournamentYourRounds
+        mode="schedule"
+        venueName={venueName}
+        rounds={schedule}
+      />
+    </div>
+  );
 }
 
 function TournamentStandingsTree() {
@@ -183,7 +260,6 @@ function TournamentHomeActions({
   canRegister,
   canWaitlist,
   isWaitlisted,
-  canLeaveGame,
   isOrganizerActive,
   registrationClosed,
   joinFrozen,
@@ -196,7 +272,6 @@ function TournamentHomeActions({
   waitlist,
   onJoin,
   onJoinWaitlist,
-  onLeaveGame,
   onLeaveWaitlist,
   onEdit,
   onCloseRegistration,
@@ -208,7 +283,6 @@ function TournamentHomeActions({
   canRegister: boolean;
   canWaitlist: boolean;
   isWaitlisted: boolean;
-  canLeaveGame: boolean;
   isOrganizerActive: boolean;
   registrationClosed: boolean;
   joinFrozen: boolean;
@@ -219,9 +293,8 @@ function TournamentHomeActions({
   kickPending: boolean;
   kickableOccupants: { userId: string; name: string }[];
   waitlist: GameDetail["waitlist"];
-  onJoin?: () => void;
+  onJoin?: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
   onJoinWaitlist?: () => void;
-  onLeaveGame?: () => void;
   onLeaveWaitlist?: () => void;
   onEdit?: () => void;
   onCloseRegistration?: () => void;
@@ -240,7 +313,7 @@ function TournamentHomeActions({
           type="button"
           className="min-h-11 w-full"
           disabled={joinPending}
-          onClick={onJoin}
+          onClick={() => onJoin()}
         >
           Join
         </Button>
@@ -264,17 +337,6 @@ function TournamentHomeActions({
           onClick={onLeaveWaitlist}
         >
           Leave waitlist
-        </Button>
-      ) : null}
-      {canLeaveGame && onLeaveGame ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-full"
-          disabled={leavePending}
-          onClick={onLeaveGame}
-        >
-          Leave Game
         </Button>
       ) : null}
       {isOrganizerActive ? (

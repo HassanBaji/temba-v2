@@ -1,5 +1,12 @@
 import { formatAbsoluteDay } from "~/lib/format-game-start";
-import { sizeFriendlyTournament } from "~/lib/tournament-sizing";
+import {
+  fewWeeksRoundStarts,
+  isOneDayTournamentWindow,
+} from "~/lib/tournament-schedule";
+import {
+  TOURNAMENT_SLOT_MINUTES,
+  sizeFriendlyTournament,
+} from "~/lib/tournament-sizing";
 
 export function isPoolTournament(
   format: string,
@@ -30,6 +37,42 @@ export type TournamentRoundSummary = {
   roundCount: number;
   dateLines: string[];
 };
+
+export type TournamentRoundScheduleEntry = {
+  roundNumber: number;
+  start: Date;
+};
+
+export function tournamentRoundSchedule(args: {
+  windowStart: Date | string;
+  windowEnd: Date | string;
+  roundCount: number;
+}): TournamentRoundScheduleEntry[] {
+  if (args.roundCount < 1) {
+    return [];
+  }
+
+  const windowStart = asDate(args.windowStart);
+  const windowEnd = asDate(args.windowEnd);
+  const starts = isOneDayTournamentWindow(windowStart, windowEnd)
+    ? oneDayRoundStarts(windowStart, args.roundCount)
+    : fewWeeksRoundStarts(windowStart, windowEnd, args.roundCount);
+
+  return starts.map((start, index) => ({
+    roundNumber: index + 1,
+    start,
+  }));
+}
+
+function oneDayRoundStarts(windowStart: Date, roundCount: number): Date[] {
+  return Array.from(
+    { length: roundCount },
+    (_, index) =>
+      new Date(
+        windowStart.getTime() + index * TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+      ),
+  );
+}
 
 export function poolRoundLabel(
   roundNumber: number | null | undefined,
