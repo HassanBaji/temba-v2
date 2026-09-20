@@ -69,6 +69,7 @@ type ExpectedGames =
   | "listPartnerSuggestions"
   | "registerWithPartner"
   | "registerTeam"
+  | "mergeHalfTeams"
   | "leave"
   | "leaveWaitlist"
   | "kick"

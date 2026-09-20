@@ -29,6 +29,7 @@ import { listMyGames } from "./listMyGames";
 import { listMyMatchHistory } from "./listMyMatchHistory";
 import { listPartnerSuggestionsProcedure as listPartnerSuggestions } from "./listPartnerSuggestions";
 import { listPublicPickup } from "./listPublicPickup";
+import { mergeHalfTeamsProcedure as mergeHalfTeams } from "./mergeHalfTeams";
 import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
@@ -69,6 +70,7 @@ export const gamesRouter = createTRPCRouter({
   listPartnerSuggestions,
   registerWithPartner,
   registerTeam,
+  mergeHalfTeams,
   leave,
   leaveWaitlist,
   kick,

@@ -29,6 +29,7 @@ import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
+import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
@@ -189,6 +190,18 @@ export default function GameHomePage({
       toast.success(
         result.waitlisted ? "Team joined waitlist" : "Team registered",
       );
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const mergeHalfTeams = api.games.mergeHalfTeams.useMutation({
+    onSuccess: async () => {
+      toast.success("Merged");
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -987,47 +1000,62 @@ export default function GameHomePage({
               value="players"
               className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
             >
-              <GamePlayersPanel
-                game={data}
-                partnerQuery={partnerQuery}
-                selectedPartner={selectedPartner}
-                partnerSide={partnerSide}
-                partnerPosition={partnerPosition}
-                teamId={teamId}
-                partnerSearch={partnerSearch.data}
-                partnerSearchPending={partnerSearch.isFetching}
-                registerWithPartnerPending={registerWithPartner.isPending}
-                partnerError={registerWithPartner.error}
-                registerSeatPending={registerSeat.isPending}
-                moveSeatPending={moveSeat.isPending}
-                kickPending={kick.isPending}
-                registerTeamPending={registerTeam.isPending}
-                onPartnerQueryChange={setPartnerQuery}
-                onSelectedPartnerChange={setSelectedPartner}
-                onPartnerSideChange={setPartnerSide}
-                onPartnerPositionChange={setPartnerPosition}
-                onTeamIdChange={setTeamId}
-                onRegisterSeat={(input) =>
-                  registerSeat.mutate({
-                    gameId: id,
-                    sideIndex: input?.sideIndex,
-                    position: input?.position,
-                  })
-                }
-                onMoveSeat={(sideIndex, position) =>
-                  moveSeat.mutate({ gameId: id, sideIndex, position })
-                }
-                onKick={(userId) => kick.mutate({ gameId: id, userId })}
-                onKickWaitlist={(waitlistId) =>
-                  kick.mutate({ gameId: id, waitlistId })
-                }
-                onRegisterWithPartner={(input) =>
-                  registerWithPartner.mutate({ gameId: id, ...input })
-                }
-                onRegisterTeam={(nextTeamId) =>
-                  registerTeam.mutate({ gameId: id, teamId: nextTeamId })
-                }
-              />
+              <div className="space-y-6">
+                {data.isOrganizer &&
+                usesPoolTournamentSeats &&
+                !data.cancelledAt ? (
+                  <TournamentHalfTeamsPanel
+                    sides={data.sides}
+                    format={data.format}
+                    mergePending={mergeHalfTeams.isPending}
+                    mergeError={mergeHalfTeams.error}
+                    onMerge={async (input) => {
+                      await mergeHalfTeams.mutateAsync({ gameId: id, ...input });
+                    }}
+                  />
+                ) : null}
+                <GamePlayersPanel
+                  game={data}
+                  partnerQuery={partnerQuery}
+                  selectedPartner={selectedPartner}
+                  partnerSide={partnerSide}
+                  partnerPosition={partnerPosition}
+                  teamId={teamId}
+                  partnerSearch={partnerSearch.data}
+                  partnerSearchPending={partnerSearch.isFetching}
+                  registerWithPartnerPending={registerWithPartner.isPending}
+                  partnerError={registerWithPartner.error}
+                  registerSeatPending={registerSeat.isPending}
+                  moveSeatPending={moveSeat.isPending}
+                  kickPending={kick.isPending}
+                  registerTeamPending={registerTeam.isPending}
+                  onPartnerQueryChange={setPartnerQuery}
+                  onSelectedPartnerChange={setSelectedPartner}
+                  onPartnerSideChange={setPartnerSide}
+                  onPartnerPositionChange={setPartnerPosition}
+                  onTeamIdChange={setTeamId}
+                  onRegisterSeat={(input) =>
+                    registerSeat.mutate({
+                      gameId: id,
+                      sideIndex: input?.sideIndex,
+                      position: input?.position,
+                    })
+                  }
+                  onMoveSeat={(sideIndex, position) =>
+                    moveSeat.mutate({ gameId: id, sideIndex, position })
+                  }
+                  onKick={(userId) => kick.mutate({ gameId: id, userId })}
+                  onKickWaitlist={(waitlistId) =>
+                    kick.mutate({ gameId: id, waitlistId })
+                  }
+                  onRegisterWithPartner={(input) =>
+                    registerWithPartner.mutate({ gameId: id, ...input })
+                  }
+                  onRegisterTeam={(nextTeamId) =>
+                    registerTeam.mutate({ gameId: id, teamId: nextTeamId })
+                  }
+                />
+              </div>
             </TabsContent>
             <TabsContent
               value="results"
