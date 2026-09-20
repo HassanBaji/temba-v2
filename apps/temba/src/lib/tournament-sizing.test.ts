@@ -4,11 +4,14 @@ import { describe, it } from "vitest";
 import {
   ONE_DAY_OVERRUN_MESSAGE,
   balancedPoolSizes,
+  courtCountValue,
   defaultPoolCount,
   formatMatchesPerTeam,
   formatPoolSizeLine,
+  lastMatchFinishCopy,
   maxPoolCount,
   oneDayFit,
+  playersInPairsLine,
   poolCountForDrawnField,
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_POOL_COUNT,
@@ -292,5 +295,21 @@ describe("formatMatchesPerTeam", () => {
       "Game teams in a larger Pool play 3 Matches; Game teams in a smaller Pool play 2 Matches",
     );
     assert.equal(/group/iu.test(formatMatchesPerTeam(result.sizing)), false);
+  });
+});
+
+describe("create-screen copy", () => {
+  it("names players in pairs and Courts without a knockout clause", () => {
+    assert.equal(
+      playersInPairsLine(12),
+      "24 players in pairs. Two seats per team.",
+    );
+    assert.equal(courtCountValue(0), "None");
+    assert.equal(courtCountValue(1), "1 Court");
+    assert.equal(courtCountValue(2), "2 Courts");
+    assert.equal(
+      lastMatchFinishCopy("7:45 PM"),
+      "The last Match would finish at 7:45 PM.",
+    );
   });
 });

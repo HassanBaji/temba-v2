@@ -96,6 +96,10 @@ describe("dashboardOnboardingRedirect", () => {
     assert.equal(gate("/dashboard/design", PROVISIONING, true), null);
     assert.equal(gate("/dashboard/design/home", PROVISIONING, true), null);
     assert.equal(
+      gate("/dashboard/design/tournament", PROVISIONING, true),
+      null,
+    );
+    assert.equal(
       gate("/dashboard/design/home?state=empty", INCOMPLETE, true),
       null,
     );

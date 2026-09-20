@@ -64,18 +64,41 @@ import {
   ROUNDS_ROW_LABEL,
 } from "~/lib/tournament-join";
 import {
+  ANYONE_WITH_THE_LINK_LABEL,
+  COMPLETE_TEAMS_ONLY_LABEL,
+  COURTS_ROW_LABEL,
+  CREATE_FOOTER_COPY,
+  CREATE_PRIMARY_ACTION,
+  CREATE_SUBLINE,
+  CREATE_TOURNAMENT_HEADING_LEAD,
+  CREATE_TOURNAMENT_HEADING_TRAIL,
+  courtCountValue,
   defaultPoolCount,
+  EACH_MATCH_ROW_LABEL,
+  FEW_WEEKS_DURATION_LABEL,
   formatMatchesPerTeam,
   formatPoolSizeLine,
+  HOW_LONG_IT_RUNS_LABEL,
+  HOW_PEOPLE_JOIN_LABEL,
+  INDIVIDUAL_SEATS_LABEL,
+  lastMatchFinishCopy,
+  MATCHES_PER_TEAM_ROW_LABEL,
+  ONE_DAY_CALLOUT_LABEL,
+  ONE_DAY_DURATION_LABEL,
   ONE_DAY_OVERRUN_MESSAGE,
   oneDayFit,
+  playersInPairsLine,
+  POOL_MATCHES_ROW_LABEL,
   poolCountOptions,
   sizeFriendlyTournament,
+  THIS_GROUP_ONLY_LABEL,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
   TOURNAMENT_SLOT_MINUTES,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
+  UNEVEN_POOLS_COPY,
+  WHO_CAN_TAKE_A_SEAT_LABEL,
   type TournamentSizing,
 } from "~/lib/tournament-sizing";
 import { cn } from "~/lib/utils";
@@ -85,17 +108,6 @@ type Duration = "one_day" | "few_weeks";
 type RoundSlot = { day: string; startTime: string };
 
 const FIELD_LABEL = "text-muted-foreground text-[13px] font-normal";
-const CREATE_SUBLINE =
-  "Same as setting up a Friendly game, only it runs a few Rounds.";
-const CREATE_FOOTER_COPY =
-  "It shows up in Games like any other Game. You draw once the seats are full.";
-const UNEVEN_POOLS_COPY =
-  "Pools are uneven. Some Game teams play one more Match than others.";
-const POOL_MATCHES_ROW_LABEL = "Pool Matches";
-const MATCHES_PER_TEAM_ROW_LABEL = "Matches per Game team";
-const EACH_MATCH_ROW_LABEL = "Each Match";
-const COURTS_ROW_LABEL = "Courts";
-const ONE_DAY_CALLOUT_LABEL = "The day";
 
 function createVenueCopy(picker: {
   locked: boolean;
@@ -134,17 +146,6 @@ function formatClock(date: Date) {
 
 function emptyRound(day: string): RoundSlot {
   return { day, startTime: "" };
-}
-
-function playersInPairsLine(teamCount: number) {
-  return `${teamCount * 2} players in pairs. Two seats per team.`;
-}
-
-function courtCountValue(courtCount: number) {
-  if (courtCount === 0) {
-    return "None";
-  }
-  return courtCount === 1 ? "1 Court" : `${courtCount} Courts`;
 }
 
 function tournamentCreateDetailRows(args: {
@@ -595,9 +596,9 @@ function NewTournamentForm() {
             ) : null}
           </div>
           <h1 className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
-            New tournament,
+            {CREATE_TOURNAMENT_HEADING_LEAD}
             <br />
-            several Rounds
+            {CREATE_TOURNAMENT_HEADING_TRAIL}
           </h1>
           <p className="text-muted-foreground mt-2.5 pb-[22px] text-[15px] leading-relaxed">
             {CREATE_SUBLINE}
@@ -721,12 +722,12 @@ function NewTournamentForm() {
 
             <SegmentedField
               id="tournament-duration"
-              label="How long it runs"
+              label={HOW_LONG_IT_RUNS_LABEL}
               value={duration}
               onChange={setDuration}
               options={[
-                { value: "one_day", label: "One day" },
-                { value: "few_weeks", label: "A few weeks" },
+                { value: "one_day", label: ONE_DAY_DURATION_LABEL },
+                { value: "few_weeks", label: FEW_WEEKS_DURATION_LABEL },
               ]}
             />
 
@@ -912,26 +913,26 @@ function NewTournamentForm() {
 
             <SegmentedField
               id="tournament-public"
-              label="Who can take a seat"
+              label={WHO_CAN_TAKE_A_SEAT_LABEL}
               value={isPublic ? "anyone" : "group"}
               onChange={(value) => setIsPublic(value === "anyone")}
               options={[
                 {
                   value: "group",
-                  label: selectedGroupName ?? "This Group only",
+                  label: selectedGroupName ?? THIS_GROUP_ONLY_LABEL,
                 },
-                { value: "anyone", label: "Anyone with the link" },
+                { value: "anyone", label: ANYONE_WITH_THE_LINK_LABEL },
               ]}
             />
 
             <SegmentedField
               id="tournament-registration"
-              label="How people join"
+              label={HOW_PEOPLE_JOIN_LABEL}
               value={registrationMode}
               onChange={setRegistrationMode}
               options={[
-                { value: "individual", label: "Individual seats" },
-                { value: "team_only", label: "Complete Teams only" },
+                { value: "individual", label: INDIVIDUAL_SEATS_LABEL },
+                { value: "team_only", label: COMPLETE_TEAMS_ONLY_LABEL },
               ]}
             />
           </FieldGroup>
@@ -953,7 +954,7 @@ function NewTournamentForm() {
               </p>
               {fit.lastFinish ? (
                 <p className="mt-2 text-[17px] leading-snug">
-                  The last Match would finish at {formatClock(fit.lastFinish)}.
+                  {lastMatchFinishCopy(formatClock(fit.lastFinish))}
                 </p>
               ) : null}
               {fit.overruns ? (
@@ -977,7 +978,7 @@ function NewTournamentForm() {
             disabled={createTournament.isPending || emptyCatalog}
             className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
           >
-            {createTournament.isPending ? "Creating…" : "Create tournament"}
+            {createTournament.isPending ? "Creating…" : CREATE_PRIMARY_ACTION}
           </Button>
           <p className="text-muted-foreground text-center text-[12px] leading-relaxed">
             {CREATE_FOOTER_COPY}

@@ -8,6 +8,32 @@ export const TOURNAMENT_SLOT_MINUTES = 45;
 export const ONE_DAY_OVERRUN_MESSAGE =
   "This runs past your finish time. Add a Court, or take fewer Game teams.";
 
+export const CREATE_TOURNAMENT_HEADING_LEAD = "New tournament,";
+export const CREATE_TOURNAMENT_HEADING_TRAIL = "several Rounds";
+export const CREATE_TOURNAMENT_HEADING = `${CREATE_TOURNAMENT_HEADING_LEAD} ${CREATE_TOURNAMENT_HEADING_TRAIL}`;
+export const CREATE_SUBLINE =
+  "Same as setting up a Friendly game, only it runs a few Rounds.";
+export const CREATE_FOOTER_COPY =
+  "It shows up in Games like any other Game. You draw once the seats are full.";
+export const UNEVEN_POOLS_COPY =
+  "Pools are uneven. Some Game teams play one more Match than others.";
+export const POOL_MATCHES_ROW_LABEL = "Pool Matches";
+export const MATCHES_PER_TEAM_ROW_LABEL = "Matches per Game team";
+export const EACH_MATCH_ROW_LABEL = "Each Match";
+export const COURTS_ROW_LABEL = "Courts";
+export const ONE_DAY_CALLOUT_LABEL = "The day";
+export const CREATE_PRIMARY_ACTION = "Create tournament";
+export const HOW_LONG_IT_RUNS_LABEL = "How long it runs";
+export const ONE_DAY_DURATION_LABEL = "One day";
+export const FEW_WEEKS_DURATION_LABEL = "A few weeks";
+export const WHO_CAN_TAKE_A_SEAT_LABEL = "Who can take a seat";
+export const THIS_GROUP_ONLY_LABEL = "This Group only";
+export const ANYONE_WITH_THE_LINK_LABEL = "Anyone with the link";
+export const HOW_PEOPLE_JOIN_LABEL = "How people join";
+export const INDIVIDUAL_SEATS_LABEL = "Individual seats";
+export const COMPLETE_TEAMS_ONLY_LABEL = "Complete Teams only";
+export const LAST_MATCH_FINISH_PREFIX = "The last Match would finish at";
+
 export const TOURNAMENT_TEAM_COUNTS: readonly number[] = Array.from(
   {
     length:
@@ -181,4 +207,19 @@ export function formatMatchesPerTeam(sizing: TournamentSizing) {
     return `Each Game team plays ${sizing.matchesPerTeamMin} Matches`;
   }
   return `Game teams in a larger Pool play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller Pool play ${sizing.matchesPerTeamMin} Matches`;
+}
+
+export function playersInPairsLine(teamCount: number) {
+  return `${teamCount * 2} players in pairs. Two seats per team.`;
+}
+
+export function courtCountValue(courtCount: number) {
+  if (courtCount === 0) {
+    return "None";
+  }
+  return courtCount === 1 ? "1 Court" : `${courtCount} Courts`;
+}
+
+export function lastMatchFinishCopy(clock: string) {
+  return `${LAST_MATCH_FINISH_PREFIX} ${clock}.`;
 }
