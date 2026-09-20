@@ -227,7 +227,7 @@ export function GamePlayersPanel({
               }
               onMove={onMoveSeat}
               onKick={onKick}
-              sideNoun={game.format === "friendly_tournament" ? "Side" : "Team"}
+              sideNoun="Team"
             />
             {game.unseatedPlayers.length > 0 ? (
               <div className="space-y-2">

@@ -33,7 +33,8 @@ import {
   PARTNER_VACANT_SIDE_RACE_MESSAGE,
   partnerVacantSideRaceRecovery,
 } from "~/lib/friendly-game-partner";
-import { preferredJoinSeat } from "~/lib/preferred-seat";
+import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
+import { defaultJoinSeat, remainingJoinSeatOnSide } from "~/lib/preferred-seat";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -57,7 +58,15 @@ export type FriendlyGameJoinSheetSide = {
 export type FriendlyGameJoinSheetOccupant = {
   name: string;
   image: string | null;
+  levelBand?: LevelBand | null;
 };
+
+function occupantLevelLabel(occupant: FriendlyGameJoinSheetOccupant | null) {
+  if (!occupant?.levelBand) {
+    return null;
+  }
+  return displayLabelFromStoredBand(occupant.levelBand);
+}
 
 function positionLabel(position: SeatPosition) {
   return position === "left" ? "Left" : "Right";
@@ -224,6 +233,11 @@ function PositionButton({
             <span className="text-eyebrow text-ink max-w-full truncate leading-tight">
               {occupant.name}
             </span>
+            {occupantLevelLabel(occupant) ? (
+              <span className="text-muted-foreground text-[10px] leading-tight">
+                {occupantLevelLabel(occupant)}
+              </span>
+            ) : null}
           </>
         ) : selected ? (
           <span className="text-meta font-semibold">You</span>
@@ -264,16 +278,18 @@ function NetDivider() {
 
 function SideColumn({
   side,
+  format,
   picked,
   pending,
   onPick,
 }: {
   side: FriendlyGameJoinSheetSide;
+  format: string;
   picked: FriendlyGameJoinSeat | null;
   pending: boolean;
   onPick: (seat: FriendlyGameJoinSeat) => void;
 }) {
-  const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
+  const sideLabel = formatGameSideLabel(format, side.sideIndex);
 
   return (
     <div className="min-w-0 flex-1">
@@ -300,6 +316,127 @@ function SideColumn({
   );
 }
 
+function HalfTeamRow({
+  side,
+  format,
+  picked,
+  pending,
+  onPick,
+}: {
+  side: FriendlyGameJoinSheetSide;
+  format: string;
+  picked: FriendlyGameJoinSeat | null;
+  pending: boolean;
+  onPick: (seat: FriendlyGameJoinSeat) => void;
+}) {
+  const remaining = remainingJoinSeatOnSide(side);
+  if (!remaining) {
+    return null;
+  }
+  const occupant = remaining.position === "left" ? side.right : side.left;
+  const selected =
+    picked?.sideIndex === remaining.sideIndex &&
+    picked.position === remaining.position;
+  const sideLabel = formatGameSideLabel(format, side.sideIndex);
+  const freeLabel = positionLabel(remaining.position);
+  const level = occupantLevelLabel(occupant);
+
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      aria-pressed={selected}
+      aria-label={
+        occupant
+          ? `Sit with ${occupant.name} on ${sideLabel}. ${freeLabel} is open`
+          : `Take ${sideLabel} ${freeLabel.toLowerCase()}`
+      }
+      onClick={() => onPick(remaining)}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left",
+        "outline-none transition-colors",
+        "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        selected ? "border-ink bg-ink text-paper" : "border-rule bg-paper",
+      )}
+    >
+      {occupant ? (
+        <UserAvatar
+          name={occupant.name}
+          image={occupant.image}
+          size="sm"
+          className="shrink-0"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="hatch text-dim flex size-8 shrink-0 items-center justify-center rounded-full"
+        >
+          +
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">
+          {occupant ? occupant.name : sideLabel}
+        </span>
+        <span
+          className={cn(
+            "text-meta mt-0.5 block",
+            selected ? "text-paper/80" : "text-muted-foreground",
+          )}
+        >
+          {[sideLabel, level, `${freeLabel} is open`]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function TournamentSeatList({
+  sides,
+  format,
+  picked,
+  pending,
+  onPick,
+}: {
+  sides: readonly FriendlyGameJoinSheetSide[];
+  format: string;
+  picked: FriendlyGameJoinSeat | null;
+  pending: boolean;
+  onPick: (seat: FriendlyGameJoinSeat) => void;
+}) {
+  return (
+    <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto px-4 pb-4 pt-[18px]">
+      {sides.map((side) => {
+        const remaining = remainingJoinSeatOnSide(side);
+        if (remaining) {
+          return (
+            <HalfTeamRow
+              key={side.sideIndex}
+              side={side}
+              format={format}
+              picked={picked}
+              pending={pending}
+              onPick={onPick}
+            />
+          );
+        }
+        return (
+          <SideColumn
+            key={side.sideIndex}
+            side={side}
+            format={format}
+            picked={picked}
+            pending={pending}
+            onPick={onPick}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 /**
  * Join sheet (join-sheet redesign): the viewer picks a Position off the
  * line-up itself — both Game teams either side of the net, taken Positions
@@ -313,7 +450,8 @@ function SideColumn({
  * The sheet opens with the viewer's Preferred Position already picked when a
  * matching Position is free (`preferredJoinSeat`). That is a default and not
  * a rule: both Positions stay drawn and enabled, one tap moves or clears the
- * pick, and nothing is submitted until the footer button.
+ * pick, and nothing is submitted until the footer button. A lone vacant
+ * Position is chosen rather than asked.
  *
  * On individual Friendly games with a fully vacant side, a mode chooser
  * (artboard 02b) is the first step: Join alone reaches this picker; Join
@@ -449,7 +587,7 @@ export function FriendlyGameJoinSheet({
 
   const picked = selection.touched
     ? selection.seat
-    : preferredJoinSeat(sides, onboardingState.data?.preferredPosition);
+    : defaultJoinSeat(sides, onboardingState.data?.preferredPosition);
 
   function pick(seat: FriendlyGameJoinSeat) {
     const same =
@@ -576,19 +714,30 @@ export function FriendlyGameJoinSheet({
                 />
               ) : null}
               <div className="border-rule bg-paper overflow-hidden rounded-xl border">
-                <div className="flex items-start px-4 pb-4 pt-[18px]">
-                  {sides.map((side, index) => (
-                    <Fragment key={side.sideIndex}>
-                      {index > 0 ? <NetDivider /> : null}
-                      <SideColumn
-                        side={side}
-                        picked={picked}
-                        pending={pending}
-                        onPick={pick}
-                      />
-                    </Fragment>
-                  ))}
-                </div>
+                {sides.length > 2 ? (
+                  <TournamentSeatList
+                    sides={sides}
+                    format={format ?? "friendly_game"}
+                    picked={picked}
+                    pending={pending}
+                    onPick={pick}
+                  />
+                ) : (
+                  <div className="flex items-start px-4 pb-4 pt-[18px]">
+                    {sides.map((side, index) => (
+                      <Fragment key={side.sideIndex}>
+                        {index > 0 ? <NetDivider /> : null}
+                        <SideColumn
+                          side={side}
+                          format={format ?? "friendly_game"}
+                          picked={picked}
+                          pending={pending}
+                          onPick={pick}
+                        />
+                      </Fragment>
+                    ))}
+                  </div>
+                )}
                 <p
                   aria-live="polite"
                   className="border-rule text-muted-foreground text-meta border-t px-4 py-3"

@@ -1,12 +1,9 @@
 const SIDE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export function formatGameSideLabel(format: string, sideIndex: number) {
-  if (format === "friendly_game") {
+  if (format === "friendly_game" || format === "friendly_tournament") {
     const letter = SIDE_LETTERS[sideIndex - 1];
     return letter ? `Team ${letter}` : `Team ${sideIndex}`;
-  }
-  if (format === "friendly_tournament") {
-    return `Side ${sideIndex}`;
   }
   return `Team ${sideIndex}`;
 }

@@ -49,6 +49,7 @@ import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
 import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
 import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
+import { showsPoolTournamentSeats } from "~/lib/tournament-rounds";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
@@ -442,6 +443,14 @@ export default function GameHomePage({
   const usesFriendlyChrome = Boolean(
     data && showsFriendlyRoster(data.format, data.registrationMode),
   );
+  const usesPoolTournamentSeats = Boolean(
+    data &&
+      showsPoolTournamentSeats(
+        data.format,
+        data.poolCount,
+        data.registrationMode,
+      ),
+  );
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
   const canManageGameInvites = usesFriendlyChrome
     ? canMintInvite
@@ -597,6 +606,26 @@ export default function GameHomePage({
   });
   const headerActions = usesFriendlyChrome ? null : (
     <>
+      {usesPoolTournamentSeats && data.canRegister ? (
+        <Button
+          type="button"
+          className="min-h-11"
+          disabled={registerSeat.isPending}
+          onClick={() => setJoinPickerOpen(true)}
+        >
+          Join
+        </Button>
+      ) : null}
+      {usesPoolTournamentSeats && data.canWaitlist ? (
+        <Button
+          type="button"
+          className="min-h-11"
+          disabled={registerSeat.isPending}
+          onClick={() => registerSeat.mutate({ gameId: id })}
+        >
+          Join waitlist
+        </Button>
+      ) : null}
       {canManageGameInvites ? (
         <Button
           ref={inviteButtonRef}
@@ -1096,7 +1125,7 @@ export default function GameHomePage({
         />
       ) : null}
 
-      {usesFriendlyChrome ? (
+      {usesFriendlyChrome || usesPoolTournamentSeats ? (
         <FriendlyGameJoinSheet
           open={joinPickerOpen}
           onOpenChange={setJoinPickerOpen}

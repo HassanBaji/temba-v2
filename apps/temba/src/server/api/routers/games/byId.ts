@@ -545,6 +545,7 @@ export async function gameById(
     levelMaxTenths: game.levelMaxTenths,
     playersAllowed: game.playersAllowed,
     teamsAllowed: game.teamsAllowed,
+    poolCount: game.poolCount,
     sport: game.sport,
     cancelledAt: game.cancelledAt,
     registrationClosedAt: game.registrationClosedAt,

@@ -255,9 +255,7 @@ export default function InvitesPage() {
                     }
                     onMove={() => undefined}
                     onKick={() => undefined}
-                    sideNoun={
-                      invite.format === "friendly_tournament" ? "Side" : "Team"
-                    }
+                    sideNoun="Team"
                   />
                   {waitlistOnly ? (
                     <Button

@@ -4,13 +4,19 @@ import { Button } from "~/components/ui/button";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatSeatSideHeading } from "~/components/games/game-side-label";
+import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { cn } from "~/lib/utils";
 
 // Self-contained rather than derived from `RouterOutputs["games"]["byId"]`:
 // this grid also renders invite-preview sides (`~/server/games/utils`'s
 // plain `GameSide`), which don't carry `byId`'s additive per-seat fields
 // (e.g. `levelBand`, TEM-177) that this component doesn't read anyway.
-type SeatOccupant = { userId: string; name: string; image: string | null };
+type SeatOccupant = {
+  userId: string;
+  name: string;
+  image: string | null;
+  levelBand?: LevelBand | null;
+};
 type GameSide = {
   sideIndex: number;
   gameTeamId: string | null;
@@ -82,6 +88,10 @@ function SeatRow({
     </Button>
   ) : undefined;
 
+  const occupantSubtitle = occupant?.levelBand
+    ? `${positionLabel} — level ${displayLabelFromStoredBand(occupant.levelBand)}`
+    : positionLabel;
+
   return (
     <ListRow
       leading={
@@ -100,7 +110,7 @@ function SeatRow({
           <span className="text-muted-foreground font-medium">Vacant</span>
         )
       }
-      subtitle={positionLabel}
+      subtitle={occupantSubtitle}
       trailing={trailing}
     />
   );
