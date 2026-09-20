@@ -6,6 +6,7 @@ import {
   PREFERRED_POSITION_UNSET_LABEL,
   PREFERRED_POSITIONS,
   preferredPositionLabel,
+  preferredPositionNote,
   preferredPositionProfileLine,
 } from "./preferred-position";
 
@@ -25,6 +26,29 @@ describe("preferredPositionLabel", () => {
     expect(preferredPositionLabel("")).toBe("Not set");
     expect(preferredPositionLabel("centre")).toBe("Not set");
     expect(preferredPositionLabel("LEFT")).toBe("Not set");
+  });
+});
+
+describe("preferredPositionNote", () => {
+  it("covers unset, left, right, and either", () => {
+    expect(preferredPositionNote(null)).toBe(
+      "Not set. We start you on the left when you register with a partner.",
+    );
+    expect(preferredPositionNote(undefined)).toBe(
+      "Not set. We start you on the left when you register with a partner.",
+    );
+    expect(preferredPositionNote("centre")).toBe(
+      "Not set. We start you on the left when you register with a partner.",
+    );
+    expect(preferredPositionNote("left")).toBe(
+      "We start you on the left when you register with a partner.",
+    );
+    expect(preferredPositionNote("right")).toBe(
+      "We start you on the right when you register with a partner.",
+    );
+    expect(preferredPositionNote("either")).toBe(
+      "Either side. Your partner's preference decides.",
+    );
   });
 });
 
