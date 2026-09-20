@@ -14,6 +14,7 @@ import {
   registeredGameTeamCount,
   requireGame,
 } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { admit } from "~/server/games/admit";
 import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refused";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
@@ -28,6 +29,7 @@ export async function registerTeam(
   args: { gameId: string; userId: string; teamId: string },
 ) {
   const game = await requireGame(database, args.gameId);
+  assertPoolDrawNotPosted(game);
   const now = new Date();
 
   if (

@@ -33,6 +33,7 @@ import { listPublicPickup } from "./listPublicPickup";
 import { mergeHalfTeamsProcedure as mergeHalfTeams } from "./mergeHalfTeams";
 import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
+import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { registerProcedure as register } from "./register";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
@@ -48,6 +49,7 @@ import { scoreSetProcedure as scoreSet } from "./scoreSet";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { searchPartnerUsersProcedure as searchPartnerUsers } from "./searchPartnerUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
+import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
 import { updateLevelRange } from "./updateLevelRange";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
@@ -64,6 +66,8 @@ export const gamesRouter = createTRPCRouter({
   create,
   createTournament,
   drawPools,
+  postPoolDraw,
+  undoPoolDraw,
   byId,
   register,
   registerSeat,

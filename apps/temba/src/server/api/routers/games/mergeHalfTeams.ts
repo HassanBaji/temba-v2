@@ -2,17 +2,14 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { gamePlayers, gameTeamPlayers, gameTeams, matches } from "@repo/db";
+import { gamePlayers, gameTeamPlayers, gameTeams } from "@repo/db";
 
 import { isPoolTournament } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
-import {
-  assertGameOrganizer,
-  requireGame,
-  type GameRow,
-} from "~/server/games/access";
+import { assertGameOrganizer, requireGame } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { clearMatchSlotsForGameTeam } from "~/server/games/clear-match-slots-for-game-team";
 import type { SeatPosition } from "~/server/games/utils";
 
@@ -20,21 +17,7 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const SAME_POSITION_MESSAGE = "Both Users would play the same Position";
-const POOLS_DRAWN_MESSAGE = "The Pools are drawn";
 const NOT_HALF_TEAM_MESSAGE = "Both Game teams must be Half teams";
-
-async function refuseIfPoolsDrawn(database: DbClient, game: GameRow) {
-  const existing = await database.query.matches.findFirst({
-    where: eq(matches.gameId, game.id),
-    columns: { id: true },
-  });
-  if (existing) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: POOLS_DRAWN_MESSAGE,
-    });
-  }
-}
 
 async function requireHalfTeam(
   database: DbClient,
@@ -117,7 +100,7 @@ export async function mergeHalfTeams(
       message: "Merge Half teams on an individual Friendly tournament",
     });
   }
-  await refuseIfPoolsDrawn(database, game);
+  assertPoolDrawNotPosted(game);
 
   if (args.firstGameTeamId === args.secondGameTeamId) {
     throw new TRPCError({

@@ -9,6 +9,7 @@ import {
   getRegistrationStatus,
   requireGame,
 } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { isIndividualSeatGame, moveToSeat } from "~/server/games/seats";
 import type { SeatPosition } from "~/server/games/utils";
 
@@ -24,6 +25,7 @@ export async function moveSeat(
   },
 ) {
   const game = await requireGame(database, args.gameId);
+  assertPoolDrawNotPosted(game);
   const now = new Date();
 
   if (!isIndividualSeatGame(game)) {

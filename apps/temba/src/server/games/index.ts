@@ -22,6 +22,7 @@ export {
   type RegistrationStatus,
 } from "~/server/games/access";
 export { admit } from "~/server/games/admit";
+export { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 export { assertCourtAssignable } from "~/server/games/assert-court-assignable";
 export { assertGameTeamOnGame } from "~/server/games/assert-game-team-on-game";
 export { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";

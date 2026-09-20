@@ -9,7 +9,9 @@ import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   DRAW_AGAIN_ACTION,
   DRAW_POOLS_ACTION,
+  POST_POOL_DRAW_ACTION,
   POOL_DRAW_RANDOM_COPY,
+  UNDO_POOL_DRAW_ACTION,
   draftPoolsFromGameTeams,
   hasDraftPoolDraw,
   type DraftPoolTeam,
@@ -22,9 +24,16 @@ export function TournamentPoolDrawPanel({
   windowStart,
   windowEnd,
   courtNames,
+  drawPostedAt,
   drawPending,
   drawError,
   onDraw,
+  postPending,
+  postError,
+  onPost,
+  undoPending,
+  undoError,
+  onUndo,
 }: {
   gameTeams: readonly DraftPoolTeam[];
   poolCount: number | null | undefined;
@@ -32,11 +41,19 @@ export function TournamentPoolDrawPanel({
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
   courtNames: readonly string[];
+  drawPostedAt: Date | string | null | undefined;
   drawPending: boolean;
   drawError: { message: string; data?: { zodError?: unknown } | null } | null;
   onDraw: () => void | Promise<void>;
+  postPending: boolean;
+  postError: { message: string; data?: { zodError?: unknown } | null } | null;
+  onPost: () => void | Promise<void>;
+  undoPending: boolean;
+  undoError: { message: string; data?: { zodError?: unknown } | null } | null;
+  onUndo: () => void | Promise<void>;
 }) {
   const hasDraft = hasDraftPoolDraw(gameTeams);
+  const posted = drawPostedAt != null;
   const pools = draftPoolsFromGameTeams({
     gameTeams,
     poolCount,
@@ -45,6 +62,7 @@ export function TournamentPoolDrawPanel({
     windowEnd,
     courtNames,
   });
+  const busy = drawPending || postPending || undoPending;
 
   return (
     <Card variant="outlined" className="space-y-4">
@@ -88,21 +106,53 @@ export function TournamentPoolDrawPanel({
         </p>
       )}
 
-      <FormErrorSummary message={globalFormErrorMessage(drawError)} />
-      <Button
-        type="button"
-        disabled={drawPending}
-        aria-busy={drawPending}
-        onClick={() => {
-          void onDraw();
-        }}
-      >
-        {drawPending
-          ? "Drawing…"
-          : hasDraft
-            ? DRAW_AGAIN_ACTION
-            : DRAW_POOLS_ACTION}
-      </Button>
+      <FormErrorSummary
+        message={globalFormErrorMessage(drawError ?? postError ?? undoError)}
+      />
+      <div className="flex flex-wrap gap-2">
+        {posted ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            aria-busy={undoPending}
+            onClick={() => {
+              void onUndo();
+            }}
+          >
+            {undoPending ? "Undoing…" : UNDO_POOL_DRAW_ACTION}
+          </Button>
+        ) : (
+          <>
+            <Button
+              type="button"
+              disabled={busy}
+              aria-busy={drawPending}
+              onClick={() => {
+                void onDraw();
+              }}
+            >
+              {drawPending
+                ? "Drawing…"
+                : hasDraft
+                  ? DRAW_AGAIN_ACTION
+                  : DRAW_POOLS_ACTION}
+            </Button>
+            {hasDraft ? (
+              <Button
+                type="button"
+                disabled={busy}
+                aria-busy={postPending}
+                onClick={() => {
+                  void onPost();
+                }}
+              >
+                {postPending ? "Posting…" : POST_POOL_DRAW_ACTION}
+              </Button>
+            ) : null}
+          </>
+        )}
+      </div>
     </Card>
   );
 }

@@ -25,6 +25,7 @@ export const matches = pgTable("matches", {
   slot2GameTeamId: uuid("slot_2_game_team_id").references(() => gameTeams.id, {
     onDelete: "set null",
   }),
+  roundNumber: integer("round_number"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

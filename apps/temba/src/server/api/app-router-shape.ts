@@ -62,6 +62,8 @@ type ExpectedGames =
   | "create"
   | "createTournament"
   | "drawPools"
+  | "postPoolDraw"
+  | "undoPoolDraw"
   | "byId"
   | "register"
   | "registerSeat"

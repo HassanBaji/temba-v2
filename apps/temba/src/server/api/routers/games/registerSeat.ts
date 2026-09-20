@@ -8,6 +8,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertUserPassesJoinGate, requireGame } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { admit } from "~/server/games/admit";
 import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refused";
 import { userAlreadyWaitlisted } from "~/server/games/helpers/user-already-waitlisted";
@@ -33,6 +34,7 @@ export async function registerSeat(
   },
 ) {
   const game = await requireGame(database, args.gameId);
+  assertPoolDrawNotPosted(game);
   const now = new Date();
 
   if (!isIndividualSeatGame(game)) {

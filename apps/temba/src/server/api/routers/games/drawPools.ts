@@ -14,6 +14,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -94,6 +95,7 @@ export async function drawPools(
       message: "Draw the Pools on a Friendly tournament",
     });
   }
+  assertPoolDrawNotPosted(game);
 
   const teamRows = await database.query.gameTeams.findMany({
     where: eq(gameTeams.gameId, game.id),

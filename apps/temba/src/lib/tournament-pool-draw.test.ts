@@ -5,6 +5,8 @@ import { formatAbsoluteDay } from "./format-game-start";
 import {
   DRAW_AGAIN_ACTION,
   DRAW_POOLS_ACTION,
+  POST_POOL_DRAW_ACTION,
+  UNDO_POOL_DRAW_ACTION,
   OPPONENTS_UNKNOWN_COPY,
   POOL_DRAW_NOT_HAPPENED_COPY,
   POOL_DRAW_RANDOM_COPY,
@@ -28,9 +30,11 @@ describe("Pool draw copy", () => {
     assert.match(POOL_DRAW_RANDOM_COPY, /seeded/iu);
   });
 
-  it("names the Organizer actions without promising a post", () => {
+  it("names the Organizer draft and post actions", () => {
     assert.equal(DRAW_POOLS_ACTION, "Draw the Pools");
     assert.equal(DRAW_AGAIN_ACTION, "Draw again");
+    assert.equal(POST_POOL_DRAW_ACTION, "Post the Pool draw");
+    assert.equal(UNDO_POOL_DRAW_ACTION, "Undo the Pool draw");
   });
 });
 

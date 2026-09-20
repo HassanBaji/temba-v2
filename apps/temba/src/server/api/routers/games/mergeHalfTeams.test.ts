@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   gameTeamPlayers,
   gameTeams,
+  games,
   groups,
-  matches,
   user,
   venues,
 } from "@repo/db/schema";
@@ -378,7 +378,7 @@ describe("mergeHalfTeams", () => {
     }
   });
 
-  it("refuses merge once Matches already exist on the Game", async () => {
+  it("refuses merge once the Pool draw is posted", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "owner-drawn@example.com");
@@ -400,7 +400,10 @@ describe("mergeHalfTeams", () => {
         position: "right",
       });
 
-      await db.insert(matches).values({ gameId });
+      await db
+        .update(games)
+        .set({ drawPostedAt: new Date() })
+        .where(eq(games.id, gameId));
 
       const before = await gameById(db, { gameId, userId: owner.id });
       const first = before.sides.find((side) => side.sideIndex === 1);

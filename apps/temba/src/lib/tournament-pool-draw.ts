@@ -17,6 +17,8 @@ export const POOL_DRAW_RANDOM_COPY =
   "The Pool draw is random. Nobody is seeded.";
 export const DRAW_POOLS_ACTION = "Draw the Pools";
 export const DRAW_AGAIN_ACTION = "Draw again";
+export const POST_POOL_DRAW_ACTION = "Post the Pool draw";
+export const UNDO_POOL_DRAW_ACTION = "Undo the Pool draw";
 
 export function poolLabel(poolIndex: number) {
   return `Pool ${poolIndex}`;

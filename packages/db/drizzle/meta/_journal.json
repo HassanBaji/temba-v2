@@ -288,6 +288,13 @@
       "when": 1789899737063,
       "tag": "0040_vengeful_cargill",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1789900484620,
+      "tag": "0041_left_thor",
+      "breakpoints": true
     }
   ]
 }

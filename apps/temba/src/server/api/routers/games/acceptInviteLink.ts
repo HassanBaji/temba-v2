@@ -8,6 +8,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import {
   assertGameInviteDoorsOpen,
@@ -39,6 +40,7 @@ export async function acceptInviteLink(
     });
   }
   const game = await requireGame(database, link.gameId);
+  assertPoolDrawNotPosted(game);
   await assertGameInviteDoorsOpen(database, game);
   await assertInviteeAllowedOnGame(database, game, args.userId);
 

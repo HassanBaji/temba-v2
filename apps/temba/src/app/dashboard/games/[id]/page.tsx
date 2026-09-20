@@ -228,6 +228,30 @@ export default function GameHomePage({
     },
   });
 
+  const postPoolDraw = api.games.postPoolDraw.useMutation({
+    onSuccess: async () => {
+      toast.success("Pool draw posted");
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const undoPoolDraw = api.games.undoPoolDraw.useMutation({
+    onSuccess: async () => {
+      toast.success("Pool draw undone");
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const leaveGame = api.games.leave.useMutation({
     onSuccess: async () => {
       toast.success("Left Game");
@@ -1022,10 +1046,21 @@ export default function GameHomePage({
                     windowStart={data.windowStart}
                     windowEnd={data.windowEnd}
                     courtNames={data.recordedCourts.map((court) => court.name)}
+                    drawPostedAt={data.drawPostedAt}
                     drawPending={drawPools.isPending}
                     drawError={drawPools.error}
                     onDraw={async () => {
                       await drawPools.mutateAsync({ gameId: id });
+                    }}
+                    postPending={postPoolDraw.isPending}
+                    postError={postPoolDraw.error}
+                    onPost={async () => {
+                      await postPoolDraw.mutateAsync({ gameId: id });
+                    }}
+                    undoPending={undoPoolDraw.isPending}
+                    undoError={undoPoolDraw.error}
+                    onUndo={async () => {
+                      await undoPoolDraw.mutateAsync({ gameId: id });
                     }}
                   />
                 ) : null}

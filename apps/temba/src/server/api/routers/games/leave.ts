@@ -4,6 +4,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { leaveRegisteredSeat } from "~/server/games/leave-registered-seat";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -13,6 +14,7 @@ export async function leaveGame(
   args: { gameId: string; userId: string },
 ) {
   const game = await requireGame(database, args.gameId);
+  assertPoolDrawNotPosted(game);
   await database.transaction(async (tx) => {
     await leaveRegisteredSeat(tx, game, args.userId);
   });
