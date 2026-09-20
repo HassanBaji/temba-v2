@@ -88,14 +88,7 @@ export function TournamentYourRounds(
                 }
                 title={round.opponentName}
                 subtitle={roundSubtitle(round.roundNumber, round.startTime)}
-                trailing={
-                  <span className="font-expanded text-[16px] tabular-nums">
-                    {round.cancelled
-                      ? "Not played"
-                      : (round.scoreLabel ??
-                        (round.viewerOutcome === "draw" ? "Draw" : "Open"))}
-                  </span>
-                }
+                trailing={roundTrailing(round)}
               />
             ))}
       </RowList>
@@ -113,6 +106,23 @@ function resultMark(
     return "lost";
   }
   return "not-played";
+}
+
+function roundTrailing(round: TournamentYourRoundsResult) {
+  if (round.cancelled) {
+    return <span className="text-muted-foreground text-sm">Not played</span>;
+  }
+  if (round.scoreLabel) {
+    return (
+      <span className="font-expanded text-[16px] tabular-nums">
+        {round.scoreLabel}
+      </span>
+    );
+  }
+  if (round.viewerOutcome === "draw") {
+    return <span className="font-expanded text-[16px] tabular-nums">Draw</span>;
+  }
+  return <span className="text-sm font-semibold">Open</span>;
 }
 
 function roundSubtitle(

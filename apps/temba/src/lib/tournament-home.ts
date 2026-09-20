@@ -35,6 +35,10 @@ export const SEATS_HEADING = "Seats";
 export const LEAVE_THE_SEAT_LABEL = "Leave the seat";
 export const YOUR_ROUNDS_PREDRAW_CAPTION = "Opponents after the draw";
 export const NOT_DRAWN_TRAILER = "Not drawn";
+export const STANDINGS_HEADING = "Standings";
+export const TOURNAMENT_ENDS_COPY =
+  "Each Pool has a winner. There is no overall champion.";
+export const POOLS_SEGMENT_LABEL = "Pools";
 
 const TEAM_LIST_LEADING_FULL = 4;
 const TEAM_LIST_MIN_COLLAPSE = 3;
@@ -287,6 +291,97 @@ export function tournamentViewerSide<T extends TournamentHomeSide>(
         side.right?.userId === viewerUserId,
     ) ?? null
   );
+}
+
+export function isTournamentStandingsView(
+  drawPostedAt: Date | string | null | undefined,
+) {
+  return drawPostedAt != null;
+}
+
+export function defaultStandingsPoolIndex(
+  viewerPoolIndex: number | null | undefined,
+  pools: readonly { poolIndex: number }[],
+): number | null {
+  if (
+    viewerPoolIndex != null &&
+    pools.some((pool) => pool.poolIndex === viewerPoolIndex)
+  ) {
+    return viewerPoolIndex;
+  }
+  return pools[0]?.poolIndex ?? null;
+}
+
+export type OtherPoolsPlayedMatch = {
+  status: string | null | undefined;
+};
+
+export type OtherPoolsPlayedPool = {
+  poolIndex: number;
+  label: string;
+  matches: readonly OtherPoolsPlayedMatch[];
+};
+
+export type OtherPoolsPlayedSummary = {
+  namesLine: string;
+  playedLabel: string;
+  nextPoolIndex: number;
+};
+
+export function otherPoolsPlayedSummary(
+  selectedPoolIndex: number,
+  pools: readonly OtherPoolsPlayedPool[],
+): OtherPoolsPlayedSummary | null {
+  const others = pools.filter((pool) => pool.poolIndex !== selectedPoolIndex);
+  if (others.length === 0) {
+    return null;
+  }
+
+  const after = others.filter((pool) => pool.poolIndex > selectedPoolIndex);
+  const next = after[0] ?? others[0];
+  if (!next) {
+    return null;
+  }
+
+  let played = 0;
+  for (const pool of others) {
+    for (const match of pool.matches) {
+      if (match.status === "completed") {
+        played += 1;
+      }
+    }
+  }
+
+  return {
+    namesLine: joinPoolLabels(others.map((pool) => pool.label)),
+    playedLabel: otherPoolsPlayedLabel(played),
+    nextPoolIndex: next.poolIndex,
+  };
+}
+
+export function otherPoolsPlayedLabel(count: number): string {
+  return count === 1 ? "1 Match played" : `${count} Matches played`;
+}
+
+export function roundResultsHeading(roundNumber: number): string {
+  if (roundNumber <= 0) {
+    return "Round results";
+  }
+  return `Round ${roundNumber} results`;
+}
+
+function joinPoolLabels(labels: readonly string[]): string {
+  if (labels.length === 0) {
+    return "";
+  }
+  if (labels.length === 1) {
+    return labels[0] ?? "";
+  }
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+  const leading = labels.slice(0, -1).join(", ");
+  return `${leading} and ${labels[labels.length - 1]}`;
 }
 
 export function positionSeatLabel(position: "left" | "right"): string {

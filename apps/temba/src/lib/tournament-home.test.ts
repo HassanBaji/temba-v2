@@ -32,7 +32,15 @@ import {
   YOUR_ROUNDS_PREDRAW_CAPTION,
   YOUR_TEAM_LABEL,
   YOUR_TEAM_TAG,
+  POOLS_SEGMENT_LABEL,
+  STANDINGS_HEADING,
+  TOURNAMENT_ENDS_COPY,
+  defaultStandingsPoolIndex,
   gameDetailsChrome,
+  isTournamentStandingsView,
+  otherPoolsPlayedLabel,
+  otherPoolsPlayedSummary,
+  roundResultsHeading,
   tournamentCollapsedTeamsLabel,
   tournamentEyebrow,
   tournamentFieldSummary,
@@ -504,5 +512,113 @@ describe("tournamentViewerSide", () => {
     const sides = [side(1, ada, sofia), side(2, jonas, null)];
     assert.equal(tournamentViewerSide(sides, sofia.userId)?.sideIndex, 1);
     assert.equal(tournamentViewerSide(sides, "nobody"), null);
+  });
+});
+
+describe("isTournamentStandingsView", () => {
+  it("is standings once the draw is posted and pre-draw while it is null", () => {
+    assert.equal(
+      isTournamentStandingsView(new Date("2026-09-20T18:00:00Z")),
+      true,
+    );
+    assert.equal(isTournamentStandingsView("2026-09-20T18:00:00Z"), true);
+    assert.equal(isTournamentStandingsView(null), false);
+    assert.equal(isTournamentStandingsView(undefined), false);
+  });
+});
+
+describe("defaultStandingsPoolIndex", () => {
+  const pools = [{ poolIndex: 1 }, { poolIndex: 2 }, { poolIndex: 3 }];
+
+  it("defaults to the viewer's Pool", () => {
+    assert.equal(defaultStandingsPoolIndex(2, pools), 2);
+  });
+
+  it("falls back to the first Pool when the viewer is in none", () => {
+    assert.equal(defaultStandingsPoolIndex(null, pools), 1);
+    assert.equal(defaultStandingsPoolIndex(undefined, pools), 1);
+    assert.equal(defaultStandingsPoolIndex(9, pools), 1);
+  });
+
+  it("is null when there are no Pools", () => {
+    assert.equal(defaultStandingsPoolIndex(1, []), null);
+  });
+});
+
+describe("otherPoolsPlayedSummary", () => {
+  const pools = [
+    {
+      poolIndex: 1,
+      label: "Pool 1",
+      matches: [
+        { status: "completed" },
+        { status: "completed" },
+        { status: "scheduled" },
+      ],
+    },
+    {
+      poolIndex: 2,
+      label: "Pool 2",
+      matches: [{ status: "completed" }, { status: "cancelled" }],
+    },
+    {
+      poolIndex: 3,
+      label: "Pool 3",
+      matches: [{ status: "completed" }, { status: "completed" }],
+    },
+  ];
+
+  it("names the other Pools, counts their completed Matches, and moves to the next Pool", () => {
+    assert.deepEqual(otherPoolsPlayedSummary(1, pools), {
+      namesLine: "Pool 2 and Pool 3",
+      playedLabel: "3 Matches played",
+      nextPoolIndex: 2,
+    });
+    assert.deepEqual(otherPoolsPlayedSummary(2, pools), {
+      namesLine: "Pool 1 and Pool 3",
+      playedLabel: "4 Matches played",
+      nextPoolIndex: 3,
+    });
+    assert.deepEqual(otherPoolsPlayedSummary(3, pools), {
+      namesLine: "Pool 1 and Pool 2",
+      playedLabel: "3 Matches played",
+      nextPoolIndex: 1,
+    });
+  });
+
+  it("is null when there is no other Pool to move to", () => {
+    assert.equal(
+      otherPoolsPlayedSummary(1, [
+        { poolIndex: 1, label: "Pool 1", matches: [] },
+      ]),
+      null,
+    );
+  });
+});
+
+describe("standings copy", () => {
+  it("replaces the knockout line with how a Pool tournament ends", () => {
+    assert.equal(STANDINGS_HEADING, "Standings");
+    assert.equal(
+      TOURNAMENT_ENDS_COPY,
+      "Each Pool has a winner. There is no overall champion.",
+    );
+    assert.equal(roundResultsHeading(2), "Round 2 results");
+    assert.equal(otherPoolsPlayedLabel(1), "1 Match played");
+    assert.equal(otherPoolsPlayedLabel(4), "4 Matches played");
+    assert.equal(POOLS_SEGMENT_LABEL, "Pools");
+  });
+
+  it("does not say quarter, knockout, then quarters, or Group for a Pool", () => {
+    const copy = [
+      STANDINGS_HEADING,
+      TOURNAMENT_ENDS_COPY,
+      POOLS_SEGMENT_LABEL,
+      roundResultsHeading(2),
+      otherPoolsPlayedLabel(4),
+      "Pool 2 and Pool 3",
+    ].join("\n");
+    assert.equal(/quarter|knockout|then quarters/iu.test(copy), false);
+    assert.equal(/\bGroup\b/u.test(copy), false);
   });
 });

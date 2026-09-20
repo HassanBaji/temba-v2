@@ -17,6 +17,10 @@ import {
   TournamentMergeEntry,
 } from "~/components/games/tournament-merge-drawer";
 import { TournamentSeatsGrid } from "~/components/games/tournament-seats-grid";
+import {
+  TournamentStandingsHeader,
+  TournamentStandingsSection,
+} from "~/components/games/tournament-standings-section";
 import { TournamentTeamsSection } from "~/components/games/tournament-teams-section";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
 import { Button } from "~/components/ui/button";
@@ -31,6 +35,7 @@ import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
   GROUP_ROW_LABEL,
+  INVITE_ACTION_LABEL,
   LEAVE_THE_SEAT_LABEL,
   ORGANIZER_ROW_LABEL,
   PRICE_PER_MATCH_SUFFIX,
@@ -39,6 +44,7 @@ import {
   TOURNAMENT_EYEBROW_PREFIX,
   YOU_OWE_AFTER_EACH_MATCH,
   YOU_OWE_ROW_LABEL,
+  isTournamentStandingsView,
   tournamentEyebrow,
   tournamentFieldSummary,
   tournamentOrganizerName,
@@ -54,6 +60,7 @@ import {
 } from "~/lib/tournament-pool-draw";
 import { viewerTournamentTotalCents } from "~/lib/tournament-price";
 import {
+  roundsPlayedLabel,
   tournamentRoundSchedule,
   type TournamentRoundScheduleEntry,
 } from "~/lib/tournament-rounds";
@@ -163,7 +170,7 @@ export function TournamentHome({
     seated,
     totalCents,
   });
-  const drawn = data.drawPostedAt != null;
+  const drawn = isTournamentStandingsView(data.drawPostedAt);
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const halfTeams = halfTeamsFromSides(data.sides);
   const mergeGate = {
@@ -195,78 +202,85 @@ export function TournamentHome({
 
   return (
     <div className="space-y-6">
-      <TournamentHero
-        name={data.name ?? "Tournament"}
-        eyebrow={
-          sizing?.ok
-            ? tournamentEyebrow(sizing.sizing.roundCount)
-            : TOURNAMENT_EYEBROW_PREFIX
-        }
-        startLine={tournamentStartLine(
-          data.windowStart,
-          data.venue?.name ?? null,
-        )}
-        sizeLine={sizing?.ok ? tournamentSizeLine(sizing.sizing) : null}
-        statusLine={statusLine}
-        viewerUserId={data.viewerUserId}
-        left={viewerSide?.left ?? null}
-        right={viewerSide?.right ?? null}
-        showYourTeam={seated}
-        backHref="/dashboard/games"
-        onShare={onShare}
-        sharePending={sharePending}
-        onInvite={onInvite}
-      />
-
       {drawn ? (
         <TournamentStandingsTree
+          name={data.name ?? "Tournament"}
+          roundsPlayed={roundsPlayedLabel(
+            data.poolTables,
+            sizing?.ok ? sizing.sizing.roundCount : null,
+          )}
+          poolTables={data.poolTables}
           showUndo={showUndo}
           undoPending={undoPending}
           undoError={undoError}
           onUndo={onUndo}
         />
       ) : (
-        <TournamentPredrawTree
-          sides={data.sides}
-          viewerUserId={data.viewerUserId}
-          canTakeSeat={data.canRegister && !seated}
-          venueName={data.venue?.name ?? null}
-          schedule={schedule}
-          teamCount={data.teamsAllowed}
-          completeTeams={field.full}
-          gameTeams={data.gameTeams}
-          poolCount={data.poolCount}
-          windowStart={data.windowStart}
-          windowEnd={data.windowEnd}
-          courtNames={data.recordedCourts.map((court) => court.name)}
-          showMergeBanner={showMergeBanner}
-          showMergeEntry={showMergeEntry}
-          showDrawEntry={showDrawEntry}
-          halfTeamCount={halfTeams.length}
-          mergeOpen={mergeOpen}
-          mergePending={mergePending}
-          mergeError={mergeError}
-          drawOpen={drawOpen}
-          drawPending={drawPending}
-          drawError={drawError}
-          postPending={postPending}
-          postError={postError}
-          onOpenMerge={() => setMergeOpen(true)}
-          onMergeOpenChange={setMergeOpen}
-          onMerge={onMerge}
-          onOpenDraw={() => setDrawOpen(true)}
-          onDrawOpenChange={setDrawOpen}
-          onDraw={onDraw}
-          onPost={onPost}
-          onTakeSeat={
-            onJoin
-              ? (seat) => {
-                  onJoin(seat);
-                }
-              : undefined
-          }
-          onInvite={onInvite}
-        />
+        <>
+          <TournamentHero
+            name={data.name ?? "Tournament"}
+            eyebrow={
+              sizing?.ok
+                ? tournamentEyebrow(sizing.sizing.roundCount)
+                : TOURNAMENT_EYEBROW_PREFIX
+            }
+            startLine={tournamentStartLine(
+              data.windowStart,
+              data.venue?.name ?? null,
+            )}
+            sizeLine={sizing?.ok ? tournamentSizeLine(sizing.sizing) : null}
+            statusLine={statusLine}
+            viewerUserId={data.viewerUserId}
+            left={viewerSide?.left ?? null}
+            right={viewerSide?.right ?? null}
+            showYourTeam={seated}
+            backHref="/dashboard/games"
+            onShare={onShare}
+            sharePending={sharePending}
+            onInvite={onInvite}
+          />
+          <TournamentPredrawTree
+            sides={data.sides}
+            viewerUserId={data.viewerUserId}
+            canTakeSeat={data.canRegister && !seated}
+            venueName={data.venue?.name ?? null}
+            schedule={schedule}
+            teamCount={data.teamsAllowed}
+            completeTeams={field.full}
+            gameTeams={data.gameTeams}
+            poolCount={data.poolCount}
+            windowStart={data.windowStart}
+            windowEnd={data.windowEnd}
+            courtNames={data.recordedCourts.map((court) => court.name)}
+            showMergeBanner={showMergeBanner}
+            showMergeEntry={showMergeEntry}
+            showDrawEntry={showDrawEntry}
+            halfTeamCount={halfTeams.length}
+            mergeOpen={mergeOpen}
+            mergePending={mergePending}
+            mergeError={mergeError}
+            drawOpen={drawOpen}
+            drawPending={drawPending}
+            drawError={drawError}
+            postPending={postPending}
+            postError={postError}
+            onOpenMerge={() => setMergeOpen(true)}
+            onMergeOpenChange={setMergeOpen}
+            onMerge={onMerge}
+            onOpenDraw={() => setDrawOpen(true)}
+            onDrawOpenChange={setDrawOpen}
+            onDraw={onDraw}
+            onPost={onPost}
+            onTakeSeat={
+              onJoin
+                ? (seat) => {
+                    onJoin(seat);
+                  }
+                : undefined
+            }
+            onInvite={onInvite}
+          />
+        </>
       )}
 
       <TournamentDetailRows rows={detailRows} />
@@ -290,6 +304,9 @@ export function TournamentHome({
         canWaitlist={data.canWaitlist}
         isWaitlisted={data.isWaitlisted}
         isOrganizerActive={isOrganizerActive}
+        onInvite={drawn ? onInvite : undefined}
+        onShare={drawn ? onShare : undefined}
+        sharePending={sharePending}
         registrationClosed={Boolean(data.registrationClosedAt)}
         joinFrozen={data.joinFrozen}
         joinPending={joinPending}
@@ -458,25 +475,45 @@ function TournamentPredrawTree({
 }
 
 function TournamentStandingsTree({
+  name,
+  roundsPlayed,
+  poolTables,
   showUndo,
   undoPending,
   undoError,
   onUndo,
 }: {
+  name: string;
+  roundsPlayed: string | null;
+  poolTables: GameDetail["poolTables"];
   showUndo: boolean;
   undoPending: boolean;
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
 }) {
-  if (!showUndo) {
-    return null;
-  }
   return (
-    <TournamentUndoPoolDraw
-      undoPending={undoPending}
-      undoError={undoError}
-      onUndo={onUndo}
-    />
+    <div className="space-y-6">
+      <div>
+        <TournamentStandingsHeader
+          name={name}
+          roundsPlayed={roundsPlayed}
+          finished={Boolean(poolTables?.finished)}
+          backHref="/dashboard/games"
+        />
+        {poolTables ? (
+          <div className="pt-[18px]">
+            <TournamentStandingsSection poolTables={poolTables} />
+          </div>
+        ) : null}
+      </div>
+      {showUndo ? (
+        <TournamentUndoPoolDraw
+          undoPending={undoPending}
+          undoError={undoError}
+          onUndo={onUndo}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -492,6 +529,7 @@ function TournamentHomeActions({
   closePending,
   reopenPending,
   kickPending,
+  sharePending,
   kickableOccupants: kickable,
   waitlist,
   onJoin,
@@ -503,6 +541,8 @@ function TournamentHomeActions({
   onCancelGame,
   onKick,
   onKickWaitlist,
+  onInvite,
+  onShare,
 }: {
   canRegister: boolean;
   canWaitlist: boolean;
@@ -515,6 +555,7 @@ function TournamentHomeActions({
   closePending: boolean;
   reopenPending: boolean;
   kickPending: boolean;
+  sharePending?: boolean;
   kickableOccupants: { userId: string; name: string }[];
   waitlist: GameDetail["waitlist"];
   onJoin?: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
@@ -526,6 +567,8 @@ function TournamentHomeActions({
   onCancelGame?: () => void;
   onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
+  onInvite?: () => void;
+  onShare?: () => void;
 }) {
   const showKick =
     isOrganizerActive && (kickable.length > 0 || waitlist.length > 0) && onKick;
@@ -565,6 +608,27 @@ function TournamentHomeActions({
       ) : null}
       {isOrganizerActive ? (
         <div className="flex flex-wrap gap-2">
+          {onInvite ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={onInvite}
+            >
+              {INVITE_ACTION_LABEL}
+            </Button>
+          ) : null}
+          {onShare ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              disabled={sharePending}
+              onClick={onShare}
+            >
+              Share
+            </Button>
+          ) : null}
           {onEdit ? (
             <Button
               type="button"
