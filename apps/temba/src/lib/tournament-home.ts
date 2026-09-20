@@ -107,7 +107,7 @@ export function gameDetailsChrome(
 }
 
 export function tournamentFieldSummary(
-  sides: readonly TournamentHomeSide[],
+  sides: readonly { left: unknown; right: unknown }[],
 ): TournamentFieldSummary {
   let full = 0;
   let halfOpen = 0;

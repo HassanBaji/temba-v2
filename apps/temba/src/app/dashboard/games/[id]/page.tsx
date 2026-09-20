@@ -1310,6 +1310,9 @@ export default function GameHomePage({
           levelMinTenths={data.levelMinTenths}
           levelMaxTenths={data.levelMaxTenths}
           initialSeat={joinPickerSeat}
+          poolCount={data.poolCount}
+          teamsAllowed={data.teamsAllowed}
+          windowEnd={data.windowEnd}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })
           }
