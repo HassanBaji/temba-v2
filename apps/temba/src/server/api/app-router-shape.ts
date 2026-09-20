@@ -60,6 +60,7 @@ type ExpectedGames =
   | "listCreateVenues"
   | "listCreateGroups"
   | "create"
+  | "createTournament"
   | "byId"
   | "register"
   | "registerSeat"

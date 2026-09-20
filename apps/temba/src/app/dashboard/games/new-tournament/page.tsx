@@ -142,9 +142,15 @@ function NewTournamentForm() {
   const [day, setDay] = React.useState(() => formatDateInputValue(new Date()));
   const [startTime, setStartTime] = React.useState("");
   const [finishTime, setFinishTime] = React.useState("");
-  const [rounds, setRounds] = React.useState<RoundSlot[]>(() => [
-    emptyRound(formatDateInputValue(new Date())),
-  ]);
+  const [rounds, setRounds] = React.useState<RoundSlot[]>(() => {
+    const initialDay = formatDateInputValue(new Date());
+    const initial = sizeFriendlyTournament(
+      TOURNAMENT_DEFAULT_TEAM_COUNT,
+      defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT),
+    );
+    const count = initial.ok ? initial.sizing.roundCount : 1;
+    return Array.from({ length: count }, () => emptyRound(initialDay));
+  });
   const [venueId, setVenueId] = React.useState("");
   const [courtIds, setCourtIds] = React.useState<string[]>([]);
   const [pricePerPlayer, setPricePerPlayer] = React.useState("");

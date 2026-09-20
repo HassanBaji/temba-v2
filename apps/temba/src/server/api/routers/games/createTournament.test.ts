@@ -331,6 +331,50 @@ describe("createTournament", () => {
     }
   });
 
+  it("refuses an unlocked Soft-archived Venue", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "tournament-dead-venue@example.com");
+      const live = await insertVenue(db);
+      const archived = await insertVenue(db);
+      await commit(db, { venueId: archived.id }, "archived");
+      const group = await insertGroup(db, { createdBy: owner.id });
+      await expect(
+        createTournament(db, {
+          createdBy: owner.id,
+          name: "Dead Venue Cup",
+          groupId: group.id,
+          isPublic: false,
+          registrationMode: "individual",
+          teamCount: 8,
+          poolCount: 2,
+          venueId: archived.id,
+          ...windowTimes(),
+        }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: "Venue must be a live Operator Venue",
+      });
+      const created = await createTournament(db, {
+        createdBy: owner.id,
+        name: "Live Venue Cup",
+        groupId: group.id,
+        isPublic: false,
+        registrationMode: "individual",
+        teamCount: 8,
+        poolCount: 2,
+        venueId: live.id,
+        ...windowTimes(),
+      });
+      const row = await db.query.games.findFirst({
+        where: eq(games.id, created.id),
+      });
+      expect(row?.venueId).toBe(live.id);
+    } finally {
+      await close();
+    }
+  });
+
   it("locks Venue to the Club Group linked Venue", async () => {
     const { db, close } = await createPgliteDb();
     try {
