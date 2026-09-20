@@ -5,6 +5,7 @@ import { formatAbsoluteDay } from "./format-game-start";
 import {
   isPoolTournament,
   poolRoundLabel,
+  roundsPlayedLabel,
   showsPoolTournamentSeats,
   tournamentRoundSummary,
 } from "./tournament-rounds";
@@ -49,6 +50,60 @@ describe("poolRoundLabel", () => {
   it("is null without a Round number or total", () => {
     assert.equal(poolRoundLabel(null, 3), null);
     assert.equal(poolRoundLabel(2, null), null);
+  });
+});
+
+describe("roundsPlayedLabel", () => {
+  it("counts fully settled Rounds across Pools", () => {
+    assert.equal(
+      roundsPlayedLabel(
+        {
+          pools: [
+            {
+              matches: [
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 2, status: "completed" },
+                { roundNumber: 2, status: "scheduled" },
+                { roundNumber: 3, status: "scheduled" },
+              ],
+            },
+          ],
+        },
+        3,
+      ),
+      "Round 1 of 3 played",
+    );
+  });
+
+  it("is Round 2 of 3 when two Rounds are fully settled", () => {
+    assert.equal(
+      roundsPlayedLabel(
+        {
+          pools: [
+            {
+              matches: [
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 2, cancelled: true },
+              ],
+            },
+            {
+              matches: [
+                { roundNumber: 1, status: "cancelled" },
+                { roundNumber: 2, status: "completed" },
+              ],
+            },
+          ],
+        },
+        3,
+      ),
+      "Round 2 of 3 played",
+    );
+  });
+
+  it("is null without pool tables or a Round count", () => {
+    assert.equal(roundsPlayedLabel(null, 3), null);
+    assert.equal(roundsPlayedLabel({ pools: [] }, null), null);
   });
 });
 

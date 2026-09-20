@@ -30,9 +30,9 @@ import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-blo
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
+import { TournamentHome } from "~/components/games/tournament-home";
 import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
-import { TournamentUndrawnNotice } from "~/components/games/tournament-undrawn-notice";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
@@ -52,7 +52,8 @@ import {
 import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
 import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
-import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
+import { gameViewerStatus } from "~/lib/game-summary-cta";
+import { gameDetailsChrome } from "~/lib/tournament-home";
 import {
   isPoolTournament,
   showsPoolTournamentSeats,
@@ -495,9 +496,11 @@ export default function GameHomePage({
       ),
     },
   );
-  const usesFriendlyChrome = Boolean(
-    data && showsFriendlyRoster(data.format, data.registrationMode),
-  );
+  const chrome = data
+    ? gameDetailsChrome(data.format, data.poolCount, data.registrationMode)
+    : "tabs";
+  const usesFriendlyChrome = chrome === "friendly_game";
+  const usesPoolTournamentChrome = chrome === "pool_tournament";
   const usesPoolTournamentSeats = Boolean(
     data &&
       showsPoolTournamentSeats(
@@ -830,6 +833,7 @@ export default function GameHomePage({
     <DashboardShell
       title={shellTitle}
       hidePageHeader
+      hideMobileTopBar={usesPoolTournamentChrome}
       action={mobileOverflow}
       isSubPage={true}
       hideNav={true}
@@ -841,25 +845,68 @@ export default function GameHomePage({
             : "space-y-6"
         }
       >
-        {usesFriendlyChrome ? (
+        {(usesFriendlyChrome || usesPoolTournamentChrome) &&
+        data.cancelledAt ? (
+          <section
+            role="status"
+            className="bg-destructive/10 text-destructive rounded-xl p-4"
+          >
+            <div className="flex gap-3">
+              <Ban
+                aria-hidden="true"
+                className="mt-0.5 size-5 shrink-0"
+                strokeWidth={2}
+              />
+              <p className="text-title font-semibold tracking-[-0.01em]">
+                This Game is cancelled
+              </p>
+            </div>
+          </section>
+        ) : null}
+
+        {usesPoolTournamentChrome ? (
           <>
-            {data.cancelledAt ? (
-              <section
-                role="status"
-                className="bg-destructive/10 text-destructive rounded-xl p-4"
-              >
-                <div className="flex gap-3">
-                  <Ban
-                    aria-hidden="true"
-                    className="mt-0.5 size-5 shrink-0"
-                    strokeWidth={2}
-                  />
-                  <p className="text-title font-semibold tracking-[-0.01em]">
-                    This Game is cancelled
-                  </p>
-                </div>
-              </section>
+            {data.joinFrozen && !data.cancelledAt ? (
+              <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+                Registration, the waitlist, and invites stay closed.
+              </SoftArchiveBanner>
             ) : null}
+            <TournamentHome
+              data={data}
+              sharePending={createInviteLink.isPending}
+              joinPending={registerSeat.isPending}
+              leavePending={leaveGame.isPending || leaveWaitlist.isPending}
+              kickPending={kick.isPending}
+              closePending={closeRegistration.isPending}
+              reopenPending={reopenRegistration.isPending}
+              onShare={
+                canManageGameInvites
+                  ? () => createInviteLink.mutate({ gameId: id })
+                  : undefined
+              }
+              onInvite={
+                canManageGameInvites ? () => setInvitesOpen(true) : undefined
+              }
+              onJoin={() => setJoinPickerOpen(true)}
+              onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
+              onLeaveGame={() => setLeaveGameOpen(true)}
+              onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
+              onEdit={() => setEditOpen(true)}
+              onCloseRegistration={() =>
+                closeRegistration.mutate({ gameId: id })
+              }
+              onReopenRegistration={() =>
+                reopenRegistration.mutate({ gameId: id })
+              }
+              onCancelGame={() => setCancelGameOpen(true)}
+              onKick={(userId) => kick.mutate({ gameId: id, userId })}
+              onKickWaitlist={(waitlistId) =>
+                kick.mutate({ gameId: id, waitlistId })
+              }
+            />
+          </>
+        ) : usesFriendlyChrome ? (
+          <>
             {desktopOverflow ? (
               <div className="hidden justify-end lg:flex">
                 {desktopOverflow}
@@ -939,13 +986,13 @@ export default function GameHomePage({
           </div>
         ) : null}
 
-        {data.joinFrozen && !data.cancelledAt ? (
+        {data.joinFrozen && !data.cancelledAt && !usesPoolTournamentChrome ? (
           <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
             Registration, the waitlist, and invites stay closed.
           </SoftArchiveBanner>
         ) : null}
 
-        {usesFriendlyChrome ? (
+        {usesPoolTournamentChrome ? null : usesFriendlyChrome ? (
           // Hero + Line-up + Score + Rating impact + organiser actions
           // footer scope (game-details redesign,
           // TEM-179/TEM-180/TEM-181/TEM-182/TEM-184): the tab bar and
@@ -1064,12 +1111,6 @@ export default function GameHomePage({
                       await undoPoolDraw.mutateAsync({ gameId: id });
                     }}
                   />
-                ) : null}
-                {!data.isOrganizer &&
-                isPoolTournament(data.format, data.poolCount) &&
-                data.matches.length === 0 &&
-                !data.cancelledAt ? (
-                  <TournamentUndrawnNotice />
                 ) : null}
                 {data.drawPostedAt && data.poolTables?.pools.length ? (
                   <TournamentPoolTablesPanel poolTables={data.poolTables} />
