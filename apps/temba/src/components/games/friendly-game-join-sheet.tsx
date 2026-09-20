@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Check,
-  ChevronRight,
-  Plus,
-  UserRound,
-  Users,
-  X,
-} from "lucide-react";
+import { Check, ChevronRight, Plus, UserRound, Users, X } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -860,12 +852,11 @@ export function FriendlyGameJoinSheet({
   teamsAllowed?: number | null;
   windowEnd?: Date | string | null;
 }) {
-  const offerPartner = offersPartnerJoin({
-    canRegister: canRegister ?? false,
-    format: format ?? "",
-    registrationMode: registrationMode ?? "",
-    sides,
-  });
+  const isTournamentJoin = isTournamentJoinSheet(
+    format,
+    poolCount,
+    sides.length,
+  );
 
   // `touched` is what keeps the Preferred Position default a default: until
   // the viewer taps, the picked Position is derived, so it can appear the
@@ -961,11 +952,6 @@ export function FriendlyGameJoinSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open-gated reset
   }, [open]);
 
-  const isTournamentJoin = isTournamentJoinSheet(
-    format,
-    poolCount,
-    sides.length,
-  );
   const rawPicked = selection.touched
     ? selection.seat
     : (initialSeat ??
@@ -1053,23 +1039,6 @@ export function FriendlyGameJoinSheet({
       >
         {showSheetHeader ? (
           <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-            {/* {offerPartner && step === "seat" ? (
-              <button
-                type="button"
-                onClick={() => {
-                  registerWithPartner.reset();
-                  setStep("chooser");
-                }}
-                className="text-ink focus-visible:ring-ring/50 mb-3 flex size-10 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]"
-                aria-label="Back"
-              >
-                <ArrowLeft
-                  aria-hidden="true"
-                  className="size-5"
-                  strokeWidth={2}
-                />
-              </button>
-            ) : null} */}
             <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
               {headerTitle}
             </ResponsiveDialogTitle>
@@ -1077,7 +1046,7 @@ export function FriendlyGameJoinSheet({
               {headerDescription}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
-        ) : (
+        ) : step === "partner" || step === "partnerConfirm" ? (
           <ResponsiveDialogHeader className="sr-only">
             <ResponsiveDialogTitle>
               {step === "partnerConfirm"
@@ -1088,7 +1057,7 @@ export function FriendlyGameJoinSheet({
               You register both seats. Your partner is in straight away.
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
-        )}
+        ) : null}
 
         {step === "chooser" ? (
           <ModeChooser
