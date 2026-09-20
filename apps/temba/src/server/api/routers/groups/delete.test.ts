@@ -50,8 +50,7 @@ describe("deleteGroup image cleanup", () => {
       await db
         .update(groups)
         .set({
-          imageUrl:
-            "https://example.supabase.co/storage/v1/object/public/group-images/x/image",
+          imageUrl: `/api/media/group-images/${group.id}/image?v=1`,
         })
         .where(eq(groups.id, group.id));
 

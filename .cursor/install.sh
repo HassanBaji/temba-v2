@@ -83,28 +83,33 @@ elif env_value_empty apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET; then
   set_env_kv apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET "whsec_cloud-agent-build-only-not-a-real-key"
 fi
 
-# Supabase Storage (Venue logos and Group images). Sync when Cloud secrets are
-# present so env validation can require URL, write key, and bucket names
-# (ADR-0006, ADR-0015). Empty .env.example values fail validation; if Cloud
-# secrets are absent, write syntactically valid placeholders so /login can
-# render. Live upload still needs real keys.
-if [ -n "${SUPABASE_URL:-}" ]; then
-  set_env_kv apps/temba/.env SUPABASE_URL "$SUPABASE_URL"
-elif env_value_empty apps/temba/.env SUPABASE_URL; then
-  set_env_kv apps/temba/.env SUPABASE_URL "https://example.supabase.co"
+# Railway Bucket (Venue logos and Group images). Sync when Cloud secrets are
+# present so env validation can require endpoint, keys, bucket, and region.
+# Empty .env.example keys fail validation; if Cloud secrets are absent, write
+# syntactically valid placeholders so /login can render. Live upload and media
+# GET still need real AWS keys.
+if [ -n "${AWS_ENDPOINT_URL:-}" ]; then
+  set_env_kv apps/temba/.env AWS_ENDPOINT_URL "$AWS_ENDPOINT_URL"
+elif env_value_empty apps/temba/.env AWS_ENDPOINT_URL; then
+  set_env_kv apps/temba/.env AWS_ENDPOINT_URL "https://t3.storageapi.dev"
 fi
-if [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  set_env_kv apps/temba/.env SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY"
-elif env_value_empty apps/temba/.env SUPABASE_SERVICE_ROLE_KEY; then
-  set_env_kv apps/temba/.env SUPABASE_SERVICE_ROLE_KEY "cloud-agent-build-only-not-a-real-key"
+if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+  set_env_kv apps/temba/.env AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+elif env_value_empty apps/temba/.env AWS_ACCESS_KEY_ID; then
+  set_env_kv apps/temba/.env AWS_ACCESS_KEY_ID "cloud-agent-build-only-not-a-real-key"
 fi
-if [ -n "${SUPABASE_VENUE_LOGOS_BUCKET:-}" ]; then
-  set_env_kv apps/temba/.env SUPABASE_VENUE_LOGOS_BUCKET "$SUPABASE_VENUE_LOGOS_BUCKET"
-elif env_value_empty apps/temba/.env SUPABASE_VENUE_LOGOS_BUCKET; then
-  set_env_kv apps/temba/.env SUPABASE_VENUE_LOGOS_BUCKET "venue-logos"
+if [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
+  set_env_kv apps/temba/.env AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+elif env_value_empty apps/temba/.env AWS_SECRET_ACCESS_KEY; then
+  set_env_kv apps/temba/.env AWS_SECRET_ACCESS_KEY "cloud-agent-build-only-not-a-real-key"
 fi
-if [ -n "${SUPABASE_GROUP_IMAGES_BUCKET:-}" ]; then
-  set_env_kv apps/temba/.env SUPABASE_GROUP_IMAGES_BUCKET "$SUPABASE_GROUP_IMAGES_BUCKET"
-elif env_value_empty apps/temba/.env SUPABASE_GROUP_IMAGES_BUCKET; then
-  set_env_kv apps/temba/.env SUPABASE_GROUP_IMAGES_BUCKET "group-images"
+if [ -n "${AWS_S3_BUCKET_NAME:-}" ]; then
+  set_env_kv apps/temba/.env AWS_S3_BUCKET_NAME "$AWS_S3_BUCKET_NAME"
+elif env_value_empty apps/temba/.env AWS_S3_BUCKET_NAME; then
+  set_env_kv apps/temba/.env AWS_S3_BUCKET_NAME "customizable-pannier-xnbsgm"
+fi
+if [ -n "${AWS_DEFAULT_REGION:-}" ]; then
+  set_env_kv apps/temba/.env AWS_DEFAULT_REGION "$AWS_DEFAULT_REGION"
+elif env_value_empty apps/temba/.env AWS_DEFAULT_REGION; then
+  set_env_kv apps/temba/.env AWS_DEFAULT_REGION "auto"
 fi

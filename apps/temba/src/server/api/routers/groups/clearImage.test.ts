@@ -33,7 +33,7 @@ vi.mock("~/server/storage/group-images", async (importOriginal) => {
 });
 
 const STORED_URL =
-  "https://example.supabase.co/storage/v1/object/public/group-images/group/image";
+  "/api/media/group-images/11111111-1111-4111-8111-111111111111/image?v=1700000000000";
 
 function expectTrpc(error: unknown, code: TRPCError["code"], message?: string) {
   expect(error).toBeInstanceOf(TRPCError);

@@ -13,10 +13,11 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    SUPABASE_URL: z.string().url(),
-    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    SUPABASE_VENUE_LOGOS_BUCKET: z.string().min(1),
-    SUPABASE_GROUP_IMAGES_BUCKET: z.string().min(1),
+    AWS_ENDPOINT_URL: z.string().url(),
+    AWS_ACCESS_KEY_ID: z.string().min(1),
+    AWS_SECRET_ACCESS_KEY: z.string().min(1),
+    AWS_S3_BUCKET_NAME: z.string().min(1),
+    AWS_DEFAULT_REGION: z.string().min(1),
   },
 
   /**
@@ -39,10 +40,11 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    SUPABASE_VENUE_LOGOS_BUCKET: process.env.SUPABASE_VENUE_LOGOS_BUCKET,
-    SUPABASE_GROUP_IMAGES_BUCKET: process.env.SUPABASE_GROUP_IMAGES_BUCKET,
+    AWS_ENDPOINT_URL: process.env.AWS_ENDPOINT_URL,
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
+    AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

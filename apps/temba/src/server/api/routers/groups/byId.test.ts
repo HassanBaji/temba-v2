@@ -742,7 +742,7 @@ describe("groupById imageUrl", () => {
         .update(groups)
         .set({
           imageUrl:
-            "https://example.supabase.co/storage/v1/object/public/group-images/home/image",
+            "/api/media/group-images/home/image?v=1",
         })
         .where(eq(groups.id, pictured.id));
 
@@ -755,7 +755,7 @@ describe("groupById imageUrl", () => {
         userId: viewer.id,
       });
       expect(picturedDetail.imageUrl).toBe(
-        "https://example.supabase.co/storage/v1/object/public/group-images/home/image",
+        "/api/media/group-images/home/image?v=1",
       );
       expect(plainDetail.imageUrl).toBeNull();
     } finally {

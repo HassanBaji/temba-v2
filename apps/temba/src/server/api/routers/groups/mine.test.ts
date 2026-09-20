@@ -383,14 +383,14 @@ describe("groups.mine list facts", () => {
         .update(groups)
         .set({
           imageUrl:
-            "https://example.supabase.co/storage/v1/object/public/group-images/mine/image",
+            "/api/media/group-images/mine/image?v=1",
         })
         .where(eq(groups.id, pictured.id));
 
       const rows = await mine(db, { userId: viewer.id, now: NOW });
       const byId = new Map(rows.map((row) => [row.id, row]));
       expect(byId.get(pictured.id)?.imageUrl).toBe(
-        "https://example.supabase.co/storage/v1/object/public/group-images/mine/image",
+        "/api/media/group-images/mine/image?v=1",
       );
       expect(byId.get(plain.id)?.imageUrl).toBeNull();
     } finally {

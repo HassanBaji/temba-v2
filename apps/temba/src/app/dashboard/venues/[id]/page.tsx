@@ -504,10 +504,9 @@ export default function VenueHomePage({
 
         <Section
           title="Logo"
-          description="Optional. JPEG, PNG, or WebP, at most 2 MB. Display uses the public URL."
+          description="Optional. JPEG, PNG, or WebP, at most 2 MB."
         >
           {data.logoImageUrl ? (
-            // Public catalog URL (ADR-0006); not a signed URL.
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={data.logoImageUrl}

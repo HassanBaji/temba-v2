@@ -1,7 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import { TRPCError } from "@trpc/server";
 
-import { env } from "~/env";
+import { deleteS3Object, getS3Object, putS3Object } from "~/server/storage/s3";
 
 export const VENUE_LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -56,13 +55,7 @@ export function detectVenueLogoContentType(
 }
 
 function venueLogoObjectPath(venueId: string): string {
-  return `${venueId}/logo`;
-}
-
-function createSupabaseAdmin() {
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return `venue-logos/${venueId}/logo`;
 }
 
 export function decodeVenueLogoBase64(dataBase64: string): Buffer {
@@ -101,37 +94,40 @@ export async function uploadVenueLogoObject(input: {
   bytes: Buffer;
   contentType: VenueLogoContentType;
 }): Promise<string> {
-  const supabase = createSupabaseAdmin();
-  const path = venueLogoObjectPath(input.venueId);
-  const { error } = await supabase.storage
-    .from(env.SUPABASE_VENUE_LOGOS_BUCKET)
-    .upload(path, input.bytes, {
+  try {
+    await putS3Object({
+      key: venueLogoObjectPath(input.venueId),
+      body: input.bytes,
       contentType: input.contentType,
-      upsert: true,
     });
-
-  if (error) {
+  } catch {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to upload Venue logo",
     });
   }
 
-  const { data } = supabase.storage
-    .from(env.SUPABASE_VENUE_LOGOS_BUCKET)
-    .getPublicUrl(path);
+  return `/api/media/venue-logos/${input.venueId}/logo?v=${Date.now()}`;
+}
 
-  return data.publicUrl;
+export async function getVenueLogoObject(venueId: string): Promise<{
+  bytes: Uint8Array;
+  contentType: string;
+} | null> {
+  const object = await getS3Object(venueLogoObjectPath(venueId));
+  if (!object) {
+    return null;
+  }
+  return {
+    bytes: object.body,
+    contentType: object.contentType ?? "application/octet-stream",
+  };
 }
 
 export async function removeVenueLogoObject(venueId: string): Promise<void> {
-  const supabase = createSupabaseAdmin();
-  const path = venueLogoObjectPath(venueId);
-  const { error } = await supabase.storage
-    .from(env.SUPABASE_VENUE_LOGOS_BUCKET)
-    .remove([path]);
-
-  if (error) {
+  try {
+    await deleteS3Object(venueLogoObjectPath(venueId));
+  } catch {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to clear Venue logo",
