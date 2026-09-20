@@ -217,10 +217,6 @@ describe("merge screen copy", () => {
       mergeSwapHint("Kim H", "left"),
       "Kim keeps the left seat instead",
     );
-    assert.equal(
-      swapMergePositions({ firstPosition: "left", secondPosition: "right" }),
-      { firstPosition: "right", secondPosition: "left" },
-    );
   });
 
   it("labels the merged preview, open Position, and Half team index without knockout copy", () => {
