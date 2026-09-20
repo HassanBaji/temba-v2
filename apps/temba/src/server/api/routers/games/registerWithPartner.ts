@@ -8,6 +8,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertUserPassesJoinGate, requireGame } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { admit } from "~/server/games/admit";
 import { assertCanRegisterWithPartner } from "~/server/games/helpers/assert-can-register-with-partner";
 import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refused";
@@ -39,6 +40,7 @@ export async function registerWithPartner(
   },
 ) {
   const game = await requireGame(database, args.gameId);
+  assertPoolDrawNotPosted(game);
   const now = new Date();
   await assertCanRegisterWithPartner(database, game, args.userId, now);
 

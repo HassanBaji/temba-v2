@@ -73,7 +73,7 @@ export function AcceptGameInviteLink({
   const canJoinVacant = isSignedIn && !joinFrozen && !waitlistOnly;
   const seatRaceError =
     needsSeatPick && accept.isError && accept.error.data?.code === "CONFLICT";
-  const sideNoun = ready?.format === "friendly_tournament" ? "Side" : "Team";
+  const sideNoun = "Team";
   const rangeLabel = formatLevelRangeLabel(
     ready?.levelMinTenths,
     ready?.levelMaxTenths,

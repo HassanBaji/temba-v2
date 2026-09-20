@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { preferredJoinSeat } from "./preferred-seat";
+import {
+  defaultJoinSeat,
+  preferredJoinSeat,
+  remainingJoinSeatOnSide,
+} from "./preferred-seat";
 
 type Occupant = { name: string };
 
@@ -99,6 +103,53 @@ describe("preferredJoinSeat", () => {
     assert.deepEqual(preferredJoinSeat(sides, "right"), {
       sideIndex: 3,
       position: "right",
+    });
+  });
+});
+
+describe("remainingJoinSeatOnSide", () => {
+  it("chooses the open Position on a Half team", () => {
+    assert.deepEqual(remainingJoinSeatOnSide(side(7, someone, null)), {
+      sideIndex: 7,
+      position: "right",
+    });
+    assert.deepEqual(remainingJoinSeatOnSide(side(7, null, someone)), {
+      sideIndex: 7,
+      position: "left",
+    });
+  });
+
+  it("is null when both Positions are open or both are taken", () => {
+    assert.equal(remainingJoinSeatOnSide(side(1, null, null)), null);
+    assert.equal(remainingJoinSeatOnSide(side(1, someone, someone)), null);
+  });
+});
+
+describe("defaultJoinSeat", () => {
+  it("chooses the last open Position rather than asking", () => {
+    const sides = [side(1, someone, someone), side(2, someone, null)];
+    assert.deepEqual(defaultJoinSeat(sides, "left"), {
+      sideIndex: 2,
+      position: "right",
+    });
+    assert.deepEqual(defaultJoinSeat(sides, "either"), {
+      sideIndex: 2,
+      position: "right",
+    });
+  });
+
+  it("uses Preferred Position when more than one Position is open", () => {
+    assert.deepEqual(defaultJoinSeat(emptyCourt, "right"), {
+      sideIndex: 0,
+      position: "right",
+    });
+  });
+
+  it("does not force the other Position when the preferred one is still free elsewhere", () => {
+    const sides = [side(1, someone, null), side(2, null, null)];
+    assert.deepEqual(defaultJoinSeat(sides, "left"), {
+      sideIndex: 2,
+      position: "left",
     });
   });
 });

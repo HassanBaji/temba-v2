@@ -29,6 +29,10 @@ import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
+import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
+import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
+import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
+import { TournamentUndrawnNotice } from "~/components/games/tournament-undrawn-notice";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
@@ -49,6 +53,10 @@ import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
 import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
 import { gameViewerStatus, showsFriendlyRoster } from "~/lib/game-summary-cta";
+import {
+  isPoolTournament,
+  showsPoolTournamentSeats,
+} from "~/lib/tournament-rounds";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
@@ -188,6 +196,54 @@ export default function GameHomePage({
       toast.success(
         result.waitlisted ? "Team joined waitlist" : "Team registered",
       );
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const mergeHalfTeams = api.games.mergeHalfTeams.useMutation({
+    onSuccess: async () => {
+      toast.success("Merged");
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const drawPools = api.games.drawPools.useMutation({
+    onSuccess: async () => {
+      toast.success("Pools drawn");
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const postPoolDraw = api.games.postPoolDraw.useMutation({
+    onSuccess: async () => {
+      toast.success("Pool draw posted");
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const undoPoolDraw = api.games.undoPoolDraw.useMutation({
+    onSuccess: async () => {
+      toast.success("Pool draw undone");
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -442,6 +498,14 @@ export default function GameHomePage({
   const usesFriendlyChrome = Boolean(
     data && showsFriendlyRoster(data.format, data.registrationMode),
   );
+  const usesPoolTournamentSeats = Boolean(
+    data &&
+      showsPoolTournamentSeats(
+        data.format,
+        data.poolCount,
+        data.registrationMode,
+      ),
+  );
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
   const canManageGameInvites = usesFriendlyChrome
     ? canMintInvite
@@ -597,6 +661,26 @@ export default function GameHomePage({
   });
   const headerActions = usesFriendlyChrome ? null : (
     <>
+      {usesPoolTournamentSeats && data.canRegister ? (
+        <Button
+          type="button"
+          className="min-h-11"
+          disabled={registerSeat.isPending}
+          onClick={() => setJoinPickerOpen(true)}
+        >
+          Join
+        </Button>
+      ) : null}
+      {usesPoolTournamentSeats && data.canWaitlist ? (
+        <Button
+          type="button"
+          className="min-h-11"
+          disabled={registerSeat.isPending}
+          onClick={() => registerSeat.mutate({ gameId: id })}
+        >
+          Join waitlist
+        </Button>
+      ) : null}
       {canManageGameInvites ? (
         <Button
           ref={inviteButtonRef}
@@ -952,53 +1036,110 @@ export default function GameHomePage({
               </TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
-              <GameOverviewPanel game={data} />
+              <div className="space-y-6">
+                {data.isOrganizer &&
+                isPoolTournament(data.format, data.poolCount) &&
+                !data.cancelledAt ? (
+                  <TournamentPoolDrawPanel
+                    gameTeams={data.gameTeams}
+                    poolCount={data.poolCount}
+                    teamCount={data.teamsAllowed}
+                    windowStart={data.windowStart}
+                    windowEnd={data.windowEnd}
+                    courtNames={data.recordedCourts.map((court) => court.name)}
+                    drawPostedAt={data.drawPostedAt}
+                    drawPending={drawPools.isPending}
+                    drawError={drawPools.error}
+                    onDraw={async () => {
+                      await drawPools.mutateAsync({ gameId: id });
+                    }}
+                    postPending={postPoolDraw.isPending}
+                    postError={postPoolDraw.error}
+                    onPost={async () => {
+                      await postPoolDraw.mutateAsync({ gameId: id });
+                    }}
+                    undoPending={undoPoolDraw.isPending}
+                    undoError={undoPoolDraw.error}
+                    onUndo={async () => {
+                      await undoPoolDraw.mutateAsync({ gameId: id });
+                    }}
+                  />
+                ) : null}
+                {!data.isOrganizer &&
+                isPoolTournament(data.format, data.poolCount) &&
+                data.matches.length === 0 &&
+                !data.cancelledAt ? (
+                  <TournamentUndrawnNotice />
+                ) : null}
+                {data.drawPostedAt && data.poolTables?.pools.length ? (
+                  <TournamentPoolTablesPanel poolTables={data.poolTables} />
+                ) : null}
+                <GameOverviewPanel game={data} />
+              </div>
             </TabsContent>
             <TabsContent
               value="players"
               className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
             >
-              <GamePlayersPanel
-                game={data}
-                partnerQuery={partnerQuery}
-                selectedPartner={selectedPartner}
-                partnerSide={partnerSide}
-                partnerPosition={partnerPosition}
-                teamId={teamId}
-                partnerSearch={partnerSearch.data}
-                partnerSearchPending={partnerSearch.isFetching}
-                registerWithPartnerPending={registerWithPartner.isPending}
-                partnerError={registerWithPartner.error}
-                registerSeatPending={registerSeat.isPending}
-                moveSeatPending={moveSeat.isPending}
-                kickPending={kick.isPending}
-                registerTeamPending={registerTeam.isPending}
-                onPartnerQueryChange={setPartnerQuery}
-                onSelectedPartnerChange={setSelectedPartner}
-                onPartnerSideChange={setPartnerSide}
-                onPartnerPositionChange={setPartnerPosition}
-                onTeamIdChange={setTeamId}
-                onRegisterSeat={(input) =>
-                  registerSeat.mutate({
-                    gameId: id,
-                    sideIndex: input?.sideIndex,
-                    position: input?.position,
-                  })
-                }
-                onMoveSeat={(sideIndex, position) =>
-                  moveSeat.mutate({ gameId: id, sideIndex, position })
-                }
-                onKick={(userId) => kick.mutate({ gameId: id, userId })}
-                onKickWaitlist={(waitlistId) =>
-                  kick.mutate({ gameId: id, waitlistId })
-                }
-                onRegisterWithPartner={(input) =>
-                  registerWithPartner.mutate({ gameId: id, ...input })
-                }
-                onRegisterTeam={(nextTeamId) =>
-                  registerTeam.mutate({ gameId: id, teamId: nextTeamId })
-                }
-              />
+              <div className="space-y-6">
+                {data.isOrganizer &&
+                usesPoolTournamentSeats &&
+                !data.cancelledAt ? (
+                  <TournamentHalfTeamsPanel
+                    sides={data.sides}
+                    format={data.format}
+                    mergePending={mergeHalfTeams.isPending}
+                    mergeError={mergeHalfTeams.error}
+                    onMerge={async (input) => {
+                      await mergeHalfTeams.mutateAsync({
+                        gameId: id,
+                        ...input,
+                      });
+                    }}
+                  />
+                ) : null}
+                <GamePlayersPanel
+                  game={data}
+                  partnerQuery={partnerQuery}
+                  selectedPartner={selectedPartner}
+                  partnerSide={partnerSide}
+                  partnerPosition={partnerPosition}
+                  teamId={teamId}
+                  partnerSearch={partnerSearch.data}
+                  partnerSearchPending={partnerSearch.isFetching}
+                  registerWithPartnerPending={registerWithPartner.isPending}
+                  partnerError={registerWithPartner.error}
+                  registerSeatPending={registerSeat.isPending}
+                  moveSeatPending={moveSeat.isPending}
+                  kickPending={kick.isPending}
+                  registerTeamPending={registerTeam.isPending}
+                  onPartnerQueryChange={setPartnerQuery}
+                  onSelectedPartnerChange={setSelectedPartner}
+                  onPartnerSideChange={setPartnerSide}
+                  onPartnerPositionChange={setPartnerPosition}
+                  onTeamIdChange={setTeamId}
+                  onRegisterSeat={(input) =>
+                    registerSeat.mutate({
+                      gameId: id,
+                      sideIndex: input?.sideIndex,
+                      position: input?.position,
+                    })
+                  }
+                  onMoveSeat={(sideIndex, position) =>
+                    moveSeat.mutate({ gameId: id, sideIndex, position })
+                  }
+                  onKick={(userId) => kick.mutate({ gameId: id, userId })}
+                  onKickWaitlist={(waitlistId) =>
+                    kick.mutate({ gameId: id, waitlistId })
+                  }
+                  onRegisterWithPartner={(input) =>
+                    registerWithPartner.mutate({ gameId: id, ...input })
+                  }
+                  onRegisterTeam={(nextTeamId) =>
+                    registerTeam.mutate({ gameId: id, teamId: nextTeamId })
+                  }
+                />
+              </div>
             </TabsContent>
             <TabsContent
               value="results"
@@ -1096,7 +1237,7 @@ export default function GameHomePage({
         />
       ) : null}
 
-      {usesFriendlyChrome ? (
+      {usesFriendlyChrome || usesPoolTournamentSeats ? (
         <FriendlyGameJoinSheet
           open={joinPickerOpen}
           onOpenChange={setJoinPickerOpen}

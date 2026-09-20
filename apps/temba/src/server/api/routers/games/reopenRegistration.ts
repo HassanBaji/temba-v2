@@ -13,6 +13,7 @@ import {
   requireGame,
   type GameRow,
 } from "~/server/games/access";
+import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -49,6 +50,7 @@ export async function reopenRegistration(
 ) {
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.userId);
+  assertPoolDrawNotPosted(game);
   await reopenRegistrationOnGame(database, game);
   return { ok: true as const };
 }

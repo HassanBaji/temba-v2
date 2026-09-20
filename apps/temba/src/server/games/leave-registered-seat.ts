@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { gamePlayers, gameTeamPlayers } from "@repo/db";
 
 import { type GameRow } from "~/server/games/access";
+import { isPoolDrawPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { removeGameTeamAndPlayers } from "~/server/games/remove-game-team-and-players";
 import { promoteWaitlist } from "~/server/games/promote-waitlist";
 import {
@@ -50,7 +51,22 @@ export async function leaveRegisteredSeat(
     where: eq(gameTeamPlayers.gamePlayerId, player.id),
   });
   if (link) {
-    await removeGameTeamAndPlayers(database, link.gameTeamId);
+    if (isPoolDrawPosted(game)) {
+      const occupants = await database.query.gameTeamPlayers.findMany({
+        where: eq(gameTeamPlayers.gameTeamId, link.gameTeamId),
+        columns: { id: true, gamePlayerId: true },
+      });
+      for (const occupant of occupants) {
+        await database
+          .delete(gameTeamPlayers)
+          .where(eq(gameTeamPlayers.id, occupant.id));
+        await database
+          .delete(gamePlayers)
+          .where(eq(gamePlayers.id, occupant.gamePlayerId));
+      }
+    } else {
+      await removeGameTeamAndPlayers(database, link.gameTeamId);
+    }
   } else {
     await database.delete(gamePlayers).where(eq(gamePlayers.id, player.id));
   }

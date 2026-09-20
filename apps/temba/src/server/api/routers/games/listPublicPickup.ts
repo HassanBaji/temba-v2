@@ -18,7 +18,7 @@ import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient = typeof db | TestDatabase;
 
-async function listPublicHubRows(
+export async function listPublicHubRows(
   database: DbClient,
   userId: string,
   now: Date = new Date(),

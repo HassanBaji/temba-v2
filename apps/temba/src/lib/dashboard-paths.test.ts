@@ -14,9 +14,11 @@ describe("titleFromPath", () => {
   });
 
   it("keeps other dashboard titles", () => {
-    assert.equal(titleFromPath("/dashboard"), "Home");
-    assert.equal(titleFromPath("/dashboard/invites"), "Invites");
-    assert.equal(titleFromPath("/dashboard/games"), "Games");
+    assert.equal(
+      titleFromPath("/dashboard/games/new-tournament"),
+      "Create tournament",
+    );
+    assert.equal(titleFromPath("/dashboard/games/new"), "Create Game");
   });
 });
 

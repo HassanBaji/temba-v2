@@ -14,6 +14,7 @@ import { HomeStanding } from "~/components/home/home-standing";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
 import { flattenSidesToHomeSeats } from "~/lib/home-seats";
+import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { api } from "~/trpc/react";
 
 function formatLabel(format: string) {
@@ -81,7 +82,11 @@ export default function HomePage() {
                 id={nextGame.id}
                 phase={nextGame.phase}
                 venueName={nextGame.venue?.name ?? "Game"}
-                formatLabel={formatLabel(String(nextGame.format))}
+                courtLabel={nextGame.courtName}
+                formatLabel={
+                  poolRoundLabel(nextGame.roundNumber, nextGame.roundCount) ??
+                  formatLabel(String(nextGame.format))
+                }
                 startsAt={new Date(nextGame.startTime)}
                 seats={flattenSidesToHomeSeats(nextGame.sides)}
               />
@@ -91,6 +96,7 @@ export default function HomePage() {
             <HomeComingUp
               games={comingUp.map((game) => ({
                 id: game.id,
+                rowKey: game.matchId ?? game.id,
                 venueName: game.venue?.name ?? "Game",
                 startsAt: new Date(game.startTime),
                 seatsTaken: game.registeredUserCount,

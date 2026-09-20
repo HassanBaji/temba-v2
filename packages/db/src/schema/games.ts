@@ -46,6 +46,8 @@ export const games = pgTable("games", {
   windowEnd: timestamp("window_end"),
   playersAllowed: integer("players_allowed"),
   teamsAllowed: integer("teams_allowed"),
+  poolCount: integer("pool_count"),
+  drawPostedAt: timestamp("draw_posted_at"),
   pricePerPlayerCents: integer("price_per_player_cents"),
   levelMinTenths: integer("level_min_tenths"),
   levelMaxTenths: integer("level_max_tenths"),

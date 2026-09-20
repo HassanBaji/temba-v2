@@ -47,3 +47,39 @@ export function preferredJoinSeat(
     ) ?? null
   );
 }
+
+/** Remaining Position on a Half team, or `null` when both are open or taken. */
+export function remainingJoinSeatOnSide(side: {
+  sideIndex: number;
+  left: unknown;
+  right: unknown;
+}): FriendlyGameJoinSeat | null {
+  const leftOpen = side.left == null;
+  const rightOpen = side.right == null;
+  if (leftOpen === rightOpen) {
+    return null;
+  }
+  return {
+    sideIndex: side.sideIndex,
+    position: leftOpen ? "left" : "right",
+  };
+}
+
+/**
+ * Opening pick for the join sheet. A lone vacant Position is chosen rather
+ * than asked. Otherwise Preferred Position is the default and never a rule.
+ */
+export function defaultJoinSeat(
+  sides: readonly {
+    sideIndex: number;
+    left: unknown;
+    right: unknown;
+  }[],
+  preferredPosition: string | null | undefined,
+): FriendlyGameJoinSeat | null {
+  const vacant = vacantJoinSeats(sides);
+  if (vacant.length === 1) {
+    return vacant[0] ?? null;
+  }
+  return preferredJoinSeat(sides, preferredPosition);
+}

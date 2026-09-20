@@ -391,7 +391,7 @@ describe("listMyMatchHistoryRows", () => {
     }
   });
 
-  it("excludes Friendly tournament and Americano even with completed Matches", async () => {
+  it("includes completed Friendly tournament Matches and still excludes Americano", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "format-viewer@example.com");
@@ -404,6 +404,9 @@ describe("listMyMatchHistoryRows", () => {
         createdBy: viewer.id,
         venueId: venue.id,
         format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+        name: "Autumn Friendly",
+        windowStart: PAST_START,
+        windowEnd: LIVE_END,
       });
       await seatCompletedFriendly(db, {
         gameId: tournament.game.id,
@@ -411,6 +414,28 @@ describe("listMyMatchHistoryRows", () => {
         slot1: { left: viewer, right: partner },
         slot2: { left: oppLeft, right: oppRight },
         sets: [{ slot1GamesWon: 6, slot2GamesWon: 1 }],
+      });
+      const firstMatch = await db.query.matches.findFirst({
+        where: eq(matches.id, tournament.match.id),
+      });
+      const [laterPoolMatch] = await db
+        .insert(matches)
+        .values({
+          gameId: tournament.game.id,
+          startTime: new Date("2026-08-15T18:00:00.000Z"),
+          status: MatchStatusEnum.COMPLETED,
+          slot1GameTeamId: firstMatch?.slot1GameTeamId,
+          slot2GameTeamId: firstMatch?.slot2GameTeamId,
+        })
+        .returning();
+      if (!laterPoolMatch) {
+        throw new Error("Failed to insert later Pool Match");
+      }
+      await db.insert(matchSets).values({
+        matchId: laterPoolMatch.id,
+        setNumber: await nextMatchSetNumber(db, laterPoolMatch.id),
+        slot1GamesWon: 4,
+        slot2GamesWon: 6,
       });
 
       const americano = await insertGame(db, {
@@ -426,7 +451,19 @@ describe("listMyMatchHistoryRows", () => {
         sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
       });
 
-      expect(await listMyMatchHistoryRows(db, viewer.id, NOW)).toEqual([]);
+      const rows = await listMyMatchHistoryRows(db, viewer.id, NOW);
+      expect(rows.map((row) => row.matchId).sort()).toEqual(
+        [tournament.match.id, laterPoolMatch.id].sort(),
+      );
+      expect(
+        rows.every((row) => row.format === GameFormatEnum.FRIENDLY_TOURNAMENT),
+      ).toBe(true);
+      expect(
+        rows.find((row) => row.matchId === tournament.match.id)?.outcome,
+      ).toBe("won");
+      expect(
+        rows.find((row) => row.matchId === laterPoolMatch.id)?.outcome,
+      ).toBe("lost");
     } finally {
       await close();
     }

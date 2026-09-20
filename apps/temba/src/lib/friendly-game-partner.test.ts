@@ -192,6 +192,13 @@ describe("offersPartnerJoin", () => {
   it("skips an Americano", () => {
     assert.equal(offersPartnerJoin(input({ format: "americano" })), false);
   });
+
+  it("offers the partner path on an individual Friendly tournament", () => {
+    assert.equal(
+      offersPartnerJoin(input({ format: "friendly_tournament" })),
+      true,
+    );
+  });
 });
 
 describe("seedPartnerCallerPosition", () => {

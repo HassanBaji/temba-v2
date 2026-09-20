@@ -57,6 +57,11 @@ export type HubListRow = {
   canRegister: boolean;
   canWaitlist: boolean;
   sides: HubListSide[];
+  /** Set when My Games / Home expand a posted Pool Match into its own row. */
+  matchId: string | null;
+  roundNumber: number | null;
+  roundCount: number | null;
+  courtName: string | null;
 };
 
 export type GameCreateGroupKind = "club" | "loose" | "none";

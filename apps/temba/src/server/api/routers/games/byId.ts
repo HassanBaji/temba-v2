@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   MatchStatusEnum,
+  gameCourts,
   gamePlayers,
   gameTeams,
   gameWaitlist,
@@ -51,6 +52,7 @@ import {
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
 import { matchOutcome } from "~/server/games/match-outcome";
+import { computePoolTables } from "~/server/games/pool-table";
 import { setWinsForGames } from "~/server/games/set-wins-for-games";
 import {
   bandFromLevel,
@@ -189,6 +191,13 @@ export async function gameById(
       },
     },
     orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+
+  const recordedCourtRows = await database.query.gameCourts.findMany({
+    where: eq(gameCourts.gameId, game.id),
+    with: {
+      court: { columns: { id: true, name: true } },
+    },
   });
 
   const teamRows = await database.query.gameTeams.findMany({
@@ -545,6 +554,8 @@ export async function gameById(
     levelMaxTenths: game.levelMaxTenths,
     playersAllowed: game.playersAllowed,
     teamsAllowed: game.teamsAllowed,
+    poolCount: game.poolCount,
+    drawPostedAt: game.drawPostedAt,
     sport: game.sport,
     cancelledAt: game.cancelledAt,
     registrationClosedAt: game.registrationClosedAt,
@@ -601,6 +612,7 @@ export async function gameById(
           startTime: match.startTime,
           endTime: match.endTime,
           durationInMinutes: match.durationInMinutes,
+          roundNumber: match.roundNumber,
           status: match.status,
           courtId: match.courtId,
           courtName: match.court?.name ?? null,
@@ -632,6 +644,7 @@ export async function gameById(
       teamId: row.teamId,
       name: row.name,
       sideIndex: row.sideIndex,
+      poolIndex: row.poolIndex,
       members: row.players.flatMap((link) =>
         link.gamePlayer.user
           ? [
@@ -662,9 +675,53 @@ export async function gameById(
           ]
         : [],
     ),
+    recordedCourts: recordedCourtRows
+      .flatMap((row) =>
+        row.court ? [{ id: row.court.id, name: row.court.name }] : [],
+      )
+      .sort((left, right) => {
+        const byName = left.name.localeCompare(right.name);
+        if (byName !== 0) {
+          return byName;
+        }
+        return left.id.localeCompare(right.id);
+      }),
     eligibleTeams,
     ...levelRange,
     pendingLevelRangeRequests,
+    poolTables: computePoolTables({
+      format: game.format,
+      poolCount: game.poolCount,
+      viewerUserId: args.userId,
+      gameTeams: teamRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        sideIndex: row.sideIndex,
+        poolIndex: row.poolIndex,
+        members: row.players.flatMap((link) =>
+          link.gamePlayer.user
+            ? [
+                {
+                  id: link.gamePlayer.user.id,
+                  name: link.gamePlayer.user.name,
+                },
+              ]
+            : [],
+        ),
+      })),
+      matches: matchRows.map((match) => ({
+        id: match.id,
+        status: match.status,
+        roundNumber: match.roundNumber,
+        startTime: match.startTime,
+        slot1GameTeamId: match.slot1GameTeamId,
+        slot2GameTeamId: match.slot2GameTeamId,
+        sets: match.sets.map((set) => ({
+          slot1GamesWon: set.slot1GamesWon,
+          slot2GamesWon: set.slot2GamesWon,
+        })),
+      })),
+    }),
   };
 }
 

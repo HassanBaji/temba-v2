@@ -55,14 +55,16 @@ export function firstFullyVacantSideIndex(
 }
 
 /**
- * Offer the partner chooser only on an individual Friendly game the viewer
- * may register onto, with at least one fully vacant side. Team-only,
- * Americano, full Games, and viewers who cannot register are all false.
+ * Offer the partner chooser only on an individual Friendly game or Friendly
+ * tournament the viewer may register onto, with at least one fully vacant
+ * side. Team-only, Americano, full Games, and viewers who cannot register
+ * are all false.
  */
 export function offersPartnerJoin(input: OffersPartnerJoinInput): boolean {
   return (
     input.canRegister &&
-    input.format === "friendly_game" &&
+    (input.format === "friendly_game" ||
+      input.format === "friendly_tournament") &&
     input.registrationMode === "individual" &&
     hasFullyVacantSide(input.sides)
   );

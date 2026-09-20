@@ -13,6 +13,8 @@ import { completeMatchProcedure as completeMatch } from "./completeMatch";
 import { confirmMatchResultProcedure as confirmMatchResult } from "./confirmMatchResult";
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
+import { createTournamentProcedure as createTournament } from "./createTournament";
+import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { getSecretMessage } from "./getSecretMessage";
 import { hello } from "./hello";
@@ -28,8 +30,11 @@ import { listMyGames } from "./listMyGames";
 import { listMyMatchHistory } from "./listMyMatchHistory";
 import { listPartnerSuggestionsProcedure as listPartnerSuggestions } from "./listPartnerSuggestions";
 import { listPublicPickup } from "./listPublicPickup";
+import { mergeHalfTeamsProcedure as mergeHalfTeams } from "./mergeHalfTeams";
 import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
+import { poolTablesProcedure as poolTables } from "./poolTables";
+import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { registerProcedure as register } from "./register";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
@@ -45,6 +50,7 @@ import { scoreSetProcedure as scoreSet } from "./scoreSet";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { searchPartnerUsersProcedure as searchPartnerUsers } from "./searchPartnerUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
+import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
 import { updateLevelRange } from "./updateLevelRange";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
@@ -59,7 +65,12 @@ export const gamesRouter = createTRPCRouter({
   listCreateVenues,
   listCreateGroups,
   create,
+  createTournament,
+  drawPools,
+  postPoolDraw,
+  undoPoolDraw,
   byId,
+  poolTables,
   register,
   registerSeat,
   moveSeat,
@@ -67,6 +78,7 @@ export const gamesRouter = createTRPCRouter({
   listPartnerSuggestions,
   registerWithPartner,
   registerTeam,
+  mergeHalfTeams,
   leave,
   leaveWaitlist,
   kick,

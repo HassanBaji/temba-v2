@@ -24,6 +24,7 @@ import {
   showsFriendlyRoster,
   showsGameCardPartnerFooter,
 } from "~/lib/game-summary-cta";
+import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { PlusIcon } from "lucide-react";
 
@@ -131,12 +132,11 @@ function GamesHubTabPanel({
     <ul className="flex flex-col gap-3">
       {games.map((game) => {
         const primaryAction = gameSummaryPrimaryAction(game);
-        const rosterSides = showsFriendlyRoster(
-          game.format,
-          game.registrationMode,
-        )
-          ? game.sides
-          : undefined;
+        const rosterSides =
+          showsFriendlyRoster(game.format, game.registrationMode) ||
+          game.matchId
+            ? game.sides
+            : undefined;
         const showPartnerJoin =
           showsGameCardPartnerFooter(primaryAction, rosterSides) &&
           offersPartnerJoin({
@@ -147,7 +147,7 @@ function GamesHubTabPanel({
           });
         return (
           <GameSummaryCard
-            key={game.id}
+            key={game.matchId ?? game.id}
             gameId={game.id}
             name={game.name}
             startTime={game.startTime}
@@ -170,6 +170,8 @@ function GamesHubTabPanel({
             actionPending={pendingGameId === game.id}
             href={`/dashboard/games/${game.id}`}
             showPartnerJoin={showPartnerJoin}
+            roundLabel={poolRoundLabel(game.roundNumber, game.roundCount)}
+            courtName={game.courtName}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
             }}
@@ -244,7 +246,7 @@ function HistoryTabPanel({
   return (
     <ul className="flex flex-col gap-3">
       {rows.map((row) => (
-        <MatchHistoryCard key={row.id} row={row} />
+        <MatchHistoryCard key={row.matchId} row={row} />
       ))}
     </ul>
   );
