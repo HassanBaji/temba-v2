@@ -1,16 +1,63 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { gameWaitlist } from "@repo/db";
+import {
+  MatchStatusEnum,
+  gamePlayers,
+  gameTeamPlayers,
+  gameWaitlist,
+  matches,
+} from "@repo/db";
 
+import { isPoolTournament } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
+import { isPoolDrawPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { leaveRegisteredSeat } from "~/server/games/leave-registered-seat";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function registeredGameTeamId(
+  database: DbClient,
+  gameId: string,
+  userId: string,
+) {
+  const player = await database.query.gamePlayers.findFirst({
+    where: and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.userId, userId)),
+    columns: { id: true },
+  });
+  if (!player) {
+    return null;
+  }
+  const link = await database.query.gameTeamPlayers.findFirst({
+    where: eq(gameTeamPlayers.gamePlayerId, player.id),
+    columns: { gameTeamId: true },
+  });
+  return link?.gameTeamId ?? null;
+}
+
+async function cancelUnplayedPoolMatchesForGameTeam(
+  database: DbClient,
+  args: { gameId: string; gameTeamId: string },
+) {
+  const now = new Date();
+  await database
+    .update(matches)
+    .set({ status: MatchStatusEnum.CANCELLED, updatedAt: now })
+    .where(
+      and(
+        eq(matches.gameId, args.gameId),
+        ne(matches.status, MatchStatusEnum.COMPLETED),
+        or(
+          eq(matches.slot1GameTeamId, args.gameTeamId),
+          eq(matches.slot2GameTeamId, args.gameTeamId),
+        ),
+      ),
+    );
+}
 
 export async function kick(
   database: DbClient,
@@ -49,6 +96,18 @@ export async function kick(
   }
   const userId = args.userId;
   await database.transaction(async (tx) => {
+    if (
+      isPoolTournament(game.format, game.poolCount) &&
+      isPoolDrawPosted(game)
+    ) {
+      const gameTeamId = await registeredGameTeamId(tx, game.id, userId);
+      if (gameTeamId) {
+        await cancelUnplayedPoolMatchesForGameTeam(tx, {
+          gameId: game.id,
+          gameTeamId,
+        });
+      }
+    }
     await leaveRegisteredSeat(
       tx,
       game,

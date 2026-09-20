@@ -15,6 +15,7 @@ import {
   type GameRow,
   registeredUserCount,
 } from "~/server/games/access";
+import { isPoolDrawPosted } from "~/server/games/assert-pool-draw-not-posted";
 import type {
   GameSide,
   SeatOccupant,
@@ -448,7 +449,7 @@ export async function vacateSeat(
   await database.delete(gamePlayers).where(eq(gamePlayers.id, player.id));
 
   const remaining = await gameTeamPlayerCount(database, link.gameTeamId);
-  if (remaining === 0) {
+  if (remaining === 0 && !isPoolDrawPosted(game)) {
     await clearMatchSlotsForGameTeam(database, link.gameTeamId);
     await database.delete(gameTeams).where(eq(gameTeams.id, link.gameTeamId));
   }
