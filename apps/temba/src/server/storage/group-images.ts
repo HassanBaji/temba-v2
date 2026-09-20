@@ -1,7 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import { TRPCError } from "@trpc/server";
 
-import { env } from "~/env";
+import { deleteS3Object, getS3Object, putS3Object } from "~/server/storage/s3";
 
 export const GROUP_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -56,13 +55,7 @@ export function detectGroupImageContentType(
 }
 
 function groupImageObjectPath(groupId: string): string {
-  return `${groupId}/image`;
-}
-
-function createSupabaseAdmin() {
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return `group-images/${groupId}/image`;
 }
 
 export function decodeGroupImageBase64(dataBase64: string): Buffer {
@@ -101,37 +94,40 @@ export async function uploadGroupImageObject(input: {
   bytes: Buffer;
   contentType: GroupImageContentType;
 }): Promise<string> {
-  const supabase = createSupabaseAdmin();
-  const path = groupImageObjectPath(input.groupId);
-  const { error } = await supabase.storage
-    .from(env.SUPABASE_GROUP_IMAGES_BUCKET)
-    .upload(path, input.bytes, {
+  try {
+    await putS3Object({
+      key: groupImageObjectPath(input.groupId),
+      body: input.bytes,
       contentType: input.contentType,
-      upsert: true,
     });
-
-  if (error) {
+  } catch {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to upload Group image",
     });
   }
 
-  const { data } = supabase.storage
-    .from(env.SUPABASE_GROUP_IMAGES_BUCKET)
-    .getPublicUrl(path);
+  return `/api/media/group-images/${input.groupId}/image?v=${Date.now()}`;
+}
 
-  return data.publicUrl;
+export async function getGroupImageObject(groupId: string): Promise<{
+  bytes: Uint8Array;
+  contentType: string;
+} | null> {
+  const object = await getS3Object(groupImageObjectPath(groupId));
+  if (!object) {
+    return null;
+  }
+  return {
+    bytes: object.body,
+    contentType: object.contentType ?? "application/octet-stream",
+  };
 }
 
 export async function removeGroupImageObject(groupId: string): Promise<void> {
-  const supabase = createSupabaseAdmin();
-  const path = groupImageObjectPath(groupId);
-  const { error } = await supabase.storage
-    .from(env.SUPABASE_GROUP_IMAGES_BUCKET)
-    .remove([path]);
-
-  if (error) {
+  try {
+    await deleteS3Object(groupImageObjectPath(groupId));
+  } catch {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to clear Group image",

@@ -262,14 +262,14 @@ describe("listPublic", () => {
         .update(groups)
         .set({
           imageUrl:
-            "https://example.supabase.co/storage/v1/object/public/group-images/public/image",
+            "/api/media/group-images/public/image?v=1",
         })
         .where(eq(groups.id, pictured.id));
 
       const rows = await listPublic(db, { userId: viewer.id });
       const byId = new Map(rows.map((row) => [row.id, row]));
       expect(byId.get(pictured.id)?.imageUrl).toBe(
-        "https://example.supabase.co/storage/v1/object/public/group-images/public/image",
+        "/api/media/group-images/public/image?v=1",
       );
       expect(byId.get(plain.id)?.imageUrl).toBeNull();
     } finally {

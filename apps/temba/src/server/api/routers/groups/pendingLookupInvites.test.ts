@@ -9,7 +9,7 @@ import { sendLookupInvite } from "~/server/api/routers/groups/sendLookupInvite";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 const STORED_URL =
-  "https://example.supabase.co/storage/v1/object/public/group-images/invite/image";
+  "/api/media/group-images/invite/image?v=1";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database
