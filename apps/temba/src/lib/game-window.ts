@@ -198,13 +198,17 @@ function combineDateAndTime(day: string, time: string): Date | undefined {
   return combined;
 }
 
+export function parseGameDateTime(day: string, time: string): Date | undefined {
+  return combineDateAndTime(day, snapTimeInputValue(time));
+}
+
 export function parseRequiredGameWindow(
   day: string,
   startTime: string,
   finishTime: string,
 ): { windowStart: Date; windowEnd: Date } | undefined {
-  const windowStart = combineDateAndTime(day, snapTimeInputValue(startTime));
-  const windowEnd = combineDateAndTime(day, snapTimeInputValue(finishTime));
+  const windowStart = parseGameDateTime(day, startTime);
+  const windowEnd = parseGameDateTime(day, finishTime);
   if (!windowStart || !windowEnd) {
     return undefined;
   }

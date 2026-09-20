@@ -13,6 +13,7 @@ import { completeMatchProcedure as completeMatch } from "./completeMatch";
 import { confirmMatchResultProcedure as confirmMatchResult } from "./confirmMatchResult";
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
+import { createTournamentProcedure as createTournament } from "./createTournament";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { getSecretMessage } from "./getSecretMessage";
 import { hello } from "./hello";
@@ -59,6 +60,7 @@ export const gamesRouter = createTRPCRouter({
   listCreateVenues,
   listCreateGroups,
   create,
+  createTournament,
   byId,
   register,
   registerSeat,

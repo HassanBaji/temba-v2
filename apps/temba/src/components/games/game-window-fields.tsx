@@ -101,10 +101,11 @@ export function GameWindowFields({
   onFinishTimeChange,
   startError,
   finishError,
+  includeFinish = true,
 }: {
   dayId: string;
   startId: string;
-  finishId: string;
+  finishId?: string;
   day: string;
   startTime: string;
   finishTime: string;
@@ -113,6 +114,7 @@ export function GameWindowFields({
   onFinishTimeChange: (value: string) => void;
   startError?: string;
   finishError?: string;
+  includeFinish?: boolean;
 }) {
   const [dayOpen, setDayOpen] = React.useState(false);
   const dayButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -148,10 +150,17 @@ export function GameWindowFields({
       startTime && slots.includes(startTime)
         ? slots.filter((slot) => slot >= startTime)
         : slots;
-    if (finishTime && !nextFinishSlots.includes(finishTime)) {
+    if (includeFinish && finishTime && !nextFinishSlots.includes(finishTime)) {
       onFinishTimeChange("");
     }
-  }, [day, finishTime, onFinishTimeChange, onStartTimeChange, startTime]);
+  }, [
+    day,
+    finishTime,
+    includeFinish,
+    onFinishTimeChange,
+    onStartTimeChange,
+    startTime,
+  ]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -210,7 +219,9 @@ export function GameWindowFields({
           }}
         />
       </Field>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div
+        className={includeFinish ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}
+      >
         <Field>
           <FieldLabel htmlFor={startId}>Start time</FieldLabel>
           <TimeSlotSelect
@@ -218,7 +229,7 @@ export function GameWindowFields({
             value={startTime}
             onChange={(next) => {
               onStartTimeChange(next);
-              if (finishTime && finishTime < next) {
+              if (includeFinish && finishTime && finishTime < next) {
                 onFinishTimeChange("");
               }
             }}
@@ -227,22 +238,24 @@ export function GameWindowFields({
           />
           <FieldError id={`${startId}-error`}>{startError}</FieldError>
         </Field>
-        <Field>
-          <FieldLabel htmlFor={finishId}>Finish time</FieldLabel>
-          <TimeSlotSelect
-            id={finishId}
-            value={finishTime}
-            onChange={onFinishTimeChange}
-            error={finishError}
-            slots={finishSlots}
-          />
-          <FieldError id={`${finishId}-error`}>{finishError}</FieldError>
-        </Field>
+        {includeFinish && finishId ? (
+          <Field>
+            <FieldLabel htmlFor={finishId}>Finish time</FieldLabel>
+            <TimeSlotSelect
+              id={finishId}
+              value={finishTime}
+              onChange={onFinishTimeChange}
+              error={finishError}
+              slots={finishSlots}
+            />
+            <FieldError id={`${finishId}-error`}>{finishError}</FieldError>
+          </Field>
+        ) : null}
       </div>
       <FieldDescription id={`${dayId}-description`}>
-        Day, start time, and finish time are required. Pick today or a later
-        day. Times are in 30-minute intervals; for today, only upcoming times
-        are listed.
+        {includeFinish
+          ? "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed."
+          : "Day and start time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed."}
       </FieldDescription>
     </div>
   );

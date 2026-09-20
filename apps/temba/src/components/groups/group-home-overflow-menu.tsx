@@ -71,6 +71,15 @@ export function GroupHomeOverflowMenu({
                 </Link>
               </ActionMenuItem>
             ) : null}
+            {item === "create_tournament" ? (
+              <ActionMenuItem asChild>
+                <Link
+                  href={`/dashboard/games/new-tournament?groupId=${groupId}`}
+                >
+                  Create tournament
+                </Link>
+              </ActionMenuItem>
+            ) : null}
             {item === "copy_group_url" ? (
               <ActionMenuItem onSelect={onCopyGroupUrl}>
                 Copy Group URL
