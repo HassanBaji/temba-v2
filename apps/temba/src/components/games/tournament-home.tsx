@@ -91,6 +91,9 @@ export function TournamentHome({
   onKick,
   onKickWaitlist,
   onMerge,
+  onDraw,
+  onPost,
+  onUndo,
 }: {
   data: GameDetail;
   sharePending: boolean;
