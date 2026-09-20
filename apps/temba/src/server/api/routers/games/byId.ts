@@ -52,6 +52,7 @@ import {
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
 import { matchOutcome } from "~/server/games/match-outcome";
+import { computePoolTables } from "~/server/games/pool-table";
 import { setWinsForGames } from "~/server/games/set-wins-for-games";
 import {
   bandFromLevel,
@@ -688,6 +689,39 @@ export async function gameById(
     eligibleTeams,
     ...levelRange,
     pendingLevelRangeRequests,
+    poolTables: computePoolTables({
+      format: game.format,
+      poolCount: game.poolCount,
+      viewerUserId: args.userId,
+      gameTeams: teamRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        sideIndex: row.sideIndex,
+        poolIndex: row.poolIndex,
+        members: row.players.flatMap((link) =>
+          link.gamePlayer.user
+            ? [
+                {
+                  id: link.gamePlayer.user.id,
+                  name: link.gamePlayer.user.name,
+                },
+              ]
+            : [],
+        ),
+      })),
+      matches: matchRows.map((match) => ({
+        id: match.id,
+        status: match.status,
+        roundNumber: match.roundNumber,
+        startTime: match.startTime,
+        slot1GameTeamId: match.slot1GameTeamId,
+        slot2GameTeamId: match.slot2GameTeamId,
+        sets: match.sets.map((set) => ({
+          slot1GamesWon: set.slot1GamesWon,
+          slot2GamesWon: set.slot2GamesWon,
+        })),
+      })),
+    }),
   };
 }
 

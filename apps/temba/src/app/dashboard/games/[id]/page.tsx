@@ -31,6 +31,7 @@ import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
 import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
+import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
 import { TournamentUndrawnNotice } from "~/components/games/tournament-undrawn-notice";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
@@ -1069,6 +1070,9 @@ export default function GameHomePage({
                 data.matches.length === 0 &&
                 !data.cancelledAt ? (
                   <TournamentUndrawnNotice />
+                ) : null}
+                {data.drawPostedAt && data.poolTables?.pools.length ? (
+                  <TournamentPoolTablesPanel poolTables={data.poolTables} />
                 ) : null}
                 <GameOverviewPanel game={data} />
               </div>

@@ -65,6 +65,7 @@ type ExpectedGames =
   | "postPoolDraw"
   | "undoPoolDraw"
   | "byId"
+  | "poolTables"
   | "register"
   | "registerSeat"
   | "moveSeat"
