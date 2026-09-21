@@ -110,6 +110,25 @@ export function gameDetailsChrome(
   return "tabs";
 }
 
+export type TournamentHomeJoinKind = "join" | "register_team";
+
+/** Complete Teams register a Team. Individual Join needs the mounted seat sheet. */
+export function tournamentHomeJoinKind(
+  registrationMode: string,
+  canRegister: boolean,
+): TournamentHomeJoinKind | null {
+  if (!canRegister) {
+    return null;
+  }
+  if (registrationMode === "team_only") {
+    return "register_team";
+  }
+  if (registrationMode === "individual") {
+    return "join";
+  }
+  return null;
+}
+
 export function tournamentFieldSummary(
   sides: readonly { left: unknown; right: unknown }[],
 ): TournamentFieldSummary {
@@ -197,6 +216,14 @@ export function tournamentTeamRows(
 }
 
 export function tournamentTeamsCountLine(full: number, open: number): string {
+  if (full <= 0 && open <= 0) {
+    return "";
+  }
+  if (full <= 0) {
+    return open === 1
+      ? "1 with a Position open"
+      : `${open} with a Position open`;
+  }
   const fullPart = `${full} full`;
   if (open <= 0) {
     return fullPart;

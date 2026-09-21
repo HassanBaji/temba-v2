@@ -17,6 +17,7 @@ import {
 } from "@repo/db";
 
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
+import { isPoolTournament } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -336,9 +337,10 @@ export async function gameById(
       ? [{ id: row.user.id, name: row.user.name, image: row.user.image }]
       : [],
   );
-  const sides = isIndividualSeatGame(game)
-    ? await listGameSides(database, game)
-    : [];
+  const sides =
+    isIndividualSeatGame(game) || isPoolTournament(game.format, game.poolCount)
+      ? await listGameSides(database, game)
+      : [];
   const canPickSeat =
     alreadyOnGame &&
     !isSeated &&

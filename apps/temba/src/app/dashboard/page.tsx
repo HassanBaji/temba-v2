@@ -13,7 +13,7 @@ import { HomeRecentForm } from "~/components/home/home-recent-form-row";
 import { HomeStanding } from "~/components/home/home-standing";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
-import { flattenSidesToHomeSeats } from "~/lib/home-seats";
+import { homeNextGameSeats } from "~/lib/home-seats";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { api } from "~/trpc/react";
 
@@ -88,7 +88,11 @@ export default function HomePage() {
                   formatLabel(String(nextGame.format))
                 }
                 startsAt={new Date(nextGame.startTime)}
-                seats={flattenSidesToHomeSeats(nextGame.sides)}
+                seats={homeNextGameSeats(
+                  nextGame.sides,
+                  nextGame.registeredUserCount,
+                  nextGame.playersAllowed,
+                )}
               />
             ) : (
               <HomeNoGames />

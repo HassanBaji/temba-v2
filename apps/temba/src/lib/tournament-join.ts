@@ -2,7 +2,7 @@ import { formatGameCardDay } from "~/lib/format-game-start";
 import type { FriendlyGameJoinSeat } from "~/lib/friendly-game-cta";
 import { firstFullyVacantSideIndex } from "~/lib/friendly-game-partner";
 import { isPreferredPosition } from "~/lib/preferred-position";
-import { remainingJoinSeatOnSide } from "~/lib/preferred-seat";
+import { remainingJoinSeatOnSide, defaultJoinSeat } from "~/lib/preferred-seat";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
@@ -183,6 +183,18 @@ export function tournamentJoinResolvedSeat(
     return seat;
   }
   return remainingJoinSeatOnSide(side);
+}
+
+export function tournamentJoinOpeningSeat(
+  sides: readonly TournamentJoinSide[],
+  preferredPosition: string | null | undefined,
+  initialSeat: FriendlyGameJoinSeat | null,
+): FriendlyGameJoinSeat | null {
+  const raw =
+    initialSeat ??
+    defaultJoinSeat(sides, preferredPosition) ??
+    tournamentStartOwnSeat(sides, preferredPosition, null);
+  return tournamentJoinResolvedSeat(sides, raw);
 }
 
 export function tournamentJoinSeatExplanation(args: {

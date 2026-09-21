@@ -35,8 +35,7 @@ export function TournamentTeamsSection({
   const [expanded, setExpanded] = useState(false);
   const field = tournamentFieldSummary(sides);
   const view = tournamentTeamRows(sides, viewerUserId);
-  const openCount = sides.length - field.full;
-  const countLine = tournamentTeamsCountLine(field.full, openCount);
+  const countLine = tournamentTeamsCountLine(field.full, field.halfOpen);
   const collapsible = view.collapsedCount > 0;
   const middle = expanded ? view.collapsed : [];
 
@@ -46,7 +45,9 @@ export function TournamentTeamsSection({
         <h2 className="font-expanded text-[19px] tracking-[-0.03em]">
           {TEAMS_HEADING}
         </h2>
-        <p className="text-muted-foreground text-[13px]">{countLine}</p>
+        {countLine ? (
+          <p className="text-muted-foreground text-[13px]">{countLine}</p>
+        ) : null}
       </div>
       <RowList
         aria-label={TEAMS_HEADING}

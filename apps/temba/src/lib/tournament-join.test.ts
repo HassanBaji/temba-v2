@@ -25,6 +25,7 @@ import {
   tournamentJoinSeatsTakenLine,
   tournamentJoinTakeSeatLabel,
   tournamentSitWithCountLine,
+  tournamentJoinOpeningSeat,
   tournamentStartOwnSeat,
   tournamentYourSeatAvailability,
 } from "./tournament-join";
@@ -95,6 +96,55 @@ describe("tournamentYourSeatAvailability", () => {
     const availability = tournamentYourSeatAvailability(undefined);
     assert.equal(availability.leftTaken, true);
     assert.equal(availability.rightTaken, true);
+  });
+});
+
+describe("tournamentJoinOpeningSeat", () => {
+  function vacantField() {
+    return Array.from({ length: 12 }, (_, index) =>
+      side(index + 1, null, null),
+    );
+  }
+
+  it("lets a User join a vacant tournament when Preferred Position is unset", () => {
+    const sides = vacantField();
+    const opening = tournamentJoinOpeningSeat(sides, null, null);
+    assert.deepEqual(opening, { sideIndex: 1, position: "left" });
+    const availability = tournamentYourSeatAvailability(
+      sides.find((row) => row.sideIndex === opening?.sideIndex),
+    );
+    assert.equal(availability.leftTaken, false);
+    assert.equal(availability.rightTaken, false);
+  });
+
+  it("lets a User join a vacant tournament when Preferred Position is either", () => {
+    const sides = vacantField();
+    const opening = tournamentJoinOpeningSeat(sides, "either", null);
+    assert.deepEqual(opening, { sideIndex: 1, position: "left" });
+    assert.equal(
+      tournamentYourSeatAvailability(
+        sides.find((row) => row.sideIndex === opening?.sideIndex),
+      ).leftTaken,
+      false,
+    );
+  });
+
+  it("still opens on a Preferred Position when one is set", () => {
+    assert.deepEqual(tournamentJoinOpeningSeat(vacantField(), "right", null), {
+      sideIndex: 1,
+      position: "right",
+    });
+  });
+
+  it("keeps a Take-seat pick on a named Game team", () => {
+    const sides = [side(1, rashid, null), side(2, null, null)];
+    assert.deepEqual(
+      tournamentJoinOpeningSeat(sides, null, {
+        sideIndex: 1,
+        position: "right",
+      }),
+      { sideIndex: 1, position: "right" },
+    );
   });
 });
 

@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 
 import { initials } from "~/lib/initials";
-import type { HomeSeatView } from "~/lib/home-seats";
+import { homeSpotsOpenLabel, type HomeSeatView } from "~/lib/home-seats";
 import { cn } from "~/lib/utils";
 import { UserAvatar } from "../common/user-avatar";
 
@@ -86,6 +86,7 @@ export function HomeSeatRow({ seats }: { seats: HomeSeatView[] }) {
   const open = seats.length - filled;
   const useInitials = seats.length > 6;
   const sides = seatsBySide(seats);
+  const spotsLabel = homeSpotsOpenLabel(open, seats.length);
 
   return (
     <div className="space-y-2">
@@ -93,13 +94,7 @@ export function HomeSeatRow({ seats }: { seats: HomeSeatView[] }) {
         <p>
           {filled} of {seats.length} players in
         </p>
-        <p>
-          {open === 0
-            ? "Full"
-            : open === 1
-              ? "One spot open"
-              : `${open} spots open`}
-        </p>
+        {spotsLabel ? <p>{spotsLabel}</p> : null}
       </div>
       <div className="flex items-center gap-1">
         {sides.map((sideSeats, index) => (

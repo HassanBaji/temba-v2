@@ -913,8 +913,22 @@ export default function GameHomePage({
               onInvite={
                 canManageGameInvites ? () => setInvitesOpen(true) : undefined
               }
-              onJoin={(seat) => openJoinPicker(seat)}
-              onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
+              onJoin={
+                usesPoolTournamentSeats
+                  ? (seat) => openJoinPicker(seat)
+                  : undefined
+              }
+              onJoinWaitlist={
+                usesPoolTournamentSeats
+                  ? () => registerSeat.mutate({ gameId: id })
+                  : undefined
+              }
+              teamId={teamId}
+              onTeamIdChange={setTeamId}
+              onRegisterTeam={(nextTeamId) =>
+                registerTeam.mutate({ gameId: id, teamId: nextTeamId })
+              }
+              registerTeamPending={registerTeam.isPending}
               onLeaveGame={() => setLeaveGameOpen(true)}
               onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
               onEdit={() => setEditOpen(true)}

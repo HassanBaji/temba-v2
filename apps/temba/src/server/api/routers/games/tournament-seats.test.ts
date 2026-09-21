@@ -13,6 +13,15 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { vacantJoinSeats } from "~/lib/friendly-game-cta";
+import { gameSummaryPrimaryAction } from "~/lib/game-summary-cta";
+import {
+  tournamentFieldSummary,
+  tournamentStatusLine,
+  tournamentTeamRows,
+  tournamentTeamsCountLine,
+} from "~/lib/tournament-home";
+import { tournamentStartOwnSeat } from "~/lib/tournament-join";
 import { acceptInviteLink } from "~/server/api/routers/games/acceptInviteLink";
 import { acceptLookupInvite } from "~/server/api/routers/games/acceptLookupInvite";
 import { gameById } from "~/server/api/routers/games/byId";
@@ -148,6 +157,54 @@ describe("Friendly tournament seats at 12 Game teams", () => {
       ).toBe(true);
       expect(detail.windowStart).toEqual(created.windowStart);
       expect(detail.windowEnd).toEqual(created.windowEnd);
+      expect(detail.registrationStatus).toBe("open");
+      expect(detail.canRegister).toBe(true);
+
+      const player = await insertUser(db, "joiner-open@example.com");
+      const joiner = await gameById(db, {
+        gameId: created.gameId,
+        userId: player.id,
+      });
+      const field = tournamentFieldSummary(joiner.sides);
+      const countLine = tournamentTeamsCountLine(field.full, field.halfOpen);
+      const statusLine = tournamentStatusLine({
+        seated: false,
+        seatsLeft:
+          Math.max(field.seatTotal, joiner.playersAllowed ?? 0) -
+          field.seatsTaken,
+        teamCount: joiner.teamsAllowed ?? joiner.sides.length,
+        organizerName: null,
+      });
+
+      expect(joiner.registeredTeamCount).toBe(0);
+      expect(joiner.registrationStatus).toBe("open");
+      expect(joiner.canRegister).toBe(true);
+      expect(joiner.canWaitlist).toBe(false);
+      expect(countLine).toBe("");
+      expect(statusLine.startsWith("No seats left.")).toBe(false);
+      expect(vacantJoinSeats(joiner.sides).length).toBeGreaterThan(0);
+      expect(tournamentStartOwnSeat(joiner.sides, null, null)).not.toBeNull();
+      expect(
+        gameSummaryPrimaryAction({
+          format: joiner.format,
+          registrationMode: joiner.registrationMode,
+          canRegister: joiner.canRegister,
+          canWaitlist: joiner.canWaitlist,
+          joinFrozen: joiner.joinFrozen,
+          isRegistered: joiner.isRegistered,
+          isSeated: joiner.isSeated,
+          isWaitlisted: joiner.isWaitlisted,
+          registrationStatus: joiner.registrationStatus,
+        }),
+      ).not.toBe("join_waitlist");
+
+      const seated = await registerSeat(db, {
+        gameId: created.gameId,
+        userId: player.id,
+        sideIndex: 1,
+        position: "left",
+      });
+      expect(seated).toEqual({ ok: true, waitlisted: false });
     } finally {
       await close();
     }
@@ -582,6 +639,46 @@ describe("Friendly tournament seats at 12 Game teams", () => {
       });
       expect(detail.canRegister).toBe(false);
       expect(detail.levelRangeRequest?.status).toBe("pending");
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("Complete Teams tournament field", () => {
+  it("lists vacant Game team sides so the Teams list is not empty", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "owner-teams@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, owner.id);
+      const created = await createTournament(db, {
+        createdBy: owner.id,
+        name: "Complete Teams Friendly",
+        groupId: group.id,
+        isPublic: true,
+        registrationMode: "team_only",
+        teamCount: 4,
+        poolCount: 1,
+        venueId: venue.id,
+        windowStart: new Date("2026-09-21T13:00:00"),
+        windowEnd: new Date("2026-09-21T15:00:00"),
+      });
+
+      const detail = await gameById(db, {
+        gameId: created.id,
+        userId: owner.id,
+      });
+      const rows = tournamentTeamRows(detail.sides, owner.id);
+
+      expect(detail.registrationMode).toBe("team_only");
+      expect(detail.teamsAllowed).toBe(4);
+      expect(detail.sides).toHaveLength(4);
+      expect(
+        detail.sides.every((side) => side.left == null && side.right == null),
+      ).toBe(true);
+      expect(rows.head).toHaveLength(4);
+      expect(rows.head.every((row) => row.name === "Open")).toBe(true);
     } finally {
       await close();
     }

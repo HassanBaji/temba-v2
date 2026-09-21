@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import { showsFriendlyRoster } from "./game-summary-cta";
-import { isPoolTournament } from "./tournament-rounds";
+import {
+  isPoolTournament,
+  showsPoolTournamentSeats,
+} from "./tournament-rounds";
 import { sizeFriendlyTournament } from "./tournament-sizing";
 import {
   COUNTS_FOR_RATING_LABEL,
@@ -38,6 +41,7 @@ import {
   defaultStandingsPoolIndex,
   gameDetailsChrome,
   isTournamentStandingsView,
+  tournamentHomeJoinKind,
   otherPoolsPlayedLabel,
   otherPoolsPlayedSummary,
   roundResultsHeading,
@@ -135,6 +139,22 @@ describe("gameDetailsChrome", () => {
       gameDetailsChrome("friendly_tournament", 3, "team_only"),
       "pool_tournament",
     );
+  });
+});
+
+describe("tournamentHomeJoinKind", () => {
+  it("opens the seat Join only when individual registration can still register", () => {
+    assert.equal(tournamentHomeJoinKind("individual", true), "join");
+    assert.equal(tournamentHomeJoinKind("individual", false), null);
+  });
+
+  it("does not offer a seat Join on a Complete Teams tournament", () => {
+    assert.equal(tournamentHomeJoinKind("team_only", true), "register_team");
+    assert.equal(
+      showsPoolTournamentSeats("friendly_tournament", 1, "team_only"),
+      false,
+    );
+    assert.equal(tournamentHomeJoinKind("team_only", false), null);
   });
 });
 
@@ -308,6 +328,17 @@ describe("tournamentTeamRows", () => {
   });
 });
 
+function teamsSectionCountLine(sides: readonly TournamentHomeSide[]) {
+  const field = tournamentFieldSummary(sides);
+  return tournamentTeamsCountLine(field.full, field.halfOpen);
+}
+
+function vacantField(teamCount: number): TournamentHomeSide[] {
+  return Array.from({ length: teamCount }, (_, index) =>
+    side(index + 1, null, null),
+  );
+}
+
 describe("tournamentTeamsCountLine", () => {
   it("states how many Game teams are full and how many have a Position open", () => {
     assert.equal(
@@ -319,6 +350,27 @@ describe("tournamentTeamsCountLine", () => {
       "1 full, 1 with a Position open",
     );
     assert.equal(tournamentTeamsCountLine(12, 0), "12 full");
+    assert.equal(tournamentTeamsCountLine(0, 0), "");
+    assert.equal(tournamentTeamsCountLine(0, 2), "2 with a Position open");
+  });
+
+  it("does not read a 0-team tournament as a full field", () => {
+    const empty = teamsSectionCountLine([]);
+    const vacantSides = vacantField(12);
+    const vacant = teamsSectionCountLine(vacantSides);
+    const vacantFieldSummary = tournamentFieldSummary(vacantSides);
+    const vacantStatus = tournamentStatusLine({
+      seated: false,
+      seatsLeft:
+        Math.max(vacantFieldSummary.seatTotal, 24) -
+        vacantFieldSummary.seatsTaken,
+      teamCount: 12,
+      organizerName: null,
+    });
+
+    assert.equal(empty, "");
+    assert.equal(vacant, "");
+    assert.equal(vacantStatus.startsWith("No seats left."), false);
   });
 });
 

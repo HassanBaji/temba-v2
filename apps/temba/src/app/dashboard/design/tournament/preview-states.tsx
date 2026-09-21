@@ -145,6 +145,10 @@ function TournamentHomePreview({ data }: { data: TournamentFixture }) {
       onDraw={() => undefined}
       onPost={() => undefined}
       onUndo={() => undefined}
+      teamId=""
+      onTeamIdChange={() => undefined}
+      onRegisterTeam={() => undefined}
+      registerTeamPending={false}
       onJoin={data.canRegister ? () => undefined : undefined}
       onLeaveGame={data.canLeave ? () => undefined : undefined}
       onInvite={data.isOrganizer ? () => undefined : undefined}

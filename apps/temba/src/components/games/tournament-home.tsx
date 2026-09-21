@@ -24,6 +24,14 @@ import {
 import { TournamentTeamsSection } from "~/components/games/tournament-teams-section";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
 import { Button } from "~/components/ui/button";
+import { Field, FieldLabel } from "~/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import {
@@ -52,6 +60,8 @@ import {
   tournamentStartLine,
   tournamentStatusLine,
   tournamentViewerSide,
+  tournamentHomeJoinKind,
+  type TournamentHomeJoinKind,
 } from "~/lib/tournament-home";
 import {
   canOpenOrganizerDrawDrawer,
@@ -97,6 +107,10 @@ export function TournamentHome({
   onCancelGame,
   onKick,
   onKickWaitlist,
+  teamId,
+  onTeamIdChange,
+  onRegisterTeam,
+  registerTeamPending,
   onMerge,
   onDraw,
   onPost,
@@ -129,6 +143,10 @@ export function TournamentHome({
   onCancelGame?: () => void;
   onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
+  teamId: string;
+  onTeamIdChange: (teamId: string) => void;
+  onRegisterTeam: (teamId: string) => void;
+  registerTeamPending: boolean;
   onMerge: (input: {
     firstGameTeamId: string;
     secondGameTeamId: string;
@@ -148,13 +166,18 @@ export function TournamentHome({
   const field = tournamentFieldSummary(data.sides);
   const viewerSide = tournamentViewerSide(data.sides, data.viewerUserId);
   const seated = Boolean(viewerSide);
+  const joinKind = tournamentHomeJoinKind(
+    data.registrationMode,
+    data.canRegister,
+  );
   const organizerName = tournamentOrganizerName({
     createdBy: data.createdBy,
     people: peopleFromGame(data),
   });
   const statusLine = tournamentStatusLine({
     seated,
-    seatsLeft: field.seatTotal - field.seatsTaken,
+    seatsLeft:
+      Math.max(field.seatTotal, data.playersAllowed ?? 0) - field.seatsTaken,
     teamCount: data.teamsAllowed ?? data.sides.length,
     organizerName,
   });
@@ -242,7 +265,7 @@ export function TournamentHome({
           <TournamentPredrawTree
             sides={data.sides}
             viewerUserId={data.viewerUserId}
-            canTakeSeat={data.canRegister && !seated}
+            canTakeSeat={joinKind === "join" && !seated}
             venueName={data.venue?.name ?? null}
             schedule={schedule}
             teamCount={data.teamsAllowed}
@@ -300,8 +323,8 @@ export function TournamentHome({
       </p>
 
       <TournamentHomeActions
-        canRegister={data.canRegister}
-        canWaitlist={data.canWaitlist}
+        joinKind={joinKind}
+        canWaitlist={data.canWaitlist && joinKind === "join"}
         isWaitlisted={data.isWaitlisted}
         isOrganizerActive={isOrganizerActive}
         onInvite={drawn ? onInvite : undefined}
@@ -316,6 +339,11 @@ export function TournamentHome({
         kickPending={kickPending}
         kickableOccupants={kickableOccupants(data)}
         waitlist={data.waitlist}
+        eligibleTeams={data.eligibleTeams}
+        teamId={teamId}
+        onTeamIdChange={onTeamIdChange}
+        onRegisterTeam={onRegisterTeam}
+        registerTeamPending={registerTeamPending}
         onJoin={onJoin}
         onJoinWaitlist={onJoinWaitlist}
         onLeaveWaitlist={onLeaveWaitlist}
@@ -518,7 +546,7 @@ function TournamentStandingsTree({
 }
 
 function TournamentHomeActions({
-  canRegister,
+  joinKind,
   canWaitlist,
   isWaitlisted,
   isOrganizerActive,
@@ -532,6 +560,11 @@ function TournamentHomeActions({
   sharePending,
   kickableOccupants: kickable,
   waitlist,
+  eligibleTeams,
+  teamId,
+  onTeamIdChange,
+  onRegisterTeam,
+  registerTeamPending,
   onJoin,
   onJoinWaitlist,
   onLeaveWaitlist,
@@ -544,7 +577,7 @@ function TournamentHomeActions({
   onInvite,
   onShare,
 }: {
-  canRegister: boolean;
+  joinKind: TournamentHomeJoinKind | null;
   canWaitlist: boolean;
   isWaitlisted: boolean;
   isOrganizerActive: boolean;
@@ -558,6 +591,11 @@ function TournamentHomeActions({
   sharePending?: boolean;
   kickableOccupants: { userId: string; name: string }[];
   waitlist: GameDetail["waitlist"];
+  eligibleTeams: GameDetail["eligibleTeams"];
+  teamId: string;
+  onTeamIdChange: (teamId: string) => void;
+  onRegisterTeam: (teamId: string) => void;
+  registerTeamPending: boolean;
   onJoin?: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
   onJoinWaitlist?: () => void;
   onLeaveWaitlist?: () => void;
@@ -575,7 +613,7 @@ function TournamentHomeActions({
 
   return (
     <div className="flex flex-col gap-2">
-      {canRegister && onJoin ? (
+      {joinKind === "join" && onJoin ? (
         <Button
           type="button"
           className="min-h-11 w-full"
@@ -584,6 +622,50 @@ function TournamentHomeActions({
         >
           Join
         </Button>
+      ) : null}
+      {joinKind === "register_team" ? (
+        eligibleTeams.length === 0 ? (
+          <p className="text-muted-foreground text-meta leading-relaxed">
+            You need a complete Team whose both partners are allowed on this
+            Game.
+          </p>
+        ) : (
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (teamId.length === 0) {
+                return;
+              }
+              onRegisterTeam(teamId);
+            }}
+          >
+            {eligibleTeams.length > 1 ? (
+              <Field>
+                <FieldLabel htmlFor="tournament-team-id">Team</FieldLabel>
+                <Select value={teamId} onValueChange={onTeamIdChange}>
+                  <SelectTrigger id="tournament-team-id">
+                    <SelectValue placeholder="Select a Team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eligibleTeams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name} ({team.memberNames.join(" / ")})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            ) : null}
+            <Button
+              type="submit"
+              className="min-h-11 w-full"
+              disabled={registerTeamPending || teamId.length === 0}
+            >
+              {registerTeamPending ? "Registering…" : "Register Team"}
+            </Button>
+          </form>
+        )
       ) : null}
       {canWaitlist && onJoinWaitlist ? (
         <Button

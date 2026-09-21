@@ -56,6 +56,7 @@ import {
   tournamentJoinFirstRoundDay,
   tournamentJoinHeaderLine,
   tournamentJoinOccupantSubline,
+  tournamentJoinOpeningSeat,
   tournamentJoinResolvedSeat,
   tournamentJoinRoundCount,
   tournamentJoinSeatExplanation,
@@ -954,8 +955,14 @@ export function FriendlyGameJoinSheet({
 
   const rawPicked = selection.touched
     ? selection.seat
-    : (initialSeat ??
-      defaultJoinSeat(sides, onboardingState.data?.preferredPosition));
+    : isTournamentJoin
+      ? tournamentJoinOpeningSeat(
+          sides,
+          onboardingState.data?.preferredPosition,
+          initialSeat ?? null,
+        )
+      : (initialSeat ??
+        defaultJoinSeat(sides, onboardingState.data?.preferredPosition));
   const picked = isTournamentJoin
     ? tournamentJoinResolvedSeat(sides, rawPicked)
     : rawPicked;
