@@ -14,6 +14,7 @@ import {
 } from "@repo/db/schema";
 
 import { createGame } from "~/server/api/routers/games/create";
+import { gameById } from "~/server/api/routers/games/byId";
 import {
   createTournament,
   createTournamentInputSchema,
@@ -146,6 +147,23 @@ describe("createTournamentInputSchema", () => {
     }
     expect(parsed.error.flatten().fieldErrors.poolCount?.[0]).toMatch(/4/u);
   });
+
+  it("defaults Allow registering alone to yes", () => {
+    const parsed = createTournamentInputSchema.safeParse({
+      name: "Autumn Friendly",
+      groupId: crypto.randomUUID(),
+      isPublic: false,
+      teamCount: 12,
+      poolCount: 3,
+      venueId: crypto.randomUUID(),
+      ...windowTimes(),
+    });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) {
+      return;
+    }
+    expect(parsed.data.allowSoloRegister).toBe(true);
+  });
 });
 
 describe("createTournament", () => {
@@ -182,9 +200,17 @@ describe("createTournament", () => {
       expect(row?.teamsAllowed).toBe(12);
       expect(row?.isPublic).toBe(true);
       expect(row?.registrationMode).toBe("individual");
+      expect(row?.allowSoloRegister).toBe(true);
       expect(row?.pricePerPlayerCents).toBe(1000);
       expect(row?.levelMinTenths).toBeNull();
       expect(row?.levelMaxTenths).toBeNull();
+
+      const detail = await gameById(db, {
+        gameId: created.id,
+        userId: owner.id,
+      });
+      expect(detail.allowSoloRegister).toBe(true);
+      expect(detail.registrationMode).toBe("individual");
 
       const recordedCourts = await db.query.gameCourts.findMany({
         where: eq(gameCourts.gameId, created.id),
@@ -202,10 +228,22 @@ describe("createTournament", () => {
     }
   });
 
-  it("accepts team-only registration and stores optional Level range", async () => {
+  it("refuses Complete Teams and stores Allow registering alone", async () => {
+    const refused = createTournamentInputSchema.safeParse({
+      name: "Team Cup",
+      groupId: crypto.randomUUID(),
+      isPublic: false,
+      registrationMode: "team_only",
+      teamCount: 8,
+      poolCount: 2,
+      venueId: crypto.randomUUID(),
+      ...windowTimes(),
+    });
+    expect(refused.success).toBe(false);
+
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "tournament-team-only@example.com");
+      const owner = await insertUser(db, "tournament-partner-only@example.com");
       const venue = await insertVenue(db);
       const group = await insertGroup(db, { createdBy: owner.id });
       const created = await createTournament(db, {
@@ -213,7 +251,7 @@ describe("createTournament", () => {
         name: "Team Cup",
         groupId: group.id,
         isPublic: false,
-        registrationMode: "team_only",
+        allowSoloRegister: false,
         teamCount: 8,
         poolCount: 2,
         venueId: venue.id,
@@ -224,11 +262,19 @@ describe("createTournament", () => {
       const row = await db.query.games.findFirst({
         where: eq(games.id, created.id),
       });
-      expect(row?.registrationMode).toBe("team_only");
+      expect(row?.registrationMode).toBe("individual");
+      expect(row?.allowSoloRegister).toBe(false);
       expect(row?.playersAllowed).toBe(16);
       expect(row?.teamsAllowed).toBe(8);
       expect(row?.levelMinTenths).toBe(30);
       expect(row?.levelMaxTenths).toBe(42);
+
+      const detail = await gameById(db, {
+        gameId: created.id,
+        userId: owner.id,
+      });
+      expect(detail.allowSoloRegister).toBe(false);
+      expect(detail.registrationMode).toBe("individual");
     } finally {
       await close();
     }
@@ -455,6 +501,7 @@ describe("createTournament", () => {
       });
       expect(row?.format).toBe("friendly_tournament");
       expect(row?.poolCount).toBeNull();
+      expect(row?.allowSoloRegister).toBe(true);
     } finally {
       await close();
     }

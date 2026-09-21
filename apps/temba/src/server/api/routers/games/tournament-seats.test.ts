@@ -3,10 +3,14 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
+  GameFormatEnum,
+  GameRegistrationModeEnum,
+  GameSportEnum,
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
   gameWaitlist,
+  games,
   groups,
   ratings,
   user,
@@ -652,18 +656,27 @@ describe("Complete Teams tournament field", () => {
       const owner = await insertUser(db, "owner-teams@example.com");
       const venue = await insertVenue(db);
       const group = await insertGroup(db, owner.id);
-      const created = await createTournament(db, {
-        createdBy: owner.id,
-        name: "Complete Teams Friendly",
-        groupId: group.id,
-        isPublic: true,
-        registrationMode: "team_only",
-        teamCount: 4,
-        poolCount: 1,
-        venueId: venue.id,
-        windowStart: new Date("2026-09-21T13:00:00"),
-        windowEnd: new Date("2026-09-21T15:00:00"),
-      });
+      const [created] = await db
+        .insert(games)
+        .values({
+          createdBy: owner.id,
+          name: "Complete Teams Friendly",
+          format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+          registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
+          groupId: group.id,
+          venueId: venue.id,
+          isPublic: true,
+          poolCount: 1,
+          teamsAllowed: 4,
+          playersAllowed: 8,
+          sport: GameSportEnum.PADEL,
+          windowStart: new Date("2026-09-21T13:00:00"),
+          windowEnd: new Date("2026-09-21T15:00:00"),
+        })
+        .returning({ id: games.id });
+      if (!created) {
+        throw new Error("Failed to insert leftover Complete Teams tournament");
+      }
 
       const detail = await gameById(db, {
         gameId: created.id,
@@ -672,6 +685,7 @@ describe("Complete Teams tournament field", () => {
       const rows = tournamentTeamRows(detail.sides, owner.id);
 
       expect(detail.registrationMode).toBe("team_only");
+      expect(detail.allowSoloRegister).toBe(true);
       expect(detail.teamsAllowed).toBe(4);
       expect(detail.sides).toHaveLength(4);
       expect(

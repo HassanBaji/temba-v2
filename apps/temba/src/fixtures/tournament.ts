@@ -366,6 +366,7 @@ function baseTournament(args: {
     name: "Bromma Autumn Friendly",
     format: GameFormatEnum.FRIENDLY_TOURNAMENT,
     registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
+    allowSoloRegister: true,
     isPublic: false,
     groupId: "group-bromma",
     groupName: "Bromma",

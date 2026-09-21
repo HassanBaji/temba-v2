@@ -534,6 +534,7 @@ export async function gameById(
     name: game.name,
     format: game.format,
     registrationMode: game.registrationMode,
+    allowSoloRegister: game.allowSoloRegister,
     isPublic: game.isPublic,
     groupId: game.groupId,
     groupName: group?.name ?? null,

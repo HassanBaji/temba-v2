@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "allow_solo_register" boolean DEFAULT true NOT NULL;

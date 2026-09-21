@@ -30,8 +30,8 @@ export const WHO_CAN_TAKE_A_SEAT_LABEL = "Who can take a seat";
 export const THIS_GROUP_ONLY_LABEL = "This Group only";
 export const ANYONE_WITH_THE_LINK_LABEL = "Anyone with the link";
 export const HOW_PEOPLE_JOIN_LABEL = "How people join";
-export const INDIVIDUAL_SEATS_LABEL = "Individual seats";
-export const COMPLETE_TEAMS_ONLY_LABEL = "Complete Teams only";
+export const ALONE_OR_WITH_A_PARTNER_LABEL = "Alone or with a partner";
+export const WITH_A_PARTNER_ONLY_LABEL = "With a partner only";
 export const LAST_MATCH_FINISH_PREFIX = "The last Match would finish at";
 
 export const TOURNAMENT_TEAM_COUNTS: readonly number[] = Array.from(

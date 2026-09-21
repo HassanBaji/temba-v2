@@ -99,6 +99,7 @@ describe("createGame Group", () => {
         where: eq(games.id, created.id),
       });
       expect(row?.groupId).toBe(group.id);
+      expect(row?.allowSoloRegister).toBe(true);
     } finally {
       await close();
     }
