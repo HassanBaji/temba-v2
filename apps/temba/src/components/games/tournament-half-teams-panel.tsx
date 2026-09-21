@@ -1,20 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { Plus } from "lucide-react";
 
-import { ListRow, RowList } from "~/components/common/row-list";
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogFooter,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
@@ -25,23 +15,43 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
+import { displayLabelFromStoredBand } from "~/lib/level-bands";
 import {
+  MERGE_DISMISS_ACTION_LABEL,
+  MERGE_OPEN_POSITION_SR,
+  MERGE_PREVIEW_LABEL,
+  MERGE_PRIMARY_ACTION_LABEL,
+  MERGE_SAME_POSITION_COPY,
+  MERGE_SWAP_LABEL,
   MERGE_TAKES_EFFECT_COPY,
   defaultMergePositions,
-  halfTeamMergeHint,
   halfTeamsFromSides,
-  openPositionLabel,
-  seatedPositionLabel,
+  mergeOccupantSubline,
+  mergeOpenPositionLabel,
+  mergeSwapHint,
+  mergeTeamEyebrow,
+  samePositionMerge,
   swapMergePositions,
   type HalfTeam,
   type MergePositionAssignment,
 } from "~/lib/tournament-half-teams";
+import { LEFT_SEAT_LABEL, RIGHT_SEAT_LABEL } from "~/lib/tournament-home";
 
 type Side = {
   sideIndex: number;
   gameTeamId: string | null;
-  left: { userId: string; name: string; image: string | null } | null;
-  right: { userId: string; name: string; image: string | null } | null;
+  left: {
+    userId: string;
+    name: string;
+    image: string | null;
+    levelBand?: HalfTeam["occupant"]["levelBand"];
+  } | null;
+  right: {
+    userId: string;
+    name: string;
+    image: string | null;
+    levelBand?: HalfTeam["occupant"]["levelBand"];
+  } | null;
 };
 
 function halfTeamById(halfTeams: HalfTeam[], gameTeamId: string | null) {
@@ -62,15 +72,19 @@ function assignmentFor(
   return swapped ? swapMergePositions(defaults) : defaults;
 }
 
+function occupantLevelLabel(team: HalfTeam) {
+  const band = team.occupant.levelBand;
+  return band ? displayLabelFromStoredBand(band) : null;
+}
+
 export function TournamentHalfTeamsPanel({
   sides,
-  format,
   mergePending,
   mergeError,
   onMerge,
+  onDismiss,
 }: {
   sides: Side[];
-  format: string;
   mergePending: boolean;
   mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
   onMerge: (input: {
@@ -79,12 +93,12 @@ export function TournamentHalfTeamsPanel({
     firstPosition: "left" | "right";
     secondPosition: "left" | "right";
   }) => void | Promise<void>;
+  onDismiss: () => void;
 }) {
   const halfTeams = halfTeamsFromSides(sides);
   const [firstId, setFirstId] = React.useState("");
   const [secondId, setSecondId] = React.useState("");
   const [swapped, setSwapped] = React.useState(false);
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
 
   const first =
     halfTeamById(halfTeams, firstId) ??
@@ -96,18 +110,11 @@ export function TournamentHalfTeamsPanel({
       : (halfTeams.find((team) => team.gameTeamId !== first?.gameTeamId) ??
         null);
   const assignment = assignmentFor(first, swapped);
-  const hint = halfTeamMergeHint(halfTeams.length);
-  const canMerge = Boolean(first && second && assignment);
-
-  function openConfirm() {
-    if (!canMerge) {
-      return;
-    }
-    setConfirmOpen(true);
-  }
+  const invalidPair = assignment ? samePositionMerge(assignment) : false;
+  const canMerge = Boolean(first && second && assignment && !invalidPair);
 
   async function confirmMerge() {
-    if (!first || !second || !assignment || mergePending) {
+    if (!first || !second || !assignment || mergePending || invalidPair) {
       return;
     }
     try {
@@ -117,189 +124,242 @@ export function TournamentHalfTeamsPanel({
         firstPosition: assignment.firstPosition,
         secondPosition: assignment.secondPosition,
       });
-      setConfirmOpen(false);
       setSwapped(false);
+      onDismiss();
     } catch {
       return;
     }
   }
 
   return (
-    <Card variant="outlined" className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-title font-medium">Half teams</h3>
-        <p className="text-muted-foreground text-sm">
-          A Half team has one Position taken. Merge two into one Game team.
-        </p>
-      </div>
-
-      {halfTeams.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No Half teams</p>
-      ) : (
-        <RowList aria-label="Half teams">
-          {halfTeams.map((team) => (
-            <ListRow
-              key={team.gameTeamId}
-              leading={
-                <UserAvatar
-                  name={team.occupant.name}
-                  image={team.occupant.image}
-                  size="lg"
-                />
-              }
-              title={team.occupant.name}
-              subtitle={`${formatGameSideLabel(format, team.sideIndex)} · ${openPositionLabel(team.openPosition)}`}
-            />
-          ))}
-        </RowList>
-      )}
-
-      {hint ? <p className="text-body font-medium">{hint}</p> : null}
-
-      {halfTeams.length >= 2 && first && second ? (
-        <div className="space-y-3">
-          {halfTeams.length > 2 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="first-half-team">
-                  First Half team
-                </FieldLabel>
-                <Select
-                  value={first.gameTeamId}
-                  onValueChange={(value) => {
-                    setFirstId(value);
-                    setSwapped(false);
-                    if (value === second.gameTeamId) {
-                      setSecondId("");
-                    }
-                  }}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-[22px] overflow-y-auto overscroll-contain px-[22px] py-[22px]">
+        {halfTeams.length > 2 && first && second ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="first-half-team">First Half team</FieldLabel>
+              <Select
+                value={first.gameTeamId}
+                onValueChange={(value) => {
+                  setFirstId(value);
+                  setSwapped(false);
+                  if (value === second.gameTeamId) {
+                    setSecondId("");
+                  }
+                }}
+              >
+                <SelectTrigger id="first-half-team" className="min-h-11 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {halfTeams.map((team) => (
+                    <SelectItem key={team.gameTeamId} value={team.gameTeamId}>
+                      {team.occupant.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="second-half-team">
+                Second Half team
+              </FieldLabel>
+              <Select
+                value={second.gameTeamId}
+                onValueChange={(value) => {
+                  setSecondId(value);
+                  setSwapped(false);
+                }}
+              >
+                <SelectTrigger
+                  id="second-half-team"
+                  className="min-h-11 w-full"
                 >
-                  <SelectTrigger id="first-half-team">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {halfTeams.map((team) => (
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {halfTeams
+                    .filter((team) => team.gameTeamId !== first.gameTeamId)
+                    .map((team) => (
                       <SelectItem key={team.gameTeamId} value={team.gameTeamId}>
                         {team.occupant.name}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="second-half-team">
-                  Second Half team
-                </FieldLabel>
-                <Select
-                  value={second.gameTeamId}
-                  onValueChange={(value) => {
-                    setSecondId(value);
-                    setSwapped(false);
-                  }}
-                >
-                  <SelectTrigger id="second-half-team">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {halfTeams
-                      .filter((team) => team.gameTeamId !== first.gameTeamId)
-                      .map((team) => (
-                        <SelectItem
-                          key={team.gameTeamId}
-                          value={team.gameTeamId}
-                        >
-                          {team.occupant.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-          ) : null}
-          <Button type="button" onClick={openConfirm} disabled={mergePending}>
-            Merge into one Game team
-          </Button>
-        </div>
-      ) : null}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+        ) : null}
 
-      <ResponsiveDialog
-        open={confirmOpen}
-        onOpenChange={(next) => {
-          if (mergePending && !next) {
-            return;
+        {first && second ? (
+          <div className="flex items-center gap-2.5">
+            <HalfTeamCard team={first} />
+            <span
+              aria-hidden="true"
+              className="text-muted-foreground flex w-[26px] shrink-0 items-center justify-center"
+            >
+              <Plus className="size-[18px]" strokeWidth={2} />
+            </span>
+            <HalfTeamCard team={second} />
+          </div>
+        ) : null}
+
+        {first && second && assignment ? (
+          <MergedPreview
+            first={first}
+            second={second}
+            assignment={assignment}
+            mergePending={mergePending}
+            onSwap={() => setSwapped((value) => !value)}
+          />
+        ) : null}
+
+        <FormErrorSummary
+          message={
+            invalidPair
+              ? MERGE_SAME_POSITION_COPY
+              : globalFormErrorMessage(mergeError)
           }
-          setConfirmOpen(next);
-          if (!next) {
+        />
+      </div>
+
+      <div className="border-rule mt-auto flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+        <Button
+          type="button"
+          className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+          disabled={mergePending || !canMerge}
+          aria-busy={mergePending}
+          onClick={() => {
+            void confirmMerge();
+          }}
+        >
+          {mergePending ? "Merging…" : MERGE_PRIMARY_ACTION_LABEL}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-[52px] min-h-[52px] w-full rounded-[12px] text-[15px]"
+          disabled={mergePending}
+          onClick={() => {
             setSwapped(false);
-          }
-        }}
-      >
-        <ResponsiveDialogContent showCloseButton={false}>
-          <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Merge Half teams</ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>
-              {MERGE_TAKES_EFFECT_COPY}
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
-          {first && second && assignment ? (
-            <div className="space-y-3">
-              <RowList>
-                <ListRow
-                  leading={
-                    <UserAvatar
-                      name={first.occupant.name}
-                      image={first.occupant.image}
-                      size="lg"
-                    />
-                  }
-                  title={first.occupant.name}
-                  subtitle={seatedPositionLabel(assignment.firstPosition)}
-                />
-                <ListRow
-                  leading={
-                    <UserAvatar
-                      name={second.occupant.name}
-                      image={second.occupant.image}
-                      size="lg"
-                    />
-                  }
-                  title={second.occupant.name}
-                  subtitle={seatedPositionLabel(assignment.secondPosition)}
-                />
-              </RowList>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSwapped((value) => !value)}
-                disabled={mergePending}
-              >
-                Swap
-              </Button>
-              <FormErrorSummary message={globalFormErrorMessage(mergeError)} />
-            </div>
-          ) : null}
-          <ResponsiveDialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={mergePending}
-              onClick={() => setConfirmOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={mergePending || !canMerge}
-              aria-busy={mergePending}
-              onClick={() => {
-                void confirmMerge();
-              }}
-            >
-              {mergePending ? "Merge…" : "Merge"}
-            </Button>
-          </ResponsiveDialogFooter>
-        </ResponsiveDialogContent>
-      </ResponsiveDialog>
-    </Card>
+            onDismiss();
+          }}
+        >
+          {MERGE_DISMISS_ACTION_LABEL}
+        </Button>
+        <p className="text-muted-foreground text-center text-[13px] leading-relaxed">
+          {MERGE_TAKES_EFFECT_COPY}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function HalfTeamCard({ team }: { team: HalfTeam }) {
+  const levelLabel = occupantLevelLabel(team);
+  const openLabel = mergeOpenPositionLabel(team.openPosition);
+
+  return (
+    <div className="border-rule min-w-0 flex-1 rounded-[14px] border p-4">
+      <p className="text-eyebrow text-muted-foreground tabular-nums">
+        {mergeTeamEyebrow(team.sideIndex)}
+      </p>
+      <div className="mt-3 flex items-center gap-2.5">
+        <UserAvatar
+          name={team.occupant.name}
+          image={team.occupant.image}
+          className="border-rule size-[34px] shrink-0 rounded-[8px] border"
+        />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-[15px]">{team.occupant.name}</span>
+          <span className="text-muted-foreground text-xs">
+            {mergeOccupantSubline(team.takenPosition, levelLabel)}
+          </span>
+        </span>
+      </div>
+      <div className="border-rule relative mt-2 flex h-[52px] min-h-[52px] items-center justify-center overflow-hidden rounded-[10px] border">
+        <span aria-hidden="true" className="hatch absolute inset-0" />
+        <span className="sr-only">{MERGE_OPEN_POSITION_SR}</span>
+        <span
+          aria-hidden="true"
+          className="text-muted-foreground relative text-xs"
+        >
+          {openLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function MergedPreview({
+  first,
+  second,
+  assignment,
+  mergePending,
+  onSwap,
+}: {
+  first: HalfTeam;
+  second: HalfTeam;
+  assignment: MergePositionAssignment;
+  mergePending: boolean;
+  onSwap: () => void;
+}) {
+  const left =
+    assignment.firstPosition === "left"
+      ? { team: first, position: assignment.firstPosition }
+      : { team: second, position: assignment.secondPosition };
+  const right =
+    assignment.firstPosition === "right"
+      ? { team: first, position: assignment.firstPosition }
+      : { team: second, position: assignment.secondPosition };
+
+  return (
+    <div className="border-ink rounded-[14px] border p-5">
+      <p className="text-muted-foreground text-[13px]">{MERGE_PREVIEW_LABEL}</p>
+      <div className="mt-3.5 flex gap-2">
+        <PreviewSeat occupant={left.team} position={left.position} />
+        <PreviewSeat occupant={right.team} position={right.position} />
+      </div>
+      <div className="mt-3.5 flex items-center justify-between gap-3">
+        <p className="text-muted-foreground min-w-0 flex-1 text-[13px]">
+          {mergeSwapHint(second.occupant.name, assignment.firstPosition)}
+        </p>
+        <button
+          type="button"
+          onClick={onSwap}
+          disabled={mergePending}
+          className="min-h-11 min-w-11 shrink-0 text-[13px] font-semibold underline underline-offset-2 disabled:opacity-50"
+        >
+          {MERGE_SWAP_LABEL}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PreviewSeat({
+  occupant,
+  position,
+}: {
+  occupant: HalfTeam;
+  position: MergePositionAssignment["firstPosition"];
+}) {
+  const positionLabel =
+    position === "left" ? LEFT_SEAT_LABEL : RIGHT_SEAT_LABEL;
+
+  return (
+    <div className="bg-ink text-paper flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-3">
+      <UserAvatar
+        name={occupant.occupant.name}
+        image={occupant.occupant.image}
+        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-[8px]"
+      />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-sm">{occupant.occupant.name}</span>
+        <span className="text-dim text-[11px] leading-none">
+          {positionLabel}
+        </span>
+      </span>
+    </div>
   );
 }

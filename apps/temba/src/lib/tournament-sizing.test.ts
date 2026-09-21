@@ -4,9 +4,14 @@ import { describe, it } from "vitest";
 import {
   ONE_DAY_OVERRUN_MESSAGE,
   balancedPoolSizes,
+  courtCountValue,
   defaultPoolCount,
+  formatMatchesPerTeam,
+  formatPoolSizeLine,
+  lastMatchFinishCopy,
   maxPoolCount,
   oneDayFit,
+  playersInPairsLine,
   poolCountForDrawnField,
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_POOL_COUNT,
@@ -228,5 +233,83 @@ describe("defaults", () => {
     assert.equal(TOURNAMENT_DEFAULT_POOL_COUNT, 3);
     assert.equal(defaultPoolCount(12), 3);
     assert.equal(defaultPoolCount(4), 1);
+  });
+});
+
+describe("formatPoolSizeLine", () => {
+  it("names even Pools, never Groups", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(formatPoolSizeLine(result.sizing), "3 Pools of 4");
+    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+  });
+
+  it("names a single Pool", () => {
+    const result = sizeFriendlyTournament(12, 1);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(formatPoolSizeLine(result.sizing), "1 Pool of 12");
+  });
+
+  it("names uneven Pools without calling them Groups", () => {
+    const result = sizeFriendlyTournament(10, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      formatPoolSizeLine(result.sizing),
+      "1 Pool of 4, 2 Pools of 3",
+    );
+    assert.equal(result.sizing.uneven, true);
+    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+  });
+});
+
+describe("formatMatchesPerTeam", () => {
+  it("uses one count when Pools are even", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      formatMatchesPerTeam(result.sizing),
+      "Each Game team plays 3 Matches",
+    );
+  });
+
+  it("names both sizes when Pools are uneven", () => {
+    const result = sizeFriendlyTournament(10, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      formatMatchesPerTeam(result.sizing),
+      "Game teams in a larger Pool play 3 Matches; Game teams in a smaller Pool play 2 Matches",
+    );
+    assert.equal(/group/iu.test(formatMatchesPerTeam(result.sizing)), false);
+  });
+});
+
+describe("create-screen copy", () => {
+  it("names players in pairs and Courts without a knockout clause", () => {
+    assert.equal(
+      playersInPairsLine(12),
+      "24 players in pairs. Two seats per team.",
+    );
+    assert.equal(courtCountValue(0), "None");
+    assert.equal(courtCountValue(1), "1 Court");
+    assert.equal(courtCountValue(2), "2 Courts");
+    assert.equal(
+      lastMatchFinishCopy("7:45 PM"),
+      "The last Match would finish at 7:45 PM.",
+    );
   });
 });

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
@@ -11,9 +12,13 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { GameVenueSelect } from "~/components/games/game-venue-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
+import { StepperField } from "~/components/games/stepper-field";
+import {
+  TournamentDetailRows,
+  type TournamentDetailRow,
+} from "~/components/games/tournament-detail-rows";
+import { TAB_SEGMENT } from "~/components/groups/group-home-chrome";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
-import { Checkbox } from "~/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
@@ -30,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -42,24 +48,66 @@ import {
   parseRequiredGameWindow,
 } from "~/lib/game-window";
 import {
+  formatPricePerPlayerCents,
   parseOptionalPricePerPlayerCents,
   PRICE_PER_PLAYER_FIELD_DESCRIPTION,
 } from "~/lib/price-per-player";
 import {
+  COUNTS_FOR_RATING_LABEL,
+  COUNTS_FOR_RATING_YES,
+  PRICE_ROW_LABEL,
+} from "~/lib/tournament-home";
+import {
+  DRAW_RANDOM_VALUE,
+  DRAW_ROW_LABEL,
+  PRICE_PER_PLAYER_JOIN_SUFFIX,
+  ROUNDS_ROW_LABEL,
+} from "~/lib/tournament-join";
+import {
+  ANYONE_WITH_THE_LINK_LABEL,
+  COMPLETE_TEAMS_ONLY_LABEL,
+  COURTS_ROW_LABEL,
+  CREATE_FOOTER_COPY,
+  CREATE_PRIMARY_ACTION,
+  CREATE_SUBLINE,
+  CREATE_TOURNAMENT_HEADING_LEAD,
+  CREATE_TOURNAMENT_HEADING_TRAIL,
+  courtCountValue,
   defaultPoolCount,
+  EACH_MATCH_ROW_LABEL,
+  FEW_WEEKS_DURATION_LABEL,
+  formatMatchesPerTeam,
+  formatPoolSizeLine,
+  HOW_LONG_IT_RUNS_LABEL,
+  HOW_PEOPLE_JOIN_LABEL,
+  INDIVIDUAL_SEATS_LABEL,
+  lastMatchFinishCopy,
+  MATCHES_PER_TEAM_ROW_LABEL,
+  ONE_DAY_CALLOUT_LABEL,
+  ONE_DAY_DURATION_LABEL,
   ONE_DAY_OVERRUN_MESSAGE,
   oneDayFit,
+  playersInPairsLine,
+  POOL_MATCHES_ROW_LABEL,
   poolCountOptions,
   sizeFriendlyTournament,
+  THIS_GROUP_ONLY_LABEL,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
   TOURNAMENT_SLOT_MINUTES,
-  TOURNAMENT_TEAM_COUNTS,
+  TOURNAMENT_TEAM_MAX,
+  TOURNAMENT_TEAM_MIN,
+  TOURNAMENT_TEAM_STEP,
+  UNEVEN_POOLS_COPY,
+  WHO_CAN_TAKE_A_SEAT_LABEL,
   type TournamentSizing,
 } from "~/lib/tournament-sizing";
+import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 type Duration = "one_day" | "few_weeks";
 type RoundSlot = { day: string; startTime: string };
+
+const FIELD_LABEL = "text-muted-foreground text-[13px] font-normal";
 
 function createVenueCopy(picker: {
   locked: boolean;
@@ -89,26 +137,6 @@ function groupOptionLabel(group: {
   return `${name} · ${group.communityName}`;
 }
 
-function formatPoolSizeLine(sizing: TournamentSizing) {
-  const counts = new Map<number, number>();
-  for (const size of sizing.poolSizes) {
-    counts.set(size, (counts.get(size) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .map(
-      ([size, count]) =>
-        `${count} ${count === 1 ? "Pool" : "Pools"} of ${size}`,
-    )
-    .join(", ");
-}
-
-function formatMatchesPerTeam(sizing: TournamentSizing) {
-  if (sizing.matchesPerTeamMin === sizing.matchesPerTeamMax) {
-    return `Each Game team plays ${sizing.matchesPerTeamMin} Matches`;
-  }
-  return `Game teams in a larger Pool play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller Pool play ${sizing.matchesPerTeamMin} Matches`;
-}
-
 function formatClock(date: Date) {
   return date.toLocaleTimeString(undefined, {
     hour: "numeric",
@@ -118,6 +146,109 @@ function formatClock(date: Date) {
 
 function emptyRound(day: string): RoundSlot {
   return { day, startTime: "" };
+}
+
+function tournamentCreateDetailRows(args: {
+  sizing: TournamentSizing;
+  courtCount: number;
+  priceLabel: string | null;
+}): TournamentDetailRow[] {
+  const rows: TournamentDetailRow[] = [
+    {
+      label: POOL_MATCHES_ROW_LABEL,
+      value:
+        args.sizing.poolMatches === 1
+          ? "1 Match"
+          : `${args.sizing.poolMatches} Matches`,
+    },
+    {
+      label: MATCHES_PER_TEAM_ROW_LABEL,
+      value: formatMatchesPerTeam(args.sizing),
+    },
+    {
+      label: ROUNDS_ROW_LABEL,
+      value:
+        args.sizing.roundCount === 1
+          ? "1 Round"
+          : `${args.sizing.roundCount} Rounds`,
+    },
+    {
+      label: EACH_MATCH_ROW_LABEL,
+      value: `${TOURNAMENT_SLOT_MINUTES} min`,
+    },
+    {
+      label: COURTS_ROW_LABEL,
+      value: courtCountValue(args.courtCount),
+    },
+  ];
+  if (args.priceLabel) {
+    rows.push({
+      label: PRICE_ROW_LABEL,
+      value:
+        args.priceLabel === "Free"
+          ? args.priceLabel
+          : `${args.priceLabel} ${PRICE_PER_PLAYER_JOIN_SUFFIX}`,
+    });
+  }
+  rows.push(
+    {
+      label: COUNTS_FOR_RATING_LABEL,
+      value: COUNTS_FOR_RATING_YES,
+    },
+    {
+      label: DRAW_ROW_LABEL,
+      value: DRAW_RANDOM_VALUE,
+    },
+  );
+  return rows;
+}
+
+function SegmentedField<T extends string>({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  id: string;
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: readonly { value: T; label: string }[];
+}) {
+  const labelId = `${id}-label`;
+  return (
+    <Field>
+      <FieldLabel id={labelId} className={FIELD_LABEL}>
+        {label}
+      </FieldLabel>
+      <Tabs
+        value={value}
+        onValueChange={(next) => {
+          const match = options.find((option) => option.value === next);
+          if (match) {
+            onChange(match.value);
+          }
+        }}
+      >
+        <TabsList
+          id={id}
+          aria-labelledby={labelId}
+          className="border-rule bg-paper w-full max-w-full justify-stretch overflow-hidden rounded-[12px] border p-0 group-data-[orientation=horizontal]/tabs:h-auto"
+        >
+          {options.map((option) => (
+            <TabsTrigger
+              key={option.value}
+              value={option.value}
+              className={cn(TAB_SEGMENT, "px-2 text-[14px]")}
+            >
+              {option.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+    </Field>
+  );
 }
 
 function NewTournamentForm() {
@@ -383,6 +514,21 @@ function NewTournamentForm() {
       ? `/dashboard/groups/${requestedGroupId}`
       : "/dashboard/games";
 
+  const selectedGroup = (createGroups.data ?? []).find(
+    (group) => group.id === selectedGroupId,
+  );
+  const selectedGroupName = selectedGroup
+    ? (selectedGroup.name ?? "Untitled Group")
+    : undefined;
+  const poolOptions = poolCountOptions(teamCount);
+  const poolMin = poolOptions[0] ?? 1;
+  const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
+  const parsedPriceForSummary =
+    parseOptionalPricePerPlayerCents(pricePerPlayer);
+  const priceLabel = parsedPriceForSummary.ok
+    ? formatPricePerPlayerCents(parsedPriceForSummary.cents)
+    : null;
+
   if (createGroups.isLoading) {
     return (
       <DashboardShell title="Create tournament">
@@ -425,10 +571,41 @@ function NewTournamentForm() {
   return (
     <DashboardShell
       title="Create tournament"
-      description="A Friendly tournament draws Game teams into Pools. Each Pool plays a round robin. There is a winner in each Pool, not an overall champion."
+      hidePageHeader
+      hideMobileTopBar
+      hideNav
+      isSubPage
     >
-      <Card variant="outlined" className="w-full">
-        <form onSubmit={onSubmit} className="space-y-6">
+      <form
+        onSubmit={onSubmit}
+        className="flex min-h-[calc(100svh-2rem)] flex-col max-lg:pb-32"
+      >
+        <div className="border-rule -mx-4 border-b px-4 pb-0 pt-[22px] min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8">
+          <div className="flex items-center justify-between">
+            <Link
+              href={cancelHref}
+              aria-label="Close"
+              className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
+            >
+              <X aria-hidden="true" className="size-5" strokeWidth={2} />
+            </Link>
+            {selectedGroupName ? (
+              <p className="text-muted-foreground text-[13px]">
+                {selectedGroupName}
+              </p>
+            ) : null}
+          </div>
+          <h1 className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
+            {CREATE_TOURNAMENT_HEADING_LEAD}
+            <br />
+            {CREATE_TOURNAMENT_HEADING_TRAIL}
+          </h1>
+          <p className="text-muted-foreground mt-2.5 pb-[22px] text-[15px] leading-relaxed">
+            {CREATE_SUBLINE}
+          </p>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-[18px] py-[22px]">
           <FormErrorSummary
             ref={summaryRef}
             message={
@@ -439,9 +616,11 @@ function NewTournamentForm() {
               (picker.error ? picker.error.message : null)
             }
           />
-          <FieldGroup>
+          <FieldGroup className="gap-[18px]">
             <Field>
-              <FieldLabel htmlFor="tournament-name">Name</FieldLabel>
+              <FieldLabel htmlFor="tournament-name" className={FIELD_LABEL}>
+                Name
+              </FieldLabel>
               <Input
                 id="tournament-name"
                 value={name}
@@ -461,7 +640,9 @@ function NewTournamentForm() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="tournament-group">Group</FieldLabel>
+              <FieldLabel htmlFor="tournament-group" className={FIELD_LABEL}>
+                Group
+              </FieldLabel>
               <Select
                 value={selectedGroupId || undefined}
                 onValueChange={onGroupChange}
@@ -492,119 +673,84 @@ function NewTournamentForm() {
               </FieldError>
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="tournament-team-count">
-                Game teams
-              </FieldLabel>
-              <Select
-                value={String(teamCount)}
-                onValueChange={(value) => onTeamCountChange(Number(value))}
-              >
-                <SelectTrigger id="tournament-team-count" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TOURNAMENT_TEAM_COUNTS.map((count) => (
-                    <SelectItem key={count} value={String(count)}>
-                      {count}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldError>
-                {fieldErrorMessage(createTournament.error, "teamCount")}
-              </FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="tournament-pool-count">Pools</FieldLabel>
-              <Select
-                value={String(poolCount)}
-                onValueChange={(value) => setPoolCount(Number(value))}
-              >
-                <SelectTrigger id="tournament-pool-count" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {poolCountOptions(teamCount).map((count) => (
-                    <SelectItem key={count} value={String(count)}>
-                      {count}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldError>
-                {fieldErrorMessage(createTournament.error, "poolCount")}
-              </FieldError>
-            </Field>
-
-            {sizing ? (
-              <div className="border-rule rounded-[12px] border px-4 py-3 text-sm">
-                <p>{formatPoolSizeLine(sizing)}</p>
-                <p>{formatMatchesPerTeam(sizing)}</p>
-                <p>
-                  {sizing.roundCount}{" "}
-                  {sizing.roundCount === 1 ? "Round" : "Rounds"},{" "}
-                  {sizing.poolMatches} Matches in total
+            <StepperField
+              id="tournament-team-count"
+              label="Game teams"
+              value={teamCount}
+              unit="Game teams"
+              min={TOURNAMENT_TEAM_MIN}
+              max={TOURNAMENT_TEAM_MAX}
+              step={TOURNAMENT_TEAM_STEP}
+              onChange={onTeamCountChange}
+              decreaseLabel="Fewer Game teams"
+              increaseLabel="More Game teams"
+              error={fieldErrorMessage(createTournament.error, "teamCount")}
+              description={
+                <p className="text-muted-foreground text-[13px]">
+                  {playersInPairsLine(teamCount)}
                 </p>
-                {sizing.uneven ? (
-                  <p className="mt-2">
-                    Pools are uneven. Some Game teams play one more Match than
-                    others.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
+              }
+            />
 
-            <Field>
-              <FieldLabel htmlFor="tournament-duration">
-                When it runs
-              </FieldLabel>
-              <Select
-                value={duration}
-                onValueChange={(value) => setDuration(value as Duration)}
-              >
-                <SelectTrigger id="tournament-duration" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="few_weeks">Over a few weeks</SelectItem>
-                  <SelectItem value="one_day">One day</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+            <StepperField
+              id="tournament-pool-count"
+              label="Pools"
+              value={poolCount}
+              unit={poolCount === 1 ? "Pool" : "Pools"}
+              min={poolMin}
+              max={poolMax}
+              step={1}
+              onChange={setPoolCount}
+              decreaseLabel="Fewer Pools"
+              increaseLabel="More Pools"
+              error={fieldErrorMessage(createTournament.error, "poolCount")}
+              description={
+                sizing ? (
+                  <div className="flex flex-col gap-1">
+                    <p className="text-muted-foreground text-[13px]">
+                      {formatPoolSizeLine(sizing)}
+                    </p>
+                    {sizing.uneven ? (
+                      <p className="text-muted-foreground text-[13px]">
+                        {UNEVEN_POOLS_COPY}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null
+              }
+            />
+
+            <SegmentedField
+              id="tournament-duration"
+              label={HOW_LONG_IT_RUNS_LABEL}
+              value={duration}
+              onChange={setDuration}
+              options={[
+                { value: "one_day", label: ONE_DAY_DURATION_LABEL },
+                { value: "few_weeks", label: FEW_WEEKS_DURATION_LABEL },
+              ]}
+            />
 
             {duration === "one_day" ? (
-              <>
-                <GameWindowFields
-                  dayId="tournament-window-day"
-                  startId="tournament-window-start"
-                  finishId="tournament-window-finish"
-                  day={day}
-                  startTime={startTime}
-                  finishTime={finishTime}
-                  onDayChange={setDay}
-                  onStartTimeChange={setStartTime}
-                  onFinishTimeChange={setFinishTime}
-                  startError={fieldErrorMessage(
-                    createTournament.error,
-                    "windowStart",
-                  )}
-                  finishError={fieldErrorMessage(
-                    createTournament.error,
-                    "windowEnd",
-                  )}
-                />
-                {fit?.lastFinish ? (
-                  <p className="text-muted-foreground text-sm">
-                    The last Match would finish at {formatClock(fit.lastFinish)}
-                    .
-                  </p>
-                ) : null}
-                {fit?.overruns ? (
-                  <p className="text-sm">{ONE_DAY_OVERRUN_MESSAGE}</p>
-                ) : null}
-              </>
+              <GameWindowFields
+                dayId="tournament-window-day"
+                startId="tournament-window-start"
+                finishId="tournament-window-finish"
+                day={day}
+                startTime={startTime}
+                finishTime={finishTime}
+                onDayChange={setDay}
+                onStartTimeChange={setStartTime}
+                onFinishTimeChange={setFinishTime}
+                startError={fieldErrorMessage(
+                  createTournament.error,
+                  "windowStart",
+                )}
+                finishError={fieldErrorMessage(
+                  createTournament.error,
+                  "windowEnd",
+                )}
+              />
             ) : (
               <div className="flex flex-col gap-4">
                 <FieldDescription>
@@ -647,7 +793,9 @@ function NewTournamentForm() {
             )}
 
             <Field>
-              <FieldLabel htmlFor="tournament-venue">Venue</FieldLabel>
+              <FieldLabel htmlFor="tournament-venue" className={FIELD_LABEL}>
+                Venue
+              </FieldLabel>
               <GameVenueSelect
                 id="tournament-venue"
                 venues={picker.data?.venues ?? []}
@@ -685,8 +833,8 @@ function NewTournamentForm() {
             </Field>
 
             <Field>
-              <FieldLabel>Courts</FieldLabel>
-              <div id="tournament-courts" className="flex flex-col gap-2">
+              <FieldLabel className={FIELD_LABEL}>Courts</FieldLabel>
+              <div id="tournament-courts" className="flex flex-wrap gap-2">
                 {(selectedVenue?.courts ?? []).length === 0 ? (
                   <p className="text-muted-foreground text-sm">
                     {selectedVenue
@@ -694,20 +842,29 @@ function NewTournamentForm() {
                       : "Pick a Venue to choose Courts."}
                   </p>
                 ) : (
-                  (selectedVenue?.courts ?? []).map((court) => (
-                    <div key={court.id} className="flex items-center gap-3">
-                      <Checkbox
+                  (selectedVenue?.courts ?? []).map((court) => {
+                    const selected = courtIds.includes(court.id);
+                    return (
+                      <button
+                        key={court.id}
+                        type="button"
                         id={`tournament-court-${court.id}`}
-                        checked={courtIds.includes(court.id)}
-                        onCheckedChange={(checked) =>
-                          toggleCourt(court.id, checked === true)
-                        }
-                      />
-                      <FieldLabel htmlFor={`tournament-court-${court.id}`}>
+                        aria-pressed={selected}
+                        onClick={() => {
+                          toggleCourt(court.id, !selected);
+                        }}
+                        className={cn(
+                          "min-h-11 min-w-11 rounded-[12px] border px-4 text-sm",
+                          "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+                          selected
+                            ? "border-ink bg-ink text-paper"
+                            : "border-rule bg-paper text-ink hover:bg-wash",
+                        )}
+                      >
                         {court.name}
-                      </FieldLabel>
-                    </div>
-                  ))
+                      </button>
+                    );
+                  })
                 )}
               </div>
               <FieldError>
@@ -716,7 +873,10 @@ function NewTournamentForm() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="tournament-price-per-player">
+              <FieldLabel
+                htmlFor="tournament-price-per-player"
+                className={FIELD_LABEL}
+              >
                 Price per player
               </FieldLabel>
               <PricePerPlayerAmountInput
@@ -751,58 +911,80 @@ function NewTournamentForm() {
               </FieldError>
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="tournament-public">
-                Who can take a seat
-              </FieldLabel>
-              <Select
-                value={isPublic ? "anyone" : "group"}
-                onValueChange={(value) => setIsPublic(value === "anyone")}
-              >
-                <SelectTrigger id="tournament-public" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="group">This Group only</SelectItem>
-                  <SelectItem value="anyone">Anyone with the link</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+            <SegmentedField
+              id="tournament-public"
+              label={WHO_CAN_TAKE_A_SEAT_LABEL}
+              value={isPublic ? "anyone" : "group"}
+              onChange={(value) => setIsPublic(value === "anyone")}
+              options={[
+                {
+                  value: "group",
+                  label: selectedGroupName ?? THIS_GROUP_ONLY_LABEL,
+                },
+                { value: "anyone", label: ANYONE_WITH_THE_LINK_LABEL },
+              ]}
+            />
 
-            <Field>
-              <FieldLabel htmlFor="tournament-registration">
-                Registration
-              </FieldLabel>
-              <Select
-                value={registrationMode}
-                onValueChange={(value) =>
-                  setRegistrationMode(value as "individual" | "team_only")
-                }
-              >
-                <SelectTrigger id="tournament-registration" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="individual">Individual seats</SelectItem>
-                  <SelectItem value="team_only">Complete Teams only</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+            <SegmentedField
+              id="tournament-registration"
+              label={HOW_PEOPLE_JOIN_LABEL}
+              value={registrationMode}
+              onChange={setRegistrationMode}
+              options={[
+                { value: "individual", label: INDIVIDUAL_SEATS_LABEL },
+                { value: "team_only", label: COMPLETE_TEAMS_ONLY_LABEL },
+              ]}
+            />
           </FieldGroup>
 
-          <div className="flex items-center gap-3">
-            <Button
-              type="submit"
-              disabled={createTournament.isPending || emptyCatalog}
-            >
-              {createTournament.isPending ? "Creating…" : "Create tournament"}
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={cancelHref}>Cancel</Link>
-            </Button>
-          </div>
-        </form>
-      </Card>
+          {sizing ? (
+            <TournamentDetailRows
+              rows={tournamentCreateDetailRows({
+                sizing,
+                courtCount: courtIds.length,
+                priceLabel,
+              })}
+            />
+          ) : null}
+
+          {duration === "one_day" && fit ? (
+            <div className="border-ink rounded-[14px] border p-5">
+              <p className="text-muted-foreground text-[13px]">
+                {ONE_DAY_CALLOUT_LABEL}
+              </p>
+              {fit.lastFinish ? (
+                <p className="mt-2 text-[17px] leading-snug">
+                  {lastMatchFinishCopy(formatClock(fit.lastFinish))}
+                </p>
+              ) : null}
+              {fit.overruns ? (
+                <p className="text-muted-foreground mt-2 text-[13px] leading-relaxed">
+                  {ONE_DAY_OVERRUN_MESSAGE}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div
+          className={cn(
+            "bg-background border-rule flex flex-col gap-2.5 border-t",
+            "max-lg:fixed max-lg:inset-x-0 max-lg:z-40 max-lg:px-4 max-lg:pb-[max(26px,env(safe-area-inset-bottom))] max-lg:pt-5",
+            "lg:mt-auto lg:px-0 lg:pb-2 lg:pt-5",
+          )}
+        >
+          <Button
+            type="submit"
+            disabled={createTournament.isPending || emptyCatalog}
+            className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+          >
+            {createTournament.isPending ? "Creating…" : CREATE_PRIMARY_ACTION}
+          </Button>
+          <p className="text-muted-foreground text-center text-[12px] leading-relaxed">
+            {CREATE_FOOTER_COPY}
+          </p>
+        </div>
+      </form>
     </DashboardShell>
   );
 }

@@ -1,17 +1,16 @@
 "use client";
 
 import { ListRow, RowList } from "~/components/common/row-list";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   DRAW_AGAIN_ACTION,
+  DRAW_EMPTY_DRAFT_COPY,
   DRAW_POOLS_ACTION,
   POST_POOL_DRAW_ACTION,
-  POOL_DRAW_RANDOM_COPY,
-  UNDO_POOL_DRAW_ACTION,
+  POST_POOL_DRAW_FOOTER_COPY,
+  draftPoolMetaLine,
   draftPoolsFromGameTeams,
   hasDraftPoolDraw,
   type DraftPoolTeam,
@@ -24,16 +23,12 @@ export function TournamentPoolDrawPanel({
   windowStart,
   windowEnd,
   courtNames,
-  drawPostedAt,
   drawPending,
   drawError,
   onDraw,
   postPending,
   postError,
   onPost,
-  undoPending,
-  undoError,
-  onUndo,
 }: {
   gameTeams: readonly DraftPoolTeam[];
   poolCount: number | null | undefined;
@@ -41,19 +36,14 @@ export function TournamentPoolDrawPanel({
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
   courtNames: readonly string[];
-  drawPostedAt: Date | string | null | undefined;
   drawPending: boolean;
   drawError: { message: string; data?: { zodError?: unknown } | null } | null;
   onDraw: () => void | Promise<void>;
   postPending: boolean;
   postError: { message: string; data?: { zodError?: unknown } | null } | null;
   onPost: () => void | Promise<void>;
-  undoPending: boolean;
-  undoError: { message: string; data?: { zodError?: unknown } | null } | null;
-  onUndo: () => void | Promise<void>;
 }) {
   const hasDraft = hasDraftPoolDraw(gameTeams);
-  const posted = drawPostedAt != null;
   const pools = draftPoolsFromGameTeams({
     gameTeams,
     poolCount,
@@ -62,97 +52,105 @@ export function TournamentPoolDrawPanel({
     windowEnd,
     courtNames,
   });
-  const busy = drawPending || postPending || undoPending;
+  const busy = drawPending || postPending;
+
+  async function confirmPost() {
+    if (busy || !hasDraft) {
+      return;
+    }
+    try {
+      await onPost();
+    } catch {
+      return;
+    }
+  }
 
   return (
-    <Card variant="outlined" className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-title font-medium">Pool draw</h3>
-        <p className="text-muted-foreground text-sm">{POOL_DRAW_RANDOM_COPY}</p>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-[22px] overflow-y-auto overscroll-contain px-[22px] py-[22px]">
+        {hasDraft ? (
+          pools.map((pool) => {
+            const meta = draftPoolMetaLine(pool);
+            return (
+              <section key={pool.poolIndex}>
+                <div className="flex items-baseline gap-2.5 pb-2.5">
+                  <h3 className="font-expanded text-[19px] tracking-[-0.03em]">
+                    {pool.label}
+                  </h3>
+                  {meta ? (
+                    <p className="text-muted-foreground text-[13px]">{meta}</p>
+                  ) : null}
+                </div>
+                <RowList
+                  aria-label={pool.label}
+                  className="border-rule divide-rule rounded-[14px]"
+                >
+                  {pool.teams.map((team) => (
+                    <ListRow
+                      key={team.id}
+                      className="min-h-11"
+                      title={team.name}
+                    />
+                  ))}
+                </RowList>
+              </section>
+            );
+          })
+        ) : (
+          <p className="text-muted-foreground text-[15px] leading-relaxed">
+            {DRAW_EMPTY_DRAFT_COPY}
+          </p>
+        )}
+
+        <FormErrorSummary
+          message={globalFormErrorMessage(drawError ?? postError)}
+        />
       </div>
 
-      {hasDraft ? (
-        <div className="space-y-4">
-          {pools.map((pool) => (
-            <div key={pool.poolIndex} className="space-y-2">
-              <p className="text-lead font-semibold">{pool.label}</p>
-              {pool.dateLines.length > 0 ? (
-                <ul className="text-meta text-muted-foreground">
-                  {pool.dateLines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              ) : null}
-              {pool.courtNames.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {pool.courtNames.map((name) => (
-                    <Badge key={name} variant="secondary">
-                      {name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-              <RowList aria-label={pool.label}>
-                {pool.teams.map((team) => (
-                  <ListRow key={team.id} title={team.name} />
-                ))}
-              </RowList>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-muted-foreground text-sm">
-          Draw the Pools to see which Game teams land in which Pool.
-        </p>
-      )}
-
-      <FormErrorSummary
-        message={globalFormErrorMessage(drawError ?? postError ?? undoError)}
-      />
-      <div className="flex flex-wrap gap-2">
-        {posted ? (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            aria-busy={undoPending}
-            onClick={() => {
-              void onUndo();
-            }}
-          >
-            {undoPending ? "Undoing…" : UNDO_POOL_DRAW_ACTION}
-          </Button>
-        ) : (
+      <div className="border-rule mt-auto flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+        {hasDraft ? (
           <>
             <Button
               type="button"
+              className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+              disabled={busy}
+              aria-busy={postPending}
+              onClick={() => {
+                void confirmPost();
+              }}
+            >
+              {postPending ? "Posting…" : POST_POOL_DRAW_ACTION}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-[52px] min-h-[52px] w-full rounded-[12px] text-[15px]"
               disabled={busy}
               aria-busy={drawPending}
               onClick={() => {
                 void onDraw();
               }}
             >
-              {drawPending
-                ? "Drawing…"
-                : hasDraft
-                  ? DRAW_AGAIN_ACTION
-                  : DRAW_POOLS_ACTION}
+              {drawPending ? "Drawing…" : DRAW_AGAIN_ACTION}
             </Button>
-            {hasDraft ? (
-              <Button
-                type="button"
-                disabled={busy}
-                aria-busy={postPending}
-                onClick={() => {
-                  void onPost();
-                }}
-              >
-                {postPending ? "Posting…" : POST_POOL_DRAW_ACTION}
-              </Button>
-            ) : null}
+            <p className="text-muted-foreground text-center text-[13px] leading-relaxed">
+              {POST_POOL_DRAW_FOOTER_COPY}
+            </p>
           </>
+        ) : (
+          <Button
+            type="button"
+            className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+            disabled={busy}
+            aria-busy={drawPending}
+            onClick={() => {
+              void onDraw();
+            }}
+          >
+            {drawPending ? "Drawing…" : DRAW_POOLS_ACTION}
+          </Button>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

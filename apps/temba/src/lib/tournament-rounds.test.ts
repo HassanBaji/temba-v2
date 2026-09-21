@@ -5,9 +5,13 @@ import { formatAbsoluteDay } from "./format-game-start";
 import {
   isPoolTournament,
   poolRoundLabel,
+  roundsPlayedLabel,
   showsPoolTournamentSeats,
+  tournamentRoundSchedule,
   tournamentRoundSummary,
 } from "./tournament-rounds";
+import { fewWeeksRoundStarts } from "./tournament-schedule";
+import { TOURNAMENT_SLOT_MINUTES } from "./tournament-sizing";
 
 describe("isPoolTournament", () => {
   it("is true only when Friendly tournament has a Pool count", () => {
@@ -49,6 +53,60 @@ describe("poolRoundLabel", () => {
   it("is null without a Round number or total", () => {
     assert.equal(poolRoundLabel(null, 3), null);
     assert.equal(poolRoundLabel(2, null), null);
+  });
+});
+
+describe("roundsPlayedLabel", () => {
+  it("counts fully settled Rounds across Pools", () => {
+    assert.equal(
+      roundsPlayedLabel(
+        {
+          pools: [
+            {
+              matches: [
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 2, status: "completed" },
+                { roundNumber: 2, status: "scheduled" },
+                { roundNumber: 3, status: "scheduled" },
+              ],
+            },
+          ],
+        },
+        3,
+      ),
+      "Round 1 of 3 played",
+    );
+  });
+
+  it("is Round 2 of 3 when two Rounds are fully settled", () => {
+    assert.equal(
+      roundsPlayedLabel(
+        {
+          pools: [
+            {
+              matches: [
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 2, cancelled: true },
+              ],
+            },
+            {
+              matches: [
+                { roundNumber: 1, status: "cancelled" },
+                { roundNumber: 2, status: "completed" },
+              ],
+            },
+          ],
+        },
+        3,
+      ),
+      "Round 2 of 3 played",
+    );
+  });
+
+  it("is null without pool tables or a Round count", () => {
+    assert.equal(roundsPlayedLabel(null, 3), null);
+    assert.equal(roundsPlayedLabel({ pools: [] }, null), null);
   });
 });
 
@@ -97,5 +155,59 @@ describe("tournamentRoundSummary", () => {
       }),
       null,
     );
+  });
+});
+
+describe("tournamentRoundSchedule", () => {
+  it("steps a one-day window by the Match slot and stays monotonic", () => {
+    const windowStart = new Date(2026, 8, 20, 10, 0, 0);
+    const windowEnd = new Date(2026, 8, 20, 16, 0, 0);
+    const schedule = tournamentRoundSchedule({
+      windowStart,
+      windowEnd,
+      roundCount: 3,
+    });
+    assert.equal(schedule.length, 3);
+    assert.deepEqual(
+      schedule.map((round) => round.start.getTime()),
+      [
+        windowStart.getTime(),
+        windowStart.getTime() + TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+        windowStart.getTime() + 2 * TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+      ],
+    );
+    assert.deepEqual(
+      schedule.map((round) => round.roundNumber),
+      [1, 2, 3],
+    );
+    for (let index = 1; index < schedule.length; index += 1) {
+      const previous = schedule[index - 1];
+      const current = schedule[index];
+      assert.ok(previous && current);
+      assert.ok(current.start.getTime() > previous.start.getTime());
+    }
+  });
+
+  it("spreads a multi-week window with fewWeeksRoundStarts and stays monotonic", () => {
+    const windowStart = new Date("2026-09-20T18:00:00");
+    const windowEnd = new Date("2026-10-04T18:45:00");
+    const schedule = tournamentRoundSchedule({
+      windowStart,
+      windowEnd,
+      roundCount: 3,
+    });
+    const expected = fewWeeksRoundStarts(windowStart, windowEnd, 3);
+    assert.equal(schedule.length, 3);
+    assert.equal(schedule.length, expected.length);
+    assert.deepEqual(
+      schedule.map((round) => round.start.getTime()),
+      expected.map((start) => start.getTime()),
+    );
+    for (let index = 1; index < schedule.length; index += 1) {
+      const previous = schedule[index - 1];
+      const current = schedule[index];
+      assert.ok(previous && current);
+      assert.ok(current.start.getTime() > previous.start.getTime());
+    }
   });
 });

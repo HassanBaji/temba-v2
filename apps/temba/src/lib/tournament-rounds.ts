@@ -1,5 +1,12 @@
 import { formatAbsoluteDay } from "~/lib/format-game-start";
-import { sizeFriendlyTournament } from "~/lib/tournament-sizing";
+import {
+  fewWeeksRoundStarts,
+  isOneDayTournamentWindow,
+} from "~/lib/tournament-schedule";
+import {
+  TOURNAMENT_SLOT_MINUTES,
+  sizeFriendlyTournament,
+} from "~/lib/tournament-sizing";
 
 export function isPoolTournament(
   format: string,
@@ -31,6 +38,42 @@ export type TournamentRoundSummary = {
   dateLines: string[];
 };
 
+export type TournamentRoundScheduleEntry = {
+  roundNumber: number;
+  start: Date;
+};
+
+export function tournamentRoundSchedule(args: {
+  windowStart: Date | string;
+  windowEnd: Date | string;
+  roundCount: number;
+}): TournamentRoundScheduleEntry[] {
+  if (args.roundCount < 1) {
+    return [];
+  }
+
+  const windowStart = asDate(args.windowStart);
+  const windowEnd = asDate(args.windowEnd);
+  const starts = isOneDayTournamentWindow(windowStart, windowEnd)
+    ? oneDayRoundStarts(windowStart, args.roundCount)
+    : fewWeeksRoundStarts(windowStart, windowEnd, args.roundCount);
+
+  return starts.map((start, index) => ({
+    roundNumber: index + 1,
+    start,
+  }));
+}
+
+function oneDayRoundStarts(windowStart: Date, roundCount: number): Date[] {
+  return Array.from(
+    { length: roundCount },
+    (_, index) =>
+      new Date(
+        windowStart.getTime() + index * TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+      ),
+  );
+}
+
 export function poolRoundLabel(
   roundNumber: number | null | undefined,
   roundCount: number | null | undefined,
@@ -39,6 +82,54 @@ export function poolRoundLabel(
     return null;
   }
   return `R${roundNumber} of ${roundCount}`;
+}
+
+export type RoundsPlayedMatch = {
+  roundNumber: number | null;
+  cancelled?: boolean;
+  status?: string | null;
+};
+
+export type RoundsPlayedPoolTables = {
+  pools: readonly { matches: readonly RoundsPlayedMatch[] }[];
+};
+
+export function roundsPlayedLabel(
+  poolTables: RoundsPlayedPoolTables | null | undefined,
+  roundCount: number | null | undefined,
+): string | null {
+  if (poolTables == null || roundCount == null || roundCount < 1) {
+    return null;
+  }
+
+  const byRound = new Map<number, RoundsPlayedMatch[]>();
+  for (const pool of poolTables.pools) {
+    for (const match of pool.matches) {
+      if (match.roundNumber == null) {
+        continue;
+      }
+      const list = byRound.get(match.roundNumber) ?? [];
+      list.push(match);
+      byRound.set(match.roundNumber, list);
+    }
+  }
+
+  let played = 0;
+  for (const matches of byRound.values()) {
+    if (matches.length > 0 && matches.every(isSettledRoundMatch)) {
+      played += 1;
+    }
+  }
+
+  return `Round ${played} of ${roundCount} played`;
+}
+
+function isSettledRoundMatch(match: RoundsPlayedMatch) {
+  return (
+    match.cancelled === true ||
+    match.status === "completed" ||
+    match.status === "cancelled"
+  );
 }
 
 export function tournamentRoundSummary(args: {
