@@ -13,6 +13,7 @@ import {
   vacateSeat,
 } from "~/server/games/seats";
 import { type db } from "~/server/db";
+import { isPartnerRequiredGame } from "~/lib/tournament-rounds";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -22,6 +23,30 @@ export async function leaveRegisteredSeat(
   userId: string,
   notRegisteredMessage = "You are not registered on this Game",
 ) {
+  if (isPartnerRequiredGame(game) && !isPoolDrawPosted(game)) {
+    const player = await database.query.gamePlayers.findFirst({
+      where: and(
+        eq(gamePlayers.gameId, game.id),
+        eq(gamePlayers.userId, userId),
+      ),
+    });
+    if (!player) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: notRegisteredMessage,
+      });
+    }
+    const link = await database.query.gameTeamPlayers.findFirst({
+      where: eq(gameTeamPlayers.gamePlayerId, player.id),
+    });
+    if (link) {
+      await removeGameTeamAndPlayers(database, link.gameTeamId);
+    } else {
+      await database.delete(gamePlayers).where(eq(gamePlayers.id, player.id));
+    }
+    return;
+  }
+
   if (isIndividualSeatGame(game)) {
     const vacated = await vacateSeat(
       database,

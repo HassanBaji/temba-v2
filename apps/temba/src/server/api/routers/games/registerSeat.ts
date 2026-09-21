@@ -21,6 +21,10 @@ import type { SeatPosition } from "~/server/games/utils";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { enqueueWaitlistUser } from "~/server/games/enqueue-waitlist-user";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
+import {
+  isPartnerRequiredGame,
+  PARTNER_REQUIRED_REFUSAL_MESSAGE,
+} from "~/lib/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -36,6 +40,13 @@ export async function registerSeat(
   const game = await requireGame(database, args.gameId);
   assertPoolDrawNotPosted(game);
   const now = new Date();
+
+  if (isPartnerRequiredGame(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+    });
+  }
 
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({

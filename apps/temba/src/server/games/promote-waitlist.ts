@@ -7,6 +7,7 @@ import { admit } from "~/server/games/admit";
 import { isIndividualSeatGame } from "~/server/games/seats";
 import { type db } from "~/server/db";
 import type { SeatPosition } from "~/server/games/utils";
+import { isPartnerRequiredGame } from "~/lib/tournament-rounds";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -38,6 +39,10 @@ export async function promoteWaitlist(
     where: eq(gameWaitlist.gameId, game.id),
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
   });
+
+  if (isPartnerRequiredGame(game)) {
+    return;
+  }
 
   if (isIndividualSeatGame(game)) {
     if (!vacated) {
