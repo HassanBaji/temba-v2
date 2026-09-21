@@ -53,7 +53,14 @@ import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
 import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
 import { gameViewerStatus } from "~/lib/game-summary-cta";
 import { gameDetailsChrome } from "~/lib/tournament-home";
-import { showsPoolTournamentSeats } from "~/lib/tournament-rounds";
+import {
+  tournamentInviteLandingOpensPartnerSheet,
+  tournamentLeaveOrKickConfirmCopy,
+} from "~/lib/tournament-join";
+import {
+  isPartnerRequiredGame,
+  showsPoolTournamentSeats,
+} from "~/lib/tournament-rounds";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
@@ -78,12 +85,13 @@ export default function GameHomePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; join?: string | string[] }>;
 }) {
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const tab = gameHomeTabFromQuery(tabParam);
+  const joinParam = Array.isArray(query.join) ? query.join[0] : query.join;
   const router = useRouter();
   const pathname = usePathname() ?? `/dashboard/games/${id}`;
   const utils = api.useUtils();
@@ -146,6 +154,10 @@ export default function GameHomePage({
   const [joinPickerOpen, setJoinPickerOpen] = React.useState(false);
   const [joinPickerSeat, setJoinPickerSeat] =
     React.useState<FriendlyGameJoinSeat | null>(null);
+  const [kickConfirm, setKickConfirm] = React.useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [markAsNotPlayedOpen, setMarkAsNotPlayedOpen] = React.useState(false);
   const [reportWrongScoreOpen, setReportWrongScoreOpen] = React.useState(false);
 
@@ -512,7 +524,9 @@ export default function GameHomePage({
     ? canMintInvite
     : Boolean(data?.isOrganizer && !data.cancelledAt && !data.joinFrozen);
   const canSendGameLookup = Boolean(
-    canManageGameInvites && data?.registrationMode !== "team_only",
+    canManageGameInvites &&
+      data?.registrationMode !== "team_only" &&
+      !(data && isPartnerRequiredGame(data)),
   );
   const lookupSearch = api.games.searchLookupUsers.useQuery(
     { gameId: id, query: lookupQuery },
@@ -554,6 +568,17 @@ export default function GameHomePage({
     setLevelMinError(undefined);
     setLevelMaxError(undefined);
   }, [data]);
+
+  React.useEffect(() => {
+    if (!tournamentInviteLandingOpensPartnerSheet(joinParam) || !data) {
+      return;
+    }
+    if (data.canRegister) {
+      setJoinPickerSeat(null);
+      setJoinPickerOpen(true);
+    }
+    router.replace(`${pathname}${gameHomeTabQuery(tab)}`, { scroll: false });
+  }, [data, joinParam, pathname, router, tab]);
 
   if (isNotFoundError(game.error)) {
     notFound();
@@ -832,6 +857,29 @@ export default function GameHomePage({
     setJoinPickerOpen(true);
   }
 
+  function occupantDisplayName(userId: string) {
+    if (!data) {
+      return "player";
+    }
+    for (const side of data.sides) {
+      if (side.left?.userId === userId) {
+        return side.left.name;
+      }
+      if (side.right?.userId === userId) {
+        return side.right.name;
+      }
+    }
+    return "player";
+  }
+
+  function requestKick(userId: string) {
+    if (data && isPartnerRequiredGame(data) && !data.drawPostedAt) {
+      setKickConfirm({ userId, name: occupantDisplayName(userId) });
+      return;
+    }
+    kick.mutate({ gameId: id, userId });
+  }
+
   return (
     <DashboardShell
       title={shellTitle}
@@ -939,7 +987,7 @@ export default function GameHomePage({
                 reopenRegistration.mutate({ gameId: id })
               }
               onCancelGame={() => setCancelGameOpen(true)}
-              onKick={(userId) => kick.mutate({ gameId: id, userId })}
+              onKick={requestKick}
               onKickWaitlist={(waitlistId) =>
                 kick.mutate({ gameId: id, waitlistId })
               }
@@ -1301,6 +1349,7 @@ export default function GameHomePage({
           poolCount={data.poolCount}
           teamsAllowed={data.teamsAllowed}
           windowEnd={data.windowEnd}
+          allowSoloRegister={data.allowSoloRegister}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })
           }
@@ -1395,11 +1444,36 @@ export default function GameHomePage({
         open={leaveGameOpen}
         onOpenChange={setLeaveGameOpen}
         title={`Leave ${gameName}?`}
-        description="Your spot can open for someone else."
+        description={tournamentLeaveOrKickConfirmCopy({
+          partnerRequired: isPartnerRequiredGame(data),
+          drawPosted: Boolean(data.drawPostedAt),
+        })}
         confirmLabel="Leave Game"
         pending={leaveGame.isPending}
         onConfirm={async () => {
           await leaveGame.mutateAsync({ gameId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={kickConfirm != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setKickConfirm(null);
+          }
+        }}
+        title={kickConfirm ? `Kick ${kickConfirm.name}?` : "Kick player?"}
+        description={tournamentLeaveOrKickConfirmCopy({
+          partnerRequired: isPartnerRequiredGame(data),
+          drawPosted: Boolean(data.drawPostedAt),
+        })}
+        confirmLabel="Kick"
+        pending={kick.isPending}
+        onConfirm={async () => {
+          if (!kickConfirm) {
+            return;
+          }
+          await kick.mutateAsync({ gameId: id, userId: kickConfirm.userId });
         }}
       />
 

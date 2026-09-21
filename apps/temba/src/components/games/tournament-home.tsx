@@ -63,6 +63,7 @@ import {
   tournamentHomeJoinKind,
   type TournamentHomeJoinKind,
 } from "~/lib/tournament-home";
+import { tournamentShowsTakeSeat } from "~/lib/tournament-join";
 import {
   canOpenOrganizerDrawDrawer,
   canShowUndoPoolDraw,
@@ -70,6 +71,7 @@ import {
 } from "~/lib/tournament-pool-draw";
 import { viewerTournamentTotalCents } from "~/lib/tournament-price";
 import {
+  isPartnerRequiredGame,
   roundsPlayedLabel,
   tournamentRoundSchedule,
   type TournamentRoundScheduleEntry,
@@ -166,6 +168,7 @@ export function TournamentHome({
   const field = tournamentFieldSummary(data.sides);
   const viewerSide = tournamentViewerSide(data.sides, data.viewerUserId);
   const seated = Boolean(viewerSide);
+  const partnerRequired = isPartnerRequiredGame(data);
   const joinKind = tournamentHomeJoinKind(
     data.registrationMode,
     data.canRegister,
@@ -201,6 +204,7 @@ export function TournamentHome({
     cancelled: Boolean(data.cancelledAt),
     drawPosted: drawn,
     halfTeamCount: halfTeams.length,
+    partnerRequired,
   };
   const showMergeBanner = showOrganizerMergeBanner(mergeGate);
   const showMergeEntry =
@@ -265,7 +269,11 @@ export function TournamentHome({
           <TournamentPredrawTree
             sides={data.sides}
             viewerUserId={data.viewerUserId}
-            canTakeSeat={joinKind === "join" && !seated}
+            canTakeSeat={tournamentShowsTakeSeat({
+              canJoin: joinKind === "join",
+              seated,
+              partnerRequired,
+            })}
             venueName={data.venue?.name ?? null}
             schedule={schedule}
             teamCount={data.teamsAllowed}
@@ -324,7 +332,9 @@ export function TournamentHome({
 
       <TournamentHomeActions
         joinKind={joinKind}
-        canWaitlist={data.canWaitlist && joinKind === "join"}
+        canWaitlist={
+          data.canWaitlist && joinKind === "join" && !partnerRequired
+        }
         isWaitlisted={data.isWaitlisted}
         isOrganizerActive={isOrganizerActive}
         onInvite={drawn ? onInvite : undefined}

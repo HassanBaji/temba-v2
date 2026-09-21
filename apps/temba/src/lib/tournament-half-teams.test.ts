@@ -167,6 +167,25 @@ describe("organizer merge banner", () => {
       false,
     );
   });
+
+  it("hides the banner and drawer on a partner-required tournament", () => {
+    assert.equal(
+      showOrganizerMergeBanner({ ...open, partnerRequired: true }),
+      false,
+    );
+    assert.equal(
+      canOpenOrganizerMergeDrawer({ ...open, partnerRequired: true }),
+      false,
+    );
+    assert.equal(
+      canOpenOrganizerMergeDrawer({
+        ...open,
+        halfTeamCount: 3,
+        partnerRequired: true,
+      }),
+      false,
+    );
+  });
 });
 
 describe("merge screen copy", () => {

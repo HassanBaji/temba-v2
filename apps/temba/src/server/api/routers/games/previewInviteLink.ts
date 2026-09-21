@@ -19,6 +19,8 @@ import {
 } from "~/server/games/seats";
 import { gameHasLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { previewLink } from "~/server/invites/doors";
+import { tournamentInvitePreviewNeedsSeatPick } from "~/lib/tournament-join";
+import { isPartnerRequiredGame } from "~/lib/tournament-rounds";
 
 type DbClient = typeof db;
 
@@ -48,7 +50,12 @@ export async function previewInviteLink(
     gameHasLevelRange(gameRow) &&
     levelFields != null &&
     !levelFields.viewerPassesLevelRange;
-  const needsSeatPick = isIndividualSeatGame(gameRow) && !blockedByLevelRange;
+  const partnerRequiredJoin = isPartnerRequiredGame(gameRow);
+  const needsSeatPick = tournamentInvitePreviewNeedsSeatPick({
+    isIndividualSeatGame: isIndividualSeatGame(gameRow),
+    blockedByLevelRange,
+    partnerRequired: partnerRequiredJoin,
+  });
   const sides = needsSeatPick ? await listGameSides(database, gameRow) : [];
   return {
     status: "ready" as const,
@@ -61,6 +68,7 @@ export async function previewInviteLink(
       new Date(),
     ),
     needsSeatPick,
+    partnerRequiredJoin,
     sides,
     vacantSeats: vacantPositionsFromSides(sides),
     levelMinTenths: gameRow.levelMinTenths,

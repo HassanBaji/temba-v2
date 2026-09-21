@@ -18,6 +18,10 @@ import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-ra
 import { acceptLink, throwInviteFrozen } from "~/server/invites/doors";
 import { isInviteLinkLive } from "~/server/invites/invite-link-expiry";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
+import {
+  isPartnerRequiredGame,
+  PARTNER_REQUIRED_REFUSAL_MESSAGE,
+} from "~/lib/tournament-rounds";
 
 type DbClient = typeof db;
 
@@ -56,6 +60,13 @@ export async function acceptInviteLink(
     throw new TRPCError({
       code: "FORBIDDEN",
       message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+    });
+  }
+
+  if (isPartnerRequiredGame(game)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
     });
   }
 

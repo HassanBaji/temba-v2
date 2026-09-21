@@ -2,7 +2,10 @@ import { eq, inArray, or, type SQL } from "drizzle-orm";
 
 import { gamePlayers, gameWaitlist, groupMembers, teamMembers } from "@repo/db";
 
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import {
+  isPartnerRequiredGame,
+  isPoolTournament,
+} from "~/lib/tournament-rounds";
 import { registrationStatusFromState } from "~/server/games/access";
 import { type db } from "~/server/db";
 import { gameListTime } from "~/server/home/upcoming-games";
@@ -38,6 +41,7 @@ export const hubListColumns = {
   playersAllowed: true,
   teamsAllowed: true,
   poolCount: true,
+  allowSoloRegister: true,
   drawPostedAt: true,
 } as const;
 
@@ -143,6 +147,7 @@ export type HubQueryRow = {
   playersAllowed: number | null;
   teamsAllowed: number | null;
   poolCount: number | null;
+  allowSoloRegister: boolean;
   drawPostedAt: Date | null;
   group: {
     id: string;
@@ -396,6 +401,7 @@ export function toHubListRow(
       !isRegistered &&
       !isWaitlisted,
     canWaitlist:
+      !isPartnerRequiredGame(row) &&
       registrationStatus === "full" &&
       passesGate &&
       !isRegistered &&
