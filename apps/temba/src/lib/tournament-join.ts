@@ -151,6 +151,18 @@ export function isFullyVacantJoinSide(side: { left: unknown; right: unknown }) {
   return side.left == null && side.right == null;
 }
 
+export type TournamentJoinSheetOpeningStep = "chooser" | "seat";
+
+export function tournamentJoinSheetOpeningStep(args: {
+  offersPartner: boolean;
+  hasInitialSeat: boolean;
+}): TournamentJoinSheetOpeningStep {
+  if (args.hasInitialSeat) {
+    return "seat";
+  }
+  return args.offersPartner ? "chooser" : "seat";
+}
+
 export function tournamentStartOwnSeat(
   sides: readonly TournamentJoinSide[],
   preferredPosition: string | null | undefined,

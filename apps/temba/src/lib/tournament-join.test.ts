@@ -26,6 +26,7 @@ import {
   tournamentJoinTakeSeatLabel,
   tournamentSitWithCountLine,
   tournamentJoinOpeningSeat,
+  tournamentJoinSheetOpeningStep,
   tournamentStartOwnSeat,
   tournamentYourSeatAvailability,
 } from "./tournament-join";
@@ -144,6 +145,38 @@ describe("tournamentJoinOpeningSeat", () => {
         position: "right",
       }),
       { sideIndex: 1, position: "right" },
+    );
+  });
+});
+
+describe("tournamentJoinSheetOpeningStep", () => {
+  it("opens Join alone / Join with a partner when a vacant side is available", () => {
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: true,
+        hasInitialSeat: false,
+      }),
+      "chooser",
+    );
+  });
+
+  it("hides the partner option when no side is fully vacant", () => {
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: false,
+        hasInitialSeat: false,
+      }),
+      "seat",
+    );
+  });
+
+  it("opens on Sit with someone when Take seat already named a Position", () => {
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: true,
+        hasInitialSeat: true,
+      }),
+      "seat",
     );
   });
 });

@@ -61,6 +61,7 @@ import {
   tournamentJoinRoundCount,
   tournamentJoinSeatExplanation,
   tournamentJoinSeatsTakenLine,
+  tournamentJoinSheetOpeningStep,
   tournamentJoinTakeSeatLabel,
   tournamentSitWithCountLine,
   tournamentStartOwnSeat,
@@ -801,10 +802,12 @@ function TournamentTakeASeat({
  * pick, and nothing is submitted until the footer button. A lone vacant
  * Position is chosen rather than asked.
  *
- * On individual Friendly games with a fully vacant side, a mode chooser
- * (artboard 02b) is the first step: Join alone reaches this picker; Join
- * with a partner stays in this dialog for Pick a partner and Register the
- * team. Hub cards can open straight on Pick a partner.
+ * On individual Friendly games and allow-alone Pool tournaments with a fully
+ * vacant side, a mode chooser (artboard 02b) is the first step: Join alone
+ * reaches this picker; Join with a partner stays in this dialog for Pick a
+ * partner and Register the team. Hub cards can open straight on Pick a
+ * partner. Pool tournaments skip that chooser when Take seat already named
+ * a Position, or when no side is fully vacant.
  */
 export function FriendlyGameJoinSheet({
   open,
@@ -939,11 +942,16 @@ export function FriendlyGameJoinSheet({
       setStep(
         openPartner
           ? "partner"
-          : initialSeat || tournamentJoin
-            ? "seat"
-            : offer
-              ? "chooser"
-              : "seat",
+          : tournamentJoin
+            ? tournamentJoinSheetOpeningStep({
+                offersPartner: offer,
+                hasInitialSeat: initialSeat != null,
+              })
+            : initialSeat
+              ? "seat"
+              : offer
+                ? "chooser"
+                : "seat",
       );
       setSelectedPartner(null);
       setPartnerRaceMessage(null);
