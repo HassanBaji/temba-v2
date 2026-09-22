@@ -17,10 +17,10 @@ describe("titleFromPath", () => {
     assert.equal(titleFromPath("/dashboard/games/new"), "Create Game");
   });
 
-  it("keeps the tournament page title while that route still exists", () => {
+  it("uses Create Game for the retired tournament path", () => {
     assert.equal(
       titleFromPath("/dashboard/games/new-tournament"),
-      "Create tournament",
+      "Create Game",
     );
   });
 });

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { CreateFlowShell } from "~/app/dashboard/games/new/create-flow-shell";
 import { FriendlyGameSteps } from "~/app/dashboard/games/new/friendly-game-steps";
+import { FriendlyTournamentSteps } from "~/app/dashboard/games/new/friendly-tournament-steps";
 import { TypeStep } from "~/app/dashboard/games/new/type-step";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
@@ -16,19 +17,25 @@ import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
   CREATE_FLOW_FIELD_IDS,
-  FRIENDLY_GAME_LATER_STEPS,
+  DEFAULT_MATCH_MINUTES,
+  createFlowLaterSteps,
   createFlowStepForField,
   createGameFlowHref,
   createVenueCopy,
   earliestCreateDay,
   friendlyGameKickoff,
   friendlyGamePreviewLine,
-  friendlyTournamentCreateHref,
+  friendlyTournamentDefaultName,
+  friendlyTournamentMatchCountLabel,
+  friendlyTournamentPreviewDetail,
+  openLevelRange,
   parseCreateFlowStep,
   parseCreateFlowType,
+  parseCreateMatchMinutes,
   resolveCreateFlowStep,
   validateFriendlyGameWhen,
   validateFriendlyGameWhere,
+  validateTournamentName,
   type CreateFlowStep,
   type CreateGameTypeId,
   type FriendlyGameDraft,
@@ -48,8 +55,16 @@ import {
   type LevelBandSelectValue,
 } from "~/lib/level-range";
 import { parseOptionalPricePerPlayerCents } from "~/lib/price-per-player";
+import {
+  defaultPoolCount,
+  poolCountOptions,
+  sizeFriendlyTournament,
+  TOURNAMENT_DEFAULT_TEAM_COUNT,
+} from "~/lib/tournament-sizing";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+
+type FormFailure = Parameters<typeof focusFormFailure>[0];
 
 function focusElement(id: string) {
   document.getElementById(id)?.focus();
@@ -65,7 +80,8 @@ function NewGameForm() {
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const pendingFocus = React.useRef<{
     step: CreateFlowStep;
-    elementId: string;
+    elementId?: string;
+    error?: FormFailure;
   } | null>(null);
   const [session] = React.useState(() => ({ now: new Date() }));
   const [selectedGroupId, setSelectedGroupId] = React.useState("");
@@ -84,16 +100,34 @@ function NewGameForm() {
   const [levelMax, setLevelMax] = React.useState<LevelBandSelectValue>(
     LEVEL_BAND_SELECT_NONE,
   );
+  const [courtIds, setCourtIds] = React.useState<string[]>([]);
+  const [teamCount, setTeamCount] = React.useState(
+    TOURNAMENT_DEFAULT_TEAM_COUNT,
+  );
+  const [poolCount, setPoolCount] = React.useState(() =>
+    defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT),
+  );
+  const [matchMinutesInput, setMatchMinutesInput] = React.useState(
+    String(DEFAULT_MATCH_MINUTES),
+  );
+  const [nameTouched, setNameTouched] = React.useState(false);
+  const [name, setName] = React.useState(() =>
+    friendlyTournamentDefaultName(earliestCreateDay(session.now)),
+  );
+  const [preferLevelRange, setPreferLevelRange] = React.useState(false);
+  const [isPublic, setIsPublic] = React.useState(false);
+  const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
   >({});
 
-  const draft: FriendlyGameDraft = {
+  const draft: FriendlyGameDraft & { matchMinutes: string } = {
     groupId: selectedGroupId,
     venueId,
     day,
     startTime,
     finishTime,
+    matchMinutes: matchMinutesInput,
   };
   const displayedStep = resolveCreateFlowStep({
     type: typeParam,
@@ -143,10 +177,6 @@ function NewGameForm() {
     if (!createGroups.data || createGroups.data.length === 0) {
       return;
     }
-    if (typeParam === "friendly_tournament" && stepParam !== 1) {
-      router.replace(friendlyTournamentCreateHref(requestedGroupId));
-      return;
-    }
     if (stepParam != null && stepParam !== displayedStep) {
       router.replace(
         createGameFlowHref({
@@ -178,28 +208,22 @@ function NewGameForm() {
       router.push(`/dashboard/games/${game.id}`);
     },
     onError: (error) => {
-      toastGlobalFormError(error);
-      const firstField = Object.keys(splitTrpcFormError(error).fieldErrors)[0];
-      if (!firstField) {
-        summaryRef.current?.focus();
-        return;
+      onCreateError(error);
+    },
+  });
+  const createTournament = api.games.createTournament.useMutation({
+    onSuccess: async (game) => {
+      toast.success("Tournament created");
+      await utils.users.home.invalidate();
+      await utils.games.listPublicPickup.invalidate();
+      await utils.games.listMyGames.invalidate();
+      if (selectedGroupId) {
+        await utils.groups.byId.invalidate({ id: selectedGroupId });
       }
-      const target = createFlowStepForField(firstField);
-      if (target !== displayedStep) {
-        pendingFocus.current = {
-          step: target,
-          elementId: CREATE_FLOW_FIELD_IDS[firstField] ?? firstField,
-        };
-        router.push(
-          createGameFlowHref({
-            groupId: requestedGroupId,
-            type: "friendly_game",
-            step: target,
-          }),
-        );
-        return;
-      }
-      focusFormFailure(error, CREATE_FLOW_FIELD_IDS, summaryRef.current);
+      router.push(`/dashboard/games/${game.id}`);
+    },
+    onError: (error) => {
+      onCreateError(error);
     },
   });
 
@@ -209,7 +233,17 @@ function NewGameForm() {
       return;
     }
     pendingFocus.current = null;
-    focusElement(pending.elementId);
+    if (pending.error) {
+      focusFormFailure(
+        pending.error,
+        CREATE_FLOW_FIELD_IDS,
+        summaryRef.current,
+      );
+      return;
+    }
+    if (pending.elementId) {
+      focusElement(pending.elementId);
+    }
   }, [displayedStep]);
 
   function clearField(field: string) {
@@ -217,6 +251,31 @@ function NewGameForm() {
     if (createGame.error) {
       createGame.reset();
     }
+    if (createTournament.error) {
+      createTournament.reset();
+    }
+  }
+
+  function onCreateError(error: FormFailure) {
+    toastGlobalFormError(error);
+    const firstField = Object.keys(splitTrpcFormError(error).fieldErrors)[0];
+    if (!firstField) {
+      summaryRef.current?.focus();
+      return;
+    }
+    const target = createFlowStepForField(firstField);
+    if (target !== displayedStep) {
+      pendingFocus.current = { step: target, error };
+      router.push(
+        createGameFlowHref({
+          groupId: requestedGroupId,
+          type: typeParam ?? "friendly_game",
+          step: target,
+        }),
+      );
+      return;
+    }
+    focusFormFailure(error, CREATE_FLOW_FIELD_IDS, summaryRef.current);
   }
 
   function hrefForStep(step: CreateFlowStep) {
@@ -227,35 +286,107 @@ function NewGameForm() {
     });
   }
 
+  function resetTournamentBranch() {
+    setCourtIds([]);
+    setTeamCount(TOURNAMENT_DEFAULT_TEAM_COUNT);
+    setPoolCount(defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT));
+    setMatchMinutesInput(String(DEFAULT_MATCH_MINUTES));
+    setNameTouched(false);
+    setName(friendlyTournamentDefaultName(day));
+    setIsPublic(false);
+    setAllowSoloRegister(true);
+    setErrors((current) => ({
+      ...current,
+      teamCount: undefined,
+      courtIds: undefined,
+      poolCount: undefined,
+      matchMinutes: undefined,
+      name: undefined,
+    }));
+  }
+
+  function resetGameBranch() {
+    setCourtId("none");
+    setErrors((current) => ({ ...current, courtId: undefined }));
+  }
+
   function onSelectType(type: CreateGameTypeId) {
     clearField("type");
-    if (type === "friendly_tournament") {
-      router.push(
-        friendlyTournamentCreateHref(selectedGroupId || requestedGroupId),
-      );
-      return;
+    if (type !== typeParam) {
+      if (type === "friendly_game") {
+        resetTournamentBranch();
+      } else {
+        resetGameBranch();
+      }
     }
-    if (typeParam === "friendly_game" && displayedStep === 1) {
+    if (typeParam === type && displayedStep === 1) {
       return;
     }
     router.push(
       createGameFlowHref({
         groupId: requestedGroupId,
-        type: "friendly_game",
+        type,
         step: 1,
       }),
     );
   }
 
+  function onDayChange(next: string) {
+    setDay(next);
+    clearField("windowStart");
+    clearField("windowEnd");
+    if (!nameTouched) {
+      setName(friendlyTournamentDefaultName(next));
+    }
+  }
+
+  function onTeamCountChange(nextCount: number) {
+    setTeamCount(nextCount);
+    const allowed = poolCountOptions(nextCount);
+    setPoolCount((current) =>
+      allowed.includes(current) ? current : defaultPoolCount(nextCount),
+    );
+    clearField("teamCount");
+  }
+
+  function continueTournamentStepThree() {
+    const when = validateFriendlyGameWhen(
+      day,
+      startTime,
+      finishTime,
+      session.now,
+    );
+    if (!when.ok) {
+      setErrors((current) => ({ ...current, [when.field]: when.message }));
+      focusElement(when.elementId);
+      return false;
+    }
+    const minutes = parseCreateMatchMinutes(matchMinutesInput);
+    if (!minutes.ok) {
+      setErrors((current) => ({
+        ...current,
+        matchMinutes: minutes.message,
+      }));
+      focusElement("tournament-match-minutes");
+      return false;
+    }
+    if (!sizeFriendlyTournament(teamCount, poolCount).ok) {
+      setErrors((current) => ({
+        ...current,
+        poolCount: "Pick a groups count",
+      }));
+      focusElement("tournament-pool-count");
+      return false;
+    }
+    return true;
+  }
+
   function onContinue() {
     if (displayedStep === 1) {
-      if (typeParam === "friendly_tournament") {
-        router.push(
-          friendlyTournamentCreateHref(selectedGroupId || requestedGroupId),
-        );
-        return;
-      }
-      if (typeParam !== "friendly_game") {
+      if (
+        typeParam !== "friendly_game" &&
+        typeParam !== "friendly_tournament"
+      ) {
         setErrors((current) => ({
           ...current,
           type: "Pick a Game type",
@@ -288,6 +419,13 @@ function NewGameForm() {
       return;
     }
     if (displayedStep === 3) {
+      if (typeParam === "friendly_tournament") {
+        if (!continueTournamentStepThree()) {
+          return;
+        }
+        router.push(hrefForStep(4));
+        return;
+      }
       const when = validateFriendlyGameWhen(
         day,
         startTime,
@@ -303,7 +441,92 @@ function NewGameForm() {
     }
   }
 
+  function onCreateTournament() {
+    if (createTournament.isPending) {
+      return;
+    }
+    const where = validateFriendlyGameWhere(selectedGroupId, venueId);
+    if (!where.ok) {
+      pendingFocus.current = { step: 2, elementId: where.elementId };
+      router.push(hrefForStep(2));
+      setErrors((current) => ({ ...current, [where.field]: where.message }));
+      return;
+    }
+    const when = validateFriendlyGameWhen(
+      day,
+      startTime,
+      finishTime,
+      session.now,
+    );
+    if (!when.ok) {
+      pendingFocus.current = { step: 3, elementId: when.elementId };
+      router.push(hrefForStep(3));
+      setErrors((current) => ({ ...current, [when.field]: when.message }));
+      return;
+    }
+    const minutes = parseCreateMatchMinutes(matchMinutesInput);
+    if (!minutes.ok) {
+      pendingFocus.current = {
+        step: 3,
+        elementId: "tournament-match-minutes",
+      };
+      router.push(hrefForStep(3));
+      setErrors((current) => ({
+        ...current,
+        matchMinutes: minutes.message,
+      }));
+      return;
+    }
+    const named = validateTournamentName(name);
+    if (!named.ok) {
+      setErrors((current) => ({ ...current, name: named.message }));
+      focusElement(named.elementId);
+      return;
+    }
+    const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
+    if (!parsedPrice.ok) {
+      setErrors((current) => ({
+        ...current,
+        pricePerPlayerCents: parsedPrice.message,
+      }));
+      focusElement(CREATE_FLOW_FIELD_IDS.pricePerPlayerCents ?? "");
+      return;
+    }
+    const parsedMin = parseLevelBandSelectTenths(levelMin, "min");
+    const parsedMax = parseLevelBandSelectTenths(levelMax, "max");
+    if (parsedMin != null && parsedMax != null && parsedMin > parsedMax) {
+      setErrors((current) => ({
+        ...current,
+        levelMinTenths: LEVEL_RANGE_INVERTED_MESSAGE,
+      }));
+      focusElement(CREATE_FLOW_FIELD_IDS.levelMinTenths ?? "");
+      return;
+    }
+    createTournament.mutate({
+      name: named.name,
+      groupId: selectedGroupId,
+      isPublic,
+      allowSoloRegister,
+      teamCount,
+      poolCount,
+      matchMinutes: minutes.minutes,
+      windowStart: when.windowStart,
+      windowEnd: when.windowEnd,
+      venueId,
+      ...(courtIds.length > 0 ? { courtIds } : {}),
+      ...(parsedPrice.cents !== null
+        ? { pricePerPlayerCents: parsedPrice.cents }
+        : {}),
+      ...(parsedMin !== null ? { levelMinTenths: parsedMin } : {}),
+      ...(parsedMax !== null ? { levelMaxTenths: parsedMax } : {}),
+    });
+  }
+
   function onCreate() {
+    if (typeParam === "friendly_tournament") {
+      onCreateTournament();
+      return;
+    }
     if (createGame.isPending) {
       return;
     }
@@ -371,11 +594,17 @@ function NewGameForm() {
     : requestedGroupId
       ? `/dashboard/groups/${requestedGroupId}`
       : "/dashboard/games";
+  const tournamentBranch = typeParam === "friendly_tournament";
+  const formError = tournamentBranch
+    ? createTournament.error
+    : createGame.error;
   const venueCopy = !selectedGroupId
     ? "Pick a Group first. Venue rules depend on the Group."
     : picker.data
-      ? createVenueCopy(picker.data)
-      : "Pick a Venue. Court is optional.";
+      ? createVenueCopy(picker.data, { manyCourts: tournamentBranch })
+      : tournamentBranch
+        ? "Pick a Venue. Courts are optional."
+        : "Pick a Venue. Court is optional.";
   const kickoff = friendlyGameKickoff(day, startTime, finishTime);
   const previewDetail = friendlyGamePreviewLine({
     day: startTime ? day : "",
@@ -390,20 +619,43 @@ function NewGameForm() {
   const groupError =
     errors.groupId ??
     groupFieldError ??
-    fieldErrorMessage(createGame.error, "groupId");
-  const venueError =
-    errors.venueId ?? fieldErrorMessage(createGame.error, "venueId");
+    fieldErrorMessage(formError, "groupId");
+  const venueError = errors.venueId ?? fieldErrorMessage(formError, "venueId");
   const courtError =
-    errors.courtId ?? fieldErrorMessage(createGame.error, "courtId");
-  const futureSteps = FRIENDLY_GAME_LATER_STEPS.filter(
-    (item) => item.step > displayedStep,
-  );
+    errors.courtId ??
+    errors.courtIds ??
+    fieldErrorMessage(formError, "courtId") ??
+    fieldErrorMessage(formError, "courtIds");
+  const laterSteps = createFlowLaterSteps(typeParam);
+  const futureSteps = laterSteps.filter((item) => item.step > displayedStep);
+  const nextTitle = laterSteps.find(
+    (item) => item.step === displayedStep + 1,
+  )?.title;
+  const submitting = createGame.isPending || createTournament.isPending;
   const primaryLabel =
     displayedStep === 4
-      ? createGame.isPending
+      ? submitting
         ? "Creating…"
-        : "Create Game"
+        : tournamentBranch
+          ? "Create tournament"
+          : "Create Game"
       : "Continue";
+  const tournamentSizing = sizeFriendlyTournament(teamCount, poolCount);
+  const tournamentPreviewDetail = friendlyTournamentPreviewDetail({
+    day,
+    venueName: selectedVenue?.name ?? null,
+    courtNames:
+      selectedVenue?.courts
+        .filter((court) => courtIds.includes(court.id))
+        .map((court) => court.name) ?? [],
+  });
+  const showLevelRange =
+    preferLevelRange ||
+    levelMin !== LEVEL_BAND_SELECT_NONE ||
+    levelMax !== LEVEL_BAND_SELECT_NONE;
+  const reviewGroupName = selectedGroup
+    ? (selectedGroup.name ?? "Untitled Group")
+    : "Group";
 
   if (createGroups.isLoading) {
     return (
@@ -444,16 +696,27 @@ function NewGameForm() {
     );
   }
 
-  if (typeParam === "friendly_tournament" && stepParam !== 1) {
-    return (
-      <DashboardShell title="Create Game" hideMobileTopBar>
-        <p className="text-muted-foreground text-sm">Loading…</p>
-      </DashboardShell>
-    );
-  }
-
   const preview =
-    kickoff && displayedStep > 1 ? (
+    tournamentBranch && displayedStep > 1 ? (
+      <>
+        <h1 className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-expanded text-[44px] tabular-nums leading-none">
+            {teamCount}
+          </span>
+          <span className="text-dim text-[18px] leading-none">Game teams</span>
+          {tournamentSizing.ok ? (
+            <span className="text-dim text-[15px] leading-none">
+              {friendlyTournamentMatchCountLabel(
+                tournamentSizing.sizing.poolMatches,
+              )}
+            </span>
+          ) : null}
+        </h1>
+        {tournamentPreviewDetail ? (
+          <p className="text-dim mt-2 text-sm">{tournamentPreviewDetail}</p>
+        ) : null}
+      </>
+    ) : kickoff && displayedStep > 1 ? (
       <>
         <h1 className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-expanded text-[44px] tabular-nums leading-none">
@@ -516,9 +779,7 @@ function NewGameForm() {
               {displayedStep > 1 && displayedStep < 4 ? (
                 <div className="min-w-0 flex-1">
                   <p className="text-muted-foreground text-meta">Next</p>
-                  <p className="text-sm font-semibold">
-                    {displayedStep === 2 ? "When" : "Level and price"}
-                  </p>
+                  <p className="text-sm font-semibold">{nextTitle}</p>
                 </div>
               ) : null}
               <Button
@@ -529,9 +790,7 @@ function NewGameForm() {
                     ? "shrink-0 px-5"
                     : "flex-1",
                 )}
-                disabled={
-                  createGame.isPending || (displayedStep === 2 && emptyCatalog)
-                }
+                disabled={submitting || (displayedStep === 2 && emptyCatalog)}
               >
                 {primaryLabel}
                 {displayedStep < 4 ? (
@@ -547,7 +806,7 @@ function NewGameForm() {
           <FormErrorSummary
             ref={summaryRef}
             message={
-              globalFormErrorMessage(createGame.error) ??
+              globalFormErrorMessage(formError) ??
               (displayedStep === 2 && emptyCatalog
                 ? "No live Venues. Create is not available."
                 : null) ??
@@ -559,6 +818,147 @@ function NewGameForm() {
               selectedType={typeParam}
               error={errors.type}
               onSelect={onSelectType}
+            />
+          ) : tournamentBranch ? (
+            <FriendlyTournamentSteps
+              step={displayedStep}
+              now={session.now}
+              groups={createGroups.data ?? []}
+              selectedGroupId={selectedGroupId}
+              groupError={groupError}
+              onGroupId={(groupId) => {
+                setSelectedGroupId(groupId);
+                setGroupFieldError(undefined);
+                clearField("groupId");
+                setVenueId("");
+                setCourtId("none");
+                setCourtIds([]);
+              }}
+              venueCopy={venueCopy}
+              venues={picker.data?.venues ?? []}
+              venuesLocked={picker.data?.locked === true}
+              venuesPending={Boolean(selectedGroupId) && picker.isLoading}
+              venueId={venueId}
+              venueError={venueError}
+              onVenueId={(nextVenueId) => {
+                if (nextVenueId !== venueId) {
+                  setCourtId("none");
+                  setCourtIds([]);
+                }
+                setVenueId(nextVenueId);
+                clearField("venueId");
+              }}
+              emptyCatalog={emptyCatalog}
+              courtIds={courtIds}
+              courtError={courtError}
+              onToggleCourt={(courtIdToToggle) => {
+                setCourtIds((current) =>
+                  current.includes(courtIdToToggle)
+                    ? current.filter((id) => id !== courtIdToToggle)
+                    : [...current, courtIdToToggle],
+                );
+                clearField("courtIds");
+              }}
+              teamCount={teamCount}
+              teamCountError={
+                errors.teamCount ?? fieldErrorMessage(formError, "teamCount")
+              }
+              onTeamCount={onTeamCountChange}
+              poolCount={poolCount}
+              poolCountError={
+                errors.poolCount ?? fieldErrorMessage(formError, "poolCount")
+              }
+              onPoolCount={(next) => {
+                setPoolCount(next);
+                clearField("poolCount");
+              }}
+              day={day}
+              dayError={
+                errors.windowStart === "Pick a day"
+                  ? errors.windowStart
+                  : undefined
+              }
+              onDay={onDayChange}
+              startTime={startTime}
+              startError={
+                errors.windowStart && errors.windowStart !== "Pick a day"
+                  ? errors.windowStart
+                  : fieldErrorMessage(formError, "windowStart")
+              }
+              onStartTime={(next) => {
+                setStartTime(next);
+                clearField("windowStart");
+              }}
+              finishTime={finishTime}
+              finishError={
+                errors.windowEnd ?? fieldErrorMessage(formError, "windowEnd")
+              }
+              onFinishTime={(next) => {
+                setFinishTime(next);
+                clearField("windowEnd");
+              }}
+              matchMinutes={matchMinutesInput}
+              matchMinutesError={
+                errors.matchMinutes ??
+                fieldErrorMessage(formError, "matchMinutes")
+              }
+              onMatchMinutes={(next) => {
+                setMatchMinutesInput(next);
+                if (parseCreateMatchMinutes(next).ok) {
+                  clearField("matchMinutes");
+                }
+              }}
+              name={name}
+              nameError={errors.name ?? fieldErrorMessage(formError, "name")}
+              onName={(next) => {
+                setNameTouched(true);
+                setName(next);
+                clearField("name");
+              }}
+              showLevelRange={showLevelRange}
+              onEntryMode={(mode) => {
+                if (mode === "anyone") {
+                  setPreferLevelRange(false);
+                  const open = openLevelRange();
+                  setLevelMin(open.min);
+                  setLevelMax(open.max);
+                  clearField("levelMinTenths");
+                  clearField("levelMaxTenths");
+                  return;
+                }
+                setPreferLevelRange(true);
+              }}
+              levelMin={levelMin}
+              levelMax={levelMax}
+              levelMinError={
+                errors.levelMinTenths ??
+                fieldErrorMessage(formError, "levelMinTenths")
+              }
+              levelMaxError={
+                errors.levelMaxTenths ??
+                fieldErrorMessage(formError, "levelMaxTenths")
+              }
+              onLevelRange={(range) => {
+                setPreferLevelRange(true);
+                setLevelMin(range.min);
+                setLevelMax(range.max);
+                clearField("levelMinTenths");
+                clearField("levelMaxTenths");
+              }}
+              price={pricePerPlayer}
+              priceError={
+                errors.pricePerPlayerCents ??
+                fieldErrorMessage(formError, "pricePerPlayerCents")
+              }
+              onPrice={(next) => {
+                setPricePerPlayer(next);
+                clearField("pricePerPlayerCents");
+              }}
+              isPublic={isPublic}
+              onIsPublic={setIsPublic}
+              allowSoloRegister={allowSoloRegister}
+              onAllowSoloRegister={setAllowSoloRegister}
+              groupName={reviewGroupName}
             />
           ) : (
             <FriendlyGameSteps
@@ -573,6 +973,7 @@ function NewGameForm() {
                 clearField("groupId");
                 setVenueId("");
                 setCourtId("none");
+                setCourtIds([]);
               }}
               venueCopy={venueCopy}
               venues={picker.data?.venues ?? []}
@@ -583,6 +984,7 @@ function NewGameForm() {
               onVenueId={(nextVenueId) => {
                 if (nextVenueId !== venueId) {
                   setCourtId("none");
+                  setCourtIds([]);
                 }
                 setVenueId(nextVenueId);
                 clearField("venueId");
@@ -600,11 +1002,7 @@ function NewGameForm() {
                   ? errors.windowStart
                   : undefined
               }
-              onDay={(next) => {
-                setDay(next);
-                clearField("windowStart");
-                clearField("windowEnd");
-              }}
+              onDay={onDayChange}
               startTime={startTime}
               startError={
                 errors.windowStart && errors.windowStart !== "Pick a day"
@@ -649,11 +1047,7 @@ function NewGameForm() {
                 setPricePerPlayer(next);
                 clearField("pricePerPlayerCents");
               }}
-              reviewGroup={
-                selectedGroup
-                  ? (selectedGroup.name ?? "Untitled Group")
-                  : "Group"
-              }
+              reviewGroup={reviewGroupName}
               reviewVenue={
                 selectedVenue
                   ? courtId === "none"

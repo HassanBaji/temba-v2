@@ -33,15 +33,12 @@ import {
   courtCountValue,
   defaultPoolCount,
   EACH_MATCH_ROW_LABEL,
-  FEW_WEEKS_DURATION_LABEL,
   formatMatchesPerTeam,
   formatPoolSizeLine,
-  HOW_LONG_IT_RUNS_LABEL,
   HOW_PEOPLE_JOIN_LABEL,
   lastMatchFinishCopy,
   MATCHES_PER_TEAM_ROW_LABEL,
   ONE_DAY_CALLOUT_LABEL,
-  ONE_DAY_DURATION_LABEL,
   ONE_DAY_OVERRUN_MESSAGE,
   oneDayFit,
   playersInPairsLine,
@@ -164,9 +161,6 @@ function TournamentHomePreview({ data }: { data: TournamentFixture }) {
 function TournamentCreateControlsPreview() {
   const [teamCount, setTeamCount] = useState(12);
   const [poolCount, setPoolCount] = useState(defaultPoolCount(12));
-  const [duration, setDuration] = useState<"one_day" | "few_weeks">(
-    "few_weeks",
-  );
   const [who, setWho] = useState<"group" | "anyone">("group");
   const [join, setJoin] = useState<"alone" | "partner">("alone");
 
@@ -256,17 +250,6 @@ function TournamentCreateControlsPreview() {
       />
 
       <PreviewSegment
-        id="preview-duration"
-        label={HOW_LONG_IT_RUNS_LABEL}
-        value={duration}
-        onChange={setDuration}
-        options={[
-          { value: "one_day", label: ONE_DAY_DURATION_LABEL },
-          { value: "few_weeks", label: FEW_WEEKS_DURATION_LABEL },
-        ]}
-      />
-
-      <PreviewSegment
         id="preview-who"
         label={WHO_CAN_TAKE_A_SEAT_LABEL}
         value={who}
@@ -335,7 +318,7 @@ function TournamentCreateControlsPreview() {
         />
       ) : null}
 
-      {duration === "one_day" && fit ? (
+      {fit ? (
         <div className="border-ink rounded-[14px] border p-5">
           <p className="text-muted-foreground text-[13px]">
             {ONE_DAY_CALLOUT_LABEL}

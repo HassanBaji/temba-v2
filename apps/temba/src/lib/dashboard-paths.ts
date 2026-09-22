@@ -23,9 +23,6 @@ export function titleFromPath(pathname: string) {
   if (pathname.startsWith("/dashboard/venues/new")) {
     return "Create Venue";
   }
-  if (pathname.startsWith("/dashboard/games/new-tournament")) {
-    return "Create tournament";
-  }
   if (pathname.startsWith("/dashboard/games/new")) {
     return "Create Game";
   }

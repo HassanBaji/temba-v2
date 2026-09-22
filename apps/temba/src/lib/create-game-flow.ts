@@ -21,7 +21,11 @@ import {
   formatHeroKickoffTrailer,
   formatHomeKickoff,
 } from "~/lib/home-countdown";
-import { parseOptionalPricePerPlayerCents } from "~/lib/price-per-player";
+import {
+  formatPricePerPlayerCents,
+  parseOptionalPricePerPlayerCents,
+} from "~/lib/price-per-player";
+import { oneDayFit, type TournamentSizing } from "~/lib/tournament-sizing";
 
 export const CREATE_FLOW_STEP_COUNT = 4;
 
@@ -58,9 +62,35 @@ export const FRIENDLY_GAME_LATER_STEPS: readonly {
   { step: 4, title: "Level and price" },
 ];
 
+export const FRIENDLY_TOURNAMENT_LATER_STEPS: readonly {
+  step: Exclude<CreateFlowStep, 1>;
+  title: string;
+}[] = [
+  { step: 2, title: "Where and size" },
+  { step: 3, title: "Format and day" },
+  { step: 4, title: "Entry and review" },
+];
+
+export function createFlowLaterSteps(type: CreateGameTypeId | null) {
+  if (type === "friendly_tournament") {
+    return FRIENDLY_TOURNAMENT_LATER_STEPS;
+  }
+  return FRIENDLY_GAME_LATER_STEPS;
+}
+
 export const CREATE_FLOW_OPEN_SEATS_LABEL = "4 open seats";
 
 export const CREATE_FLOW_DURATIONS = [60, 90, 120] as const;
+
+export const CREATE_FLOW_MATCH_MINUTE_CHIPS = [20, 30, 45] as const;
+
+export const DEFAULT_MATCH_MINUTES = 45;
+
+export const FRIENDLY_TOURNAMENT_UNEVEN_GROUPS =
+  "Groups are uneven. Some Game teams play one more Match than others.";
+
+const MATCH_MINUTES_MESSAGE =
+  "Match length must be from 10 to 120 minutes, in steps of 5";
 
 export type CreateFlowDuration = (typeof CREATE_FLOW_DURATIONS)[number];
 
@@ -78,6 +108,10 @@ export const CREATE_FLOW_FIELD_IDS: Record<string, string> = {
   levelMaxTenths: "game-level-max",
   windowStart: "game-window-start",
   windowEnd: "game-window-finish",
+  teamCount: "tournament-team-count",
+  poolCount: "tournament-pool-count",
+  matchMinutes: "tournament-match-minutes",
+  name: "tournament-name",
 };
 
 const STEP_TWO_FIELDS = new Set([
@@ -194,6 +228,54 @@ export function validateFriendlyGameWhen(
   return { ok: true, ...parsed };
 }
 
+export function parseCreateMatchMinutes(
+  value: string,
+): { ok: true; minutes: number } | { ok: false; message: string } {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return { ok: false, message: MATCH_MINUTES_MESSAGE };
+  }
+  const minutes = Number(trimmed);
+  if (minutes < 10 || minutes > 120 || minutes % 5 !== 0) {
+    return { ok: false, message: MATCH_MINUTES_MESSAGE };
+  }
+  return { ok: true, minutes };
+}
+
+export function validateTournamentName(
+  name: string,
+): { ok: true; name: string } | CreateFlowFieldIssue {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return {
+      ok: false,
+      field: "name",
+      message: "Name the tournament",
+      elementId: "tournament-name",
+    };
+  }
+  return { ok: true, name: trimmed };
+}
+
+export function firstIncompleteFriendlyTournamentStep(
+  draft: FriendlyGameDraft & { matchMinutes: string },
+  now: Date = new Date(),
+): 2 | 3 | 4 {
+  if (!draft.groupId || !draft.venueId) {
+    return 2;
+  }
+  if (
+    !validateFriendlyGameWhen(draft.day, draft.startTime, draft.finishTime, now)
+      .ok
+  ) {
+    return 3;
+  }
+  if (!parseCreateMatchMinutes(draft.matchMinutes).ok) {
+    return 3;
+  }
+  return 4;
+}
+
 export function firstIncompleteFriendlyGameStep(
   draft: FriendlyGameDraft,
   now: Date = new Date(),
@@ -213,10 +295,10 @@ export function firstIncompleteFriendlyGameStep(
 export function resolveCreateFlowStep(input: {
   type: CreateGameTypeId | null;
   requestedStep: CreateFlowStep | null;
-  draft: FriendlyGameDraft;
+  draft: FriendlyGameDraft & { matchMinutes?: string };
   now?: Date;
 }): CreateFlowStep {
-  if (input.type !== "friendly_game") {
+  if (input.type == null) {
     return 1;
   }
   if (input.requestedStep == null) {
@@ -225,7 +307,17 @@ export function resolveCreateFlowStep(input: {
   if (input.requestedStep === 1) {
     return 1;
   }
-  const first = firstIncompleteFriendlyGameStep(input.draft, input.now);
+  const first =
+    input.type === "friendly_tournament"
+      ? firstIncompleteFriendlyTournamentStep(
+          {
+            ...input.draft,
+            matchMinutes:
+              input.draft.matchMinutes ?? String(DEFAULT_MATCH_MINUTES),
+          },
+          input.now,
+        )
+      : firstIncompleteFriendlyGameStep(input.draft, input.now);
   return input.requestedStep > first ? first : input.requestedStep;
 }
 
@@ -269,31 +361,34 @@ export function createGameFlowHref(input: {
 }
 
 export function friendlyTournamentCreateHref(groupId?: string) {
-  const params = new URLSearchParams();
-  if (groupId) {
-    params.set("groupId", groupId);
-  }
-  const query = params.toString();
-  return query.length > 0
-    ? `/dashboard/games/new-tournament?${query}`
-    : "/dashboard/games/new-tournament";
+  return createGameFlowHref({
+    groupId,
+    type: "friendly_tournament",
+  });
 }
 
-export function createVenueCopy(picker: {
-  locked: boolean;
-  groupKind: "club" | "loose" | "none";
-  venues: { archivedAt: Date | string | null }[];
-}) {
+export function createVenueCopy(
+  picker: {
+    locked: boolean;
+    groupKind: "club" | "loose" | "none";
+    venues: { archivedAt: Date | string | null }[];
+  },
+  options?: { manyCourts?: boolean },
+) {
+  const optional = options?.manyCourts
+    ? "Courts are optional."
+    : "Court is optional.";
+  const skip = options?.manyCourts ? "Skip Courts." : "Skip Court.";
   if (picker.locked) {
     if (picker.venues[0]?.archivedAt) {
-      return "This Community’s linked Venue is Soft-archived. You can still create this Game here. Skip Court.";
+      return `This Community’s linked Venue is Soft-archived. You can still create this Game here. ${skip}`;
     }
-    return "Venue is this Community’s linked Venue and cannot be changed. Court is optional.";
+    return `Venue is this Community’s linked Venue and cannot be changed. ${optional}`;
   }
   if (picker.groupKind === "club") {
-    return "This Community has no Venue link. Pick a Venue. Court is optional.";
+    return `This Community has no Venue link. Pick a Venue. ${optional}`;
   }
-  return "Pick a Venue. Court is optional.";
+  return `Pick a Venue. ${optional}`;
 }
 
 export function venueCardMeta(courtCount: number, city: string) {
@@ -475,4 +570,116 @@ export function openLevelRange(): {
   max: LevelBandSelectValue;
 } {
   return { min: LEVEL_BAND_SELECT_NONE, max: LEVEL_BAND_SELECT_NONE };
+}
+
+export function friendlyTournamentDayLabel(day: string) {
+  const date = parseDateInputValue(day);
+  if (!date) {
+    return null;
+  }
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function friendlyTournamentDefaultName(day: string) {
+  const label = friendlyTournamentDayLabel(day);
+  return label ? `Friendly tournament · ${label}` : "Friendly tournament";
+}
+
+export function friendlyTournamentGroupsLine(sizing: TournamentSizing) {
+  const counts = new Map<number, number>();
+  for (const size of sizing.poolSizes) {
+    counts.set(size, (counts.get(size) ?? 0) + 1);
+  }
+  const sizes = [...counts.entries()]
+    .map(
+      ([size, count]) =>
+        `${count} ${count === 1 ? "group" : "groups"} of ${size}`,
+    )
+    .join(", ");
+  if (sizing.matchesPerTeamMin !== sizing.matchesPerTeamMax) {
+    return sizes;
+  }
+  const games = sizing.matchesPerTeamMin;
+  return `${sizes}, ${games} ${games === 1 ? "game" : "games"} each`;
+}
+
+export function friendlyTournamentFormatLabel(poolCount: number) {
+  return poolCount === 1 ? "1 group" : `${poolCount} groups`;
+}
+
+export function friendlyTournamentMatchCountLabel(poolMatches: number) {
+  return poolMatches === 1 ? "1 group Match" : `${poolMatches} group Matches`;
+}
+
+export function friendlyTournamentScheduleLine(
+  poolMatches: number,
+  clock: string,
+) {
+  return `${friendlyTournamentMatchCountLabel(poolMatches)}, last Match finishes at ${clock}`;
+}
+
+export function friendlyTournamentSchedule(input: {
+  start: Date;
+  finish: Date;
+  poolMatches: number;
+  courtCount: number;
+  matchMinutes: number;
+  clock: (date: Date) => string;
+}): { line: string | null; overruns: boolean } {
+  const fit = oneDayFit({
+    start: input.start,
+    finish: input.finish,
+    poolMatches: input.poolMatches,
+    courtCount: input.courtCount,
+    matchMinutes: input.matchMinutes,
+  });
+  return {
+    line: fit.lastFinish
+      ? friendlyTournamentScheduleLine(
+          input.poolMatches,
+          input.clock(fit.lastFinish),
+        )
+      : null,
+    overruns: fit.overruns,
+  };
+}
+
+export function friendlyTournamentPreviewDetail(input: {
+  day: string;
+  venueName: string | null;
+  courtNames: readonly string[];
+}) {
+  const dayLabel = input.day ? friendlyTournamentDayLabel(input.day) : null;
+  const courts =
+    input.courtNames.length > 0 ? input.courtNames.join(", ") : null;
+  return [dayLabel, input.venueName, courts]
+    .filter((part): part is string => Boolean(part))
+    .join(" · ");
+}
+
+export function friendlyTournamentCourtsLabel(names: readonly string[]) {
+  if (names.length === 0) {
+    return "None";
+  }
+  return names.join(", ");
+}
+
+export function gameTeamOfTwoCopy(price: string) {
+  const parsed = parseOptionalPricePerPlayerCents(price);
+  if (!parsed.ok || parsed.cents == null) {
+    return null;
+  }
+  const doubled = parsed.cents * 2;
+  if (doubled === 0) {
+    return "0.00 BD a Game team of two";
+  }
+  const formatted = formatPricePerPlayerCents(doubled);
+  if (!formatted) {
+    return null;
+  }
+  return `${formatted} a Game team of two`;
 }
