@@ -21,6 +21,6 @@ export function homeNoGamesCreateAction(input: {
   return {
     kind: "game",
     href: "/dashboard/games/new",
-    label: "Create Game",
+    label: "Create",
   };
 }

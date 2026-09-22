@@ -28,7 +28,7 @@ describe("homeNoGamesCreateAction", () => {
     );
   });
 
-  it("sends group creators to Create Game when they have a Group", () => {
+  it("sends group creators to the single Create route when they have a Group", () => {
     assert.deepEqual(
       homeNoGamesCreateAction({
         hasCreateAccess: true,
@@ -37,7 +37,7 @@ describe("homeNoGamesCreateAction", () => {
       {
         kind: "game",
         href: "/dashboard/games/new",
-        label: "Create Game",
+        label: "Create",
       },
     );
   });

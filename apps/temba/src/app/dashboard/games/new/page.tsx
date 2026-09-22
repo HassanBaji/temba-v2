@@ -1,117 +1,106 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { CreateFlowShell } from "~/app/dashboard/games/new/create-flow-shell";
+import { FriendlyGameSteps } from "~/app/dashboard/games/new/friendly-game-steps";
+import { TypeStep } from "~/app/dashboard/games/new/type-step";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
-import { GameVenueSelect } from "~/components/games/game-venue-select";
-import { GameWindowFields } from "~/components/games/game-window-fields";
-import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import {
-  formatDateInputValue,
-  formatGameWindowName,
-  parseRequiredGameWindow,
-} from "~/lib/game-window";
-import {
-  LEVEL_BAND_SELECT_NONE,
-  LEVEL_RANGE_FIELD_DESCRIPTION,
-  LEVEL_RANGE_INVERTED_MESSAGE,
-  parseLevelBandSelectTenths,
-  type LevelBandSelectValue,
-} from "~/lib/level-range";
-import {
-  parseOptionalPricePerPlayerCents,
-  PRICE_PER_PLAYER_FIELD_DESCRIPTION,
-} from "~/lib/price-per-player";
-import { api } from "~/trpc/react";
+  CREATE_FLOW_FIELD_IDS,
+  FRIENDLY_GAME_LATER_STEPS,
+  createFlowStepForField,
+  createGameFlowHref,
+  createVenueCopy,
+  earliestCreateDay,
+  friendlyGameKickoff,
+  friendlyGamePreviewLine,
+  friendlyTournamentCreateHref,
+  parseCreateFlowStep,
+  parseCreateFlowType,
+  resolveCreateFlowStep,
+  validateFriendlyGameWhen,
+  validateFriendlyGameWhere,
+  type CreateFlowStep,
+  type CreateGameTypeId,
+  type FriendlyGameDraft,
+} from "~/lib/create-game-flow";
 import {
   fieldErrorMessage,
   focusFormFailure,
   globalFormErrorMessage,
+  splitTrpcFormError,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import { formatGameWindowName } from "~/lib/game-window";
+import {
+  LEVEL_BAND_SELECT_NONE,
+  LEVEL_RANGE_INVERTED_MESSAGE,
+  parseLevelBandSelectTenths,
+  type LevelBandSelectValue,
+} from "~/lib/level-range";
+import { parseOptionalPricePerPlayerCents } from "~/lib/price-per-player";
+import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
-function createVenueCopy(picker: {
-  locked: boolean;
-  groupKind: "club" | "loose" | "none";
-  venues: { archivedAt: Date | string | null }[];
-}) {
-  if (picker.locked) {
-    if (picker.venues[0]?.archivedAt) {
-      return "This Community’s linked Venue is Soft-archived. You can still create this Game here. Skip Court.";
-    }
-    return "Venue is this Community’s linked Venue and cannot be changed. Court is optional.";
-  }
-  if (picker.groupKind === "club") {
-    return "This Community has no Venue link. Pick a Venue. Court is optional.";
-  }
-  return "Pick a Venue. Court is optional.";
-}
-
-function groupOptionLabel(group: {
-  name: string | null;
-  communityName: string | null;
-}) {
-  const name = group.name ?? "Untitled Group";
-  if (!group.communityName) {
-    return name;
-  }
-  return `${name} · ${group.communityName}`;
+function focusElement(id: string) {
+  document.getElementById(id)?.focus();
 }
 
 function NewGameForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedGroupId = searchParams.get("groupId") ?? undefined;
+  const typeParam = parseCreateFlowType(searchParams.get("type"));
+  const stepParam = parseCreateFlowStep(searchParams.get("step"));
 
   const summaryRef = React.useRef<HTMLDivElement>(null);
+  const pendingFocus = React.useRef<{
+    step: CreateFlowStep;
+    elementId: string;
+  } | null>(null);
+  const [session] = React.useState(() => ({ now: new Date() }));
   const [selectedGroupId, setSelectedGroupId] = React.useState("");
   const [groupFieldError, setGroupFieldError] = React.useState<
     string | undefined
   >();
-  const [day, setDay] = React.useState(() => formatDateInputValue(new Date()));
+  const [day, setDay] = React.useState(() => earliestCreateDay(session.now));
   const [startTime, setStartTime] = React.useState("");
   const [finishTime, setFinishTime] = React.useState("");
   const [venueId, setVenueId] = React.useState("");
   const [courtId, setCourtId] = React.useState("none");
   const [pricePerPlayer, setPricePerPlayer] = React.useState("");
-  const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
-    string | undefined
-  >();
   const [levelMin, setLevelMin] = React.useState<LevelBandSelectValue>(
     LEVEL_BAND_SELECT_NONE,
   );
   const [levelMax, setLevelMax] = React.useState<LevelBandSelectValue>(
     LEVEL_BAND_SELECT_NONE,
   );
-  const [levelMinError, setLevelMinError] = React.useState<
-    string | undefined
-  >();
-  const [levelMaxError, setLevelMaxError] = React.useState<
-    string | undefined
-  >();
+  const [errors, setErrors] = React.useState<
+    Record<string, string | undefined>
+  >({});
+
+  const draft: FriendlyGameDraft = {
+    groupId: selectedGroupId,
+    venueId,
+    day,
+    startTime,
+    finishTime,
+  };
+  const displayedStep = resolveCreateFlowStep({
+    type: typeParam,
+    requestedStep: stepParam,
+    draft,
+    now: session.now,
+  });
 
   const createGroups = api.games.listCreateGroups.useQuery();
   const picker = api.games.listCreateVenues.useQuery(
@@ -125,16 +114,12 @@ function NewGameForm() {
     picker.data !== undefined &&
     !picker.data.locked &&
     picker.data.venues.length === 0;
-
   const linkedVenueId = picker.data?.locked
     ? picker.data.venues[0]?.id
     : undefined;
 
   React.useEffect(() => {
-    if (!createGroups.data) {
-      return;
-    }
-    if (!requestedGroupId) {
+    if (!createGroups.data || !requestedGroupId) {
       return;
     }
     const match = createGroups.data.some(
@@ -154,6 +139,32 @@ function NewGameForm() {
     setVenueId(linkedVenueId);
   }, [linkedVenueId]);
 
+  React.useEffect(() => {
+    if (!createGroups.data || createGroups.data.length === 0) {
+      return;
+    }
+    if (typeParam === "friendly_tournament" && stepParam !== 1) {
+      router.replace(friendlyTournamentCreateHref(requestedGroupId));
+      return;
+    }
+    if (stepParam != null && stepParam !== displayedStep) {
+      router.replace(
+        createGameFlowHref({
+          groupId: requestedGroupId,
+          type: typeParam,
+          step: displayedStep === 1 ? null : displayedStep,
+        }),
+      );
+    }
+  }, [
+    createGroups.data,
+    displayedStep,
+    requestedGroupId,
+    router,
+    stepParam,
+    typeParam,
+  ]);
+
   const utils = api.useUtils();
   const createGame = api.games.create.useMutation({
     onSuccess: async (game) => {
@@ -168,61 +179,170 @@ function NewGameForm() {
     },
     onError: (error) => {
       toastGlobalFormError(error);
-      focusFormFailure(
-        error,
-        {
-          groupId: "game-group",
-          venueId: "game-venue",
-          courtId: "game-court",
-          pricePerPlayerCents: "game-price-per-player",
-          levelMinTenths: "game-level-min",
-          levelMaxTenths: "game-level-max",
-          windowStart: "game-window-start",
-          windowEnd: "game-window-finish",
-        },
-        summaryRef.current,
-      );
+      const firstField = Object.keys(splitTrpcFormError(error).fieldErrors)[0];
+      if (!firstField) {
+        summaryRef.current?.focus();
+        return;
+      }
+      const target = createFlowStepForField(firstField);
+      if (target !== displayedStep) {
+        pendingFocus.current = {
+          step: target,
+          elementId: CREATE_FLOW_FIELD_IDS[firstField] ?? firstField,
+        };
+        router.push(
+          createGameFlowHref({
+            groupId: requestedGroupId,
+            type: "friendly_game",
+            step: target,
+          }),
+        );
+        return;
+      }
+      focusFormFailure(error, CREATE_FLOW_FIELD_IDS, summaryRef.current);
     },
   });
 
-  function onGroupChange(nextGroupId: string) {
-    setSelectedGroupId(nextGroupId);
-    setGroupFieldError(undefined);
-    setVenueId("");
-    setCourtId("none");
+  React.useEffect(() => {
+    const pending = pendingFocus.current;
+    if (pending?.step !== displayedStep) {
+      return;
+    }
+    pendingFocus.current = null;
+    focusElement(pending.elementId);
+  }, [displayedStep]);
+
+  function clearField(field: string) {
+    setErrors((current) => ({ ...current, [field]: undefined }));
+    if (createGame.error) {
+      createGame.reset();
+    }
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function hrefForStep(step: CreateFlowStep) {
+    return createGameFlowHref({
+      groupId: requestedGroupId,
+      type: typeParam ?? "friendly_game",
+      step,
+    });
+  }
+
+  function onSelectType(type: CreateGameTypeId) {
+    clearField("type");
+    if (type === "friendly_tournament") {
+      router.push(
+        friendlyTournamentCreateHref(selectedGroupId || requestedGroupId),
+      );
+      return;
+    }
+    if (typeParam === "friendly_game" && displayedStep === 1) {
+      return;
+    }
+    router.push(
+      createGameFlowHref({
+        groupId: requestedGroupId,
+        type: "friendly_game",
+        step: 1,
+      }),
+    );
+  }
+
+  function onContinue() {
+    if (displayedStep === 1) {
+      if (typeParam === "friendly_tournament") {
+        router.push(
+          friendlyTournamentCreateHref(selectedGroupId || requestedGroupId),
+        );
+        return;
+      }
+      if (typeParam !== "friendly_game") {
+        setErrors((current) => ({
+          ...current,
+          type: "Pick a Game type",
+        }));
+        focusElement("game-type");
+        return;
+      }
+      router.push(hrefForStep(2));
+      return;
+    }
+    if (displayedStep === 2) {
+      if (picker.isLoading) {
+        return;
+      }
+      if (emptyCatalog) {
+        focusElement("game-venue");
+        return;
+      }
+      const where = validateFriendlyGameWhere(selectedGroupId, venueId);
+      if (!where.ok) {
+        const message =
+          where.field === "groupId" && groupFieldError
+            ? groupFieldError
+            : where.message;
+        setErrors((current) => ({ ...current, [where.field]: message }));
+        focusElement(where.elementId);
+        return;
+      }
+      router.push(hrefForStep(3));
+      return;
+    }
+    if (displayedStep === 3) {
+      const when = validateFriendlyGameWhen(
+        day,
+        startTime,
+        finishTime,
+        session.now,
+      );
+      if (!when.ok) {
+        setErrors((current) => ({ ...current, [when.field]: when.message }));
+        focusElement(when.elementId);
+        return;
+      }
+      router.push(hrefForStep(4));
+    }
+  }
+
+  function onCreate() {
     if (createGame.isPending) {
       return;
     }
-    if (!selectedGroupId) {
-      setGroupFieldError("Pick a Group");
-      document.getElementById("game-group")?.focus();
+    const where = validateFriendlyGameWhere(selectedGroupId, venueId);
+    if (!where.ok) {
+      pendingFocus.current = { step: 2, elementId: where.elementId };
+      router.push(hrefForStep(2));
+      setErrors((current) => ({ ...current, [where.field]: where.message }));
       return;
     }
-    const gameWindow = parseRequiredGameWindow(day, startTime, finishTime);
-    if (!gameWindow) {
+    const when = validateFriendlyGameWhen(
+      day,
+      startTime,
+      finishTime,
+      session.now,
+    );
+    if (!when.ok) {
+      pendingFocus.current = { step: 3, elementId: when.elementId };
+      router.push(hrefForStep(3));
+      setErrors((current) => ({ ...current, [when.field]: when.message }));
       return;
     }
-    if (emptyCatalog) {
-      return;
-    }
-    setPricePerPlayerError(undefined);
-    setLevelMinError(undefined);
-    setLevelMaxError(undefined);
     const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
     if (!parsedPrice.ok) {
-      setPricePerPlayerError(parsedPrice.message);
-      document.getElementById("game-price-per-player")?.focus();
+      setErrors((current) => ({
+        ...current,
+        pricePerPlayerCents: parsedPrice.message,
+      }));
+      focusElement(CREATE_FLOW_FIELD_IDS.pricePerPlayerCents ?? "");
       return;
     }
     const parsedMin = parseLevelBandSelectTenths(levelMin, "min");
     const parsedMax = parseLevelBandSelectTenths(levelMax, "max");
     if (parsedMin != null && parsedMax != null && parsedMin > parsedMax) {
-      setLevelMinError(LEVEL_RANGE_INVERTED_MESSAGE);
-      document.getElementById("game-level-min")?.focus();
+      setErrors((current) => ({
+        ...current,
+        levelMinTenths: LEVEL_RANGE_INVERTED_MESSAGE,
+      }));
+      focusElement(CREATE_FLOW_FIELD_IDS.levelMinTenths ?? "");
       return;
     }
     createGame.mutate({
@@ -231,8 +351,8 @@ function NewGameForm() {
       isPublic: false,
       format: "friendly_game",
       registrationMode: "individual",
-      windowStart: gameWindow.windowStart,
-      windowEnd: gameWindow.windowEnd,
+      windowStart: when.windowStart,
+      windowEnd: when.windowEnd,
       venueId,
       courtId: courtId === "none" ? undefined : courtId,
       ...(parsedPrice.cents !== null
@@ -243,15 +363,51 @@ function NewGameForm() {
     });
   }
 
+  const selectedGroup = createGroups.data?.find(
+    (group) => group.id === selectedGroupId,
+  );
   const cancelHref = selectedGroupId
     ? `/dashboard/groups/${selectedGroupId}`
     : requestedGroupId
       ? `/dashboard/groups/${requestedGroupId}`
       : "/dashboard/games";
+  const venueCopy = !selectedGroupId
+    ? "Pick a Group first. Venue rules depend on the Group."
+    : picker.data
+      ? createVenueCopy(picker.data)
+      : "Pick a Venue. Court is optional.";
+  const kickoff = friendlyGameKickoff(day, startTime, finishTime);
+  const previewDetail = friendlyGamePreviewLine({
+    day: startTime ? day : "",
+    groupName: selectedGroup?.name ?? selectedGroup?.communityName ?? null,
+    venueName: selectedVenue?.name ?? null,
+    courtName:
+      courtId !== "none"
+        ? (selectedVenue?.courts.find((court) => court.id === courtId)?.name ??
+          null)
+        : null,
+  });
+  const groupError =
+    errors.groupId ??
+    groupFieldError ??
+    fieldErrorMessage(createGame.error, "groupId");
+  const venueError =
+    errors.venueId ?? fieldErrorMessage(createGame.error, "venueId");
+  const courtError =
+    errors.courtId ?? fieldErrorMessage(createGame.error, "courtId");
+  const futureSteps = FRIENDLY_GAME_LATER_STEPS.filter(
+    (item) => item.step > displayedStep,
+  );
+  const primaryLabel =
+    displayedStep === 4
+      ? createGame.isPending
+        ? "Creating…"
+        : "Create Game"
+      : "Continue";
 
   if (createGroups.isLoading) {
     return (
-      <DashboardShell title="Create Game">
+      <DashboardShell title="Create Game" hideMobileTopBar>
         <p className="text-muted-foreground text-sm">Loading…</p>
       </DashboardShell>
     );
@@ -259,7 +415,7 @@ function NewGameForm() {
 
   if (createGroups.error) {
     return (
-      <DashboardShell title="Create Game">
+      <DashboardShell title="Create Game" hideMobileTopBar>
         <ErrorState
           title="Groups could not be loaded"
           message={createGroups.error.message}
@@ -273,7 +429,7 @@ function NewGameForm() {
 
   if (createGroups.data?.length === 0) {
     return (
-      <DashboardShell title="Create Game">
+      <DashboardShell title="Create Game" hideMobileTopBar>
         <EmptyState
           emoji="🎾"
           title="Games are created inside a Group"
@@ -288,258 +444,231 @@ function NewGameForm() {
     );
   }
 
+  if (typeParam === "friendly_tournament" && stepParam !== 1) {
+    return (
+      <DashboardShell title="Create Game" hideMobileTopBar>
+        <p className="text-muted-foreground text-sm">Loading…</p>
+      </DashboardShell>
+    );
+  }
+
+  const preview =
+    kickoff && displayedStep > 1 ? (
+      <>
+        <h1 className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-expanded text-[44px] tabular-nums leading-none">
+            {kickoff.time}
+          </span>
+          <span className="text-dim text-[18px] leading-none">
+            {kickoff.trailer}
+          </span>
+        </h1>
+        {previewDetail ? (
+          <p className="text-dim mt-2 text-sm">{previewDetail}</p>
+        ) : null}
+      </>
+    ) : (
+      <>
+        <h1 className="font-expanded text-[36px] leading-none">
+          {displayedStep === 1 ? (
+            <>
+              What are you
+              <br />
+              setting up?
+            </>
+          ) : (
+            "Friendly game"
+          )}
+        </h1>
+        <p className="text-dim mt-2.5 text-sm leading-normal">
+          {displayedStep === 1
+            ? "Both start with a court and a time. The rest of the form follows your pick."
+            : previewDetail ||
+              "Start with the Group. Venues, levels and prices follow from it."}
+        </p>
+      </>
+    );
+
   return (
-    <DashboardShell
-      title="Create Game"
-      description="Padel only. A Friendly game creates one Match with caps 4 / 2. This Game belongs to the chosen Group."
-    >
-      <Card variant="outlined" className="w-full">
-        <form onSubmit={onSubmit} className="space-y-6">
+    <DashboardShell title="Create Game" hideMobileTopBar>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (displayedStep === 4) {
+            onCreate();
+            return;
+          }
+          onContinue();
+        }}
+      >
+        <CreateFlowShell
+          step={displayedStep}
+          cancelHref={cancelHref}
+          onBack={() => {
+            if (displayedStep > 1) {
+              router.push(hrefForStep((displayedStep - 1) as CreateFlowStep));
+            }
+          }}
+          preview={preview}
+          futureSteps={futureSteps}
+          footer={
+            <div className="flex items-center gap-2.5">
+              {displayedStep > 1 && displayedStep < 4 ? (
+                <div className="min-w-0 flex-1">
+                  <p className="text-muted-foreground text-meta">Next</p>
+                  <p className="text-sm font-semibold">
+                    {displayedStep === 2 ? "When" : "Level and price"}
+                  </p>
+                </div>
+              ) : null}
+              <Button
+                type="submit"
+                className={cn(
+                  "h-12 min-h-11",
+                  displayedStep === 2 || displayedStep === 3
+                    ? "shrink-0 px-5"
+                    : "flex-1",
+                )}
+                disabled={
+                  createGame.isPending || (displayedStep === 2 && emptyCatalog)
+                }
+              >
+                {primaryLabel}
+                {displayedStep < 4 ? (
+                  <ArrowRight aria-hidden="true" className="size-4" />
+                ) : null}
+              </Button>
+              <Button variant="outline" className="h-12 min-h-11" asChild>
+                <Link href={cancelHref}>Cancel</Link>
+              </Button>
+            </div>
+          }
+        >
           <FormErrorSummary
             ref={summaryRef}
             message={
               globalFormErrorMessage(createGame.error) ??
-              (emptyCatalog
+              (displayedStep === 2 && emptyCatalog
                 ? "No live Venues. Create is not available."
                 : null) ??
               (picker.error ? picker.error.message : null)
             }
           />
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="game-group">Group</FieldLabel>
-              <Select
-                value={selectedGroupId || undefined}
-                onValueChange={onGroupChange}
-              >
-                <SelectTrigger
-                  id="game-group"
-                  className="w-full"
-                  aria-invalid={
-                    groupFieldError ||
-                    fieldErrorMessage(createGame.error, "groupId")
-                      ? true
-                      : undefined
-                  }
-                  aria-describedby={
-                    groupFieldError ||
-                    fieldErrorMessage(createGame.error, "groupId")
-                      ? "game-group-error"
-                      : undefined
-                  }
-                >
-                  <SelectValue placeholder="Select a Group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(createGroups.data ?? []).map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {groupOptionLabel(group)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldError id="game-group-error">
-                {groupFieldError ??
-                  fieldErrorMessage(createGame.error, "groupId")}
-              </FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="game-venue">Venue</FieldLabel>
-              <GameVenueSelect
-                id="game-venue"
-                venues={picker.data?.venues ?? []}
-                value={venueId}
-                onValueChange={(nextVenueId) => {
-                  setVenueId(nextVenueId);
-                  setCourtId("none");
-                }}
-                disabled={!selectedGroupId || picker.data?.locked === true}
-                pending={Boolean(selectedGroupId) && picker.isLoading}
-                error={
-                  Boolean(fieldErrorMessage(createGame.error, "venueId")) ||
-                  emptyCatalog
-                }
-                describedBy={
-                  fieldErrorMessage(createGame.error, "venueId")
-                    ? "game-venue-error"
-                    : "game-venue-copy"
-                }
-              />
-              <FieldDescription id="game-venue-copy">
-                {selectedGroupId
-                  ? picker.data
-                    ? createVenueCopy(picker.data)
-                    : "Pick a Venue. Court is optional."
-                  : "Pick a Group first. Venue rules depend on the Group."}
-              </FieldDescription>
-              <FieldError id="game-venue-error">
-                {fieldErrorMessage(createGame.error, "venueId") ??
-                  (emptyCatalog
-                    ? "No live Venues. Create is not available."
-                    : undefined)}
-              </FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="game-court">Court (optional)</FieldLabel>
-              <Select
-                value={courtId}
-                onValueChange={setCourtId}
-                disabled={!selectedGroupId}
-              >
-                <SelectTrigger
-                  id="game-court"
-                  aria-invalid={
-                    fieldErrorMessage(createGame.error, "courtId")
-                      ? true
-                      : undefined
-                  }
-                  aria-describedby={
-                    fieldErrorMessage(createGame.error, "courtId")
-                      ? "game-court-error"
-                      : undefined
-                  }
-                >
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {(selectedVenue?.courts ?? []).map((court) => (
-                    <SelectItem key={court.id} value={court.id}>
-                      {court.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldError id="game-court-error">
-                {fieldErrorMessage(createGame.error, "courtId")}
-              </FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="game-price-per-player">
-                Price per player
-              </FieldLabel>
-              <PricePerPlayerAmountInput
-                id="game-price-per-player"
-                type="number"
-                step="0.01"
-                min="0"
-                value={pricePerPlayer}
-                onChange={(event) => {
-                  setPricePerPlayer(event.target.value);
-                  setPricePerPlayerError(undefined);
-                }}
-                aria-invalid={
-                  pricePerPlayerError ||
-                  fieldErrorMessage(createGame.error, "pricePerPlayerCents")
-                    ? true
-                    : undefined
-                }
-                aria-describedby={
-                  pricePerPlayerError ||
-                  fieldErrorMessage(createGame.error, "pricePerPlayerCents")
-                    ? "game-price-per-player-error"
-                    : "game-price-per-player-copy"
-                }
-              />
-              <FieldDescription id="game-price-per-player-copy">
-                {PRICE_PER_PLAYER_FIELD_DESCRIPTION}
-              </FieldDescription>
-              <FieldError id="game-price-per-player-error">
-                {pricePerPlayerError ??
-                  fieldErrorMessage(createGame.error, "pricePerPlayerCents")}
-              </FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="game-level-min">Minimum Level</FieldLabel>
-              <GameLevelBandSelect
-                id="game-level-min"
-                value={levelMin}
-                onValueChange={(value) => {
-                  setLevelMin(value);
-                  setLevelMinError(undefined);
-                }}
-                invalid={
-                  levelMinError ||
-                  fieldErrorMessage(createGame.error, "levelMinTenths")
-                    ? true
-                    : undefined
-                }
-                describedBy={
-                  levelMinError ||
-                  fieldErrorMessage(createGame.error, "levelMinTenths")
-                    ? "game-level-min-error"
-                    : "game-level-range-copy"
-                }
-              />
-              <FieldError id="game-level-min-error">
-                {levelMinError ??
-                  fieldErrorMessage(createGame.error, "levelMinTenths")}
-              </FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="game-level-max">Maximum Level</FieldLabel>
-              <GameLevelBandSelect
-                id="game-level-max"
-                value={levelMax}
-                onValueChange={(value) => {
-                  setLevelMax(value);
-                  setLevelMaxError(undefined);
-                }}
-                invalid={
-                  levelMaxError ||
-                  fieldErrorMessage(createGame.error, "levelMaxTenths")
-                    ? true
-                    : undefined
-                }
-                describedBy={
-                  levelMaxError ||
-                  fieldErrorMessage(createGame.error, "levelMaxTenths")
-                    ? "game-level-max-error"
-                    : "game-level-range-copy"
-                }
-              />
-              <FieldDescription id="game-level-range-copy">
-                {LEVEL_RANGE_FIELD_DESCRIPTION}
-              </FieldDescription>
-              <FieldError id="game-level-max-error">
-                {levelMaxError ??
-                  fieldErrorMessage(createGame.error, "levelMaxTenths")}
-              </FieldError>
-            </Field>
-
-            <GameWindowFields
-              dayId="game-window-day"
-              startId="game-window-start"
-              finishId="game-window-finish"
-              day={day}
-              startTime={startTime}
-              finishTime={finishTime}
-              onDayChange={setDay}
-              onStartTimeChange={setStartTime}
-              onFinishTimeChange={setFinishTime}
-              startError={fieldErrorMessage(createGame.error, "windowStart")}
-              finishError={fieldErrorMessage(createGame.error, "windowEnd")}
+          {displayedStep === 1 ? (
+            <TypeStep
+              selectedType={typeParam}
+              error={errors.type}
+              onSelect={onSelectType}
             />
-          </FieldGroup>
-
-          <div className="flex items-center gap-3">
-            <Button
-              type="submit"
-              disabled={createGame.isPending || emptyCatalog}
-            >
-              {createGame.isPending ? "Creating…" : "Create Game"}
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={cancelHref}>Cancel</Link>
-            </Button>
-          </div>
-        </form>
-      </Card>
+          ) : (
+            <FriendlyGameSteps
+              step={displayedStep}
+              now={session.now}
+              groups={createGroups.data ?? []}
+              selectedGroupId={selectedGroupId}
+              groupError={groupError}
+              onGroupId={(groupId) => {
+                setSelectedGroupId(groupId);
+                setGroupFieldError(undefined);
+                clearField("groupId");
+                setVenueId("");
+                setCourtId("none");
+              }}
+              venueCopy={venueCopy}
+              venues={picker.data?.venues ?? []}
+              venuesLocked={picker.data?.locked === true}
+              venuesPending={Boolean(selectedGroupId) && picker.isLoading}
+              venueId={venueId}
+              venueError={venueError}
+              onVenueId={(nextVenueId) => {
+                if (nextVenueId !== venueId) {
+                  setCourtId("none");
+                }
+                setVenueId(nextVenueId);
+                clearField("venueId");
+              }}
+              emptyCatalog={emptyCatalog}
+              courtId={courtId}
+              courtError={courtError}
+              onCourtId={(nextCourtId) => {
+                setCourtId(nextCourtId);
+                clearField("courtId");
+              }}
+              day={day}
+              dayError={
+                errors.windowStart === "Pick a day"
+                  ? errors.windowStart
+                  : undefined
+              }
+              onDay={(next) => {
+                setDay(next);
+                clearField("windowStart");
+                clearField("windowEnd");
+              }}
+              startTime={startTime}
+              startError={
+                errors.windowStart && errors.windowStart !== "Pick a day"
+                  ? errors.windowStart
+                  : fieldErrorMessage(createGame.error, "windowStart")
+              }
+              onStartTime={(next) => {
+                setStartTime(next);
+                clearField("windowStart");
+              }}
+              finishTime={finishTime}
+              finishError={
+                errors.windowEnd ??
+                fieldErrorMessage(createGame.error, "windowEnd")
+              }
+              onFinishTime={(next) => {
+                setFinishTime(next);
+                clearField("windowEnd");
+              }}
+              levelMin={levelMin}
+              levelMax={levelMax}
+              levelMinError={
+                errors.levelMinTenths ??
+                fieldErrorMessage(createGame.error, "levelMinTenths")
+              }
+              levelMaxError={
+                errors.levelMaxTenths ??
+                fieldErrorMessage(createGame.error, "levelMaxTenths")
+              }
+              onLevelRange={(range) => {
+                setLevelMin(range.min);
+                setLevelMax(range.max);
+                clearField("levelMinTenths");
+                clearField("levelMaxTenths");
+              }}
+              price={pricePerPlayer}
+              priceError={
+                errors.pricePerPlayerCents ??
+                fieldErrorMessage(createGame.error, "pricePerPlayerCents")
+              }
+              onPrice={(next) => {
+                setPricePerPlayer(next);
+                clearField("pricePerPlayerCents");
+              }}
+              reviewGroup={
+                selectedGroup
+                  ? (selectedGroup.name ?? "Untitled Group")
+                  : "Group"
+              }
+              reviewVenue={
+                selectedVenue
+                  ? courtId === "none"
+                    ? selectedVenue.name
+                    : `${selectedVenue.name}, ${
+                        selectedVenue.courts.find(
+                          (court) => court.id === courtId,
+                        )?.name ?? "Court"
+                      }`
+                  : "Venue"
+              }
+            />
+          )}
+        </CreateFlowShell>
+      </form>
     </DashboardShell>
   );
 }
@@ -548,7 +677,7 @@ export default function NewGamePage() {
   return (
     <React.Suspense
       fallback={
-        <DashboardShell title="Create Game">
+        <DashboardShell title="Create Game" hideMobileTopBar>
           <p className="text-muted-foreground text-sm">Loading…</p>
         </DashboardShell>
       }

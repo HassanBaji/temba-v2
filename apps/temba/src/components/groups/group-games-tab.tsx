@@ -51,18 +51,11 @@ export function GroupGamesTab({
 }) {
   const hasAny = upcomingGames.length > 0 || gameHistory.length > 0;
   const createFirstGame = canShowCreateGame ? (
-    <div className="flex flex-wrap items-center justify-center gap-2">
-      <Button asChild variant="outline">
-        <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-          Create the first game
-        </Link>
-      </Button>
-      <Button asChild>
-        <Link href={`/dashboard/games/new-tournament?groupId=${groupId}`}>
-          Create a tournament
-        </Link>
-      </Button>
-    </div>
+    <Button asChild variant="outline">
+      <Link href={`/dashboard/games/new?groupId=${groupId}`}>
+        Create the first game
+      </Link>
+    </Button>
   ) : null;
   const archiveCopy =
     "Existing Games stay listed here, not on public pickup. Join, waitlist, and Game invites are closed while the Community is Soft-archived.";

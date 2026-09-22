@@ -27,7 +27,7 @@ export const TAB_SEGMENT =
  * is rendered once, outside `TabsContent`, so switching tabs never remounts or
  * shifts it.
  *
- * The right-hand box is a shortcut, not the only door: Invite and Create game
+ * The right-hand box is a shortcut, not the only door: Invite and Create
  * stay on the overflow menu exactly as `groupHomeOverflowItems` decides.
  */
 export function GroupHomeChrome({
@@ -85,7 +85,7 @@ export function GroupHomeChrome({
           {showCreateBox ? (
             <Link
               href={`/dashboard/games/new?groupId=${groupId}`}
-              aria-label="Create game"
+              aria-label="Create"
               className={ACTION_BOX}
             >
               <PlusIcon aria-hidden="true" className="size-5" />
