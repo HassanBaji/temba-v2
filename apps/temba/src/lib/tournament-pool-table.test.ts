@@ -11,15 +11,15 @@ import {
   poolRecordDisplay,
 } from "./tournament-pool-table";
 
-const FORBIDDEN = /champion|final|knockout|standings|group(?! team)/iu;
+const FORBIDDEN = /champion|final|knockout|standings|\bGroup\b/u;
 
 describe("Pool table copy", () => {
-  it("names the Pool table, Pool winner, and finished tournament", () => {
-    assert.equal(POOL_TABLE_HEADING, "Pool table");
-    assert.equal(POOL_WINNER_LABEL, "Pool winner");
+  it("names the group table, group winner, and finished tournament", () => {
+    assert.equal(POOL_TABLE_HEADING, "group table");
+    assert.equal(POOL_WINNER_LABEL, "group winner");
     assert.equal(TOURNAMENT_FINISHED_COPY, "This tournament is finished.");
     assert.equal(YOUR_ROUNDS_HEADING, "Your Rounds");
-    assert.equal(POOL_RESULTS_HEADING, "Pool results");
+    assert.equal(POOL_RESULTS_HEADING, "group results");
     assert.equal(UNPLAYED_RECORD_DISPLAY, "—");
     assert.equal(poolRecordDisplay(null), "—");
     assert.equal(poolRecordDisplay(0), "0");

@@ -263,26 +263,26 @@ describe("defaults", () => {
 });
 
 describe("formatPoolSizeLine", () => {
-  it("names even Pools, never Groups", () => {
+  it("names even groups", () => {
     const result = sizeFriendlyTournament(12, 3);
     assert.equal(result.ok, true);
     if (!result.ok) {
       return;
     }
-    assert.equal(formatPoolSizeLine(result.sizing), "3 Pools of 4");
-    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+    assert.equal(formatPoolSizeLine(result.sizing), "3 groups of 4");
+    assert.match(formatPoolSizeLine(result.sizing), /groups/u);
   });
 
-  it("names a single Pool", () => {
+  it("names a single group", () => {
     const result = sizeFriendlyTournament(12, 1);
     assert.equal(result.ok, true);
     if (!result.ok) {
       return;
     }
-    assert.equal(formatPoolSizeLine(result.sizing), "1 Pool of 12");
+    assert.equal(formatPoolSizeLine(result.sizing), "1 group of 12");
   });
 
-  it("names uneven Pools without calling them Groups", () => {
+  it("names uneven groups", () => {
     const result = sizeFriendlyTournament(10, 3);
     assert.equal(result.ok, true);
     if (!result.ok) {
@@ -290,10 +290,10 @@ describe("formatPoolSizeLine", () => {
     }
     assert.equal(
       formatPoolSizeLine(result.sizing),
-      "1 Pool of 4, 2 Pools of 3",
+      "1 group of 4, 2 groups of 3",
     );
     assert.equal(result.sizing.uneven, true);
-    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+    assert.match(formatPoolSizeLine(result.sizing), /groups?/u);
   });
 });
 
@@ -318,9 +318,9 @@ describe("formatMatchesPerTeam", () => {
     }
     assert.equal(
       formatMatchesPerTeam(result.sizing),
-      "Game teams in a larger Pool play 3 Matches; Game teams in a smaller Pool play 2 Matches",
+      "Game teams in a larger group play 3 Matches; Game teams in a smaller group play 2 Matches",
     );
-    assert.equal(/group/iu.test(formatMatchesPerTeam(result.sizing)), false);
+    assert.match(formatMatchesPerTeam(result.sizing), /group/u);
   });
 });
 

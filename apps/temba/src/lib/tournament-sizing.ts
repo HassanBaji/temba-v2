@@ -22,8 +22,8 @@ export const CREATE_SUBLINE =
 export const CREATE_FOOTER_COPY =
   "It shows up in Games like any other Game. You draw once the seats are full.";
 export const UNEVEN_POOLS_COPY =
-  "Pools are uneven. Some Game teams play one more Match than others.";
-export const POOL_MATCHES_ROW_LABEL = "Pool Matches";
+  "Groups are uneven. Some Game teams play one more Match than others.";
+export const POOL_MATCHES_ROW_LABEL = "group Matches";
 export const MATCHES_PER_TEAM_ROW_LABEL = "Matches per Game team";
 export const EACH_MATCH_ROW_LABEL = "Each Match";
 export const COURTS_ROW_LABEL = "Courts";
@@ -140,7 +140,7 @@ export function sizeFriendlyTournament(
       ok: false,
       issue: {
         path: "poolCount",
-        message: `Pool count must be between 1 and ${maxPools} for ${teamCount} Game teams`,
+        message: `groups count must be between 1 and ${maxPools} for ${teamCount} Game teams`,
       },
     };
   }
@@ -205,7 +205,7 @@ export function formatPoolSizeLine(sizing: TournamentSizing) {
   return [...counts.entries()]
     .map(
       ([size, count]) =>
-        `${count} ${count === 1 ? "Pool" : "Pools"} of ${size}`,
+        `${count} ${count === 1 ? "group" : "groups"} of ${size}`,
     )
     .join(", ");
 }
@@ -214,7 +214,7 @@ export function formatMatchesPerTeam(sizing: TournamentSizing) {
   if (sizing.matchesPerTeamMin === sizing.matchesPerTeamMax) {
     return `Each Game team plays ${sizing.matchesPerTeamMin} Matches`;
   }
-  return `Game teams in a larger Pool play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller Pool play ${sizing.matchesPerTeamMin} Matches`;
+  return `Game teams in a larger group play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller group play ${sizing.matchesPerTeamMin} Matches`;
 }
 
 export function playersInPairsLine(teamCount: number) {

@@ -29,7 +29,7 @@ export const PRICE_PER_PLAYER_JOIN_SUFFIX = "per player";
 export const JOIN_SHEET_INTRO_SUFFIX =
   "Same as joining a game, you just pick who you play with.";
 export const LEAVE_SEAT_UNTIL_POOL_DRAW_COPY =
-  "You can leave the seat up until the Pool draw.";
+  "You can leave the seat up until the group draw.";
 export const GAME_LEAVE_SPOT_CONFIRM_COPY =
   "Your spot can open for someone else.";
 export const PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY =

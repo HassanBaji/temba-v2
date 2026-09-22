@@ -863,7 +863,7 @@ describe("undoPoolDraw", () => {
             organizerUserId: seeded.owner.id,
           }),
         "FORBIDDEN",
-        "Cannot undo the Pool draw after a Set has been played",
+        "Cannot undo the group draw after a Set has been played",
       );
       const remaining = await db.query.matches.findMany({
         where: eq(matches.gameId, seeded.gameId),
@@ -899,7 +899,7 @@ describe("undoPoolDraw", () => {
             organizerUserId: seeded.owner.id,
           }),
         "FORBIDDEN",
-        "Cannot undo the Pool draw after a Set has been played",
+        "Cannot undo the group draw after a Set has been played",
       );
     } finally {
       await close();

@@ -428,7 +428,7 @@ describe("mergeHalfTeams", () => {
             secondPosition: "right",
           }),
         "FORBIDDEN",
-        "The Pools are drawn",
+        "The groups are drawn",
       );
     } finally {
       await close();

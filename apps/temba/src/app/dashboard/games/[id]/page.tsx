@@ -230,7 +230,7 @@ export default function GameHomePage({
 
   const drawPools = api.games.drawPools.useMutation({
     onSuccess: async () => {
-      toast.success("Pools drawn");
+      toast.success("Groups drawn");
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -242,7 +242,7 @@ export default function GameHomePage({
 
   const postPoolDraw = api.games.postPoolDraw.useMutation({
     onSuccess: async () => {
-      toast.success("Pool draw posted");
+      toast.success("group draw posted");
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -254,7 +254,7 @@ export default function GameHomePage({
 
   const undoPoolDraw = api.games.undoPoolDraw.useMutation({
     onSuccess: async () => {
-      toast.success("Pool draw undone");
+      toast.success("group draw undone");
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();

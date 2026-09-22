@@ -31,41 +31,41 @@ const FORBIDDEN = /quarter|knockout|champion|then quarters|message|notified/iu;
 const SAYS_GROUP = /\bGroup\b/;
 
 describe("Pool draw copy", () => {
-  it("tells a User the Pool draw has not happened, opponents are unknown, and it is random", () => {
+  it("tells a User the group draw has not happened, opponents are unknown, and it is random", () => {
     assert.equal(
       POOL_DRAW_NOT_HAPPENED_COPY,
-      "The Pool draw has not happened yet.",
+      "The group draw has not happened yet.",
     );
     assert.equal(OPPONENTS_UNKNOWN_COPY, "Your opponents are not yet known.");
     assert.equal(
       POOL_DRAW_RANDOM_COPY,
-      "The Pool draw is random. Nobody is seeded.",
+      "The group draw is random. Nobody is seeded.",
     );
     assert.match(POOL_DRAW_RANDOM_COPY, /random/iu);
     assert.match(POOL_DRAW_RANDOM_COPY, /seeded/iu);
   });
 
   it("names the Organizer draft and post actions", () => {
-    assert.equal(DRAW_POOLS_ACTION, "Draw the Pools");
+    assert.equal(DRAW_POOLS_ACTION, "Draw the groups");
     assert.equal(DRAW_AGAIN_ACTION, "Draw again");
-    assert.equal(POST_POOL_DRAW_ACTION, "Post the Pool draw");
-    assert.equal(UNDO_POOL_DRAW_ACTION, "Undo the Pool draw");
+    assert.equal(POST_POOL_DRAW_ACTION, "Post the group draw");
+    assert.equal(UNDO_POOL_DRAW_ACTION, "Undo the group draw");
   });
 
-  it("states the draw screen, the field, and what posting does — as Pool, never Group", () => {
+  it("states the draw screen, the field, and what posting does — as group, never Group", () => {
     assert.equal(DRAW_DRAWER_TITLE, "The draw");
-    assert.equal(DRAW_ENTRY_TITLE, "The Pool draw");
-    assert.equal(DRAW_ENTRY_DRAFTED_TITLE, "The Pools are drafted");
+    assert.equal(DRAW_ENTRY_TITLE, "The group draw");
+    assert.equal(DRAW_ENTRY_DRAFTED_TITLE, "The groups are drafted");
     assert.equal(DRAW_ENTRY_ACTION_LABEL, "Open the draw");
     assert.equal(
       DRAW_EMPTY_DRAFT_COPY,
-      "Draw the Pools to see which Game teams land in which Pool.",
+      "Draw the groups to see which Game teams land in which group.",
     );
     assert.equal(
       POST_POOL_DRAW_FOOTER_COPY,
-      "Posting creates every Pool Match and closes the seats.",
+      "Posting creates every group Match and closes the seats.",
     );
-    assert.match(POST_POOL_DRAW_FOOTER_COPY, /Pool Match/u);
+    assert.match(POST_POOL_DRAW_FOOTER_COPY, /group Match/u);
     assert.match(POST_POOL_DRAW_FOOTER_COPY, /seats/u);
     assert.equal(drawEntryTitle(false), DRAW_ENTRY_TITLE);
     assert.equal(drawEntryTitle(true), DRAW_ENTRY_DRAFTED_TITLE);
@@ -172,7 +172,7 @@ describe("draftPoolsFromGameTeams", () => {
     assert.deepEqual(pools, [
       {
         poolIndex: 1,
-        label: "Pool 1",
+        label: "group 1",
         teams: [
           { id: "a", name: "Ada / Lin" },
           { id: "b", name: "Sofia / Jonas" },
@@ -182,13 +182,13 @@ describe("draftPoolsFromGameTeams", () => {
       },
       {
         poolIndex: 2,
-        label: "Pool 2",
+        label: "group 2",
         teams: [{ id: "c", name: "Kai / Noor" }],
         dateLines: [formatAbsoluteDay(start)],
         courtNames: ["Court 1", "Court 2"],
       },
     ]);
-    assert.equal(poolLabel(3), "Pool 3");
+    assert.equal(poolLabel(3), "group 3");
   });
 
   it("treats a tournament as undrawn until a Pool index is set", () => {

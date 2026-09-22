@@ -20,9 +20,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type Shuffle = <T>(items: readonly T[]) => T[];
 
-const HALF_TEAMS_PREFIX = "Cannot draw the Pools while Half teams remain: ";
+const HALF_TEAMS_PREFIX = "Cannot draw the groups while Half teams remain: ";
 const BELOW_MINIMUM_MESSAGE =
-  "Need at least 4 complete Game teams to draw the Pools";
+  "Need at least 4 complete Game teams to draw the groups";
 
 function randomIndex(exclusiveMax: number) {
   if (exclusiveMax <= 1) {
@@ -83,7 +83,7 @@ export async function drawPools(
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot draw the Pools on a cancelled Game",
+      message: "Cannot draw the groups on a cancelled Game",
     });
   }
   if (
@@ -92,7 +92,7 @@ export async function drawPools(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Draw the Pools on a Friendly tournament",
+      message: "Draw the groups on a Friendly tournament",
     });
   }
   assertPoolDrawNotPosted(game);

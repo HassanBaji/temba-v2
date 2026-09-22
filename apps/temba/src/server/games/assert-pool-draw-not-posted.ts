@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
-export const POOL_DRAW_POSTED_MESSAGE = "The Pools are drawn";
+export const POOL_DRAW_POSTED_MESSAGE = "The groups are drawn";
 
 export function isPoolDrawPosted(game: { drawPostedAt: Date | null }) {
   return game.drawPostedAt != null;

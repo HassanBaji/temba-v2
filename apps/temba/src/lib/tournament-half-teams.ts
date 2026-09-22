@@ -27,7 +27,7 @@ export const ORGANIZER_EYEBROW = "ORGANIZER";
 export const MERGE_COMPLETES_FIELD_COPY = "Merging them completes the field.";
 
 export const MERGE_TAKES_EFFECT_COPY =
-  "Takes effect immediately. Either of them can leave until the Pool draw.";
+  "Takes effect immediately. Either of them can leave until the group draw.";
 
 export const MERGE_BANNER_TITLE = "Two Game teams have one Position each";
 

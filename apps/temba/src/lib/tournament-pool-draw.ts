@@ -11,25 +11,25 @@ function gameTeamName(team: {
 }
 
 export const POOL_DRAW_NOT_HAPPENED_COPY =
-  "The Pool draw has not happened yet.";
+  "The group draw has not happened yet.";
 export const OPPONENTS_UNKNOWN_COPY = "Your opponents are not yet known.";
 export const POOL_DRAW_RANDOM_COPY =
-  "The Pool draw is random. Nobody is seeded.";
-export const DRAW_POOLS_ACTION = "Draw the Pools";
+  "The group draw is random. Nobody is seeded.";
+export const DRAW_POOLS_ACTION = "Draw the groups";
 export const DRAW_AGAIN_ACTION = "Draw again";
-export const POST_POOL_DRAW_ACTION = "Post the Pool draw";
-export const UNDO_POOL_DRAW_ACTION = "Undo the Pool draw";
+export const POST_POOL_DRAW_ACTION = "Post the group draw";
+export const UNDO_POOL_DRAW_ACTION = "Undo the group draw";
 export const DRAW_DRAWER_TITLE = "The draw";
-export const DRAW_ENTRY_TITLE = "The Pool draw";
-export const DRAW_ENTRY_DRAFTED_TITLE = "The Pools are drafted";
+export const DRAW_ENTRY_TITLE = "The group draw";
+export const DRAW_ENTRY_DRAFTED_TITLE = "The groups are drafted";
 export const DRAW_ENTRY_ACTION_LABEL = "Open the draw";
 export const DRAW_EMPTY_DRAFT_COPY =
-  "Draw the Pools to see which Game teams land in which Pool.";
+  "Draw the groups to see which Game teams land in which group.";
 export const POST_POOL_DRAW_FOOTER_COPY =
-  "Posting creates every Pool Match and closes the seats.";
+  "Posting creates every group Match and closes the seats.";
 
 export function poolLabel(poolIndex: number) {
-  return `Pool ${poolIndex}`;
+  return `group ${poolIndex}`;
 }
 
 export function hasDraftPoolDraw(

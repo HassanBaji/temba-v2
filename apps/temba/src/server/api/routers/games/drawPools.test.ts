@@ -411,7 +411,7 @@ describe("drawPools", () => {
             shuffle: identityShuffle,
           }),
         "BAD_REQUEST",
-        "Cannot draw the Pools while Half teams remain: Ada, Jonas",
+        "Cannot draw the groups while Half teams remain: Ada, Jonas",
       );
 
       const bySide = await poolIndexBySide(db, gameId);
@@ -443,7 +443,7 @@ describe("drawPools", () => {
             shuffle: identityShuffle,
           }),
         "BAD_REQUEST",
-        "Need at least 4 complete Game teams to draw the Pools",
+        "Need at least 4 complete Game teams to draw the groups",
       );
     } finally {
       await close();

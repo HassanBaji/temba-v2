@@ -93,7 +93,7 @@ export function TournamentPreviewStates({
           title="Posted, mid-tournament"
           data={fixtures.postedMid}
         />
-        <PreviewColumn title="Finished, Pool winner" data={fixtures.finished} />
+        <PreviewColumn title="Finished, group winner" data={fixtures.finished} />
       </div>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Create screen controls</h2>
@@ -224,15 +224,15 @@ function TournamentCreateControlsPreview() {
 
       <StepperField
         id="preview-pool-count"
-        label="Pools"
+        label="Groups"
         value={poolCount}
-        unit={poolCount === 1 ? "Pool" : "Pools"}
+        unit={poolCount === 1 ? "group" : "groups"}
         min={poolMin}
         max={poolMax}
         step={1}
         onChange={setPoolCount}
-        decreaseLabel="Fewer Pools"
-        increaseLabel="More Pools"
+        decreaseLabel="Fewer groups"
+        increaseLabel="More groups"
         description={
           sizing ? (
             <div className="flex flex-col gap-1">
