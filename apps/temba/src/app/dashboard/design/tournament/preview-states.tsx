@@ -49,7 +49,7 @@ import {
   poolCountOptions,
   sizeFriendlyTournament,
   THIS_GROUP_ONLY_LABEL,
-  TOURNAMENT_SLOT_MINUTES,
+  tournamentMatchMinutes,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
@@ -192,6 +192,7 @@ function TournamentCreateControlsPreview() {
         finish,
         poolMatches: sizing.poolMatches,
         courtCount: 2,
+        matchMinutes: null,
       })
     : null;
 
@@ -310,7 +311,7 @@ function TournamentCreateControlsPreview() {
             },
             {
               label: EACH_MATCH_ROW_LABEL,
-              value: `${TOURNAMENT_SLOT_MINUTES} min`,
+              value: `${tournamentMatchMinutes(null)} min`,
             },
             {
               label: COURTS_ROW_LABEL,

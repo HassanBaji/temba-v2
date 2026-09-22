@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { gamePlayers, groups, user, venues } from "@repo/db/schema";
+import { gamePlayers, games, groups, user, venues } from "@repo/db/schema";
 
 import { PARTNER_REQUIRED_REFUSAL_MESSAGE } from "~/lib/tournament-rounds";
 import { acceptInviteLink } from "~/server/api/routers/games/acceptInviteLink";
@@ -59,6 +59,8 @@ async function insertTournament(
   args: { createdBy: string; venueId: string; allowSoloRegister?: boolean },
 ) {
   const group = await insertGroup(database, args.createdBy);
+  const windowStart = new Date("2026-09-20T18:00:00");
+  const windowEnd = new Date("2026-10-11T19:00:00");
   const created = await createTournament(database, {
     createdBy: args.createdBy,
     name: "Autumn Friendly",
@@ -68,9 +70,15 @@ async function insertTournament(
     teamCount: 4,
     poolCount: 1,
     venueId: args.venueId,
-    windowStart: new Date("2026-09-20T18:00:00"),
-    windowEnd: new Date("2026-10-11T19:00:00"),
+    matchMinutes: 45,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000),
   });
+  // Legacy multi-week rows still schedule. Create refuses this window.
+  await database
+    .update(games)
+    .set({ windowEnd })
+    .where(eq(games.id, created.id));
   return { gameId: created.id, groupId: group.id };
 }
 

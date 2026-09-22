@@ -16,7 +16,7 @@ import {
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_POOL_COUNT,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
-  TOURNAMENT_SLOT_MINUTES,
+  tournamentMatchMinutes,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
 } from "./tournament-sizing";
@@ -172,14 +172,39 @@ describe("oneDayFit", () => {
       finish,
       poolMatches: sizing.sizing.poolMatches,
       courtCount: 4,
+      matchMinutes: null,
     });
     assert.equal(fit.slotCount, 5);
     assert.equal(
       fit.lastFinish?.getTime(),
-      start.getTime() + 5 * 45 * 60 * 1000,
+      start.getTime() + 5 * tournamentMatchMinutes(null) * 60 * 1000,
     );
     assert.equal(fit.overruns, false);
-    assert.equal(TOURNAMENT_SLOT_MINUTES, 45);
+    assert.equal(tournamentMatchMinutes(null), 45);
+    assert.equal(tournamentMatchMinutes(20), 20);
+  });
+
+  it("uses 20, 30, and 45 minute Game lengths", () => {
+    const sizing = sizeFriendlyTournament(12, 3);
+    assert.equal(sizing.ok, true);
+    if (!sizing.ok) {
+      return;
+    }
+    const start = new Date("2026-09-20T10:00:00");
+    const finish = new Date("2026-09-20T18:00:00");
+    for (const minutes of [20, 30, 45] as const) {
+      const fit = oneDayFit({
+        start,
+        finish,
+        poolMatches: sizing.sizing.poolMatches,
+        courtCount: 4,
+        matchMinutes: minutes,
+      });
+      assert.equal(
+        fit.lastFinish?.getTime(),
+        start.getTime() + 5 * minutes * 60 * 1000,
+      );
+    }
   });
 
   it("warns when the last Match would finish past the stated finish time", () => {
@@ -195,6 +220,7 @@ describe("oneDayFit", () => {
       finish,
       poolMatches: sizing.sizing.poolMatches,
       courtCount: 4,
+      matchMinutes: null,
     });
     assert.equal(fit.overruns, true);
     assert.equal(

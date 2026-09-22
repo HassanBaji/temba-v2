@@ -76,7 +76,11 @@ import {
   tournamentRoundSchedule,
   type TournamentRoundScheduleEntry,
 } from "~/lib/tournament-rounds";
-import { sizeFriendlyTournament } from "~/lib/tournament-sizing";
+import {
+  EACH_MATCH_ROW_LABEL,
+  sizeFriendlyTournament,
+  tournamentMatchMinutes,
+} from "~/lib/tournament-sizing";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];
@@ -192,6 +196,7 @@ export function TournamentHome({
   const detailRows = homeDetailRows({
     organizerName,
     groupName: data.groupName,
+    matchMinutes: data.matchMinutes,
     pricePerPlayerCents: data.pricePerPlayerCents,
     seated,
     totalCents,
@@ -224,6 +229,7 @@ export function TournamentHome({
           windowStart: data.windowStart,
           windowEnd: data.windowEnd,
           roundCount: sizing.sizing.roundCount,
+          matchMinutes: data.matchMinutes,
         })
       : [];
 
@@ -864,6 +870,7 @@ function matchesForViewerPool(
 function homeDetailRows(args: {
   organizerName: string | null;
   groupName: string | null;
+  matchMinutes: number | null;
   pricePerPlayerCents: number | null;
   seated: boolean;
   totalCents: number | null;
@@ -876,6 +883,10 @@ function homeDetailRows(args: {
     {
       label: GROUP_ROW_LABEL,
       value: args.groupName?.trim() ? args.groupName : "—",
+    },
+    {
+      label: EACH_MATCH_ROW_LABEL,
+      value: `${tournamentMatchMinutes(args.matchMinutes)} min`,
     },
   ];
   const price = formatPricePerPlayerCents(args.pricePerPlayerCents);

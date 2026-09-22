@@ -119,11 +119,17 @@ async function insertTwelveTeamTournament(
     teamCount: 12,
     poolCount: 3,
     venueId: args.venueId,
+    matchMinutes: 45,
     windowStart,
-    windowEnd,
+    windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000),
     levelMinTenths: args.levelMinTenths,
     levelMaxTenths: args.levelMaxTenths,
   });
+  // Legacy multi-week rows still schedule. Create refuses this window.
+  await database
+    .update(games)
+    .set({ windowEnd })
+    .where(eq(games.id, created.id));
   return { gameId: created.id, groupId: group.id, windowStart, windowEnd };
 }
 

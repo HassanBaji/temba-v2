@@ -1,4 +1,4 @@
-import { TOURNAMENT_SLOT_MINUTES } from "~/lib/tournament-sizing";
+import { tournamentMatchMinutes } from "~/lib/tournament-sizing";
 
 export type CirclePairing<T> = {
   roundNumber: number;
@@ -31,11 +31,15 @@ export function fewWeeksRoundStarts(
   windowStart: Date,
   windowEnd: Date,
   roundCount: number,
+  matchMinutes: number | null,
 ): Date[] {
   if (roundCount < 1) {
     return [];
   }
-  const lastStart = addMinutes(windowEnd, -TOURNAMENT_SLOT_MINUTES);
+  const lastStart = addMinutes(
+    windowEnd,
+    -tournamentMatchMinutes(matchMinutes),
+  );
   const last =
     lastStart.getTime() < windowStart.getTime() ? windowStart : lastStart;
   if (roundCount === 1) {
@@ -91,10 +95,13 @@ export function schedulePoolMatches(input: {
   courtIds: readonly string[];
   windowStart: Date;
   windowEnd: Date;
+  matchMinutes: number | null;
 }): ScheduledPoolMatch[] {
   if (input.courtIds.length < 1) {
     return [];
   }
+
+  const minutes = tournamentMatchMinutes(input.matchMinutes);
 
   const byRound = new Map<
     number,
@@ -119,7 +126,12 @@ export function schedulePoolMatches(input: {
   const oneDay = isOneDayTournamentWindow(input.windowStart, input.windowEnd);
   const roundStarts = oneDay
     ? []
-    : fewWeeksRoundStarts(input.windowStart, input.windowEnd, maxRound);
+    : fewWeeksRoundStarts(
+        input.windowStart,
+        input.windowEnd,
+        maxRound,
+        input.matchMinutes,
+      );
 
   const scheduled: ScheduledPoolMatch[] = [];
   let cursor = input.windowStart;
@@ -138,11 +150,11 @@ export function schedulePoolMatches(input: {
       if (!courtId) {
         continue;
       }
-      const startTime = addMinutes(roundStart, slot * TOURNAMENT_SLOT_MINUTES);
+      const startTime = addMinutes(roundStart, slot * minutes);
       scheduled.push({
         roundNumber,
         startTime,
-        endTime: addMinutes(startTime, TOURNAMENT_SLOT_MINUTES),
+        endTime: addMinutes(startTime, minutes),
         courtId,
         slot1GameTeamId: pairing.slot1GameTeamId,
         slot2GameTeamId: pairing.slot2GameTeamId,
@@ -150,7 +162,7 @@ export function schedulePoolMatches(input: {
     }
     if (oneDay && roundMatches.length > 0) {
       const slotsUsed = Math.ceil(roundMatches.length / input.courtIds.length);
-      cursor = addMinutes(roundStart, slotsUsed * TOURNAMENT_SLOT_MINUTES);
+      cursor = addMinutes(roundStart, slotsUsed * minutes);
     }
   }
   return scheduled;

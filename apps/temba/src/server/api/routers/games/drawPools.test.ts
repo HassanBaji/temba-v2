@@ -102,6 +102,7 @@ async function insertTournament(
     poolCount: args.poolCount,
     venueId: args.venueId,
     courtIds: args.courtIds,
+    matchMinutes: 45,
     windowStart: new Date("2026-09-20T18:00:00"),
     windowEnd: new Date("2026-09-20T21:00:00"),
   });

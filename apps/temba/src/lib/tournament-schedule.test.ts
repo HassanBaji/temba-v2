@@ -7,7 +7,7 @@ import {
   isOneDayTournamentWindow,
   schedulePoolMatches,
 } from "./tournament-schedule";
-import { TOURNAMENT_SLOT_MINUTES } from "./tournament-sizing";
+import { tournamentMatchMinutes } from "./tournament-sizing";
 
 describe("circleMethodPairings", () => {
   it("pairs an even Pool so every Game team meets every other once", () => {
@@ -60,11 +60,30 @@ describe("isOneDayTournamentWindow", () => {
 });
 
 describe("fewWeeksRoundStarts", () => {
+  it("places the last Round one Game length before the finish", () => {
+    const windowStart = new Date("2026-09-20T18:00:00");
+    const windowEnd = new Date("2026-10-04T18:45:00");
+    for (const minutes of [20, 30, 45] as const) {
+      const starts = fewWeeksRoundStarts(windowStart, windowEnd, 3, minutes);
+      assert.equal(starts[0]?.getTime(), windowStart.getTime());
+      assert.equal(
+        starts[2]?.getTime(),
+        windowEnd.getTime() - minutes * 60 * 1000,
+      );
+    }
+    const fallback = fewWeeksRoundStarts(windowStart, windowEnd, 3, null);
+    assert.equal(
+      fallback[2]?.getTime(),
+      windowEnd.getTime() - tournamentMatchMinutes(null) * 60 * 1000,
+    );
+  });
+
   it("anchors the first and last Rounds to the Game window", () => {
     const starts = fewWeeksRoundStarts(
       new Date("2026-09-20T18:00:00"),
       new Date("2026-10-04T18:45:00"),
       3,
+      null,
     );
     assert.deepEqual(starts, [
       new Date("2026-09-20T18:00:00"),
@@ -85,6 +104,7 @@ describe("schedulePoolMatches", () => {
       courtIds: [court1, court2],
       windowStart: new Date("2026-09-20T10:00:00"),
       windowEnd: new Date("2026-09-20T16:00:00"),
+      matchMinutes: null,
     });
     assert.deepEqual(
       scheduled.map((match) => ({
@@ -141,8 +161,32 @@ describe("schedulePoolMatches", () => {
     );
     assert.equal(
       scheduled[0]?.endTime.getTime() - scheduled[0].startTime.getTime(),
-      TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+      tournamentMatchMinutes(null) * 60 * 1000,
     );
+  });
+
+  it("steps one-day slots by 20, 30, or 45 minutes", () => {
+    const windowStart = new Date("2026-09-20T10:00:00");
+    for (const minutes of [20, 30, 45, null] as const) {
+      const scheduled = schedulePoolMatches({
+        pools: [{ poolIndex: 1, gameTeamIds: teams }],
+        courtIds: [court1, court2],
+        windowStart,
+        windowEnd: new Date("2026-09-20T16:00:00"),
+        matchMinutes: minutes,
+      });
+      const expected = tournamentMatchMinutes(minutes);
+      const roundTwo = scheduled.find((match) => match.roundNumber === 2);
+      assert.ok(roundTwo);
+      assert.equal(
+        roundTwo.startTime.getTime(),
+        windowStart.getTime() + expected * 60 * 1000,
+      );
+      assert.equal(
+        scheduled[0]?.endTime.getTime() - scheduled[0].startTime.getTime(),
+        expected * 60 * 1000,
+      );
+    }
   });
 
   it("anchors a few-weeks even Pool to each Round's own date and start time", () => {
@@ -151,6 +195,7 @@ describe("schedulePoolMatches", () => {
       courtIds: [court1, court2],
       windowStart: new Date("2026-09-20T18:00:00"),
       windowEnd: new Date("2026-10-04T18:45:00"),
+      matchMinutes: null,
     });
     assert.deepEqual(
       scheduled.map((match) => ({
@@ -216,6 +261,7 @@ describe("schedulePoolMatches", () => {
       courtIds: [court1, court2],
       windowStart: new Date("2026-09-20T10:00:00"),
       windowEnd: new Date("2026-09-20T16:00:00"),
+      matchMinutes: null,
     });
     assert.deepEqual(
       scheduled.map((match) => ({

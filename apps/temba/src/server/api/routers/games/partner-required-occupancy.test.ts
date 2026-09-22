@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   gamePlayers,
   gameWaitlist,
+  games,
   groups,
   user,
   venues,
@@ -28,7 +29,11 @@ import { requireGame } from "~/server/games/access";
 import { occupySeat } from "~/server/games/seats";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
-async function insertUser(database: TestDatabase, email: string, name?: string) {
+async function insertUser(
+  database: TestDatabase,
+  email: string,
+  name?: string,
+) {
   const [row] = await database
     .insert(user)
     .values({ name: name ?? email.split("@")[0] ?? "User", email })
@@ -70,6 +75,8 @@ async function insertTournament(
   args: { createdBy: string; venueId: string; allowSoloRegister?: boolean },
 ) {
   const group = await insertGroup(database, args.createdBy);
+  const windowStart = new Date("2026-09-20T18:00:00");
+  const windowEnd = new Date("2026-10-11T19:00:00");
   const created = await createTournament(database, {
     createdBy: args.createdBy,
     name: "Autumn Friendly",
@@ -79,9 +86,15 @@ async function insertTournament(
     teamCount: 4,
     poolCount: 1,
     venueId: args.venueId,
-    windowStart: new Date("2026-09-20T18:00:00"),
-    windowEnd: new Date("2026-10-11T19:00:00"),
+    matchMinutes: 45,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000),
   });
+  // Legacy multi-week rows still schedule. Create refuses this window.
+  await database
+    .update(games)
+    .set({ windowEnd })
+    .where(eq(games.id, created.id));
   return { gameId: created.id, groupId: group.id };
 }
 
@@ -339,7 +352,9 @@ describe("partner-required occupancy", () => {
       });
       expect(afterLeave.isSeated).toBe(false);
       expect(
-        afterLeave.sides.every((side) => side.left == null && side.right == null),
+        afterLeave.sides.every(
+          (side) => side.left == null && side.right == null,
+        ),
       ).toBe(true);
 
       const kickCaller = await insertUser(db, "caller-kick@example.com");
@@ -374,7 +389,10 @@ describe("partner-required occupancy", () => {
         partner: alonePartner,
         sideIndex: 1,
       });
-      await leaveGame(db, { gameId: allowAlone.gameId, userId: aloneCaller.id });
+      await leaveGame(db, {
+        gameId: allowAlone.gameId,
+        userId: aloneCaller.id,
+      });
       const afterAlone = await gameById(db, {
         gameId: allowAlone.gameId,
         userId: alonePartner.id,
@@ -401,7 +419,10 @@ describe("partner-required occupancy", () => {
       });
 
       for (let sideIndex = 1; sideIndex <= 3; sideIndex += 1) {
-        const caller = await insertUser(db, `draw-caller-${sideIndex}@example.com`);
+        const caller = await insertUser(
+          db,
+          `draw-caller-${sideIndex}@example.com`,
+        );
         const partner = await insertUser(
           db,
           `draw-partner-${sideIndex}@example.com`,

@@ -5,6 +5,12 @@ export const TOURNAMENT_DEFAULT_TEAM_COUNT = 12;
 export const TOURNAMENT_DEFAULT_POOL_COUNT = 3;
 export const TOURNAMENT_SLOT_MINUTES = 45;
 
+export function tournamentMatchMinutes(
+  matchMinutes: number | null | undefined,
+) {
+  return matchMinutes ?? TOURNAMENT_SLOT_MINUTES;
+}
+
 export const ONE_DAY_OVERRUN_MESSAGE =
   "This runs past your finish time. Add a Court, or take fewer Game teams.";
 
@@ -173,14 +179,16 @@ export function oneDayFit(input: {
   finish: Date;
   poolMatches: number;
   courtCount: number;
+  matchMinutes: number | null;
 }): OneDayFit {
   if (input.courtCount < 1) {
     return { slotCount: null, lastFinish: null, overruns: true };
   }
 
   const slotCount = Math.ceil(input.poolMatches / input.courtCount);
+  const minutes = tournamentMatchMinutes(input.matchMinutes);
   const lastFinish = new Date(
-    input.start.getTime() + slotCount * TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+    input.start.getTime() + slotCount * minutes * 60 * 1000,
   );
   return {
     slotCount,

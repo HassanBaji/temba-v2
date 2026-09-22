@@ -4,8 +4,8 @@ import {
   isOneDayTournamentWindow,
 } from "~/lib/tournament-schedule";
 import {
-  TOURNAMENT_SLOT_MINUTES,
   sizeFriendlyTournament,
+  tournamentMatchMinutes,
 } from "~/lib/tournament-sizing";
 
 export function isPoolTournament(
@@ -66,6 +66,7 @@ export function tournamentRoundSchedule(args: {
   windowStart: Date | string;
   windowEnd: Date | string;
   roundCount: number;
+  matchMinutes: number | null;
 }): TournamentRoundScheduleEntry[] {
   if (args.roundCount < 1) {
     return [];
@@ -74,8 +75,13 @@ export function tournamentRoundSchedule(args: {
   const windowStart = asDate(args.windowStart);
   const windowEnd = asDate(args.windowEnd);
   const starts = isOneDayTournamentWindow(windowStart, windowEnd)
-    ? oneDayRoundStarts(windowStart, args.roundCount)
-    : fewWeeksRoundStarts(windowStart, windowEnd, args.roundCount);
+    ? oneDayRoundStarts(windowStart, args.roundCount, args.matchMinutes)
+    : fewWeeksRoundStarts(
+        windowStart,
+        windowEnd,
+        args.roundCount,
+        args.matchMinutes,
+      );
 
   return starts.map((start, index) => ({
     roundNumber: index + 1,
@@ -83,13 +89,15 @@ export function tournamentRoundSchedule(args: {
   }));
 }
 
-function oneDayRoundStarts(windowStart: Date, roundCount: number): Date[] {
+function oneDayRoundStarts(
+  windowStart: Date,
+  roundCount: number,
+  matchMinutes: number | null,
+): Date[] {
+  const minutes = tournamentMatchMinutes(matchMinutes);
   return Array.from(
     { length: roundCount },
-    (_, index) =>
-      new Date(
-        windowStart.getTime() + index * TOURNAMENT_SLOT_MINUTES * 60 * 1000,
-      ),
+    (_, index) => new Date(windowStart.getTime() + index * minutes * 60 * 1000),
   );
 }
 

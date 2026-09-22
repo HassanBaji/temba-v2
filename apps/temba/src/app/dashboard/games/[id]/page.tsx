@@ -1349,6 +1349,7 @@ export default function GameHomePage({
           poolCount={data.poolCount}
           teamsAllowed={data.teamsAllowed}
           windowEnd={data.windowEnd}
+          matchMinutes={data.matchMinutes}
           allowSoloRegister={data.allowSoloRegister}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutate({ gameId: id, sideIndex, position })

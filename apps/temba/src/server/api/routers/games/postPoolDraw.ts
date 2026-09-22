@@ -171,6 +171,7 @@ export async function postPoolDraw(
     courtIds,
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
+    matchMinutes: game.matchMinutes,
   });
   if (scheduled.length < 1) {
     throw new TRPCError({

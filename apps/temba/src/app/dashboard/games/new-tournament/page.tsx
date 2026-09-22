@@ -92,7 +92,6 @@ import {
   sizeFriendlyTournament,
   THIS_GROUP_ONLY_LABEL,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
-  TOURNAMENT_SLOT_MINUTES,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
@@ -103,6 +102,8 @@ import {
 } from "~/lib/tournament-sizing";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+
+const TOURNAMENT_CREATE_MATCH_MINUTES = 45;
 
 type Duration = "one_day" | "few_weeks";
 type RoundSlot = { day: string; startTime: string };
@@ -174,7 +175,7 @@ function tournamentCreateDetailRows(args: {
     },
     {
       label: EACH_MATCH_ROW_LABEL,
-      value: `${TOURNAMENT_SLOT_MINUTES} min`,
+      value: `${TOURNAMENT_CREATE_MATCH_MINUTES} min`,
     },
     {
       label: COURTS_ROW_LABEL,
@@ -425,6 +426,7 @@ function NewTournamentForm() {
           finish: oneDayWindow.windowEnd,
           poolMatches: sizing.poolMatches,
           courtCount: courtIds.length,
+          matchMinutes: TOURNAMENT_CREATE_MATCH_MINUTES,
         })
       : null;
 
@@ -476,7 +478,7 @@ function NewTournamentForm() {
       );
       windowStart = earliest;
       windowEnd = new Date(
-        latest.getTime() + TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+        latest.getTime() + TOURNAMENT_CREATE_MATCH_MINUTES * 60 * 1000,
       );
     }
     if (emptyCatalog) {
@@ -496,6 +498,7 @@ function NewTournamentForm() {
       allowSoloRegister,
       teamCount,
       poolCount,
+      matchMinutes: TOURNAMENT_CREATE_MATCH_MINUTES,
       windowStart,
       windowEnd,
       venueId,
