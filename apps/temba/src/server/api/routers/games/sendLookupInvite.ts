@@ -16,6 +16,10 @@ import {
 } from "~/server/games/invites";
 import { upsertApprovedLevelRangeWaiver } from "~/server/games/level-range-requests";
 import { mintLookup } from "~/server/invites/doors";
+import {
+  isPartnerRequiredGame,
+  PARTNER_REQUIRED_REFUSAL_MESSAGE,
+} from "~/lib/tournament-rounds";
 
 type DbClient = typeof db;
 
@@ -30,6 +34,12 @@ export async function sendLookupInvite(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Team-only Games do not use Lookup invites",
+    });
+  }
+  if (isPartnerRequiredGame(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
     });
   }
 

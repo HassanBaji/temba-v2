@@ -5,8 +5,12 @@ import { preferredJoinSeat } from "./preferred-seat";
 import {
   DRAW_RANDOM_VALUE,
   DRAW_ROW_LABEL,
+  GAME_LEAVE_SPOT_CONFIRM_COPY,
   JOIN_SHEET_INTRO_SUFFIX,
   LEAVE_SEAT_UNTIL_POOL_DRAW_COPY,
+  PARTNER_REQUIRED_INVITE_LANDING_COPY,
+  PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY,
+  PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE,
   PRICE_PER_PLAYER_JOIN_SUFFIX,
   ROUNDS_ROW_LABEL,
   SIT_WITH_SOMEONE_HEADING,
@@ -17,15 +21,23 @@ import {
   YOUR_SEAT_HEADING,
   isFullyVacantJoinSide,
   isTournamentJoinSheet,
+  tournamentInviteLandingOpensPartnerSheet,
+  tournamentInvitePreviewNeedsSeatPick,
   tournamentJoinDetailRows,
   tournamentJoinHeaderLine,
   tournamentJoinOccupantSubline,
+  tournamentJoinOpeningSeat,
   tournamentJoinResolvedSeat,
   tournamentJoinSeatExplanation,
   tournamentJoinSeatsTakenLine,
+  tournamentJoinSheetOpeningStep,
   tournamentJoinTakeSeatLabel,
+  tournamentLeaveOrKickConfirmCopy,
+  tournamentPartnerInviteLandingHref,
+  tournamentPartnerVacantSideRaceMessage,
+  tournamentShowsTakeSeat,
+  tournamentShowsWaitlistCta,
   tournamentSitWithCountLine,
-  tournamentJoinOpeningSeat,
   tournamentStartOwnSeat,
   tournamentYourSeatAvailability,
 } from "./tournament-join";
@@ -148,6 +160,157 @@ describe("tournamentJoinOpeningSeat", () => {
   });
 });
 
+describe("tournamentJoinSheetOpeningStep", () => {
+  it("opens Join alone / Join with a partner when a vacant side is available", () => {
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: true,
+        hasInitialSeat: false,
+      }),
+      "chooser",
+    );
+  });
+
+  it("hides the partner option when no side is fully vacant", () => {
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: false,
+        hasInitialSeat: false,
+      }),
+      "seat",
+    );
+  });
+
+  it("opens on Sit with someone when Take seat already named a Position", () => {
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: true,
+        hasInitialSeat: true,
+      }),
+      "seat",
+    );
+  });
+
+  it("opens Pick a partner on partner-required, even when Take seat named a Position", () => {
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: true,
+        hasInitialSeat: true,
+        partnerRequired: true,
+      }),
+      "partner",
+    );
+    assert.equal(
+      tournamentJoinSheetOpeningStep({
+        offersPartner: false,
+        hasInitialSeat: false,
+        partnerRequired: true,
+      }),
+      "partner",
+    );
+  });
+});
+
+describe("partner-required join surfaces", () => {
+  it("hides Take seat and Join waitlist", () => {
+    assert.equal(
+      tournamentShowsTakeSeat({
+        canJoin: true,
+        seated: false,
+        partnerRequired: true,
+      }),
+      false,
+    );
+    assert.equal(
+      tournamentShowsTakeSeat({
+        canJoin: true,
+        seated: false,
+        partnerRequired: false,
+      }),
+      true,
+    );
+    assert.equal(
+      tournamentShowsWaitlistCta({
+        canWaitlist: true,
+        partnerRequired: true,
+      }),
+      false,
+    );
+    assert.equal(
+      tournamentShowsWaitlistCta({
+        canWaitlist: true,
+        partnerRequired: false,
+      }),
+      true,
+    );
+  });
+
+  it("does not tell the User to Join alone after a vacant-side race", () => {
+    assert.equal(
+      tournamentPartnerVacantSideRaceMessage(true).includes("Join alone"),
+      false,
+    );
+    assert.equal(
+      tournamentPartnerVacantSideRaceMessage(true),
+      PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE,
+    );
+    assert.match(tournamentPartnerVacantSideRaceMessage(false), /Join alone/u);
+  });
+
+  it("says the partner is unseated too on leave or kick before the draw", () => {
+    assert.equal(
+      tournamentLeaveOrKickConfirmCopy({
+        partnerRequired: true,
+        drawPosted: false,
+      }),
+      PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY,
+    );
+    assert.equal(
+      tournamentLeaveOrKickConfirmCopy({
+        partnerRequired: true,
+        drawPosted: true,
+      }),
+      GAME_LEAVE_SPOT_CONFIRM_COPY,
+    );
+    assert.equal(
+      tournamentLeaveOrKickConfirmCopy({
+        partnerRequired: false,
+        drawPosted: false,
+      }),
+      GAME_LEAVE_SPOT_CONFIRM_COPY,
+    );
+  });
+
+  it("lands Invite links on Game home with Pick a partner, not a seat pick", () => {
+    assert.equal(
+      tournamentPartnerInviteLandingHref("game-1"),
+      "/dashboard/games/game-1?join=partner",
+    );
+    assert.equal(tournamentInviteLandingOpensPartnerSheet("partner"), true);
+    assert.equal(tournamentInviteLandingOpensPartnerSheet("seat"), false);
+    assert.equal(
+      tournamentInvitePreviewNeedsSeatPick({
+        isIndividualSeatGame: true,
+        blockedByLevelRange: false,
+        partnerRequired: true,
+      }),
+      false,
+    );
+    assert.equal(
+      tournamentInvitePreviewNeedsSeatPick({
+        isIndividualSeatGame: true,
+        blockedByLevelRange: false,
+        partnerRequired: false,
+      }),
+      true,
+    );
+    assert.equal(
+      PARTNER_REQUIRED_INVITE_LANDING_COPY.includes("Join alone"),
+      false,
+    );
+  });
+});
+
 describe("tournamentStartOwnSeat", () => {
   it("picks the lowest-numbered fully vacant side", () => {
     const sides = [
@@ -237,6 +400,10 @@ describe("tournamentJoin copy", () => {
       PRICE_PER_PLAYER_JOIN_SUFFIX,
       JOIN_SHEET_INTRO_SUFFIX,
       LEAVE_SEAT_UNTIL_POOL_DRAW_COPY,
+      GAME_LEAVE_SPOT_CONFIRM_COPY,
+      PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY,
+      PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE,
+      PARTNER_REQUIRED_INVITE_LANDING_COPY,
       tournamentJoinSeatsTakenLine(18, 24),
       tournamentSitWithCountLine(2),
       tournamentJoinOccupantSubline({

@@ -30,7 +30,8 @@ export const createTournamentInputSchema = z
     name: z.string().trim().min(1).max(255),
     groupId: z.string().uuid({ message: "Pick a Group" }),
     isPublic: z.boolean(),
-    registrationMode: z.enum(["individual", "team_only"]),
+    registrationMode: z.literal("individual").optional(),
+    allowSoloRegister: z.boolean().optional().default(true),
     teamCount: z.number().int(),
     poolCount: z.number().int(),
     windowStart: z.coerce.date(),
@@ -100,7 +101,7 @@ export const createTournamentInputSchema = z
     }
   });
 
-export type CreateTournamentInput = z.infer<
+export type CreateTournamentInput = z.input<
   typeof createTournamentInputSchema
 > & {
   createdBy: string;
@@ -133,10 +134,8 @@ export async function createTournament(
       .values({
         name: input.name,
         format: GameFormatEnum.FRIENDLY_TOURNAMENT,
-        registrationMode:
-          input.registrationMode === "team_only"
-            ? GameRegistrationModeEnum.TEAM_ONLY
-            : GameRegistrationModeEnum.INDIVIDUAL,
+        registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
+        allowSoloRegister: input.allowSoloRegister ?? true,
         groupId: input.groupId,
         venueId: input.venueId,
         isPublic: input.isPublic,

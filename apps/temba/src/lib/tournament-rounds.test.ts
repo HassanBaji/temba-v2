@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import { formatAbsoluteDay } from "./format-game-start";
 import {
   isPoolTournament,
+  isPartnerRequiredGame,
   poolRoundLabel,
   roundsPlayedLabel,
   showsPoolTournamentSeats,
@@ -40,6 +41,59 @@ describe("showsPoolTournamentSeats", () => {
     );
     assert.equal(
       showsPoolTournamentSeats("friendly_game", 3, "individual"),
+      false,
+    );
+  });
+});
+
+describe("isPartnerRequiredGame", () => {
+  it("is true only for an individual Pool tournament that does not allow registering alone", () => {
+    assert.equal(
+      isPartnerRequiredGame({
+        format: "friendly_tournament",
+        poolCount: 3,
+        registrationMode: "individual",
+        allowSoloRegister: false,
+      }),
+      true,
+    );
+  });
+
+  it("is false for allow-alone, leftover Complete Teams, Friendly games, and legacy tournaments", () => {
+    assert.equal(
+      isPartnerRequiredGame({
+        format: "friendly_tournament",
+        poolCount: 3,
+        registrationMode: "individual",
+        allowSoloRegister: true,
+      }),
+      false,
+    );
+    assert.equal(
+      isPartnerRequiredGame({
+        format: "friendly_tournament",
+        poolCount: 3,
+        registrationMode: "team_only",
+        allowSoloRegister: false,
+      }),
+      false,
+    );
+    assert.equal(
+      isPartnerRequiredGame({
+        format: "friendly_game",
+        poolCount: null,
+        registrationMode: "individual",
+        allowSoloRegister: false,
+      }),
+      false,
+    );
+    assert.equal(
+      isPartnerRequiredGame({
+        format: "friendly_tournament",
+        poolCount: null,
+        registrationMode: "individual",
+        allowSoloRegister: false,
+      }),
       false,
     );
   });

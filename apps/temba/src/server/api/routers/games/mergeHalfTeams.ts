@@ -4,7 +4,11 @@ import { z } from "zod";
 
 import { gamePlayers, gameTeamPlayers, gameTeams } from "@repo/db";
 
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import {
+  isPartnerRequiredGame,
+  isPoolTournament,
+  PARTNER_REQUIRED_REFUSAL_MESSAGE,
+} from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -98,6 +102,12 @@ export async function mergeHalfTeams(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Merge Half teams on an individual Friendly tournament",
+    });
+  }
+  if (isPartnerRequiredGame(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
     });
   }
   assertPoolDrawNotPosted(game);

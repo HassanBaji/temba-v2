@@ -1,6 +1,9 @@
 import { formatGameCardDay } from "~/lib/format-game-start";
 import type { FriendlyGameJoinSeat } from "~/lib/friendly-game-cta";
-import { firstFullyVacantSideIndex } from "~/lib/friendly-game-partner";
+import {
+  firstFullyVacantSideIndex,
+  PARTNER_VACANT_SIDE_RACE_MESSAGE,
+} from "~/lib/friendly-game-partner";
 import { isPreferredPosition } from "~/lib/preferred-position";
 import { remainingJoinSeatOnSide, defaultJoinSeat } from "~/lib/preferred-seat";
 import {
@@ -27,6 +30,15 @@ export const JOIN_SHEET_INTRO_SUFFIX =
   "Same as joining a game, you just pick who you play with.";
 export const LEAVE_SEAT_UNTIL_POOL_DRAW_COPY =
   "You can leave the seat up until the Pool draw.";
+export const GAME_LEAVE_SPOT_CONFIRM_COPY =
+  "Your spot can open for someone else.";
+export const PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY =
+  "Your partner is unseated too.";
+export const PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE =
+  "That side was taken while you were registering. Pick another partner if a side is still fully open.";
+export const PARTNER_REQUIRED_INVITE_LANDING_COPY =
+  "This tournament is with a partner only. Continue to pick a partner.";
+export const PARTNER_REQUIRED_INVITE_LANDING_CTA = "Pick a partner";
 
 export type TournamentJoinSide = {
   sideIndex: number;
@@ -149,6 +161,77 @@ export function tournamentYourSeatAvailability(
 
 export function isFullyVacantJoinSide(side: { left: unknown; right: unknown }) {
   return side.left == null && side.right == null;
+}
+
+export type TournamentJoinSheetOpeningStep = "chooser" | "seat" | "partner";
+
+export function tournamentJoinSheetOpeningStep(args: {
+  offersPartner: boolean;
+  hasInitialSeat: boolean;
+  partnerRequired?: boolean;
+}): TournamentJoinSheetOpeningStep {
+  if (args.partnerRequired) {
+    return "partner";
+  }
+  if (args.hasInitialSeat) {
+    return "seat";
+  }
+  return args.offersPartner ? "chooser" : "seat";
+}
+
+export function tournamentPartnerVacantSideRaceMessage(
+  partnerRequired: boolean,
+) {
+  return partnerRequired
+    ? PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE
+    : PARTNER_VACANT_SIDE_RACE_MESSAGE;
+}
+
+export function tournamentLeaveOrKickConfirmCopy(args: {
+  partnerRequired: boolean;
+  drawPosted: boolean;
+}) {
+  if (args.partnerRequired && !args.drawPosted) {
+    return PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY;
+  }
+  return GAME_LEAVE_SPOT_CONFIRM_COPY;
+}
+
+export function tournamentShowsTakeSeat(args: {
+  canJoin: boolean;
+  seated: boolean;
+  partnerRequired: boolean;
+}) {
+  return args.canJoin && !args.seated && !args.partnerRequired;
+}
+
+export function tournamentShowsWaitlistCta(args: {
+  canWaitlist: boolean;
+  partnerRequired: boolean;
+}) {
+  return args.canWaitlist && !args.partnerRequired;
+}
+
+export function tournamentPartnerInviteLandingHref(gameId: string) {
+  return `/dashboard/games/${gameId}?join=partner`;
+}
+
+export function tournamentInviteLandingOpensPartnerSheet(
+  joinQuery: string | null | undefined,
+) {
+  return joinQuery === "partner";
+}
+
+export function tournamentInvitePreviewNeedsSeatPick(args: {
+  isIndividualSeatGame: boolean;
+  blockedByLevelRange: boolean;
+  partnerRequired: boolean;
+}) {
+  return (
+    args.isIndividualSeatGame &&
+    !args.blockedByLevelRange &&
+    !args.partnerRequired
+  );
 }
 
 export function tournamentStartOwnSeat(

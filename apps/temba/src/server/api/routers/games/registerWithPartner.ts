@@ -26,6 +26,10 @@ import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,
   LEVEL_RANGE_PARTNER_MESSAGE,
 } from "~/lib/level-range";
+import {
+  isPartnerRequiredGame,
+  PARTNER_REQUIRED_FULL_MESSAGE,
+} from "~/lib/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -91,6 +95,12 @@ export async function registerWithPartner(
   const remaining = await remainingCapacity(database, game);
 
   if (remaining <= 0) {
+    if (isPartnerRequiredGame(game)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: PARTNER_REQUIRED_FULL_MESSAGE,
+      });
+    }
     await database.transaction(async (tx) => {
       await enqueueWaitlistUser(tx, game.id, args.userId);
       await enqueueWaitlistUser(tx, game.id, partner.id);

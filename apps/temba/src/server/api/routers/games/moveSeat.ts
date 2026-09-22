@@ -12,6 +12,10 @@ import {
 import { assertPoolDrawNotPosted } from "~/server/games/assert-pool-draw-not-posted";
 import { isIndividualSeatGame, moveToSeat } from "~/server/games/seats";
 import type { SeatPosition } from "~/server/games/utils";
+import {
+  isPartnerRequiredGame,
+  PARTNER_REQUIRED_REFUSAL_MESSAGE,
+} from "~/lib/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -27,6 +31,13 @@ export async function moveSeat(
   const game = await requireGame(database, args.gameId);
   assertPoolDrawNotPosted(game);
   const now = new Date();
+
+  if (isPartnerRequiredGame(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+    });
+  }
 
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({

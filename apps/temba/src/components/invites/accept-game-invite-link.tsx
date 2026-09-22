@@ -14,6 +14,11 @@ import {
   formatLevelRangeLabel,
 } from "~/lib/level-range";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import {
+  PARTNER_REQUIRED_INVITE_LANDING_COPY,
+  PARTNER_REQUIRED_INVITE_LANDING_CTA,
+  tournamentPartnerInviteLandingHref,
+} from "~/lib/tournament-join";
 import { api } from "~/trpc/react";
 
 export function AcceptGameInviteLink({
@@ -60,6 +65,7 @@ export function AcceptGameInviteLink({
   const ready = preview.data?.status === "ready" ? preview.data : undefined;
   const blockedByLevelRange =
     isSignedIn && ready?.viewerPassesLevelRange === false;
+  const partnerRequiredJoin = Boolean(ready?.partnerRequiredJoin);
   const needsSeatPick = Boolean(ready?.needsSeatPick) && !blockedByLevelRange;
   const sides = ready?.sides ?? [];
   const vacantSeats = ready?.vacantSeats ?? [];
@@ -94,7 +100,7 @@ export function AcceptGameInviteLink({
     if (accept.isPending || accept.isSuccess || accept.isError) {
       return;
     }
-    if (preview.data.needsSeatPick) {
+    if (preview.data.partnerRequiredJoin || preview.data.needsSeatPick) {
       return;
     }
     accept.mutate({ token });
@@ -222,6 +228,42 @@ export function AcceptGameInviteLink({
                 ? "Request again"
                 : "Request to play"}
           </Button>
+        )}
+      </div>
+    );
+  }
+
+  if (partnerRequiredJoin && ready && !accept.isSuccess) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-title font-semibold">
+            Join {ready.gameName ?? "Game"}
+          </h1>
+          {rangeLabel ? (
+            <p className="text-body text-muted-foreground">{rangeLabel}</p>
+          ) : null}
+          <p className="text-body text-muted-foreground">
+            {PARTNER_REQUIRED_INVITE_LANDING_COPY}
+          </p>
+        </div>
+        {isSignedIn ? (
+          <Button className="min-h-11" asChild>
+            <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
+              {PARTNER_REQUIRED_INVITE_LANDING_CTA}
+            </Link>
+          </Button>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
+              <Button className="min-h-11">Sign in</Button>
+            </SignInButton>
+            <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
+              <Button variant="outline" className="min-h-11">
+                Sign up
+              </Button>
+            </SignUpButton>
+          </div>
         )}
       </div>
     );

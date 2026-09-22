@@ -17,7 +17,10 @@ import {
 } from "@repo/db";
 
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import {
+  isPartnerRequiredGame,
+  isPoolTournament,
+} from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -358,7 +361,9 @@ export async function gameById(
       }
     }
   }
+  const partnerRequired = isPartnerRequiredGame(game);
   const canMove =
+    !partnerRequired &&
     isSeated &&
     registrationStatus === "open" &&
     hasVacantPosition &&
@@ -534,6 +539,7 @@ export async function gameById(
     name: game.name,
     format: game.format,
     registrationMode: game.registrationMode,
+    allowSoloRegister: game.allowSoloRegister,
     isPublic: game.isPublic,
     groupId: game.groupId,
     groupName: group?.name ?? null,
@@ -578,6 +584,7 @@ export async function gameById(
       !alreadyOnGame &&
       !isWaitlisted,
     canWaitlist:
+      !partnerRequired &&
       registrationStatus === "full" &&
       passesGate &&
       levelRange.viewerPassesLevelRange &&

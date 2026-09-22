@@ -61,12 +61,17 @@ import {
   tournamentJoinRoundCount,
   tournamentJoinSeatExplanation,
   tournamentJoinSeatsTakenLine,
+  tournamentJoinSheetOpeningStep,
   tournamentJoinTakeSeatLabel,
+  tournamentPartnerVacantSideRaceMessage,
   tournamentSitWithCountLine,
   tournamentStartOwnSeat,
   tournamentYourSeatAvailability,
 } from "~/lib/tournament-join";
-import { tournamentRoundSchedule } from "~/lib/tournament-rounds";
+import {
+  isPartnerRequiredGame,
+  tournamentRoundSchedule,
+} from "~/lib/tournament-rounds";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -801,10 +806,12 @@ function TournamentTakeASeat({
  * pick, and nothing is submitted until the footer button. A lone vacant
  * Position is chosen rather than asked.
  *
- * On individual Friendly games with a fully vacant side, a mode chooser
- * (artboard 02b) is the first step: Join alone reaches this picker; Join
- * with a partner stays in this dialog for Pick a partner and Register the
- * team. Hub cards can open straight on Pick a partner.
+ * On individual Friendly games and allow-alone Pool tournaments with a fully
+ * vacant side, a mode chooser (artboard 02b) is the first step: Join alone
+ * reaches this picker; Join with a partner stays in this dialog for Pick a
+ * partner and Register the team. Hub cards can open straight on Pick a
+ * partner. Pool tournaments skip that chooser when Take seat already named
+ * a Position, or when no side is fully vacant.
  */
 export function FriendlyGameJoinSheet({
   open,
@@ -829,6 +836,7 @@ export function FriendlyGameJoinSheet({
   poolCount,
   teamsAllowed,
   windowEnd,
+  allowSoloRegister = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -852,12 +860,22 @@ export function FriendlyGameJoinSheet({
   poolCount?: number | null;
   teamsAllowed?: number | null;
   windowEnd?: Date | string | null;
+  allowSoloRegister?: boolean;
 }) {
   const isTournamentJoin = isTournamentJoinSheet(
     format,
     poolCount,
     sides.length,
   );
+  const partnerRequired = isPartnerRequiredGame({
+    format: format ?? "",
+    poolCount,
+    registrationMode: registrationMode ?? "",
+    allowSoloRegister,
+  });
+  const vacantSideRaceMessage = isTournamentJoin
+    ? tournamentPartnerVacantSideRaceMessage(partnerRequired)
+    : PARTNER_VACANT_SIDE_RACE_MESSAGE;
 
   // `touched` is what keeps the Preferred Position default a default: until
   // the viewer taps, the picked Position is derived, so it can appear the
@@ -906,7 +924,7 @@ export function FriendlyGameJoinSheet({
       ) {
         return;
       }
-      setPartnerRaceMessage(PARTNER_VACANT_SIDE_RACE_MESSAGE);
+      setPartnerRaceMessage(vacantSideRaceMessage);
       registerWithPartner.reset();
       setStep("partner");
       if (!gameId) {
@@ -914,7 +932,7 @@ export function FriendlyGameJoinSheet({
       }
       const fresh = await utils.games.byId.fetch({ id: gameId });
       if (partnerVacantSideRaceRecovery(fresh.sides) === "game_home") {
-        toast.error(PARTNER_VACANT_SIDE_RACE_MESSAGE);
+        toast.error(vacantSideRaceMessage);
         onOpenChange(false);
       }
     },
@@ -934,16 +952,23 @@ export function FriendlyGameJoinSheet({
         poolCount,
         sides.length,
       );
-      const openPartner = startAtPartner && offer && !tournamentJoin;
+      const tournamentOpening = tournamentJoin
+        ? tournamentJoinSheetOpeningStep({
+            offersPartner: offer,
+            hasInitialSeat: initialSeat != null,
+            partnerRequired,
+          })
+        : null;
+      const openPartner =
+        tournamentOpening === "partner" || (startAtPartner && offer);
       setOpenedAtPartner(openPartner);
       setStep(
         openPartner
           ? "partner"
-          : initialSeat || tournamentJoin
-            ? "seat"
-            : offer
-              ? "chooser"
-              : "seat",
+          : tournamentOpening === "chooser" ||
+              (!tournamentJoin && !initialSeat && offer)
+            ? "chooser"
+            : "seat",
       );
       setSelectedPartner(null);
       setPartnerRaceMessage(null);
@@ -1009,8 +1034,8 @@ export function FriendlyGameJoinSheet({
       return;
     }
     if (vacantSideIndex == null) {
-      setPartnerRaceMessage(PARTNER_VACANT_SIDE_RACE_MESSAGE);
-      toast.error(PARTNER_VACANT_SIDE_RACE_MESSAGE);
+      setPartnerRaceMessage(vacantSideRaceMessage);
+      toast.error(vacantSideRaceMessage);
       onOpenChange(false);
       return;
     }
@@ -1066,14 +1091,14 @@ export function FriendlyGameJoinSheet({
           </ResponsiveDialogHeader>
         ) : null}
 
-        {step === "chooser" ? (
+        {step === "chooser" && !partnerRequired ? (
           <ModeChooser
             onJoinAlone={() => setStep("seat")}
             onJoinWithPartner={goPartner}
           />
         ) : null}
 
-        {step === "seat" && isTournamentJoin ? (
+        {step === "seat" && isTournamentJoin && !partnerRequired ? (
           <TournamentTakeASeat
             title={title}
             sides={sides}

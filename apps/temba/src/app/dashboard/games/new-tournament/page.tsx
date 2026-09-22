@@ -64,8 +64,8 @@ import {
   ROUNDS_ROW_LABEL,
 } from "~/lib/tournament-join";
 import {
+  ALONE_OR_WITH_A_PARTNER_LABEL,
   ANYONE_WITH_THE_LINK_LABEL,
-  COMPLETE_TEAMS_ONLY_LABEL,
   COURTS_ROW_LABEL,
   CREATE_FOOTER_COPY,
   CREATE_PRIMARY_ACTION,
@@ -80,7 +80,6 @@ import {
   formatPoolSizeLine,
   HOW_LONG_IT_RUNS_LABEL,
   HOW_PEOPLE_JOIN_LABEL,
-  INDIVIDUAL_SEATS_LABEL,
   lastMatchFinishCopy,
   MATCHES_PER_TEAM_ROW_LABEL,
   ONE_DAY_CALLOUT_LABEL,
@@ -99,6 +98,7 @@ import {
   TOURNAMENT_TEAM_STEP,
   UNEVEN_POOLS_COPY,
   WHO_CAN_TAKE_A_SEAT_LABEL,
+  WITH_A_PARTNER_ONLY_LABEL,
   type TournamentSizing,
 } from "~/lib/tournament-sizing";
 import { cn } from "~/lib/utils";
@@ -289,9 +289,7 @@ function NewTournamentForm() {
     string | undefined
   >();
   const [isPublic, setIsPublic] = React.useState(false);
-  const [registrationMode, setRegistrationMode] = React.useState<
-    "individual" | "team_only"
-  >("individual");
+  const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
 
   const createGroups = api.games.listCreateGroups.useQuery();
   const picker = api.games.listCreateVenues.useQuery(
@@ -495,7 +493,7 @@ function NewTournamentForm() {
       name: trimmedName,
       groupId: selectedGroupId,
       isPublic,
-      registrationMode,
+      allowSoloRegister,
       teamCount,
       poolCount,
       windowStart,
@@ -928,11 +926,11 @@ function NewTournamentForm() {
             <SegmentedField
               id="tournament-registration"
               label={HOW_PEOPLE_JOIN_LABEL}
-              value={registrationMode}
-              onChange={setRegistrationMode}
+              value={allowSoloRegister ? "alone" : "partner"}
+              onChange={(value) => setAllowSoloRegister(value === "alone")}
               options={[
-                { value: "individual", label: INDIVIDUAL_SEATS_LABEL },
-                { value: "team_only", label: COMPLETE_TEAMS_ONLY_LABEL },
+                { value: "alone", label: ALONE_OR_WITH_A_PARTNER_LABEL },
+                { value: "partner", label: WITH_A_PARTNER_ONLY_LABEL },
               ]}
             />
           </FieldGroup>

@@ -240,8 +240,12 @@ _Avoid_: player (when you mean someone waitlisted), guest
 Registered occupancy of a User, an ad-hoc pair of Users, or a complete Team on a Game. Distinct from Waitlist and from creating the Game.
 _Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window), Game Level range request (that is not occupancy)
 
+**Allow registering alone**:
+Organizer flag on a Friendly tournament, default yes. When no, entry is Partner registration only onto a fully vacant side. Distinct from team-only registration and from Team. Not a new Game format. Not a registration mode.
+_Avoid_: Complete Teams, matcher, registration mode (when you mean this flag), Team (that is the persistent partnership)
+
 **Partner registration**:
-One User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving frees only the leaver’s Position.
+One User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving still frees only the leaver’s Position on Friendly games and on tournaments that allow registering alone. On a tournament that does not allow registering alone, leave or kick before the Pool draw removes the whole Game team.
 _Avoid_: Team (that is the persistent partnership), Game team (that is the side this creates), Lookup invite (that is a door the invitee must accept), pair registration, team registration (that is registering a complete Team on a team-only Game)
 
 **Price per player**:

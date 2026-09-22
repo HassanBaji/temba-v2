@@ -103,12 +103,14 @@ export function showOrganizerMergeBanner(args: {
   cancelled: boolean;
   drawPosted: boolean;
   halfTeamCount: number;
+  partnerRequired?: boolean;
 }) {
   return (
     args.isOrganizer &&
     !args.cancelled &&
     !args.drawPosted &&
-    args.halfTeamCount === 2
+    args.halfTeamCount === 2 &&
+    args.partnerRequired !== true
   );
 }
 
@@ -117,12 +119,14 @@ export function canOpenOrganizerMergeDrawer(args: {
   cancelled: boolean;
   drawPosted: boolean;
   halfTeamCount: number;
+  partnerRequired?: boolean;
 }) {
   return (
     args.isOrganizer &&
     !args.cancelled &&
     !args.drawPosted &&
-    args.halfTeamCount >= 2
+    args.halfTeamCount >= 2 &&
+    args.partnerRequired !== true
   );
 }
 

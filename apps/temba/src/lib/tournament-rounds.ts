@@ -25,6 +25,25 @@ export function showsPoolTournamentSeats(
   );
 }
 
+export const PARTNER_REQUIRED_REFUSAL_MESSAGE =
+  "This tournament does not allow registering alone";
+export const PARTNER_REQUIRED_FULL_MESSAGE = "This tournament is full";
+
+export function isPartnerRequiredGame(game: {
+  format: string;
+  poolCount: number | null | undefined;
+  registrationMode: string;
+  allowSoloRegister: boolean;
+}) {
+  return (
+    showsPoolTournamentSeats(
+      game.format,
+      game.poolCount,
+      game.registrationMode,
+    ) && game.allowSoloRegister === false
+  );
+}
+
 function asDate(value: Date | string) {
   return value instanceof Date ? value : new Date(value);
 }
