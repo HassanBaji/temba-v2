@@ -147,6 +147,7 @@ async function seedPostedTournament(
     poolCount,
     venueId: venue.id,
     courtIds: [courtA.id, courtB.id],
+    matchMinutes: 45,
     windowStart: new Date("2026-09-20T10:00:00"),
     windowEnd: new Date("2026-09-20T16:00:00"),
   });

@@ -386,7 +386,7 @@ describe("tournamentJoinHeaderLine", () => {
 });
 
 describe("tournamentJoin copy", () => {
-  it("says Pool, never Group, and never claims anyone was messaged", () => {
+  it("says group, never Group, and never claims anyone was messaged", () => {
     const copy = [
       TAKE_A_SEAT_TITLE,
       SIT_WITH_SOMEONE_HEADING,
@@ -433,7 +433,7 @@ describe("tournamentJoin copy", () => {
         .join("\n"),
     ].join("\n");
     assert.equal(FORBIDDEN.test(copy), false);
-    assert.match(LEAVE_SEAT_UNTIL_POOL_DRAW_COPY, /Pool draw/u);
+    assert.match(LEAVE_SEAT_UNTIL_POOL_DRAW_COPY, /group draw/u);
     assert.equal(DRAW_RANDOM_VALUE, "Random");
   });
 });

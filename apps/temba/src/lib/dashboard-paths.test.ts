@@ -13,12 +13,15 @@ describe("titleFromPath", () => {
     assert.equal(titleFromPath("/dashboard/you/extra"), "Profile");
   });
 
-  it("keeps other dashboard titles", () => {
+  it("keeps Create Game for the single create route", () => {
+    assert.equal(titleFromPath("/dashboard/games/new"), "Create Game");
+  });
+
+  it("uses Create Game for the retired tournament path", () => {
     assert.equal(
       titleFromPath("/dashboard/games/new-tournament"),
-      "Create tournament",
+      "Create Game",
     );
-    assert.equal(titleFromPath("/dashboard/games/new"), "Create Game");
   });
 });
 

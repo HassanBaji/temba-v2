@@ -15,7 +15,7 @@ export const TOURNAMENT_DRAW_RANDOM_CLAUSE = "and it is random.";
 export const TOURNAMENT_DRAW_WHEN_FULL_COPY =
   "The draw happens once they are full";
 export const TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY =
-  "draws the Pools once they are full";
+  "draws the groups once they are full";
 export const TOURNAMENT_CLOSING_LINE =
   "Every Round is an ordinary Match. Scores are entered the usual way and the other team confirms.";
 export const ORGANIZER_ROW_LABEL = "Organizer";
@@ -37,8 +37,8 @@ export const YOUR_ROUNDS_PREDRAW_CAPTION = "Opponents after the draw";
 export const NOT_DRAWN_TRAILER = "Not drawn";
 export const STANDINGS_HEADING = "Standings";
 export const TOURNAMENT_ENDS_COPY =
-  "Each Pool has a winner. There is no overall champion.";
-export const POOLS_SEGMENT_LABEL = "Pools";
+  "Each group has a winner. There is no overall champion.";
+export const POOLS_SEGMENT_LABEL = "groups";
 
 const TEAM_LIST_LEADING_FULL = 4;
 const TEAM_LIST_MIN_COLLAPSE = 3;
@@ -267,7 +267,7 @@ export function tournamentSizeLine(sizing: TournamentSizing): string {
 export function tournamentStatusLine(input: TournamentStatusLineInput): string {
   if (input.seated) {
     if (input.seatsLeft === 0) {
-      return `${TOURNAMENT_YOU_ARE_IN_COPY} The Pool draw is random.`;
+      return `${TOURNAMENT_YOU_ARE_IN_COPY} The group draw is random.`;
     }
     const teamWord = input.teamCount === 1 ? "Game team" : "Game teams";
     return `${TOURNAMENT_YOU_ARE_IN_COPY} The draw happens once ${input.teamCount} ${teamWord} are full, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`;
@@ -435,7 +435,7 @@ function poolSizeClause(sizing: TournamentSizing): string {
   }
   return [...counts.entries()]
     .map(([size, count]) => {
-      const poolWord = count === 1 ? "Pool" : "Pools";
+      const poolWord = count === 1 ? "group" : "groups";
       return `${count} ${poolWord} of ${size}`;
     })
     .join(", ");

@@ -5,6 +5,12 @@ export const TOURNAMENT_DEFAULT_TEAM_COUNT = 12;
 export const TOURNAMENT_DEFAULT_POOL_COUNT = 3;
 export const TOURNAMENT_SLOT_MINUTES = 45;
 
+export function tournamentMatchMinutes(
+  matchMinutes: number | null | undefined,
+) {
+  return matchMinutes ?? TOURNAMENT_SLOT_MINUTES;
+}
+
 export const ONE_DAY_OVERRUN_MESSAGE =
   "This runs past your finish time. Add a Court, or take fewer Game teams.";
 
@@ -16,8 +22,8 @@ export const CREATE_SUBLINE =
 export const CREATE_FOOTER_COPY =
   "It shows up in Games like any other Game. You draw once the seats are full.";
 export const UNEVEN_POOLS_COPY =
-  "Pools are uneven. Some Game teams play one more Match than others.";
-export const POOL_MATCHES_ROW_LABEL = "Pool Matches";
+  "Groups are uneven. Some Game teams play one more Match than others.";
+export const POOL_MATCHES_ROW_LABEL = "group Matches";
 export const MATCHES_PER_TEAM_ROW_LABEL = "Matches per Game team";
 export const EACH_MATCH_ROW_LABEL = "Each Match";
 export const COURTS_ROW_LABEL = "Courts";
@@ -134,7 +140,7 @@ export function sizeFriendlyTournament(
       ok: false,
       issue: {
         path: "poolCount",
-        message: `Pool count must be between 1 and ${maxPools} for ${teamCount} Game teams`,
+        message: `groups count must be between 1 and ${maxPools} for ${teamCount} Game teams`,
       },
     };
   }
@@ -173,14 +179,16 @@ export function oneDayFit(input: {
   finish: Date;
   poolMatches: number;
   courtCount: number;
+  matchMinutes: number | null;
 }): OneDayFit {
   if (input.courtCount < 1) {
     return { slotCount: null, lastFinish: null, overruns: true };
   }
 
   const slotCount = Math.ceil(input.poolMatches / input.courtCount);
+  const minutes = tournamentMatchMinutes(input.matchMinutes);
   const lastFinish = new Date(
-    input.start.getTime() + slotCount * TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+    input.start.getTime() + slotCount * minutes * 60 * 1000,
   );
   return {
     slotCount,
@@ -197,7 +205,7 @@ export function formatPoolSizeLine(sizing: TournamentSizing) {
   return [...counts.entries()]
     .map(
       ([size, count]) =>
-        `${count} ${count === 1 ? "Pool" : "Pools"} of ${size}`,
+        `${count} ${count === 1 ? "group" : "groups"} of ${size}`,
     )
     .join(", ");
 }
@@ -206,7 +214,7 @@ export function formatMatchesPerTeam(sizing: TournamentSizing) {
   if (sizing.matchesPerTeamMin === sizing.matchesPerTeamMax) {
     return `Each Game team plays ${sizing.matchesPerTeamMin} Matches`;
   }
-  return `Game teams in a larger Pool play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller Pool play ${sizing.matchesPerTeamMin} Matches`;
+  return `Game teams in a larger group play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller group play ${sizing.matchesPerTeamMin} Matches`;
 }
 
 export function playersInPairsLine(teamCount: number) {

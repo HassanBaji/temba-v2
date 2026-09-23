@@ -13,7 +13,7 @@ import { assertGameOrganizer, requireGame } from "~/server/games/access";
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export const UNDO_AFTER_SET_MESSAGE =
-  "Cannot undo the Pool draw after a Set has been played";
+  "Cannot undo the group draw after a Set has been played";
 
 export async function undoPoolDraw(
   database: DbClient,
@@ -25,7 +25,7 @@ export async function undoPoolDraw(
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot undo the Pool draw on a cancelled Game",
+      message: "Cannot undo the group draw on a cancelled Game",
     });
   }
   if (
@@ -34,13 +34,13 @@ export async function undoPoolDraw(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Undo the Pool draw on a Friendly tournament",
+      message: "Undo the group draw on a Friendly tournament",
     });
   }
   if (game.drawPostedAt == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "The Pool draw has not been posted",
+      message: "The group draw has not been posted",
     });
   }
 

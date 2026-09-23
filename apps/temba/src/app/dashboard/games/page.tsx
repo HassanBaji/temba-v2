@@ -348,7 +348,7 @@ export default function GamesHubPage({
       action={
         hasCreateAccess ? (
           <Button asChild variant={"ghost"} size={"icon"}>
-            <Link href="/dashboard/games/new">
+            <Link href="/dashboard/games/new" aria-label="Create">
               <PlusIcon className="size-5" />
             </Link>
           </Button>
@@ -382,7 +382,7 @@ export default function GamesHubPage({
                 action={
                   hasCreateAccess ? (
                     <Button asChild>
-                      <Link href="/dashboard/games/new">Create Game</Link>
+                      <Link href="/dashboard/games/new">Create</Link>
                     </Button>
                   ) : undefined
                 }

@@ -12,7 +12,7 @@ import {
   tournamentRoundSummary,
 } from "./tournament-rounds";
 import { fewWeeksRoundStarts } from "./tournament-schedule";
-import { TOURNAMENT_SLOT_MINUTES } from "./tournament-sizing";
+import { tournamentMatchMinutes } from "./tournament-sizing";
 
 describe("isPoolTournament", () => {
   it("is true only when Friendly tournament has a Pool count", () => {
@@ -220,14 +220,16 @@ describe("tournamentRoundSchedule", () => {
       windowStart,
       windowEnd,
       roundCount: 3,
+      matchMinutes: null,
     });
+    const slotMs = tournamentMatchMinutes(null) * 60 * 1000;
     assert.equal(schedule.length, 3);
     assert.deepEqual(
       schedule.map((round) => round.start.getTime()),
       [
         windowStart.getTime(),
-        windowStart.getTime() + TOURNAMENT_SLOT_MINUTES * 60 * 1000,
-        windowStart.getTime() + 2 * TOURNAMENT_SLOT_MINUTES * 60 * 1000,
+        windowStart.getTime() + slotMs,
+        windowStart.getTime() + 2 * slotMs,
       ],
     );
     assert.deepEqual(
@@ -242,6 +244,28 @@ describe("tournamentRoundSchedule", () => {
     }
   });
 
+  it("steps a one-day window by 20, 30, or 45 minutes", () => {
+    const windowStart = new Date(2026, 8, 20, 10, 0, 0);
+    const windowEnd = new Date(2026, 8, 20, 16, 0, 0);
+    for (const minutes of [20, 30, 45, null] as const) {
+      const schedule = tournamentRoundSchedule({
+        windowStart,
+        windowEnd,
+        roundCount: 3,
+        matchMinutes: minutes,
+      });
+      const slotMs = tournamentMatchMinutes(minutes) * 60 * 1000;
+      assert.deepEqual(
+        schedule.map((round) => round.start.getTime()),
+        [
+          windowStart.getTime(),
+          windowStart.getTime() + slotMs,
+          windowStart.getTime() + 2 * slotMs,
+        ],
+      );
+    }
+  });
+
   it("spreads a multi-week window with fewWeeksRoundStarts and stays monotonic", () => {
     const windowStart = new Date("2026-09-20T18:00:00");
     const windowEnd = new Date("2026-10-04T18:45:00");
@@ -249,8 +273,9 @@ describe("tournamentRoundSchedule", () => {
       windowStart,
       windowEnd,
       roundCount: 3,
+      matchMinutes: null,
     });
-    const expected = fewWeeksRoundStarts(windowStart, windowEnd, 3);
+    const expected = fewWeeksRoundStarts(windowStart, windowEnd, 3, null);
     assert.equal(schedule.length, 3);
     assert.equal(schedule.length, expected.length);
     assert.deepEqual(

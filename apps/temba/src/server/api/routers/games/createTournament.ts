@@ -25,6 +25,29 @@ import { requireGroup } from "~/server/games/helpers/require-group";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+const ONE_DAY_WINDOW_MESSAGE =
+  "Finish time must be within 24 hours of the start";
+
+function windowWithinOneDay(windowStart: Date, windowEnd: Date) {
+  return windowEnd.getTime() - windowStart.getTime() <= ONE_DAY_MS;
+}
+
+function assertMatchMinutes(matchMinutes: number) {
+  if (
+    !Number.isInteger(matchMinutes) ||
+    matchMinutes < 10 ||
+    matchMinutes > 120 ||
+    matchMinutes % 5 !== 0
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Match length must be from 10 to 120 minutes, in steps of 5",
+    });
+  }
+}
+
 export const createTournamentInputSchema = z
   .object({
     name: z.string().trim().min(1).max(255),
@@ -34,6 +57,7 @@ export const createTournamentInputSchema = z
     allowSoloRegister: z.boolean().optional().default(true),
     teamCount: z.number().int(),
     poolCount: z.number().int(),
+    matchMinutes: z.number().int().min(10).max(120).multipleOf(5),
     windowStart: z.coerce.date(),
     windowEnd: z.coerce.date(),
     venueId: z.string().uuid({ message: "Pick a Venue" }),
@@ -62,6 +86,10 @@ export const createTournamentInputSchema = z
   })
   .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
     message: "Finish time must be at or after start time",
+    path: ["windowEnd"],
+  })
+  .refine((value) => windowWithinOneDay(value.windowStart, value.windowEnd), {
+    message: ONE_DAY_WINDOW_MESSAGE,
     path: ["windowEnd"],
   })
   .superRefine((value, ctx) => {
@@ -111,6 +139,14 @@ export async function createTournament(
   database: DbClient,
   input: CreateTournamentInput,
 ) {
+  assertMatchMinutes(input.matchMinutes);
+  if (!windowWithinOneDay(input.windowStart, input.windowEnd)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: ONE_DAY_WINDOW_MESSAGE,
+    });
+  }
+
   const sized = sizeFriendlyTournament(input.teamCount, input.poolCount);
   if (!sized.ok) {
     throw new TRPCError({
@@ -144,6 +180,7 @@ export async function createTournament(
         playersAllowed: sized.sizing.playerCount,
         teamsAllowed: sized.sizing.teamCount,
         poolCount: sized.sizing.poolCount,
+        matchMinutes: input.matchMinutes,
         pricePerPlayerCents: input.pricePerPlayerCents ?? null,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,

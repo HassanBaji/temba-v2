@@ -217,7 +217,7 @@ A Game team on a Friendly tournament with one Position taken and the other vacan
 _Avoid_: incomplete Team, solo, single, orphan seat
 
 **Pool**:
-One subset of a Friendly tournament's Game teams that plays a full round robin against itself. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games.
+One subset of a Friendly tournament's Game teams that plays a full round robin against itself. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games. Shown to users as *group*.
 _Avoid_: Group, group stage group, division, section, bracket
 
 **Pool table**:

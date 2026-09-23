@@ -90,6 +90,20 @@ function windowTimes() {
   return {
     windowStart,
     windowEnd: new Date(windowStart.getTime() + 4 * 60 * 60 * 1000),
+    matchMinutes: 45,
+  };
+}
+
+function tournamentFields() {
+  return {
+    name: "Autumn Friendly",
+    groupId: crypto.randomUUID(),
+    isPublic: false,
+    teamCount: 12,
+    poolCount: 3,
+    venueId: crypto.randomUUID(),
+    matchMinutes: 45,
+    ...windowTimes(),
   };
 }
 
@@ -164,6 +178,69 @@ describe("createTournamentInputSchema", () => {
     }
     expect(parsed.data.allowSoloRegister).toBe(true);
   });
+
+  it("requires matchMinutes from 10 to 120 in steps of 5", () => {
+    const missing = createTournamentInputSchema.safeParse({
+      ...tournamentFields(),
+      matchMinutes: undefined,
+    });
+    expect(missing.success).toBe(false);
+    if (!missing.success) {
+      expect(
+        missing.error.issues.some((issue) => issue.path[0] === "matchMinutes"),
+      ).toBe(true);
+    }
+
+    for (const matchMinutes of [9, 121, 12, 10.5]) {
+      const parsed = createTournamentInputSchema.safeParse({
+        ...tournamentFields(),
+        matchMinutes,
+      });
+      expect(parsed.success).toBe(false);
+      if (!parsed.success) {
+        expect(
+          parsed.error.issues.some((issue) => issue.path[0] === "matchMinutes"),
+        ).toBe(true);
+      }
+    }
+
+    for (const matchMinutes of [10, 45, 120]) {
+      const parsed = createTournamentInputSchema.safeParse({
+        ...tournamentFields(),
+        matchMinutes,
+      });
+      expect(parsed.success).toBe(true);
+    }
+  });
+
+  it("refuses a window longer than 24 hours on windowEnd", () => {
+    const windowStart = new Date("2026-09-23T22:00:00.000Z");
+    const tooLong = createTournamentInputSchema.safeParse({
+      ...tournamentFields(),
+      windowStart,
+      windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000 + 1),
+    });
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(
+        tooLong.error.issues.some((issue) => issue.path[0] === "windowEnd"),
+      ).toBe(true);
+    }
+
+    const oneDay = createTournamentInputSchema.safeParse({
+      ...tournamentFields(),
+      windowStart,
+      windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000),
+    });
+    expect(oneDay.success).toBe(true);
+
+    const acrossMidnight = createTournamentInputSchema.safeParse({
+      ...tournamentFields(),
+      windowStart,
+      windowEnd: new Date(windowStart.getTime() + 6 * 60 * 60 * 1000),
+    });
+    expect(acrossMidnight.success).toBe(true);
+  });
 });
 
 describe("createTournament", () => {
@@ -204,6 +281,7 @@ describe("createTournament", () => {
       expect(row?.pricePerPlayerCents).toBe(1000);
       expect(row?.levelMinTenths).toBeNull();
       expect(row?.levelMaxTenths).toBeNull();
+      expect(row?.matchMinutes).toBe(45);
 
       const detail = await gameById(db, {
         gameId: created.id,
@@ -298,6 +376,7 @@ describe("createTournament", () => {
         venueId: venue.id,
         windowStart,
         windowEnd: new Date(windowStart.getTime() + 60 * 60 * 1000),
+        matchMinutes: 45,
       });
       expect(created.id).toBeDefined();
       const row = await db.query.games.findFirst({
@@ -480,6 +559,72 @@ describe("createTournament", () => {
     }
   });
 
+  it("stores matchMinutes and returns it from the Game", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "tournament-length@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, { createdBy: owner.id });
+      const created = await createTournament(db, {
+        createdBy: owner.id,
+        name: "Short slots",
+        groupId: group.id,
+        isPublic: false,
+        teamCount: 8,
+        poolCount: 2,
+        venueId: venue.id,
+        ...windowTimes(),
+        matchMinutes: 30,
+      });
+      const row = await db.query.games.findFirst({
+        where: eq(games.id, created.id),
+      });
+      expect(row?.matchMinutes).toBe(30);
+      const detail = await gameById(db, {
+        gameId: created.id,
+        userId: owner.id,
+      });
+      expect(detail.matchMinutes).toBe(30);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a Game length outside 10 to 120 or not a multiple of 5", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await expect(
+        createTournament(db, {
+          createdBy: crypto.randomUUID(),
+          ...tournamentFields(),
+          matchMinutes: 12,
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a window longer than 24 hours", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const windowStart = new Date("2026-09-23T10:00:00.000Z");
+      await expect(
+        createTournament(db, {
+          createdBy: crypto.randomUUID(),
+          ...tournamentFields(),
+          windowStart,
+          windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000 + 1),
+        }),
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "Finish time must be within 24 hours of the start",
+      });
+    } finally {
+      await close();
+    }
+  });
+
   it("leaves pool_count null on Friendly tournaments created through the existing Game create door", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -501,6 +646,7 @@ describe("createTournament", () => {
       });
       expect(row?.format).toBe("friendly_tournament");
       expect(row?.poolCount).toBeNull();
+      expect(row?.matchMinutes).toBeNull();
       expect(row?.allowSoloRegister).toBe(true);
     } finally {
       await close();

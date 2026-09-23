@@ -265,11 +265,11 @@ describe("Pool tournament copy sweep", () => {
   it("keeps the allowed champion and seeded sentences", () => {
     assert.equal(
       TOURNAMENT_ENDS_COPY,
-      "Each Pool has a winner. There is no overall champion.",
+      "Each group has a winner. There is no overall champion.",
     );
     assert.equal(
       POOL_DRAW_RANDOM_COPY,
-      "The Pool draw is random. Nobody is seeded.",
+      "The group draw is random. Nobody is seeded.",
     );
   });
 
@@ -278,7 +278,7 @@ describe("Pool tournament copy sweep", () => {
     assert.equal(FORBIDDEN.test(copy), false);
   });
 
-  it("never uses Group to mean a Pool", () => {
+  it("labels Pools as groups in the UI", () => {
     const even = sizeFriendlyTournament(12, 3);
     const uneven = sizeFriendlyTournament(10, 3);
     assert.equal(even.ok && uneven.ok, true);
@@ -303,7 +303,9 @@ describe("Pool tournament copy sweep", () => {
       POOL_DRAW_RANDOM_COPY,
       TOURNAMENT_ENDS_COPY,
     ].join("\n");
-    assert.equal(POOL_AS_GROUP.test(poolCopy), false);
+    assert.equal(POOL_AS_GROUP.test(poolCopy), true);
+    assert.equal(/\bPool\b/u.test(poolCopy), false);
+    assert.equal(/\bGroup\b/u.test(poolCopy), false);
   });
 
   it("names the Community Group only on the Group row and invite/create seat labels", () => {

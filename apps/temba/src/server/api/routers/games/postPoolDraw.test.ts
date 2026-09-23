@@ -107,6 +107,8 @@ async function insertTournament(
   },
 ) {
   const group = await insertGroup(database, args.createdBy);
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const span = args.windowEnd.getTime() - args.windowStart.getTime();
   const created = await createTournament(database, {
     createdBy: args.createdBy,
     name: "Autumn Friendly",
@@ -117,9 +119,20 @@ async function insertTournament(
     poolCount: args.poolCount,
     venueId: args.venueId,
     courtIds: args.courtIds,
+    matchMinutes: 45,
     windowStart: args.windowStart,
-    windowEnd: args.windowEnd,
+    windowEnd:
+      span > oneDayMs
+        ? new Date(args.windowStart.getTime() + oneDayMs)
+        : args.windowEnd,
   });
+  if (span > oneDayMs) {
+    // Legacy multi-week rows still schedule. Create refuses this window.
+    await database
+      .update(games)
+      .set({ windowEnd: args.windowEnd })
+      .where(eq(games.id, created.id));
+  }
   return created.id;
 }
 
@@ -850,7 +863,7 @@ describe("undoPoolDraw", () => {
             organizerUserId: seeded.owner.id,
           }),
         "FORBIDDEN",
-        "Cannot undo the Pool draw after a Set has been played",
+        "Cannot undo the group draw after a Set has been played",
       );
       const remaining = await db.query.matches.findMany({
         where: eq(matches.gameId, seeded.gameId),
@@ -886,7 +899,7 @@ describe("undoPoolDraw", () => {
             organizerUserId: seeded.owner.id,
           }),
         "FORBIDDEN",
-        "Cannot undo the Pool draw after a Set has been played",
+        "Cannot undo the group draw after a Set has been played",
       );
     } finally {
       await close();

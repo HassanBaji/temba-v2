@@ -16,7 +16,7 @@ import {
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_POOL_COUNT,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
-  TOURNAMENT_SLOT_MINUTES,
+  tournamentMatchMinutes,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
 } from "./tournament-sizing";
@@ -172,14 +172,39 @@ describe("oneDayFit", () => {
       finish,
       poolMatches: sizing.sizing.poolMatches,
       courtCount: 4,
+      matchMinutes: null,
     });
     assert.equal(fit.slotCount, 5);
     assert.equal(
       fit.lastFinish?.getTime(),
-      start.getTime() + 5 * 45 * 60 * 1000,
+      start.getTime() + 5 * tournamentMatchMinutes(null) * 60 * 1000,
     );
     assert.equal(fit.overruns, false);
-    assert.equal(TOURNAMENT_SLOT_MINUTES, 45);
+    assert.equal(tournamentMatchMinutes(null), 45);
+    assert.equal(tournamentMatchMinutes(20), 20);
+  });
+
+  it("uses 20, 30, and 45 minute Game lengths", () => {
+    const sizing = sizeFriendlyTournament(12, 3);
+    assert.equal(sizing.ok, true);
+    if (!sizing.ok) {
+      return;
+    }
+    const start = new Date("2026-09-20T10:00:00");
+    const finish = new Date("2026-09-20T18:00:00");
+    for (const minutes of [20, 30, 45] as const) {
+      const fit = oneDayFit({
+        start,
+        finish,
+        poolMatches: sizing.sizing.poolMatches,
+        courtCount: 4,
+        matchMinutes: minutes,
+      });
+      assert.equal(
+        fit.lastFinish?.getTime(),
+        start.getTime() + 5 * minutes * 60 * 1000,
+      );
+    }
   });
 
   it("warns when the last Match would finish past the stated finish time", () => {
@@ -195,6 +220,7 @@ describe("oneDayFit", () => {
       finish,
       poolMatches: sizing.sizing.poolMatches,
       courtCount: 4,
+      matchMinutes: null,
     });
     assert.equal(fit.overruns, true);
     assert.equal(
@@ -237,26 +263,26 @@ describe("defaults", () => {
 });
 
 describe("formatPoolSizeLine", () => {
-  it("names even Pools, never Groups", () => {
+  it("names even groups", () => {
     const result = sizeFriendlyTournament(12, 3);
     assert.equal(result.ok, true);
     if (!result.ok) {
       return;
     }
-    assert.equal(formatPoolSizeLine(result.sizing), "3 Pools of 4");
-    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+    assert.equal(formatPoolSizeLine(result.sizing), "3 groups of 4");
+    assert.match(formatPoolSizeLine(result.sizing), /groups/u);
   });
 
-  it("names a single Pool", () => {
+  it("names a single group", () => {
     const result = sizeFriendlyTournament(12, 1);
     assert.equal(result.ok, true);
     if (!result.ok) {
       return;
     }
-    assert.equal(formatPoolSizeLine(result.sizing), "1 Pool of 12");
+    assert.equal(formatPoolSizeLine(result.sizing), "1 group of 12");
   });
 
-  it("names uneven Pools without calling them Groups", () => {
+  it("names uneven groups", () => {
     const result = sizeFriendlyTournament(10, 3);
     assert.equal(result.ok, true);
     if (!result.ok) {
@@ -264,10 +290,10 @@ describe("formatPoolSizeLine", () => {
     }
     assert.equal(
       formatPoolSizeLine(result.sizing),
-      "1 Pool of 4, 2 Pools of 3",
+      "1 group of 4, 2 groups of 3",
     );
     assert.equal(result.sizing.uneven, true);
-    assert.equal(/group/iu.test(formatPoolSizeLine(result.sizing)), false);
+    assert.match(formatPoolSizeLine(result.sizing), /groups?/u);
   });
 });
 
@@ -292,9 +318,9 @@ describe("formatMatchesPerTeam", () => {
     }
     assert.equal(
       formatMatchesPerTeam(result.sizing),
-      "Game teams in a larger Pool play 3 Matches; Game teams in a smaller Pool play 2 Matches",
+      "Game teams in a larger group play 3 Matches; Game teams in a smaller group play 2 Matches",
     );
-    assert.equal(/group/iu.test(formatMatchesPerTeam(result.sizing)), false);
+    assert.match(formatMatchesPerTeam(result.sizing), /group/u);
   });
 });
 

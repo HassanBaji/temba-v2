@@ -33,15 +33,12 @@ import {
   courtCountValue,
   defaultPoolCount,
   EACH_MATCH_ROW_LABEL,
-  FEW_WEEKS_DURATION_LABEL,
   formatMatchesPerTeam,
   formatPoolSizeLine,
-  HOW_LONG_IT_RUNS_LABEL,
   HOW_PEOPLE_JOIN_LABEL,
   lastMatchFinishCopy,
   MATCHES_PER_TEAM_ROW_LABEL,
   ONE_DAY_CALLOUT_LABEL,
-  ONE_DAY_DURATION_LABEL,
   ONE_DAY_OVERRUN_MESSAGE,
   oneDayFit,
   playersInPairsLine,
@@ -49,7 +46,7 @@ import {
   poolCountOptions,
   sizeFriendlyTournament,
   THIS_GROUP_ONLY_LABEL,
-  TOURNAMENT_SLOT_MINUTES,
+  tournamentMatchMinutes,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
@@ -96,7 +93,7 @@ export function TournamentPreviewStates({
           title="Posted, mid-tournament"
           data={fixtures.postedMid}
         />
-        <PreviewColumn title="Finished, Pool winner" data={fixtures.finished} />
+        <PreviewColumn title="Finished, group winner" data={fixtures.finished} />
       </div>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Create screen controls</h2>
@@ -164,9 +161,6 @@ function TournamentHomePreview({ data }: { data: TournamentFixture }) {
 function TournamentCreateControlsPreview() {
   const [teamCount, setTeamCount] = useState(12);
   const [poolCount, setPoolCount] = useState(defaultPoolCount(12));
-  const [duration, setDuration] = useState<"one_day" | "few_weeks">(
-    "few_weeks",
-  );
   const [who, setWho] = useState<"group" | "anyone">("group");
   const [join, setJoin] = useState<"alone" | "partner">("alone");
 
@@ -192,6 +186,7 @@ function TournamentCreateControlsPreview() {
         finish,
         poolMatches: sizing.poolMatches,
         courtCount: 2,
+        matchMinutes: null,
       })
     : null;
 
@@ -229,15 +224,15 @@ function TournamentCreateControlsPreview() {
 
       <StepperField
         id="preview-pool-count"
-        label="Pools"
+        label="Groups"
         value={poolCount}
-        unit={poolCount === 1 ? "Pool" : "Pools"}
+        unit={poolCount === 1 ? "group" : "groups"}
         min={poolMin}
         max={poolMax}
         step={1}
         onChange={setPoolCount}
-        decreaseLabel="Fewer Pools"
-        increaseLabel="More Pools"
+        decreaseLabel="Fewer groups"
+        increaseLabel="More groups"
         description={
           sizing ? (
             <div className="flex flex-col gap-1">
@@ -252,17 +247,6 @@ function TournamentCreateControlsPreview() {
             </div>
           ) : null
         }
-      />
-
-      <PreviewSegment
-        id="preview-duration"
-        label={HOW_LONG_IT_RUNS_LABEL}
-        value={duration}
-        onChange={setDuration}
-        options={[
-          { value: "one_day", label: ONE_DAY_DURATION_LABEL },
-          { value: "few_weeks", label: FEW_WEEKS_DURATION_LABEL },
-        ]}
       />
 
       <PreviewSegment
@@ -310,7 +294,7 @@ function TournamentCreateControlsPreview() {
             },
             {
               label: EACH_MATCH_ROW_LABEL,
-              value: `${TOURNAMENT_SLOT_MINUTES} min`,
+              value: `${tournamentMatchMinutes(null)} min`,
             },
             {
               label: COURTS_ROW_LABEL,
@@ -334,7 +318,7 @@ function TournamentCreateControlsPreview() {
         />
       ) : null}
 
-      {duration === "one_day" && fit ? (
+      {fit ? (
         <div className="border-ink rounded-[14px] border p-5">
           <p className="text-muted-foreground text-[13px]">
             {ONE_DAY_CALLOUT_LABEL}

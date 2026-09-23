@@ -380,6 +380,7 @@ function baseTournament(args: {
     playersAllowed: TEAM_COUNT * 2,
     teamsAllowed: TEAM_COUNT,
     poolCount: POOL_COUNT,
+    matchMinutes: null,
     drawPostedAt: args.drawPostedAt,
     sport: GameSportEnum.PADEL,
     cancelledAt: null,

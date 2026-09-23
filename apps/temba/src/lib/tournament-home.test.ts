@@ -406,7 +406,7 @@ describe("tournamentOpenPositionSubline", () => {
 });
 
 describe("tournamentSizeLine", () => {
-  it("names Game teams and Pools without a knockout clause", () => {
+  it("names Game teams and groups without a knockout clause", () => {
     const result = sizeFriendlyTournament(12, 3);
     assert.equal(result.ok, true);
     if (!result.ok) {
@@ -414,11 +414,11 @@ describe("tournamentSizeLine", () => {
     }
     assert.equal(
       tournamentSizeLine(result.sizing),
-      "12 Game teams, 3 Pools of 4",
+      "12 Game teams, 3 groups of 4",
     );
   });
 
-  it("names uneven Pools as Pools, never Groups", () => {
+  it("names uneven groups in lowercase", () => {
     const result = sizeFriendlyTournament(10, 3);
     assert.equal(result.ok, true);
     if (!result.ok) {
@@ -426,8 +426,9 @@ describe("tournamentSizeLine", () => {
     }
     const line = tournamentSizeLine(result.sizing);
     assert.match(line, /10 Game teams/);
-    assert.match(line, /Pool/);
-    assert.equal(/group/iu.test(line), false);
+    assert.match(line, /groups?/u);
+    assert.equal(/\bPool\b/u.test(line), false);
+    assert.equal(/\bGroup\b/u.test(line), false);
   });
 });
 
@@ -444,7 +445,7 @@ describe("tournamentStatusLine", () => {
     );
   });
 
-  it("tells an unseated viewer seats left, who draws the Pools, and that it is random", () => {
+  it("tells an unseated viewer seats left, who draws the groups, and that it is random", () => {
     const line = tournamentStatusLine({
       seated: false,
       seatsLeft: 5,
@@ -453,9 +454,10 @@ describe("tournamentStatusLine", () => {
     });
     assert.match(line, /5 seats left/u);
     assert.match(line, /Jonas/u);
-    assert.match(line, /Pools/u);
+    assert.match(line, /groups/u);
     assert.match(line, /random/u);
-    assert.equal(/group/iu.test(line), false);
+    assert.equal(/\bPool\b/u.test(line), false);
+    assert.equal(/\bGroup\b/u.test(line), false);
   });
 });
 
@@ -601,7 +603,7 @@ describe("otherPoolsPlayedSummary", () => {
   const pools = [
     {
       poolIndex: 1,
-      label: "Pool 1",
+      label: "group 1",
       matches: [
         { status: "completed" },
         { status: "completed" },
@@ -610,29 +612,29 @@ describe("otherPoolsPlayedSummary", () => {
     },
     {
       poolIndex: 2,
-      label: "Pool 2",
+      label: "group 2",
       matches: [{ status: "completed" }, { status: "cancelled" }],
     },
     {
       poolIndex: 3,
-      label: "Pool 3",
+      label: "group 3",
       matches: [{ status: "completed" }, { status: "completed" }],
     },
   ];
 
-  it("names the other Pools, counts their completed Matches, and moves to the next Pool", () => {
+  it("names the other groups, counts their completed Matches, and moves to the next group", () => {
     assert.deepEqual(otherPoolsPlayedSummary(1, pools), {
-      namesLine: "Pool 2 and Pool 3",
+      namesLine: "group 2 and group 3",
       playedLabel: "3 Matches played",
       nextPoolIndex: 2,
     });
     assert.deepEqual(otherPoolsPlayedSummary(2, pools), {
-      namesLine: "Pool 1 and Pool 3",
+      namesLine: "group 1 and group 3",
       playedLabel: "4 Matches played",
       nextPoolIndex: 3,
     });
     assert.deepEqual(otherPoolsPlayedSummary(3, pools), {
-      namesLine: "Pool 1 and Pool 2",
+      namesLine: "group 1 and group 2",
       playedLabel: "3 Matches played",
       nextPoolIndex: 1,
     });
@@ -641,7 +643,7 @@ describe("otherPoolsPlayedSummary", () => {
   it("is null when there is no other Pool to move to", () => {
     assert.equal(
       otherPoolsPlayedSummary(1, [
-        { poolIndex: 1, label: "Pool 1", matches: [] },
+        { poolIndex: 1, label: "group 1", matches: [] },
       ]),
       null,
     );
@@ -653,12 +655,12 @@ describe("standings copy", () => {
     assert.equal(STANDINGS_HEADING, "Standings");
     assert.equal(
       TOURNAMENT_ENDS_COPY,
-      "Each Pool has a winner. There is no overall champion.",
+      "Each group has a winner. There is no overall champion.",
     );
     assert.equal(roundResultsHeading(2), "Round 2 results");
     assert.equal(otherPoolsPlayedLabel(1), "1 Match played");
     assert.equal(otherPoolsPlayedLabel(4), "4 Matches played");
-    assert.equal(POOLS_SEGMENT_LABEL, "Pools");
+    assert.equal(POOLS_SEGMENT_LABEL, "groups");
   });
 
   it("does not say quarter, knockout, then quarters, or Group for a Pool", () => {
@@ -668,7 +670,7 @@ describe("standings copy", () => {
       POOLS_SEGMENT_LABEL,
       roundResultsHeading(2),
       otherPoolsPlayedLabel(4),
-      "Pool 2 and Pool 3",
+      "group 2 and group 3",
     ].join("\n");
     assert.equal(/quarter|knockout|then quarters/iu.test(copy), false);
     assert.equal(/\bGroup\b/u.test(copy), false);

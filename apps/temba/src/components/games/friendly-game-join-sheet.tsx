@@ -667,6 +667,7 @@ function TournamentTakeASeat({
   roundCount,
   windowStart,
   windowEnd,
+  matchMinutes,
   onClose,
   onChooseSeat,
   onConfirm,
@@ -681,6 +682,7 @@ function TournamentTakeASeat({
   roundCount: number | null;
   windowStart?: Date | string | null;
   windowEnd?: Date | string | null;
+  matchMinutes: number | null;
   onClose: () => void;
   onChooseSeat: (seat: FriendlyGameJoinSeat) => void;
   onConfirm: () => void;
@@ -702,6 +704,7 @@ function TournamentTakeASeat({
           windowStart,
           windowEnd,
           roundCount,
+          matchMinutes,
         })
       : [];
   const roundDates = schedule.map((entry) => formatGameCardDay(entry.start));
@@ -836,6 +839,7 @@ export function FriendlyGameJoinSheet({
   poolCount,
   teamsAllowed,
   windowEnd,
+  matchMinutes = null,
   allowSoloRegister = true,
 }: {
   open: boolean;
@@ -860,6 +864,7 @@ export function FriendlyGameJoinSheet({
   poolCount?: number | null;
   teamsAllowed?: number | null;
   windowEnd?: Date | string | null;
+  matchMinutes?: number | null;
   allowSoloRegister?: boolean;
 }) {
   const isTournamentJoin = isTournamentJoinSheet(
@@ -1110,6 +1115,7 @@ export function FriendlyGameJoinSheet({
             roundCount={roundCount}
             windowStart={windowStart}
             windowEnd={windowEnd}
+            matchMinutes={matchMinutes ?? null}
             onClose={() => onOpenChange(false)}
             onChooseSeat={chooseSeat}
             onConfirm={confirmSeat}

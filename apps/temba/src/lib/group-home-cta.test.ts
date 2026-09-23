@@ -195,7 +195,6 @@ describe("groupHomeOverflowItems", () => {
       [
         "open_community",
         "all_communities",
-        "create_tournament",
         "manage_invites",
         "leave",
         "delete",
@@ -217,7 +216,7 @@ describe("groupHomeOverflowItems", () => {
         isMember: false,
         canDelete: false,
       }),
-      ["create_tournament", "copy_group_url"],
+      ["copy_group_url"],
     );
   });
 
@@ -235,7 +234,7 @@ describe("groupHomeOverflowItems", () => {
         isMember: false,
         canDelete: false,
       }),
-      ["create_game", "create_tournament", "manage_invites"],
+      ["create_game", "manage_invites"],
     );
   });
 
@@ -257,7 +256,7 @@ describe("groupHomeOverflowItems", () => {
         isMember: true,
         canDelete: false,
       }),
-      ["create_tournament", "manage_invites", "leave"],
+      ["manage_invites", "leave"],
     );
   });
 

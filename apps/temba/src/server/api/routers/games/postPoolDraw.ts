@@ -42,7 +42,7 @@ export async function postPoolDraw(
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot post the Pool draw on a cancelled Game",
+      message: "Cannot post the group draw on a cancelled Game",
     });
   }
   if (
@@ -51,14 +51,14 @@ export async function postPoolDraw(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Post the Pool draw on a Friendly tournament",
+      message: "Post the group draw on a Friendly tournament",
     });
   }
   assertPoolDrawNotPosted(game);
   if (!game.windowStart || !game.windowEnd) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Set the tournament window before posting the Pool draw",
+      message: "Set the tournament window before posting the group draw",
     });
   }
 
@@ -99,7 +99,7 @@ export async function postPoolDraw(
     });
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Cannot post the Pool draw while Half teams remain: ${halfTeams
+      message: `Cannot post the group draw while Half teams remain: ${halfTeams
         .map(occupantName)
         .join(", ")}`,
     });
@@ -107,13 +107,13 @@ export async function postPoolDraw(
   if (complete.length < TOURNAMENT_TEAM_MIN) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Need at least 4 complete Game teams to post the Pool draw",
+      message: "Need at least 4 complete Game teams to post the group draw",
     });
   }
   if (complete.some((team) => team.poolIndex == null)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Draw the Pools before posting",
+      message: "Draw the groups before posting",
     });
   }
 
@@ -136,7 +136,7 @@ export async function postPoolDraw(
   if (courtIds.length < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Record Courts before posting the Pool draw",
+      message: "Record Courts before posting the group draw",
     });
   }
 
@@ -171,11 +171,12 @@ export async function postPoolDraw(
     courtIds,
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
+    matchMinutes: game.matchMinutes,
   });
   if (scheduled.length < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "The Pool draw did not produce any Matches",
+      message: "The group draw did not produce any Matches",
     });
   }
 

@@ -67,16 +67,7 @@ export function GroupHomeOverflowMenu({
             {item === "create_game" ? (
               <ActionMenuItem asChild>
                 <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-                  Create Game
-                </Link>
-              </ActionMenuItem>
-            ) : null}
-            {item === "create_tournament" ? (
-              <ActionMenuItem asChild>
-                <Link
-                  href={`/dashboard/games/new-tournament?groupId=${groupId}`}
-                >
-                  Create tournament
+                  Create
                 </Link>
               </ActionMenuItem>
             ) : null}

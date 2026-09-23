@@ -136,6 +136,8 @@ async function seedPostedTournament(database: TestDatabase, prefix: string) {
     groupId: group.id,
     userId: owner.id,
   });
+  const windowStart = new Date("2026-09-20T18:00:00.000Z");
+  const windowEnd = new Date("2026-10-04T18:45:00.000Z");
   const created = await createTournament(database, {
     createdBy: owner.id,
     name: "Autumn Friendly",
@@ -146,9 +148,15 @@ async function seedPostedTournament(database: TestDatabase, prefix: string) {
     poolCount: 1,
     venueId: venue.id,
     courtIds: [courtA.id, courtB.id],
-    windowStart: new Date("2026-09-20T18:00:00.000Z"),
-    windowEnd: new Date("2026-10-04T18:45:00.000Z"),
+    matchMinutes: 45,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000),
   });
+  // Legacy multi-week rows still schedule. Create refuses this window.
+  await database
+    .update(games)
+    .set({ windowEnd })
+    .where(eq(games.id, created.id));
   const players = await insertNamedUsers(database, prefix, 8);
   for (const player of players) {
     await database.insert(groupMembers).values({

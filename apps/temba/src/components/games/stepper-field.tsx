@@ -19,6 +19,7 @@ export function StepperField({
   increaseLabel,
   error,
   description,
+  labelClassName,
 }: {
   id: string;
   label: string;
@@ -32,6 +33,7 @@ export function StepperField({
   increaseLabel: string;
   error?: string;
   description?: ReactNode;
+  labelClassName?: string;
 }) {
   const canDecrease = value - step >= min;
   const canIncrease = value + step <= max;
@@ -49,7 +51,10 @@ export function StepperField({
       <FieldLabel
         id={`${id}-label`}
         htmlFor={id}
-        className="text-muted-foreground text-[13px] font-normal"
+        className={cn(
+          "text-muted-foreground text-[13px] font-normal",
+          labelClassName,
+        )}
       >
         {label}
       </FieldLabel>

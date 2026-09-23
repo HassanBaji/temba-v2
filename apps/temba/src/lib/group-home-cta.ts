@@ -20,7 +20,6 @@ export type GroupHomeOverflowItem =
   | "open_community"
   | "all_communities"
   | "create_game"
-  | "create_tournament"
   | "copy_group_url"
   | "manage_invites"
   | "change_image"
@@ -166,9 +165,6 @@ export function groupHomeOverflowItems(
   }
   if (input.canShowCreateGame && !createOnBar) {
     items.push("create_game");
-  }
-  if (input.canShowCreateGame) {
-    items.push("create_tournament");
   }
   if (input.isLoosePublic) {
     items.push("copy_group_url");

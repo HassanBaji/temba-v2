@@ -65,6 +65,8 @@ async function insertFourTeamTournament(
   venueId: string,
 ) {
   const group = await insertGroup(database, createdBy);
+  const windowStart = new Date("2026-09-20T18:00:00");
+  const windowEnd = new Date("2026-10-11T19:00:00");
   const created = await createTournament(database, {
     createdBy,
     name: "Autumn Friendly",
@@ -74,9 +76,15 @@ async function insertFourTeamTournament(
     teamCount: 4,
     poolCount: 1,
     venueId,
-    windowStart: new Date("2026-09-20T18:00:00"),
-    windowEnd: new Date("2026-10-11T19:00:00"),
+    matchMinutes: 45,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + 24 * 60 * 60 * 1000),
   });
+  // Legacy multi-week rows still schedule. Create refuses this window.
+  await database
+    .update(games)
+    .set({ windowEnd })
+    .where(eq(games.id, created.id));
   return created.id;
 }
 
@@ -420,7 +428,7 @@ describe("mergeHalfTeams", () => {
             secondPosition: "right",
           }),
         "FORBIDDEN",
-        "The Pools are drawn",
+        "The groups are drawn",
       );
     } finally {
       await close();
