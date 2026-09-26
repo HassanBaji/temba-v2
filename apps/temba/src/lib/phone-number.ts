@@ -8,7 +8,7 @@ export type CallingCountry = {
 };
 
 /**
- * GCC countries the auth phone control can assemble to E.164. Default is
+ * Countries the auth phone control can assemble to E.164. Default is
  * Bahrain, matching the artboards. Lengths are the national significant
  * number, not including a trunk prefix.
  */
@@ -60,6 +60,14 @@ export const CALLING_COUNTRIES: readonly CallingCountry[] = [
     nationalLength: 8,
     groups: [4, 4],
     placeholder: "9123 4567",
+  },
+  {
+    iso: "US",
+    name: "United States",
+    callingCode: "1",
+    nationalLength: 10,
+    groups: [3, 3, 4],
+    placeholder: "202 555 0123",
   },
 ] as const;
 

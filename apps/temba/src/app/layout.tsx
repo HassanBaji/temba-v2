@@ -22,6 +22,7 @@ export const metadata: Metadata = {
  * screens do not use this. Keep `@clerk/ui/themes` and the matching
  * `shadcn.css` import in `globals.css`.
  */
+
 const clerkAppearance = {
   theme: shadcn,
   variables: {

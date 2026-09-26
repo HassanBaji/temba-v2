@@ -33,6 +33,8 @@ import {
   validateFriendlyGameWhere,
   validateTournamentName,
   venueCardMeta,
+  venueMatchesQuery,
+  visibleCreateCourts,
   visibleCreateGroups,
 } from "./create-game-flow";
 
@@ -281,6 +283,38 @@ describe("where helpers", () => {
   it("formats the venue card line from court count and city", () => {
     assert.equal(venueCardMeta(4, "Manama"), "4 Courts · Manama");
     assert.equal(venueCardMeta(1, "Riffa"), "1 Court · Riffa");
+  });
+
+  it("matches a venue search against name and city", () => {
+    const venue = { name: "Karbabad Courts", city: "Manama" };
+    assert.equal(venueMatchesQuery(venue, ""), true);
+    assert.equal(venueMatchesQuery(venue, "  karbabad "), true);
+    assert.equal(venueMatchesQuery(venue, "manama"), true);
+    assert.equal(venueMatchesQuery(venue, "riffa"), false);
+  });
+
+  it("shows recent booking courts, or the first three", () => {
+    const courts = [
+      { id: "a" },
+      { id: "b" },
+      { id: "c" },
+      { id: "d" },
+      { id: "e" },
+    ];
+    assert.deepEqual(
+      visibleCreateCourts(courts, ["e", "b", "a", "missing"]).map(
+        (court) => court.id,
+      ),
+      ["e", "b", "a"],
+    );
+    assert.deepEqual(
+      visibleCreateCourts(courts, []).map((court) => court.id),
+      ["a", "b", "c"],
+    );
+    assert.deepEqual(
+      visibleCreateCourts(courts, [], ["e"]).map((court) => court.id),
+      ["a", "b", "c", "e"],
+    );
   });
 
   it("shows the first groups and keeps a selected group visible", () => {

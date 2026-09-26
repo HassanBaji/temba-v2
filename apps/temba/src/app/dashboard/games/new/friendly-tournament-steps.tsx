@@ -38,6 +38,8 @@ import {
   validateFriendlyGameWhen,
   priceChipIsSelected,
   venueCardMeta,
+  venueMatchesQuery,
+  visibleCreateCourts,
   visibleCreateGroups,
   VISIBLE_GROUP_CHIP_COUNT,
 } from "~/lib/create-game-flow";
@@ -161,6 +163,73 @@ function GroupChips({
   );
 }
 
+function VenueCards({
+  venues,
+  venueId,
+  labelledBy,
+  invalid = false,
+  describedBy,
+  onSelect,
+}: {
+  venues: readonly CreateVenue[];
+  venueId: string;
+  labelledBy?: string;
+  invalid?: boolean;
+  describedBy?: string;
+  onSelect: (venueId: string) => void;
+}) {
+  return (
+    <div
+      id={labelledBy ? "game-venue" : undefined}
+      role="radiogroup"
+      aria-label={labelledBy ? undefined : "Venue"}
+      aria-labelledby={labelledBy}
+      aria-invalid={invalid ? true : undefined}
+      aria-describedby={describedBy}
+      tabIndex={labelledBy ? -1 : undefined}
+      className="border-rule overflow-hidden rounded-[14px] border outline-none"
+    >
+      {venues.map((venue) => {
+        const selected = venue.id === venueId;
+        return (
+          <button
+            key={venue.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => {
+              onSelect(venue.id);
+            }}
+            className={cn(
+              "focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 border-b px-[18px] py-4 text-left outline-none last:border-b-0 focus-visible:ring-[3px]",
+              selected
+                ? "border-ink bg-ink text-paper"
+                : "border-rule bg-paper hover:bg-wash",
+            )}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-semibold">
+                {venue.name}
+              </span>
+              <span
+                className={cn(
+                  "text-meta mt-0.5 block",
+                  selected ? "text-dim" : "text-muted-foreground",
+                )}
+              >
+                {venueCardMeta(venue.courts.length, venue.city)}
+              </span>
+            </span>
+            {selected ? (
+              <Check aria-hidden="true" className="size-[18px] shrink-0" />
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-rule flex items-center justify-between gap-3 border-t px-[18px] py-3.5 text-sm first:border-t-0">
@@ -243,6 +312,7 @@ export function FriendlyTournamentSteps({
   venueError,
   onVenueId,
   emptyCatalog,
+  recentCourtIds,
   courtIds,
   courtError,
   onToggleCourt,
@@ -297,6 +367,7 @@ export function FriendlyTournamentSteps({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
+  recentCourtIds: readonly string[];
   courtIds: readonly string[];
   courtError?: string;
   onToggleCourt: (courtId: string) => void;
@@ -342,6 +413,11 @@ export function FriendlyTournamentSteps({
 }) {
   const [groupsOpen, setGroupsOpen] = React.useState(false);
   const [groupQuery, setGroupQuery] = React.useState("");
+  const [venuesOpen, setVenuesOpen] = React.useState(false);
+  const [venueQuery, setVenueQuery] = React.useState("");
+  const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
+    string | null
+  >(null);
   const [dayOpen, setDayOpen] = React.useState(false);
   const [startExpanded, setStartExpanded] = React.useState(false);
   const [finishExpanded, setFinishExpanded] = React.useState(false);
@@ -369,11 +445,19 @@ export function FriendlyTournamentSteps({
   );
   const selectedVenue = venues.find((venue) => venue.id === venueId);
   const courts = selectedVenue?.courts ?? [];
+  const courtsExpanded = courtsExpandedVenueId === venueId;
+  const visibleCourts = courtsExpanded
+    ? courts
+    : visibleCreateCourts(courts, recentCourtIds, courtIds);
   const visibleGroups = visibleCreateGroups(groups, selectedGroupId);
   const filteredGroups = groups.filter((group) =>
     groupOptionLabel(group)
       .toLowerCase()
       .includes(groupQuery.trim().toLowerCase()),
+  );
+  const visibleVenues = visibleCreateGroups(venues, venueId);
+  const filteredVenues = venues.filter((venue) =>
+    venueMatchesQuery(venue, venueQuery),
   );
   const sized = sizeFriendlyTournament(teamCount, poolCount);
   const sizing = sized.ok ? sized.sizing : null;
@@ -524,58 +608,64 @@ export function FriendlyTournamentSteps({
             !venuesPending &&
             !venuesLocked &&
             !emptyCatalog ? (
-              <div
-                id="game-venue"
-                role="radiogroup"
-                aria-labelledby="game-venue-label"
-                aria-invalid={venueError ? true : undefined}
-                aria-describedby={
-                  venueError ? "game-venue-error" : "game-venue-copy"
-                }
-                tabIndex={-1}
-                className="border-rule overflow-hidden rounded-[14px] border outline-none"
-              >
-                {venues.map((venue) => {
-                  const selected = venue.id === venueId;
-                  return (
-                    <button
-                      key={venue.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => {
-                        onVenueId(venue.id);
-                      }}
-                      className={cn(
-                        "focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 border-b px-[18px] py-4 text-left outline-none last:border-b-0 focus-visible:ring-[3px]",
-                        selected
-                          ? "border-ink bg-ink text-paper"
-                          : "border-rule bg-paper hover:bg-wash",
-                      )}
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-base font-semibold">
-                          {venue.name}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-meta mt-0.5 block",
-                            selected ? "text-dim" : "text-muted-foreground",
-                          )}
-                        >
-                          {venueCardMeta(venue.courts.length, venue.city)}
-                        </span>
-                      </span>
-                      {selected ? (
-                        <Check
-                          aria-hidden="true"
-                          className="size-[18px] shrink-0"
+              <>
+                <VenueCards
+                  venues={visibleVenues}
+                  venueId={venueId}
+                  labelledBy="game-venue-label"
+                  invalid={Boolean(venueError)}
+                  describedBy={
+                    venueError ? "game-venue-error" : "game-venue-copy"
+                  }
+                  onSelect={onVenueId}
+                />
+                {venues.length > VISIBLE_GROUP_CHIP_COUNT ? (
+                  <ChoiceChip
+                    dashed
+                    onClick={() => {
+                      setVenueQuery("");
+                      setVenuesOpen(true);
+                    }}
+                  >
+                    <Search aria-hidden="true" className="size-3.5" />
+                    All {venues.length} venues
+                  </ChoiceChip>
+                ) : null}
+                <Sheet open={venuesOpen} onOpenChange={setVenuesOpen}>
+                  <SheetContent
+                    side="bottom"
+                    className="max-h-[85svh] overflow-hidden"
+                  >
+                    <SheetHeader>
+                      <SheetTitle>All {venues.length} venues</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
+                      <Input
+                        value={venueQuery}
+                        onChange={(event) => {
+                          setVenueQuery(event.target.value);
+                        }}
+                        placeholder="Search venues"
+                        aria-label="Search venues"
+                      />
+                      {filteredVenues.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                          No venues match.
+                        </p>
+                      ) : (
+                        <VenueCards
+                          venues={filteredVenues}
+                          venueId={venueId}
+                          onSelect={(nextVenueId) => {
+                            onVenueId(nextVenueId);
+                            setVenuesOpen(false);
+                          }}
                         />
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
+                      )}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </>
             ) : null}
             {selectedGroupId ? (
               <FieldDescription id="game-venue-copy">
@@ -610,21 +700,33 @@ export function FriendlyTournamentSteps({
                     : "Pick a Venue to choose Courts."}
                 </p>
               ) : (
-                courts.map((court) => {
-                  const selected = courtIds.includes(court.id);
-                  return (
+                <>
+                  {visibleCourts.map((court) => {
+                    const selected = courtIds.includes(court.id);
+                    return (
+                      <ChoiceChip
+                        key={court.id}
+                        selected={selected}
+                        aria-pressed={selected}
+                        onClick={() => {
+                          onToggleCourt(court.id);
+                        }}
+                      >
+                        {court.name}
+                      </ChoiceChip>
+                    );
+                  })}
+                  {!courtsExpanded && courts.length > visibleCourts.length ? (
                     <ChoiceChip
-                      key={court.id}
-                      selected={selected}
-                      aria-pressed={selected}
+                      dashed
                       onClick={() => {
-                        onToggleCourt(court.id);
+                        setCourtsExpandedVenueId(venueId);
                       }}
                     >
-                      {court.name}
+                      All {courts.length} courts
                     </ChoiceChip>
-                  );
-                })
+                  ) : null}
+                </>
               )}
             </div>
             <FieldError id="game-court-error">{courtError}</FieldError>

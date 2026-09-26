@@ -96,6 +96,8 @@ export type CreateFlowDuration = (typeof CREATE_FLOW_DURATIONS)[number];
 
 export const VISIBLE_GROUP_CHIP_COUNT = 3;
 
+export const VISIBLE_COURT_CHIP_COUNT = 3;
+
 export const VISIBLE_START_SLOT_COUNT = 7;
 
 export const CREATE_FLOW_FIELD_IDS: Record<string, string> = {
@@ -394,6 +396,50 @@ export function createVenueCopy(
 export function venueCardMeta(courtCount: number, city: string) {
   const courts = courtCount === 1 ? "1 Court" : `${courtCount} Courts`;
   return `${courts} · ${city}`;
+}
+
+export function venueMatchesQuery(
+  venue: { name: string; city: string },
+  query: string,
+) {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return true;
+  }
+  return [venue.name, venue.city].some((part) =>
+    part.toLowerCase().includes(needle),
+  );
+}
+
+export function visibleCreateCourts<T extends { id: string }>(
+  courts: readonly T[],
+  recentCourtIds: readonly string[],
+  selectedIds: readonly string[] = [],
+  count = VISIBLE_COURT_CHIP_COUNT,
+): T[] {
+  const byId = new Map(courts.map((court) => [court.id, court]));
+  const recent: T[] = [];
+  for (const id of recentCourtIds) {
+    const court = byId.get(id);
+    if (!court || recent.some((item) => item.id === court.id)) {
+      continue;
+    }
+    recent.push(court);
+    if (recent.length === count) {
+      break;
+    }
+  }
+  const visible = recent.length > 0 ? [...recent] : courts.slice(0, count);
+  for (const id of selectedIds) {
+    if (!id || visible.some((court) => court.id === id)) {
+      continue;
+    }
+    const selected = byId.get(id);
+    if (selected) {
+      visible.push(selected);
+    }
+  }
+  return visible;
 }
 
 export function visibleCreateGroups<T extends { id: string }>(
