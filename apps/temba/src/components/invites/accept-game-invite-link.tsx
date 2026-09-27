@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { toast } from "sonner";
 
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
+import { InviteAuthButtons } from "~/components/invites/invite-auth-buttons";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
@@ -254,16 +254,10 @@ export function AcceptGameInviteLink({
             </Link>
           </Button>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
-              <Button className="min-h-11">Sign in</Button>
-            </SignInButton>
-            <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
-              <Button variant="outline" className="min-h-11">
-                Sign up
-              </Button>
-            </SignUpButton>
-          </div>
+          <InviteAuthButtons
+            returnPath={returnPath}
+            className="flex flex-wrap gap-2"
+          />
         )}
       </div>
     );
@@ -315,16 +309,10 @@ export function AcceptGameInviteLink({
             </Button>
           ) : null
         ) : (
-          <div className="flex flex-wrap gap-2">
-            <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
-              <Button className="min-h-11">Sign in</Button>
-            </SignInButton>
-            <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
-              <Button variant="outline" className="min-h-11">
-                Sign up
-              </Button>
-            </SignUpButton>
-          </div>
+          <InviteAuthButtons
+            returnPath={returnPath}
+            className="flex flex-wrap gap-2"
+          />
         )}
       </div>
     );
@@ -345,16 +333,10 @@ export function AcceptGameInviteLink({
             anyone in without Clerk.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button className="min-h-11">Sign in</Button>
-          </SignInButton>
-          <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button variant="outline" className="min-h-11">
-              Sign up
-            </Button>
-          </SignUpButton>
-        </div>
+        <InviteAuthButtons
+          returnPath={returnPath}
+          className="flex flex-wrap gap-2"
+        />
       </div>
     );
   }

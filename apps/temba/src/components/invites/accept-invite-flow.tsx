@@ -1,6 +1,5 @@
 "use client";
 
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -10,6 +9,7 @@ import { toast } from "sonner";
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
+import { InviteAuthButtons } from "~/components/invites/invite-auth-buttons";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
@@ -161,16 +161,11 @@ export function AcceptInviteFlow({
             </p>
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <SignInButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button className="min-h-11 w-full sm:w-auto">Sign in</Button>
-          </SignInButton>
-          <SignUpButton mode="redirect" forceRedirectUrl={returnPath}>
-            <Button variant="outline" className="min-h-11 w-full sm:w-auto">
-              Sign up
-            </Button>
-          </SignUpButton>
-        </div>
+        <InviteAuthButtons
+          returnPath={returnPath}
+          fullWidth
+          className="flex flex-col gap-2 sm:flex-row"
+        />
       </div>
     );
   }
