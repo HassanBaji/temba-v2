@@ -5,7 +5,9 @@ import {
   circleMethodPairings,
   fewWeeksRoundStarts,
   isOneDayTournamentWindow,
+  poolRoundPairings,
   schedulePoolMatches,
+  sizeTournamentRounds,
 } from "./tournament-schedule";
 import { tournamentMatchMinutes } from "./tournament-sizing";
 
@@ -101,6 +103,7 @@ describe("schedulePoolMatches", () => {
   it("lays a one-day even Pool across Courts in 45-minute slots from the start time", () => {
     const scheduled = schedulePoolMatches({
       pools: [{ poolIndex: 1, gameTeamIds: teams }],
+      roundCount: 3,
       courtIds: [court1, court2],
       windowStart: new Date("2026-09-20T10:00:00"),
       windowEnd: new Date("2026-09-20T16:00:00"),
@@ -170,6 +173,7 @@ describe("schedulePoolMatches", () => {
     for (const minutes of [20, 30, 45, null] as const) {
       const scheduled = schedulePoolMatches({
         pools: [{ poolIndex: 1, gameTeamIds: teams }],
+        roundCount: 3,
         courtIds: [court1, court2],
         windowStart,
         windowEnd: new Date("2026-09-20T16:00:00"),
@@ -192,6 +196,7 @@ describe("schedulePoolMatches", () => {
   it("anchors a few-weeks even Pool to each Round's own date and start time", () => {
     const scheduled = schedulePoolMatches({
       pools: [{ poolIndex: 1, gameTeamIds: teams }],
+      roundCount: 3,
       courtIds: [court1, court2],
       windowStart: new Date("2026-09-20T18:00:00"),
       windowEnd: new Date("2026-10-04T18:45:00"),
@@ -258,6 +263,7 @@ describe("schedulePoolMatches", () => {
         { poolIndex: 1, gameTeamIds: ["A", "B", "C"] },
         { poolIndex: 2, gameTeamIds: ["D", "E", "F"] },
       ],
+      roundCount: 3,
       courtIds: [court1, court2],
       windowStart: new Date("2026-09-20T10:00:00"),
       windowEnd: new Date("2026-09-20T16:00:00"),
@@ -316,5 +322,220 @@ describe("schedulePoolMatches", () => {
         },
       ],
     );
+  });
+});
+
+describe("poolRoundPairings", () => {
+  const four = ["A", "B", "C", "D"] as const;
+  const five = ["A", "B", "C", "D", "E"] as const;
+
+  it("equals one full circle-method Pass at the suggested count", () => {
+    assert.deepEqual(
+      poolRoundPairings(four, { suggestedRoundCount: 3, roundCount: 3 }),
+      circleMethodPairings(four),
+    );
+    assert.deepEqual(
+      poolRoundPairings(five, { suggestedRoundCount: 5, roundCount: 5 }),
+      circleMethodPairings(five),
+    );
+  });
+
+  it("plays the first R Rounds of a full Pass for a partial count", () => {
+    const full = circleMethodPairings(five);
+    for (const roundCount of [1, 2, 3, 4]) {
+      assert.deepEqual(
+        poolRoundPairings(five, { suggestedRoundCount: 5, roundCount }),
+        full.filter((pairing) => pairing.roundNumber <= roundCount),
+      );
+    }
+  });
+
+  it("repeats Pass 1 in Pass 2 with slot 1 and slot 2 swapped", () => {
+    const pairings = poolRoundPairings(four, {
+      suggestedRoundCount: 3,
+      roundCount: 6,
+    });
+    const full = circleMethodPairings(four);
+    assert.deepEqual(pairings.slice(0, full.length), full);
+    assert.deepEqual(
+      pairings.slice(full.length),
+      full.map((pairing) => ({
+        roundNumber: pairing.roundNumber + 3,
+        slot1: pairing.slot2,
+        slot2: pairing.slot1,
+      })),
+    );
+  });
+
+  it("sits a smaller Pool out of the tail of each Pass", () => {
+    const pairings = poolRoundPairings(four, {
+      suggestedRoundCount: 5,
+      roundCount: 10,
+    });
+    assert.deepEqual(
+      [...new Set(pairings.map((pairing) => pairing.roundNumber))],
+      [1, 2, 3, 6, 7, 8],
+    );
+    const pass2 = pairings.filter((pairing) => pairing.roundNumber >= 6);
+    assert.deepEqual(
+      pass2,
+      circleMethodPairings(four).map((pairing) => ({
+        roundNumber: pairing.roundNumber + 5,
+        slot1: pairing.slot2,
+        slot2: pairing.slot1,
+      })),
+    );
+  });
+});
+
+describe("sizeTournamentRounds", () => {
+  it("sizes one Pass exactly like today's full round robin", () => {
+    assert.deepEqual(sizeTournamentRounds([4, 4, 4], 3), {
+      roundCount: 3,
+      poolMatches: 18,
+      matchesPerTeamMin: 3,
+      matchesPerTeamMax: 3,
+      meets: "once",
+    });
+    assert.deepEqual(sizeTournamentRounds([4, 3, 3], 3), {
+      roundCount: 3,
+      poolMatches: 12,
+      matchesPerTeamMin: 2,
+      matchesPerTeamMax: 3,
+      meets: "once",
+    });
+  });
+
+  it("counts a partial Pass from the generated pairings", () => {
+    assert.deepEqual(sizeTournamentRounds([4], 1), {
+      roundCount: 1,
+      poolMatches: 2,
+      matchesPerTeamMin: 1,
+      matchesPerTeamMax: 1,
+      meets: "partial",
+    });
+    assert.deepEqual(sizeTournamentRounds([5, 5, 4], 3), {
+      roundCount: 3,
+      poolMatches: 18,
+      matchesPerTeamMin: 2,
+      matchesPerTeamMax: 3,
+      meets: "partial",
+    });
+  });
+
+  it("marks a partial second Pass as some meeting twice", () => {
+    assert.deepEqual(sizeTournamentRounds([4], 4), {
+      roundCount: 4,
+      poolMatches: 8,
+      matchesPerTeamMin: 4,
+      matchesPerTeamMax: 4,
+      meets: "somePartialSecond",
+    });
+    assert.equal(sizeTournamentRounds([5, 5, 4], 8).meets, "somePartialSecond");
+  });
+
+  it("sizes two full Passes as everyone meeting twice", () => {
+    assert.deepEqual(sizeTournamentRounds([4, 4, 4], 6), {
+      roundCount: 6,
+      poolMatches: 36,
+      matchesPerTeamMin: 6,
+      matchesPerTeamMax: 6,
+      meets: "twice",
+    });
+    assert.deepEqual(sizeTournamentRounds([5, 5, 4], 10), {
+      roundCount: 10,
+      poolMatches: 52,
+      matchesPerTeamMin: 6,
+      matchesPerTeamMax: 8,
+      meets: "twice",
+    });
+  });
+});
+
+describe("schedulePoolMatches with a chosen Round count", () => {
+  const court1 = "court-1";
+  const court2 = "court-2";
+  const oneDay = {
+    courtIds: [court1, court2],
+    windowStart: new Date("2026-09-20T10:00:00"),
+    windowEnd: new Date("2026-09-20T20:00:00"),
+    matchMinutes: null,
+  };
+  const pools = [
+    { poolIndex: 1, gameTeamIds: ["A", "B", "C", "D", "E"] },
+    { poolIndex: 2, gameTeamIds: ["F", "G", "H", "I"] },
+  ];
+
+  function pairs(scheduled: ReturnType<typeof schedulePoolMatches>) {
+    return scheduled.map((match) => ({
+      roundNumber: match.roundNumber,
+      slot1: match.slot1GameTeamId,
+      slot2: match.slot2GameTeamId,
+    }));
+  }
+
+  it("generates exactly the first R Rounds of the full schedule", () => {
+    const full = schedulePoolMatches({ ...oneDay, pools, roundCount: 5 });
+    const partial = schedulePoolMatches({ ...oneDay, pools, roundCount: 2 });
+    assert.deepEqual(
+      partial,
+      full.filter((match) => match.roundNumber <= 2),
+    );
+    assert.deepEqual(
+      [...new Set(partial.map((match) => match.roundNumber))],
+      [1, 2],
+    );
+  });
+
+  it("leaves the smaller Pool without Matches in the Rounds it sits out", () => {
+    const scheduled = schedulePoolMatches({ ...oneDay, pools, roundCount: 5 });
+    const smaller = new Set(["F", "G", "H", "I"]);
+    for (const match of scheduled) {
+      if (match.roundNumber > 3) {
+        assert.equal(smaller.has(match.slot1GameTeamId), false);
+        assert.equal(smaller.has(match.slot2GameTeamId), false);
+      }
+    }
+    assert.equal(
+      scheduled.filter((match) => smaller.has(match.slot1GameTeamId)).length,
+      6,
+    );
+  });
+
+  it("starts both Pools' second Pass together with swapped slots", () => {
+    const scheduled = schedulePoolMatches({ ...oneDay, pools, roundCount: 10 });
+    const first = pairs(scheduled).filter((match) => match.roundNumber <= 5);
+    const second = pairs(scheduled).filter((match) => match.roundNumber > 5);
+    assert.deepEqual(
+      second,
+      first.map((match) => ({
+        roundNumber: match.roundNumber + 5,
+        slot1: match.slot2,
+        slot2: match.slot1,
+      })),
+    );
+    assert.equal(scheduled.length, 32);
+  });
+
+  it("spreads a few-weeks window across the chosen Round count", () => {
+    const scheduled = schedulePoolMatches({
+      pools: [{ poolIndex: 1, gameTeamIds: ["A", "B", "C", "D"] }],
+      roundCount: 6,
+      courtIds: [court1, court2],
+      windowStart: new Date("2026-09-20T18:00:00"),
+      windowEnd: new Date("2026-10-10T18:45:00"),
+      matchMinutes: null,
+    });
+    const starts = [
+      ...new Set(scheduled.map((match) => match.startTime.getTime())),
+    ].map((time) => new Date(time));
+    assert.deepEqual(starts, [
+      new Date("2026-09-20T18:00:00"),
+      new Date("2026-09-24T18:00:00"),
+      new Date("2026-09-28T18:00:00"),
+      new Date("2026-10-02T18:00:00"),
+      new Date("2026-10-06T18:00:00"),
+      new Date("2026-10-10T18:00:00"),
+    ]);
   });
 });

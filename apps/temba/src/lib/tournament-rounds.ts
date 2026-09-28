@@ -3,10 +3,7 @@ import {
   fewWeeksRoundStarts,
   isOneDayTournamentWindow,
 } from "~/lib/tournament-schedule";
-import {
-  sizeFriendlyTournament,
-  tournamentMatchMinutes,
-} from "~/lib/tournament-sizing";
+import { tournamentMatchMinutes } from "~/lib/tournament-sizing";
 
 export function isPoolTournament(
   format: string,
@@ -159,34 +156,54 @@ function isSettledRoundMatch(match: RoundsPlayedMatch) {
   );
 }
 
-export function tournamentRoundSummary(args: {
-  poolCount: number | null | undefined;
-  teamCount: number | null | undefined;
-  windowStart: Date | string | null | undefined;
-  windowEnd: Date | string | null | undefined;
-}): TournamentRoundSummary | null {
-  if (args.poolCount == null || args.teamCount == null) {
-    return null;
-  }
-  const sized = sizeFriendlyTournament(args.teamCount, args.poolCount);
-  if (!sized.ok) {
-    return null;
-  }
-
-  const dateLines: string[] = [];
-  if (args.windowStart) {
-    const start = asDate(args.windowStart);
-    dateLines.push(formatAbsoluteDay(start));
-    if (args.windowEnd) {
-      const end = asDate(args.windowEnd);
-      if (localDayKey(end) !== localDayKey(start)) {
-        dateLines.push(formatAbsoluteDay(end));
-      }
+export function postedRoundCount(
+  matches: readonly { roundNumber: number | null }[],
+): number | null {
+  let max = 0;
+  for (const match of matches) {
+    if (match.roundNumber != null && match.roundNumber > max) {
+      max = match.roundNumber;
     }
   }
+  return max > 0 ? max : null;
+}
 
+export function tournamentRoundSummary(args: {
+  roundCount: number | null;
+  windowStart: Date | string | null | undefined;
+  windowEnd: Date | string | null | undefined;
+  matchMinutes: number | null;
+}): TournamentRoundSummary | null {
+  if (args.roundCount == null) {
+    return null;
+  }
   return {
-    roundCount: sized.sizing.roundCount,
-    dateLines,
+    roundCount: args.roundCount,
+    dateLines: roundDateLines({ ...args, roundCount: args.roundCount }),
   };
+}
+
+function roundDateLines(args: {
+  roundCount: number;
+  windowStart: Date | string | null | undefined;
+  windowEnd: Date | string | null | undefined;
+  matchMinutes: number | null;
+}): string[] {
+  if (!args.windowStart) {
+    return [];
+  }
+  if (!args.windowEnd) {
+    return [formatAbsoluteDay(asDate(args.windowStart))];
+  }
+  const schedule = tournamentRoundSchedule({
+    windowStart: args.windowStart,
+    windowEnd: args.windowEnd,
+    roundCount: args.roundCount,
+    matchMinutes: args.matchMinutes,
+  });
+  const first = schedule[0]?.start ?? asDate(args.windowStart);
+  const last = schedule[schedule.length - 1]?.start ?? first;
+  return localDayKey(last) === localDayKey(first)
+    ? [formatAbsoluteDay(first)]
+    : [formatAbsoluteDay(first), formatAbsoluteDay(last)];
 }

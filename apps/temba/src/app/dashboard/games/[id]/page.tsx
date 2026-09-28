@@ -59,8 +59,18 @@ import {
 } from "~/lib/tournament-join";
 import {
   isPartnerRequiredGame,
+  isPoolTournament,
   showsPoolTournamentSeats,
 } from "~/lib/tournament-rounds";
+import {
+  isOneDayTournamentWindow,
+  sizeTournamentRounds,
+} from "~/lib/tournament-schedule";
+import {
+  oneDayFit,
+  resolveRoundCount,
+  sizeFriendlyTournament,
+} from "~/lib/tournament-sizing";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
@@ -111,6 +121,7 @@ export default function GameHomePage({
   const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const levelSummaryRef = React.useRef<HTMLDivElement>(null);
+  const roundsSummaryRef = React.useRef<HTMLDivElement>(null);
   const resultsSectionRef = React.useRef<HTMLDivElement>(null);
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
@@ -141,6 +152,7 @@ export default function GameHomePage({
   const [levelMaxError, setLevelMaxError] = React.useState<
     string | undefined
   >();
+  const [roundCount, setRoundCount] = React.useState<number | null>(null);
   const [lookupQuery, setLookupQuery] = React.useState("");
   const [lookupRefused, setLookupRefused] = React.useState<
     { name: string; message: string }[] | null
@@ -394,6 +406,22 @@ export default function GameHomePage({
     },
   });
 
+  const updateRoundCount = api.games.updateRoundCount.useMutation({
+    onSuccess: async () => {
+      toast.success("Rounds saved");
+      setEditOpen(false);
+      await refreshGame();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+      focusFormFailure(
+        error,
+        { roundCount: "edit-round-count" },
+        roundsSummaryRef.current,
+      );
+    },
+  });
+
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: async () => {
       toast.success("Match updated");
@@ -567,6 +595,7 @@ export default function GameHomePage({
     setLevelMax(tenthsToLevelBandSelectValue(data.levelMaxTenths));
     setLevelMinError(undefined);
     setLevelMaxError(undefined);
+    setRoundCount(data.roundCount);
   }, [data]);
 
   React.useEffect(() => {
@@ -624,6 +653,34 @@ export default function GameHomePage({
     ? friendlyGameHomeTitle(data.groupId, data.groupName)
     : gameName;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
+  const plannedSizing =
+    isPoolTournament(data.format, data.poolCount) &&
+    data.poolCount != null &&
+    !data.drawPostedAt
+      ? sizeFriendlyTournament(data.teamsAllowed ?? 0, data.poolCount)
+      : null;
+  const editRoundsPoolSizes = plannedSizing?.ok
+    ? plannedSizing.sizing.poolSizes
+    : null;
+  const editRoundCount =
+    editRoundsPoolSizes != null
+      ? resolveRoundCount(editRoundsPoolSizes, roundCount)
+      : null;
+  const editRoundsOverrun =
+    editRoundsPoolSizes != null &&
+    editRoundCount != null &&
+    data.windowStart != null &&
+    data.windowEnd != null &&
+    data.recordedCourts.length > 0 &&
+    isOneDayTournamentWindow(data.windowStart, data.windowEnd) &&
+    oneDayFit({
+      start: data.windowStart,
+      finish: data.windowEnd,
+      poolMatches: sizeTournamentRounds(editRoundsPoolSizes, editRoundCount)
+        .poolMatches,
+      courtCount: data.recordedCourts.length,
+      matchMinutes: data.matchMinutes,
+    }).overruns;
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
@@ -850,6 +907,13 @@ export default function GameHomePage({
       levelMinTenths: parsedMin,
       levelMaxTenths: parsedMax,
     });
+  }
+
+  function saveRounds() {
+    if (updateRoundCount.isPending) {
+      return;
+    }
+    updateRoundCount.mutate({ gameId: id, roundCount });
   }
 
   function openJoinPicker(seat?: FriendlyGameJoinSeat) {
@@ -1319,6 +1383,20 @@ export default function GameHomePage({
           levelSummaryRef={levelSummaryRef}
           levelPending={updateLevelRange.isPending}
           onSaveLevelRange={saveLevelRange}
+          rounds={
+            editRoundsPoolSizes
+              ? {
+                  poolSizes: editRoundsPoolSizes,
+                  roundCount,
+                  onRoundCountChange: setRoundCount,
+                  overruns: editRoundsOverrun,
+                  error: updateRoundCount.error,
+                  summaryRef: roundsSummaryRef,
+                  pending: updateRoundCount.isPending,
+                  onSave: saveRounds,
+                }
+              : null
+          }
         />
       ) : null}
 
@@ -1348,6 +1426,7 @@ export default function GameHomePage({
           initialSeat={joinPickerSeat}
           poolCount={data.poolCount}
           teamsAllowed={data.teamsAllowed}
+          storedRoundCount={data.roundCount}
           windowEnd={data.windowEnd}
           matchMinutes={data.matchMinutes}
           allowSoloRegister={data.allowSoloRegister}

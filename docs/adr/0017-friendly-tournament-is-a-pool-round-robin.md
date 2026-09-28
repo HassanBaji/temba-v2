@@ -1,5 +1,8 @@
 # Friendly tournament is a Pool round robin
 
+**Status:** amended by [ADR-0019](./0019-organizer-chooses-the-round-count.md): the organizer sets
+how many Rounds of the round robin are played.
+
 Friendly tournament shipped as a thin thing: a Game with `playersAllowed / 2` flat sides, and an
 organizer who added every Match by hand through `games.addMatch`. The glossary said "multiple
 Matches and the same sides on every Match". The design this feature is built from

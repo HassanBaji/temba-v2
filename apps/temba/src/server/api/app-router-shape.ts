@@ -84,6 +84,7 @@ type ExpectedGames =
   | "updateWindow"
   | "updatePricePerPlayer"
   | "updateLevelRange"
+  | "updateRoundCount"
   | "requestLevelRange"
   | "listLevelRangeRequests"
   | "approveLevelRangeRequest"

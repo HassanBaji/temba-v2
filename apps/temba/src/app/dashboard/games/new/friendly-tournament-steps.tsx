@@ -5,6 +5,7 @@ import * as React from "react";
 
 import { ChoiceChip } from "~/app/dashboard/games/new/choice-chip";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
+import { RoundCountField } from "~/components/games/round-count-field";
 import { StepperField } from "~/components/games/stepper-field";
 import { Calendar } from "~/components/ui/calendar";
 import { FieldDescription, FieldError } from "~/components/ui/field";
@@ -63,6 +64,7 @@ import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
 } from "~/lib/tournament-home";
+import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import {
   ALONE_OR_WITH_A_PARTNER_LABEL,
   ANYONE_WITH_THE_LINK_LABEL,
@@ -70,6 +72,9 @@ import {
   ONE_DAY_OVERRUN_MESSAGE,
   playersInPairsLine,
   poolCountOptions,
+  resolveRoundCount,
+  reviewRoundsValue,
+  ROUNDS_LABEL,
   sizeFriendlyTournament,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
@@ -322,6 +327,9 @@ export function FriendlyTournamentSteps({
   poolCount,
   poolCountError,
   onPoolCount,
+  roundCount,
+  roundCountError,
+  onRoundCount,
   day,
   dayError,
   onDay,
@@ -377,6 +385,9 @@ export function FriendlyTournamentSteps({
   poolCount: number;
   poolCountError?: string;
   onPoolCount: (poolCount: number) => void;
+  roundCount: number | null;
+  roundCountError?: string;
+  onRoundCount: (roundCount: number | null) => void;
   day: string;
   dayError?: string;
   onDay: (day: string) => void;
@@ -461,6 +472,13 @@ export function FriendlyTournamentSteps({
   );
   const sized = sizeFriendlyTournament(teamCount, poolCount);
   const sizing = sized.ok ? sized.sizing : null;
+  const resolvedRoundCount = sizing
+    ? resolveRoundCount(sizing.poolSizes, roundCount)
+    : null;
+  const rounds =
+    sizing && resolvedRoundCount != null
+      ? sizeTournamentRounds(sizing.poolSizes, resolvedRoundCount)
+      : null;
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
@@ -468,11 +486,11 @@ export function FriendlyTournamentSteps({
   const parsedWindow = parseRequiredGameWindow(day, startTime, finishTime);
   const whenOk = validateFriendlyGameWhen(day, startTime, finishTime, now).ok;
   const schedule =
-    whenOk && parsedMinutes.ok && parsedWindow && sizing
+    whenOk && parsedMinutes.ok && parsedWindow && rounds
       ? friendlyTournamentSchedule({
           start: parsedWindow.windowStart,
           finish: parsedWindow.windowEnd,
-          poolMatches: sizing.poolMatches,
+          poolMatches: rounds.poolMatches,
           courtCount: courtIds.length,
           matchMinutes: parsedMinutes.minutes,
           clock: formatClock,
@@ -784,6 +802,17 @@ export function FriendlyTournamentSteps({
               ) : null
             }
           />
+
+          {sizing ? (
+            <RoundCountField
+              id="tournament-round-count"
+              labelClassName={STEPPER_LABEL}
+              poolSizes={sizing.poolSizes}
+              roundCount={roundCount}
+              onRoundCount={onRoundCount}
+              error={roundCountError}
+            />
+          ) : null}
 
           <section className="flex flex-col gap-3">
             <div className="flex items-baseline justify-between gap-3">
@@ -1279,6 +1308,12 @@ export function FriendlyTournamentSteps({
                   : friendlyTournamentFormatLabel(poolCount)
               }
             />
+            {sizing && rounds ? (
+              <ReviewRow
+                label={ROUNDS_LABEL}
+                value={reviewRoundsValue(rounds.roundCount, sizing.roundCount)}
+              />
+            ) : null}
             <ReviewRow
               label="Courts"
               value={friendlyTournamentCourtsLabel(selectedCourtNames)}

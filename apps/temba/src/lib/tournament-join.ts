@@ -13,7 +13,6 @@ import {
   tournamentSeatsTakenSrLabel,
 } from "~/lib/tournament-home";
 import { isPoolTournament } from "~/lib/tournament-rounds";
-import { sizeFriendlyTournament } from "~/lib/tournament-sizing";
 
 export const TAKE_A_SEAT_TITLE = "Take a seat";
 export const SIT_WITH_SOMEONE_HEADING = "Sit with someone";
@@ -62,17 +61,6 @@ export function isTournamentJoinSheet(
   sideCount: number,
 ) {
   return isPoolTournament(format ?? "", poolCount) || sideCount > 2;
-}
-
-export function tournamentJoinRoundCount(
-  teamsAllowed: number | null | undefined,
-  poolCount: number | null | undefined,
-): number | null {
-  if (teamsAllowed == null || poolCount == null) {
-    return null;
-  }
-  const sized = sizeFriendlyTournament(teamsAllowed, poolCount);
-  return sized.ok ? sized.sizing.roundCount : null;
 }
 
 export function tournamentJoinHeaderLine(args: {

@@ -48,7 +48,6 @@ import {
   tournamentJoinHeaderLine,
   tournamentJoinOpeningSeat,
   tournamentJoinResolvedSeat,
-  tournamentJoinRoundCount,
   tournamentJoinSeatExplanation,
   tournamentJoinSeatsTakenLine,
   tournamentJoinSheetOpeningStep,
@@ -58,6 +57,7 @@ import {
   isPartnerRequiredGame,
   tournamentRoundSchedule,
 } from "~/lib/tournament-rounds";
+import { resolvePlannedRoundCount } from "~/lib/tournament-sizing";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -641,6 +641,7 @@ export function FriendlyGameJoinSheet({
   initialSeat = null,
   poolCount,
   teamsAllowed,
+  storedRoundCount,
   windowEnd,
   matchMinutes = null,
   allowSoloRegister = true,
@@ -666,6 +667,7 @@ export function FriendlyGameJoinSheet({
   initialSeat?: FriendlyGameJoinSeat | null;
   poolCount?: number | null;
   teamsAllowed?: number | null;
+  storedRoundCount?: number | null;
   windowEnd?: Date | string | null;
   matchMinutes?: number | null;
   allowSoloRegister?: boolean;
@@ -895,7 +897,11 @@ export function FriendlyGameJoinSheet({
     step !== "partner" &&
     step !== "partnerConfirm" &&
     !(isTournamentJoin && step === "seat");
-  const roundCount = tournamentJoinRoundCount(teamsAllowed, poolCount);
+  const roundCount = resolvePlannedRoundCount(
+    teamsAllowed,
+    poolCount,
+    storedRoundCount,
+  );
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>

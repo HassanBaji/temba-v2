@@ -88,10 +88,11 @@ export function TournamentDrawDrawer({
   open,
   onOpenChange,
   gameTeams,
-  poolCount,
   teamCount,
+  storedRoundCount,
   windowStart,
   windowEnd,
+  matchMinutes,
   courtNames,
   drawPending,
   drawError,
@@ -103,10 +104,11 @@ export function TournamentDrawDrawer({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   gameTeams: readonly DraftPoolTeam[];
-  poolCount: number | null | undefined;
   teamCount: number | null | undefined;
+  storedRoundCount: number | null | undefined;
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
+  matchMinutes: number | null;
   courtNames: readonly string[];
   drawPending: boolean;
   drawError: { message: string; data?: { zodError?: unknown } | null } | null;
@@ -169,10 +171,10 @@ export function TournamentDrawDrawer({
           </div>
           <TournamentPoolDrawPanel
             gameTeams={gameTeams}
-            poolCount={poolCount}
-            teamCount={teamCount}
+            storedRoundCount={storedRoundCount}
             windowStart={windowStart}
             windowEnd={windowEnd}
+            matchMinutes={matchMinutes}
             courtNames={courtNames}
             drawPending={drawPending}
             drawError={drawError}

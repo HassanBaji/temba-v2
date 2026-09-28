@@ -6,13 +6,17 @@ import {
   isPoolTournament,
   isPartnerRequiredGame,
   poolRoundLabel,
+  postedRoundCount,
   roundsPlayedLabel,
   showsPoolTournamentSeats,
   tournamentRoundSchedule,
   tournamentRoundSummary,
 } from "./tournament-rounds";
 import { fewWeeksRoundStarts } from "./tournament-schedule";
-import { tournamentMatchMinutes } from "./tournament-sizing";
+import {
+  resolvePlannedRoundCount,
+  tournamentMatchMinutes,
+} from "./tournament-sizing";
 
 describe("isPoolTournament", () => {
   it("is true only when Friendly tournament has a Pool count", () => {
@@ -164,20 +168,73 @@ describe("roundsPlayedLabel", () => {
   });
 });
 
+describe("postedRoundCount", () => {
+  it("is the highest posted Round number", () => {
+    assert.equal(
+      postedRoundCount([
+        { roundNumber: 1 },
+        { roundNumber: 5 },
+        { roundNumber: null },
+        { roundNumber: 3 },
+      ]),
+      5,
+    );
+  });
+
+  it("is null without posted Pool Matches", () => {
+    assert.equal(postedRoundCount([]), null);
+    assert.equal(postedRoundCount([{ roundNumber: null }]), null);
+  });
+});
+
 describe("tournamentRoundSummary", () => {
-  it("returns Round count and the window dates for a 12-team tournament", () => {
+  it("returns Round count and the first and last Round days for a 12-team tournament", () => {
     const start = new Date(2026, 8, 20, 18, 0, 0);
     const end = new Date(2026, 9, 11, 19, 0, 0);
     assert.deepEqual(
       tournamentRoundSummary({
-        poolCount: 3,
-        teamCount: 12,
+        roundCount: resolvePlannedRoundCount(12, 3, null),
         windowStart: start,
         windowEnd: end,
+        matchMinutes: null,
       }),
       {
         roundCount: 3,
         dateLines: [formatAbsoluteDay(start), formatAbsoluteDay(end)],
+      },
+    );
+  });
+
+  it("carries an explicit Round count above the suggestion", () => {
+    const start = new Date(2026, 8, 20, 18, 0, 0);
+    const end = new Date(2026, 9, 11, 19, 0, 0);
+    assert.deepEqual(
+      tournamentRoundSummary({
+        roundCount: resolvePlannedRoundCount(12, 3, 5),
+        windowStart: start,
+        windowEnd: end,
+        matchMinutes: null,
+      }),
+      {
+        roundCount: 5,
+        dateLines: [formatAbsoluteDay(start), formatAbsoluteDay(end)],
+      },
+    );
+  });
+
+  it("keeps a single Round on a few-weeks window to its one date", () => {
+    const start = new Date(2026, 8, 20, 18, 0, 0);
+    const end = new Date(2026, 9, 11, 19, 0, 0);
+    assert.deepEqual(
+      tournamentRoundSummary({
+        roundCount: resolvePlannedRoundCount(12, 3, 1),
+        windowStart: start,
+        windowEnd: end,
+        matchMinutes: null,
+      }),
+      {
+        roundCount: 1,
+        dateLines: [formatAbsoluteDay(start)],
       },
     );
   });
@@ -187,10 +244,10 @@ describe("tournamentRoundSummary", () => {
     const end = new Date(2026, 8, 20, 16, 0, 0);
     assert.deepEqual(
       tournamentRoundSummary({
-        poolCount: 3,
-        teamCount: 12,
+        roundCount: resolvePlannedRoundCount(12, 3, null),
         windowStart: start,
         windowEnd: end,
+        matchMinutes: null,
       }),
       {
         roundCount: 3,
@@ -202,10 +259,10 @@ describe("tournamentRoundSummary", () => {
   it("is null for a legacy tournament without Pools", () => {
     assert.equal(
       tournamentRoundSummary({
-        poolCount: null,
-        teamCount: 12,
+        roundCount: resolvePlannedRoundCount(12, null, null),
         windowStart: new Date(),
         windowEnd: new Date(),
+        matchMinutes: null,
       }),
       null,
     );
@@ -264,6 +321,45 @@ describe("tournamentRoundSchedule", () => {
         ],
       );
     }
+  });
+
+  it("dates every Round of an explicit count on both window kinds", () => {
+    const roundCount = resolvePlannedRoundCount(12, 3, 5);
+    assert.equal(roundCount, 5);
+    if (roundCount == null) {
+      return;
+    }
+    const oneDayStart = new Date(2026, 8, 20, 10, 0, 0);
+    const oneDay = tournamentRoundSchedule({
+      windowStart: oneDayStart,
+      windowEnd: new Date(2026, 8, 20, 16, 0, 0),
+      roundCount,
+      matchMinutes: 30,
+    });
+    assert.deepEqual(
+      oneDay.map((round) => round.roundNumber),
+      [1, 2, 3, 4, 5],
+    );
+    assert.equal(
+      oneDay[4]?.start.getTime(),
+      oneDayStart.getTime() + 4 * 30 * 60 * 1000,
+    );
+
+    const windowStart = new Date("2026-09-20T18:00:00");
+    const windowEnd = new Date("2026-10-18T18:45:00");
+    const fewWeeks = tournamentRoundSchedule({
+      windowStart,
+      windowEnd,
+      roundCount,
+      matchMinutes: null,
+    });
+    assert.deepEqual(
+      fewWeeks.map((round) => round.start.getTime()),
+      fewWeeksRoundStarts(windowStart, windowEnd, 5, null).map((start) =>
+        start.getTime(),
+      ),
+    );
+    assert.equal(fewWeeks.length, 5);
   });
 
   it("spreads a multi-week window with fewWeeksRoundStarts and stays monotonic", () => {

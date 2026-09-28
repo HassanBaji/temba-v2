@@ -20,6 +20,7 @@ import { gameById } from "~/server/api/routers/games/byId";
 import { completeMatch } from "~/server/api/routers/games/completeMatch";
 import { confirmMatchResult } from "~/server/api/routers/games/confirmMatchResult";
 import { createGame } from "~/server/api/routers/games/create";
+import { createTournament } from "~/server/api/routers/games/createTournament";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { createFriendlyGame } from "~/server/games/create-friendly";
 import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
@@ -265,6 +266,43 @@ async function setUpSeatedFriendlyGame(
 
   return { game: created.game, matchId: created.matchId, sets, a, b, c, d };
 }
+
+describe("gameById roundCount", () => {
+  it("exposes the stored Round count, null when the Organizer kept the suggestion", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "round-count@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, owner.id);
+      const windowStart = new Date("2026-09-20T10:00:00");
+      const stored = [];
+      for (const roundCount of [undefined, 5]) {
+        const created = await createTournament(db, {
+          createdBy: owner.id,
+          name: "Autumn Friendly",
+          groupId: group.id,
+          isPublic: false,
+          teamCount: 12,
+          poolCount: 3,
+          venueId: venue.id,
+          matchMinutes: 45,
+          windowStart,
+          windowEnd: new Date(windowStart.getTime() + 4 * 60 * 60 * 1000),
+          roundCount,
+        });
+        const detail = await gameById(db, {
+          gameId: created.id,
+          userId: owner.id,
+        });
+        stored.push(detail.roundCount);
+      }
+
+      expect(stored).toEqual([null, 5]);
+    } finally {
+      await close();
+    }
+  });
+});
 
 describe("gameById phase (TEM-177)", () => {
   it("is upcoming for a live Game whose window has not started", async () => {

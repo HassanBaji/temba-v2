@@ -55,9 +55,11 @@ import {
   type LevelBandSelectValue,
 } from "~/lib/level-range";
 import { parseOptionalPricePerPlayerCents } from "~/lib/price-per-player";
+import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import {
   defaultPoolCount,
   poolCountOptions,
+  resolveRoundCount,
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "~/lib/tournament-sizing";
@@ -107,6 +109,7 @@ function NewGameForm() {
   const [poolCount, setPoolCount] = React.useState(() =>
     defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT),
   );
+  const [roundCount, setRoundCount] = React.useState<number | null>(null);
   const [matchMinutesInput, setMatchMinutesInput] = React.useState(
     String(DEFAULT_MATCH_MINUTES),
   );
@@ -290,6 +293,7 @@ function NewGameForm() {
     setCourtIds([]);
     setTeamCount(TOURNAMENT_DEFAULT_TEAM_COUNT);
     setPoolCount(defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT));
+    setRoundCount(null);
     setMatchMinutesInput(String(DEFAULT_MATCH_MINUTES));
     setNameTouched(false);
     setName(friendlyTournamentDefaultName(day));
@@ -300,6 +304,7 @@ function NewGameForm() {
       teamCount: undefined,
       courtIds: undefined,
       poolCount: undefined,
+      roundCount: undefined,
       matchMinutes: undefined,
       name: undefined,
     }));
@@ -346,7 +351,9 @@ function NewGameForm() {
     setPoolCount((current) =>
       allowed.includes(current) ? current : defaultPoolCount(nextCount),
     );
+    setRoundCount(null);
     clearField("teamCount");
+    clearField("roundCount");
   }
 
   function continueTournamentStepThree() {
@@ -509,6 +516,7 @@ function NewGameForm() {
       allowSoloRegister,
       teamCount,
       poolCount,
+      ...(roundCount !== null ? { roundCount } : {}),
       matchMinutes: minutes.minutes,
       windowStart: when.windowStart,
       windowEnd: when.windowEnd,
@@ -641,6 +649,16 @@ function NewGameForm() {
           : "Create Game"
       : "Continue";
   const tournamentSizing = sizeFriendlyTournament(teamCount, poolCount);
+  const tournamentRoundCount = tournamentSizing.ok
+    ? resolveRoundCount(tournamentSizing.sizing.poolSizes, roundCount)
+    : null;
+  const tournamentRounds =
+    tournamentSizing.ok && tournamentRoundCount != null
+      ? sizeTournamentRounds(
+          tournamentSizing.sizing.poolSizes,
+          tournamentRoundCount,
+        )
+      : null;
   const tournamentPreviewDetail = friendlyTournamentPreviewDetail({
     day,
     venueName: selectedVenue?.name ?? null,
@@ -704,11 +722,9 @@ function NewGameForm() {
             {teamCount}
           </span>
           <span className="text-dim text-[18px] leading-none">Game teams</span>
-          {tournamentSizing.ok ? (
+          {tournamentRounds ? (
             <span className="text-dim text-[15px] leading-none">
-              {friendlyTournamentMatchCountLabel(
-                tournamentSizing.sizing.poolMatches,
-              )}
+              {friendlyTournamentMatchCountLabel(tournamentRounds.poolMatches)}
             </span>
           ) : null}
         </h1>
@@ -871,7 +887,17 @@ function NewGameForm() {
               }
               onPoolCount={(next) => {
                 setPoolCount(next);
+                setRoundCount(null);
                 clearField("poolCount");
+                clearField("roundCount");
+              }}
+              roundCount={roundCount}
+              roundCountError={
+                errors.roundCount ?? fieldErrorMessage(formError, "roundCount")
+              }
+              onRoundCount={(next) => {
+                setRoundCount(next);
+                clearField("roundCount");
               }}
               day={day}
               dayError={

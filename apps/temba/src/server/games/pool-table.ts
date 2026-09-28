@@ -179,6 +179,14 @@ function gamesDifferenceForSlot(
   return difference;
 }
 
+function addHeadToHeadPoints(
+  headToHead: Record<string, number>,
+  opponentId: string,
+  points: number,
+) {
+  headToHead[opponentId] = (headToHead[opponentId] ?? 0) + points;
+}
+
 function isSettledMatch(status: string | null) {
   return (
     status === MatchStatusEnum.COMPLETED || status === MatchStatusEnum.CANCELLED
@@ -308,21 +316,21 @@ export function computePoolTables(args: {
         if (outcome.result === "draw") {
           slot1.drawn += 1;
           slot2.drawn += 1;
-          slot1.headToHead[slot2Id] = 0.5;
-          slot2.headToHead[slot1Id] = 0.5;
+          addHeadToHeadPoints(slot1.headToHead, slot2Id, 0.5);
+          addHeadToHeadPoints(slot2.headToHead, slot1Id, 0.5);
           continue;
         }
         if (outcome.result === "slot1") {
           slot1.won += 1;
           slot2.lost += 1;
-          slot1.headToHead[slot2Id] = 1;
-          slot2.headToHead[slot1Id] = 0;
+          addHeadToHeadPoints(slot1.headToHead, slot2Id, 1);
+          addHeadToHeadPoints(slot2.headToHead, slot1Id, 0);
           continue;
         }
         slot2.won += 1;
         slot1.lost += 1;
-        slot2.headToHead[slot1Id] = 1;
-        slot1.headToHead[slot2Id] = 0;
+        addHeadToHeadPoints(slot2.headToHead, slot1Id, 1);
+        addHeadToHeadPoints(slot1.headToHead, slot2Id, 0);
       }
 
       const ordered = sortPoolRecords(

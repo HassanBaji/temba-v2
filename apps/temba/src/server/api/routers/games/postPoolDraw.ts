@@ -6,7 +6,10 @@ import { gameCourts, gameTeams, gameWaitlist, games, matches } from "@repo/db";
 
 import { isPoolTournament } from "~/lib/tournament-rounds";
 import { schedulePoolMatches } from "~/lib/tournament-schedule";
-import { TOURNAMENT_TEAM_MIN } from "~/lib/tournament-sizing";
+import {
+  resolveRoundCount,
+  TOURNAMENT_TEAM_MIN,
+} from "~/lib/tournament-sizing";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -166,13 +169,21 @@ export async function postPoolDraw(
         .map((team) => team.id),
     }));
 
-  const scheduled = schedulePoolMatches({
-    pools,
-    courtIds,
-    windowStart: game.windowStart,
-    windowEnd: game.windowEnd,
-    matchMinutes: game.matchMinutes,
-  });
+  const roundCount = resolveRoundCount(
+    pools.map((pool) => pool.gameTeamIds.length),
+    game.roundCount,
+  );
+  const scheduled =
+    roundCount == null
+      ? []
+      : schedulePoolMatches({
+          pools,
+          roundCount,
+          courtIds,
+          windowStart: game.windowStart,
+          windowEnd: game.windowEnd,
+          matchMinutes: game.matchMinutes,
+        });
   if (scheduled.length < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",

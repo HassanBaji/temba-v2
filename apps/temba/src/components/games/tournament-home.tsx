@@ -56,6 +56,7 @@ import {
   tournamentEyebrow,
   tournamentFieldSummary,
   tournamentOrganizerName,
+  tournamentRoundCount,
   tournamentSizeLine,
   tournamentStartLine,
   tournamentStatusLine,
@@ -69,7 +70,10 @@ import {
   canShowUndoPoolDraw,
   hasDraftPoolDraw,
 } from "~/lib/tournament-pool-draw";
-import { viewerTournamentTotalCents } from "~/lib/tournament-price";
+import {
+  viewerTournamentMatchCount,
+  viewerTournamentTotalCents,
+} from "~/lib/tournament-price";
 import {
   isPartnerRequiredGame,
   roundsPlayedLabel,
@@ -169,6 +173,7 @@ export function TournamentHome({
     data.poolCount != null && data.teamsAllowed != null
       ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
       : null;
+  const roundCount = tournamentRoundCount(data);
   const field = tournamentFieldSummary(data.sides);
   const viewerSide = tournamentViewerSide(data.sides, data.viewerUserId);
   const seated = Boolean(viewerSide);
@@ -188,7 +193,7 @@ export function TournamentHome({
     teamCount: data.teamsAllowed ?? data.sides.length,
     organizerName,
   });
-  const matchesForViewer = matchesForViewerPool(data, sizing);
+  const matchesForViewer = viewerTournamentMatchCount(data);
   const totalCents =
     seated && matchesForViewer != null
       ? viewerTournamentTotalCents(data.pricePerPlayerCents, matchesForViewer)
@@ -224,11 +229,11 @@ export function TournamentHome({
   const canLeaveGame =
     (data.isSeated || data.isRegistered) && data.canLeave && !data.isWaitlisted;
   const schedule =
-    sizing?.ok && data.windowStart && data.windowEnd
+    roundCount != null && data.windowStart && data.windowEnd
       ? tournamentRoundSchedule({
           windowStart: data.windowStart,
           windowEnd: data.windowEnd,
-          roundCount: sizing.sizing.roundCount,
+          roundCount,
           matchMinutes: data.matchMinutes,
         })
       : [];
@@ -238,10 +243,7 @@ export function TournamentHome({
       {drawn ? (
         <TournamentStandingsTree
           name={data.name ?? "Tournament"}
-          roundsPlayed={roundsPlayedLabel(
-            data.poolTables,
-            sizing?.ok ? sizing.sizing.roundCount : null,
-          )}
+          roundsPlayed={roundsPlayedLabel(data.poolTables, roundCount)}
           poolTables={data.poolTables}
           showUndo={showUndo}
           undoPending={undoPending}
@@ -253,8 +255,8 @@ export function TournamentHome({
           <TournamentHero
             name={data.name ?? "Tournament"}
             eyebrow={
-              sizing?.ok
-                ? tournamentEyebrow(sizing.sizing.roundCount)
+              roundCount != null
+                ? tournamentEyebrow(roundCount)
                 : TOURNAMENT_EYEBROW_PREFIX
             }
             startLine={tournamentStartLine(
@@ -285,9 +287,10 @@ export function TournamentHome({
             teamCount={data.teamsAllowed}
             completeTeams={field.full}
             gameTeams={data.gameTeams}
-            poolCount={data.poolCount}
+            storedRoundCount={data.roundCount}
             windowStart={data.windowStart}
             windowEnd={data.windowEnd}
+            matchMinutes={data.matchMinutes}
             courtNames={data.recordedCourts.map((court) => court.name)}
             showMergeBanner={showMergeBanner}
             showMergeEntry={showMergeEntry}
@@ -385,9 +388,10 @@ function TournamentPredrawTree({
   teamCount,
   completeTeams,
   gameTeams,
-  poolCount,
+  storedRoundCount,
   windowStart,
   windowEnd,
+  matchMinutes,
   courtNames,
   showMergeBanner,
   showMergeEntry,
@@ -419,9 +423,10 @@ function TournamentPredrawTree({
   teamCount: number | null;
   completeTeams: number;
   gameTeams: GameDetail["gameTeams"];
-  poolCount: number | null;
+  storedRoundCount: number | null;
   windowStart: Date | string | null;
   windowEnd: Date | string | null;
+  matchMinutes: number | null;
   courtNames: readonly string[];
   showMergeBanner: boolean;
   showMergeEntry: boolean;
@@ -490,10 +495,11 @@ function TournamentPredrawTree({
         open={drawOpen}
         onOpenChange={onDrawOpenChange}
         gameTeams={gameTeams}
-        poolCount={poolCount}
         teamCount={fieldSize}
+        storedRoundCount={storedRoundCount}
         windowStart={windowStart}
         windowEnd={windowEnd}
+        matchMinutes={matchMinutes}
         courtNames={courtNames}
         drawPending={drawPending}
         drawError={drawError}
@@ -846,25 +852,6 @@ function kickableOccupants(
     }
   }
   return occupants;
-}
-
-function matchesForViewerPool(
-  data: GameDetail,
-  sizing: ReturnType<typeof sizeFriendlyTournament> | null,
-): number | null {
-  const tables = data.poolTables;
-  if (tables?.viewerPoolIndex != null) {
-    const pool = tables.pools.find(
-      (item) => item.poolIndex === tables.viewerPoolIndex,
-    );
-    if (pool && pool.rows.length >= 2) {
-      return pool.rows.length - 1;
-    }
-  }
-  if (!sizing?.ok || sizing.sizing.uneven) {
-    return null;
-  }
-  return sizing.sizing.matchesPerTeamMin;
 }
 
 function homeDetailRows(args: {

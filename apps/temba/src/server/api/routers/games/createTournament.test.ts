@@ -241,6 +241,29 @@ describe("createTournamentInputSchema", () => {
     });
     expect(acrossMidnight.success).toBe(true);
   });
+
+  it("refuses Rounds below 1 or above twice the suggestion on roundCount", () => {
+    for (const roundCount of [0, 7]) {
+      const parsed = createTournamentInputSchema.safeParse({
+        ...tournamentFields(),
+        roundCount,
+      });
+      expect(parsed.success).toBe(false);
+      if (parsed.success) {
+        return;
+      }
+      expect(parsed.error.flatten().fieldErrors.roundCount?.[0]).toBe(
+        "Rounds must be between 1 and 6",
+      );
+    }
+    for (const roundCount of [1, 3, 6, null, undefined]) {
+      const parsed = createTournamentInputSchema.safeParse({
+        ...tournamentFields(),
+        roundCount,
+      });
+      expect(parsed.success).toBe(true);
+    }
+  });
 });
 
 describe("createTournament", () => {
@@ -620,6 +643,57 @@ describe("createTournament", () => {
         code: "BAD_REQUEST",
         message: "Finish time must be within 24 hours of the start",
       });
+    } finally {
+      await close();
+    }
+  });
+
+  it("stores null Rounds when omitted or on the suggestion, and an explicit pick as given", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "tournament-rounds@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, { createdBy: owner.id });
+      const stored = [];
+      for (const roundCount of [undefined, null, 3, 5, 1, 6]) {
+        const created = await createTournament(db, {
+          ...tournamentFields(),
+          createdBy: owner.id,
+          groupId: group.id,
+          venueId: venue.id,
+          roundCount,
+        });
+        const row = await db.query.games.findFirst({
+          where: eq(games.id, created.id),
+        });
+        stored.push(row?.roundCount);
+      }
+      expect(stored).toEqual([null, null, null, 5, 1, 6]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses Rounds outside 1 to twice the planned suggestion", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "tournament-rounds-bad@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, { createdBy: owner.id });
+      for (const roundCount of [0, 7]) {
+        await expect(
+          createTournament(db, {
+            ...tournamentFields(),
+            createdBy: owner.id,
+            groupId: group.id,
+            venueId: venue.id,
+            roundCount,
+          }),
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: "Rounds must be between 1 and 6",
+        });
+      }
     } finally {
       await close();
     }

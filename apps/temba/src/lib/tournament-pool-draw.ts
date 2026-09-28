@@ -1,4 +1,5 @@
 import { tournamentRoundSummary } from "~/lib/tournament-rounds";
+import { resolveRoundCount } from "~/lib/tournament-sizing";
 
 function gameTeamName(team: {
   name: string | null;
@@ -102,10 +103,10 @@ export type DraftPoolView = {
 
 export function draftPoolsFromGameTeams(args: {
   gameTeams: readonly DraftPoolTeam[];
-  poolCount: number | null | undefined;
-  teamCount: number | null | undefined;
+  storedRoundCount: number | null | undefined;
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
+  matchMinutes: number | null;
   courtNames: readonly string[];
 }): DraftPoolView[] {
   const byPool = new Map<number, DraftPoolTeam[]>();
@@ -118,11 +119,12 @@ export function draftPoolsFromGameTeams(args: {
     byPool.set(team.poolIndex, list);
   }
 
+  const draftPoolSizes = [...byPool.values()].map((teams) => teams.length);
   const rounds = tournamentRoundSummary({
-    poolCount: args.poolCount,
-    teamCount: args.teamCount,
+    roundCount: resolveRoundCount(draftPoolSizes, args.storedRoundCount),
     windowStart: args.windowStart,
     windowEnd: args.windowEnd,
+    matchMinutes: args.matchMinutes,
   });
   const dateLines = rounds?.dateLines ?? [];
   const courtNames = [...args.courtNames];
