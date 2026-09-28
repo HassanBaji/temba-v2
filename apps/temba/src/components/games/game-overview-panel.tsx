@@ -3,6 +3,7 @@ import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { GameOccupancyCard } from "~/components/games/game-occupancy-card";
 import { GameVenueCard } from "~/components/games/game-venue-card";
 import { Card } from "~/components/ui/card";
+import { tournamentRoundCount } from "~/lib/tournament-home";
 import { tournamentRoundSummary } from "~/lib/tournament-rounds";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -27,10 +28,10 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
     : (game.playersAllowed ?? 4);
 
   const rounds = tournamentRoundSummary({
-    poolCount: game.poolCount,
-    teamCount: game.teamsAllowed,
+    roundCount: tournamentRoundCount(game),
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
+    matchMinutes: game.matchMinutes,
   });
 
   return (

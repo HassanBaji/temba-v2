@@ -1,8 +1,11 @@
 import { formatGameCardDay } from "~/lib/format-game-start";
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
 import type { LevelBand } from "~/lib/level-bands";
-import { isPoolTournament } from "~/lib/tournament-rounds";
-import type { TournamentSizing } from "~/lib/tournament-sizing";
+import { isPoolTournament, postedRoundCount } from "~/lib/tournament-rounds";
+import {
+  resolvePlannedRoundCount,
+  type TournamentSizing,
+} from "~/lib/tournament-sizing";
 
 export type GameDetailsChrome = "friendly_game" | "pool_tournament" | "tabs";
 
@@ -279,6 +282,23 @@ export function tournamentStatusLine(input: TournamentStatusLineInput): string {
   const seats = seatsLeftSentence(input.seatsLeft);
   const drawer = drawWhenFullClause(input.organizerName);
   return `${seats} ${drawer}, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`;
+}
+
+export function tournamentRoundCount(game: {
+  teamsAllowed: number | null | undefined;
+  poolCount: number | null | undefined;
+  roundCount: number | null | undefined;
+  drawPostedAt: Date | string | null | undefined;
+  matches: readonly { roundNumber: number | null }[];
+}): number | null {
+  if (isTournamentStandingsView(game.drawPostedAt)) {
+    return postedRoundCount(game.matches);
+  }
+  return resolvePlannedRoundCount(
+    game.teamsAllowed,
+    game.poolCount,
+    game.roundCount,
+  );
 }
 
 export function tournamentEyebrow(roundCount: number): string {

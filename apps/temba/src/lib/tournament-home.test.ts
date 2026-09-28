@@ -4,6 +4,8 @@ import { describe, it } from "vitest";
 import { showsFriendlyRoster } from "./game-summary-cta";
 import {
   isPoolTournament,
+  poolRoundLabel,
+  roundsPlayedLabel,
   showsPoolTournamentSeats,
 } from "./tournament-rounds";
 import { sizeFriendlyTournament } from "./tournament-sizing";
@@ -50,6 +52,7 @@ import {
   tournamentFieldSummary,
   tournamentOpenPositionSubline,
   tournamentOrganizerName,
+  tournamentRoundCount,
   tournamentSeatsTakenLine,
   tournamentSeatsTakenSrLabel,
   tournamentSizeLine,
@@ -527,6 +530,80 @@ describe("tournamentEyebrow", () => {
   it("ships Friendly tournament and the Round count", () => {
     assert.equal(tournamentEyebrow(3), "Friendly tournament, 3 Rounds");
     assert.equal(tournamentEyebrow(1), "Friendly tournament, 1 Round");
+  });
+});
+
+describe("tournamentRoundCount", () => {
+  const planned = { teamsAllowed: 12, poolCount: 3, drawPostedAt: null };
+
+  it("resolves the stored count against the planned field before the draw", () => {
+    assert.equal(
+      tournamentRoundCount({ ...planned, roundCount: null, matches: [] }),
+      3,
+    );
+    const explicit = tournamentRoundCount({
+      ...planned,
+      roundCount: 5,
+      matches: [],
+    });
+    assert.equal(explicit, 5);
+    assert.equal(
+      tournamentEyebrow(explicit ?? 0),
+      "Friendly tournament, 5 Rounds",
+    );
+  });
+
+  it("is null for a tournament without Pools", () => {
+    assert.equal(
+      tournamentRoundCount({
+        teamsAllowed: 12,
+        poolCount: null,
+        roundCount: null,
+        drawPostedAt: null,
+        matches: [],
+      }),
+      null,
+    );
+  });
+
+  it("reads the posted Matches once the draw is posted", () => {
+    const followedSmallerField = tournamentRoundCount({
+      ...planned,
+      roundCount: null,
+      drawPostedAt: new Date("2026-09-20T18:00:00Z"),
+      matches: [
+        { roundNumber: 1 },
+        { roundNumber: 2 },
+        { roundNumber: 2 },
+        { roundNumber: 1 },
+      ],
+    });
+    assert.equal(followedSmallerField, 2);
+    assert.equal(poolRoundLabel(2, followedSmallerField), "R2 of 2");
+
+    const clamped = tournamentRoundCount({
+      ...planned,
+      roundCount: 5,
+      drawPostedAt: "2026-09-20T18:00:00Z",
+      matches: [1, 2, 3, 4].map((roundNumber) => ({ roundNumber })),
+    });
+    assert.equal(clamped, 4);
+    assert.equal(
+      roundsPlayedLabel(
+        {
+          pools: [
+            {
+              matches: [
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 2, status: "scheduled" },
+              ],
+            },
+          ],
+        },
+        clamped,
+      ),
+      "Round 1 of 4 played",
+    );
   });
 });
 

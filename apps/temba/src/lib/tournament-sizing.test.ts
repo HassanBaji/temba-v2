@@ -14,6 +14,7 @@ import {
   playersInPairsLine,
   poolCountForDrawnField,
   poolPassLength,
+  resolvePlannedRoundCount,
   resolveRoundCount,
   reviewRoundsValue,
   roundCountLabel,
@@ -413,6 +414,21 @@ describe("resolveRoundCount", () => {
   it("clamps an explicit count to two Passes of the field", () => {
     assert.equal(resolveRoundCount([4], 10), 6);
     assert.equal(resolveRoundCount([5, 5, 4], 11), 10);
+  });
+});
+
+describe("resolvePlannedRoundCount", () => {
+  it("resolves the stored count against the planned Game teams and groups", () => {
+    assert.equal(resolvePlannedRoundCount(12, 3, null), 3);
+    assert.equal(resolvePlannedRoundCount(12, 3, 5), 5);
+    assert.equal(resolvePlannedRoundCount(12, 3, 9), 6);
+    assert.equal(resolvePlannedRoundCount(12, 1, null), 11);
+  });
+
+  it("is null without a planned field or for a field that does not size", () => {
+    assert.equal(resolvePlannedRoundCount(null, 3, 5), null);
+    assert.equal(resolvePlannedRoundCount(12, null, 5), null);
+    assert.equal(resolvePlannedRoundCount(11, 3, null), null);
   });
 });
 

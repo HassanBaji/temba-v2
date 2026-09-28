@@ -41,6 +41,7 @@ import {
   tournamentStartOwnSeat,
   tournamentYourSeatAvailability,
 } from "./tournament-join";
+import { resolvePlannedRoundCount } from "./tournament-sizing";
 
 const FORBIDDEN =
   /quarter|knockout|champion|then quarters|message|notified|\bGroup\b/u;
@@ -381,6 +382,43 @@ describe("tournamentJoinHeaderLine", () => {
         firstRoundDay: "Thu 25 Sep",
       }),
       `Bromma Winter Friendly, 3 Rounds from Thu 25 Sep. ${JOIN_SHEET_INTRO_SUFFIX}`,
+    );
+  });
+
+  it("shows the resolved Round count for a tournament created with 5 Rounds", () => {
+    const roundCount = resolvePlannedRoundCount(12, 3, 5);
+    assert.equal(
+      tournamentJoinHeaderLine({
+        name: "Bromma Winter Friendly",
+        roundCount,
+        firstRoundDay: "Thu 25 Sep",
+      }),
+      `Bromma Winter Friendly, 5 Rounds from Thu 25 Sep. ${JOIN_SHEET_INTRO_SUFFIX}`,
+    );
+    assert.equal(
+      tournamentJoinSeatExplanation({
+        occupantName: null,
+        occupiedPosition: null,
+        freePosition: "left",
+        roundCount,
+      }),
+      "Both Positions are open. You pick Left or Right for all 5 Rounds.",
+    );
+    assert.equal(
+      tournamentJoinDetailRows({ roundDates: [], roundCount, priceLabel: null })[0]
+        ?.value,
+      "5 Rounds",
+    );
+  });
+
+  it("keeps the suggested count for a tournament without a stored count", () => {
+    assert.equal(
+      tournamentJoinHeaderLine({
+        name: "Bromma Winter Friendly",
+        roundCount: resolvePlannedRoundCount(12, 3, null),
+        firstRoundDay: null,
+      }),
+      `Bromma Winter Friendly, 3 Rounds. ${JOIN_SHEET_INTRO_SUFFIX}`,
     );
   });
 });

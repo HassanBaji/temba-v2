@@ -162,10 +162,10 @@ describe("draftPoolsFromGameTeams", () => {
           members: [{ name: "Kai" }, { name: "Noor" }],
         },
       ],
-      poolCount: 2,
-      teamCount: 8,
+      storedRoundCount: null,
       windowStart: start,
       windowEnd: end,
+      matchMinutes: null,
       courtNames: ["Court 1", "Court 2"],
     });
 
@@ -191,6 +191,40 @@ describe("draftPoolsFromGameTeams", () => {
     assert.equal(poolLabel(3), "group 3");
   });
 
+  it("dates the draft against the Rounds posting would generate for the drafted groups", () => {
+    const start = new Date(2026, 8, 20, 18, 0, 0);
+    const end = new Date(2026, 9, 11, 19, 0, 0);
+    const drafted = (poolSizes: readonly number[]) =>
+      poolSizes.flatMap((size, poolOffset) =>
+        Array.from({ length: size }, (_, index) => ({
+          id: `${poolOffset + 1}-${index}`,
+          name: null,
+          sideIndex: null,
+          poolIndex: poolOffset + 1,
+          members: [],
+        })),
+      );
+    const dateLinesFor = (
+      poolSizes: readonly number[],
+      storedRoundCount: number | null,
+    ) =>
+      draftPoolsFromGameTeams({
+        gameTeams: drafted(poolSizes),
+        storedRoundCount,
+        windowStart: start,
+        windowEnd: end,
+        matchMinutes: null,
+        courtNames: [],
+      })[0]?.dateLines;
+    const bothDays = [formatAbsoluteDay(start), formatAbsoluteDay(end)];
+
+    assert.deepEqual(dateLinesFor([4, 4, 4], null), bothDays);
+    assert.deepEqual(dateLinesFor([4, 4, 4], 5), bothDays);
+    assert.deepEqual(dateLinesFor([4, 4, 4], 1), [formatAbsoluteDay(start)]);
+    assert.deepEqual(dateLinesFor([2, 2], null), [formatAbsoluteDay(start)]);
+    assert.deepEqual(dateLinesFor([2, 2], 5), bothDays);
+  });
+
   it("treats a tournament as undrawn until a Pool index is set", () => {
     assert.equal(
       hasDraftPoolDraw([{ poolIndex: null }, { poolIndex: undefined }]),
@@ -208,10 +242,10 @@ describe("draftPoolsFromGameTeams", () => {
             members: [{ name: "Ada" }, { name: "Lin" }],
           },
         ],
-        poolCount: 1,
-        teamCount: 4,
+        storedRoundCount: null,
         windowStart: new Date(),
         windowEnd: new Date(),
+        matchMinutes: null,
         courtNames: ["Court 1"],
       }),
       [],

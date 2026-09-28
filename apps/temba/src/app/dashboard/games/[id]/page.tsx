@@ -1348,6 +1348,7 @@ export default function GameHomePage({
           initialSeat={joinPickerSeat}
           poolCount={data.poolCount}
           teamsAllowed={data.teamsAllowed}
+          storedRoundCount={data.roundCount}
           windowEnd={data.windowEnd}
           matchMinutes={data.matchMinutes}
           allowSoloRegister={data.allowSoloRegister}

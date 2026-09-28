@@ -18,10 +18,10 @@ import {
 
 export function TournamentPoolDrawPanel({
   gameTeams,
-  poolCount,
-  teamCount,
+  storedRoundCount,
   windowStart,
   windowEnd,
+  matchMinutes,
   courtNames,
   drawPending,
   drawError,
@@ -31,10 +31,10 @@ export function TournamentPoolDrawPanel({
   onPost,
 }: {
   gameTeams: readonly DraftPoolTeam[];
-  poolCount: number | null | undefined;
-  teamCount: number | null | undefined;
+  storedRoundCount: number | null | undefined;
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
+  matchMinutes: number | null;
   courtNames: readonly string[];
   drawPending: boolean;
   drawError: { message: string; data?: { zodError?: unknown } | null } | null;
@@ -46,10 +46,10 @@ export function TournamentPoolDrawPanel({
   const hasDraft = hasDraftPoolDraw(gameTeams);
   const pools = draftPoolsFromGameTeams({
     gameTeams,
-    poolCount,
-    teamCount,
+    storedRoundCount,
     windowStart,
     windowEnd,
+    matchMinutes,
     courtNames,
   });
   const busy = drawPending || postPending;

@@ -136,6 +136,20 @@ export function resolveRoundCount(
   return Math.min(storedRoundCount, range.max);
 }
 
+export function resolvePlannedRoundCount(
+  teamCount: number | null | undefined,
+  poolCount: number | null | undefined,
+  storedRoundCount: number | null | undefined,
+): number | null {
+  if (teamCount == null || poolCount == null) {
+    return null;
+  }
+  const sized = sizeFriendlyTournament(teamCount, poolCount);
+  return sized.ok
+    ? resolveRoundCount(sized.sizing.poolSizes, storedRoundCount)
+    : null;
+}
+
 export type RoundCountValidation =
   | { ok: true; roundCount: number | null }
   | { ok: false; issue: { path: "roundCount"; message: string } };

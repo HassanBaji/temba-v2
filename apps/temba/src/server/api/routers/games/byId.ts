@@ -563,6 +563,7 @@ export async function gameById(
     playersAllowed: game.playersAllowed,
     teamsAllowed: game.teamsAllowed,
     poolCount: game.poolCount,
+    roundCount: game.roundCount,
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
     sport: game.sport,
