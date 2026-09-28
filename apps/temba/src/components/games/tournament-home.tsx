@@ -70,7 +70,10 @@ import {
   canShowUndoPoolDraw,
   hasDraftPoolDraw,
 } from "~/lib/tournament-pool-draw";
-import { viewerTournamentTotalCents } from "~/lib/tournament-price";
+import {
+  viewerTournamentMatchCount,
+  viewerTournamentTotalCents,
+} from "~/lib/tournament-price";
 import {
   isPartnerRequiredGame,
   roundsPlayedLabel,
@@ -190,7 +193,7 @@ export function TournamentHome({
     teamCount: data.teamsAllowed ?? data.sides.length,
     organizerName,
   });
-  const matchesForViewer = matchesForViewerPool(data, sizing);
+  const matchesForViewer = viewerTournamentMatchCount(data);
   const totalCents =
     seated && matchesForViewer != null
       ? viewerTournamentTotalCents(data.pricePerPlayerCents, matchesForViewer)
@@ -849,25 +852,6 @@ function kickableOccupants(
     }
   }
   return occupants;
-}
-
-function matchesForViewerPool(
-  data: GameDetail,
-  sizing: ReturnType<typeof sizeFriendlyTournament> | null,
-): number | null {
-  const tables = data.poolTables;
-  if (tables?.viewerPoolIndex != null) {
-    const pool = tables.pools.find(
-      (item) => item.poolIndex === tables.viewerPoolIndex,
-    );
-    if (pool && pool.rows.length >= 2) {
-      return pool.rows.length - 1;
-    }
-  }
-  if (!sizing?.ok || sizing.sizing.uneven) {
-    return null;
-  }
-  return sizing.sizing.matchesPerTeamMin;
 }
 
 function homeDetailRows(args: {

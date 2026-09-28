@@ -12,7 +12,7 @@ export function tournamentMatchMinutes(
 }
 
 export const ONE_DAY_OVERRUN_MESSAGE =
-  "This runs past your finish time. Add a Court, or take fewer Game teams.";
+  "This runs past your finish time. Add a Court, cut Rounds, or take fewer Game teams.";
 
 export const CREATE_TOURNAMENT_HEADING_LEAD = "New tournament,";
 export const CREATE_TOURNAMENT_HEADING_TRAIL = "several Rounds";

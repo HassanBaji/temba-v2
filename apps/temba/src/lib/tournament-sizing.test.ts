@@ -238,8 +238,10 @@ describe("oneDayFit", () => {
       fit.lastFinish?.getTime(),
       start.getTime() + 5 * 45 * 60 * 1000,
     );
-    assert.match(ONE_DAY_OVERRUN_MESSAGE, /Court/u);
-    assert.match(ONE_DAY_OVERRUN_MESSAGE, /Game teams/u);
+    assert.equal(
+      ONE_DAY_OVERRUN_MESSAGE,
+      "This runs past your finish time. Add a Court, cut Rounds, or take fewer Game teams.",
+    );
   });
 });
 

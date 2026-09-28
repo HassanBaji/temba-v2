@@ -25,7 +25,11 @@ import {
   formatPricePerPlayerCents,
   parseOptionalPricePerPlayerCents,
 } from "~/lib/price-per-player";
-import { oneDayFit, type TournamentSizing } from "~/lib/tournament-sizing";
+import {
+  formatPoolSizeLine,
+  oneDayFit,
+  type TournamentSizing,
+} from "~/lib/tournament-sizing";
 
 export const CREATE_FLOW_STEP_COUNT = 4;
 
@@ -638,21 +642,7 @@ export function friendlyTournamentDefaultName(day: string) {
 }
 
 export function friendlyTournamentGroupsLine(sizing: TournamentSizing) {
-  const counts = new Map<number, number>();
-  for (const size of sizing.poolSizes) {
-    counts.set(size, (counts.get(size) ?? 0) + 1);
-  }
-  const sizes = [...counts.entries()]
-    .map(
-      ([size, count]) =>
-        `${count} ${count === 1 ? "group" : "groups"} of ${size}`,
-    )
-    .join(", ");
-  if (sizing.matchesPerTeamMin !== sizing.matchesPerTeamMax) {
-    return sizes;
-  }
-  const games = sizing.matchesPerTeamMin;
-  return `${sizes}, ${games} ${games === 1 ? "game" : "games"} each`;
+  return formatPoolSizeLine(sizing);
 }
 
 export function friendlyTournamentFormatLabel(poolCount: number) {

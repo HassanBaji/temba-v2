@@ -512,10 +512,7 @@ describe("friendly tournament branch", () => {
     if (!even.ok) {
       return;
     }
-    assert.equal(
-      friendlyTournamentGroupsLine(even.sizing),
-      "3 groups of 4, 3 games each",
-    );
+    assert.equal(friendlyTournamentGroupsLine(even.sizing), "3 groups of 4");
     const uneven = sizeFriendlyTournament(10, 3);
     assert.equal(uneven.ok, true);
     if (!uneven.ok) {
@@ -525,6 +522,12 @@ describe("friendly tournament branch", () => {
       friendlyTournamentGroupsLine(uneven.sizing),
       "1 group of 4, 2 groups of 3",
     );
+    const single = sizeFriendlyTournament(4, 1);
+    assert.equal(single.ok, true);
+    if (!single.ok) {
+      return;
+    }
+    assert.equal(friendlyTournamentGroupsLine(single.sizing), "1 group of 4");
     assert.match(FRIENDLY_TOURNAMENT_UNEVEN_GROUPS, /Groups are uneven/);
     assert.equal(
       createFlowLaterSteps("friendly_tournament")[0]?.title,
