@@ -3,16 +3,18 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
-import { ListRow, RowList } from "~/components/common/row-list";
+import { RowList } from "~/components/common/row-list";
+import { UserAvatar } from "~/components/common/user-avatar";
+import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { displayLabelFromStoredBand } from "~/lib/level-bands";
 import {
-  TAKE_SEAT_LABEL,
   TEAMS_HEADING,
   YOUR_TEAM_TAG,
   tournamentCollapsedTeamsLabel,
   tournamentFieldSummary,
-  tournamentOpenPositionSubline,
   tournamentTeamRows,
   tournamentTeamsCountLine,
+  type TournamentHomeOccupant,
   type TournamentHomeSide,
   type TournamentTeamRow,
 } from "~/lib/tournament-home";
@@ -57,6 +59,8 @@ export function TournamentTeamsSection({
           <TeamRow
             key={row.sideIndex}
             row={row}
+            side={sideByIndex(sides, row.sideIndex)}
+            viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
           />
@@ -87,6 +91,8 @@ export function TournamentTeamsSection({
           <TeamRow
             key={row.sideIndex}
             row={row}
+            side={sideByIndex(sides, row.sideIndex)}
+            viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
           />
@@ -95,6 +101,8 @@ export function TournamentTeamsSection({
           <TeamRow
             key={row.sideIndex}
             row={row}
+            side={sideByIndex(sides, row.sideIndex)}
+            viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
           />
@@ -104,59 +112,159 @@ export function TournamentTeamsSection({
   );
 }
 
+function sideByIndex(sides: readonly TournamentHomeSide[], sideIndex: number) {
+  return sides.find((side) => side.sideIndex === sideIndex) ?? null;
+}
+
+function TeamSeat({
+  occupant,
+  position,
+  viewerUserId,
+  joinable,
+  onJoin,
+}: {
+  occupant: TournamentHomeOccupant | null;
+  position: "left" | "right";
+  viewerUserId: string;
+  joinable: boolean;
+  onJoin?: () => void;
+}) {
+  const positionName = position === "left" ? "Left" : "Right";
+  const level = occupant?.levelBand
+    ? displayLabelFromStoredBand(occupant.levelBand)
+    : null;
+
+  if (!occupant) {
+    const face = (
+      <>
+        <span aria-hidden="true" className="text-lead leading-none">
+          +
+        </span>
+        <span className="sr-only">Open {positionName.toLowerCase()} seat</span>
+      </>
+    );
+    return (
+      <div className="min-w-0 flex-1">
+        {joinable && onJoin ? (
+          <button
+            type="button"
+            onClick={onJoin}
+            aria-label={`Take the ${positionName.toLowerCase()} seat`}
+            className="hatch text-dim focus-visible:ring-ring/50 flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1 outline-none focus-visible:ring-[3px]"
+          >
+            {face}
+          </button>
+        ) : (
+          <div className="hatch text-dim flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1">
+            {face}
+          </div>
+        )}
+        <p className="text-eyebrow text-muted-foreground mt-2 text-center">
+          {positionName}
+        </p>
+      </div>
+    );
+  }
+
+  const displayName = occupant.userId === viewerUserId ? "You" : occupant.name;
+
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="border-rule bg-paper flex h-[78px] w-full flex-col items-center justify-center gap-1 rounded-lg border px-1">
+        <UserAvatar
+          name={occupant.name}
+          image={occupant.image ?? null}
+          size="sm"
+          className="shrink-0"
+        />
+        <span className="text-eyebrow text-ink max-w-full truncate leading-tight">
+          {displayName}
+        </span>
+        {level ? (
+          <span className="text-muted-foreground max-w-full truncate text-[10px] leading-tight">
+            {level}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-eyebrow text-muted-foreground mt-2 text-center">
+        {positionName}
+      </p>
+    </div>
+  );
+}
+
 function TeamRow({
   row,
+  side,
+  viewerUserId,
   canTakeSeat,
   onTakeSeat,
 }: {
   row: TournamentTeamRow;
+  side: TournamentHomeSide | null;
+  viewerUserId: string;
   canTakeSeat: boolean;
   onTakeSeat?: (seat: {
     sideIndex: number;
     position: "left" | "right";
   }) => void;
 }) {
-  const openPosition = row.openPosition;
-  const takeSeat =
-    canTakeSeat && onTakeSeat && openPosition != null && !row.isViewer
-      ? () =>
-          onTakeSeat({
-            sideIndex: row.sideIndex,
-            position: openPosition,
-          })
-      : null;
+  const teamLabel = formatGameSideLabel("friendly_tournament", row.sideIndex);
+
+  function join(position: "left" | "right") {
+    if (!canTakeSeat || !onTakeSeat || row.isViewer) {
+      return;
+    }
+    onTakeSeat({ sideIndex: row.sideIndex, position });
+  }
 
   return (
-    <ListRow
-      className={cn("min-h-11", row.isViewer && "bg-muted")}
-      leading={
+    <li
+      data-slot="list-row"
+      className={cn("px-4 py-4", row.isViewer && "bg-muted")}
+    >
+      <div className="mb-3 flex items-center gap-2">
         <span
           aria-hidden="true"
           className="text-eyebrow text-muted-foreground inline-block w-[22px] tabular-nums"
         >
           {row.indexLabel}
         </span>
-      }
-      title={row.name}
-      subtitle={
-        takeSeat && openPosition && row.isHalfOpen
-          ? tournamentOpenPositionSubline(openPosition)
-          : undefined
-      }
-      trailing={
-        takeSeat ? (
-          <button
-            type="button"
-            onClick={takeSeat}
-            className="border-ink relative min-h-11 min-w-11 overflow-hidden rounded-[9px] border px-3.5 text-[13px] font-semibold"
-          >
-            <span aria-hidden="true" className="hatch absolute inset-0" />
-            <span className="relative">{TAKE_SEAT_LABEL}</span>
-          </button>
-        ) : row.isViewer ? (
+        <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
+          {teamLabel}
+        </span>
+        {row.isViewer ? (
           <span className="text-muted-foreground text-xs">{YOUR_TEAM_TAG}</span>
-        ) : undefined
-      }
-    />
+        ) : null}
+      </div>
+      <div className="flex gap-2">
+        <TeamSeat
+          occupant={side?.left ?? null}
+          position="left"
+          viewerUserId={viewerUserId}
+          joinable={canTakeSeat && !row.isViewer && side?.left == null}
+          onJoin={
+            side?.left == null
+              ? () => {
+                  join("left");
+                }
+              : undefined
+          }
+        />
+        <TeamSeat
+          occupant={side?.right ?? null}
+          position="right"
+          viewerUserId={viewerUserId}
+          joinable={canTakeSeat && !row.isViewer && side?.right == null}
+          onJoin={
+            side?.right == null
+              ? () => {
+                  join("right");
+                }
+              : undefined
+          }
+        />
+      </div>
+    </li>
   );
 }

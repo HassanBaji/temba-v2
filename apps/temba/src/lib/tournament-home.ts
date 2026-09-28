@@ -1,5 +1,6 @@
 import { formatGameCardDay } from "~/lib/format-game-start";
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
+import type { LevelBand } from "~/lib/level-bands";
 import { isPoolTournament } from "~/lib/tournament-rounds";
 import type { TournamentSizing } from "~/lib/tournament-sizing";
 
@@ -46,6 +47,8 @@ const TEAM_LIST_MIN_COLLAPSE = 3;
 export type TournamentHomeOccupant = {
   userId: string;
   name: string;
+  image?: string | null;
+  levelBand?: LevelBand | null;
 };
 
 export type TournamentHomeSide = {

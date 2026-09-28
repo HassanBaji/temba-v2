@@ -65,6 +65,9 @@ function TournamentHeroSeatBlock({
   );
 }
 
+const PAD = "px-4 min-[430px]:px-5 md:px-6 xl:px-8";
+const BLEED =
+  "-mx-4 min-[430px]:-mx-5 md:-mx-6 xl:-mx-8 md:-mt-6 " + PAD + " p-[22px]";
 export function TournamentHero({
   name,
   eyebrow,
@@ -95,7 +98,7 @@ export function TournamentHero({
   onInvite?: () => void;
 }) {
   return (
-    <article className="bg-ink text-paper rounded-xl p-[22px]">
+    <article className={cn("bg-ink text-paper", BLEED)}>
       <div className="flex items-center justify-between">
         <Link href={backHref} aria-label="Back" className={ACTION_BOX_DARK}>
           <ChevronLeftIcon aria-hidden="true" className="size-5" />
