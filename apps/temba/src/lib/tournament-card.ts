@@ -4,6 +4,7 @@ import {
   gameSummaryPrimaryAction,
   type GameSummaryCtaInput,
 } from "~/lib/game-summary-cta";
+import { isPoolTournament } from "~/lib/tournament-rounds";
 import { isOneDayTournamentWindow } from "~/lib/tournament-schedule";
 import { roundCountLabel } from "~/lib/tournament-sizing";
 
@@ -281,4 +282,44 @@ export function tournamentMatchupName(side: MatchupSide | null) {
     names.unshift("You");
   }
   return names.length > 0 ? names.join(" and ") : null;
+}
+
+export type TournamentMatchPhase = "upcoming" | "ongoing" | "needs_results";
+
+export function isPoolMatchRow(row: {
+  format: string;
+  poolCount: number | null;
+  matchId: string | null;
+}) {
+  return row.matchId != null && isPoolTournament(row.format, row.poolCount);
+}
+
+/** Without a Home phase (My Games), the card counts down to kickoff. */
+export function tournamentMatchStatus(
+  phase: TournamentMatchPhase | undefined,
+  countdown: string | null,
+) {
+  switch (phase) {
+    case "ongoing":
+      return "Playing now";
+    case "needs_results":
+      return "Add results";
+    default:
+      return countdown;
+  }
+}
+
+export type TournamentMatchAction = "add_results" | "view";
+
+export function tournamentMatchAction(
+  phase: TournamentMatchPhase | undefined,
+  canAddResults: boolean,
+): TournamentMatchAction {
+  return phase === "needs_results" && canAddResults ? "add_results" : "view";
+}
+
+export function tournamentMatchActionLabel(action: TournamentMatchAction) {
+  return action === "add_results"
+    ? "Add results"
+    : tournamentCardActionLabel("view");
 }

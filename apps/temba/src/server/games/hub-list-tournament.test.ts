@@ -25,6 +25,7 @@ import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { groupById } from "~/server/api/routers/groups/byId";
 import { createFriendlyGame } from "~/server/games/create-friendly";
 import { listMyGamesHubRows } from "~/server/games/list-my-games";
+import { listHomeCarouselGames } from "~/server/home/carousel-games";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 // Seat doors read the wall clock, so the window sits in the real future.
@@ -562,6 +563,84 @@ describe("hub row poolMatch field", { timeout: 30_000 }, () => {
         viewerPosition: null,
         lastResult: { roundNumber: 1, outcome: "cancelled", viewerSets: [] },
       });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("Home carousel Pool Match rows", { timeout: 30_000 }, () => {
+  it("carry the tournament and poolMatch fields with the upcoming phase", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "carousel-upcoming");
+
+      const rows = (
+        await listHomeCarouselGames(db, seeded.viewer.id, NOW)
+      ).filter((row) => row.id === seeded.gameId);
+      expect(rows.map((row) => row.roundNumber)).toEqual([1, 2, 3]);
+      const [next] = rows;
+      expect(next).toMatchObject({
+        matchId: expect.any(String),
+        poolCount: 1,
+        roundCount: 3,
+        phase: "upcoming",
+        canAddResults: false,
+        tournament: { roundCount: 3, drawPosted: true },
+        poolMatch: {
+          poolLabel: "1",
+          poolSize: 4,
+          viewerPosition: null,
+          lastResult: null,
+        },
+      });
+      expect(next?.tournament?.teams).toHaveLength(4);
+      expect(next?.tournament?.teams[0]?.isViewerTeam).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("carries the last result and Add results once the window has passed", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "carousel-results");
+      const { match, viewerIsSlot1 } = await viewerRoundOneMatch(
+        db,
+        seeded.gameId,
+        1,
+      );
+      await completeWithSets(db, {
+        gameId: seeded.gameId,
+        matchId: match.id,
+        organizerUserId: seeded.owner.id,
+        sets: [
+          viewerIsSlot1
+            ? { slot1GamesWon: 6, slot2GamesWon: 2 }
+            : { slot1GamesWon: 2, slot2GamesWon: 6 },
+        ],
+      });
+      const afterWindow = new Date(WINDOW_END.getTime() + 24 * 60 * 60 * 1000);
+
+      const rows = (
+        await listHomeCarouselGames(db, seeded.viewer.id, afterWindow)
+      ).filter((row) => row.id === seeded.gameId);
+      expect(rows.map((row) => row.roundNumber)).toEqual([2, 3]);
+      for (const row of rows) {
+        expect(row).toMatchObject({
+          phase: "needs_results",
+          canAddResults: true,
+          tournament: { drawPosted: true },
+          poolMatch: {
+            viewerPosition: 1,
+            lastResult: {
+              roundNumber: 1,
+              outcome: "won",
+              viewerSets: [{ viewer: 6, opponent: 2 }],
+            },
+          },
+        });
+      }
     } finally {
       await close();
     }

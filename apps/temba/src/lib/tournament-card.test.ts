@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import { formatGameClock } from "./format-game-start";
 import {
+  isPoolMatchRow,
   showsTournamentOpenFlag,
   tournamentCardAction,
   tournamentCardActionLabel,
@@ -12,9 +13,12 @@ import {
   tournamentOpenFlagLabel,
   tournamentOpenTeamCount,
   tournamentTeamPairLabel,
+  tournamentMatchAction,
+  tournamentMatchActionLabel,
   tournamentMatchLastResultLine,
   tournamentMatchRoundLine,
   tournamentMatchStandingLine,
+  tournamentMatchStatus,
   tournamentMatchup,
   tournamentMatchupName,
   tournamentMatchVenueLine,
@@ -386,5 +390,70 @@ describe("tournamentMatchup", () => {
     assert.equal(tournamentMatchupName({ left: YOU, right: null }), "You");
     assert.equal(tournamentMatchupName({ left: null, right: ADA }), "Ada L");
     assert.equal(tournamentMatchupName({ left: null, right: null }), null);
+  });
+});
+
+describe("isPoolMatchRow", () => {
+  it("is true only for an expanded Pool tournament Match row", () => {
+    assert.equal(
+      isPoolMatchRow({
+        format: "friendly_tournament",
+        poolCount: 1,
+        matchId: "match-1",
+      }),
+      true,
+    );
+    assert.equal(
+      isPoolMatchRow({
+        format: "friendly_tournament",
+        poolCount: 1,
+        matchId: null,
+      }),
+      false,
+    );
+    assert.equal(
+      isPoolMatchRow({
+        format: "friendly_tournament",
+        poolCount: null,
+        matchId: "match-1",
+      }),
+      false,
+    );
+    assert.equal(
+      isPoolMatchRow({
+        format: "friendly_game",
+        poolCount: null,
+        matchId: null,
+      }),
+      false,
+    );
+  });
+});
+
+describe("tournamentMatchStatus", () => {
+  it("counts down while upcoming and without a Home phase", () => {
+    assert.equal(tournamentMatchStatus("upcoming", "in 2h 0m"), "in 2h 0m");
+    assert.equal(tournamentMatchStatus(undefined, "in 1 day"), "in 1 day");
+    assert.equal(tournamentMatchStatus("upcoming", null), null);
+  });
+
+  it("shows the Home phase once the Match has started", () => {
+    assert.equal(tournamentMatchStatus("ongoing", null), "Playing now");
+    assert.equal(tournamentMatchStatus("needs_results", null), "Add results");
+  });
+});
+
+describe("tournamentMatchAction", () => {
+  it("offers Add results only when results are due and the viewer can add them", () => {
+    assert.equal(tournamentMatchAction("needs_results", true), "add_results");
+    assert.equal(tournamentMatchAction("needs_results", false), "view");
+    assert.equal(tournamentMatchAction("ongoing", true), "view");
+    assert.equal(tournamentMatchAction("upcoming", false), "view");
+    assert.equal(tournamentMatchAction(undefined, false), "view");
+  });
+
+  it("labels each action", () => {
+    assert.equal(tournamentMatchActionLabel("add_results"), "Add results");
+    assert.equal(tournamentMatchActionLabel("view"), "View tournament");
   });
 });

@@ -22,9 +22,12 @@ import {
   tournamentCardBandMeta,
   tournamentCardDateLine,
   tournamentCardPairs,
+  tournamentMatchAction,
+  tournamentMatchActionLabel,
   tournamentMatchLastResultLine,
   tournamentMatchRoundLine,
   tournamentMatchStandingLine,
+  tournamentMatchStatus,
   tournamentMatchup,
   tournamentMatchupName,
   tournamentMatchVenueLine,
@@ -32,6 +35,7 @@ import {
   tournamentOpenTeamCount,
   tournamentTeamPairLabel,
   tournamentTeamsLine,
+  type TournamentMatchPhase,
 } from "~/lib/tournament-card";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { cn } from "~/lib/utils";
@@ -43,30 +47,54 @@ type TournamentCardTeam = NonNullable<
 >["teams"][number];
 type TeamOccupant = TournamentCardTeam["left"];
 
+const SURFACE_CHROME = {
+  list: { radius: "rounded-2xl", inset: "px-[18px]" },
+  home: { radius: "rounded-[14px]", inset: "px-5" },
+} as const;
+
+type CardSurface = keyof typeof SURFACE_CHROME;
+
 function StackedCard({
   href,
   linkLabel,
+  surface = "list",
   children,
 }: {
   href: string;
   linkLabel: string;
+  surface?: CardSurface;
   children: React.ReactNode;
 }) {
+  const { radius } = SURFACE_CHROME[surface];
   return (
     <div className="relative pb-3">
       <div
         aria-hidden="true"
-        className="border-rule absolute inset-x-[18px] bottom-0 h-[60px] rounded-2xl border bg-[#fafafa]"
+        className={cn(
+          "border-rule absolute inset-x-[18px] bottom-0 h-[60px] border bg-[#fafafa]",
+          radius,
+        )}
       />
       <div
         aria-hidden="true"
-        className="border-rule bg-paper absolute inset-x-[9px] bottom-[6px] h-[60px] rounded-2xl border"
+        className={cn(
+          "border-rule bg-paper absolute inset-x-[9px] bottom-[6px] h-[60px] border",
+          radius,
+        )}
       />
-      <div className="border-ink bg-paper relative overflow-hidden rounded-2xl border">
+      <div
+        className={cn(
+          "border-ink bg-paper relative overflow-hidden border",
+          radius,
+        )}
+      >
         <Link
           href={href}
           aria-label={linkLabel}
-          className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-[3px]"
+          className={cn(
+            "focus-visible:ring-ring/50 absolute inset-0 z-0 outline-none focus-visible:ring-[3px]",
+            radius,
+          )}
         />
         {children}
       </div>
@@ -74,9 +102,22 @@ function StackedCard({
   );
 }
 
-function CardBand({ label, meta }: { label: string; meta: string | null }) {
+function CardBand({
+  label,
+  meta,
+  surface = "list",
+}: {
+  label: string;
+  meta: string | null;
+  surface?: CardSurface;
+}) {
   return (
-    <div className="bg-ink text-paper pointer-events-none relative z-10 flex items-center justify-between gap-2.5 px-[18px] py-3">
+    <div
+      className={cn(
+        "bg-ink text-paper pointer-events-none relative z-10 flex items-center justify-between gap-2.5 py-3",
+        SURFACE_CHROME[surface].inset,
+      )}
+    >
       <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] uppercase tracking-[0.04em]">
         <Trophy aria-hidden="true" className="size-3.5 shrink-0" />
         {label}
@@ -386,9 +427,15 @@ function MatchupColumn({
 export function TournamentMatchCard({
   game,
   href,
+  surface = "list",
+  phase,
+  canAddResults = false,
 }: {
   game: TournamentCardGame;
   href: string;
+  surface?: CardSurface;
+  phase?: TournamentMatchPhase;
+  canAddResults?: boolean;
 }) {
   const [now, setNow] = React.useState(() => new Date());
 
@@ -402,7 +449,13 @@ export function TournamentMatchCard({
   const startsAt = new Date(game.startTime);
   const kickoff = formatHomeKickoff(startsAt);
   const day = formatRelativeDay(startsAt, { sameDayLabel: "Tonight" });
-  const countdown = formatHomeCountdown(startsAt, now);
+  const status = tournamentMatchStatus(
+    phase,
+    formatHomeCountdown(startsAt, now),
+  );
+  const action = tournamentMatchAction(phase, canAddResults);
+  const { inset } = SURFACE_CHROME[surface];
+  const Wrapper = surface === "home" ? "article" : "li";
   const title = game.name ?? game.venue?.name ?? "Untitled Game";
   const roundLine = tournamentMatchRoundLine(game.roundNumber, game.poolMatch);
   const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
@@ -413,9 +466,10 @@ export function TournamentMatchCard({
   );
 
   return (
-    <li data-slot="tournament-match-card">
+    <Wrapper data-slot="tournament-match-card">
       <StackedCard
         href={href}
+        surface={surface}
         linkLabel={[
           title,
           roundLine,
@@ -428,9 +482,15 @@ export function TournamentMatchCard({
         <CardBand
           label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
           meta={poolRoundLabel(game.roundNumber, game.roundCount)}
+          surface={surface}
         />
 
-        <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
+        <div
+          className={cn(
+            "pointer-events-none relative z-10 min-w-0 pb-5 pt-[18px]",
+            inset,
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-px">
               <p className="truncate text-sm font-semibold">{title}</p>
@@ -440,9 +500,9 @@ export function TournamentMatchCard({
                 </p>
               ) : null}
             </div>
-            {countdown ? (
+            {status ? (
               <span className="text-dim shrink-0 text-[13px] tabular-nums">
-                {countdown}
+                {status}
               </span>
             ) : null}
           </div>
@@ -482,17 +542,27 @@ export function TournamentMatchCard({
           ) : null}
         </div>
 
-        <div className="border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] px-[18px] py-3.5">
+        <div
+          className={cn(
+            "border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] py-3.5",
+            inset,
+          )}
+        >
           <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
             {lastResultLine}
           </span>
           <span
-            className={cn(ACTION_CLASS, "border-rule bg-paper text-ink border")}
+            className={cn(
+              ACTION_CLASS,
+              action === "add_results"
+                ? "bg-ink text-paper"
+                : "border-rule bg-paper text-ink border",
+            )}
           >
-            {tournamentCardActionLabel("view")}
+            {tournamentMatchActionLabel(action)}
           </span>
         </div>
       </StackedCard>
-    </li>
+    </Wrapper>
   );
 }

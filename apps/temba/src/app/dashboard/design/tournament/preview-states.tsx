@@ -18,6 +18,7 @@ import type {
   TournamentCardFixtures,
 } from "~/fixtures/tournament-card";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import type { TournamentMatchPhase } from "~/lib/tournament-card";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
@@ -134,6 +135,27 @@ export function TournamentPreviewStates({
         </div>
       </section>
       <section className="space-y-4">
+        <h2 className="text-title font-semibold">Home next game</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <HomeMatchCardPreviewColumn
+            title="Upcoming"
+            game={cardFixtures.matchUpcoming}
+            phase="upcoming"
+          />
+          <HomeMatchCardPreviewColumn
+            title="Playing now"
+            game={cardFixtures.matchNeedsResults}
+            phase="ongoing"
+          />
+          <HomeMatchCardPreviewColumn
+            title="Needs results"
+            game={cardFixtures.matchNeedsResults}
+            phase="needs_results"
+            canAddResults
+          />
+        </div>
+      </section>
+      <section className="space-y-4">
         <h2 className="text-title font-semibold">Create screen controls</h2>
         <div className="mx-auto w-full max-w-[420px]">
           <TournamentCreateControlsPreview />
@@ -196,6 +218,31 @@ function MatchCardPreviewColumn({
           href={`/dashboard/design/tournament#${game.id}`}
         />
       </ul>
+    </div>
+  );
+}
+
+function HomeMatchCardPreviewColumn({
+  title,
+  game,
+  phase,
+  canAddResults = false,
+}: {
+  title: string;
+  game: TournamentCardFixture;
+  phase: TournamentMatchPhase;
+  canAddResults?: boolean;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <TournamentMatchCard
+        game={game}
+        href={`/dashboard/design/tournament#${game.id}`}
+        surface="home"
+        phase={phase}
+        canAddResults={canAddResults}
+      />
     </div>
   );
 }

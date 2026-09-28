@@ -262,6 +262,25 @@ export function createTournamentCardFixtures(now = new Date()) {
         },
       },
     }),
+    matchNeedsResults: buildMatchRow({
+      id: "card-match-needs-results",
+      drawn,
+      startTime: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+      roundNumber: 2,
+      poolMatch: {
+        poolLabel: "1",
+        poolSize: 4,
+        viewerPosition: 2,
+        lastResult: {
+          roundNumber: 1,
+          outcome: "won",
+          viewerSets: [
+            { viewer: 6, opponent: 3 },
+            { viewer: 6, opponent: 4 },
+          ],
+        },
+      },
+    }),
   };
 }
 
