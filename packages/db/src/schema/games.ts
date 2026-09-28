@@ -48,6 +48,7 @@ export const games = pgTable("games", {
   teamsAllowed: integer("teams_allowed"),
   poolCount: integer("pool_count"),
   matchMinutes: integer("match_minutes"),
+  roundCount: integer("round_count"),
   drawPostedAt: timestamp("draw_posted_at"),
   allowSoloRegister: boolean("allow_solo_register").notNull().default(true),
   pricePerPlayerCents: integer("price_per_player_cents"),

@@ -71,6 +71,7 @@ describe("createFlowStepForField", () => {
     assert.equal(createFlowStepForField("teamCount"), 2);
     assert.equal(createFlowStepForField("courtIds"), 2);
     assert.equal(createFlowStepForField("poolCount"), 3);
+    assert.equal(createFlowStepForField("roundCount"), 3);
     assert.equal(createFlowStepForField("matchMinutes"), 3);
     assert.equal(createFlowStepForField("windowEnd"), 3);
   });

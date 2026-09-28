@@ -15,7 +15,10 @@ import {
   LEVEL_TENTHS_MIN,
 } from "~/lib/level-range";
 import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
-import { sizeFriendlyTournament } from "~/lib/tournament-sizing";
+import {
+  sizeFriendlyTournament,
+  validateRoundCount,
+} from "~/lib/tournament-sizing";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -57,6 +60,7 @@ export const createTournamentInputSchema = z
     allowSoloRegister: z.boolean().optional().default(true),
     teamCount: z.number().int(),
     poolCount: z.number().int(),
+    roundCount: z.number().int().nullable().optional(),
     matchMinutes: z.number().int().min(10).max(120).multipleOf(5),
     windowStart: z.coerce.date(),
     windowEnd: z.coerce.date(),
@@ -100,6 +104,18 @@ export const createTournamentInputSchema = z
         message: sized.issue.message,
         path: [sized.issue.path],
       });
+    } else {
+      const rounds = validateRoundCount(
+        sized.sizing.poolSizes,
+        value.roundCount,
+      );
+      if (!rounds.ok) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: rounds.issue.message,
+          path: [rounds.issue.path],
+        });
+      }
     }
     if (
       value.courtIds != null &&
@@ -154,6 +170,13 @@ export async function createTournament(
       message: sized.issue.message,
     });
   }
+  const rounds = validateRoundCount(sized.sizing.poolSizes, input.roundCount);
+  if (!rounds.ok) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: rounds.issue.message,
+    });
+  }
 
   const group = await requireGroup(database, input.groupId);
   await assertMayCreateGameOnGroup(database, group, input.createdBy);
@@ -180,6 +203,7 @@ export async function createTournament(
         playersAllowed: sized.sizing.playerCount,
         teamsAllowed: sized.sizing.teamCount,
         poolCount: sized.sizing.poolCount,
+        roundCount: rounds.roundCount,
         matchMinutes: input.matchMinutes,
         pricePerPlayerCents: input.pricePerPlayerCents ?? null,
         levelMinTenths: input.levelMinTenths ?? null,

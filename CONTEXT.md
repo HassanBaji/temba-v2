@@ -201,7 +201,7 @@ A Game format with individual-only registration and rotating partners across mul
 _Avoid_: Friendly tournament, Friendly game, tournament, team-only (illegal on this format)
 
 **Friendly tournament**:
-A Game format whose Game teams are drawn at random into Pools, each Pool playing a full round robin across several Rounds. The Pool draw generates the Matches; the organizer does not add them by hand.
+A Game format whose Game teams are drawn at random into Pools, each Pool playing a round robin across several Rounds — one Pass by default, cut short or played twice by the organizer's Round count. The Pool draw generates the Matches; the organizer does not add them by hand.
 _Avoid_: Americano, Friendly game, league, bracket (a later slice of this format)
 
 **Pool draw**:
@@ -217,8 +217,12 @@ A Game team on a Friendly tournament with one Position taken and the other vacan
 _Avoid_: incomplete Team, solo, single, orphan seat
 
 **Pool**:
-One subset of a Friendly tournament's Game teams that plays a full round robin against itself. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games. Shown to users as *group*.
+One subset of a Friendly tournament's Game teams that plays a round robin against itself — one Pass by default, cut short or played twice by the organizer's Round count. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games. Shown to users as *group*.
 _Avoid_: Group, group stage group, division, section, bracket
+
+**Pass**:
+One full round robin inside a Pool, where every Game team in the Pool meets every other once. A Friendly tournament plays one Pass by default and at most two; the second repeats the first with the two sides swapped.
+_Avoid_: leg, cycle, lap, Round (a Round is one date-slice of the schedule)
 
 **Pool table**:
 The ordered list of a Pool's Game teams by their Pool records. Not a Standing: a Standing is a User's position among a Group's members, a Pool table ranks Game teams inside one Pool.

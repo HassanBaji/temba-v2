@@ -112,6 +112,7 @@ export const CREATE_FLOW_FIELD_IDS: Record<string, string> = {
   windowEnd: "game-window-finish",
   teamCount: "tournament-team-count",
   poolCount: "tournament-pool-count",
+  roundCount: "tournament-round-count",
   matchMinutes: "tournament-match-minutes",
   name: "tournament-name",
 };
@@ -128,6 +129,7 @@ const STEP_THREE_FIELDS = new Set([
   "windowStart",
   "windowEnd",
   "poolCount",
+  "roundCount",
   "matchMinutes",
 ]);
 

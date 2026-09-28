@@ -13,7 +13,17 @@ import {
   oneDayFit,
   playersInPairsLine,
   poolCountForDrawnField,
+  poolPassLength,
+  resolveRoundCount,
+  reviewRoundsValue,
+  roundCountLabel,
+  roundCountRange,
+  ROUND_MEETS_COPY,
   sizeFriendlyTournament,
+  suggestedRoundCount,
+  suggestedRoundsResetLabel,
+  formatRoundMatchesPerTeam,
+  validateRoundCount,
   TOURNAMENT_DEFAULT_POOL_COUNT,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
   tournamentMatchMinutes,
@@ -336,6 +346,143 @@ describe("create-screen copy", () => {
     assert.equal(
       lastMatchFinishCopy("7:45 PM"),
       "The last Match would finish at 7:45 PM.",
+    );
+  });
+});
+
+describe("suggestedRoundCount and roundCountRange", () => {
+  it("suggests one Pass of the biggest even Pool and allows up to two", () => {
+    assert.equal(poolPassLength(4), 3);
+    assert.equal(suggestedRoundCount([4, 4, 4]), 3);
+    assert.deepEqual(roundCountRange([4, 4, 4]), {
+      min: 1,
+      max: 6,
+      suggested: 3,
+    });
+  });
+
+  it("adds the bye Round for an odd biggest Pool", () => {
+    assert.equal(poolPassLength(5), 5);
+    assert.equal(suggestedRoundCount([3, 3]), 3);
+    assert.deepEqual(roundCountRange([5, 5, 4]), {
+      min: 1,
+      max: 10,
+      suggested: 5,
+    });
+  });
+
+  it("follows the biggest Pool when Pools are uneven", () => {
+    assert.equal(suggestedRoundCount([4, 3, 3]), 3);
+    assert.equal(suggestedRoundCount([3, 4]), 3);
+    assert.equal(suggestedRoundCount([5, 4]), 5);
+  });
+
+  it("matches the Round count sizeFriendlyTournament derives", () => {
+    for (const [teamCount, poolCount] of [
+      [12, 3],
+      [10, 3],
+      [6, 2],
+      [14, 3],
+      [32, 1],
+    ] as const) {
+      const sized = sizeFriendlyTournament(teamCount, poolCount);
+      assert.equal(sized.ok, true);
+      if (!sized.ok) {
+        return;
+      }
+      assert.equal(
+        suggestedRoundCount(sized.sizing.poolSizes),
+        sized.sizing.roundCount,
+      );
+    }
+  });
+});
+
+describe("resolveRoundCount", () => {
+  it("follows the field's suggestion when nothing is stored", () => {
+    assert.equal(resolveRoundCount([4, 4, 4], null), 3);
+    assert.equal(resolveRoundCount([4, 4, 4], undefined), 3);
+    assert.equal(resolveRoundCount([3, 3], null), 3);
+  });
+
+  it("keeps an explicit count inside the range", () => {
+    assert.equal(resolveRoundCount([4, 4, 4], 2), 2);
+    assert.equal(resolveRoundCount([4, 4, 4], 6), 6);
+  });
+
+  it("clamps an explicit count to two Passes of the field", () => {
+    assert.equal(resolveRoundCount([4], 10), 6);
+    assert.equal(resolveRoundCount([5, 5, 4], 11), 10);
+  });
+});
+
+describe("validateRoundCount", () => {
+  it("stores null for an omitted count or the suggestion", () => {
+    assert.deepEqual(validateRoundCount([4, 4, 4], undefined), {
+      ok: true,
+      roundCount: null,
+    });
+    assert.deepEqual(validateRoundCount([4, 4, 4], null), {
+      ok: true,
+      roundCount: null,
+    });
+    assert.deepEqual(validateRoundCount([4, 4, 4], 3), {
+      ok: true,
+      roundCount: null,
+    });
+  });
+
+  it("keeps an explicit count from 1 to twice the suggestion", () => {
+    assert.deepEqual(validateRoundCount([4, 4, 4], 1), {
+      ok: true,
+      roundCount: 1,
+    });
+    assert.deepEqual(validateRoundCount([4, 4, 4], 6), {
+      ok: true,
+      roundCount: 6,
+    });
+  });
+
+  it("refuses 0 and more than two Passes on roundCount", () => {
+    for (const roundCount of [0, 7, -1, 2.5]) {
+      const result = validateRoundCount([4, 4, 4], roundCount);
+      assert.equal(result.ok, false);
+      if (result.ok) {
+        return;
+      }
+      assert.equal(result.issue.path, "roundCount");
+      assert.equal(result.issue.message, "Rounds must be between 1 and 6");
+    }
+  });
+});
+
+describe("Rounds copy", () => {
+  it("names Rounds, the suggestion and the meets states", () => {
+    assert.equal(roundCountLabel(1), "1 Round");
+    assert.equal(roundCountLabel(5), "5 Rounds");
+    assert.equal(reviewRoundsValue(3, 3), "3 Rounds · suggested");
+    assert.equal(reviewRoundsValue(5, 3), "5 Rounds");
+    assert.equal(suggestedRoundsResetLabel(3), "Use suggested (3)");
+    assert.deepEqual(ROUND_MEETS_COPY, {
+      once: "Everyone meets once",
+      partial: "Not everyone meets",
+      twice: "Everyone meets twice",
+      somePartialSecond: "Some meet twice",
+    });
+  });
+
+  it("shows one Matches per Game team count or a range", () => {
+    assert.equal(
+      formatRoundMatchesPerTeam({ matchesPerTeamMin: 1, matchesPerTeamMax: 1 }),
+      "Each Game team plays 1 Match",
+    );
+    assert.equal(
+      formatRoundMatchesPerTeam({ matchesPerTeamMin: 3, matchesPerTeamMax: 3 }),
+      "Each Game team plays 3 Matches",
+    );
+    assert.equal(
+      formatRoundMatchesPerTeam({ matchesPerTeamMin: 2, matchesPerTeamMax: 3 }),
+      "Each Game team plays 2 to 3 Matches",
     );
   });
 });

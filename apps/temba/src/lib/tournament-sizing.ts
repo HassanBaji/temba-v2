@@ -107,6 +107,66 @@ function roundRobinMatches(poolSize: number): number {
   return (poolSize * (poolSize - 1)) / 2;
 }
 
+export const MAX_PASSES = 2;
+
+export function poolPassLength(poolSize: number): number {
+  return poolSize % 2 === 0 ? poolSize - 1 : poolSize;
+}
+
+export function suggestedRoundCount(poolSizes: readonly number[]): number {
+  if (poolSizes.length === 0) {
+    return 0;
+  }
+  return poolPassLength(Math.max(...poolSizes));
+}
+
+export function roundCountRange(poolSizes: readonly number[]) {
+  const suggested = suggestedRoundCount(poolSizes);
+  return { min: 1, max: MAX_PASSES * suggested, suggested };
+}
+
+export function resolveRoundCount(
+  poolSizes: readonly number[],
+  storedRoundCount: number | null | undefined,
+): number {
+  const range = roundCountRange(poolSizes);
+  if (storedRoundCount == null) {
+    return range.suggested;
+  }
+  return Math.min(storedRoundCount, range.max);
+}
+
+export type RoundCountValidation =
+  | { ok: true; roundCount: number | null }
+  | { ok: false; issue: { path: "roundCount"; message: string } };
+
+export function validateRoundCount(
+  poolSizes: readonly number[],
+  roundCount: number | null | undefined,
+): RoundCountValidation {
+  if (roundCount == null) {
+    return { ok: true, roundCount: null };
+  }
+  const range = roundCountRange(poolSizes);
+  if (
+    !Number.isInteger(roundCount) ||
+    roundCount < range.min ||
+    roundCount > range.max
+  ) {
+    return {
+      ok: false,
+      issue: {
+        path: "roundCount",
+        message: `Rounds must be between ${range.min} and ${range.max}`,
+      },
+    };
+  }
+  return {
+    ok: true,
+    roundCount: roundCount === range.suggested ? null : roundCount,
+  };
+}
+
 export function sizeFriendlyTournament(
   teamCount: number,
   poolCount: number,
@@ -162,7 +222,7 @@ export function sizeFriendlyTournament(
       ),
       matchesPerTeamMin: Math.min(...matchesPerTeam),
       matchesPerTeamMax: Math.max(...matchesPerTeam),
-      roundCount: maxPoolSize % 2 === 0 ? maxPoolSize - 1 : maxPoolSize,
+      roundCount: poolPassLength(maxPoolSize),
       playerCount: teamCount * 2,
     },
   };
@@ -230,4 +290,40 @@ export function courtCountValue(courtCount: number) {
 
 export function lastMatchFinishCopy(clock: string) {
   return `${LAST_MATCH_FINISH_PREFIX} ${clock}.`;
+}
+
+export type RoundMeets = "once" | "partial" | "twice" | "somePartialSecond";
+
+export const ROUND_MEETS_COPY: Record<RoundMeets, string> = {
+  once: "Everyone meets once",
+  partial: "Not everyone meets",
+  twice: "Everyone meets twice",
+  somePartialSecond: "Some meet twice",
+};
+
+export const ROUNDS_LABEL = "Rounds";
+export const SUGGESTED_ROUNDS_TAG = "Suggested";
+
+export function suggestedRoundsResetLabel(suggested: number) {
+  return `Use suggested (${suggested})`;
+}
+
+export function roundCountLabel(roundCount: number) {
+  return roundCount === 1 ? "1 Round" : `${roundCount} Rounds`;
+}
+
+export function reviewRoundsValue(roundCount: number, suggested: number) {
+  const label = roundCountLabel(roundCount);
+  return roundCount === suggested ? `${label} · suggested` : label;
+}
+
+export function formatRoundMatchesPerTeam(range: {
+  matchesPerTeamMin: number;
+  matchesPerTeamMax: number;
+}) {
+  const { matchesPerTeamMin: min, matchesPerTeamMax: max } = range;
+  if (min === max) {
+    return `Each Game team plays ${min} ${min === 1 ? "Match" : "Matches"}`;
+  }
+  return `Each Game team plays ${min} to ${max} Matches`;
 }

@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   courts,
@@ -90,6 +90,16 @@ async function insertGroup(database: TestDatabase, createdBy: string) {
   return row;
 }
 
+// Fixture windows sit on fixed dates, so registration must still read as open.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
+
 function identityShuffle<T>(items: readonly T[]): T[] {
   return [...items];
 }
@@ -104,6 +114,7 @@ async function insertTournament(
     courtIds: string[];
     windowStart: Date;
     windowEnd: Date;
+    roundCount?: number | null;
   },
 ) {
   const group = await insertGroup(database, args.createdBy);
@@ -117,6 +128,7 @@ async function insertTournament(
     registrationMode: "individual",
     teamCount: args.teamCount,
     poolCount: args.poolCount,
+    roundCount: args.roundCount,
     venueId: args.venueId,
     courtIds: args.courtIds,
     matchMinutes: 45,
@@ -626,6 +638,204 @@ describe("postPoolDraw", () => {
         () => postPoolDraw(db, { gameId, organizerUserId: ada.id }),
         "FORBIDDEN",
         "Only an organizer can do that",
+      );
+    } finally {
+      await close();
+    }
+  });
+});
+
+async function seedDrawnOneDay(
+  database: TestDatabase,
+  args: {
+    prefix: string;
+    teamCount: number;
+    poolCount: number;
+    filledTeams: number;
+    roundCount?: number | null;
+  },
+) {
+  const owner = await insertUser(database, `${args.prefix}-owner@example.com`);
+  const venue = await insertVenue(database);
+  const courtA = await insertCourt(database, venue.id, "Court 1");
+  const courtB = await insertCourt(database, venue.id, "Court 2");
+  const gameId = await insertTournament(database, {
+    createdBy: owner.id,
+    venueId: venue.id,
+    teamCount: args.teamCount,
+    poolCount: args.poolCount,
+    roundCount: args.roundCount,
+    courtIds: [courtA.id, courtB.id],
+    windowStart: new Date("2026-09-20T09:00:00"),
+    windowEnd: new Date("2026-09-20T23:00:00"),
+  });
+  const players = await insertNamedUsers(
+    database,
+    args.prefix,
+    args.filledTeams * 2,
+  );
+  await fillCompleteTeams(database, gameId, players, args.filledTeams);
+  await drawPools(database, {
+    gameId,
+    organizerUserId: owner.id,
+    shuffle: identityShuffle,
+  });
+  return { owner, gameId };
+}
+
+function pairingsOf(schedule: Awaited<ReturnType<typeof postedSchedule>>) {
+  return schedule.map((row) => ({
+    roundNumber: row.roundNumber,
+    slot1: row.slot1,
+    slot2: row.slot2,
+  }));
+}
+
+describe("postPoolDraw with a chosen Round count", () => {
+  it("follows one Pass of the drawn groups when Rounds were left on the suggestion", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedDrawnOneDay(db, {
+        prefix: "rounds-null",
+        teamCount: 6,
+        poolCount: 1,
+        filledTeams: 4,
+      });
+      const posted = await postPoolDraw(db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+      });
+      expect(posted.matchCount).toBe(6);
+      const schedule = await postedSchedule(db, seeded.gameId);
+      expect([...new Set(schedule.map((row) => row.roundNumber))]).toEqual([
+        1, 2, 3,
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("silently clamps an explicit count above two Passes of the drawn groups", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedDrawnOneDay(db, {
+        prefix: "rounds-clamp",
+        teamCount: 6,
+        poolCount: 1,
+        filledTeams: 4,
+        roundCount: 9,
+      });
+      const posted = await postPoolDraw(db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+      });
+      expect(posted.matchCount).toBe(12);
+      const schedule = await postedSchedule(db, seeded.gameId);
+      expect(Math.max(...schedule.map((row) => row.roundNumber ?? 0))).toBe(6);
+
+      const game = await db.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+      });
+      expect(game?.roundCount).toBe(9);
+      await undoPoolDraw(db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+      });
+      const undone = await db.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+      });
+      expect(undone?.roundCount).toBe(9);
+    } finally {
+      await close();
+    }
+  });
+
+  it("generates exactly the first R Rounds of the full schedule for a partial count", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedDrawnOneDay(db, {
+        prefix: "rounds-partial",
+        teamCount: 4,
+        poolCount: 1,
+        filledTeams: 4,
+        roundCount: 2,
+      });
+      const posted = await postPoolDraw(db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+      });
+      expect(posted.matchCount).toBe(4);
+      expect(pairingsOf(await postedSchedule(db, seeded.gameId))).toEqual([
+        { roundNumber: 1, slot1: 1, slot2: 4 },
+        { roundNumber: 1, slot1: 2, slot2: 3 },
+        { roundNumber: 2, slot1: 1, slot2: 3 },
+        { roundNumber: 2, slot1: 4, slot2: 2 },
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("generates two full Passes with Pass 2 slots swapped at twice the suggestion", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedDrawnOneDay(db, {
+        prefix: "rounds-twice",
+        teamCount: 4,
+        poolCount: 1,
+        filledTeams: 4,
+        roundCount: 6,
+      });
+      const posted = await postPoolDraw(db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+      });
+      expect(posted.matchCount).toBe(12);
+      expect(pairingsOf(await postedSchedule(db, seeded.gameId))).toEqual([
+        { roundNumber: 1, slot1: 1, slot2: 4 },
+        { roundNumber: 1, slot1: 2, slot2: 3 },
+        { roundNumber: 2, slot1: 1, slot2: 3 },
+        { roundNumber: 2, slot1: 4, slot2: 2 },
+        { roundNumber: 3, slot1: 1, slot2: 2 },
+        { roundNumber: 3, slot1: 3, slot2: 4 },
+        { roundNumber: 4, slot1: 3, slot2: 2 },
+        { roundNumber: 4, slot1: 4, slot2: 1 },
+        { roundNumber: 5, slot1: 2, slot2: 4 },
+        { roundNumber: 5, slot1: 3, slot2: 1 },
+        { roundNumber: 6, slot1: 2, slot2: 1 },
+        { roundNumber: 6, slot1: 4, slot2: 3 },
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("sits the smaller group out of the rest of the biggest group's Pass", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedDrawnOneDay(db, {
+        prefix: "rounds-uneven",
+        teamCount: 10,
+        poolCount: 2,
+        filledTeams: 9,
+        roundCount: 10,
+      });
+      const posted = await postPoolDraw(db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+      });
+      expect(posted.matchCount).toBe(32);
+      const schedule = await postedSchedule(db, seeded.gameId);
+      const smallerRounds = new Set(
+        schedule
+          .filter((row) => (row.slot1 ?? 0) >= 6)
+          .map((row) => row.roundNumber),
+      );
+      expect(
+        [...smallerRounds].sort((left, right) => (left ?? 0) - (right ?? 0)),
+      ).toEqual([1, 2, 3, 6, 7, 8]);
+      expect([...new Set(schedule.map((row) => row.roundNumber))].length).toBe(
+        10,
       );
     } finally {
       await close();
