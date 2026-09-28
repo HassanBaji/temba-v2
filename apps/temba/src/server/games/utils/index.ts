@@ -29,6 +29,41 @@ export type HubListSide = {
   right: HubListSideOccupant | null;
 };
 
+export type HubListTournamentTeam = {
+  gameTeamId: string;
+  sideIndex: number | null;
+  poolIndex: number | null;
+  isViewerTeam: boolean;
+  left: HubListSideOccupant | null;
+  right: HubListSideOccupant | null;
+};
+
+export type HubListTournament = {
+  /** Planned before the Pool draw is posted, the posted count after. */
+  roundCount: number | null;
+  drawPosted: boolean;
+  allowSoloRegister: boolean;
+  /** Game teams with at least one occupant: the viewer's first, then by side. */
+  teams: HubListTournamentTeam[];
+  /** Every side 1..teamsAllowed, for the join sheet. */
+  joinSides: HubListSide[];
+};
+
+export type HubListPoolMatchOutcome = "won" | "lost" | "draw" | "cancelled";
+
+export type HubListPoolMatch = {
+  /** The Pool identifier shown after "group", as the tournament detail labels it. */
+  poolLabel: string;
+  poolSize: number;
+  /** Null until the viewer's Game team has played a Pool Match. */
+  viewerPosition: number | null;
+  lastResult: {
+    roundNumber: number;
+    outcome: HubListPoolMatchOutcome;
+    viewerSets: { viewer: number; opponent: number }[];
+  } | null;
+};
+
 export type HubListRow = {
   id: string;
   name: string | null;
@@ -57,11 +92,16 @@ export type HubListRow = {
   canRegister: boolean;
   canWaitlist: boolean;
   sides: HubListSide[];
+  poolCount: number | null;
+  /** Null unless the Game is a Pool tournament. */
+  tournament: HubListTournament | null;
   /** Set when My Games / Home expand a posted Pool Match into its own row. */
   matchId: string | null;
   roundNumber: number | null;
   roundCount: number | null;
   courtName: string | null;
+  /** Only on expanded Pool Match rows. */
+  poolMatch: HubListPoolMatch | null;
 };
 
 export type GameCreateGroupKind = "club" | "loose" | "none";

@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { TournamentMatchCard } from "~/components/games/tournament-summary-card";
 import { HomeAllTime } from "~/components/home/home-all-time";
 import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
@@ -14,6 +15,7 @@ import { HomeStanding } from "~/components/home/home-standing";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
 import { homeNextGameSeats } from "~/lib/home-seats";
+import { isPoolMatchRow } from "~/lib/tournament-card";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { api } from "~/trpc/react";
 
@@ -77,7 +79,15 @@ export default function HomePage() {
 
         {home.data ? (
           <>
-            {nextGame ? (
+            {nextGame && isPoolMatchRow(nextGame) ? (
+              <TournamentMatchCard
+                game={nextGame}
+                href={`/dashboard/games/${nextGame.id}`}
+                surface="home"
+                phase={nextGame.phase}
+                canAddResults={nextGame.canAddResults}
+              />
+            ) : nextGame ? (
               <HomeNextGame
                 id={nextGame.id}
                 phase={nextGame.phase}

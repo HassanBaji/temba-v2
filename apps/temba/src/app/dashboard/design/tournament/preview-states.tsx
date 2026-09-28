@@ -5,11 +5,20 @@ import { useState } from "react";
 import { StepperField } from "~/components/games/stepper-field";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHome } from "~/components/games/tournament-home";
+import {
+  TournamentMatchCard,
+  TournamentSummaryCard,
+} from "~/components/games/tournament-summary-card";
 import { TAB_SEGMENT } from "~/components/groups/group-home-chrome";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import type { TournamentFixture } from "~/fixtures/tournament";
+import type {
+  TournamentCardFixture,
+  TournamentCardFixtures,
+} from "~/fixtures/tournament-card";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import type { TournamentMatchPhase } from "~/lib/tournament-card";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
@@ -60,7 +69,9 @@ const FIELD_LABEL = "text-muted-foreground text-[13px] font-normal";
 
 export function TournamentPreviewStates({
   fixtures,
+  cardFixtures,
 }: {
+  cardFixtures: TournamentCardFixtures;
   fixtures: {
     preDrawWithoutSeat: TournamentFixture;
     preDrawSeatedHalfOpen: TournamentFixture;
@@ -93,8 +104,57 @@ export function TournamentPreviewStates({
           title="Posted, mid-tournament"
           data={fixtures.postedMid}
         />
-        <PreviewColumn title="Finished, group winner" data={fixtures.finished} />
+        <PreviewColumn
+          title="Finished, group winner"
+          data={fixtures.finished}
+        />
       </div>
+      <section className="space-y-4">
+        <h2 className="text-title font-semibold">Games list card</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <CardPreviewColumn title="Open" game={cardFixtures.open} />
+          <CardPreviewColumn
+            title="In with a half team"
+            game={cardFixtures.inWithHalfTeam}
+          />
+          <CardPreviewColumn title="Full" game={cardFixtures.full} />
+          <CardPreviewColumn title="Drawn" game={cardFixtures.drawn} />
+        </div>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-title font-semibold">Your-tournament Match card</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <MatchCardPreviewColumn
+            title="Upcoming, no result yet"
+            game={cardFixtures.matchUpcoming}
+          />
+          <MatchCardPreviewColumn
+            title="Won R1"
+            game={cardFixtures.matchWonRoundOne}
+          />
+        </div>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-title font-semibold">Home next game</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <HomeMatchCardPreviewColumn
+            title="Upcoming"
+            game={cardFixtures.matchUpcoming}
+            phase="upcoming"
+          />
+          <HomeMatchCardPreviewColumn
+            title="Playing now"
+            game={cardFixtures.matchNeedsResults}
+            phase="ongoing"
+          />
+          <HomeMatchCardPreviewColumn
+            title="Needs results"
+            game={cardFixtures.matchNeedsResults}
+            phase="needs_results"
+            canAddResults
+          />
+        </div>
+      </section>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Create screen controls</h2>
         <div className="mx-auto w-full max-w-[420px]">
@@ -116,6 +176,73 @@ function PreviewColumn({
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
       <h2 className="text-title font-semibold">{title}</h2>
       <TournamentHomePreview data={data} />
+    </div>
+  );
+}
+
+function CardPreviewColumn({
+  title,
+  game,
+}: {
+  title: string;
+  game: TournamentCardFixture;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <ul>
+        <TournamentSummaryCard
+          game={game}
+          href={`/dashboard/design/tournament#${game.id}`}
+          onJoinSeat={() => undefined}
+          onJoinWaitlist={() => undefined}
+        />
+      </ul>
+    </div>
+  );
+}
+
+function MatchCardPreviewColumn({
+  title,
+  game,
+}: {
+  title: string;
+  game: TournamentCardFixture;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <ul>
+        <TournamentMatchCard
+          game={game}
+          href={`/dashboard/design/tournament#${game.id}`}
+        />
+      </ul>
+    </div>
+  );
+}
+
+function HomeMatchCardPreviewColumn({
+  title,
+  game,
+  phase,
+  canAddResults = false,
+}: {
+  title: string;
+  game: TournamentCardFixture;
+  phase: TournamentMatchPhase;
+  canAddResults?: boolean;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <TournamentMatchCard
+        game={game}
+        href={`/dashboard/design/tournament#${game.id}`}
+        surface="home"
+        phase={phase}
+        canAddResults={canAddResults}
+      />
     </div>
   );
 }
