@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   MatchStatusEnum,
@@ -7,6 +7,7 @@ import {
   gameTeams,
   games,
   groups,
+  matchSets,
   matches,
   user,
   venues,
@@ -24,6 +25,16 @@ import { postPoolDraw } from "~/server/api/routers/games/postPoolDraw";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+
+// Fixture windows sit on fixed dates, so registration must still read as open.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 async function insertUser(
   database: TestDatabase,
@@ -235,6 +246,70 @@ async function completeSets(
     matchId: args.matchId,
     userId: args.organizerUserId,
   });
+}
+
+type SetScore = { slot1GamesWon: number; slot2GamesWon: number };
+
+async function replaceWithCompletedMeetings(
+  database: TestDatabase,
+  gameId: string,
+  meetings: {
+    roundNumber: number;
+    slot1Side: number;
+    slot2Side: number;
+    sets: SetScore[];
+  }[],
+) {
+  await database.delete(matches).where(eq(matches.gameId, gameId));
+  for (const meeting of meetings) {
+    const [row] = await database
+      .insert(matches)
+      .values({
+        gameId,
+        roundNumber: meeting.roundNumber,
+        status: MatchStatusEnum.COMPLETED,
+        slot1GameTeamId: await teamIdForSide(
+          database,
+          gameId,
+          meeting.slot1Side,
+        ),
+        slot2GameTeamId: await teamIdForSide(
+          database,
+          gameId,
+          meeting.slot2Side,
+        ),
+      })
+      .returning({ id: matches.id });
+    if (!row) {
+      throw new Error("Failed to insert match");
+    }
+    await database.insert(matchSets).values(
+      meeting.sets.map((set, index) => ({
+        matchId: row.id,
+        setNumber: index + 1,
+        ...set,
+      })),
+    );
+  }
+}
+
+async function poolOrderBySide(
+  database: TestDatabase,
+  gameId: string,
+  viewerUserId: string,
+) {
+  const tables = await listPoolTables(database, {
+    gameId,
+    userId: viewerUserId,
+  });
+  const teams = await database.query.gameTeams.findMany({
+    where: eq(gameTeams.gameId, gameId),
+  });
+  const sideById = new Map(teams.map((team) => [team.id, team.sideIndex]));
+  return (tables?.pools[0]?.rows ?? []).map((row) => ({
+    side: sideById.get(row.gameTeamId),
+    won: row.won,
+  }));
 }
 
 function dashRow(row: {
@@ -474,6 +549,97 @@ describe("listPoolTables", () => {
       });
       expect(home.poolTables?.finished).toBe(true);
       expect(home.poolTables?.pools[0]?.winnerGameTeamId).toBe(winnerId);
+    } finally {
+      await close();
+    }
+  });
+
+  it("ranks the Game team that won both meetings first when tied on wins, even with the worse Set difference", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "twice");
+      const oneSetWin = [{ slot1GamesWon: 6, slot2GamesWon: 4 }];
+      const threeSetWin = [
+        { slot1GamesWon: 6, slot2GamesWon: 0 },
+        { slot1GamesWon: 6, slot2GamesWon: 0 },
+        { slot1GamesWon: 6, slot2GamesWon: 0 },
+      ];
+      await replaceWithCompletedMeetings(db, seeded.gameId, [
+        { roundNumber: 1, slot1Side: 1, slot2Side: 2, sets: oneSetWin },
+        { roundNumber: 2, slot1Side: 2, slot2Side: 3, sets: threeSetWin },
+        { roundNumber: 3, slot1Side: 2, slot2Side: 4, sets: threeSetWin },
+        { roundNumber: 4, slot1Side: 1, slot2Side: 2, sets: oneSetWin },
+      ]);
+
+      const order = await poolOrderBySide(db, seeded.gameId, seeded.owner.id);
+      expect(order.slice(0, 2)).toEqual([
+        { side: 1, won: 2 },
+        { side: 2, won: 2 },
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("orders Game teams that split two meetings by Set difference, not by the last meeting", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "split");
+      await replaceWithCompletedMeetings(db, seeded.gameId, [
+        {
+          roundNumber: 1,
+          slot1Side: 1,
+          slot2Side: 2,
+          sets: [
+            { slot1GamesWon: 6, slot2GamesWon: 1 },
+            { slot1GamesWon: 6, slot2GamesWon: 1 },
+          ],
+        },
+        {
+          roundNumber: 4,
+          slot1Side: 2,
+          slot2Side: 1,
+          sets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
+        },
+      ]);
+
+      const order = await poolOrderBySide(db, seeded.gameId, seeded.owner.id);
+      expect(order.slice(0, 2)).toEqual([
+        { side: 1, won: 1 },
+        { side: 2, won: 1 },
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("orders Game teams that never met by Set difference, not as a head-to-head loss", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "never");
+      await replaceWithCompletedMeetings(db, seeded.gameId, [
+        {
+          roundNumber: 1,
+          slot1Side: 1,
+          slot2Side: 3,
+          sets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
+        },
+        {
+          roundNumber: 1,
+          slot1Side: 2,
+          slot2Side: 4,
+          sets: [
+            { slot1GamesWon: 6, slot2GamesWon: 4 },
+            { slot1GamesWon: 6, slot2GamesWon: 4 },
+          ],
+        },
+      ]);
+
+      const order = await poolOrderBySide(db, seeded.gameId, seeded.owner.id);
+      expect(order.slice(0, 2)).toEqual([
+        { side: 2, won: 1 },
+        { side: 1, won: 1 },
+      ]);
     } finally {
       await close();
     }
