@@ -12,7 +12,10 @@ import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { MatchHistoryCard } from "~/components/games/match-history-card";
-import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
+import {
+  TournamentMatchCard,
+  TournamentSummaryCard,
+} from "~/components/games/tournament-summary-card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -132,7 +135,16 @@ function GamesHubTabPanel({
   return (
     <ul className="flex flex-col gap-3">
       {games.map((game) => {
-        if (isPoolTournament(game.format, game.poolCount) && !game.matchId) {
+        if (isPoolTournament(game.format, game.poolCount) && game.matchId) {
+          return (
+            <TournamentMatchCard
+              key={game.matchId}
+              game={game}
+              href={`/dashboard/games/${game.id}`}
+            />
+          );
+        }
+        if (isPoolTournament(game.format, game.poolCount)) {
           return (
             <TournamentSummaryCard
               key={game.id}

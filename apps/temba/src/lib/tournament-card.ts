@@ -1,4 +1,5 @@
 import { formatGameClock } from "~/lib/format-game-start";
+import { friendlyGameWaitlistOrdinal } from "~/lib/friendly-game-cta";
 import {
   gameSummaryPrimaryAction,
   type GameSummaryCtaInput,
@@ -7,6 +8,7 @@ import { isOneDayTournamentWindow } from "~/lib/tournament-schedule";
 import { roundCountLabel } from "~/lib/tournament-sizing";
 
 export const TOURNAMENT_CARD_BAND_LABEL = "Friendly tournament";
+export const TOURNAMENT_MATCH_CARD_BAND_LABEL = "Your tournament";
 export const TOURNAMENT_CARD_MAX_PAIRS = 4;
 export const NO_TEAMS_YET_COPY = "No teams yet";
 
@@ -169,4 +171,114 @@ function occupantName(occupant: Occupant) {
 
 export function tournamentTeamPairLabel(team: TournamentCardTeam) {
   return `${occupantName(team.left)} and ${occupantName(team.right)}`;
+}
+
+export type TournamentPoolMatch = {
+  poolLabel: string;
+  poolSize: number;
+  viewerPosition: number | null;
+  lastResult: {
+    roundNumber: number;
+    outcome: "won" | "lost" | "draw" | "cancelled";
+    viewerSets: readonly { viewer: number; opponent: number }[];
+  } | null;
+};
+
+export function tournamentMatchRoundLine(
+  roundNumber: number | null | undefined,
+  poolMatch: TournamentPoolMatch | null | undefined,
+) {
+  const parts = [
+    roundNumber != null ? `Round ${roundNumber}` : null,
+    poolMatch ? `group ${poolMatch.poolLabel}` : null,
+  ].filter((part): part is string => part != null);
+  if (parts.length === 0) {
+    return null;
+  }
+  const line = parts.join(", ");
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
+
+export function tournamentMatchVenueLine(
+  venueName: string | null | undefined,
+  courtName: string | null | undefined,
+) {
+  const line = [venueName, courtName].filter(Boolean).join(", ");
+  return line.length > 0 ? line : null;
+}
+
+export function tournamentMatchStandingLine(
+  poolMatch: TournamentPoolMatch | null | undefined,
+) {
+  if (!poolMatch) {
+    return null;
+  }
+  if (poolMatch.viewerPosition != null) {
+    return `${friendlyGameWaitlistOrdinal(poolMatch.viewerPosition)} in group ${poolMatch.poolLabel}`;
+  }
+  return `Group ${poolMatch.poolLabel}, ${poolMatch.poolSize} ${
+    poolMatch.poolSize === 1 ? "team" : "teams"
+  }`;
+}
+
+export function tournamentMatchLastResultLine(
+  lastResult: TournamentPoolMatch["lastResult"] | undefined,
+) {
+  if (!lastResult) {
+    return null;
+  }
+  const round = `R${lastResult.roundNumber}`;
+  const score = lastResult.viewerSets
+    .map((set) => `${set.viewer}-${set.opponent}`)
+    .join(" ");
+  switch (lastResult.outcome) {
+    case "cancelled":
+      return `${round} cancelled`;
+    case "draw":
+      return `Drew ${round}`;
+    case "won":
+      return score ? `Won ${round}, ${score}` : `Won ${round}`;
+    case "lost":
+      return score ? `Lost ${round}, ${score}` : `Lost ${round}`;
+  }
+}
+
+type MatchupSide = { left: Occupant; right: Occupant };
+
+function sideHasViewer(side: MatchupSide) {
+  return side.left?.isViewer === true || side.right?.isViewer === true;
+}
+
+/** The viewer's Game team first, then the opposing team. */
+export function tournamentMatchup<T extends MatchupSide>(
+  sides: readonly T[],
+): { viewer: T | null; opponent: T | null } {
+  const viewer = sides.find(sideHasViewer) ?? null;
+  const opponent = sides.find((side) => side !== viewer) ?? null;
+  return { viewer, opponent };
+}
+
+/** `Sofia Lindqvist` → `Sofia L` */
+function shortPlayerName(name: string) {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0] ?? name;
+  const last = parts.length > 1 ? parts[parts.length - 1] : undefined;
+  return last ? `${first} ${last.charAt(0)}` : first;
+}
+
+/** Vacant Positions are left out: the draw has already fixed who plays. */
+export function tournamentMatchupName(side: MatchupSide | null) {
+  if (!side) {
+    return null;
+  }
+  const occupants = [side.left, side.right].filter(
+    (occupant): occupant is NonNullable<Occupant> => occupant != null,
+  );
+  const names = occupants
+    .filter((occupant) => !occupant.isViewer)
+    .map((occupant) => shortPlayerName(occupant.name));
+  if (sideHasViewer(side)) {
+    names.unshift("You");
+  }
+  return names.length > 0 ? names.join(" and ") : null;
 }

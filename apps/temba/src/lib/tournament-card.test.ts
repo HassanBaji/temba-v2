@@ -12,9 +12,16 @@ import {
   tournamentOpenFlagLabel,
   tournamentOpenTeamCount,
   tournamentTeamPairLabel,
+  tournamentMatchLastResultLine,
+  tournamentMatchRoundLine,
+  tournamentMatchStandingLine,
+  tournamentMatchup,
+  tournamentMatchupName,
+  tournamentMatchVenueLine,
   tournamentTeamsLine,
   type TournamentCardInput,
   type TournamentCardTeam,
+  type TournamentPoolMatch,
 } from "./tournament-card";
 
 const ADA = { name: "Ada Lovelace", isViewer: false };
@@ -229,5 +236,155 @@ describe("tournamentCardAction", () => {
       ),
       "view",
     );
+  });
+});
+
+function poolMatch(
+  overrides: Partial<TournamentPoolMatch> = {},
+): TournamentPoolMatch {
+  return {
+    poolLabel: "1",
+    poolSize: 4,
+    viewerPosition: null,
+    lastResult: null,
+    ...overrides,
+  };
+}
+
+describe("tournamentMatchRoundLine", () => {
+  it("names the Round and the viewer's group", () => {
+    assert.equal(tournamentMatchRoundLine(2, poolMatch()), "Round 2, group 1");
+  });
+
+  it("falls back to the group alone without a Round", () => {
+    assert.equal(tournamentMatchRoundLine(null, poolMatch()), "Group 1");
+  });
+
+  it("is null without a Round or a group", () => {
+    assert.equal(tournamentMatchRoundLine(null, null), null);
+  });
+});
+
+describe("tournamentMatchVenueLine", () => {
+  it("joins venue and court", () => {
+    assert.equal(
+      tournamentMatchVenueLine("Padelhuset Bromma", "Court 2"),
+      "Padelhuset Bromma, Court 2",
+    );
+  });
+
+  it("omits a missing court", () => {
+    assert.equal(
+      tournamentMatchVenueLine("Padelhuset Bromma", null),
+      "Padelhuset Bromma",
+    );
+  });
+});
+
+describe("tournamentMatchStandingLine", () => {
+  it("gives the viewer's ordinal once their team has played", () => {
+    assert.equal(
+      tournamentMatchStandingLine(poolMatch({ viewerPosition: 2 })),
+      "2nd in group 1",
+    );
+    assert.equal(
+      tournamentMatchStandingLine(poolMatch({ viewerPosition: 1 })),
+      "1st in group 1",
+    );
+  });
+
+  it("falls back to the group size before the viewer's team has played", () => {
+    assert.equal(tournamentMatchStandingLine(poolMatch()), "Group 1, 4 teams");
+  });
+
+  it("is null without Pool data", () => {
+    assert.equal(tournamentMatchStandingLine(null), null);
+  });
+
+  it("never uses knockout copy", () => {
+    const line = tournamentMatchStandingLine(poolMatch({ viewerPosition: 2 }));
+    assert.doesNotMatch(line ?? "", /go through|quarter/i);
+  });
+});
+
+describe("tournamentMatchLastResultLine", () => {
+  it("shows a win with the viewer's set scores", () => {
+    assert.equal(
+      tournamentMatchLastResultLine({
+        roundNumber: 1,
+        outcome: "won",
+        viewerSets: [
+          { viewer: 6, opponent: 3 },
+          { viewer: 6, opponent: 4 },
+        ],
+      }),
+      "Won R1, 6-3 6-4",
+    );
+  });
+
+  it("shows a loss from the viewer's side", () => {
+    assert.equal(
+      tournamentMatchLastResultLine({
+        roundNumber: 1,
+        outcome: "lost",
+        viewerSets: [
+          { viewer: 4, opponent: 6 },
+          { viewer: 3, opponent: 6 },
+        ],
+      }),
+      "Lost R1, 4-6 3-6",
+    );
+  });
+
+  it("shows a draw and a cancelled Round without scores", () => {
+    assert.equal(
+      tournamentMatchLastResultLine({
+        roundNumber: 2,
+        outcome: "draw",
+        viewerSets: [
+          { viewer: 6, opponent: 4 },
+          { viewer: 4, opponent: 6 },
+        ],
+      }),
+      "Drew R2",
+    );
+    assert.equal(
+      tournamentMatchLastResultLine({
+        roundNumber: 1,
+        outcome: "cancelled",
+        viewerSets: [],
+      }),
+      "R1 cancelled",
+    );
+  });
+
+  it("is omitted when there is no result", () => {
+    assert.equal(tournamentMatchLastResultLine(null), null);
+  });
+});
+
+describe("tournamentMatchup", () => {
+  const mine = { left: SAM, right: YOU };
+  const theirs = { left: ADA, right: { name: "Kim Ho", isViewer: false } };
+
+  it("puts the viewer's team first whichever slot it sits in", () => {
+    assert.deepEqual(tournamentMatchup([theirs, mine]), {
+      viewer: mine,
+      opponent: theirs,
+    });
+  });
+
+  it("labels the viewer's pair with You and the partner", () => {
+    assert.equal(tournamentMatchupName(mine), "You and Sam C");
+  });
+
+  it("labels opponents by first name and initial", () => {
+    assert.equal(tournamentMatchupName(theirs), "Ada L and Kim H");
+  });
+
+  it("never names a vacant Position", () => {
+    assert.equal(tournamentMatchupName({ left: YOU, right: null }), "You");
+    assert.equal(tournamentMatchupName({ left: null, right: ADA }), "Ada L");
+    assert.equal(tournamentMatchupName({ left: null, right: null }), null);
   });
 });

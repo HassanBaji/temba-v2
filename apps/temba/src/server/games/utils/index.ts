@@ -49,6 +49,21 @@ export type HubListTournament = {
   joinSides: HubListSide[];
 };
 
+export type HubListPoolMatchOutcome = "won" | "lost" | "draw" | "cancelled";
+
+export type HubListPoolMatch = {
+  /** The Pool identifier shown after "group", as the tournament detail labels it. */
+  poolLabel: string;
+  poolSize: number;
+  /** Null until the viewer's Game team has played a Pool Match. */
+  viewerPosition: number | null;
+  lastResult: {
+    roundNumber: number;
+    outcome: HubListPoolMatchOutcome;
+    viewerSets: { viewer: number; opponent: number }[];
+  } | null;
+};
+
 export type HubListRow = {
   id: string;
   name: string | null;
@@ -85,6 +100,8 @@ export type HubListRow = {
   roundNumber: number | null;
   roundCount: number | null;
   courtName: string | null;
+  /** Only on expanded Pool Match rows. */
+  poolMatch: HubListPoolMatch | null;
 };
 
 export type GameCreateGroupKind = "club" | "loose" | "none";

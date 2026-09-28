@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,15 +7,21 @@ import {
   courts,
   games,
   groupMembers,
+  gameTeams,
   groups,
+  matches,
   user,
   venues,
 } from "@repo/db/schema";
 
+import { addSet } from "~/server/api/routers/games/addSet";
+import { cancelMatch } from "~/server/api/routers/games/cancelMatch";
+import { completeMatch } from "~/server/api/routers/games/completeMatch";
 import { createTournament } from "~/server/api/routers/games/createTournament";
 import { drawPools } from "~/server/api/routers/games/drawPools";
 import { postPoolDraw } from "~/server/api/routers/games/postPoolDraw";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
+import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { groupById } from "~/server/api/routers/groups/byId";
 import { createFriendlyGame } from "~/server/games/create-friendly";
 import { listMyGamesHubRows } from "~/server/games/list-my-games";
@@ -332,6 +339,229 @@ describe("hub row tournament field", { timeout: 30_000 }, () => {
       expect(friendlyRow?.sides).toHaveLength(2);
       expect(legacyRow?.tournament).toBeNull();
       expect(legacyRow?.poolCount).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});
+
+async function seedPostedTournament(database: TestDatabase, prefix: string) {
+  const seeded = await seedTournament(database, prefix, {
+    teamCount: 4,
+    poolCount: 1,
+  });
+  const players = await joinGroup(database, seeded.groupId, prefix, 8);
+  for (let team = 0; team < 4; team += 1) {
+    const left = players[team * 2];
+    const right = players[team * 2 + 1];
+    if (!left || !right) {
+      throw new Error("Expected eight players");
+    }
+    await seat(database, seeded.gameId, left.id, team + 1, "left");
+    await seat(database, seeded.gameId, right.id, team + 1, "right");
+  }
+  await drawPools(database, {
+    gameId: seeded.gameId,
+    organizerUserId: seeded.owner.id,
+    shuffle: (items) => [...items],
+  });
+  await postPoolDraw(database, {
+    gameId: seeded.gameId,
+    organizerUserId: seeded.owner.id,
+  });
+  const viewer = players[0];
+  if (!viewer) {
+    throw new Error("Expected a seated viewer");
+  }
+  return { ...seeded, players, viewer };
+}
+
+async function viewerRoundOneMatch(
+  database: TestDatabase,
+  gameId: string,
+  viewerSideIndex: number,
+) {
+  const team = await database.query.gameTeams.findFirst({
+    where: (table, { and }) =>
+      and(eq(table.gameId, gameId), eq(table.sideIndex, viewerSideIndex)),
+  });
+  const rows = await database.query.matches.findMany({
+    where: eq(matches.gameId, gameId),
+  });
+  const match = rows.find(
+    (row) =>
+      row.roundNumber === 1 &&
+      (row.slot1GameTeamId === team?.id || row.slot2GameTeamId === team?.id),
+  );
+  if (!team || !match) {
+    throw new Error("Expected the viewer's Round 1 Match");
+  }
+  const opponentTeamId =
+    match.slot1GameTeamId === team.id
+      ? match.slot2GameTeamId
+      : match.slot1GameTeamId;
+  const opponent = await database.query.gameTeams.findFirst({
+    where: eq(gameTeams.id, opponentTeamId ?? ""),
+  });
+  return {
+    match,
+    viewerIsSlot1: match.slot1GameTeamId === team.id,
+    opponentSideIndex: opponent?.sideIndex ?? null,
+  };
+}
+
+async function completeWithSets(
+  database: TestDatabase,
+  args: {
+    gameId: string;
+    matchId: string;
+    organizerUserId: string;
+    sets: { slot1GamesWon: number; slot2GamesWon: number }[];
+  },
+) {
+  for (const set of args.sets) {
+    const created = await addSet(database, {
+      gameId: args.gameId,
+      matchId: args.matchId,
+      userId: args.organizerUserId,
+    });
+    await scoreSet(database, {
+      gameId: args.gameId,
+      matchId: args.matchId,
+      setId: created.id,
+      userId: args.organizerUserId,
+      slot1GamesWon: set.slot1GamesWon,
+      slot2GamesWon: set.slot2GamesWon,
+    });
+  }
+  await completeMatch(database, {
+    gameId: args.gameId,
+    matchId: args.matchId,
+    userId: args.organizerUserId,
+  });
+}
+
+describe("hub row poolMatch field", { timeout: 30_000 }, () => {
+  it("gives every expanded Pool Match row the viewer's group with no result yet, and is null on rows that are not expanded", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "pool-fresh");
+      const friendly = await createFriendlyGame(db, {
+        createdBy: seeded.owner.id,
+        name: "Side Friendly",
+        groupId: seeded.groupId,
+        venueId: seeded.venueId,
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      });
+
+      const viewerRows = await listMyGamesHubRows(db, seeded.viewer.id, NOW);
+      const matchRows = viewerRows.filter(
+        (row) => row.id === seeded.gameId && row.matchId != null,
+      );
+      expect(matchRows).toHaveLength(3);
+      for (const row of matchRows) {
+        expect(row.poolMatch).toEqual({
+          poolLabel: "1",
+          poolSize: 4,
+          viewerPosition: null,
+          lastResult: null,
+        });
+      }
+      expect(
+        viewerRows.find((row) => row.id === friendly.game.id)?.poolMatch,
+      ).toBeNull();
+
+      const organizerRows = await listMyGamesHubRows(db, seeded.owner.id, NOW);
+      const organizerRow = organizerRows.find(
+        (row) => row.id === seeded.gameId,
+      );
+      expect(organizerRow?.matchId).toBeNull();
+      expect(organizerRow?.poolMatch).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("reports the viewer's position and last result after a win, from each side", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "pool-won");
+      const { match, viewerIsSlot1, opponentSideIndex } =
+        await viewerRoundOneMatch(db, seeded.gameId, 1);
+      const viewerSets = [
+        { viewer: 6, opponent: 3 },
+        { viewer: 6, opponent: 4 },
+      ];
+      await completeWithSets(db, {
+        gameId: seeded.gameId,
+        matchId: match.id,
+        organizerUserId: seeded.owner.id,
+        sets: viewerSets.map((set) =>
+          viewerIsSlot1
+            ? { slot1GamesWon: set.viewer, slot2GamesWon: set.opponent }
+            : { slot1GamesWon: set.opponent, slot2GamesWon: set.viewer },
+        ),
+      });
+
+      const viewerRows = (
+        await listMyGamesHubRows(db, seeded.viewer.id, NOW)
+      ).filter((row) => row.id === seeded.gameId);
+      expect(viewerRows.map((row) => row.roundNumber)).toEqual([2, 3]);
+      for (const row of viewerRows) {
+        expect(row.poolMatch).toEqual({
+          poolLabel: "1",
+          poolSize: 4,
+          viewerPosition: 1,
+          lastResult: { roundNumber: 1, outcome: "won", viewerSets },
+        });
+      }
+
+      const opponent =
+        opponentSideIndex != null
+          ? seeded.players[(opponentSideIndex - 1) * 2]
+          : undefined;
+      if (!opponent) {
+        throw new Error("Expected the opposing player");
+      }
+      const opponentRow = (await listMyGamesHubRows(db, opponent.id, NOW)).find(
+        (row) => row.id === seeded.gameId,
+      );
+      expect(opponentRow?.poolMatch?.viewerPosition).toBe(2);
+      expect(opponentRow?.poolMatch?.lastResult).toEqual({
+        roundNumber: 1,
+        outcome: "lost",
+        viewerSets: [
+          { viewer: 3, opponent: 6 },
+          { viewer: 4, opponent: 6 },
+        ],
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("reports a cancelled Round as the last result without a position", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "pool-cancelled");
+      const { match } = await viewerRoundOneMatch(db, seeded.gameId, 1);
+      await cancelMatch(db, {
+        gameId: seeded.gameId,
+        userId: seeded.owner.id,
+        matchId: match.id,
+      });
+
+      const row = (await listMyGamesHubRows(db, seeded.viewer.id, NOW)).find(
+        (item) => item.id === seeded.gameId,
+      );
+      expect(row?.roundNumber).toBe(2);
+      expect(row?.poolMatch).toEqual({
+        poolLabel: "1",
+        poolSize: 4,
+        viewerPosition: null,
+        lastResult: { roundNumber: 1, outcome: "cancelled", viewerSets: [] },
+      });
     } finally {
       await close();
     }

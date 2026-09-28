@@ -5,7 +5,10 @@ import { useState } from "react";
 import { StepperField } from "~/components/games/stepper-field";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHome } from "~/components/games/tournament-home";
-import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
+import {
+  TournamentMatchCard,
+  TournamentSummaryCard,
+} from "~/components/games/tournament-summary-card";
 import { TAB_SEGMENT } from "~/components/groups/group-home-chrome";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -118,6 +121,19 @@ export function TournamentPreviewStates({
         </div>
       </section>
       <section className="space-y-4">
+        <h2 className="text-title font-semibold">Your-tournament Match card</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <MatchCardPreviewColumn
+            title="Upcoming, no result yet"
+            game={cardFixtures.matchUpcoming}
+          />
+          <MatchCardPreviewColumn
+            title="Won R1"
+            game={cardFixtures.matchWonRoundOne}
+          />
+        </div>
+      </section>
+      <section className="space-y-4">
         <h2 className="text-title font-semibold">Create screen controls</h2>
         <div className="mx-auto w-full max-w-[420px]">
           <TournamentCreateControlsPreview />
@@ -158,6 +174,26 @@ function CardPreviewColumn({
           href={`/dashboard/design/tournament#${game.id}`}
           onJoinSeat={() => undefined}
           onJoinWaitlist={() => undefined}
+        />
+      </ul>
+    </div>
+  );
+}
+
+function MatchCardPreviewColumn({
+  title,
+  game,
+}: {
+  title: string;
+  game: TournamentCardFixture;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <ul>
+        <TournamentMatchCard
+          game={game}
+          href={`/dashboard/design/tournament#${game.id}`}
         />
       </ul>
     </div>

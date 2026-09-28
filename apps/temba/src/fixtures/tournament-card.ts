@@ -143,7 +143,43 @@ function buildRow(args: {
     roundNumber: null,
     roundCount: null,
     courtName: null,
+    poolMatch: null,
   };
+}
+
+/** A posted Pool Match row as My Games expands it (ADR-0018). */
+function buildMatchRow(args: {
+  id: string;
+  drawn: TournamentCardFixture;
+  startTime: Date;
+  roundNumber: number;
+  poolMatch: NonNullable<TournamentCardFixture["poolMatch"]>;
+}): TournamentCardFixture {
+  return {
+    ...args.drawn,
+    id: args.id,
+    startTime: args.startTime,
+    isRegistered: true,
+    isSeated: true,
+    matchId: `match-${args.id}`,
+    roundNumber: args.roundNumber,
+    roundCount: 3,
+    courtName: "Court 2",
+    sides: [
+      { sideIndex: 1, left: occupant(10), right: occupant(11) },
+      { sideIndex: 2, left: VIEWER, right: occupant(1) },
+    ],
+    registeredUserCount: 4,
+    playersAllowed: 4,
+    poolMatch: args.poolMatch,
+  };
+}
+
+function atHalfPast(now: Date, dayOffset: number, hour: number) {
+  const date = new Date(now);
+  date.setDate(date.getDate() + dayOffset);
+  date.setHours(hour, 30, 0, 0);
+  return date;
 }
 
 export function createTournamentCardFixtures(now = new Date()) {
@@ -165,6 +201,15 @@ export function createTournamentCardFixtures(now = new Date()) {
     fullTeam(index),
   );
 
+  const drawn = buildRow({
+    id: "card-drawn",
+    seats: fullSeats,
+    now,
+    drawPosted: true,
+    registrationStatus: "closed",
+  });
+  const tonight = atHalfPast(now, 0, 19);
+
   return {
     open: buildRow({
       id: "card-open",
@@ -185,12 +230,37 @@ export function createTournamentCardFixtures(now = new Date()) {
       registrationStatus: "full",
       canWaitlist: true,
     }),
-    drawn: buildRow({
-      id: "card-drawn",
-      seats: fullSeats,
-      now,
-      drawPosted: true,
-      registrationStatus: "closed",
+    drawn,
+    matchUpcoming: buildMatchRow({
+      id: "card-match-upcoming",
+      drawn,
+      startTime: tonight > now ? tonight : atHalfPast(now, 1, 19),
+      roundNumber: 1,
+      poolMatch: {
+        poolLabel: "1",
+        poolSize: 4,
+        viewerPosition: null,
+        lastResult: null,
+      },
+    }),
+    matchWonRoundOne: buildMatchRow({
+      id: "card-match-won",
+      drawn,
+      startTime: atHalfPast(now, 7, 19),
+      roundNumber: 2,
+      poolMatch: {
+        poolLabel: "1",
+        poolSize: 4,
+        viewerPosition: 2,
+        lastResult: {
+          roundNumber: 1,
+          outcome: "won",
+          viewerSets: [
+            { viewer: 6, opponent: 3 },
+            { viewer: 6, opponent: 4 },
+          ],
+        },
+      },
     }),
   };
 }

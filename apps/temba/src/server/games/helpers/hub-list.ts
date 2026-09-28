@@ -1,18 +1,29 @@
-import { eq, inArray, or, type SQL } from "drizzle-orm";
+import { asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
-import { gamePlayers, gameWaitlist, groupMembers, teamMembers } from "@repo/db";
+import {
+  gamePlayers,
+  gameWaitlist,
+  groupMembers,
+  matchSets,
+  teamMembers,
+} from "@repo/db";
 
 import {
   isPartnerRequiredGame,
   isPoolTournament,
 } from "~/lib/tournament-rounds";
 import { resolvePlannedRoundCount } from "~/lib/tournament-sizing";
+import {
+  computePoolTables,
+  type ViewerRoundResult,
+} from "~/server/games/pool-table";
 import { registrationStatusFromState } from "~/server/games/access";
 import { type db } from "~/server/db";
 import { gameListTime } from "~/server/home/upcoming-games";
 import { consult } from "~/server/soft-archive";
 import type { TestDatabase } from "~/server/test/pglite";
 import type {
+  HubListPoolMatch,
   HubListRow,
   HubListSide,
   HubListSideOccupant,
@@ -87,6 +98,13 @@ export const hubListWith = {
         columns: {
           name: true,
         },
+      },
+      sets: {
+        columns: {
+          slot1GamesWon: true,
+          slot2GamesWon: true,
+        },
+        orderBy: asc(matchSets.setNumber),
       },
     },
   },
@@ -173,6 +191,7 @@ export type HubQueryRow = {
     roundNumber: number | null;
     courtId: string | null;
     court: { name: string } | null;
+    sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
   }[];
   players: { id: string; userId: string | null }[];
   waitlist: { userId: string | null; teamId: string | null }[];
@@ -488,6 +507,7 @@ export function toHubListRow(
     roundNumber: null,
     roundCount: null,
     courtName: null,
+    poolMatch: null,
   };
 }
 
@@ -533,6 +553,77 @@ function isOpenPoolMatch(match: HubQueryRow["matches"][number]) {
   return match.status !== "completed" && match.status !== "cancelled";
 }
 
+function viewerPoolMatch(
+  row: HubQueryRow,
+  viewerUserId: string,
+): HubListPoolMatch | null {
+  const tables = computePoolTables({
+    format: row.format,
+    poolCount: row.poolCount,
+    viewerUserId,
+    gameTeams: row.teams.map((team) => ({
+      id: team.id,
+      name: null,
+      sideIndex: team.sideIndex,
+      poolIndex: team.poolIndex,
+      members: team.players.flatMap((link) => {
+        const user = link.gamePlayer?.user;
+        return user ? [{ id: user.id, name: user.name }] : [];
+      }),
+    })),
+    matches: row.matches,
+  });
+  const pool = tables?.pools.find(
+    (item) => item.poolIndex === tables.viewerPoolIndex,
+  );
+  if (!pool) {
+    return null;
+  }
+  const viewerRow = pool.rows.find((item) => item.isViewer);
+  return {
+    poolLabel: String(pool.poolIndex),
+    poolSize: pool.rows.length,
+    viewerPosition: viewerRow?.played != null ? viewerRow.position : null,
+    lastResult: lastSettledRound(pool.viewerRounds),
+  };
+}
+
+function lastSettledRound(
+  rounds: readonly ViewerRoundResult[],
+): HubListPoolMatch["lastResult"] {
+  const settled = rounds.flatMap(
+    (round): NonNullable<HubListPoolMatch["lastResult"]>[] => {
+      if (round.roundNumber == null) {
+        return [];
+      }
+      if (round.cancelled) {
+        return [
+          {
+            roundNumber: round.roundNumber,
+            outcome: "cancelled",
+            viewerSets: [],
+          },
+        ];
+      }
+      if (round.viewerOutcome == null) {
+        return [];
+      }
+      return [
+        {
+          roundNumber: round.roundNumber,
+          outcome: round.viewerOutcome,
+          viewerSets: round.sets.flatMap((set) =>
+            set.viewerGamesWon != null && set.opponentGamesWon != null
+              ? [{ viewer: set.viewerGamesWon, opponent: set.opponentGamesWon }]
+              : [],
+          ),
+        },
+      ];
+    },
+  );
+  return settled[settled.length - 1] ?? null;
+}
+
 /**
  * My Games and the Home carousel expand a posted Pool tournament into one
  * row per Pool Match the viewer sits on (ADR-0018). Group home and pickup
@@ -557,6 +648,7 @@ export function expandDrawnTournamentHubRows(
     return [hubRow];
   }
   const roundCount = poolRoundCount(row);
+  const poolMatch = viewerPoolMatch(row, viewerUserId);
   return [...mine]
     .sort((left, right) => {
       const leftTime = left.startTime?.getTime() ?? 0;
@@ -584,6 +676,7 @@ export function expandDrawnTournamentHubRows(
         playersAllowed: 4,
         canRegister: false,
         canWaitlist: false,
+        poolMatch,
       };
     });
 }

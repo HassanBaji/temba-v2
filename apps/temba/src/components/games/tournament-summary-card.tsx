@@ -8,23 +8,32 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { Button } from "~/components/ui/button";
-import { formatGameCardDay } from "~/lib/format-game-start";
+import { formatGameCardDay, formatRelativeDay } from "~/lib/format-game-start";
+import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
 import { formatLevelRangeLabel } from "~/lib/level-range";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import {
   NO_TEAMS_YET_COPY,
   showsTournamentOpenFlag,
   TOURNAMENT_CARD_BAND_LABEL,
+  TOURNAMENT_MATCH_CARD_BAND_LABEL,
   tournamentCardAction,
   tournamentCardActionLabel,
   tournamentCardBandMeta,
   tournamentCardDateLine,
   tournamentCardPairs,
+  tournamentMatchLastResultLine,
+  tournamentMatchRoundLine,
+  tournamentMatchStandingLine,
+  tournamentMatchup,
+  tournamentMatchupName,
+  tournamentMatchVenueLine,
   tournamentOpenFlagLabel,
   tournamentOpenTeamCount,
   tournamentTeamPairLabel,
   tournamentTeamsLine,
 } from "~/lib/tournament-card";
+import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -101,13 +110,16 @@ function PairSquare({
   occupant,
   onInk,
   overlap,
+  large = false,
 }: {
   occupant: TeamOccupant;
   onInk: boolean;
   overlap: boolean;
+  large?: boolean;
 }) {
   const shape = cn(
-    "size-8 shrink-0 rounded-[9px]",
+    large ? "size-9 rounded-[10px]" : "size-8 rounded-[9px]",
+    "shrink-0",
     overlap ? "-ml-2" : null,
     overlap && onInk && occupant ? "ring-paper ring-2" : null,
   );
@@ -120,7 +132,10 @@ function PairSquare({
       image={occupant.image}
       className={cn(
         shape,
-        "*:data-[slot=avatar-fallback]:rounded-none *:data-[slot=avatar-fallback]:text-[11px]",
+        "*:data-[slot=avatar-fallback]:rounded-none",
+        large
+          ? "*:data-[slot=avatar-fallback]:text-[12px]"
+          : "*:data-[slot=avatar-fallback]:text-[11px]",
         onInk
           ? "*:data-[slot=avatar-fallback]:bg-ink *:data-[slot=avatar-fallback]:text-paper"
           : "border-rule *:data-[slot=avatar-fallback]:bg-paper *:data-[slot=avatar-fallback]:text-ink border",
@@ -321,6 +336,163 @@ export function TournamentSummaryCard({
           onPickSeat={onJoinSeat}
         />
       ) : null}
+    </li>
+  );
+}
+
+function MatchupColumn({
+  side,
+  isViewerSide,
+}: {
+  side: TournamentCardGame["sides"][number] | null;
+  isViewerSide: boolean;
+}) {
+  const name = tournamentMatchupName(side);
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-1 flex-col gap-2",
+        isViewerSide ? "items-start" : "items-end",
+      )}
+    >
+      <span className="flex flex-none items-center">
+        <PairSquare
+          occupant={side?.left ?? null}
+          onInk={isViewerSide}
+          overlap={false}
+          large
+        />
+        <PairSquare
+          occupant={side?.right ?? null}
+          onInk={isViewerSide}
+          overlap
+          large
+        />
+      </span>
+      {name ? (
+        <span
+          className={cn(
+            "max-w-full truncate text-[13px]",
+            isViewerSide ? "font-semibold" : "text-muted-foreground text-right",
+          )}
+        >
+          {name}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+export function TournamentMatchCard({
+  game,
+  href,
+}: {
+  game: TournamentCardGame;
+  href: string;
+}) {
+  const [now, setNow] = React.useState(() => new Date());
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date());
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const startsAt = new Date(game.startTime);
+  const kickoff = formatHomeKickoff(startsAt);
+  const day = formatRelativeDay(startsAt, { sameDayLabel: "Tonight" });
+  const countdown = formatHomeCountdown(startsAt, now);
+  const title = game.name ?? game.venue?.name ?? "Untitled Game";
+  const roundLine = tournamentMatchRoundLine(game.roundNumber, game.poolMatch);
+  const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
+  const { viewer, opponent } = tournamentMatchup(game.sides);
+  const standingLine = tournamentMatchStandingLine(game.poolMatch);
+  const lastResultLine = tournamentMatchLastResultLine(
+    game.poolMatch?.lastResult,
+  );
+
+  return (
+    <li data-slot="tournament-match-card">
+      <StackedCard
+        href={href}
+        linkLabel={[
+          title,
+          roundLine,
+          `${kickoff.time} ${kickoff.meridiem}`,
+          day,
+        ]
+          .filter(Boolean)
+          .join(", ")}
+      >
+        <CardBand
+          label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
+          meta={poolRoundLabel(game.roundNumber, game.roundCount)}
+        />
+
+        <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-px">
+              <p className="truncate text-sm font-semibold">{title}</p>
+              {roundLine ? (
+                <p className="text-muted-foreground truncate text-xs">
+                  {roundLine}
+                </p>
+              ) : null}
+            </div>
+            {countdown ? (
+              <span className="text-dim shrink-0 text-[13px] tabular-nums">
+                {countdown}
+              </span>
+            ) : null}
+          </div>
+
+          <p className="mt-3.5 flex flex-wrap items-baseline gap-x-[9px]">
+            <span className="font-expanded text-[46px] tabular-nums leading-none tracking-[-0.045em]">
+              {kickoff.time}
+            </span>
+            {kickoff.meridiem ? (
+              <span className="text-dim text-[19px] font-medium leading-none">
+                {kickoff.meridiem}
+              </span>
+            ) : null}
+            <span className="text-[15px] font-medium">{day}</span>
+          </p>
+          {venueLine ? (
+            <p className="text-muted-foreground mt-2 truncate text-sm">
+              {venueLine}
+            </p>
+          ) : null}
+
+          <div className="border-rule my-4 border-t" />
+
+          <div className="flex items-center gap-2.5">
+            <MatchupColumn side={viewer} isViewerSide={viewer != null} />
+            <span className="text-dim flex-none text-xs">vs</span>
+            <MatchupColumn side={opponent} isViewerSide={false} />
+          </div>
+
+          {standingLine ? (
+            <>
+              <div className="border-rule my-4 border-t" />
+              <p className="text-muted-foreground text-[13px]">
+                {standingLine}
+              </p>
+            </>
+          ) : null}
+        </div>
+
+        <div className="border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] px-[18px] py-3.5">
+          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+            {lastResultLine}
+          </span>
+          <span
+            className={cn(ACTION_CLASS, "border-rule bg-paper text-ink border")}
+          >
+            {tournamentCardActionLabel("view")}
+          </span>
+        </div>
+      </StackedCard>
     </li>
   );
 }
