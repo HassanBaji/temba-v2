@@ -53,3 +53,6 @@ yarn-error.log*
 .claude/settings.local.json
 .claude/worktrees/
 CLAUDE.local.md
+
+# local flow recordings (apps/temba record:flows)
+apps/temba/recordings/
