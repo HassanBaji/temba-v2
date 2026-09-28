@@ -5,6 +5,7 @@ import * as React from "react";
 import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
+import { RoundCountField } from "~/components/games/round-count-field";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -30,6 +31,23 @@ import {
   type LevelBandSelectValue,
 } from "~/lib/level-range";
 import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "~/lib/price-per-player";
+import { ONE_DAY_OVERRUN_MESSAGE } from "~/lib/tournament-sizing";
+
+type EditFormError = {
+  message: string;
+  data?: { zodError?: unknown } | null;
+};
+
+export type GameEditRounds = {
+  poolSizes: readonly number[];
+  roundCount: number | null;
+  onRoundCountChange: (roundCount: number | null) => void;
+  overruns: boolean;
+  error: EditFormError | null;
+  summaryRef: React.RefObject<HTMLDivElement | null>;
+  pending: boolean;
+  onSave: () => void;
+};
 
 export function GameEditDialog({
   open,
@@ -62,6 +80,7 @@ export function GameEditDialog({
   levelSummaryRef,
   levelPending,
   onSaveLevelRange,
+  rounds,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,6 +112,7 @@ export function GameEditDialog({
   levelSummaryRef: React.RefObject<HTMLDivElement | null>;
   levelPending: boolean;
   onSaveLevelRange: () => void;
+  rounds: GameEditRounds | null;
 }) {
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -258,6 +278,38 @@ export function GameEditDialog({
               {levelPending ? "Saving…" : "Save Level range"}
             </Button>
           </form>
+          {rounds ? (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (rounds.pending) {
+                  return;
+                }
+                rounds.onSave();
+              }}
+            >
+              <FormErrorSummary
+                ref={rounds.summaryRef}
+                message={globalFormErrorMessage(rounds.error)}
+              />
+              <RoundCountField
+                id="edit-round-count"
+                poolSizes={rounds.poolSizes}
+                roundCount={rounds.roundCount}
+                onRoundCount={rounds.onRoundCountChange}
+                error={fieldErrorMessage(rounds.error, "roundCount")}
+              />
+              {rounds.overruns ? (
+                <p className="text-muted-foreground text-[13px] leading-relaxed">
+                  {ONE_DAY_OVERRUN_MESSAGE}
+                </p>
+              ) : null}
+              <Button type="submit" disabled={rounds.pending}>
+                {rounds.pending ? "Saving…" : "Save Rounds"}
+              </Button>
+            </form>
+          ) : null}
           {format === "friendly_game" ? (
             <p className="text-muted-foreground text-sm">
               Friendly game caps stay 4 players / 2 Teams.
