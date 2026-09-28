@@ -28,8 +28,11 @@ export function RoundCountField({
   error?: string;
   labelClassName?: string;
 }) {
-  const range = roundCountRange(poolSizes);
   const value = resolveRoundCount(poolSizes, roundCount);
+  if (value == null) {
+    return null;
+  }
+  const range = roundCountRange(poolSizes);
   const rounds = sizeTournamentRounds(poolSizes, value);
   const onSuggestion = value === range.suggested;
 

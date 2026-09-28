@@ -45,10 +45,11 @@ export function viewerTournamentMatchCount(
     return null;
   }
   const { poolSizes } = sized.sizing;
-  const rounds = sizeTournamentRounds(
-    poolSizes,
-    resolveRoundCount(poolSizes, game.roundCount),
-  );
+  const roundCount = resolveRoundCount(poolSizes, game.roundCount);
+  if (roundCount == null) {
+    return null;
+  }
+  const rounds = sizeTournamentRounds(poolSizes, roundCount);
   return rounds.matchesPerTeamMin === rounds.matchesPerTeamMax
     ? rounds.matchesPerTeamMin
     : null;

@@ -472,12 +472,13 @@ export function FriendlyTournamentSteps({
   );
   const sized = sizeFriendlyTournament(teamCount, poolCount);
   const sizing = sized.ok ? sized.sizing : null;
-  const rounds = sizing
-    ? sizeTournamentRounds(
-        sizing.poolSizes,
-        resolveRoundCount(sizing.poolSizes, roundCount),
-      )
+  const resolvedRoundCount = sizing
+    ? resolveRoundCount(sizing.poolSizes, roundCount)
     : null;
+  const rounds =
+    sizing && resolvedRoundCount != null
+      ? sizeTournamentRounds(sizing.poolSizes, resolvedRoundCount)
+      : null;
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;

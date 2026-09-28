@@ -169,17 +169,21 @@ export async function postPoolDraw(
         .map((team) => team.id),
     }));
 
-  const scheduled = schedulePoolMatches({
-    pools,
-    roundCount: resolveRoundCount(
-      pools.map((pool) => pool.gameTeamIds.length),
-      game.roundCount,
-    ),
-    courtIds,
-    windowStart: game.windowStart,
-    windowEnd: game.windowEnd,
-    matchMinutes: game.matchMinutes,
-  });
+  const roundCount = resolveRoundCount(
+    pools.map((pool) => pool.gameTeamIds.length),
+    game.roundCount,
+  );
+  const scheduled =
+    roundCount == null
+      ? []
+      : schedulePoolMatches({
+          pools,
+          roundCount,
+          courtIds,
+          windowStart: game.windowStart,
+          windowEnd: game.windowEnd,
+          matchMinutes: game.matchMinutes,
+        });
   if (scheduled.length < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",

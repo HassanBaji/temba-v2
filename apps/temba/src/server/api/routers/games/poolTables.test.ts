@@ -554,7 +554,7 @@ describe("listPoolTables", () => {
     }
   });
 
-  it("ranks the Game team that won both meetings first when tied on wins, even with the worse Set difference", async () => {
+  it("sums head-to-head over both meetings, so a win then a draw outranks the better Set difference", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const seeded = await seedPostedTournament(db, "twice");
@@ -564,17 +564,20 @@ describe("listPoolTables", () => {
         { slot1GamesWon: 6, slot2GamesWon: 0 },
         { slot1GamesWon: 6, slot2GamesWon: 0 },
       ];
+      const splitSetsDraw = [
+        { slot1GamesWon: 6, slot2GamesWon: 4 },
+        { slot1GamesWon: 4, slot2GamesWon: 6 },
+      ];
       await replaceWithCompletedMeetings(db, seeded.gameId, [
         { roundNumber: 1, slot1Side: 1, slot2Side: 2, sets: oneSetWin },
         { roundNumber: 2, slot1Side: 2, slot2Side: 3, sets: threeSetWin },
-        { roundNumber: 3, slot1Side: 2, slot2Side: 4, sets: threeSetWin },
-        { roundNumber: 4, slot1Side: 1, slot2Side: 2, sets: oneSetWin },
+        { roundNumber: 4, slot1Side: 1, slot2Side: 2, sets: splitSetsDraw },
       ]);
 
       const order = await poolOrderBySide(db, seeded.gameId, seeded.owner.id);
       expect(order.slice(0, 2)).toEqual([
-        { side: 1, won: 2 },
-        { side: 2, won: 2 },
+        { side: 1, won: 1 },
+        { side: 2, won: 1 },
       ]);
     } finally {
       await close();

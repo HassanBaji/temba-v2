@@ -649,12 +649,16 @@ function NewGameForm() {
           : "Create Game"
       : "Continue";
   const tournamentSizing = sizeFriendlyTournament(teamCount, poolCount);
-  const tournamentRounds = tournamentSizing.ok
-    ? sizeTournamentRounds(
-        tournamentSizing.sizing.poolSizes,
-        resolveRoundCount(tournamentSizing.sizing.poolSizes, roundCount),
-      )
+  const tournamentRoundCount = tournamentSizing.ok
+    ? resolveRoundCount(tournamentSizing.sizing.poolSizes, roundCount)
     : null;
+  const tournamentRounds =
+    tournamentSizing.ok && tournamentRoundCount != null
+      ? sizeTournamentRounds(
+          tournamentSizing.sizing.poolSizes,
+          tournamentRoundCount,
+        )
+      : null;
   const tournamentPreviewDetail = friendlyTournamentPreviewDetail({
     day,
     venueName: selectedVenue?.name ?? null,

@@ -662,8 +662,13 @@ export default function GameHomePage({
   const editRoundsPoolSizes = plannedSizing?.ok
     ? plannedSizing.sizing.poolSizes
     : null;
+  const editRoundCount =
+    editRoundsPoolSizes != null
+      ? resolveRoundCount(editRoundsPoolSizes, roundCount)
+      : null;
   const editRoundsOverrun =
     editRoundsPoolSizes != null &&
+    editRoundCount != null &&
     data.windowStart != null &&
     data.windowEnd != null &&
     data.recordedCourts.length > 0 &&
@@ -671,10 +676,8 @@ export default function GameHomePage({
     oneDayFit({
       start: data.windowStart,
       finish: data.windowEnd,
-      poolMatches: sizeTournamentRounds(
-        editRoundsPoolSizes,
-        resolveRoundCount(editRoundsPoolSizes, roundCount),
-      ).poolMatches,
+      poolMatches: sizeTournamentRounds(editRoundsPoolSizes, editRoundCount)
+        .poolMatches,
       courtCount: data.recordedCourts.length,
       matchMinutes: data.matchMinutes,
     }).overruns;

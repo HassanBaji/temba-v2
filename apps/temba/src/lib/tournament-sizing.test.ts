@@ -417,6 +417,11 @@ describe("resolveRoundCount", () => {
     assert.equal(resolveRoundCount([4], 10), 6);
     assert.equal(resolveRoundCount([5, 5, 4], 11), 10);
   });
+
+  it("has no Round count when there are no Pools", () => {
+    assert.equal(resolveRoundCount([], null), null);
+    assert.equal(resolveRoundCount([], 5), null);
+  });
 });
 
 describe("resolvePlannedRoundCount", () => {

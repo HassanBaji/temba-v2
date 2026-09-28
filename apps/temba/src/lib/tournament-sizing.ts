@@ -128,7 +128,10 @@ export function roundCountRange(poolSizes: readonly number[]) {
 export function resolveRoundCount(
   poolSizes: readonly number[],
   storedRoundCount: number | null | undefined,
-): number {
+): number | null {
+  if (poolSizes.length === 0) {
+    return null;
+  }
   const range = roundCountRange(poolSizes);
   if (storedRoundCount == null) {
     return range.suggested;
