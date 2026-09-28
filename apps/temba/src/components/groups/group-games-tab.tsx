@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
+import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { GroupPlayedRow } from "~/components/groups/group-played-row";
 import { Button } from "~/components/ui/button";
 import { offersPartnerJoin } from "~/lib/friendly-game-partner";
@@ -14,6 +15,7 @@ import {
   showsFriendlyRoster,
   showsGameCardPartnerFooter,
 } from "~/lib/game-summary-cta";
+import { isPoolTournament } from "~/lib/tournament-rounds";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GroupHome = RouterOutputs["groups"]["byId"];
@@ -91,6 +93,23 @@ export function GroupGamesTab({
         ) : (
           <ul className="flex flex-col gap-3">
             {upcomingGames.map((game) => {
+              if (isPoolTournament(game.format, game.poolCount)) {
+                return (
+                  <TournamentSummaryCard
+                    key={game.id}
+                    game={game}
+                    href={`/dashboard/games/${game.id}`}
+                    groupName={game.groupName ?? groupName}
+                    actionPending={pendingGameId === game.id}
+                    onJoinSeat={(sideIndex, position) => {
+                      onJoinSeat(game.id, sideIndex, position);
+                    }}
+                    onJoinWaitlist={() => {
+                      onJoinWaitlist(game);
+                    }}
+                  />
+                );
+              }
               const primaryAction = gameSummaryPrimaryAction(game);
               const rosterSides = showsFriendlyRoster(
                 game.format,

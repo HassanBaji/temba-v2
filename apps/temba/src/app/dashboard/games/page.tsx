@@ -12,6 +12,7 @@ import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { MatchHistoryCard } from "~/components/games/match-history-card";
+import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -24,7 +25,7 @@ import {
   showsFriendlyRoster,
   showsGameCardPartnerFooter,
 } from "~/lib/game-summary-cta";
-import { poolRoundLabel } from "~/lib/tournament-rounds";
+import { isPoolTournament, poolRoundLabel } from "~/lib/tournament-rounds";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { PlusIcon } from "lucide-react";
 
@@ -131,6 +132,22 @@ function GamesHubTabPanel({
   return (
     <ul className="flex flex-col gap-3">
       {games.map((game) => {
+        if (isPoolTournament(game.format, game.poolCount) && !game.matchId) {
+          return (
+            <TournamentSummaryCard
+              key={game.id}
+              game={game}
+              href={`/dashboard/games/${game.id}`}
+              actionPending={pendingGameId === game.id}
+              onJoinSeat={(sideIndex, position) => {
+                onJoinSeat(game.id, sideIndex, position);
+              }}
+              onJoinWaitlist={() => {
+                onJoinWaitlist(game);
+              }}
+            />
+          );
+        }
         const primaryAction = gameSummaryPrimaryAction(game);
         const rosterSides =
           showsFriendlyRoster(game.format, game.registrationMode) ||

@@ -29,6 +29,26 @@ export type HubListSide = {
   right: HubListSideOccupant | null;
 };
 
+export type HubListTournamentTeam = {
+  gameTeamId: string;
+  sideIndex: number | null;
+  poolIndex: number | null;
+  isViewerTeam: boolean;
+  left: HubListSideOccupant | null;
+  right: HubListSideOccupant | null;
+};
+
+export type HubListTournament = {
+  /** Planned before the Pool draw is posted, the posted count after. */
+  roundCount: number | null;
+  drawPosted: boolean;
+  allowSoloRegister: boolean;
+  /** Game teams with at least one occupant: the viewer's first, then by side. */
+  teams: HubListTournamentTeam[];
+  /** Every side 1..teamsAllowed, for the join sheet. */
+  joinSides: HubListSide[];
+};
+
 export type HubListRow = {
   id: string;
   name: string | null;
@@ -57,6 +77,9 @@ export type HubListRow = {
   canRegister: boolean;
   canWaitlist: boolean;
   sides: HubListSide[];
+  poolCount: number | null;
+  /** Null unless the Game is a Pool tournament. */
+  tournament: HubListTournament | null;
   /** Set when My Games / Home expand a posted Pool Match into its own row. */
   matchId: string | null;
   roundNumber: number | null;

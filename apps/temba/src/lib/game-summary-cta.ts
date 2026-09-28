@@ -2,6 +2,7 @@ import {
   hasFullyVacantSide,
   type FriendlyGamePartnerSides,
 } from "~/lib/friendly-game-partner";
+import { isPoolTournament } from "~/lib/tournament-rounds";
 
 export type GameSummaryCta = "join" | "join_waitlist" | "register" | "view";
 
@@ -15,6 +16,8 @@ export type GameSummaryCtaInput = {
   isSeated: boolean;
   isWaitlisted: boolean;
   registrationStatus: string;
+  poolCount?: number | null;
+  tournament?: { drawPosted: boolean } | null;
 };
 
 export function gameSummaryPrimaryAction(
@@ -36,6 +39,13 @@ export function gameSummaryPrimaryAction(
   }
 
   if (game.format === "friendly_tournament") {
+    if (
+      isPoolTournament(game.format, game.poolCount) &&
+      game.canRegister &&
+      game.tournament?.drawPosted !== true
+    ) {
+      return "join";
+    }
     if (game.canWaitlist) {
       return "join_waitlist";
     }

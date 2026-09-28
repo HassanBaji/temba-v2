@@ -129,6 +129,42 @@ describe("gameSummaryPrimaryAction", () => {
       "join_waitlist",
     );
   });
+
+  it("offers Join on a Pool tournament with open registration before the draw", () => {
+    const pool = {
+      format: "friendly_tournament",
+      poolCount: 2,
+      canRegister: true,
+    };
+    assert.equal(
+      gameSummaryPrimaryAction(
+        game({ ...pool, tournament: { drawPosted: false } }),
+      ),
+      "join",
+    );
+    assert.equal(
+      gameSummaryPrimaryAction(
+        game({ ...pool, tournament: { drawPosted: true } }),
+      ),
+      "view",
+    );
+    assert.equal(
+      gameSummaryPrimaryAction(
+        game({
+          ...pool,
+          canRegister: false,
+          tournament: { drawPosted: false },
+        }),
+      ),
+      "view",
+    );
+    assert.equal(
+      gameSummaryPrimaryAction(
+        game({ ...pool, joinFrozen: true, tournament: { drawPosted: false } }),
+      ),
+      "view",
+    );
+  });
 });
 
 describe("gameViewerStatus", () => {
