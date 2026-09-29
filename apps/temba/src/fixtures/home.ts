@@ -1,5 +1,9 @@
 import { GroupSportEnum } from "@repo/db";
 
+import type {
+  HomeComingUpGameRow,
+  HomeComingUpTournamentRow,
+} from "~/lib/home-coming-up";
 import type { LevelBand } from "~/lib/level-bands";
 
 export type HomeSeat = {
@@ -20,13 +24,11 @@ export type HomeNextGame = {
   seats: HomeSeat[];
 };
 
-export type HomeComingUpGame = {
-  id: string;
-  venueName: string;
-  startsAt: string;
-  seatsTaken: number;
-  seatsTotal: number;
-};
+type WithStartsAtString<T> = Omit<T, "startsAt"> & { startsAt: string };
+
+export type HomeComingUpGame =
+  | WithStartsAtString<HomeComingUpGameRow>
+  | WithStartsAtString<HomeComingUpTournamentRow>;
 
 export type HomeLevel = {
   band: LevelBand | null;
@@ -108,14 +110,27 @@ export function createHomeFixtures(now = new Date()): {
 
   const comingUp: HomeComingUpGame[] = [
     {
+      kind: "game",
       id: "game-later",
+      rowKey: "game-later",
       venueName: "Riverside Hall",
       startsAt: laterStart,
       seatsTaken: 3,
       seatsTotal: 4,
     },
     {
+      kind: "tournament_match",
+      id: "game-cup",
+      rowKey: "match-cup-r2",
+      title: "Friday Cup",
+      startsAt: laterStart,
+      roundTag: "R2 of 3",
+      opponentLine: "vs Maja S and Oskar T",
+    },
+    {
+      kind: "game",
       id: "game-weekend",
+      rowKey: "game-weekend",
       venueName: "North Courts",
       startsAt: weekendStart,
       seatsTaken: 2,

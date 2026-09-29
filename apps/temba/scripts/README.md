@@ -28,7 +28,7 @@ Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local
 
 | Area | Seeded state |
 |---|---|
-| Home | Friday Cup pool Match card (drawn tournament under way); two Games needing results; C2 Level with 7 rated Matches; Recent form; Standing; 3 pending invites |
+| Home | Two Games needing results lead the hero; Friday Cup Rounds 2 and 3 (drawn tournament under way) as tournament rows in Coming up; C2 Level with 7 rated Matches; Recent form; Standing; 3 pending invites |
 | Games | Full Game with a waitlist; half-full Game with Sam + partner; one seat left; empty Game; cancelled Game; Level-locked Game (B-level Session); Sam's Game with a pending Level range request (Intermediate Night) |
 | Results | "Friday rematch": sets entered, waiting on Sam's confirmation. "Yesterday's ladder": played, no score yet. Seven final Games in History |
 | Tournaments | Club Championship: open, 4 pairs + 2 half teams (merge). Autumn Cup: draw drafted, not posted. Friday Cup: posted, round 1 completed, round 2 part-scored |
