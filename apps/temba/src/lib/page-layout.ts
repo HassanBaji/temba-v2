@@ -4,3 +4,5 @@ export const stickyAsideClass =
   "hidden space-y-4 lg:sticky lg:top-6 lg:block lg:self-start lg:max-h-[calc(100svh-3rem)] lg:overflow-y-auto";
 
 export const pageBleed = `-mx-4 min-[430px]:-mx-5 md:-mx-6 xl:-mx-8 ${pageGutterX}`;
+
+export const cardFrame = "border-rule rounded-card overflow-hidden border";

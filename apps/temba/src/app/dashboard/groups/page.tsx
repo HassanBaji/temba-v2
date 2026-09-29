@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { PageCreateAction } from "~/components/layout/page-create-action";
@@ -18,23 +19,22 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
 import { groupsTabFromQuery, groupsTabQuery } from "~/lib/groups-tab";
+import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type GroupRow = RouterOutputs["groups"]["mine"][number];
 type GroupInvite = RouterOutputs["groups"]["pendingLookupInvites"][number];
 type PublicGroupRow = RouterOutputs["groups"]["listPublic"][number];
 
-const CARD = "border-rule overflow-hidden rounded-card border";
-
 function GroupRowsSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite" className={CARD}>
+    <div aria-busy="true" aria-live="polite" className={cardFrame}>
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="border-rule flex items-start justify-between gap-3.5 border-t p-5 first:border-t-0"
+          className="border-rule flex items-center justify-between gap-3 border-t px-5 py-4 first:border-t-0"
         >
-          <div className="flex min-w-0 flex-1 items-start gap-3.5">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <Skeleton className="size-10 shrink-0 rounded-lg" />
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-5 w-40 max-w-full" />
@@ -68,49 +68,41 @@ function NextGameCell({ startTime }: { startTime: Date | string | null }) {
   );
 }
 
-function GroupRowCard({ groups }: { groups: GroupRow[] }) {
+function GroupRows({ groups }: { groups: GroupRow[] }) {
   return (
-    <ul className={CARD}>
-      {groups.map((group) => (
-        <li key={group.id} className="border-rule border-t first:border-t-0">
-          <Link
-            href={`/dashboard/groups/${group.id}`}
-            className="focus-visible:ring-ring/50 flex flex-col gap-3.5 p-5 outline-none focus-visible:ring-[3px]"
-          >
-            <div className="flex items-start justify-between gap-3.5">
-              <div className="flex min-w-0 items-start gap-3.5">
-                <EntityMonogram
-                  name={group.name ?? "Untitled Group"}
-                  image={group.imageUrl}
-                  size="lg"
-                />
-                <div className="min-w-0">
-                  <p className="text-lead break-words font-semibold">
-                    {group.name ?? "Untitled Group"}
-                  </p>
-                  <p className="text-meta text-muted-foreground mt-0.5 break-words">
-                    {groupRowMetaLine({
-                      memberCount: group.memberCount,
-                      standingPosition: group.standingPosition,
-                    })}
-                  </p>
+    <RowList variant="card">
+      {groups.map((group) => {
+        const name = group.name ?? "Untitled Group";
+        return (
+          <ListRow
+            key={group.id}
+            asChild
+            size="lg"
+            leading={
+              <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+            }
+            title={name}
+            meta={groupRowMetaLine({
+              memberCount: group.memberCount,
+              standingPosition: group.standingPosition,
+            })}
+            trailing={<NextGameCell startTime={group.nextGameStartTime} />}
+            footer={
+              group.formMarks.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <FormStrip marks={group.formMarks} size={18} gap={6} />
+                  <span className="text-eyebrow text-muted-foreground ml-auto">
+                    your form here
+                  </span>
                 </div>
-              </div>
-              <NextGameCell startTime={group.nextGameStartTime} />
-            </div>
-
-            {group.formMarks.length > 0 ? (
-              <div className="flex items-center gap-2">
-                <FormStrip marks={group.formMarks} size={18} gap={6} />
-                <span className="text-eyebrow text-muted-foreground ml-auto">
-                  your form here
-                </span>
-              </div>
-            ) : null}
-          </Link>
-        </li>
-      ))}
-    </ul>
+              ) : undefined
+            }
+          >
+            <Link href={`/dashboard/groups/${group.id}`} />
+          </ListRow>
+        );
+      })}
+    </RowList>
   );
 }
 
@@ -124,7 +116,7 @@ function InvitationsCard({
   onAccept: (inviteId: string) => void;
 }) {
   return (
-    <section className={CARD}>
+    <section className={cardFrame}>
       <h2 className="text-meta text-muted-foreground border-rule border-b px-5 py-4">
         Invitations
       </h2>
@@ -202,8 +194,9 @@ function PublicGroupRows({
   onRequest: (groupId: string) => void;
 }) {
   return (
-    <ul className={CARD}>
+    <RowList variant="card">
       {groups.map((group) => {
+        const name = group.name ?? "Untitled Group";
         const isPending = pendingGroupId === group.id;
         const members =
           group.memberCount === 1 ? "1 member" : `${group.memberCount} members`;
@@ -211,62 +204,55 @@ function PublicGroupRows({
           ? `${members} · Requires approval`
           : members;
         return (
-          <li
+          <ListRow
             key={group.id}
-            className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0"
-          >
-            <EntityMonogram
-              name={group.name ?? "Untitled Group"}
-              image={group.imageUrl}
-              size="lg"
-            />
-            <Link
-              href={`/dashboard/groups/${group.id}`}
-              className="focus-visible:ring-ring/50 min-w-0 flex-1 outline-none focus-visible:ring-[3px]"
-            >
-              <p className="text-lead break-words font-semibold">
-                {group.name ?? "Untitled Group"}
-              </p>
-              {group.communityName ? (
-                <p className="text-meta text-muted-foreground mt-0.5 break-words">
-                  {group.communityName}
-                </p>
-              ) : null}
-              <p className="text-meta text-muted-foreground mt-0.5 break-words">
-                {meta}
-              </p>
-            </Link>
-            <Button
-              type="button"
-              variant={group.joinMode === "join" ? "default" : "outline"}
-              disabled={group.joinMode === "requested" || isPending}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                if (group.joinMode === "request") {
-                  onRequest(group.id);
-                  return;
-                }
-                if (group.joinMode === "join") {
-                  onJoin(group);
-                }
-              }}
-              className="shrink-0 rounded-md font-semibold"
-            >
-              {group.joinMode === "requested"
-                ? "Requested"
-                : group.joinMode === "request"
-                  ? isPending
-                    ? "Requesting…"
-                    : "Request to join"
-                  : isPending
-                    ? "Joining…"
-                    : "Join"}
-            </Button>
-          </li>
+            size="lg"
+            stackTrailing
+            leading={
+              <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+            }
+            title={
+              <Link
+                href={`/dashboard/groups/${group.id}`}
+                className="focus-visible:ring-ring/50 rounded-sm outline-none hover:underline focus-visible:ring-[3px]"
+              >
+                {name}
+              </Link>
+            }
+            subtitle={group.communityName ?? undefined}
+            meta={meta}
+            trailing={
+              <Button
+                type="button"
+                variant={group.joinMode === "join" ? "default" : "outline"}
+                disabled={group.joinMode === "requested"}
+                pending={isPending}
+                onClick={() => {
+                  if (group.joinMode === "request") {
+                    onRequest(group.id);
+                    return;
+                  }
+                  if (group.joinMode === "join") {
+                    onJoin(group);
+                  }
+                }}
+                className="font-semibold"
+              >
+                {group.joinMode === "requested"
+                  ? "Requested"
+                  : group.joinMode === "request"
+                    ? isPending
+                      ? "Requesting…"
+                      : "Request to join"
+                    : isPending
+                      ? "Joining…"
+                      : "Join"}
+              </Button>
+            }
+          />
         );
       })}
-    </ul>
+    </RowList>
   );
 }
 
@@ -393,7 +379,7 @@ export default function GroupsIndexPage({
               />
             ) : null}
 
-            {showGroups ? <GroupRowCard groups={groupRows} /> : null}
+            {showGroups ? <GroupRows groups={groupRows} /> : null}
 
             {showInvites ? (
               <InvitationsCard

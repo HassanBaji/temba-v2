@@ -16,6 +16,7 @@ import {
   groupMemberRoleCaption,
 } from "~/lib/group-home-chrome";
 import type { LevelBand } from "~/lib/level-bands";
+import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 /** Design 06c draws four marks per member; the derivation returns up to five. */
@@ -32,8 +33,6 @@ type GroupMember = {
   levelBand: LevelBand | null;
   levelProvisional: boolean;
 };
-
-const CARD = "border-rule overflow-hidden rounded-card border";
 
 function MemberRow({ member }: { member: GroupMember }) {
   const caption = groupMemberRoleCaption(member);
@@ -147,7 +146,7 @@ export function GroupMembersTab({
           No members match that name.
         </p>
       ) : (
-        <ul className={CARD}>
+        <ul className={cardFrame}>
           {visible.map((member) => (
             <MemberRow key={member.userId} member={member} />
           ))}

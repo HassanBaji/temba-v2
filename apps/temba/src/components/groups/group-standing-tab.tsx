@@ -9,6 +9,7 @@ import {
   groupStandingRecordLabel,
 } from "~/lib/group-home-chrome";
 import type { LevelBand } from "~/lib/level-bands";
+import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 type StandingEntry = {
@@ -25,8 +26,6 @@ type StandingEntry = {
   levelProvisional: boolean;
 };
 
-const CARD = "border-rule overflow-hidden rounded-card border";
-
 /**
  * Column geometry from design 06a: 26px position, flexible Player, 54px W-L,
  * 56px Level. The outer columns carry the card's 20px gutter inside their
@@ -41,7 +40,7 @@ const BODY_CELL = "py-4";
 
 function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
   return (
-    <div className={CARD}>
+    <div className={cardFrame}>
       <table className="w-full table-fixed">
         <thead>
           <tr className="border-rule text-muted-foreground text-eyebrow border-b">
@@ -122,7 +121,7 @@ function StatPair({
   awaitingScoreCount: number;
 }) {
   return (
-    <div className={cn(CARD, "flex")}>
+    <div className={cn(cardFrame, "flex")}>
       <div className="border-rule min-w-0 flex-1 border-r px-5 py-[18px]">
         <p className="font-expanded text-[26px] tabular-nums leading-8">
           {totalGamesPlayed}
