@@ -224,33 +224,25 @@ export function TournamentStandingsSection({
 
       {poolTables.pools.map((pool) => (
         <TabsContent
-          key={`table-${pool.poolIndex}`}
+          key={pool.poolIndex}
           value={String(pool.poolIndex)}
           className="pt-[22px]"
         >
           <PoolRecordTable rows={pool.rows} finished={pool.finished} />
-        </TabsContent>
-      ))}
-
-      {viewerRounds.length > 0 ? (
-        <div className="pt-[26px]">
-          <TournamentYourRounds mode="results" rounds={viewerRounds} />
-        </div>
-      ) : null}
-
-      {poolTables.pools.map((pool) => (
-        <TabsContent
-          key={`results-${pool.poolIndex}`}
-          value={String(pool.poolIndex)}
-          className="pt-[26px]"
-        >
-          <PoolRoundResults
-            matches={pool.matches}
-            otherPools={
-              pool.poolIndex === selectedPool.poolIndex ? otherPools : null
-            }
-            onSelectPool={selectPool}
-          />
+          {viewerRounds.length > 0 ? (
+            <div className="pt-[26px]">
+              <TournamentYourRounds mode="results" rounds={viewerRounds} />
+            </div>
+          ) : null}
+          <div className="pt-[26px]">
+            <PoolRoundResults
+              matches={pool.matches}
+              otherPools={
+                pool.poolIndex === selectedPool.poolIndex ? otherPools : null
+              }
+              onSelectPool={selectPool}
+            />
+          </div>
         </TabsContent>
       ))}
     </Tabs>
