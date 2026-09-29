@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { Button, touchHitArea } from "~/components/ui/button";
-import { TembaMark } from "~/components/ui/icons/temba-mark";
+import { TembaWordmark } from "~/components/ui/temba-wordmark";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
 import { cn } from "~/lib/utils";
 
@@ -18,9 +18,8 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
 
   return (
     <AuthScreen padContent={false} variant="welcome">
-      <header className="flex items-center gap-[11px] px-[26px] pt-[30px]">
-        <TembaMark height={26} variant="reversed" width={26} />
-        <p className="font-display text-title tracking-[0.2em]">TEMBA</p>
+      <header className="px-[26px] pt-[30px]">
+        <TembaWordmark surface="ink" />
       </header>
 
       <div className="mt-24 px-[26px]">

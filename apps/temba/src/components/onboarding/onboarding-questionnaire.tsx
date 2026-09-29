@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { AuthScreen } from "~/components/auth/auth-screen";
 import { ErrorState } from "~/components/common/error-state";
 import {
   LevelChoiceGrid,
@@ -153,32 +154,36 @@ export function OnboardingQuestionnaire({
   // derived step would otherwise sit on the skeleton forever.
   if (state.error && !state.data) {
     return (
-      <ErrorState
-        title="Setup could not be loaded"
-        message={state.error.message}
-        onRetry={() => {
-          void state.refetch();
-        }}
-      />
+      <AuthScreen brand>
+        <ErrorState
+          headingLevel={1}
+          title="Setup could not be loaded"
+          message={state.error.message}
+          onRetry={() => {
+            void state.refetch();
+          }}
+        />
+      </AuthScreen>
     );
   }
 
   if (step === "loading") {
     return (
-      <div aria-busy="true" className="space-y-4">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-7 w-52 max-w-full" />
-        <Skeleton className="h-24 w-full rounded-lg" />
-        <Skeleton className="h-11 w-full rounded-lg" />
-      </div>
+      <AuthScreen brand>
+        <div aria-busy="true" className="space-y-4">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-7 w-52 max-w-full" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-11 w-full rounded-lg" />
+        </div>
+      </AuthScreen>
     );
   }
 
   if (step === "provisioning") {
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">Setting up your account</h1>
+      <AuthScreen brand title="Setting up your account">
+        <div className="space-y-4">
           <p
             role="status"
             aria-live="polite"
@@ -187,20 +192,20 @@ export function OnboardingQuestionnaire({
             Your Temba account is still being created. This only takes a moment
             after sign-up — these two questions open on their own.
           </p>
+          <Skeleton className="h-24 w-full rounded-lg" />
         </div>
-        <Skeleton className="h-24 w-full rounded-lg" />
-      </div>
+      </AuthScreen>
     );
   }
 
   if (step === "finishing" || step === "complete") {
     const finishError = globalFormErrorMessage(completeOnboarding.error);
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">
-            {finishError ? "Could not finish setup" : "You are all set"}
-          </h1>
+      <AuthScreen
+        brand
+        title={finishError ? "Could not finish setup" : "You are all set"}
+      >
+        <div className="space-y-4">
           <p
             role="status"
             aria-live="polite"
@@ -210,22 +215,22 @@ export function OnboardingQuestionnaire({
               ? "Both answers are saved. Try finishing again."
               : "Taking you to Temba…"}
           </p>
+          {finishError ? (
+            <>
+              <FormErrorSummary message={finishError} />
+              <Button
+                type="button"
+                className="min-h-11 w-full"
+                onClick={() => {
+                  completeOnboarding.reset();
+                }}
+              >
+                Try again
+              </Button>
+            </>
+          ) : null}
         </div>
-        {finishError ? (
-          <>
-            <FormErrorSummary message={finishError} />
-            <Button
-              type="button"
-              className="min-h-11 w-full"
-              onClick={() => {
-                completeOnboarding.reset();
-              }}
-            >
-              Try again
-            </Button>
-          </>
-        ) : null}
-      </div>
+      </AuthScreen>
     );
   }
 
@@ -235,116 +240,119 @@ export function OnboardingQuestionnaire({
       "preferredPosition",
     );
     return (
-      <form onSubmit={onSubmitPosition} className="space-y-4">
-        <div className="space-y-2">
-          <p className="text-meta text-muted-foreground">Step 1 of 2</p>
-          <h1 className="text-title font-semibold">Which side do you play?</h1>
-          <p className="text-body text-muted-foreground">
-            Your Preferred Position is the side you like on a Game team. It only
-            sets a default when you pick a seat, and you can change it any time
-            on You.
-          </p>
-        </div>
-        <FormErrorSummary
-          ref={summaryRef}
-          message={globalFormErrorMessage(setPreferredPosition.error)}
-        />
-        <Field>
-          <FieldLabel id="onboarding-preferred-position-label">
-            Preferred Position
-          </FieldLabel>
-          <RovingRadioGroup
-            id={FIELD_IDS.preferredPosition}
-            aria-labelledby="onboarding-preferred-position-label"
-            aria-invalid={positionError ? true : undefined}
-            aria-describedby={
-              positionError ? "onboarding-preferred-position-error" : undefined
-            }
-            className="grid grid-cols-3 gap-2"
+      <AuthScreen
+        brand
+        eyebrow="Step 1 of 2"
+        title="Which side do you play?"
+        description="Your Preferred Position is the side you like on a Game team. It only sets a default when you pick a seat, and you can change it any time on You."
+      >
+        <form onSubmit={onSubmitPosition} className="space-y-4">
+          <FormErrorSummary
+            ref={summaryRef}
+            message={globalFormErrorMessage(setPreferredPosition.error)}
+          />
+          <Field>
+            <FieldLabel id="onboarding-preferred-position-label">
+              Preferred Position
+            </FieldLabel>
+            <RovingRadioGroup
+              id={FIELD_IDS.preferredPosition}
+              aria-labelledby="onboarding-preferred-position-label"
+              aria-invalid={positionError ? true : undefined}
+              aria-describedby={
+                positionError
+                  ? "onboarding-preferred-position-error"
+                  : undefined
+              }
+              className="grid grid-cols-3 gap-2"
+            >
+              {POSITION_CHOICES.map((option) => {
+                const selected = position === option.value;
+                return (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    variant={selected ? "default" : "outline"}
+                    className="min-h-11"
+                    disabled={positionPending}
+                    onClick={() => {
+                      setPosition(option.value);
+                    }}
+                  >
+                    {option.label}
+                  </Button>
+                );
+              })}
+            </RovingRadioGroup>
+            <FieldError id="onboarding-preferred-position-error">
+              {positionError}
+            </FieldError>
+          </Field>
+          <Button
+            type="submit"
+            className="min-h-11 w-full"
+            disabled={positionPending || position === ""}
+            aria-busy={positionPending}
           >
-            {POSITION_CHOICES.map((option) => {
-              const selected = position === option.value;
-              return (
-                <Button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  variant={selected ? "default" : "outline"}
-                  className="min-h-11"
-                  disabled={positionPending}
-                  onClick={() => {
-                    setPosition(option.value);
-                  }}
-                >
-                  {option.label}
-                </Button>
-              );
-            })}
-          </RovingRadioGroup>
-          <FieldError id="onboarding-preferred-position-error">
-            {positionError}
-          </FieldError>
-        </Field>
-        <Button
-          type="submit"
-          className="min-h-11 w-full"
-          disabled={positionPending || position === ""}
-          aria-busy={positionPending}
-        >
-          {positionPending ? "Saving…" : "Continue"}
-        </Button>
-      </form>
+            {positionPending ? "Saving…" : "Continue"}
+          </Button>
+        </form>
+      </AuthScreen>
     );
   }
 
   const levelError = fieldErrorMessage(selfDeclare.error, "choice");
   return (
-    <form onSubmit={onSubmitLevel} className="space-y-4">
-      <div className="space-y-2">
-        <p className="text-meta text-muted-foreground">Step 2 of 2</p>
-        <h1 className="text-title font-semibold">Declare your Level</h1>
-        <p className="text-body text-muted-foreground">
-          Place yourself on the padel ladder once. Pick a Level band, or I don’t
-          know if you are unsure.
-        </p>
-      </div>
-      <FormErrorSummary
-        ref={summaryRef}
-        message={globalFormErrorMessage(selfDeclare.error)}
-      />
-      <Field>
-        <FieldLabel id="onboarding-level-choice-label">Level band</FieldLabel>
-        <LevelChoiceGrid
-          id={FIELD_IDS.choice}
-          labelledBy="onboarding-level-choice-label"
-          describedBy={levelError ? "onboarding-level-choice-error" : undefined}
-          invalid={Boolean(levelError)}
-          value={levelChoice}
-          onSelect={setLevelChoice}
-          disabled={levelPending}
+    <AuthScreen
+      brand
+      eyebrow="Step 2 of 2"
+      title="Declare your Level"
+      description="Place yourself on the padel ladder once. Pick a Level band, or I don’t know if you are unsure."
+    >
+      <form onSubmit={onSubmitLevel} className="space-y-4">
+        <FormErrorSummary
+          ref={summaryRef}
+          message={globalFormErrorMessage(selfDeclare.error)}
         />
-        <FieldError id="onboarding-level-choice-error">{levelError}</FieldError>
-      </Field>
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          disabled={levelPending}
-          onClick={onBack}
-        >
-          Back
-        </Button>
-        <Button
-          type="submit"
-          className="min-h-11 flex-1"
-          disabled={levelPending || levelChoice === ""}
-          aria-busy={levelPending}
-        >
-          {levelPending ? "Saving…" : "Finish"}
-        </Button>
-      </div>
-    </form>
+        <Field>
+          <FieldLabel id="onboarding-level-choice-label">Level band</FieldLabel>
+          <LevelChoiceGrid
+            id={FIELD_IDS.choice}
+            labelledBy="onboarding-level-choice-label"
+            describedBy={
+              levelError ? "onboarding-level-choice-error" : undefined
+            }
+            invalid={Boolean(levelError)}
+            value={levelChoice}
+            onSelect={setLevelChoice}
+            disabled={levelPending}
+          />
+          <FieldError id="onboarding-level-choice-error">
+            {levelError}
+          </FieldError>
+        </Field>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            disabled={levelPending}
+            onClick={onBack}
+          >
+            Back
+          </Button>
+          <Button
+            type="submit"
+            className="min-h-11 flex-1"
+            disabled={levelPending || levelChoice === ""}
+            aria-busy={levelPending}
+          >
+            {levelPending ? "Saving…" : "Finish"}
+          </Button>
+        </div>
+      </form>
+    </AuthScreen>
   );
 }

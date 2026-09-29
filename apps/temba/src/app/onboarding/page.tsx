@@ -1,6 +1,5 @@
 import { type Metadata } from "next";
 
-import { AuthShell } from "~/components/auth/auth-shell";
 import { OnboardingQuestionnaire } from "~/components/onboarding/onboarding-questionnaire";
 import { onboardingRedirectTarget } from "~/lib/onboarding-step";
 
@@ -22,10 +21,8 @@ export default async function OnboardingPage({
   const params = await searchParams;
 
   return (
-    <AuthShell>
-      <OnboardingQuestionnaire
-        redirectTo={onboardingRedirectTarget(params.redirect_url)}
-      />
-    </AuthShell>
+    <OnboardingQuestionnaire
+      redirectTo={onboardingRedirectTarget(params.redirect_url)}
+    />
   );
 }
