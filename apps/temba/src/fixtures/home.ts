@@ -2,6 +2,7 @@ import { GroupSportEnum } from "@repo/db";
 
 import type {
   HomeComingUpGameRow,
+  HomeComingUpTournamentMatchRow,
   HomeComingUpTournamentRow,
 } from "~/lib/home-coming-up";
 import type { LevelBand } from "~/lib/level-bands";
@@ -28,6 +29,7 @@ type WithStartsAtString<T> = Omit<T, "startsAt"> & { startsAt: string };
 
 export type HomeComingUpGame =
   | WithStartsAtString<HomeComingUpGameRow>
+  | WithStartsAtString<HomeComingUpTournamentMatchRow>
   | WithStartsAtString<HomeComingUpTournamentRow>;
 
 export type HomeLevel = {
@@ -126,6 +128,15 @@ export function createHomeFixtures(now = new Date()): {
       startsAt: laterStart,
       roundTag: "R2 of 3",
       opponentLine: "vs Maja S and Oskar T",
+    },
+    {
+      kind: "tournament",
+      id: "game-club-championship",
+      rowKey: "game-club-championship",
+      title: "Club Championship",
+      startsAt: weekendStart,
+      teamsLine: "5 of 8 teams in",
+      actionLabel: "Invite a partner",
     },
     {
       kind: "game",

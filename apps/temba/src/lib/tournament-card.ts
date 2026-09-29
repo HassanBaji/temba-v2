@@ -380,6 +380,15 @@ export function isPoolMatchRow(row: {
   return row.matchId != null && isPoolTournament(row.format, row.poolCount);
 }
 
+/** Before the draw, or drawn without the viewer on a Pool Match: one row for the whole tournament. */
+export function isPoolTournamentSummaryRow(row: {
+  format: string;
+  poolCount: number | null;
+  matchId: string | null;
+}) {
+  return row.matchId == null && isPoolTournament(row.format, row.poolCount);
+}
+
 /** Without a Home phase (My Games), the card counts down to kickoff. */
 export function tournamentMatchStatus(
   phase: TournamentMatchPhase | undefined,
