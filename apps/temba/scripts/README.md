@@ -13,7 +13,7 @@ Writes go through the router functions the tRPC doors call (the same ones the te
 
 Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local App. To use the seed:
 
-1. In the Clerk **development** dashboard, create (or reuse) a User with username + password. Copy its id (`user_…`).
+1. Create a User with username + password on your Clerk **development** instance. With Clerk test mode on, sign up at `/signup` using a test number `+1 555 555 01xx` (US) and code `424242`. Numbers already used on the instance are refused, so pick an unused one. Copy the User's id (`user_…`) from the dashboard, or from `window.Clerk.user.id` in the browser.
 2. Seed with that id on the `me` persona:
    ```bash
    SEED_CLERK_ID_ME=user_xxx pnpm --filter temba db:seed
@@ -43,7 +43,11 @@ Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local
 
 ## `pnpm --filter temba record:flows`
 
-Plays each flow in Chromium and saves one video per flow to `apps/temba/recordings/` (gitignored). Needs the dev server running and a browser that can reach Clerk: in development every page load does a Clerk handshake.
+Plays each flow in Chromium and saves one video per flow to `apps/temba/recordings/` (gitignored). Needs the dev server running and a browser that can reach Clerk: in development every page load does a Clerk handshake. Behind a TLS-inspecting proxy, Chromium must trust the proxy CA in its NSS store (`~/.pki/nssdb`).
+
+Clerk's new-device check (`/login/factor-two`) is answered with `424242`, the test-mode code. Set `RECORD_OTP` to use a different one.
+
+Record twice for clean videos. The first run compiles each route on the dev server, so its videos show loading skeletons. Re-seed between runs.
 
 ```bash
 RECORD_USERNAME=sam RECORD_PASSWORD=... \
