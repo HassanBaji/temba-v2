@@ -1,15 +1,42 @@
-import { Users } from "lucide-react";
+"use client";
 
+import { Users } from "lucide-react";
+import { type KeyboardEvent, useRef, useState } from "react";
+
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { RoleBadge } from "~/components/temba/role-badge";
+import { ROLE_LABELS, RoleBadge } from "~/components/temba/role-badge";
 import { ErrorState } from "~/components/common/error-state";
-import { FieldLabel } from "~/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
+import {
+  COMMUNITY_ROLES,
+  type CommunityRoleChange,
+  type CommunityRoleValue,
+  isCommunityRole,
+  roleChangeConfirmCopy,
+  roleChangeNeedsConfirmation,
+} from "~/lib/community-role-change";
 import { type RouterOutputs } from "~/trpc/react";
 
 type CommunityMember = RouterOutputs["communities"]["listMembers"][number];
+
+// A closed Radix Select commits typeahead matches straight to onValueChange,
+// which would fire a role mutation per key press; roles change only from the open list.
+function blockClosedTypeahead(event: KeyboardEvent<HTMLButtonElement>) {
+  const isModifierKey = event.ctrlKey || event.altKey || event.metaKey;
+  if (!isModifierKey && event.key.length === 1 && event.key !== " ") {
+    event.preventDefault();
+  }
+}
 
 export function CommunityMembersTab({
   members,
@@ -30,10 +57,32 @@ export function CommunityMembersTab({
   viewerUserId: string | undefined;
   canManageRoles: boolean;
   rolePending: boolean;
-  onRoleChange: (userId: string, role: "owner" | "admin" | "member") => void;
+  onRoleChange: (userId: string, role: CommunityRoleValue) => void;
   linkedTeamBlocksLeave: boolean;
   isLastOwnerBlockedLeave: boolean;
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingChange, setPendingChange] = useState<
+    (CommunityRoleChange & { userId: string }) | null
+  >(null);
+  const roleTriggerRef = useRef<HTMLElement | null>(null);
+
+  function requestRoleChange(
+    change: CommunityRoleChange & { userId: string },
+    triggerId: string,
+  ) {
+    if (change.from === change.to) {
+      return;
+    }
+    if (!roleChangeNeedsConfirmation(change)) {
+      onRoleChange(change.userId, change.to);
+      return;
+    }
+    roleTriggerRef.current = document.getElementById(triggerId);
+    setPendingChange(change);
+    setConfirmOpen(true);
+  }
+
   if (isLoading) {
     return (
       <div aria-busy="true" className="space-y-3">
@@ -101,34 +150,41 @@ export function CommunityMembersTab({
               meta={member.user.email ?? undefined}
               trailing={
                 canManageRoles ? (
-                  <div className="min-w-0">
-                    <FieldLabel htmlFor={selectId}>Role</FieldLabel>
-                    <select
+                  <Select
+                    value={member.role}
+                    disabled={rolePending}
+                    onValueChange={(role) => {
+                      if (!isCommunityRole(role)) {
+                        return;
+                      }
+                      requestRoleChange(
+                        {
+                          userId: member.user.id,
+                          name,
+                          isSelf,
+                          from: member.role,
+                          to: role,
+                        },
+                        selectId,
+                      );
+                    }}
+                  >
+                    <SelectTrigger
                       id={selectId}
                       aria-label={`Role for ${name}`}
-                      className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
-                      value={member.role}
-                      disabled={rolePending}
-                      onChange={(event) => {
-                        const role = event.target.value;
-                        if (
-                          role !== "owner" &&
-                          role !== "admin" &&
-                          role !== "member"
-                        ) {
-                          return;
-                        }
-                        if (role === member.role) {
-                          return;
-                        }
-                        onRoleChange(member.user.id, role);
-                      }}
+                      className="w-28"
+                      onKeyDown={blockClosedTypeahead}
                     >
-                      <option value="owner">Owner</option>
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
-                    </select>
-                  </div>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMUNITY_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABELS[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <RoleBadge role={member.role} />
                 )
@@ -137,6 +193,19 @@ export function CommunityMembersTab({
           );
         })}
       </RowList>
+      {pendingChange ? (
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          {...roleChangeConfirmCopy(pendingChange)}
+          variant={pendingChange.isSelf ? "destructive" : "default"}
+          pending={rolePending}
+          restoreFocusRef={roleTriggerRef}
+          onConfirm={() => {
+            onRoleChange(pendingChange.userId, pendingChange.to);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
