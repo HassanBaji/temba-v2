@@ -111,7 +111,7 @@ export function ResultTag({
     <span
       data-slot="result-tag"
       className={cn(
-        "text-ink text-meta inline-flex shrink-0 items-center gap-1 font-semibold",
+        "text-ink text-meta inline-flex shrink-0 items-center gap-1 whitespace-nowrap font-semibold",
         className,
       )}
     >

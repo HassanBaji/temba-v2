@@ -80,7 +80,7 @@ export function PoolRecordTable({
                   {row.name}
                 </span>
                 {finished && row.isWinner ? (
-                  <ResultTag variant="won" className="mt-1">
+                  <ResultTag variant="won" className="text-eyebrow mt-1">
                     {POOL_WINNER_LABEL}
                   </ResultTag>
                 ) : null}
