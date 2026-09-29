@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
@@ -810,7 +810,7 @@ function NewGameForm() {
     return (
       <DashboardShell title="Create Game">
         <EmptyState
-          emoji="🎾"
+          icon={Users}
           title="Games are created inside a Group"
           description="Create a Group first, then you can create a Game."
           action={

@@ -5,7 +5,6 @@ import { cn } from "~/lib/utils";
 
 export function EmptyState({
   icon: Icon,
-  emoji,
   title,
   description,
   action,
@@ -13,8 +12,6 @@ export function EmptyState({
   className,
 }: {
   icon?: LucideIcon;
-  /** Decorative emoji shown instead of the icon. */
-  emoji?: string;
   title: string;
   description?: string;
   action?: ReactNode;
@@ -24,21 +21,12 @@ export function EmptyState({
   const Heading = ({ 1: "h1", 2: "h2", 3: "h3" } as const)[headingLevel];
   return (
     <div
-      role="status"
-      aria-live="polite"
       className={cn(
         "mx-auto flex w-full max-w-md flex-col items-center gap-3 py-12 text-center",
         className,
       )}
     >
-      {emoji ? (
-        <span
-          aria-hidden="true"
-          className="bg-surface-raised border-border text-h2 flex size-14 items-center justify-center rounded-full border"
-        >
-          {emoji}
-        </span>
-      ) : Icon ? (
+      {Icon ? (
         <Icon
           aria-hidden="true"
           className="text-muted-foreground size-8"

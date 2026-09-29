@@ -36,7 +36,6 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      aria-live="assertive"
       className={cn(
         "mx-auto flex w-full max-w-md flex-col items-center gap-3 py-12 text-center",
         className,

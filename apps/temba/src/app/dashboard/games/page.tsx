@@ -1,5 +1,6 @@
 "use client";
 
+import { Calendar, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { use } from "react";
@@ -405,7 +406,7 @@ export default function GamesHubPage({
             games={myGames.data}
             emptyState={
               <EmptyState
-                emoji="🎾"
+                icon={Calendar}
                 title="No games yet"
                 description="Games you create or join show up here."
                 action={
@@ -433,7 +434,7 @@ export default function GamesHubPage({
             rows={history.data}
             emptyState={
               <EmptyState
-                emoji="🏆"
+                icon={Trophy}
                 title="No match history yet"
                 description="Completed Games you played in show up here."
               />
