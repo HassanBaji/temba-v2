@@ -17,6 +17,7 @@ export function BottomNav() {
 
   return (
     <nav
+      data-slot="bottom-nav"
       aria-label="Primary"
       className="border-rule bg-paper fixed inset-x-0 bottom-0 z-50 grid border-t lg:hidden"
       style={{
