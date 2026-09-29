@@ -429,7 +429,11 @@ export default function TeamHomePage({
                 description="Pick one existing User for the open seat. The invitee accepts on Invites. Lookup invites do not expire."
                 lookupInvites={data.unusedInvite ? [data.unusedInvite] : []}
                 sendPending={inviteInApp.isPending}
-                revokePending={revokeInvite.isPending}
+                revokePendingId={
+                  revokeInvite.isPending
+                    ? revokeInvite.variables?.inviteId
+                    : undefined
+                }
                 sendError={inviteInApp.error}
                 searchQuery={lookupQuery}
                 onSearchQueryChange={setLookupQuery}

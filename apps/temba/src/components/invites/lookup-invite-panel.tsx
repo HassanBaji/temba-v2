@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { RowList } from "~/components/common/row-list";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
@@ -19,7 +20,7 @@ export function LookupInvitePanel({
   description,
   lookupInvites,
   sendPending,
-  revokePending,
+  revokePendingId,
   sendError,
   searchQuery,
   onSearchQueryChange,
@@ -35,7 +36,7 @@ export function LookupInvitePanel({
   description?: React.ReactNode;
   lookupInvites?: LookupListItem[];
   sendPending: boolean;
-  revokePending?: boolean;
+  revokePendingId?: string;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
@@ -57,6 +58,11 @@ export function LookupInvitePanel({
   );
   const formError = globalFormErrorMessage(sendError);
   const [selected, setSelected] = React.useState<LookupUserSearchRow[]>([]);
+  const [revokeTarget, setRevokeTarget] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [confirmRevokeOpen, setConfirmRevokeOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!sendError) {
@@ -134,30 +140,48 @@ export function LookupInvitePanel({
       ) : null}
       {lookupInvites && lookupInvites.length > 0 && !compact ? (
         <RowList>
-          {lookupInvites.map((invite) => (
-            <li
-              key={invite.id}
-              className="flex min-h-16 flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="text-lead font-semibold">
-                  {invite.user.name ?? "User"}
-                </p>
-                <p className="text-meta text-muted-foreground">
-                  {invite.user.email}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => onRevokeLookup?.(invite.id)}
-                disabled={revokePending}
+          {lookupInvites.map((invite) => {
+            const name = invite.user.name ?? "User";
+            return (
+              <li
+                key={invite.id}
+                className="flex min-h-16 flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
-                Revoke
-              </Button>
-            </li>
-          ))}
+                <div>
+                  <p className="text-lead font-semibold">{name}</p>
+                  <p className="text-meta text-muted-foreground">
+                    {invite.user.email}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  aria-label={`Revoke invite for ${name}`}
+                  onClick={() => {
+                    setRevokeTarget({ id: invite.id, name });
+                    setConfirmRevokeOpen(true);
+                  }}
+                  pending={revokePendingId === invite.id}
+                  pendingLabel="Revoking…"
+                >
+                  Revoke
+                </Button>
+              </li>
+            );
+          })}
         </RowList>
       ) : null}
+      <ConfirmDialog
+        open={confirmRevokeOpen}
+        onOpenChange={setConfirmRevokeOpen}
+        title={`Revoke the invite for ${revokeTarget?.name ?? "User"}?`}
+        description="They can no longer accept it."
+        confirmLabel="Revoke"
+        onConfirm={() => {
+          if (revokeTarget) {
+            onRevokeLookup?.(revokeTarget.id);
+          }
+        }}
+      />
     </section>
   );
 }

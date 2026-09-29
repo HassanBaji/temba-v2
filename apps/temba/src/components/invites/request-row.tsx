@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import * as React from "react";
 
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { Button } from "~/components/ui/button";
 
 export function RequestRow({
@@ -14,15 +15,16 @@ export function RequestRow({
   onApprove,
   onReject,
 }: {
-  leading?: ReactNode;
-  title: ReactNode;
-  meta?: ReactNode;
+  leading?: React.ReactNode;
+  title: string;
+  meta?: React.ReactNode;
   approvePending?: boolean;
   rejectPending?: boolean;
   disabled?: boolean;
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const [confirmRejectOpen, setConfirmRejectOpen] = React.useState(false);
   const busy = disabled || approvePending || rejectPending;
 
   return (
@@ -37,18 +39,37 @@ export function RequestRow({
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={onApprove} disabled={busy}>
-          {approvePending ? "Approving…" : "Approve"}
+        <Button
+          type="button"
+          aria-label={`Approve ${title}'s request`}
+          onClick={onApprove}
+          disabled={busy}
+          pending={approvePending}
+          pendingLabel="Approving…"
+        >
+          Approve
         </Button>
         <Button
           type="button"
           variant="outline"
-          onClick={onReject}
+          aria-label={`Reject ${title}'s request`}
+          onClick={() => setConfirmRejectOpen(true)}
           disabled={busy}
+          pending={rejectPending}
+          pendingLabel="Rejecting…"
         >
-          {rejectPending ? "Rejecting…" : "Reject"}
+          Reject
         </Button>
       </div>
+      <ConfirmDialog
+        open={confirmRejectOpen}
+        onOpenChange={setConfirmRejectOpen}
+        title={`Reject ${title}'s request?`}
+        description="They can ask again later."
+        confirmLabel="Reject"
+        pending={rejectPending}
+        onConfirm={onReject}
+      />
     </li>
   );
 }

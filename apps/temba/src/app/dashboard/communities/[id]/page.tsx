@@ -718,7 +718,11 @@ export default function CommunityHomePage({
         lookupInvites={lookupInvites.data}
         inviteUrl={inviteLink.data?.inviteUrl}
         sendPending={sendLookupInvite.isPending}
-        revokePending={revokeLookupInvite.isPending}
+        revokePendingId={
+          revokeLookupInvite.isPending
+            ? revokeLookupInvite.variables?.inviteId
+            : undefined
+        }
         copyPending={createInviteLink.isPending}
         sendError={sendLookupInvite.error}
         searchQuery={lookupQuery}

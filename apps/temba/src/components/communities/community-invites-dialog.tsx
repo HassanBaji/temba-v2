@@ -23,7 +23,7 @@ export function CommunityInvitesDialog({
   lookupInvites,
   inviteUrl,
   sendPending,
-  revokePending,
+  revokePendingId,
   copyPending,
   sendError,
   searchQuery,
@@ -43,7 +43,7 @@ export function CommunityInvitesDialog({
   lookupInvites: LookupListItem[] | undefined;
   inviteUrl: string | null | undefined;
   sendPending: boolean;
-  revokePending: boolean;
+  revokePendingId?: string;
   copyPending: boolean;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
   searchQuery: string;
@@ -71,7 +71,7 @@ export function CommunityInvitesDialog({
               description="Owner and Admin can search existing Users and send Lookup invites. The invitee accepts on Invites. Lookup invites do not expire."
               lookupInvites={lookupInvites}
               sendPending={sendPending}
-              revokePending={revokePending}
+              revokePendingId={revokePendingId}
               sendError={sendError}
               searchQuery={searchQuery}
               onSearchQueryChange={onSearchQueryChange}

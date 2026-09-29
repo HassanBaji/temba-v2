@@ -24,7 +24,7 @@ export function GroupInvitesDialog({
   lookupInvites,
   inviteUrl,
   sendPending,
-  revokePending,
+  revokePendingId,
   copyPending,
   sendError,
   searchQuery,
@@ -45,7 +45,7 @@ export function GroupInvitesDialog({
   lookupInvites: LookupListItem[] | undefined;
   inviteUrl: string | null | undefined;
   sendPending: boolean;
-  revokePending: boolean;
+  revokePendingId?: string;
   copyPending: boolean;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
   searchQuery: string;
@@ -79,7 +79,7 @@ export function GroupInvitesDialog({
                 }
                 lookupInvites={lookupInvites}
                 sendPending={sendPending}
-                revokePending={revokePending}
+                revokePendingId={revokePendingId}
                 sendError={sendError}
                 searchQuery={searchQuery}
                 onSearchQueryChange={onSearchQueryChange}
