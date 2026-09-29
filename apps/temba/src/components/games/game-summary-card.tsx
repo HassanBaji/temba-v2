@@ -7,7 +7,7 @@ import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-she
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
-import { Button } from "~/components/ui/button";
+import { Button, buttonVariants } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
   formatGameCardDay,
@@ -331,6 +331,8 @@ function OpenFlag({ openSpots }: { openSpots: number }) {
   );
 }
 
+const CARD_ACTION_CLASS = "relative z-10 shrink-0 font-semibold";
+
 export function GameSummaryCard({
   name,
   startTime,
@@ -461,19 +463,13 @@ export function GameSummaryCard({
 
   const pendingLabel =
     primaryAction === "register" ? "Registering…" : "Joining…";
-  const actionClass = cn(
-    "relative z-10 h-auto min-h-0 shrink-0 rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
-    solidCta
-      ? null
-      : "border-rule bg-paper text-ink hover:bg-paper hover:text-ink",
-  );
+  const actionVariant = solidCta ? "default" : "outline";
   const actionControl =
     interactiveCta && ctaText ? (
       <Button
         type="button"
-        size="sm"
-        variant={solidCta ? "default" : "outline"}
-        className={actionClass}
+        variant={actionVariant}
+        className={CARD_ACTION_CLASS}
         disabled={actionPending}
         onClick={(event) => {
           event.preventDefault();
@@ -486,10 +482,8 @@ export function GameSummaryCard({
     ) : href && ctaText ? (
       <span
         className={cn(
-          "inline-flex items-center rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
-          solidCta
-            ? "bg-ink text-paper border-ink border"
-            : "border-rule bg-paper text-ink border",
+          buttonVariants({ variant: actionVariant }),
+          CARD_ACTION_CLASS,
         )}
       >
         {ctaText}
@@ -642,13 +636,9 @@ export function GameSummaryCard({
                 >
                   <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     data-slot="game-card-partner-join"
-                    className={cn(
-                      "relative z-10 h-auto min-h-0 shrink-0 rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
-                      "border-rule bg-paper text-ink hover:bg-paper hover:text-ink",
-                    )}
+                    className={CARD_ACTION_CLASS}
                     disabled={actionPending}
                     onClick={(event) => {
                       event.preventDefault();

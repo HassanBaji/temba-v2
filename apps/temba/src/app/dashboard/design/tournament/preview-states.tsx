@@ -10,6 +10,7 @@ import {
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
 import { TAB_SEGMENT } from "~/components/groups/group-home-chrome";
+import { buttonVariants } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import type { TournamentFixture } from "~/fixtures/tournament";
@@ -469,7 +470,7 @@ function TournamentCreateControlsPreview() {
       ) : null}
 
       <div className="border-rule flex flex-col gap-2.5 border-t pt-5">
-        <div className="bg-ink text-paper flex h-[52px] min-h-[52px] items-center justify-center rounded-[12px] text-base font-semibold">
+        <div className={cn(buttonVariants({ size: "lg" }), "font-semibold")}>
           {CREATE_PRIMARY_ACTION}
         </div>
         <p className="text-muted-foreground text-center text-[12px] leading-relaxed">

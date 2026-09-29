@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "~/components/ui/button";
 import {
   INVITE_FROM_A_GROUP_LABEL,
   SEATS_HEADING,
@@ -51,13 +52,14 @@ export function TournamentSeatsGrid({
         {tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal)}
       </p>
       {onInvite ? (
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={onInvite}
-          className="border-ink focus-visible:ring-ring/50 mt-[18px] flex min-h-11 w-full items-center justify-center rounded-[11px] border text-sm font-semibold outline-none focus-visible:ring-[3px]"
+          className="border-ink mt-[18px] w-full font-semibold"
         >
           {INVITE_FROM_A_GROUP_LABEL}
-        </button>
+        </Button>
       ) : null}
     </section>
   );

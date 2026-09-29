@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 
 import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
+import { Button } from "~/components/ui/button";
 import {
   Drawer,
   DrawerContent,
@@ -76,13 +77,13 @@ export function TournamentMergeBanner({
           teamCount,
         })}
       </p>
-      <button
+      <Button
         type="button"
         onClick={onOpen}
-        className="bg-ink text-paper mt-4 flex h-[46px] min-h-11 w-full items-center justify-center rounded-[12px] text-sm font-semibold"
+        className="mt-4 w-full font-semibold"
       >
         {MERGE_BANNER_ACTION_LABEL}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -103,13 +104,14 @@ export function TournamentMergeEntry({
       <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
         {mergeManyHalfTeamsCopy(halfTeamCount)}
       </p>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={onOpen}
-        className="border-ink mt-4 flex h-[46px] min-h-11 w-full items-center justify-center rounded-[12px] border text-sm font-semibold"
+        className="border-ink mt-4 w-full font-semibold"
       >
         {MERGE_SEATS_ACTION_LABEL}
-      </button>
+      </Button>
     </div>
   );
 }

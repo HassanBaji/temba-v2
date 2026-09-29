@@ -83,14 +83,10 @@ export function HomeNextGame({
         <HomeSeatRow seats={seats} />
       </div>
       <div className="mt-4 flex gap-2">
-        <Button asChild className="bg-paper text-ink hover:bg-paper/90 flex-1">
+        <Button asChild variant="inverse" className="flex-1">
           <Link href={primary.href}>{primary.label}</Link>
         </Button>
-        <Button
-          asChild
-          variant="ghost"
-          className="border-dimrule text-paper hover:bg-raised flex-1 border"
-        >
+        <Button asChild variant="outline-inverse" className="flex-1">
           <Link href={detailsHref}>Details</Link>
         </Button>
       </div>

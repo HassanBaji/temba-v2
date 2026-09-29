@@ -112,7 +112,8 @@ export function TournamentPoolDrawPanel({
           <>
             <Button
               type="button"
-              className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+              size="lg"
+              className="w-full font-semibold"
               disabled={busy}
               aria-busy={postPending}
               onClick={() => {
@@ -124,7 +125,8 @@ export function TournamentPoolDrawPanel({
             <Button
               type="button"
               variant="outline"
-              className="h-[52px] min-h-[52px] w-full rounded-[12px] text-[15px]"
+              size="lg"
+              className="w-full"
               disabled={busy}
               aria-busy={drawPending}
               onClick={() => {
@@ -140,7 +142,8 @@ export function TournamentPoolDrawPanel({
         ) : (
           <Button
             type="button"
-            className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+            size="lg"
+            className="w-full font-semibold"
             disabled={busy}
             aria-busy={drawPending}
             onClick={() => {

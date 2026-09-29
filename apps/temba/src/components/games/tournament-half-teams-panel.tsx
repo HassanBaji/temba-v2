@@ -226,7 +226,8 @@ export function TournamentHalfTeamsPanel({
       <div className="border-rule mt-auto flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
-          className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+          size="lg"
+          className="w-full font-semibold"
           disabled={mergePending || !canMerge}
           aria-busy={mergePending}
           onClick={() => {
@@ -238,7 +239,8 @@ export function TournamentHalfTeamsPanel({
         <Button
           type="button"
           variant="outline"
-          className="h-[52px] min-h-[52px] w-full rounded-[12px] text-[15px]"
+          size="lg"
+          className="w-full"
           disabled={mergePending}
           onClick={() => {
             setSwapped(false);
@@ -328,7 +330,7 @@ function MergedPreview({
           type="button"
           onClick={onSwap}
           disabled={mergePending}
-          className="min-h-11 min-w-11 shrink-0 text-[13px] font-semibold underline underline-offset-2 disabled:opacity-50"
+          className="focus-visible:ring-ring/50 min-h-11 min-w-11 shrink-0 rounded-sm text-[13px] font-semibold underline underline-offset-2 outline-none focus-visible:ring-[3px] disabled:opacity-50"
         >
           {MERGE_SWAP_LABEL}
         </button>

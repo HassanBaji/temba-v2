@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronLeftIcon, ShareIcon } from "lucide-react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { Button } from "~/components/ui/button";
 import {
   INVITE_ACTION_LABEL,
   LEFT_SEAT_LABEL,
@@ -159,13 +160,15 @@ export function TournamentHero({
       </p>
 
       {onInvite ? (
-        <button
+        <Button
           type="button"
+          variant="outline-inverse"
+          size="lg"
           onClick={onInvite}
-          className="border-dimrule focus-visible:ring-ring/50 mt-[18px] flex h-[50px] min-h-[50px] w-full items-center justify-center rounded-xl border text-[15px] outline-none focus-visible:ring-[3px]"
+          className="mt-[18px] w-full"
         >
           {INVITE_ACTION_LABEL}
-        </button>
+        </Button>
       ) : null}
     </article>
   );

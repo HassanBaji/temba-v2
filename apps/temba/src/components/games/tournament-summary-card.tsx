@@ -7,7 +7,7 @@ import * as React from "react";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
-import { Button } from "~/components/ui/button";
+import { Button, buttonVariants } from "~/components/ui/button";
 import { formatGameCardDay, formatRelativeDay } from "~/lib/format-game-start";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
 import { formatLevelRangeLabel } from "~/lib/level-range";
@@ -235,8 +235,7 @@ function PriceLine({ cents }: { cents: number | null }) {
   );
 }
 
-const ACTION_CLASS =
-  "inline-flex min-h-11 flex-none items-center justify-center rounded-[11px] px-[22px] text-sm font-semibold";
+const ACTION_CLASS = "flex-none font-semibold";
 
 export function TournamentSummaryCard({
   game,
@@ -323,7 +322,7 @@ export function TournamentSummaryCard({
             <Button
               type="button"
               variant={"default"}
-              className={cn(ACTION_CLASS, "pointer-events-auto h-auto")}
+              className={cn(ACTION_CLASS, "pointer-events-auto")}
               disabled={actionPending}
               onClick={(event) => {
                 event.preventDefault();
@@ -340,10 +339,10 @@ export function TournamentSummaryCard({
           ) : (
             <span
               className={cn(
+                buttonVariants({
+                  variant: action === "invite_partner" ? "default" : "outline",
+                }),
                 ACTION_CLASS,
-                action === "invite_partner"
-                  ? "bg-ink text-paper"
-                  : "border-rule bg-paper text-ink border",
               )}
             >
               {actionLabel}
@@ -553,10 +552,10 @@ export function TournamentMatchCard({
           </span>
           <span
             className={cn(
+              buttonVariants({
+                variant: action === "add_results" ? "default" : "outline",
+              }),
               ACTION_CLASS,
-              action === "add_results"
-                ? "bg-ink text-paper"
-                : "border-rule bg-paper text-ink border",
             )}
           >
             {tournamentMatchActionLabel(action)}

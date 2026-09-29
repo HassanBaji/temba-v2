@@ -74,7 +74,6 @@ import {
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "~/lib/tournament-sizing";
-import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 type FormFailure = Parameters<typeof focusFormFailure>[0];
@@ -910,12 +909,12 @@ function NewGameForm() {
               ) : null}
               <Button
                 type="submit"
-                className={cn(
-                  "h-12 min-h-11",
+                size="lg"
+                className={
                   displayedStep === 2 || displayedStep === 3
-                    ? "shrink-0 px-5"
-                    : "flex-1",
-                )}
+                    ? "shrink-0"
+                    : "flex-1"
+                }
                 disabled={submitting || (displayedStep === 2 && emptyCatalog)}
               >
                 {primaryLabel}
@@ -923,7 +922,7 @@ function NewGameForm() {
                   <ArrowRight aria-hidden="true" className="size-4" />
                 ) : null}
               </Button>
-              <Button variant="outline" className="h-12 min-h-11" asChild>
+              <Button variant="outline" size="lg" asChild>
                 <Link href={cancelHref} onClick={onCancel}>
                   Cancel
                 </Link>

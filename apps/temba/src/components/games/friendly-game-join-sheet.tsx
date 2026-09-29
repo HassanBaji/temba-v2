@@ -570,7 +570,8 @@ function TournamentTakeASeat({
       <div className="border-rule mt-auto flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
-          className="h-[52px] min-h-[52px] w-full"
+          size="lg"
+          className="w-full"
           disabled={!picked || pending}
           onClick={onConfirm}
         >
@@ -584,7 +585,8 @@ function TournamentTakeASeat({
           <Button
             type="button"
             variant="outline"
-            className="h-[52px] min-h-[52px] w-full"
+            size="lg"
+            className="w-full"
             disabled={pending}
             onClick={onJoinWithPartner}
           >
@@ -1023,7 +1025,8 @@ export function FriendlyGameJoinSheet({
               ) : null}
               <Button
                 type="button"
-                className="h-[52px] flex-1"
+                size="lg"
+                className="flex-1"
                 disabled={!picked || pending}
                 onClick={confirmSeat}
               >

@@ -176,10 +176,7 @@ function StartAGroupCard() {
         Pick a sport, invite players, and Temba keeps the standing and history.
       </p>
       <div className="mt-4 flex gap-2">
-        <Button
-          asChild
-          className="bg-ink text-paper hover:bg-dimrule h-11 flex-1 rounded-[10px] font-semibold"
-        >
+        <Button asChild className="flex-1 font-semibold">
           <Link href="/dashboard/groups/new">Padel</Link>
         </Button>
         <span

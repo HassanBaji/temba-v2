@@ -94,7 +94,7 @@ function InviteBlock({ onInvite }: { onInvite: () => void }) {
       <Button
         type="button"
         onClick={onInvite}
-        className="bg-ink text-paper hover:bg-dimrule mt-4 h-[46px] w-full rounded-[12px] font-semibold"
+        className="mt-4 w-full font-semibold"
       >
         Share invite link
       </Button>

@@ -50,13 +50,14 @@ export function TournamentDrawEntry({
       <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
         {drawEntryStateLine(completeTeams, teamCount)}
       </p>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={onOpen}
-        className="border-ink mt-4 flex h-[46px] min-h-11 w-full items-center justify-center rounded-[12px] border text-sm font-semibold"
+        className="border-ink mt-4 w-full font-semibold"
       >
         {DRAW_ENTRY_ACTION_LABEL}
-      </button>
+      </Button>
     </div>
   );
 }

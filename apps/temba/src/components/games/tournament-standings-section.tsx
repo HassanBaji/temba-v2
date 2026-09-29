@@ -125,7 +125,7 @@ function OtherPoolsRow({
     <button
       type="button"
       className={cn(
-        "text-muted-foreground flex min-h-11 w-full items-center gap-3 px-5 py-4 text-left text-[14px]",
+        "text-muted-foreground focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 px-5 py-4 text-left text-[14px] outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
         className,
       )}
       onClick={() => {
