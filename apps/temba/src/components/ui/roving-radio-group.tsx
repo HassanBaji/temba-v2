@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { rovingRadioIndex } from "~/lib/roving-radio";
+import { rovingRadioIndex, rovingTabStopIndex } from "~/lib/roving-radio";
 
 function ownRadios(group: HTMLElement) {
   return Array.from(
@@ -38,11 +38,16 @@ export function RovingRadioGroup({
       return;
     }
     const radios = ownRadios(group);
-    const enabled = radios.filter(isEnabled);
-    const stop = enabled.find(isChecked) ?? enabled[0];
-    for (const radio of radios) {
-      radio.tabIndex = radio === stop ? 0 : -1;
-    }
+    const stop = rovingTabStopIndex(
+      radios.map((radio) => ({
+        checked: isChecked(radio),
+        enabled: isEnabled(radio),
+        focusable: !radio.hasAttribute("disabled"),
+      })),
+    );
+    radios.forEach((radio, index) => {
+      radio.tabIndex = index === stop ? 0 : -1;
+    });
   });
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {

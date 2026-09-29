@@ -22,3 +22,32 @@ export function rovingRadioIndex(
       return null;
   }
 }
+
+export type RovingRadioState = {
+  checked: boolean;
+  /** Neither `disabled` nor `aria-disabled`. */
+  enabled: boolean;
+  /** Not natively `disabled`, so it can still hold focus. */
+  focusable: boolean;
+};
+
+/**
+ * Which radio carries the group's single tab stop. An `aria-disabled` group
+ * (for example while a choice is saving) keeps a stop on its checked radio so
+ * focus is not dropped to the page.
+ */
+export function rovingTabStopIndex(radios: RovingRadioState[]): number {
+  const candidates = [
+    (radio: RovingRadioState) => radio.enabled && radio.checked,
+    (radio: RovingRadioState) => radio.enabled,
+    (radio: RovingRadioState) => radio.focusable && radio.checked,
+    (radio: RovingRadioState) => radio.focusable,
+  ];
+  for (const matches of candidates) {
+    const index = radios.findIndex(matches);
+    if (index !== -1) {
+      return index;
+    }
+  }
+  return -1;
+}
