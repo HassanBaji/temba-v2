@@ -1,4 +1,5 @@
 import {
+  formatGameClock,
   formatGameClockWithoutMeridiem,
   formatRelativeDay,
 } from "~/lib/format-game-start";
@@ -78,11 +79,7 @@ export function formatHomeKickoff(startsAt: Date): {
   meridiem: string;
   relativeDay: string;
 } {
-  const clock = startsAt.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
+  const clock = formatGameClock(startsAt);
   const parts = clock.trim().split(/\s+/);
   const meridiem = parts.length > 1 ? (parts[parts.length - 1] ?? "") : "";
   const time = parts.length > 1 ? parts.slice(0, -1).join(" ") : clock;

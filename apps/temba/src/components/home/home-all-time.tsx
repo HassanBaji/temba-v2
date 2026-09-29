@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { SurfaceLabel } from "~/components/common/surface-label";
 import { cn } from "~/lib/utils";
 
 const FIGURES = [
@@ -78,9 +79,7 @@ export function HomeAllTime({
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <h2 className="text-muted-foreground px-[22px] pb-3 pt-[22px] text-sm">
-        All time
-      </h2>
+      <SurfaceLabel>All time</SurfaceLabel>
       <div className="divide-rule border-rule flex divide-x border-t px-[22px] pb-[22px]">
         {FIGURES.map((figure) => (
           <div

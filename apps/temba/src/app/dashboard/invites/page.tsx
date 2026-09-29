@@ -12,6 +12,8 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { gameJoinToast } from "~/lib/game-copy";
 import { api } from "~/trpc/react";
 
 function inviteMeta(
@@ -43,7 +45,7 @@ export default function InvitesPage() {
       await utils.communities.mine.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -55,7 +57,7 @@ export default function InvitesPage() {
       await utils.communities.mine.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -66,19 +68,19 @@ export default function InvitesPage() {
       await utils.teams.mine.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
   const acceptGame = api.games.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined Game waitlist" : "Joined Game");
+      toast.success(gameJoinToast(result.waitlisted));
       await utils.games.pendingLookupInvites.invalidate();
       await utils.games.byId.invalidate({ id: result.gameId });
       await utils.users.home.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
       void gameInvites.refetch();
     },
   });
@@ -165,9 +167,9 @@ export default function InvitesPage() {
   return (
     <DashboardShell
       title="Invites"
-      description="Unused Lookup invites addressed to you. Accept here to join."
+      description="Invites sent to you. Accept one to join."
     >
-      {isLoading ? <ListPageSkeleton rows={4} /> : null}
+      {isLoading && items.length === 0 ? <ListPageSkeleton rows={4} /> : null}
 
       {error ? (
         <ErrorState
@@ -186,7 +188,7 @@ export default function InvitesPage() {
         <EmptyState
           icon={Inbox}
           title="Nothing waiting"
-          description="Lookup invites to Communities, Groups and Teams show up here."
+          description="Invites to Games, Groups, Teams and Communities show up here."
         />
       ) : null}
 
@@ -281,15 +283,17 @@ export default function InvitesPage() {
                 }
                 title={invite.title}
                 meta={inviteMeta(invite.kind, inviterName)}
+                stackTrailing
                 trailing={
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <InviteKindBadge kind={invite.kind} />
                     <Button
-                      className="min-h-11"
-                      disabled={pending}
+                      aria-label={`Accept the invite to ${invite.title}`}
+                      pending={pending}
+                      pendingLabel="Accepting…"
                       onClick={() => onAccept(invite.kind, invite.id)}
                     >
-                      {pending ? "Accepting…" : "Accept"}
+                      Accept
                     </Button>
                   </div>
                 }

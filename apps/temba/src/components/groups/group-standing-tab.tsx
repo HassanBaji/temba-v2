@@ -9,6 +9,7 @@ import {
   groupStandingRecordLabel,
 } from "~/lib/group-home-chrome";
 import type { LevelBand } from "~/lib/level-bands";
+import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 type StandingEntry = {
@@ -25,8 +26,6 @@ type StandingEntry = {
   levelProvisional: boolean;
 };
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
-
 /**
  * Column geometry from design 06a: 26px position, flexible Player, 54px W-L,
  * 56px Level. The outer columns carry the card's 20px gutter inside their
@@ -41,10 +40,10 @@ const BODY_CELL = "py-4";
 
 function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
   return (
-    <div className={CARD}>
+    <div className={cardFrame}>
       <table className="w-full table-fixed">
         <thead>
-          <tr className="border-rule text-dim text-eyebrow border-b">
+          <tr className="border-rule text-muted-foreground text-eyebrow border-b">
             <th scope="col" className={cn(COL_POSITION, HEAD_CELL)}>
               #
             </th>
@@ -80,7 +79,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
               <td className={cn(COL_PLAYER, BODY_CELL)}>
                 <span
                   className={cn(
-                    "block truncate text-[15px]",
+                    "text-body block truncate",
                     entry.isViewer && "font-semibold",
                   )}
                 >
@@ -91,7 +90,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
                 className={cn(
                   COL_RECORD,
                   BODY_CELL,
-                  "font-expanded text-[15px] tabular-nums",
+                  "font-expanded text-body tabular-nums",
                 )}
               >
                 {groupStandingRecordLabel(entry.wins, entry.losses)}
@@ -107,7 +106,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
           ))}
         </tbody>
       </table>
-      <p className="border-rule text-eyebrow text-dim border-t px-5 py-3.5">
+      <p className="border-rule text-eyebrow text-muted-foreground border-t px-5 py-3.5">
         Hatched level means the Rating is still Provisional
       </p>
     </div>
@@ -122,7 +121,7 @@ function StatPair({
   awaitingScoreCount: number;
 }) {
   return (
-    <div className={cn(CARD, "flex")}>
+    <div className={cn(cardFrame, "flex")}>
       <div className="border-rule min-w-0 flex-1 border-r px-5 py-[18px]">
         <p className="font-expanded text-[26px] tabular-nums leading-8">
           {totalGamesPlayed}
@@ -162,8 +161,8 @@ export function GroupStandingTab({
     return (
       <EmptyState
         icon={Users}
-        title="Join to see your standing"
-        description="You are not a member of this Group, so you do not have a standing position here. Join to appear on the leaderboard."
+        title="Join to see your Standing"
+        description="Join this Group to get a Standing among its members."
       />
     );
   }
@@ -172,7 +171,7 @@ export function GroupStandingTab({
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-        Create the first game
+        Create the first Game
       </Link>
     </Button>
   ) : null;
@@ -182,7 +181,7 @@ export function GroupStandingTab({
       {hasResults ? null : (
         <EmptyState
           icon={Users}
-          title="Standings appear once the first result is recorded."
+          title="Standings appear after the first result"
           action={createFirstGame}
           className={leaderboard.length > 0 ? "py-6" : undefined}
         />

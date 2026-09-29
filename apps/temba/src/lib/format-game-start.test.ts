@@ -2,11 +2,63 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  APP_LOCALE,
+  formatAbsoluteDay,
+  formatDayMonth,
   formatGameCardDay,
+  formatGameClock,
   formatGameClockWithoutMeridiem,
+  formatGameStart,
   formatPlayedRelativeDay,
+  formatRelativeDay,
   formatWindowDuration,
 } from "./format-game-start";
+
+// Local-time constructors keep these independent of the machine's timezone.
+const SATURDAY_EVENING = new Date(2026, 9, 3, 19, 30, 0);
+
+describe("APP_LOCALE", () => {
+  it("is the one locale every date and time uses", () => {
+    assert.equal(APP_LOCALE, "en-US");
+  });
+});
+
+describe("formatGameClock", () => {
+  it("uses a 12-hour clock whatever the viewer's locale", () => {
+    assert.match(formatGameClock(SATURDAY_EVENING), /^7:30\sPM$/u);
+  });
+});
+
+describe("formatDayMonth", () => {
+  it("puts the day before a short month by default", () => {
+    assert.equal(formatDayMonth(SATURDAY_EVENING), "3 Oct");
+  });
+
+  it("adds a weekday and year when asked", () => {
+    assert.equal(
+      formatDayMonth(SATURDAY_EVENING, { weekday: "short", year: true }),
+      "Sat 3 Oct 2026",
+    );
+  });
+
+  it("spells out weekday and month for detail headings", () => {
+    assert.equal(formatAbsoluteDay(SATURDAY_EVENING), "Saturday 3 October");
+  });
+});
+
+describe("formatGameStart", () => {
+  it("joins the short day and the clock", () => {
+    assert.match(formatGameStart(SATURDAY_EVENING), /^Sat 3 Oct, 7:30\sPM$/u);
+  });
+});
+
+describe("formatRelativeDay", () => {
+  it("falls back to a short day-first date beyond tomorrow", () => {
+    const date = new Date(2099, 0, 15, 20, 0, 0);
+    const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
+    assert.equal(formatRelativeDay(date), `${weekday} 15 Jan`);
+  });
+});
 
 describe("formatWindowDuration", () => {
   it("returns null when either bound is missing", () => {

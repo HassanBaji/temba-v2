@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   filterGroupMembersByName,
+  groupHomeBackTarget,
   groupHomeHasStandingResults,
   groupHomeMetaLine,
   groupHomeShowsMemberSearch,
@@ -14,6 +15,22 @@ import {
   groupPlayedTeamLabel,
   groupStandingRecordLabel,
 } from "./group-home-chrome";
+
+describe("groupHomeBackTarget", () => {
+  it("returns a Club Group home to its Community home", () => {
+    assert.deepEqual(groupHomeBackTarget("community-1"), {
+      href: "/dashboard/communities/community-1",
+      label: "Back to Community",
+    });
+  });
+
+  it("returns a Loose Group home to the Groups index", () => {
+    const loose = { href: "/dashboard/groups", label: "Back to Groups" };
+    assert.deepEqual(groupHomeBackTarget(null), loose);
+    assert.deepEqual(groupHomeBackTarget(undefined), loose);
+    assert.deepEqual(groupHomeBackTarget(""), loose);
+  });
+});
 
 describe("groupHomeSportLabel", () => {
   it("maps padel and football to display labels", () => {

@@ -14,6 +14,7 @@ import {
   clampFriendlySetGames,
   friendlyGameResultsSaveSets,
 } from "~/lib/friendly-game-results";
+import { setLabel } from "~/lib/game-copy";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -96,27 +97,27 @@ function SetBox({
   state,
   value,
   label,
-  disabled,
+  saving,
   onChange,
 }: {
   state: "locked" | "unplayed" | "enterable" | "readonly" | "solid" | "outline";
   value: number | null;
   label: string;
-  disabled?: boolean;
+  saving?: boolean;
   onChange?: (value: number | null) => void;
 }) {
   if (state === "locked" || state === "unplayed") {
     return (
       <span
         aria-hidden="true"
-        className="hatch inline-block h-10 w-11 shrink-0 rounded-[5px]"
+        className="hatch rounded-xs inline-block h-10 w-11 shrink-0"
       />
     );
   }
 
   if (state === "solid") {
     return (
-      <div className="bg-ink text-paper flex h-10 w-11 shrink-0 items-center justify-center rounded-[5px] text-base font-semibold tabular-nums">
+      <div className="bg-ink text-paper rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums">
         <span className="sr-only">
           {label}: {value} games, won this Set
         </span>
@@ -127,7 +128,7 @@ function SetBox({
 
   if (state === "outline") {
     return (
-      <div className="border-ink bg-paper text-ink flex h-10 w-11 shrink-0 items-center justify-center rounded-[5px] border-[1.5px] text-base font-semibold tabular-nums">
+      <div className="border-ink bg-paper text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center border-[1.5px] text-base font-semibold tabular-nums">
         <span className="sr-only">
           {label}: {value} games, lost this Set
         </span>
@@ -139,7 +140,7 @@ function SetBox({
   if (state === "readonly") {
     return (
       <div
-        className="hatch text-ink flex h-10 w-11 shrink-0 items-center justify-center rounded-[5px] text-base font-semibold tabular-nums"
+        className="hatch text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums"
         aria-label={`${label}: ${value ?? "not entered yet"}`}
       >
         <span aria-hidden="true">{value ?? ""}</span>
@@ -154,7 +155,7 @@ function SetBox({
       min={FRIENDLY_SET_GAMES_MIN}
       max={FRIENDLY_SET_GAMES_MAX}
       value={value ?? ""}
-      disabled={disabled}
+      readOnly={saving}
       aria-label={label}
       onChange={(event) => {
         const raw = event.target.value;
@@ -168,7 +169,7 @@ function SetBox({
         );
       }}
       className={cn(
-        "hatch h-10 w-11 shrink-0 rounded-[5px] p-0 text-center text-base font-semibold tabular-nums",
+        "hatch rounded-xs h-10 w-11 shrink-0 p-0 text-center text-base font-semibold tabular-nums",
         "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
       )}
     />
@@ -233,7 +234,7 @@ function MatchResultConfirmations({
           return (
             <li
               key={userId}
-              className="flex items-center justify-between gap-3 text-meta"
+              className="text-meta flex items-center justify-between gap-3"
             >
               <span className="min-w-0 truncate">
                 {name}
@@ -315,8 +316,7 @@ export function GameScoreSection({
 
   const isUpcoming = phase === "upcoming" || phase === "ongoing";
   const isFinal = phase === "final";
-  const canEnter =
-    phase === "needs_results" && match.canScoreSets && !scorePending;
+  const canEnter = phase === "needs_results" && match.canScoreSets;
   const hasResult = match.outcome.result !== "none";
   const names = nameByUserId(sides);
 
@@ -332,8 +332,12 @@ export function GameScoreSection({
       toast.error("Enter games won for both teams");
       return;
     }
-    for (const payload of payloads) {
-      await onScoreSet(payload);
+    try {
+      for (const payload of payloads) {
+        await onScoreSet(payload);
+      }
+    } catch {
+      // The score mutation reports its own failure; stop at the first one.
     }
   }
 
@@ -359,7 +363,7 @@ export function GameScoreSection({
               {index > 0 ? (
                 <span
                   aria-hidden="true"
-                  className="text-dim shrink-0 self-center px-1 text-xs font-semibold"
+                  className="text-muted-foreground shrink-0 self-center px-1 text-xs font-semibold"
                 >
                   vs
                 </span>
@@ -375,7 +379,7 @@ export function GameScoreSection({
               slot1: set.slot1GamesWon,
               slot2: set.slot2GamesWon,
             };
-            const setLabel = `Set ${index + 1}`;
+            const setName = setLabel(index);
             const neverPlayed =
               set.slot1GamesWon == null && set.slot2GamesWon == null;
 
@@ -385,11 +389,11 @@ export function GameScoreSection({
                 className="flex flex-wrap items-center justify-between gap-3"
               >
                 <span className="text-muted-foreground text-meta w-14 shrink-0">
-                  {setLabel}
+                  {setName}
                 </span>
                 <div className="flex items-center gap-2">
                   {sides.map((side) => {
-                    const boxLabel = `${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setLabel}`;
+                    const boxLabel = `${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setName}`;
                     if (isUpcoming) {
                       return (
                         <SetBox
@@ -442,7 +446,7 @@ export function GameScoreSection({
                         state="enterable"
                         value={value}
                         label={boxLabel}
-                        disabled={scorePending}
+                        saving={scorePending}
                         onChange={(next) =>
                           setDrafts((current) => ({
                             ...current,
@@ -468,7 +472,8 @@ export function GameScoreSection({
             onClick={() => {
               void saveSets();
             }}
-            disabled={scorePending}
+            pending={scorePending}
+            pendingLabel="Saving…"
           >
             Save score
           </Button>

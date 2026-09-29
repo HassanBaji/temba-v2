@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { use } from "react";
@@ -9,31 +9,38 @@ import { toast } from "sonner";
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import {
+  PendingInvitesSection,
+  type PendingInviteRow,
+} from "~/components/invites/pending-invites-section";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { FormStrip } from "~/components/temba/form-strip";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { entityListIsEmpty } from "~/lib/entity-list-empty";
 import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
 import { groupsTabFromQuery, groupsTabQuery } from "~/lib/groups-tab";
+import { memberCountLabel } from "~/lib/member-count-label";
+import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type GroupRow = RouterOutputs["groups"]["mine"][number];
 type GroupInvite = RouterOutputs["groups"]["pendingLookupInvites"][number];
 type PublicGroupRow = RouterOutputs["groups"]["listPublic"][number];
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
-
 function GroupRowsSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite" className={CARD}>
+    <div aria-busy="true" aria-live="polite" className={cardFrame}>
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="border-rule flex items-start justify-between gap-3.5 border-t p-5 first:border-t-0"
+          className="border-rule flex items-center justify-between gap-3 border-t px-5 py-4 first:border-t-0"
         >
-          <div className="flex min-w-0 flex-1 items-start gap-3.5">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <Skeleton className="size-10 shrink-0 rounded-lg" />
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-5 w-40 max-w-full" />
@@ -62,131 +69,73 @@ function NextGameCell({ startTime }: { startTime: Date | string | null }) {
   return (
     <div className="shrink-0 text-right">
       <p className="font-expanded text-[22px] leading-7">{weekday}</p>
-      <p className="text-eyebrow text-muted-foreground">next game</p>
+      <p className="text-eyebrow text-muted-foreground">Next Game</p>
     </div>
   );
 }
 
-function GroupRowCard({ groups }: { groups: GroupRow[] }) {
+function GroupRows({ groups }: { groups: GroupRow[] }) {
   return (
-    <ul className={CARD}>
-      {groups.map((group) => (
-        <li key={group.id} className="border-rule border-t first:border-t-0">
-          <Link
-            href={`/dashboard/groups/${group.id}`}
-            className="focus-visible:ring-ring/50 flex flex-col gap-3.5 p-5 outline-none focus-visible:ring-[3px]"
-          >
-            <div className="flex items-start justify-between gap-3.5">
-              <div className="flex min-w-0 items-start gap-3.5">
-                <EntityMonogram
-                  name={group.name ?? "Untitled Group"}
-                  image={group.imageUrl}
-                  size="lg"
-                />
-                <div className="min-w-0">
-                  <p className="break-words text-[18px] font-semibold leading-6">
-                    {group.name ?? "Untitled Group"}
-                  </p>
-                  <p className="text-meta text-muted-foreground mt-0.5 break-words">
-                    {groupRowMetaLine({
-                      memberCount: group.memberCount,
-                      standingPosition: group.standingPosition,
-                    })}
-                  </p>
+    <RowList variant="card">
+      {groups.map((group) => {
+        const name = group.name ?? "Untitled Group";
+        return (
+          <ListRow
+            key={group.id}
+            asChild
+            size="lg"
+            leading={
+              <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+            }
+            title={name}
+            meta={groupRowMetaLine({
+              memberCount: group.memberCount,
+              standingPosition: group.standingPosition,
+            })}
+            trailing={<NextGameCell startTime={group.nextGameStartTime} />}
+            footer={
+              group.formMarks.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <FormStrip marks={group.formMarks} size={18} gap={6} />
+                  <span className="text-eyebrow text-muted-foreground ml-auto">
+                    your form here
+                  </span>
                 </div>
-              </div>
-              <NextGameCell startTime={group.nextGameStartTime} />
-            </div>
-
-            {group.formMarks.length > 0 ? (
-              <div className="flex items-center gap-2">
-                <FormStrip marks={group.formMarks} size={18} gap={6} />
-                <span className="text-eyebrow text-dim ml-auto">
-                  your form here
-                </span>
-              </div>
-            ) : null}
-          </Link>
-        </li>
-      ))}
-    </ul>
+              ) : undefined
+            }
+          >
+            <Link href={`/dashboard/groups/${group.id}`} />
+          </ListRow>
+        );
+      })}
+    </RowList>
   );
 }
 
-function InvitationsCard({
-  invites,
-  pendingInviteId,
-  onAccept,
-}: {
-  invites: GroupInvite[];
-  pendingInviteId: string | null;
-  onAccept: (inviteId: string) => void;
-}) {
-  return (
-    <section className={CARD}>
-      <h2 className="text-meta text-muted-foreground border-rule border-b px-5 py-4">
-        Invitations
-      </h2>
-      <ul>
-        {invites.map((invite) => {
-          const isPending = pendingInviteId === invite.id;
-          return (
-            <li
-              key={invite.id}
-              className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0"
-            >
-              <EntityMonogram
-                name={invite.groupName ?? "Untitled Group"}
-                image={invite.imageUrl}
-                size="lg"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-body break-words">
-                  {invite.groupName ?? "Untitled Group"}
-                </p>
-                <p className="text-meta text-muted-foreground break-words">
-                  Invited by {invite.invitedBy.name}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isPending}
-                onClick={() => {
-                  onAccept(invite.id);
-                }}
-                className="border-ink h-10 min-h-10 shrink-0 rounded-[10px] font-semibold"
-              >
-                {isPending ? "Joining" : "Join"}
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
+function toPendingInviteRow(invite: GroupInvite): PendingInviteRow {
+  const title = invite.groupName ?? "Untitled Group";
+  return {
+    id: invite.id,
+    leading: <EntityMonogram name={title} image={invite.imageUrl} size="lg" />,
+    title,
+    invitedBy: invite.invitedBy.name,
+  };
 }
 
 function StartAGroupCard() {
   return (
-    <section className="border-rule rounded-[14px] border p-5">
+    <section className="border-rule rounded-card border p-5">
       <h2 className="text-body font-semibold">Start a group</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
         Pick a sport, invite players, and Temba keeps the standing and history.
       </p>
-      <div className="mt-4 flex gap-2">
-        <Button
-          asChild
-          className="bg-ink text-paper hover:bg-dimrule h-11 flex-1 rounded-[10px] font-semibold"
-        >
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <Button asChild className="flex-1 font-semibold">
           <Link href="/dashboard/groups/new">Padel</Link>
         </Button>
-        <span
-          aria-disabled="true"
-          className="hatch text-muted-foreground flex h-11 flex-1 items-center justify-center rounded-[10px] text-sm"
-        >
-          Football
-        </span>
+        <Button type="button" variant="outline" disabled className="flex-1">
+          Football · coming soon
+        </Button>
       </div>
     </section>
   );
@@ -204,71 +153,64 @@ function PublicGroupRows({
   onRequest: (groupId: string) => void;
 }) {
   return (
-    <ul className={CARD}>
+    <RowList variant="card">
       {groups.map((group) => {
+        const name = group.name ?? "Untitled Group";
         const isPending = pendingGroupId === group.id;
-        const members =
-          group.memberCount === 1 ? "1 member" : `${group.memberCount} members`;
+        const members = memberCountLabel(group.memberCount);
         const meta = group.requiresApproval
           ? `${members} · Requires approval`
           : members;
         return (
-          <li
+          <ListRow
             key={group.id}
-            className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0"
-          >
-            <EntityMonogram
-              name={group.name ?? "Untitled Group"}
-              image={group.imageUrl}
-              size="lg"
-            />
-            <Link
-              href={`/dashboard/groups/${group.id}`}
-              className="focus-visible:ring-ring/50 min-w-0 flex-1 outline-none focus-visible:ring-[3px]"
-            >
-              <p className="break-words text-[18px] font-semibold leading-6">
-                {group.name ?? "Untitled Group"}
-              </p>
-              {group.communityName ? (
-                <p className="text-meta text-muted-foreground mt-0.5 break-words">
-                  {group.communityName}
-                </p>
-              ) : null}
-              <p className="text-meta text-muted-foreground mt-0.5 break-words">
-                {meta}
-              </p>
-            </Link>
-            <Button
-              type="button"
-              variant={group.joinMode === "join" ? "default" : "outline"}
-              disabled={group.joinMode === "requested" || isPending}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                if (group.joinMode === "request") {
-                  onRequest(group.id);
-                  return;
-                }
-                if (group.joinMode === "join") {
-                  onJoin(group);
-                }
-              }}
-              className="h-10 min-h-10 shrink-0 rounded-[10px] font-semibold"
-            >
-              {group.joinMode === "requested"
-                ? "Requested"
-                : group.joinMode === "request"
-                  ? isPending
-                    ? "Requesting…"
-                    : "Request to join"
-                  : isPending
-                    ? "Joining…"
-                    : "Join"}
-            </Button>
-          </li>
+            size="lg"
+            stackTrailing
+            leading={
+              <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+            }
+            title={
+              <Link
+                href={`/dashboard/groups/${group.id}`}
+                className="focus-visible:ring-ring/50 rounded-sm outline-none hover:underline focus-visible:ring-[3px]"
+              >
+                {name}
+              </Link>
+            }
+            subtitle={group.communityName ?? undefined}
+            meta={meta}
+            trailing={
+              <Button
+                type="button"
+                variant={group.joinMode === "join" ? "default" : "outline"}
+                disabled={group.joinMode === "requested"}
+                pending={isPending}
+                onClick={() => {
+                  if (group.joinMode === "request") {
+                    onRequest(group.id);
+                    return;
+                  }
+                  if (group.joinMode === "join") {
+                    onJoin(group);
+                  }
+                }}
+                className="font-semibold"
+              >
+                {group.joinMode === "requested"
+                  ? "Requested"
+                  : group.joinMode === "request"
+                    ? isPending
+                      ? "Requesting…"
+                      : "Request to join"
+                    : isPending
+                      ? "Joining…"
+                      : "Join"}
+              </Button>
+            }
+          />
         );
       })}
-    </ul>
+    </RowList>
   );
 }
 
@@ -355,38 +297,33 @@ export default function GroupsIndexPage({
     null;
 
   const groupRows = groups.data ?? [];
-  const inviteRows = invites.data ?? [];
   const showGroups = groupRows.length > 0;
-  const showInvites = inviteRows.length > 0;
   const showEmpty =
-    !groups.isLoading &&
-    !groups.error &&
-    !invites.isLoading &&
-    !showGroups &&
-    !showInvites &&
-    !hasCreateAccess;
+    entityListIsEmpty({
+      list: {
+        isLoading: groups.isLoading,
+        error: groups.error,
+        count: groupRows.length,
+      },
+      invites: {
+        isLoading: invites.isLoading,
+        count: invites.data?.length ?? 0,
+      },
+    }) && !hasCreateAccess;
 
   return (
     <DashboardShell
       title="Groups"
       action={
         hasCreateAccess ? (
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/dashboard/groups/new" aria-label="Create Group">
-              <PlusIcon className="size-5" />
-            </Link>
-          </Button>
+          <PageCreateAction href="/dashboard/groups/new" label="Create Group" />
         ) : undefined
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
-        <TabsList className="bg-paper w-full justify-between">
-          <TabsTrigger value="mine" className="w-1/2 rounded-r-none">
-            Mine
-          </TabsTrigger>
-          <TabsTrigger value="public" className="w-1/2 rounded-l-none">
-            Public
-          </TabsTrigger>
+        <TabsList variant="segmented">
+          <TabsTrigger value="mine">Mine</TabsTrigger>
+          <TabsTrigger value="public">Public</TabsTrigger>
         </TabsList>
 
         <TabsContent value="mine">
@@ -403,17 +340,22 @@ export default function GroupsIndexPage({
               />
             ) : null}
 
-            {showGroups ? <GroupRowCard groups={groupRows} /> : null}
+            {showGroups ? <GroupRows groups={groupRows} /> : null}
 
-            {showInvites ? (
-              <InvitationsCard
-                invites={inviteRows}
-                pendingInviteId={pendingInviteId}
-                onAccept={(inviteId) => {
-                  acceptInvite.mutate({ inviteId });
-                }}
-              />
-            ) : null}
+            <PendingInvitesSection
+              variant="card"
+              invites={invites.data?.map((invite) =>
+                toPendingInviteRow(invite),
+              )}
+              pendingId={pendingInviteId}
+              error={invites.error}
+              onAccept={(inviteId) => {
+                acceptInvite.mutate({ inviteId });
+              }}
+              onRetry={() => {
+                void invites.refetch();
+              }}
+            />
 
             {hasCreateAccess ? <StartAGroupCard /> : null}
 
@@ -463,7 +405,7 @@ export default function GroupsIndexPage({
             publicGroups.data?.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title="No public Groups to join right now."
+                title="No public Groups to join right now"
               />
             ) : null}
           </div>

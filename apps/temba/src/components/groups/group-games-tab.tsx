@@ -15,14 +15,14 @@ import {
   showsFriendlyRoster,
   showsGameCardPartnerFooter,
 } from "~/lib/game-summary-cta";
+import { cardFrame } from "~/lib/page-layout";
 import { isPoolTournament } from "~/lib/tournament-rounds";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GroupHome = RouterOutputs["groups"]["byId"];
 type ScheduledGame = GroupHome["upcomingGames"][number];
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
-const HEADING = "font-expanded pb-2.5 text-[19px] leading-tight";
+const HEADING = "font-expanded pb-2.5 text-title leading-tight";
 
 export function GroupGamesTab({
   upcomingGames,
@@ -55,7 +55,7 @@ export function GroupGamesTab({
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-        Create the first game
+        Create the first Game
       </Link>
     </Button>
   ) : null;
@@ -174,7 +174,7 @@ export function GroupGamesTab({
             No Game history yet.
           </p>
         ) : (
-          <ul className={CARD}>
+          <ul className={cardFrame}>
             {gameHistory.map((game) => (
               <GroupPlayedRow key={game.id} game={game} />
             ))}

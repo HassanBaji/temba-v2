@@ -43,6 +43,12 @@ export function AppShell({
         } as CSSProperties
       }
     >
+      <a
+        href="#main"
+        className="bg-background text-foreground text-body focus-visible:ring-ring/50 sr-only z-50 rounded-md border font-semibold outline-none focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:px-4 focus:py-3 focus-visible:ring-[3px]"
+      >
+        Skip to content
+      </a>
       <div className="flex min-h-svh w-full min-w-0 overflow-x-clip">
         <AppRail />
         <div className="flex min-w-0 flex-1 flex-col">
@@ -52,18 +58,27 @@ export function AppShell({
               icon={icon}
               action={action}
               isSubPage={isSubPage}
+              titleAs={hidePageHeader ? "p" : "h1"}
             />
           )}
           <main
+            id="main"
+            tabIndex={-1}
             className={cn(
-              "mx-auto w-full min-w-0 flex-1 md:py-6",
+              "mx-auto w-full min-w-0 flex-1 outline-none md:py-6",
               pageGutterX,
               "pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-6",
-              width === "wide"
-                ? "max-w-[var(--container-wide)]"
-                : "max-w-[var(--container-content)]",
+              width === "wide" ? "max-w-wide" : "max-w-content",
             )}
           >
+            {hidePageHeader || !title ? null : (
+              <PageHeader
+                title={title}
+                description={description}
+                action={action}
+                className="mb-6 hidden lg:flex"
+              />
+            )}
             {children}
           </main>
         </div>

@@ -11,13 +11,20 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { formatLevelRangeGateCopy, formatLevelTenths } from "~/lib/level-range";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { requestRowMeta } from "~/lib/request-meta";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];
 
-function requestMeta(levelTenths: number | null, provisional: boolean) {
-  const level = formatLevelTenths(levelTenths) ?? "No Level";
-  return provisional ? `${level} · Provisional` : level;
+function requestMeta(request: {
+  levelTenths: number | null;
+  provisional: boolean;
+  createdAt: Date | string;
+}) {
+  return requestRowMeta(request.createdAt, [
+    formatLevelTenths(request.levelTenths) ?? "No Level",
+    request.provisional ? "Provisional" : null,
+  ]);
 }
 
 export function GameLevelRangePanel({ game }: { game: GameDetail }) {
@@ -122,7 +129,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
                       />
                     }
                     title={name}
-                    meta={requestMeta(request.levelTenths, request.provisional)}
+                    meta={requestMeta(request)}
                     approvePending={
                       approve.isPending &&
                       approve.variables?.requestId === request.id

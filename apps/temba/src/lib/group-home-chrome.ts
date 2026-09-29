@@ -1,3 +1,5 @@
+import { formatDayMonth, formatMonth } from "~/lib/format-game-start";
+import { memberCountLabel } from "~/lib/member-count-label";
 import { shortPlayerName } from "~/lib/player-name";
 
 const SPORT_LABELS: Record<string, string> = {
@@ -21,7 +23,7 @@ function seasonSinceMonth(createdAt: Date | string | null | undefined) {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return date.toLocaleDateString("en-US", { month: "short" });
+  return formatMonth(date, "short");
 }
 
 /**
@@ -45,7 +47,7 @@ export function groupHomeMetaLine(input: {
 
   const memberCount = input.memberCount;
   if (memberCount != null && Number.isFinite(memberCount)) {
-    parts.push(memberCount === 1 ? "1 member" : `${memberCount} members`);
+    parts.push(memberCountLabel(memberCount));
   }
 
   const since = seasonSinceMonth(input.createdAt);
@@ -54,6 +56,17 @@ export function groupHomeMetaLine(input: {
   }
 
   return parts.join(", ");
+}
+
+/** A Club Group home returns to its Community; a Loose Group to Groups. */
+export function groupHomeBackTarget(communityId: string | null | undefined) {
+  if (communityId) {
+    return {
+      href: `/dashboard/communities/${communityId}`,
+      label: "Back to Community",
+    };
+  }
+  return { href: "/dashboard/groups", label: "Back to Groups" };
 }
 
 export function groupHomeHasStandingResults(
@@ -136,9 +149,7 @@ export function groupPlayedDayLabel(playedAt: Date | string) {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  // Composed rather than locale-formatted: `en-GB` reads "6 Sept" and `en-US`
-  // reverses the order. Same composition `formatGameCardDay` uses.
-  return `${date.getDate()} ${date.toLocaleDateString("en-US", { month: "short" })}`;
+  return formatDayMonth(date);
 }
 
 /** The Played row's second line: the other team, then the date. */

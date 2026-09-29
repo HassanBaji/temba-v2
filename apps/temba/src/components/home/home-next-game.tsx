@@ -7,11 +7,13 @@ import { useCreateAccess } from "~/components/create-access-gate";
 import { HomeSeatRow } from "~/components/home/home-seat-row";
 import { Button } from "~/components/ui/button";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
+import {
+  homeNextGameActions,
+  type HomeNextGamePhase,
+} from "~/lib/home-next-game";
 import { homeNoGamesCreateAction } from "~/lib/home-no-games";
 import type { HomeSeatView } from "~/lib/home-seats";
 import { api } from "~/trpc/react";
-
-export type HomeNextGamePhase = "upcoming" | "ongoing" | "needs_results";
 
 export function HomeNextGame({
   id,
@@ -48,18 +50,15 @@ export function HomeNextGame({
       : phase === "needs_results"
         ? "Add results"
         : countdown;
-  const hasOpenSeat = seats.some((seat) => !seat.filled);
-  const primary =
-    phase === "needs_results"
-      ? { href: `/dashboard/games/${id}`, label: "Add results" }
-      : phase === "upcoming" && hasOpenSeat
-        ? { href: `/dashboard/games/${id}`, label: "Invite a player" }
-        : { href: `/dashboard/games/${id}`, label: "View game" };
-  const detailsHref = `/dashboard/games/${id}`;
+  const { primary, detailsHref } = homeNextGameActions({
+    gameId: id,
+    phase,
+    hasOpenSeat: seats.some((seat) => !seat.filled),
+  });
   const secondaryLine = [courtLabel, formatLabel].filter(Boolean).join(" · ");
 
   return (
-    <article className="bg-ink text-paper rounded-xl p-[22px]">
+    <article className="surface-ink bg-ink text-paper rounded-xl p-[22px]">
       <div className="text-dim text-meta flex items-start justify-between gap-3">
         <p className="min-w-0 truncate">{venueName}</p>
         {status ? (
@@ -83,16 +82,14 @@ export function HomeNextGame({
         <HomeSeatRow seats={seats} />
       </div>
       <div className="mt-4 flex gap-2">
-        <Button asChild className="bg-paper text-ink hover:bg-paper/90 flex-1">
+        <Button asChild variant="inverse" className="flex-1">
           <Link href={primary.href}>{primary.label}</Link>
         </Button>
-        <Button
-          asChild
-          variant="ghost"
-          className="border-dimrule text-paper hover:bg-raised flex-1 border"
-        >
-          <Link href={detailsHref}>Details</Link>
-        </Button>
+        {detailsHref ? (
+          <Button asChild variant="outline-inverse" className="flex-1">
+            <Link href={detailsHref}>Details</Link>
+          </Button>
+        ) : null}
       </div>
     </article>
   );

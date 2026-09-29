@@ -3,12 +3,18 @@ import * as React from "react";
 
 import { cn } from "~/lib/utils";
 
-export function RowList({ className, ...props }: React.ComponentProps<"ul">) {
+export function RowList({
+  variant = "default",
+  className,
+  ...props
+}: React.ComponentProps<"ul"> & { variant?: "default" | "card" }) {
   return (
     <ul
       data-slot="row-list"
+      data-variant={variant}
       className={cn(
         "divide-border border-border divide-y overflow-hidden rounded-lg border bg-transparent",
+        variant === "card" && "rounded-card",
         "[[data-slot=card]_&]:rounded-none [[data-slot=card]_&]:border-0",
         className,
       )}
@@ -23,6 +29,9 @@ export function ListRow({
   subtitle,
   meta,
   trailing,
+  footer,
+  size = "default",
+  stackTrailing = false,
   asChild = false,
   className,
   children,
@@ -34,6 +43,11 @@ export function ListRow({
   subtitle?: React.ReactNode;
   meta?: React.ReactNode;
   trailing?: React.ReactNode;
+  /** Full-width line under the row, inside the same row target. */
+  footer?: React.ReactNode;
+  size?: "default" | "lg";
+  /** Below `sm`, put `trailing` on its own line so actions never squeeze the title. */
+  stackTrailing?: boolean;
   asChild?: boolean;
   className?: string;
   children?: React.ReactNode;
@@ -43,6 +57,8 @@ export function ListRow({
   const rowClass = cn(
     "flex min-h-16 w-full min-w-0 items-center gap-3 px-4 py-3 outline-none",
     "flex-row justify-between",
+    size === "lg" && "px-5 py-4",
+    (footer != null || stackTrailing) && "flex-wrap",
     "focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "[[data-variant=raised]_&]:focus-visible:ring-offset-surface-raised",
     navigates
@@ -60,7 +76,7 @@ export function ListRow({
           <p className="text-lead truncate font-semibold">{title}</p>
 
           {subtitle ? (
-            <p className="text-muted-foreground truncate text-sm font-light">
+            <p className="text-muted-foreground text-meta truncate">
               {subtitle}
             </p>
           ) : null}
@@ -69,13 +85,24 @@ export function ListRow({
           ) : null}
         </div>
       </div>
-      {trailing ? <div className="shrink-0">{trailing}</div> : null}
+      {trailing ? (
+        <div
+          className={cn(
+            "shrink-0",
+            stackTrailing && "min-w-0 basis-full sm:basis-auto",
+          )}
+        >
+          {trailing}
+        </div>
+      ) : null}
       {navigates ? (
         <ChevronRight
           aria-hidden="true"
-          className="text-muted-foreground hidden size-4 shrink-0 sm:block"
-          strokeWidth={1.75}
+          className="text-muted-foreground hidden size-[18px] shrink-0 sm:block"
         />
+      ) : null}
+      {footer != null ? (
+        <div className="min-w-0 basis-full">{footer}</div>
       ) : null}
     </>
   );

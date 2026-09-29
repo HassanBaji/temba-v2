@@ -13,12 +13,14 @@ export function HomeHeader({
   pendingInviteCount,
   bookedGameCount,
   ready,
+  failed = false,
 }: {
   name: string;
   image?: string | null;
   pendingInviteCount: number;
   bookedGameCount: number;
   ready: boolean;
+  failed?: boolean;
 }) {
   const stateLine = ready
     ? homeStateLine(pendingInviteCount, bookedGameCount)
@@ -42,7 +44,7 @@ export function HomeHeader({
             stateLine ? (
               <p className="text-muted-foreground text-meta">{stateLine}</p>
             ) : null
-          ) : (
+          ) : failed ? null : (
             <Skeleton className="mt-1 h-3 w-28" />
           )}
         </div>
@@ -50,7 +52,7 @@ export function HomeHeader({
       <Link
         href="/dashboard/invites"
         aria-label={unread ? "Invites, unread" : "Invites"}
-        className="border-rule text-ink focus-visible:ring-ring/50 relative flex size-10 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]"
+        className="border-rule text-ink focus-visible:ring-ring/50 relative flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]"
       >
         <BellIcon className="size-5" />
         {unread ? (

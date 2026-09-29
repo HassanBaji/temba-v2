@@ -12,14 +12,15 @@ import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
-import { GroupInvitesDialog } from "~/components/groups/group-invites-dialog";
 import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
+import { InvitesDialog } from "~/components/invites/invites-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { gameJoinToast } from "~/lib/game-copy";
 import {
   groupHomeCanManageInvites,
   groupHomeCanShowCreateGame,
@@ -29,13 +30,18 @@ import {
 } from "~/lib/group-home-cta";
 import { groupHomeTabFromQuery, groupHomeTabQuery } from "~/lib/group-home-tab";
 import {
-  GROUP_IMAGE_ACCEPT,
-  groupImageFileError,
-  groupImageUploadInput,
-} from "~/lib/group-image-file";
+  ENTITY_IMAGE_ACCEPT,
+  entityImageFileError,
+  entityImageUploadInput,
+} from "~/lib/entity-image-file";
 import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
+
+const GROUP_LOOSE_LOOKUP_NOTE =
+  "Only you can invite people here. Invites don't expire.";
+const GROUP_CLUB_LOOKUP_NOTE =
+  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator can invite Community Members.";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
@@ -299,7 +305,7 @@ export default function GroupHomePage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      toast.success(gameJoinToast(result.waitlisted));
       await refreshAfterGameJoin();
     },
     onError: async (error) => {
@@ -385,12 +391,12 @@ export default function GroupHomePage({
     if (!file || uploadImage.isPending) {
       return;
     }
-    const pickedError = groupImageFileError(file);
+    const pickedError = entityImageFileError(file);
     if (pickedError) {
       toast.error(pickedError);
       return;
     }
-    void groupImageUploadInput(file)
+    void entityImageUploadInput(file)
       .then((input) =>
         uploadImage.mutateAsync({
           groupId: id,
@@ -415,7 +421,7 @@ export default function GroupHomePage({
 
   if (group.error) {
     return (
-      <DashboardShell title="Group" hidePageHeader>
+      <DashboardShell title="Group">
         <ErrorState
           title="Group could not be loaded"
           message={group.error.message}
@@ -429,7 +435,7 @@ export default function GroupHomePage({
 
   if (!group.data) {
     return (
-      <DashboardShell title="Group" hidePageHeader>
+      <DashboardShell title="Group">
         <ErrorState
           title="Group could not be loaded"
           onRetry={() => {
@@ -516,14 +522,17 @@ export default function GroupHomePage({
   const banners = (
     <>
       {data.isCommunityArchived && !data.communityMembership ? (
-        <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+        <SoftArchiveBanner
+          headingLevel={2}
+          heading="This Club Group's Community is Soft-archived"
+        >
           It is not open for join. Members of the Community can still open
           history and Games. This is not a missing page.
         </SoftArchiveBanner>
       ) : null}
 
       {data.isCommunityArchived && data.communityMembership ? (
-        <SoftArchiveBanner heading="Community Soft-archived">
+        <SoftArchiveBanner headingLevel={2} heading="Community Soft-archived">
           This Club Group stays attached to its Community. You can still open it
           and see history and Games while the Community is archived.
         </SoftArchiveBanner>
@@ -555,6 +564,7 @@ export default function GroupHomePage({
       <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-0">
         <GroupHomeChrome
           groupId={id}
+          communityId={data.communityId ?? null}
           name={groupName}
           imageUrl={data.imageUrl}
           sport={data.sport ?? null}
@@ -565,6 +575,7 @@ export default function GroupHomePage({
           canCreateGame={canShowCreateGame}
           onInvite={() => setInvitesOpen(true)}
           overflow={overflowMenu("desktop")}
+          imagePending={uploadImage.isPending}
         />
 
         <div className="space-y-6 pt-6">
@@ -589,10 +600,7 @@ export default function GroupHomePage({
             </Button>
           ) : null}
 
-          <TabsContent
-            value="standing"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+          <TabsContent value="standing">
             <GroupStandingTab
               isMember={Boolean(data.membership)}
               leaderboard={data.standing.leaderboard}
@@ -602,10 +610,7 @@ export default function GroupHomePage({
               awaitingScoreCount={data.standing.awaitingScoreCount}
             />
           </TabsContent>
-          <TabsContent
-            value="games"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+          <TabsContent value="games">
             <GroupGamesTab
               upcomingGames={data.upcomingGames}
               gameHistory={data.gameHistory}
@@ -619,10 +624,7 @@ export default function GroupHomePage({
               onRegister={onRegisterGame}
             />
           </TabsContent>
-          <TabsContent
-            value="members"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+          <TabsContent value="members">
             <div className="flex flex-col gap-[26px]">
               <GroupApproverControls
                 canSetRequiresApproval={data.canSetRequiresApproval}
@@ -683,7 +685,7 @@ export default function GroupHomePage({
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
         title={`Leave ${groupName}?`}
-        description="You will leave this Group. Cancelling does nothing."
+        description="You will leave this Group."
         confirmLabel="Leave Group"
         pending={leaveGroup.isPending}
         restoreFocusRef={restoreFocusRef}
@@ -696,7 +698,7 @@ export default function GroupHomePage({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title={`Delete ${groupName}?`}
-        description="This cannot be undone. Cancelling does nothing."
+        description="This cannot be undone."
         confirmLabel="Delete Group"
         pending={deleteGroup.isPending}
         restoreFocusRef={restoreFocusRef}
@@ -709,7 +711,7 @@ export default function GroupHomePage({
         open={removeImageOpen}
         onOpenChange={setRemoveImageOpen}
         title={`Remove image for ${groupName}?`}
-        description="The current image will be removed. Cancelling does nothing."
+        description="The current image will be removed."
         confirmLabel="Remove image"
         pending={clearImage.isPending}
         restoreFocusRef={restoreFocusRef}
@@ -722,7 +724,7 @@ export default function GroupHomePage({
         <input
           ref={imageInputRef}
           type="file"
-          accept={GROUP_IMAGE_ACCEPT}
+          accept={ENTITY_IMAGE_ACCEPT}
           className="hidden"
           tabIndex={-1}
           disabled={uploadImage.isPending || clearImage.isPending}
@@ -730,7 +732,7 @@ export default function GroupHomePage({
         />
       ) : null}
 
-      <GroupInvitesDialog
+      <InvitesDialog
         open={invitesOpen}
         onOpenChange={(next) => {
           setInvitesOpen(next);
@@ -740,25 +742,40 @@ export default function GroupHomePage({
           }
         }}
         restoreFocusRef={restoreFocusRef}
-        isLoose={data.isLoose}
-        canManageLookupInvites={data.canManageLookupInvites}
-        canManageInviteLinks={data.canManageInviteLinks}
-        lookupInvites={lookupInvites.data}
-        inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
-        sendPending={sendLookupInvite.isPending}
-        revokePending={revokeLookupInvite.isPending}
-        copyPending={createInviteLink.isPending}
-        sendError={sendLookupInvite.error}
-        searchQuery={lookupQuery}
-        onSearchQueryChange={setLookupQuery}
-        searchResults={lookupSearch.data}
-        searchPending={lookupSearch.isFetching}
-        refused={lookupRefused}
-        onSendLookup={(userIds) =>
-          sendLookupInvite.mutate({ groupId: id, userIds })
+        lookup={
+          data.canManageLookupInvites
+            ? {
+                note: data.isLoose
+                  ? GROUP_LOOSE_LOOKUP_NOTE
+                  : GROUP_CLUB_LOOKUP_NOTE,
+                lookupInvites: lookupInvites.data,
+                sendPending: sendLookupInvite.isPending,
+                revokePendingId: revokeLookupInvite.isPending
+                  ? revokeLookupInvite.variables?.inviteId
+                  : undefined,
+                sendError: sendLookupInvite.error,
+                searchQuery: lookupQuery,
+                onSearchQueryChange: setLookupQuery,
+                searchResults: lookupSearch.data,
+                searchPending: lookupSearch.isFetching,
+                refused: lookupRefused,
+                onSendUserIds: (userIds) =>
+                  sendLookupInvite.mutate({ groupId: id, userIds }),
+                onRevokeLookup: (inviteId) =>
+                  revokeLookupInvite.mutate({ inviteId }),
+              }
+            : null
         }
-        onRevokeLookup={(inviteId) => revokeLookupInvite.mutate({ inviteId })}
-        onCopyInviteLink={() => createInviteLink.mutate({ groupId: id })}
+        link={
+          data.canManageInviteLinks
+            ? {
+                inviteUrl:
+                  inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl,
+                copyPending: createInviteLink.isPending,
+                onCopy: () => createInviteLink.mutate({ groupId: id }),
+              }
+            : null
+        }
       />
     </DashboardShell>
   );

@@ -1,4 +1,4 @@
-import { Badge, type BadgeVariant } from "~/components/ui/badge";
+import { Badge } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 
 export const GAME_FORMAT_LABELS = {
@@ -23,27 +23,22 @@ export const GAME_REGISTRATION_STATUS_LABELS = {
 type GameRegistrationStatusValue = keyof typeof GAME_REGISTRATION_STATUS_LABELS;
 
 /** Registration state is the page's headline fact, so it carries the colour. */
-const GAME_REGISTRATION_STATUS_VARIANTS: Record<
+const GAME_REGISTRATION_STATUS_CLASSES: Record<
   GameRegistrationStatusValue,
-  BadgeVariant
+  { text: string; dot: string }
 > = {
-  open: "success",
-  full: "warning",
-  closed: "secondary",
-  frozen: "warning",
-  cancelled: "destructive",
+  open: { text: "text-success", dot: "bg-success" },
+  full: { text: "text-warning", dot: "bg-warning" },
+  closed: { text: "text-muted-foreground", dot: "bg-muted-foreground" },
+  frozen: { text: "text-warning", dot: "bg-warning" },
+  cancelled: { text: "text-destructive", dot: "bg-destructive" },
 };
 
-const GAME_REGISTRATION_STATUS_DOTS: Record<
-  GameRegistrationStatusValue,
-  string
-> = {
-  open: "bg-success",
-  full: "bg-warning",
-  closed: "bg-muted-foreground",
-  frozen: "bg-warning",
-  cancelled: "bg-current",
-};
+export function gameRegistrationStatusClasses(status: string) {
+  return Object.hasOwn(GAME_REGISTRATION_STATUS_CLASSES, status)
+    ? GAME_REGISTRATION_STATUS_CLASSES[status as GameRegistrationStatusValue]
+    : { text: "text-muted-foreground", dot: "bg-current" };
+}
 
 export const INVITE_KIND_LABELS = {
   community: "Community",
@@ -77,26 +72,13 @@ export function GameRegistrationModeBadge({ mode }: { mode: string }) {
 }
 
 export function GameRegistrationStatusBadge({ status }: { status: string }) {
-  const value =
-    status in GAME_REGISTRATION_STATUS_LABELS
-      ? (status as GameRegistrationStatusValue)
-      : null;
+  const classes = gameRegistrationStatusClasses(status);
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-1 font-semibold",
-        value
-          ? "text-" + GAME_REGISTRATION_STATUS_VARIANTS[value]
-          : "bg-current",
-      )}
-    >
+    <div className={cn("flex items-center gap-1 font-semibold", classes.text)}>
       <span
         aria-hidden="true"
-        className={cn(
-          "size-1.5 shrink-0 rounded-full",
-          value ? GAME_REGISTRATION_STATUS_DOTS[value] : "bg-current",
-        )}
+        className={cn("size-1.5 shrink-0 rounded-full", classes.dot)}
       />
       {labelFromMap(status, GAME_REGISTRATION_STATUS_LABELS)}
     </div>

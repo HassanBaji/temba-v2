@@ -63,3 +63,15 @@ export function onboardingStepFromState(
 export function onboardingRedirectTarget(value: string | null | undefined) {
   return safeInternalRedirect(value) ?? ONBOARDING_FALLBACK_REDIRECT;
 }
+
+/**
+ * Whether a step change should move focus to the new step's heading. The
+ * first answer from `users.onboardingState` is a page load, not a change, so
+ * focus stays where the browser put it.
+ */
+export function shouldFocusStepHeading(
+  previous: OnboardingStep,
+  next: OnboardingStep,
+): boolean {
+  return previous !== next && previous !== "loading";
+}

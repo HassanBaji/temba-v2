@@ -59,7 +59,7 @@ export function RoundCountField({
           ) : (
             <button
               type="button"
-              className="text-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center self-start text-[13px] underline underline-offset-4 outline-none focus-visible:ring-[3px]"
+              className="text-foreground focus-visible:ring-ring/50 text-meta inline-flex min-h-11 items-center self-start underline underline-offset-4 outline-none focus-visible:ring-[3px]"
               onClick={() => {
                 onRoundCount(null);
               }}
@@ -67,10 +67,10 @@ export function RoundCountField({
               {suggestedRoundsResetLabel(range.suggested)}
             </button>
           )}
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {formatRoundMatchesPerTeam(rounds)}
           </p>
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {ROUND_MEETS_COPY[rounds.meets]}
           </p>
         </div>

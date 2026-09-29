@@ -1,15 +1,20 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { touchHitArea } from "~/components/ui/button";
+import { BackButton } from "~/components/ui/nav-icon-button";
+import { TembaWordmark } from "~/components/ui/temba-wordmark";
 import { cn } from "~/lib/utils";
 
 export function AuthScreen({
   variant = "default",
+  wide = false,
+  brand = false,
   backHref,
   onBack,
   backLabel = "Back",
   crossLink,
+  eyebrow,
   title,
   description,
   footer,
@@ -17,10 +22,13 @@ export function AuthScreen({
   padContent = true,
 }: {
   variant?: "default" | "welcome";
+  wide?: boolean;
+  brand?: boolean;
   backHref?: string;
   onBack?: () => void;
   backLabel?: string;
   crossLink?: { href: string; label: string };
+  eyebrow?: string;
   title?: string;
   description?: ReactNode;
   footer?: ReactNode;
@@ -28,44 +36,44 @@ export function AuthScreen({
   padContent?: boolean;
 }) {
   const welcome = variant === "welcome";
-  const showHeader = Boolean(backHref ?? onBack ?? crossLink);
+  const surface = welcome ? "ink" : "paper";
+  const showHeader = Boolean(backHref ?? onBack ?? crossLink) || brand;
+  // The frame stays wide on desktop; forms read in a phone-width column.
+  const column = welcome
+    ? undefined
+    : cn("mx-auto w-full", wide ? "max-w-content" : "max-w-column");
 
   return (
-    <div className="flex min-h-svh justify-center overflow-x-hidden bg-black sm:items-center">
+    <div className="bg-ink flex min-h-svh justify-center overflow-x-hidden sm:items-center">
       <div
         className={cn(
           "flex min-h-svh w-full max-w-[1000px] flex-col overflow-x-hidden sm:min-h-[844px]",
           welcome
-            ? "bg-ink text-paper sm:border-ink sm:rounded-xl sm:border"
+            ? "surface-ink bg-ink text-paper sm:border-ink sm:rounded-xl sm:border"
             : "bg-paper text-ink sm:border-rule sm:rounded-xl sm:border",
         )}
       >
         {showHeader ? (
-          <header className="flex items-center justify-between px-[22px] pt-[22px]">
+          <header
+            className={cn(
+              column,
+              "px-5.5 pt-5.5 flex items-center justify-between",
+            )}
+          >
             {onBack ? (
-              <button
-                type="button"
-                aria-label={backLabel}
+              <BackButton
+                label={backLabel}
+                surface={surface}
                 onClick={onBack}
-                className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-current outline-none focus-visible:ring-[3px]"
-              >
-                <ArrowLeft
-                  aria-hidden="true"
-                  className="size-5"
-                  strokeWidth={2}
-                />
-              </button>
+              />
             ) : backHref ? (
+              <BackButton label={backLabel} surface={surface} href={backHref} />
+            ) : brand ? (
               <Link
-                href={backHref}
-                aria-label={backLabel}
-                className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-current outline-none focus-visible:ring-[3px]"
+                href="/"
+                className="focus-visible:ring-ring/50 flex min-h-11 items-center rounded-sm outline-none focus-visible:ring-[3px]"
               >
-                <ArrowLeft
-                  aria-hidden="true"
-                  className="size-5"
-                  strokeWidth={2}
-                />
+                <TembaWordmark surface={surface} />
               </Link>
             ) : (
               <span className="size-11 shrink-0" aria-hidden="true" />
@@ -73,7 +81,7 @@ export function AuthScreen({
             {crossLink ? (
               <Link
                 href={crossLink.href}
-                className="text-body text-muted-foreground"
+                className={cn(touchHitArea, "text-body text-muted-foreground")}
               >
                 {crossLink.label}
               </Link>
@@ -83,8 +91,11 @@ export function AuthScreen({
           </header>
         ) : null}
 
-        {(title ?? description) ? (
-          <div className="px-[26px] pt-[18px]">
+        {(eyebrow ?? title ?? description) ? (
+          <div className={cn(column, "px-6.5 pt-4.5")}>
+            {eyebrow ? (
+              <p className="text-meta text-muted-foreground mb-2">{eyebrow}</p>
+            ) : null}
             {title ? (
               <h1
                 id="auth-screen-heading"
@@ -105,15 +116,16 @@ export function AuthScreen({
         <div
           className={cn(
             "flex min-h-0 min-w-0 flex-1 flex-col",
-            padContent && "px-[26px] pb-8 pt-4",
+            column,
+            padContent && "px-6.5 pb-8 pt-4",
           )}
         >
           {children}
         </div>
 
         {footer ? (
-          <footer className="border-rule mt-auto border-t px-[26px] py-6">
-            {footer}
+          <footer className="border-rule mt-auto border-t py-6">
+            <div className={cn(column, "px-6.5")}>{footer}</div>
           </footer>
         ) : null}
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Calendar, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { use } from "react";
@@ -16,11 +17,13 @@ import {
   TournamentMatchCard,
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { offersPartnerJoin } from "~/lib/friendly-game-partner";
+import { gameJoinToast } from "~/lib/game-copy";
 import { gamesHubTabFromQuery, gamesHubTabQuery } from "~/lib/games-hub-tab";
 import {
   gameSummaryPrimaryAction,
@@ -30,7 +33,6 @@ import {
 } from "~/lib/game-summary-cta";
 import { isPoolTournament, poolRoundLabel } from "~/lib/tournament-rounds";
 import { api, type RouterOutputs } from "~/trpc/react";
-import { PlusIcon } from "lucide-react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
 type HistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
@@ -66,7 +68,7 @@ function GamesHubTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-card border-rule flex flex-col gap-4 overflow-hidden rounded-[14px] border p-[22px]"
+            className="bg-paper border-rule rounded-card flex flex-col gap-4 overflow-hidden border p-5"
           >
             <div className="flex justify-between gap-3">
               <Skeleton className="h-4 w-24" />
@@ -106,7 +108,7 @@ function GamesHubTabPanel({
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-3 w-24 max-w-full" />
               </div>
-              <Skeleton className="h-10 w-24 rounded-[9px]" />
+              <Skeleton className="h-10 w-24 rounded-sm" />
             </div>
           </div>
         ))}
@@ -236,18 +238,20 @@ function HistoryTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-card border-border shadow-xs flex items-center gap-3 rounded-xl border p-4 md:p-5"
+            className="bg-paper border-rule rounded-card flex flex-col gap-4 overflow-hidden border p-5"
           >
-            <div className="w-16 shrink-0 space-y-1.5">
-              <Skeleton className="h-4 w-12" />
-              <Skeleton className="h-4 w-10" />
+            <div className="flex items-start gap-3">
+              <Skeleton className="mt-0.5 size-6 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-6 w-40 max-w-full" />
+                <Skeleton className="h-4 w-48 max-w-full" />
+              </div>
+              <Skeleton className="mt-1 h-3 w-16 shrink-0" />
             </div>
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <Skeleton className="h-5 w-40 max-w-full" />
-              <Skeleton className="h-4 w-28 max-w-full" />
-              <Skeleton className="h-4 w-24 max-w-full" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-[52px] w-full rounded-lg" />
+              <Skeleton className="h-[52px] w-full rounded-lg" />
             </div>
-            <Skeleton className="h-6 w-14 rounded-sm" />
           </div>
         ))}
       </div>
@@ -286,7 +290,11 @@ function TabCount({ count }: { count: number | undefined }) {
     return null;
   }
 
-  return <p className="text-dim">{count}</p>;
+  return (
+    <span className="text-muted-foreground group-data-[state=active]/tab:text-dim">
+      {count}
+    </span>
+  );
 }
 
 export default function GamesHubPage({
@@ -326,7 +334,7 @@ export default function GamesHubPage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      toast.success(gameJoinToast(result.waitlisted));
       await refreshLists();
     },
     onError: async (error) => {
@@ -376,21 +384,17 @@ export default function GamesHubPage({
       title="Games"
       action={
         hasCreateAccess ? (
-          <Button asChild variant={"ghost"} size={"icon"}>
-            <Link href="/dashboard/games/new" aria-label="Create">
-              <PlusIcon className="size-5" />
-            </Link>
-          </Button>
+          <PageCreateAction href="/dashboard/games/new" label="Create Game" />
         ) : undefined
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
-        <TabsList className="bg-paper w-full justify-between">
-          <TabsTrigger value="my-games" className="w-1/2 rounded-r-none">
-            <p className="font-semibold">My Games</p>
+        <TabsList variant="segmented">
+          <TabsTrigger value="my-games" className="group/tab">
+            My Games
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
-          <TabsTrigger value="history" className="w-1/2 rounded-l-none">
+          <TabsTrigger value="history" className="group/tab">
             History
             <TabCount count={history.data?.length} />
           </TabsTrigger>
@@ -405,13 +409,13 @@ export default function GamesHubPage({
             games={myGames.data}
             emptyState={
               <EmptyState
-                emoji="🎾"
-                title="No games yet"
+                icon={Calendar}
+                title="No Games yet"
                 description="Games you create or join show up here."
                 action={
                   hasCreateAccess ? (
                     <Button asChild>
-                      <Link href="/dashboard/games/new">Create</Link>
+                      <Link href="/dashboard/games/new">Create Game</Link>
                     </Button>
                   ) : undefined
                 }
@@ -423,10 +427,7 @@ export default function GamesHubPage({
             pendingGameId={pendingGameId}
           />
         </TabsContent>
-        <TabsContent
-          value="history"
-          className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-        >
+        <TabsContent value="history">
           <HistoryTabPanel
             isLoading={history.isLoading}
             errorMessage={history.error?.message}
@@ -436,8 +437,8 @@ export default function GamesHubPage({
             rows={history.data}
             emptyState={
               <EmptyState
-                emoji="🏆"
-                title="No match history yet"
+                icon={Trophy}
+                title="No Match history yet"
                 description="Completed Games you played in show up here."
               />
             }

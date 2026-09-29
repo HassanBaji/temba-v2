@@ -62,18 +62,21 @@ export default function HomePage() {
   return (
     <DashboardShell width="content" hidePageHeader={true} hideMobileTopBar>
       <div className="mx-auto mt-6 w-full min-w-0 max-w-[1000px] space-y-[26px] lg:mt-2">
+        <h1 className="sr-only">Home</h1>
         <HomeHeader
           name={displayName}
           image={image}
           pendingInviteCount={pendingInviteCount}
           bookedGameCount={bookedGameCount}
           ready={home.data != null}
+          failed={home.error != null}
         />
 
         {home.isLoading ? <HomeSkeleton /> : null}
 
         {home.error ? (
           <ErrorState
+            variant="inline"
             title="Home could not be loaded"
             message={home.error.message}
             onRetry={() => {

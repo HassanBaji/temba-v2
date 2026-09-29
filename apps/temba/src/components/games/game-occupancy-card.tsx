@@ -2,6 +2,7 @@ import {
   AvatarStack,
   type AvatarStackPerson,
 } from "~/components/common/avatar-stack";
+import { HatchFlag } from "~/components/temba/seat";
 import { Card } from "~/components/ui/card";
 import {
   gameOccupancy,
@@ -16,8 +17,7 @@ const BAR_TONE: Record<GameOccupancyTone, string> = {
   full: "bg-success",
 };
 
-const LABEL_TONE: Record<GameOccupancyTone, string> = {
-  open: "text-muted-foreground",
+const LABEL_TONE: Record<Exclude<GameOccupancyTone, "open">, string> = {
   filling: "text-warning font-semibold",
   full: "text-success font-semibold",
 };
@@ -86,11 +86,15 @@ export function GameOccupancyCard({
       </div>
 
       <p className="text-meta">
-        <span className={LABEL_TONE[occupancy.tone]}>
-          {occupancy.tone === "full"
-            ? "Full"
-            : remainingLabel(unit, occupancy.seatsLeft)}
-        </span>
+        {occupancy.tone === "open" ? (
+          <HatchFlag>{remainingLabel(unit, occupancy.seatsLeft)}</HatchFlag>
+        ) : (
+          <span className={LABEL_TONE[occupancy.tone]}>
+            {occupancy.tone === "full"
+              ? "Full"
+              : remainingLabel(unit, occupancy.seatsLeft)}
+          </span>
+        )}
         {waitlistCount > 0 ? (
           <span className="text-muted-foreground">
             {" · "}

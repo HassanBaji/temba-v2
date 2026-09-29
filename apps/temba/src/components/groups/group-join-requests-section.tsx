@@ -11,19 +11,10 @@ import { Section } from "~/components/layout/section";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "~/components/ui/field";
 import { Skeleton } from "~/components/ui/skeleton";
+import { requestRowMeta } from "~/lib/request-meta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["groups"]["listJoinRequests"][number];
-
-function formatRequestedAt(value: Date | string) {
-  const date = value instanceof Date ? value : new Date(value);
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export function GroupApproverControls({
   canSetRequiresApproval,
@@ -98,6 +89,7 @@ export function GroupApproverControls({
           {joinLoading ? <Skeleton className="h-16 w-full" /> : null}
           {joinError ? (
             <ErrorState
+              headingLevel={3}
               title="Join requests could not be loaded"
               message={joinError}
               onRetry={onRetryJoin}
@@ -118,11 +110,11 @@ export function GroupApproverControls({
                       />
                     }
                     title={name}
-                    meta={
+                    meta={requestRowMeta(request.createdAt, [
                       request.isCommunityMember === false
-                        ? `Requested ${formatRequestedAt(request.createdAt)} · Not yet a ${communityName ?? "Community"} Member`
-                        : `Requested ${formatRequestedAt(request.createdAt)}`
-                    }
+                        ? `Not yet a ${communityName ?? "Community"} Member`
+                        : null,
+                    ])}
                     approvePending={approvePendingId === request.id}
                     rejectPending={rejectPendingId === request.id}
                     onApprove={() => onApprove(request.id)}
@@ -134,6 +126,7 @@ export function GroupApproverControls({
           ) : null}
           {empty ? (
             <EmptyState
+              headingLevel={3}
               icon={Inbox}
               title="No pending requests"
               description="Group join requests will show up here."

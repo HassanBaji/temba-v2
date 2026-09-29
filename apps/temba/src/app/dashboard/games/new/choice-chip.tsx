@@ -19,7 +19,7 @@ export function ChoiceChip({
       role={role}
       aria-checked={radio ? selected : undefined}
       className={cn(
-        "focus-visible:ring-ring/50 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-[10px] border px-3.5 text-sm outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-40",
+        "focus-visible:ring-ring/50 text-body inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md border px-3.5 outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-40",
         selected
           ? "border-ink bg-ink text-paper font-semibold"
           : "border-rule bg-paper text-ink hover:bg-wash",

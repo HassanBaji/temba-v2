@@ -1,14 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import * as React from "react";
 
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
+import {
+  SUMMARY_CARD_ACTION_CLASS,
+  SummaryCardBody,
+  SummaryCardFooter,
+  SummaryCardShell,
+} from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
+import { HatchFlag, OpenSeat } from "~/components/temba/seat";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
-import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { Button, buttonVariants } from "~/components/ui/button";
 import {
   formatGameCardDay,
   formatWindowDuration,
@@ -61,11 +66,6 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
-function seatLetter(name: string) {
-  const grapheme = Array.from(firstName(name))[0];
-  return grapheme ? grapheme.toUpperCase() : "?";
-}
-
 function venueSubtitle(
   venueName: string | null | undefined,
   location: string | null | undefined,
@@ -106,7 +106,7 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
         </div>
         <p
           className={cn(
-            "text-muted-foreground max-w-full truncate text-xs font-light leading-none",
+            "text-muted-foreground text-eyebrow max-w-full truncate font-light leading-none",
           )}
         >
           {occupant.isViewer ? "You" : firstName(occupant.name)}
@@ -117,10 +117,8 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
-      <div className="hatch text-dim flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
-        +
-      </div>
-      <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
+      <OpenSeat size="chip" />
+      <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
         Open
       </small>
     </div>
@@ -166,7 +164,7 @@ function SideJoinButton({
         type="button"
         size="sm"
         variant="ghost"
-        className="h-auto min-h-9 w-full rounded-lg px-2 py-1.5 text-sm font-semibold"
+        className="text-body h-auto min-h-9 w-full rounded-lg px-2 py-1.5 font-semibold"
         disabled={pending}
         aria-label={sideJoinAccessibleName(sideIndex, position, partnerName)}
         onClick={(event) => {
@@ -175,14 +173,12 @@ function SideJoinButton({
           onJoin(sideIndex, position);
         }}
       >
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
-          <div className="hatch text-dim flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
-            +
-          </div>
-          <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
+        <span className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
+          <OpenSeat size="chip" />
+          <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
             Join {position === "left" ? "Left" : "Right"}
           </small>
-        </div>
+        </span>
       </Button>
     </div>
   );
@@ -270,7 +266,7 @@ function FriendlyRoster({
           {index > 0 ? (
             <span
               aria-hidden="true"
-              className="text-dim shrink-0 text-xs font-semibold"
+              className="text-muted-foreground text-eyebrow shrink-0 font-semibold"
             >
               vs
             </span>
@@ -300,10 +296,10 @@ function MetaCell({
     <div
       className={cn(
         "min-w-0 flex-1",
-        // ruled ? "border-rule border-l pl-4" : null,
+        ruled ? "border-rule border-l pl-4" : null,
       )}
     >
-      <b className="block text-[17px] font-semibold tracking-[-0.01em]">
+      <b className="text-lead block font-semibold tracking-[-0.01em]">
         {value}
       </b>
       {note ? (
@@ -317,18 +313,10 @@ function MetaCell({
 
 function OpenFlag({ openSpots }: { openSpots: number }) {
   if (openSpots <= 0) {
-    return <span className="text-dim">{spotsOpenLabel(0)}</span>;
+    return <span className="text-muted-foreground">{spotsOpenLabel(0)}</span>;
   }
 
-  return (
-    <span className="text-ink inline-flex items-center gap-1.5">
-      <i
-        aria-hidden="true"
-        className="hatch inline-block size-[13px] shrink-0 rounded-[3px]"
-      />
-      {spotsOpenLabel(openSpots)}
-    </span>
-  );
+  return <HatchFlag>{spotsOpenLabel(openSpots)}</HatchFlag>;
 }
 
 export function GameSummaryCard({
@@ -461,19 +449,13 @@ export function GameSummaryCard({
 
   const pendingLabel =
     primaryAction === "register" ? "Registering…" : "Joining…";
-  const actionClass = cn(
-    "relative z-10 h-auto min-h-0 shrink-0 rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
-    solidCta
-      ? null
-      : "border-rule bg-paper text-ink hover:bg-paper hover:text-ink",
-  );
+  const actionVariant = solidCta ? "default" : "outline";
   const actionControl =
     interactiveCta && ctaText ? (
       <Button
         type="button"
-        size="sm"
-        variant={solidCta ? "default" : "outline"}
-        className={actionClass}
+        variant={actionVariant}
+        className={SUMMARY_CARD_ACTION_CLASS}
         disabled={actionPending}
         onClick={(event) => {
           event.preventDefault();
@@ -486,10 +468,8 @@ export function GameSummaryCard({
     ) : href && ctaText ? (
       <span
         className={cn(
-          "inline-flex items-center rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
-          solidCta
-            ? "bg-ink text-paper border-ink border"
-            : "border-rule bg-paper text-ink border",
+          buttonVariants({ variant: actionVariant }),
+          SUMMARY_CARD_ACTION_CLASS,
         )}
       >
         {ctaText}
@@ -525,27 +505,12 @@ export function GameSummaryCard({
 
   return (
     <li data-slot="game-summary-card">
-      <Card
-        className={cn(
-          "border-rule group relative gap-0 overflow-hidden rounded-[14px] p-0",
-          href ? "hover:border-foreground/20" : null,
-        )}
+      <SummaryCardShell
+        href={href}
+        linkLabel={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
       >
-        {href ? (
-          <Link
-            href={href}
-            aria-label={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
-            className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
-          />
-        ) : null}
-
-        <div
-          className={cn(
-            "relative z-10 min-w-0 p-[22px]",
-            href ? "pointer-events-none" : null,
-          )}
-        >
-          <div className="text-muted-foreground flex items-center justify-between text-sm font-medium">
+        <SummaryCardBody>
+          <div className="text-muted-foreground text-meta flex items-center justify-between font-medium">
             <span>{dayLabel}</span>
             {cancelled ? (
               <GameStatusBadge status="cancelled" />
@@ -555,7 +520,7 @@ export function GameSummaryCard({
           </div>
 
           <div className="mt-3 flex items-baseline gap-2.5">
-            <b className="font-expanded text-[48px] tabular-nums leading-[0.9]">
+            <b className="font-expanded text-hero tabular-nums leading-[0.9]">
               {kickoff.time}
             </b>
             <i className="text-muted-foreground text-[18px] font-medium not-italic">
@@ -568,24 +533,22 @@ export function GameSummaryCard({
             ) : null}
           </div>
 
-          <div className="mt-2.5 text-base">
-            {title}
-            {subtitle ? (
-              <small className="text-muted-foreground mt-[3px] block text-[13px]">
-                {subtitle}
-              </small>
-            ) : null}
-          </div>
+          <h3 className="text-lead mt-2.5">{title}</h3>
+          {subtitle ? (
+            <p className="text-muted-foreground text-meta mt-[3px]">
+              {subtitle}
+            </p>
+          ) : null}
 
           {showPrice || showFormat ? (
-            <div className="border-rule mt-4 flex border-t pt-4">
+            <div className="border-rule mt-4 flex gap-4 border-t pt-4">
               {levelMeta ? (
                 <MetaCell value={levelMeta ?? ""} note={"Level"} />
               ) : null}
 
               {showPrice && priceAmount ? (
                 <MetaCell
-                  ruled={showPrice}
+                  ruled={levelMeta != null}
                   value={priceAmount}
                   note={priceAmount === "Free" ? null : "per player"}
                 />
@@ -601,7 +564,7 @@ export function GameSummaryCard({
                         ? levelMeta
                         : null
                   }
-                  ruled={showPrice}
+                  ruled={levelMeta != null || showPrice}
                 />
               ) : null}
             </div>
@@ -615,14 +578,9 @@ export function GameSummaryCard({
               onJoinSeat={onJoinSeat}
             />
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div
-          className={cn(
-            "border-rule relative z-10 flex min-w-0 items-center justify-between gap-3 border-t bg-[#fafafa] px-[22px] py-3.5",
-            href ? "pointer-events-none" : null,
-          )}
-        >
+        <SummaryCardFooter>
           <div className="min-w-0 flex-1 text-[13.5px]">
             {formatMeta ? <p className="truncate">{formatMeta}</p> : null}
             {groupName ? (
@@ -642,13 +600,9 @@ export function GameSummaryCard({
                 >
                   <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     data-slot="game-card-partner-join"
-                    className={cn(
-                      "relative z-10 h-auto min-h-0 shrink-0 rounded-[9px] px-[15px] py-[11px] text-sm font-semibold",
-                      "border-rule bg-paper text-ink hover:bg-paper hover:text-ink",
-                    )}
+                    className={SUMMARY_CARD_ACTION_CLASS}
                     disabled={actionPending}
                     onClick={(event) => {
                       event.preventDefault();
@@ -673,8 +627,8 @@ export function GameSummaryCard({
               ) : null}
             </div>
           ) : null}
-        </div>
-      </Card>
+        </SummaryCardFooter>
+      </SummaryCardShell>
       {showPartnerJoin || (primaryAction === "join" && !showRoster)
         ? picker
         : null}

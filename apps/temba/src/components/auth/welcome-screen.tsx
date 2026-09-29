@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
-import { Button } from "~/components/ui/button";
-import { TembaMark } from "~/components/ui/icons/temba-mark";
+import { Button, touchHitArea } from "~/components/ui/button";
+import { TembaWordmark } from "~/components/ui/temba-wordmark";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
+import { cn } from "~/lib/utils";
 
 const PREVIEW_TILES = [
   { initials: "MK", level: "C+" },
@@ -17,16 +18,15 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
 
   return (
     <AuthScreen padContent={false} variant="welcome">
-      <header className="flex items-center gap-[11px] px-[26px] pt-[30px]">
-        <TembaMark height={26} variant="reversed" width={26} />
-        <p className="font-display text-title tracking-[0.2em]">TEMBA</p>
+      <header className="px-[26px] pt-[30px]">
+        <TembaWordmark surface="ink" />
       </header>
 
       <div className="mt-24 px-[26px]">
         <h1 className="text-hero font-bold leading-[0.96] tracking-[-0.035em] [font-variation-settings:'wdth'_112,'wght'_700]">
-          Every match counts
+          Every match counts.
           <br />
-          fill the court,
+          Fill the court,
           <br />
           keep the score.
         </h1>
@@ -46,7 +46,7 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
               key={tile.initials}
               className="bg-raised flex h-[66px] flex-col items-center justify-center gap-1 rounded-md"
             >
-              <span className="text-sm font-semibold">{tile.initials}</span>
+              <span className="text-body font-semibold">{tile.initials}</span>
               <span className="text-eyebrow text-dim">{tile.level}</span>
             </div>
           ))}
@@ -59,26 +59,33 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
       <div className="mt-auto flex flex-col gap-2.5 p-[26px]">
         <Button
           asChild
-          className="bg-paper text-ink hover:bg-rule w-full font-semibold"
-          size="auth"
+          className="w-full font-semibold"
+          size="lg"
+          variant="inverse"
         >
           <Link href={signUpHref}>Create account</Link>
         </Button>
         <Button
           asChild
-          className="border-dimrule bg-ink text-paper hover:bg-raised w-full border font-semibold"
-          size="auth"
-          variant="outline"
+          className="w-full font-semibold"
+          size="lg"
+          variant="outline-inverse"
         >
           <Link href={signInHref}>Sign in</Link>
         </Button>
         <p className="text-eyebrow text-dim mt-2 text-center leading-[1.6]">
           By continuing you agree to the{" "}
-          <Link className="text-paper underline" href="/terms">
+          <Link
+            className={cn(touchHitArea, "text-paper underline")}
+            href="/terms"
+          >
             Terms
           </Link>{" "}
           and{" "}
-          <Link className="text-paper underline" href="/privacy">
+          <Link
+            className={cn(touchHitArea, "text-paper underline")}
+            href="/privacy"
+          >
             Privacy Policy
           </Link>
           .

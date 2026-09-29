@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import type { FriendlyGamePartnerPick } from "~/components/games/friendly-game-partner-picker";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { formatGameCardDay } from "~/lib/format-game-start";
 import { seedPartnerCallerPosition } from "~/lib/friendly-game-partner";
 import { formatHomeKickoff } from "~/lib/home-countdown";
@@ -74,7 +74,7 @@ function DetailRow({
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-5 py-4 text-sm",
+        "text-body flex items-center justify-between px-5 py-4",
         !first && "border-rule border-t",
       )}
     >
@@ -105,8 +105,8 @@ function PlayerCard({
       )}
     >
       <UserAvatar name={name} image={image} size="sm" className="shrink-0" />
-      <p className="truncate text-[15px] font-semibold">{name}</p>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-body truncate font-semibold">{name}</p>
+      <p className="text-muted-foreground text-eyebrow">
         {playerMeta({ levelBand, position })}
       </p>
     </div>
@@ -182,18 +182,11 @@ export function FriendlyGamePartnerReview({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-rule shrink-0 border-b px-[22px] pb-0 pt-[22px]">
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onBack}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-            aria-label="Back"
-          >
-            <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-          </button>
-          <p className="text-muted-foreground text-[13px]">Step 2 of 2</p>
-          <span className="size-10" aria-hidden="true" />
+          <BackButton variant="boxed" onClick={onBack} />
+          <p className="text-muted-foreground text-meta">Step 2 of 2</p>
+          <span className="size-11" aria-hidden="true" />
         </div>
-        <h2 className="font-expanded mt-6 text-[32px] leading-none tracking-[-0.03em]">
+        <h2 className="font-expanded text-h1-lg mt-6 leading-none tracking-[-0.03em]">
           Register the team
         </h2>
         <p className="text-meta mt-2.5 leading-relaxed">
@@ -205,7 +198,7 @@ export function FriendlyGamePartnerReview({
         {errorMessage ? <FormErrorSummary message={errorMessage} /> : null}
 
         <section>
-          <h3 className="font-expanded pb-2.5 text-[19px] leading-tight">
+          <h3 className="font-expanded text-title pb-2.5 leading-tight">
             Your team
           </h3>
           <div className="flex gap-2">
@@ -237,7 +230,7 @@ export function FriendlyGamePartnerReview({
                 setCallerPosition("left");
               }}
               className={cn(
-                "flex-1 py-[15px] text-[15px] font-semibold outline-none",
+                "text-body flex-1 py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "left"
                   ? "bg-ink text-paper"
@@ -254,7 +247,7 @@ export function FriendlyGamePartnerReview({
                 setCallerPosition("right");
               }}
               className={cn(
-                "border-rule flex-1 border-l py-[15px] text-[15px] font-semibold outline-none",
+                "border-rule text-body flex-1 border-l py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "right"
                   ? "bg-ink text-paper"
@@ -267,7 +260,7 @@ export function FriendlyGamePartnerReview({
         </section>
 
         {details.length > 0 ? (
-          <div className="border-rule overflow-hidden rounded-[14px] border">
+          <div className="border-rule rounded-card overflow-hidden border">
             {details.map((row, index) => (
               <DetailRow
                 key={row.label}
@@ -283,13 +276,14 @@ export function FriendlyGamePartnerReview({
       <div className="border-rule bg-background mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
-          className="h-[52px] w-full"
+          size="lg"
+          className="w-full"
           disabled={pending}
           onClick={() => onRegister(callerPosition)}
         >
           {pending ? "Registering…" : "Register us as a team"}
         </Button>
-        <p className="text-dim text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           Both seats are booked straight away. Your partner is in now.
         </p>
       </div>

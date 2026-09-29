@@ -1,5 +1,4 @@
-import "~/styles/globals.css";
-
+import { type Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -9,6 +8,10 @@ import {
 } from "~/lib/dashboard-onboarding-gate";
 import { loadCallerOnboardingState } from "~/server/auth/caller-onboarding-state";
 import { HydrateClient } from "~/trpc/server";
+
+export const metadata: Metadata = {
+  title: "Home",
+};
 
 /**
  * The Onboarding questionnaire gate. It lives here rather than in
@@ -37,7 +40,9 @@ export default async function DashboardLayout({
 
   return (
     <HydrateClient>
-      <div className="text-foreground min-h-screen bg-white">{children}</div>
+      <div className="bg-background text-foreground min-h-screen">
+        {children}
+      </div>
     </HydrateClient>
   );
 }

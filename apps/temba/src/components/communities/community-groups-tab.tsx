@@ -34,6 +34,7 @@ export function CommunityGroupsTab({
     >
       {groups.length === 0 ? (
         <EmptyState
+          headingLevel={3}
           icon={Users}
           title="No Groups yet"
           description="This Community has no Groups yet."

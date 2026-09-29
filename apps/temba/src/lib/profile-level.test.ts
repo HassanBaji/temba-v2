@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { confirmationFraction, lastMatchMovement } from "./profile-level";
+import {
+  confirmationFraction,
+  confirmationProgressCaption,
+  lastMatchMovement,
+} from "./profile-level";
 
 describe("confirmationFraction", () => {
   it("is rated matches over rated matches plus remaining", () => {
@@ -42,5 +46,21 @@ describe("lastMatchMovement", () => {
   it("compares only the last two points at display precision", () => {
     assert.equal(lastMatchMovement(["3.0", "3.2", "3.1"]), "down");
     assert.equal(lastMatchMovement(["3.40", "3.4"]), "held");
+  });
+});
+
+describe("confirmationProgressCaption", () => {
+  it("says what the confirmation bar measures", () => {
+    assert.equal(
+      confirmationProgressCaption(3, 2),
+      "3 of about 5 rated games to confirm",
+    );
+  });
+
+  it("uses the singular when one rated game confirms", () => {
+    assert.equal(
+      confirmationProgressCaption(0, 1),
+      "0 of about 1 rated game to confirm",
+    );
   });
 });

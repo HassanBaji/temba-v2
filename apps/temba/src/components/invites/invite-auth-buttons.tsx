@@ -21,7 +21,9 @@ export function InviteAuthButtons({
         <Link href={authCrossLinkUrl("/login", returnPath)}>Sign in</Link>
       </Button>
       <Button variant="outline" className={buttonClass} asChild>
-        <Link href={authCrossLinkUrl("/signup", returnPath)}>Sign up</Link>
+        <Link href={authCrossLinkUrl("/signup", returnPath)}>
+          Create account
+        </Link>
       </Button>
     </div>
   );

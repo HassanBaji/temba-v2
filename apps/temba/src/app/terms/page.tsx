@@ -1,7 +1,17 @@
+import { type Metadata } from "next";
+
+import { AuthScreen } from "~/components/auth/auth-screen";
+
+export const metadata: Metadata = {
+  title: "Terms of Use",
+};
+
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-[390px] px-[26px] py-12">
-      <h1 className="text-h1-lg font-bold tracking-[-0.02em]">Terms of Use</h1>
-    </main>
+    <AuthScreen backHref="/" backLabel="Back" title="Terms of Use">
+      <p className="text-body text-muted-foreground">
+        We&apos;re finalising this page. Check back soon.
+      </p>
+    </AuthScreen>
   );
 }

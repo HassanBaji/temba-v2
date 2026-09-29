@@ -9,6 +9,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Section } from "~/components/layout/section";
+import { requestRowMeta } from "~/lib/request-meta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["communities"]["listJoinRequests"][number];
@@ -75,11 +76,12 @@ export function CommunityRequestsTab({
       {hasJoin ? (
         <Section
           title="Join requests"
-          description="Approve to admit as Member, reject to refuse (they may re-request), or leave pending to ignore."
+          description="Approve to make them a Member. If you reject, they can ask again."
         >
           {joinLoading ? <Skeleton className="h-16 w-full" /> : null}
           {joinError ? (
             <ErrorState
+              headingLevel={3}
               title="Join requests could not be loaded"
               message={joinError}
               onRetry={onRetryJoin}
@@ -100,11 +102,7 @@ export function CommunityRequestsTab({
                       />
                     }
                     title={name}
-                    meta={
-                      request.user.email
-                        ? `Community join request · ${request.user.email}`
-                        : "Community join request"
-                    }
+                    meta={requestRowMeta(request.createdAt)}
                     approvePending={approveJoinPendingId === request.id}
                     rejectPending={rejectJoinPendingId === request.id}
                     onApprove={() => onApproveJoin(request.id)}
@@ -120,11 +118,12 @@ export function CommunityRequestsTab({
       {hasTeam ? (
         <Section
           title="Team link requests"
-          description="Owner or Admin approve or reject. Approve auto-admits any seat who is not yet a Community Member, then attaches the Team."
+          description="Approving links the Team to this Community and makes its players Members."
         >
           {teamLoading ? <Skeleton className="h-16 w-full" /> : null}
           {teamError ? (
             <ErrorState
+              headingLevel={3}
               title="Team link requests could not be loaded"
               message={teamError}
               onRetry={onRetryTeam}
@@ -138,7 +137,9 @@ export function CommunityRequestsTab({
                   <RequestRow
                     key={request.id}
                     title={request.team.displayName}
-                    meta={`Team link request from ${requester}`}
+                    meta={requestRowMeta(request.createdAt, [
+                      `From ${requester}`,
+                    ])}
                     approvePending={approveTeamPendingId === request.id}
                     rejectPending={rejectTeamPendingId === request.id}
                     onApprove={() => onApproveTeam(request.id)}

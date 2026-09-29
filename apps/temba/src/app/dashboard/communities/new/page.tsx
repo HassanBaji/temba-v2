@@ -108,17 +108,15 @@ export default function NewCommunityPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="public">
-                    Public (join by request via URL)
+                    Public (ask to join with the link)
                   </SelectItem>
-                  <SelectItem value="private">
-                    Private (Lookup invite + Invite link)
-                  </SelectItem>
+                  <SelectItem value="private">Private (invite only)</SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
                 {type === "private"
-                  ? "Invite-only: Lookup invite and Invite link."
-                  : "Joinable by request via the Community URL. Not listed in the App today."}
+                  ? "Only people you invite can join."
+                  : "People with the Community link ask to join. It isn't listed anywhere yet."}
               </FieldDescription>
             </Field>
           </FieldGroup>

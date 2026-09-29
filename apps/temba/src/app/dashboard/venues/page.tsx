@@ -11,9 +11,11 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { RequestRow } from "~/components/invites/request-row";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { requestRowMeta } from "~/lib/request-meta";
 import { api } from "~/trpc/react";
 
 export default function VenuesPage() {
@@ -48,17 +50,15 @@ export default function VenuesPage() {
   return (
     <DashboardShell
       title="Venues"
-      description="Physical sites in the catalog, including Soft-archived Venues. Create a Venue before any Community claims it."
+      description="Every Venue, including Soft-archived ones. Create a Venue before a Community asks to link it."
       action={
-        <Button asChild>
-          <Link href="/dashboard/venues/new">Create Venue</Link>
-        </Button>
+        <PageCreateAction href="/dashboard/venues/new" label="Create Venue" />
       }
     >
       <div className="space-y-6">
         <Section
           title="Requests"
-          description="Approve sets the Community live Venue pointer. Reject is silent and does not admit Users."
+          description="Approve to link the Venue to that Community. If you reject, they can ask again."
           action={
             requestCount > 0 ? (
               <Badge variant="secondary">{requestCount}</Badge>
@@ -68,6 +68,7 @@ export default function VenuesPage() {
           {pendingLinks.isLoading ? <ListPageSkeleton rows={2} /> : null}
           {pendingLinks.error ? (
             <ErrorState
+              headingLevel={3}
               title="Requests could not be loaded"
               message={pendingLinks.error.message}
               onRetry={() => {
@@ -77,6 +78,7 @@ export default function VenuesPage() {
           ) : null}
           {pendingLinks.data?.length === 0 ? (
             <EmptyState
+              headingLevel={3}
               icon={Inbox}
               title="No pending requests"
               description="Venue link requests from Communities will show up here."
@@ -95,7 +97,9 @@ export default function VenuesPage() {
                   <RequestRow
                     key={request.id}
                     title={request.community.name}
-                    meta={`Venue link request for ${request.venue.name}`}
+                    meta={requestRowMeta(request.createdAt, [
+                      `For ${request.venue.name}`,
+                    ])}
                     approvePending={approvePending}
                     rejectPending={rejectPending}
                     onApprove={() =>

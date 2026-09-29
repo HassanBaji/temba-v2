@@ -13,14 +13,14 @@ export function TournamentDetailRows({
   }
 
   return (
-    <div className="border-rule overflow-hidden rounded-[14px] border">
+    <div className="border-rule rounded-card overflow-hidden border">
       {rows.map((row, index) => (
         <div
           key={`${row.label}-${row.value}`}
           className={
             index === 0
-              ? "flex items-baseline justify-between gap-3 px-5 py-4 text-sm"
-              : "border-rule flex items-baseline justify-between gap-3 border-t px-5 py-4 text-sm"
+              ? "text-body flex items-baseline justify-between gap-3 px-5 py-4"
+              : "border-rule text-body flex items-baseline justify-between gap-3 border-t px-5 py-4"
           }
         >
           <span className="text-muted-foreground">{row.label}</span>

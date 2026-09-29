@@ -1,7 +1,8 @@
 import { Trophy } from "lucide-react";
 import Link from "next/link";
 
-import { formatGameClock } from "~/lib/format-game-start";
+import { SurfaceLabel } from "~/components/common/surface-label";
+import { formatGameClock, formatWeekday } from "~/lib/format-game-start";
 import {
   type HomeComingUpGameRow,
   type HomeComingUpRow,
@@ -14,7 +15,7 @@ const ROW_CLASS =
   "focus-visible:ring-ring/50 flex items-center gap-3 px-[22px] py-3 outline-none focus-visible:ring-[3px]";
 
 function weekdayAbbrev(date: Date): string {
-  return date.toLocaleDateString("en-US", { weekday: "short" });
+  return formatWeekday(date, "short");
 }
 
 function DayBox({ startsAt }: { startsAt: Date }) {
@@ -92,7 +93,7 @@ function TournamentRow({ game }: { game: HomeComingUpTournamentRow }) {
         </p>
       </div>
       {game.actionLabel ? (
-        <span className="bg-ink text-paper shrink-0 rounded-[9px] px-3 py-1.5 text-[13px] font-semibold">
+        <span className="bg-ink text-paper text-meta shrink-0 rounded-sm px-3 py-1.5 font-semibold">
           {game.actionLabel}
         </span>
       ) : null}
@@ -135,9 +136,7 @@ export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <h2 className="text-muted-foreground text-meta px-[22px] pb-3 pt-[22px]">
-        Coming up
-      </h2>
+      <SurfaceLabel>Coming up</SurfaceLabel>
       <ul className="divide-rule divide-y">
         {games.map((game) => (
           <li key={game.rowKey}>

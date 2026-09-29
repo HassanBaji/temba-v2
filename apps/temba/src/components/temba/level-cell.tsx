@@ -46,7 +46,7 @@ export function LevelCell({
   return (
     <span
       data-slot="level-cell"
-      className={cn("font-expanded block text-right text-[17px]", className)}
+      className={cn("font-expanded text-lead block text-right", className)}
     >
       {displayLabelFromStoredBand(band)}
     </span>

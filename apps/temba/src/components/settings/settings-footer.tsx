@@ -1,3 +1,9 @@
+"use client";
+
+import * as React from "react";
+
+import { Button } from "~/components/ui/button";
+
 export function SettingsFooter({
   displayName,
   phoneNumber,
@@ -5,22 +11,42 @@ export function SettingsFooter({
 }: {
   displayName: string;
   phoneNumber?: string | null;
-  onSignOut: () => void;
+  onSignOut: () => Promise<void>;
 }) {
+  const [signingOut, setSigningOut] = React.useState(false);
   const identity =
     phoneNumber != null && phoneNumber !== ""
       ? `${displayName} · ${phoneNumber}`
       : displayName;
 
+  async function signOut() {
+    if (signingOut) {
+      return;
+    }
+    setSigningOut(true);
+    try {
+      await onSignOut();
+    } catch (error) {
+      setSigningOut(false);
+      throw error;
+    }
+  }
+
   return (
     <div className="border-rule mt-auto flex flex-col gap-2.5 border-t pb-[26px] pt-5">
-      <button
+      <Button
         type="button"
-        className="border-rule bg-paper text-ink hover:bg-wash focus-visible:ring-ring/50 h-[52px] w-full rounded-lg border text-[15px] font-medium outline-none focus-visible:ring-[3px]"
-        onClick={onSignOut}
+        variant="outline"
+        size="lg"
+        pending={signingOut}
+        pendingLabel="Signing out…"
+        className="w-full"
+        onClick={() => {
+          void signOut();
+        }}
       >
         Sign out
-      </button>
+      </Button>
       <p className="text-muted-foreground text-center font-mono text-[11px] uppercase">
         {identity}
       </p>

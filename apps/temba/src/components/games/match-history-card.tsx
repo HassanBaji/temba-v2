@@ -1,23 +1,20 @@
 "use client";
 
-import Link from "next/link";
-
 import { UserAvatar } from "~/components/common/user-avatar";
+import {
+  SummaryCardBody,
+  SummaryCardShell,
+} from "~/components/games/summary-card-shell";
 import { ResultMark } from "~/components/temba/result-mark";
-import { Card } from "~/components/ui/card";
 import { formatRelativeDay } from "~/lib/format-game-start";
+import { setLabel, setShortLabel } from "~/lib/game-copy";
+import { RESULT_MARK_LABEL } from "~/lib/result-mark";
 import { shortPlayerName } from "~/lib/player-name";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
 type MatchHistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
 type MatchHistoryMember = MatchHistoryRow["slot1Members"][number];
-
-const OUTCOME_LABEL: Record<MatchHistoryRow["outcome"], string> = {
-  won: "Won",
-  lost: "Lost",
-  draw: "Draw",
-};
 
 /** Score columns drawn when a Match carries no scored sets. */
 const PENDING_SET_COLUMNS = 3;
@@ -73,7 +70,7 @@ function SeatTile({
   member: MatchHistoryMember | null;
   onInk: boolean;
 }) {
-  const shared = "-ml-1.5 size-[26px] shrink-0 rounded-[7px] first:ml-0";
+  const shared = "-ml-1.5 size-[26px] shrink-0 rounded-sm first:ml-0";
 
   if (!member) {
     return <span aria-hidden="true" className={cn("hatch", shared)} />;
@@ -85,7 +82,7 @@ function SeatTile({
       image={member.image}
       className={cn(
         shared,
-        "[&_[data-slot=avatar-fallback]]:rounded-[7px] [&_[data-slot=avatar-fallback]]:text-[10px]",
+        "[&_[data-slot=avatar-fallback]]:rounded-sm [&_[data-slot=avatar-fallback]]:text-[10px]",
         onInk
           ? "[&_[data-slot=avatar-fallback]]:bg-dimrule [&_[data-slot=avatar-fallback]]:text-paper"
           : member.isViewer
@@ -104,9 +101,11 @@ function SetHeader({ columns }: { columns: number }) {
         {Array.from({ length: columns }, (_, index) => (
           <span
             key={index}
-            className="text-dim w-7 text-center font-mono text-[10px]"
+            className="text-muted-foreground w-7 text-center font-mono text-[10px]"
           >
-            S{index + 1}
+            <abbr title={setLabel(index)} className="no-underline">
+              {setShortLabel(index)}
+            </abbr>
           </span>
         ))}
       </span>
@@ -138,7 +137,7 @@ function TeamRow({
   return (
     <div
       className={cn(
-        "mt-1.5 flex items-center gap-2 rounded-[11px] px-3 py-2.5",
+        "mt-1.5 flex items-center gap-2 rounded-lg px-3 py-2.5",
         filled
           ? "bg-ink text-paper"
           : cn("border", outlined ? "border-ink" : "border-rule"),
@@ -156,7 +155,7 @@ function TeamRow({
       <span className="flex min-w-0 flex-1 flex-col gap-px">
         <span
           className={cn(
-            "truncate text-sm",
+            "text-body truncate",
             filled || outlined ? "font-semibold" : null,
           )}
         >
@@ -178,8 +177,12 @@ function TeamRow({
               <span
                 key={index}
                 className={cn(
-                  "font-expanded w-7 text-center text-[17px] tabular-nums",
-                  score.wonSet ? null : "text-dim",
+                  "font-expanded text-lead w-7 text-center tabular-nums",
+                  score.wonSet
+                    ? null
+                    : filled
+                      ? "text-dim"
+                      : "text-muted-foreground",
                 )}
               >
                 {score.games}
@@ -257,49 +260,39 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
 
   return (
     <li data-slot="match-history-card">
-      <Card
-        className={cn(
-          "relative gap-0 overflow-hidden rounded-[14px] p-0",
-          won ? "border-ink" : "border-rule",
-          "motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
-          "hover:border-foreground/20 hover:shadow-sm",
-        )}
+      <SummaryCardShell
+        emphasis={won}
+        href={`/dashboard/games/${row.id}`}
+        linkLabel={`${RESULT_MARK_LABEL[row.outcome]}, ${meta}`}
       >
-        <Link
-          href={`/dashboard/games/${row.id}`}
-          aria-label={`${OUTCOME_LABEL[row.outcome]}, ${meta}`}
-          className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
-        />
-        <div className="pointer-events-none relative z-10 flex items-start gap-3 px-5 py-4">
+        <SummaryCardBody className="flex items-start gap-3 pb-4">
           <ResultMark
-            variant={won ? "won" : "lost"}
+            variant={row.outcome}
+            decorative
             className="mt-0.5 size-6"
           />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
-              <span
+              <h3
                 className={cn(
                   "font-expanded text-[22px]",
                   won ? null : "text-muted-foreground",
                 )}
               >
-                {OUTCOME_LABEL[row.outcome]}
-              </span>
+                {RESULT_MARK_LABEL[row.outcome]}
+              </h3>
               {scored ? (
-                <span
-                  className={cn(
-                    "font-expanded text-[15px] tabular-nums",
-                    won ? "text-muted-foreground" : "text-dim",
-                  )}
-                >
+                <span className="font-expanded text-muted-foreground text-body tabular-nums">
                   {tally.won}&ndash;{tally.lost} in sets
                 </span>
               ) : (
-                <span className="text-dim text-[13px]">No score yet</span>
+                <span className="text-muted-foreground text-meta">
+                  No score yet
+                </span>
               )}
             </div>
-            <p className="text-muted-foreground mt-0.5 truncate text-[13px]">
+            <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {meta}
             </p>
           </div>
@@ -309,13 +302,13 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
               {groupName}
             </span>
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div className="pointer-events-none relative z-10 px-5 pb-[18px]">
+        <SummaryCardBody className="pt-0">
           {scored ? <SetHeader columns={sets.length} /> : null}
           {lost ? [theirs, mine] : [mine, theirs]}
-        </div>
-      </Card>
+        </SummaryCardBody>
+      </SummaryCardShell>
     </li>
   );
 }

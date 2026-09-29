@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Globe } from "lucide-react";
 import Link from "next/link";
 
+import { PageTitle } from "~/components/layout/page-title";
 import { GameViewerStatusBadge } from "~/components/temba/game-viewer-status-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import {
@@ -38,11 +39,9 @@ export function GameHomeHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex items-start gap-3">
-      <div className="min-w-0 flex-1 space-y-2">
-        <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
-          {name}
-        </h1>
+    <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <div className="col-start-1 row-start-1 min-w-0 space-y-2">
+        <PageTitle>{name}</PageTitle>
         {groupId ? (
           <p className="text-meta text-muted-foreground">
             On Group{" "}
@@ -76,10 +75,14 @@ export function GameHomeHeader({
           ) : null}
         </div>
       </div>
-      <div className="flex shrink-0 flex-nowrap items-center gap-1">
-        {primaryAction}
-        {actions}
-      </div>
+      {primaryAction ? (
+        <div className="col-span-2 row-start-2 flex flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+          {primaryAction}
+        </div>
+      ) : null}
+      {actions ? (
+        <div className="col-start-2 row-start-1 sm:col-start-3">{actions}</div>
+      ) : null}
     </header>
   );
 }

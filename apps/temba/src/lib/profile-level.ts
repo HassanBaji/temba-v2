@@ -9,6 +9,15 @@ export function confirmationFraction(
   return ratedMatchCount / denom;
 }
 
+export function confirmationProgressCaption(
+  ratedMatchCount: number,
+  ratedMatchesRemaining: number,
+): string {
+  const total = ratedMatchCount + ratedMatchesRemaining;
+  const noun = total === 1 ? "rated game" : "rated games";
+  return `${ratedMatchCount} of about ${total} ${noun} to confirm`;
+}
+
 export type LastMatchMovement = "up" | "down" | "held";
 
 export function lastMatchMovement(

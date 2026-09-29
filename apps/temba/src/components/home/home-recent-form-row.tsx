@@ -1,6 +1,7 @@
 "use client";
 
 import { ErrorState } from "~/components/common/error-state";
+import { SurfaceLabel } from "~/components/common/surface-label";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 
@@ -49,7 +50,7 @@ export function FormSlot({
           className={
             compact
               ? "hatch absolute inset-0 rounded-[4px]"
-              : "hatch absolute inset-0 rounded-[5px]"
+              : "hatch rounded-xs absolute inset-0"
           }
         />
         <span className="sr-only">{slotLabel(bar)}</span>
@@ -62,12 +63,12 @@ export function FormSlot({
       <div
         className={
           compact
-            ? "bg-ink h-[26px] min-w-0 flex-1 rounded-[4px]"
-            : "bg-ink text-paper flex h-[38px] min-w-0 flex-1 items-center justify-center rounded-[5px] text-sm font-semibold"
+            ? "bg-ink text-paper text-eyebrow flex h-[26px] min-w-0 flex-1 items-center justify-center rounded-[4px] font-semibold"
+            : "bg-ink text-paper rounded-xs text-meta flex h-[38px] min-w-0 flex-1 items-center justify-center font-semibold"
         }
       >
         <span className="sr-only">{slotLabel(bar)}</span>
-        {compact ? null : <span aria-hidden="true">{bar.label}</span>}
+        <span aria-hidden="true">{bar.label}</span>
       </div>
     );
   }
@@ -76,8 +77,8 @@ export function FormSlot({
     <div
       className={
         compact
-          ? "border-ink bg-paper relative h-[26px] min-w-0 flex-1 overflow-hidden rounded-[4px] border"
-          : "border-ink bg-paper text-ink relative flex h-[38px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-[5px] border-[1.5px] text-sm font-semibold"
+          ? "border-ink bg-paper text-ink text-eyebrow relative flex h-[26px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-[4px] border font-semibold"
+          : "border-ink bg-paper text-ink rounded-xs text-meta relative flex h-[38px] min-w-0 flex-1 items-center justify-center overflow-hidden border-[1.5px] font-semibold"
       }
     >
       {bar.outcome === "draw" ? (
@@ -90,11 +91,9 @@ export function FormSlot({
         />
       ) : null}
       <span className="sr-only">{slotLabel(bar)}</span>
-      {compact ? null : (
-        <span aria-hidden="true" className="relative">
-          {bar.label}
-        </span>
-      )}
+      <span aria-hidden="true" className="relative">
+        {bar.label}
+      </span>
     </div>
   );
 }
@@ -112,7 +111,7 @@ export function WinLossMark({ outcome }: { outcome: "won" | "lost" | "draw" }) {
 
   if (outcome === "won") {
     return (
-      <div className="bg-ink text-paper flex size-[46px] shrink-0 items-center justify-center rounded-[7px] text-xl font-semibold">
+      <div className="bg-ink text-paper flex size-[46px] shrink-0 items-center justify-center rounded-sm text-xl font-semibold">
         <span className="sr-only">{label}</span>
         <span aria-hidden="true">{glyph}</span>
       </div>
@@ -120,7 +119,7 @@ export function WinLossMark({ outcome }: { outcome: "won" | "lost" | "draw" }) {
   }
 
   return (
-    <div className="border-ink bg-paper text-ink relative flex size-[46px] shrink-0 items-center justify-center overflow-hidden rounded-[7px] border-[1.5px] text-xl font-semibold">
+    <div className="border-ink bg-paper text-ink relative flex size-[46px] shrink-0 items-center justify-center overflow-hidden rounded-sm border-[1.5px] text-xl font-semibold">
       {outcome === "draw" ? (
         <span
           aria-hidden="true"
@@ -144,42 +143,41 @@ export function HomeRecentFormBlock({ form }: { form: RecentFormView }) {
   const winRate = recentFormWinRateCopy(form);
 
   return (
-    <section className="border-rule bg-paper rounded-xl border p-[22px]">
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-sm font-normal">Recent Form</p>
-        <p className="text-muted-foreground text-sm font-normal">
-          Last 10 matches
-        </p>
-      </div>
-      <div className="mt-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="font-expanded text-[52px] tabular-nums leading-none">
-            {record}
-          </p>
-          <p className="text-muted-foreground text-meta mt-1">{status}</p>
+    <section className="border-rule bg-paper rounded-xl border">
+      <SurfaceLabel meta="Last 10 matches">Recent form</SurfaceLabel>
+      <div className="px-[22px] pb-[22px]">
+        <div className="mt-1 flex items-end justify-between gap-3">
+          <div>
+            <p className="font-expanded text-[52px] tabular-nums leading-none">
+              {record}
+            </p>
+            <p className="text-muted-foreground text-meta mt-1">{status}</p>
+          </div>
+          <div className="text-right">
+            <p className="font-expanded text-[22px] tabular-nums leading-none">
+              {winRate.value}
+            </p>
+            <p className="text-muted-foreground text-meta mt-1">
+              {winRate.caption}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-expanded text-[22px] tabular-nums leading-none">
-            {winRate.value}
-          </p>
-          <p className="text-muted-foreground text-meta mt-1">
-            {winRate.caption}
-          </p>
+        <div className="mt-4 flex gap-1">
+          {form.bars.map((bar, index) => (
+            <FormSlot
+              key={
+                bar.kind === "played"
+                  ? `${bar.label}-${index}`
+                  : `empty-${index}`
+              }
+              bar={bar}
+            />
+          ))}
         </div>
-      </div>
-      <div className="mt-4 flex gap-1">
-        {form.bars.map((bar, index) => (
-          <FormSlot
-            key={
-              bar.kind === "played" ? `${bar.label}-${index}` : `empty-${index}`
-            }
-            bar={bar}
-          />
-        ))}
-      </div>
-      <div className="text-muted-foreground text-meta mt-2 flex justify-between">
-        <p>Most recent</p>
-        <p>Oldest</p>
+        <div className="text-muted-foreground text-meta mt-2 flex justify-between">
+          <p>Most recent</p>
+          <p>Oldest</p>
+        </div>
       </div>
     </section>
   );
@@ -194,7 +192,7 @@ export function HomeRecentForm() {
         <Skeleton className="h-12 w-28" />
         <div className="mt-4 flex gap-1">
           {Array.from({ length: 10 }).map((_, index) => (
-            <Skeleton key={index} className="h-[38px] flex-1 rounded-[5px]" />
+            <Skeleton key={index} className="rounded-xs h-[38px] flex-1" />
           ))}
         </div>
       </div>
@@ -204,6 +202,7 @@ export function HomeRecentForm() {
   if (history.error) {
     return (
       <ErrorState
+        variant="inline"
         title="Recent form could not be loaded"
         message={history.error.message}
         onRetry={() => {

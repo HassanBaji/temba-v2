@@ -74,16 +74,16 @@ export function TournamentPoolDrawPanel({
             return (
               <section key={pool.poolIndex}>
                 <div className="flex items-baseline gap-2.5 pb-2.5">
-                  <h3 className="font-expanded text-[19px] tracking-[-0.03em]">
+                  <h3 className="font-expanded text-title tracking-[-0.03em]">
                     {pool.label}
                   </h3>
                   {meta ? (
-                    <p className="text-muted-foreground text-[13px]">{meta}</p>
+                    <p className="text-muted-foreground text-meta">{meta}</p>
                   ) : null}
                 </div>
                 <RowList
                   aria-label={pool.label}
-                  className="border-rule divide-rule rounded-[14px]"
+                  className="border-rule divide-rule rounded-card"
                 >
                   {pool.teams.map((team) => (
                     <ListRow
@@ -97,7 +97,7 @@ export function TournamentPoolDrawPanel({
             );
           })
         ) : (
-          <p className="text-muted-foreground text-[15px] leading-relaxed">
+          <p className="text-muted-foreground text-body leading-relaxed">
             {DRAW_EMPTY_DRAFT_COPY}
           </p>
         )}
@@ -112,7 +112,8 @@ export function TournamentPoolDrawPanel({
           <>
             <Button
               type="button"
-              className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+              size="lg"
+              className="w-full font-semibold"
               disabled={busy}
               aria-busy={postPending}
               onClick={() => {
@@ -124,7 +125,8 @@ export function TournamentPoolDrawPanel({
             <Button
               type="button"
               variant="outline"
-              className="h-[52px] min-h-[52px] w-full rounded-[12px] text-[15px]"
+              size="lg"
+              className="w-full"
               disabled={busy}
               aria-busy={drawPending}
               onClick={() => {
@@ -133,14 +135,15 @@ export function TournamentPoolDrawPanel({
             >
               {drawPending ? "Drawing…" : DRAW_AGAIN_ACTION}
             </Button>
-            <p className="text-muted-foreground text-center text-[13px] leading-relaxed">
+            <p className="text-muted-foreground text-meta text-center leading-relaxed">
               {POST_POOL_DRAW_FOOTER_COPY}
             </p>
           </>
         ) : (
           <Button
             type="button"
-            className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+            size="lg"
+            className="w-full font-semibold"
             disabled={busy}
             aria-busy={drawPending}
             onClick={() => {

@@ -1,7 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
+import * as React from "react";
 
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
 import { Button } from "~/components/ui/button";
 import {
@@ -11,12 +12,16 @@ import {
   DrawerTitle,
 } from "~/components/ui/drawer";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { CloseButton } from "~/components/ui/nav-icon-button";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { ORGANIZER_EYEBROW } from "~/lib/tournament-half-teams";
 import {
   DRAW_DRAWER_TITLE,
   DRAW_ENTRY_ACTION_LABEL,
   UNDO_POOL_DRAW_ACTION,
+  UNDO_POOL_DRAW_CONFIRM_COPY,
+  UNDO_POOL_DRAW_CONFIRM_LABEL,
+  UNDO_POOL_DRAW_CONFIRM_TITLE,
   drawDrawerLead,
   drawEntryStateLine,
   drawEntryTitle,
@@ -35,23 +40,22 @@ export function TournamentDrawEntry({
   onOpen: () => void;
 }) {
   return (
-    <div className="border-rule rounded-[14px] border p-5">
+    <div className="border-rule rounded-card border p-5">
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>
-      <p className="mt-2 text-[15px] font-semibold">
-        {drawEntryTitle(hasDraft)}
-      </p>
-      <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
+      <p className="text-body mt-2 font-semibold">{drawEntryTitle(hasDraft)}</p>
+      <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {drawEntryStateLine(completeTeams, teamCount)}
       </p>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={onOpen}
-        className="border-ink mt-4 flex h-[46px] min-h-11 w-full items-center justify-center rounded-[12px] border text-sm font-semibold"
+        className="border-ink mt-4 w-full font-semibold"
       >
         {DRAW_ENTRY_ACTION_LABEL}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -65,21 +69,39 @@ export function TournamentUndoPoolDraw({
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
 }) {
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const undoButtonRef = React.useRef<HTMLButtonElement>(null);
+
   return (
     <div className="space-y-3">
       <FormErrorSummary message={globalFormErrorMessage(undoError)} />
       <Button
+        ref={undoButtonRef}
         type="button"
         variant="outline"
         className="min-h-11 w-full"
         disabled={undoPending}
         aria-busy={undoPending}
-        onClick={() => {
-          void onUndo();
-        }}
+        onClick={() => setConfirmOpen(true)}
       >
         {undoPending ? "Undoing…" : UNDO_POOL_DRAW_ACTION}
       </Button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={UNDO_POOL_DRAW_CONFIRM_TITLE}
+        description={UNDO_POOL_DRAW_CONFIRM_COPY}
+        confirmLabel={UNDO_POOL_DRAW_CONFIRM_LABEL}
+        pending={undoPending}
+        restoreFocusRef={undoButtonRef}
+        onConfirm={async () => {
+          try {
+            await onUndo();
+          } catch {
+            // The failure is already shown by FormErrorSummary above.
+          }
+        }}
+      />
     </div>
   );
 }
@@ -149,23 +171,15 @@ export function TournamentDrawDrawer({
         <div className="flex h-full min-h-0 flex-col">
           <div className="border-rule shrink-0 px-[22px] pb-0 pt-[22px]">
             <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={close}
-                disabled={busy}
-                className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px] disabled:opacity-50"
-                aria-label="Close"
-              >
-                <X aria-hidden="true" className="size-5" strokeWidth={2} />
-              </button>
+              <CloseButton variant="boxed" onClick={close} disabled={busy} />
               <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
                 {ORGANIZER_EYEBROW}
               </p>
             </div>
-            <DrawerTitle className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
+            <DrawerTitle className="font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
               {DRAW_DRAWER_TITLE}
             </DrawerTitle>
-            <DrawerDescription className="text-ink mt-2.5 text-[15px] leading-relaxed">
+            <DrawerDescription className="text-ink text-body mt-2.5 leading-relaxed">
               {drawDrawerLead(teamCount)}
             </DrawerDescription>
           </div>

@@ -1,17 +1,46 @@
+/**
+ * The one locale every date and time in the App is written in, so a card and
+ * the hero never disagree ("7:30 PM" vs "19:30"). en-US was already the most
+ * used; it gives a 12-hour clock and English day and month names. Dates are
+ * still composed day before month (`Sat 4 Oct`), which en-US would reverse.
+ */
+export const APP_LOCALE = "en-US";
+
+type NameStyle = "short" | "long";
+
+function asDate(value: Date | string) {
+  return value instanceof Date ? value : new Date(value);
+}
+
+export function formatWeekday(value: Date | string, style: NameStyle) {
+  return asDate(value).toLocaleDateString(APP_LOCALE, { weekday: style });
+}
+
+export function formatMonth(value: Date | string, style: NameStyle) {
+  return asDate(value).toLocaleDateString(APP_LOCALE, { month: style });
+}
+
+/** `4 Oct`, `Sat 4 Oct`, `Saturday 4 October 2026`. */
+export function formatDayMonth(
+  value: Date | string,
+  options: { weekday?: NameStyle; month?: NameStyle; year?: boolean } = {},
+) {
+  const date = asDate(value);
+  const parts = [
+    options.weekday ? formatWeekday(date, options.weekday) : null,
+    String(date.getDate()),
+    formatMonth(date, options.month ?? "short"),
+    options.year ? String(date.getFullYear()) : null,
+  ];
+  return parts.filter((part) => part != null).join(" ");
+}
+
 export function formatGameStart(startTime: Date | string) {
-  const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return `${formatDayMonth(startTime, { weekday: "short" })}, ${formatGameClock(startTime)}`;
 }
 
 export function formatGameClock(startTime: Date | string) {
-  const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleTimeString(undefined, {
+  return asDate(startTime).toLocaleTimeString(APP_LOCALE, {
     hour: "numeric",
     minute: "2-digit",
   });
@@ -96,20 +125,12 @@ export function formatRelativeDay(
     return "Tomorrow";
   }
 
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+  return formatDayMonth(date, { weekday: "short" });
 }
 
+/** Detail headings: `Saturday 4 October`. */
 export function formatAbsoluteDay(startTime: Date | string) {
-  const date = startTime instanceof Date ? startTime : new Date(startTime);
-  return date.toLocaleDateString("en-GB", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  return formatDayMonth(startTime, { weekday: "long", month: "long" });
 }
 
 /** Hub Game card day: Today / Tomorrow / `Thursday 11 Sep`. */
@@ -124,10 +145,7 @@ export function formatGameCardDay(startTime: Date | string) {
     return "Tomorrow";
   }
 
-  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
-  const day = date.getDate();
-  const month = date.toLocaleDateString("en-US", { month: "short" });
-  return `${weekday} ${day} ${month}`;
+  return formatDayMonth(date, { weekday: "long" });
 }
 
 /**

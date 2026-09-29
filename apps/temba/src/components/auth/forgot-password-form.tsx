@@ -10,6 +10,7 @@ import { VerifyCodeForm } from "~/components/auth/verify-code-form";
 import { Button } from "~/components/ui/button";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -23,13 +24,10 @@ import {
 } from "~/lib/auth-redirect";
 import { splitClerkAuthError } from "~/lib/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
-import { cn } from "~/lib/utils";
-
-const AUTH_INPUT_CLASS =
-  "border-rule h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 const FIELD_IDS = {
   identifier: "reset-password-identifier",
+  identifierHelp: "reset-password-identifier-help",
   password: "reset-password-password",
   code: "reset-password-code",
 };
@@ -37,7 +35,10 @@ const FIELD_IDS = {
 type Step = "identifier" | "code" | "password";
 
 function resetEmailCodePrepareParams(signIn: {
-  supportedFirstFactors: Array<{ strategy: string; emailAddressId?: string }> | null;
+  supportedFirstFactors: Array<{
+    strategy: string;
+    emailAddressId?: string;
+  }> | null;
 }) {
   const factor = signIn.supportedFirstFactors?.find(
     (item) => item.strategy === "reset_password_email_code",
@@ -88,6 +89,13 @@ export function ForgotPasswordForm({
   const [pending, setPending] = React.useState(false);
   const [split, setSplit] = React.useState<SplitFormError | null>(null);
 
+  // After render, so the input is enabled again and the summary is mounted.
+  React.useEffect(() => {
+    if (split) {
+      focusSplit(split, summaryRef.current);
+    }
+  }, [split]);
+
   React.useEffect(() => {
     document.getElementById("auth-screen-heading")?.focus();
   }, [step]);
@@ -128,7 +136,6 @@ export function ForgotPasswordForm({
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -161,7 +168,6 @@ export function ForgotPasswordForm({
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -206,12 +212,10 @@ export function ForgotPasswordForm({
         fieldErrors: {},
         globalMessage: "Something went wrong. Try again.",
       });
-      summaryRef.current?.focus();
     } catch (err) {
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -232,7 +236,7 @@ export function ForgotPasswordForm({
         footer={
           <p className="text-eyebrow text-muted-foreground leading-[1.5]">
             Codes expire after a short time. Too many wrong tries will lock this
-            identifier.
+            email.
           </p>
         }
       >
@@ -295,7 +299,7 @@ export function ForgotPasswordForm({
                 aria-describedby={
                   passwordError ? `${FIELD_IDS.password}-error` : undefined
                 }
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {passwordError ? (
@@ -307,10 +311,11 @@ export function ForgotPasswordForm({
           </FieldGroup>
           <Button
             type="submit"
-            size="auth"
-            aria-busy={pending}
-            disabled={!isLoaded || pending}
-            className="bg-ink text-paper hover:bg-dimrule w-full font-semibold"
+            size="lg"
+            pending={pending}
+            pendingLabel="Saving password…"
+            disabled={!isLoaded}
+            className="w-full font-semibold"
           >
             Save password
           </Button>
@@ -349,11 +354,18 @@ export function ForgotPasswordForm({
               onChange={(event) => setIdentifier(event.target.value)}
               aria-invalid={Boolean(identifierError)}
               aria-describedby={
-                identifierError ? `${FIELD_IDS.identifier}-error` : undefined
+                identifierError
+                  ? `${FIELD_IDS.identifierHelp} ${FIELD_IDS.identifier}-error`
+                  : FIELD_IDS.identifierHelp
               }
-              className={cn(AUTH_INPUT_CLASS)}
+              size="lg"
               disabled={pending}
             />
+            <FieldDescription id={FIELD_IDS.identifierHelp}>
+              Reset works with the email address on your account. If you signed
+              up with a mobile number and no email, password reset is not
+              available yet.
+            </FieldDescription>
             {identifierError ? (
               <FieldError id={`${FIELD_IDS.identifier}-error`}>
                 {identifierError}
@@ -363,10 +375,11 @@ export function ForgotPasswordForm({
         </FieldGroup>
         <Button
           type="submit"
-          size="auth"
-          aria-busy={pending}
-          disabled={!isLoaded || pending}
-          className="bg-ink text-paper hover:bg-dimrule w-full font-semibold"
+          size="lg"
+          pending={pending}
+          pendingLabel="Sending code…"
+          disabled={!isLoaded}
+          className="w-full font-semibold"
         >
           Send code
         </Button>

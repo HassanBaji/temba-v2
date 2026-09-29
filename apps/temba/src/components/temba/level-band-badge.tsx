@@ -6,7 +6,7 @@ import { cn } from "~/lib/utils";
 const BAND_GROUP_STYLES: Record<string, string> = {
   D: "bg-gray-100 text-gray-700 border-transparent",
   C: "bg-gray-300 text-gray-800 border-transparent",
-  B: "bg-gray-600 text-white border-transparent",
+  B: "bg-gray-600 text-primary-foreground border-transparent",
   A: "bg-primary text-primary-foreground border-transparent",
 };
 

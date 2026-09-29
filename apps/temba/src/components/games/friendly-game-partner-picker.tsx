@@ -1,13 +1,16 @@
 "use client";
 
-import { ArrowLeft, Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { useState } from "react";
 
+import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   formatGameCardDay,
   formatGameClockWithoutMeridiem,
@@ -96,9 +99,9 @@ function RecentPartnerChip({
       aria-pressed={blocked ? undefined : selected}
       aria-label={suggestionButtonLabel(row)}
       className={cn(
-        "flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-[14px] px-1 py-2",
+        "rounded-card flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-1 py-2",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
-        blocked && "hatch text-dim cursor-default",
+        blocked && "hatch text-muted-foreground cursor-default",
         !blocked && selected && "bg-wash",
       )}
     >
@@ -120,9 +123,9 @@ function RecentPartnerChip({
       </span>
       <span
         className={cn(
-          "w-full truncate text-center text-[12px] leading-tight",
+          "text-eyebrow w-full truncate text-center leading-tight",
           selected && !blocked ? "font-semibold" : "font-medium",
-          blocked && "text-dim",
+          blocked && "text-muted-foreground",
         )}
       >
         {row.name}
@@ -147,7 +150,7 @@ function RecentsShowcase({
   return (
     <section>
       <div className="flex items-baseline gap-2.5 pb-2.5">
-        <h3 className="font-expanded text-[19px] leading-tight">
+        <h3 className="font-expanded text-title leading-tight">
           Played with before
         </h3>
       </div>
@@ -188,7 +191,7 @@ function PartnerSuggestionRow({
       className={cn(
         "flex w-full items-center gap-3 px-[18px] py-4 text-left",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
-        blocked && "hatch text-dim cursor-default",
+        blocked && "hatch text-muted-foreground cursor-default",
         !blocked && selected && "bg-wash",
         !blocked && !selected && "bg-paper",
       )}
@@ -202,19 +205,14 @@ function PartnerSuggestionRow({
       <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "block truncate text-[15px]",
+            "text-body block truncate",
             selected && !blocked ? "font-semibold" : "font-medium",
-            blocked && "text-dim",
+            blocked && "text-muted-foreground",
           )}
         >
           {row.name}
         </span>
-        <span
-          className={cn(
-            "text-meta mt-0.5 block",
-            blocked ? "text-dim" : "text-muted-foreground",
-          )}
-        >
+        <span className="text-meta text-muted-foreground mt-0.5 block">
           {suggestionMetaLine(row)}
         </span>
       </span>
@@ -255,10 +253,10 @@ function SuggestionSection({
   return (
     <section className="pb-4">
       <div className="flex items-baseline gap-2.5 pb-2.5">
-        <h3 className="font-expanded text-[19px] leading-tight">{title}</h3>
-        <p className="text-dim text-[13px]">{eyebrow}</p>
+        <h3 className="font-expanded text-title leading-tight">{title}</h3>
+        <p className="text-muted-foreground text-meta">{eyebrow}</p>
       </div>
-      <div className="border-rule overflow-hidden rounded-[14px] border">
+      <div className="border-rule rounded-card overflow-hidden border">
         {rows.map((row, index) => (
           <div
             key={row.id}
@@ -273,6 +271,44 @@ function SuggestionSection({
         ))}
       </div>
     </section>
+  );
+}
+
+function RecentsSkeleton() {
+  return (
+    <div aria-hidden="true" className="flex gap-1">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div
+          key={index}
+          className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-1 py-2"
+        >
+          <Skeleton className="size-10 rounded-full" />
+          <Skeleton className="h-3 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SuggestionRowsSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="border-rule rounded-card overflow-hidden border"
+    >
+      {Array.from({ length: 3 }, (_, index) => (
+        <div
+          key={index}
+          className="border-rule flex items-center gap-3 border-t px-[18px] py-4 first:border-t-0"
+        >
+          <Skeleton className="size-6 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-32 max-w-full" />
+            <Skeleton className="h-3 w-44 max-w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -298,7 +334,7 @@ export function FriendlyGamePartnerPicker({
   pricePerPlayerCents?: number | null;
   selectedPartner: FriendlyGamePartnerPick | null;
   onSelectedPartnerChange: (partner: FriendlyGamePartnerPick | null) => void;
-  onBack: () => void;
+  onBack?: () => void;
   onClose: () => void;
   onContinue: () => void;
   notice?: string | null;
@@ -361,30 +397,18 @@ export function FriendlyGamePartnerPicker({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-rule shrink-0 px-[22px] pt-2">
         <div className="flex items-center justify-between">
-          {/* <button
-            type="button"
-            onClick={onBack}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-            aria-label="Back"
-          >
-            <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-          </button> */}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-            aria-label="Close"
-          >
-            <X aria-hidden="true" className="size-5" strokeWidth={2} />
-          </button>
-          <p className="text-muted-foreground text-[13px]">{seatsChip}</p>
+          {onBack ? (
+            <BackButton variant="boxed" onClick={onBack} />
+          ) : (
+            <CloseButton variant="boxed" onClick={onClose} />
+          )}
+          <p className="text-muted-foreground text-meta">{seatsChip}</p>
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px]">
         <div className="border-rule mt-6 shrink-0">
-          <h2 className="font-expanded text-[32px] leading-none tracking-[-0.03em]">
+          <h2 className="font-expanded text-h1-lg leading-none tracking-[-0.03em]">
             Pick a partner
           </h2>
           <p className="text-meta mt-2 leading-relaxed">
@@ -392,11 +416,28 @@ export function FriendlyGamePartnerPicker({
           </p>
         </div>
 
-        <RecentsShowcase
-          rows={suggestions.data?.playedWithBefore ?? []}
-          selectedId={selectedPartner?.id ?? null}
-          onSelect={pickSuggestion}
-        />
+        {suggestions.isLoading ? (
+          <div aria-busy="true">
+            <span className="sr-only">Loading partner suggestions</span>
+            <RecentsSkeleton />
+          </div>
+        ) : suggestions.error ? (
+          <ErrorState
+            title="Suggestions could not be loaded"
+            message={suggestions.error.message}
+            headingLevel={3}
+            className="py-4"
+            onRetry={() => {
+              void suggestions.refetch();
+            }}
+          />
+        ) : (
+          <RecentsShowcase
+            rows={suggestions.data?.playedWithBefore ?? []}
+            selectedId={selectedPartner?.id ?? null}
+            onSelect={pickSuggestion}
+          />
+        )}
 
         <Field>
           <FieldLabel htmlFor="partner-picker-search">Search</FieldLabel>
@@ -413,6 +454,7 @@ export function FriendlyGamePartnerPicker({
           />
         </Field>
 
+        {suggestions.isLoading ? <SuggestionRowsSkeleton /> : null}
         <SuggestionSection
           title="From your groups"
           eyebrow={groupName?.trim() ?? ""}
@@ -425,7 +467,8 @@ export function FriendlyGamePartnerPicker({
       <div className="border-rule bg-background mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
-          className="h-[52px] w-full"
+          size="lg"
+          className="w-full"
           disabled={!selectedPartner}
           onClick={onContinue}
         >
@@ -433,7 +476,7 @@ export function FriendlyGamePartnerPicker({
             ? `Continue with ${selectedPartner.name}`
             : "Continue"}
         </Button>
-        <p className="text-dim text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           No seat is taken until you register the team.
         </p>
       </div>

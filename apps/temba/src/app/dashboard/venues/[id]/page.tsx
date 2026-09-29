@@ -7,10 +7,13 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { EntityImageField } from "~/components/common/entity-image-field";
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Badge } from "~/components/ui/badge";
@@ -30,38 +33,11 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import { entityImageUploadInput } from "~/lib/entity-image-file";
+import { courtRenameIsDirty } from "~/lib/court-rename";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
-import type { VenueLogoContentType } from "~/server/storage/venue-logos";
-
-const LOGO_MAX_BYTES = 2 * 1024 * 1024;
-
-function asLogoContentType(value: string): VenueLogoContentType | null {
-  if (value === "image/jpg") {
-    return "image/jpeg";
-  }
-  if (
-    value === "image/jpeg" ||
-    value === "image/png" ||
-    value === "image/webp"
-  ) {
-    return value;
-  }
-  return null;
-}
-
-async function fileToBase64(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.subarray(index, index + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return btoa(binary);
-}
 
 export default function VenueHomePage({
   params,
@@ -230,24 +206,17 @@ export default function VenueHomePage({
     addCourt.mutate({ venueId: id, name: newCourtName });
   }
 
-  async function onLogoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  function onLogoPicked(file: File | null) {
     if (!file) {
       return;
     }
-    const contentType = asLogoContentType(file.type);
-    if (!contentType) {
-      setLogoError("Logo must be a JPEG, PNG, or WebP image");
-      return;
-    }
-    if (file.size > LOGO_MAX_BYTES) {
-      setLogoError("Logo must be at most 2 MB");
-      return;
-    }
-    setLogoError(null);
-    const dataBase64 = await fileToBase64(file);
-    uploadLogo.mutate({ venueId: id, contentType, dataBase64 });
+    void entityImageUploadInput(file, "Logo")
+      .then((input) => uploadLogo.mutate({ venueId: id, ...input }))
+      .catch((error: unknown) => {
+        setLogoError(
+          error instanceof Error ? error.message : "Logo could not be read",
+        );
+      });
   }
 
   if (isNotFoundError(venue.error)) {
@@ -256,7 +225,7 @@ export default function VenueHomePage({
 
   if (venue.isLoading) {
     return (
-      <DashboardShell title="Venue">
+      <DashboardShell title="Venue" isSubPage>
         <DetailPageSkeleton />
       </DashboardShell>
     );
@@ -264,7 +233,7 @@ export default function VenueHomePage({
 
   if (venue.error) {
     return (
-      <DashboardShell title="Venue">
+      <DashboardShell title="Venue" isSubPage>
         <ErrorState
           title="Venue could not be loaded"
           message={venue.error.message}
@@ -278,7 +247,7 @@ export default function VenueHomePage({
 
   if (!venue.data) {
     return (
-      <DashboardShell title="Venue">
+      <DashboardShell title="Venue" isSubPage>
         <ErrorState
           title="Venue could not be loaded"
           onRetry={() => {
@@ -295,34 +264,45 @@ export default function VenueHomePage({
     data.courts.find((court) => court.id === deleteCourtId)?.name ?? "Court";
 
   return (
-    <DashboardShell
-      title={venueName}
-      description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
-      action={
-        data.archivedAt ? (
-          <Button
-            type="button"
-            className="min-h-11"
-            onClick={() => unarchive.mutate({ id })}
-            disabled={unarchive.isPending}
-          >
-            {unarchive.isPending ? "Unarchiving…" : "Unarchive"}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11"
-            onClick={() => setArchiveOpen(true)}
-          >
-            Soft-archive
-          </Button>
-        )
-      }
-    >
+    <DashboardShell title="Venue" hidePageHeader isSubPage>
       <div className="space-y-6">
+        <EntityHomeHeader
+          leading={
+            <EntityMonogram
+              name={venueName}
+              image={data.logoImageUrl}
+              size="lg"
+            />
+          }
+          title={venueName}
+          meta={`${data.city}, ${data.country}`}
+          primaryAction={
+            data.archivedAt ? (
+              <Button
+                type="button"
+                onClick={() => unarchive.mutate({ id })}
+                pending={unarchive.isPending}
+                pendingLabel="Unarchiving…"
+              >
+                Unarchive
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setArchiveOpen(true)}
+              >
+                Soft-archive
+              </Button>
+            )
+          }
+        />
+
         {data.archivedAt ? (
-          <SoftArchiveBanner heading="This Venue is Soft-archived">
+          <SoftArchiveBanner
+            headingLevel={2}
+            heading="This Venue is Soft-archived"
+          >
             It is hidden from the Community request catalog. You can still edit
             fields, Courts, and logo. Unarchive to restore it to the live
             catalog. Live Community links stay.
@@ -342,19 +322,25 @@ export default function VenueHomePage({
               {data.linkedCommunities.map((community) => (
                 <ListRow
                   key={community.id}
+                  asChild
                   title={community.name}
                   trailing={
                     community.archivedAt ? (
                       <Badge variant="outline">Soft-archived</Badge>
                     ) : undefined
                   }
-                />
+                >
+                  <Link href={`/dashboard/communities/${community.id}`} />
+                </ListRow>
               ))}
             </RowList>
           )}
         </Section>
 
-        <Section title="Details">
+        <Section
+          title="Details"
+          description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
+        >
           <form onSubmit={onSubmit} className="space-y-6">
             <FormErrorSummary
               ref={detailsSummaryRef}
@@ -452,7 +438,7 @@ export default function VenueHomePage({
                   }
                 />
                 <FieldDescription id="venue-latitude-help">
-                  Optional. Range −90 to 90. Blank persists as null.
+                  Optional. Between −90 and 90.
                 </FieldDescription>
                 <FieldError id="venue-latitude-error">
                   {fieldErrorMessage(updateVenue.error, "latitude")}
@@ -480,7 +466,7 @@ export default function VenueHomePage({
                   }
                 />
                 <FieldDescription id="venue-longitude-help">
-                  Optional. Range −180 to 180. Blank persists as null.
+                  Optional. Between −180 and 180.
                 </FieldDescription>
                 <FieldError id="venue-longitude-error">
                   {fieldErrorMessage(updateVenue.error, "longitude")}
@@ -495,48 +481,29 @@ export default function VenueHomePage({
               >
                 {updateVenue.isPending ? "Saving…" : "Save"}
               </Button>
-              <Button variant="outline" className="min-h-11" asChild>
-                <Link href="/dashboard/venues">Back to Venues</Link>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/venues">Cancel</Link>
               </Button>
             </div>
           </form>
         </Section>
 
-        <Section
-          title="Logo"
-          description="Optional. JPEG, PNG, or WebP, at most 2 MB."
-        >
-          {data.logoImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.logoImageUrl}
-              alt={`${data.name} logo`}
-              className="size-24 rounded-lg object-cover"
-            />
-          ) : (
-            <p className="text-body text-muted-foreground">No logo yet.</p>
-          )}
-          <Field>
-            <FieldLabel htmlFor="venue-logo">Upload logo</FieldLabel>
-            <Input
-              id="venue-logo"
-              className="min-h-11"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-invalid={logoError ? true : undefined}
-              aria-describedby={logoError ? "venue-logo-error" : undefined}
-              onChange={(event) => {
-                void onLogoFileChange(event);
-              }}
-              disabled={uploadLogo.isPending || clearLogo.isPending}
-            />
-            <FieldError id="venue-logo-error">{logoError}</FieldError>
-          </Field>
+        <Section title="Logo">
+          <EntityImageField
+            id="venue-logo"
+            label="Upload logo"
+            noun="Logo"
+            currentImageUrl={data.logoImageUrl}
+            error={logoError}
+            disabled={clearLogo.isPending}
+            pending={uploadLogo.isPending}
+            onFileChange={onLogoPicked}
+            onError={setLogoError}
+          />
           {data.logoImageUrl ? (
             <Button
               type="button"
               variant="outline"
-              className="min-h-11"
               disabled={clearLogo.isPending || uploadLogo.isPending}
               onClick={() => setClearLogoOpen(true)}
             >
@@ -547,7 +514,7 @@ export default function VenueHomePage({
 
         <Section
           title="Courts"
-          description="A Venue may have zero Courts. Names are unique on this Venue after trim and case-fold."
+          description="Each Court on this Venue needs its own name."
         >
           <form onSubmit={onAddCourt} className="space-y-3">
             <FormErrorSummary
@@ -589,74 +556,76 @@ export default function VenueHomePage({
             </p>
           ) : (
             <RowList>
-              {data.courts.map((court) => (
-                <li
-                  key={court.id}
-                  className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center"
-                >
-                  <Field className="flex-1">
-                    <FieldLabel htmlFor={`court-name-${court.id}`}>
-                      Name
-                    </FieldLabel>
-                    <Input
-                      id={`court-name-${court.id}`}
-                      value={courtNames[court.id] ?? court.name}
-                      onChange={(event) =>
-                        setCourtNames((current) => ({
-                          ...current,
-                          [court.id]: event.target.value,
-                        }))
-                      }
-                      maxLength={255}
-                      required
-                      aria-invalid={
-                        renameCourt.error &&
-                        renameCourt.variables?.id === court.id &&
-                        fieldErrorMessage(renameCourt.error, "name")
-                          ? true
-                          : undefined
-                      }
-                      aria-describedby={
-                        renameCourt.error &&
-                        renameCourt.variables?.id === court.id
-                          ? `court-name-${court.id}-error`
-                          : undefined
-                      }
-                    />
-                    <FieldError id={`court-name-${court.id}-error`}>
-                      {renameCourt.error &&
-                      renameCourt.variables?.id === court.id
-                        ? fieldErrorMessage(renameCourt.error, "name")
-                        : undefined}
-                    </FieldError>
-                  </Field>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11"
-                      disabled={renameCourt.isPending}
-                      onClick={() =>
-                        renameCourt.mutate({
-                          id: court.id,
-                          name: courtNames[court.id] ?? court.name,
-                        })
-                      }
-                    >
-                      Rename
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11"
-                      disabled={deleteCourt.isPending}
-                      onClick={() => setDeleteCourtId(court.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </li>
-              ))}
+              {data.courts.map((court) => {
+                const draft = courtNames[court.id] ?? court.name;
+                const renaming =
+                  renameCourt.isPending &&
+                  renameCourt.variables?.id === court.id;
+                const renameError =
+                  renameCourt.error && renameCourt.variables?.id === court.id
+                    ? fieldErrorMessage(renameCourt.error, "name")
+                    : undefined;
+                return (
+                  <li
+                    key={court.id}
+                    className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-end"
+                  >
+                    <Field className="min-w-0 flex-1">
+                      <FieldLabel htmlFor={`court-name-${court.id}`}>
+                        Court name
+                      </FieldLabel>
+                      <Input
+                        id={`court-name-${court.id}`}
+                        value={draft}
+                        onChange={(event) =>
+                          setCourtNames((current) => ({
+                            ...current,
+                            [court.id]: event.target.value,
+                          }))
+                        }
+                        maxLength={255}
+                        required
+                        aria-invalid={renameError ? true : undefined}
+                        aria-describedby={
+                          renameError
+                            ? `court-name-${court.id}-error`
+                            : undefined
+                        }
+                      />
+                      <FieldError id={`court-name-${court.id}-error`}>
+                        {renameError}
+                      </FieldError>
+                    </Field>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        aria-label={`Rename ${court.name}`}
+                        disabled={
+                          !courtRenameIsDirty(draft, court.name) ||
+                          renameCourt.isPending
+                        }
+                        pending={renaming}
+                        pendingLabel="Renaming…"
+                        onClick={() =>
+                          renameCourt.mutate({ id: court.id, name: draft })
+                        }
+                      >
+                        Rename
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        aria-label={`Delete ${court.name}`}
+                        disabled={deleteCourt.isPending}
+                        onClick={() => setDeleteCourtId(court.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </RowList>
           )}
         </Section>
@@ -670,7 +639,7 @@ export default function VenueHomePage({
           }
         }}
         title={`Delete ${deleteCourtName}?`}
-        description="This cannot be undone. Cancelling does nothing."
+        description="This cannot be undone."
         confirmLabel="Delete Court"
         pending={deleteCourt.isPending}
         onConfirm={async () => {
@@ -685,7 +654,7 @@ export default function VenueHomePage({
         open={clearLogoOpen}
         onOpenChange={setClearLogoOpen}
         title={`Clear logo for ${venueName}?`}
-        description="The current logo will be removed. Cancelling does nothing."
+        description="The current logo will be removed."
         confirmLabel="Clear logo"
         pending={clearLogo.isPending}
         onConfirm={async () => {
@@ -697,7 +666,7 @@ export default function VenueHomePage({
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
         title={`Soft-archive ${venueName}?`}
-        description="It is hidden from the Community request catalog. Live Community links stay. Cancelling does nothing."
+        description="It is hidden from the Community request catalog. Live Community links stay."
         confirmLabel="Soft-archive Venue"
         pending={softArchive.isPending}
         onConfirm={async () => {

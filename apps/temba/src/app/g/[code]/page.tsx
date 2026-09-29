@@ -3,6 +3,7 @@ import { type Metadata } from "next";
 
 import { AcceptGameInviteLink } from "~/components/invites/accept-game-invite-link";
 import { InviteShell } from "~/components/invites/invite-shell";
+import { GENERIC_TEMBA_OPEN_GRAPH } from "~/lib/game-invite-open-graph";
 import { gameInviteShortPath } from "~/lib/invite-paths";
 import { db } from "~/server/db";
 import { findGameInviteLinkByShortCode } from "~/server/invites/doors";
@@ -16,7 +17,10 @@ export async function generateMetadata({
   const { code } = await params;
   const fields = await loadGameInviteOpenGraph(db, code);
   return {
-    title: fields.title,
+    title:
+      fields === GENERIC_TEMBA_OPEN_GRAPH
+        ? { absolute: fields.title }
+        : fields.title,
     description: fields.description,
     openGraph: {
       title: fields.title,

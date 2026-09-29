@@ -95,7 +95,8 @@ export function FriendlyGameCtaBar({
         <Button
           type="button"
           className="w-full"
-          disabled={joinPending}
+          pending={joinPending}
+          pendingLabel="Joining…"
           onClick={onJoin}
         >
           Join

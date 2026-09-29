@@ -2,8 +2,9 @@
 
 import { Fragment } from "react";
 
-import { UserAvatar } from "~/components/common/user-avatar";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { ResultTag } from "~/components/temba/result-mark";
+import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { vacantJoinSeats } from "~/lib/friendly-game-cta";
 import {
@@ -18,6 +19,9 @@ type GameDetailsSide = RouterOutputs["games"]["byId"]["sides"][number];
 type GameDetailsSeat = NonNullable<GameDetailsSide["left"]>;
 type SeatPosition = "left" | "right";
 
+const VS_DIVIDER =
+  "text-muted-foreground before:bg-rule after:bg-rule flex shrink-0 items-center gap-3 self-stretch text-xs font-semibold before:h-px before:flex-1 after:h-px after:flex-1 sm:self-center sm:px-1 sm:before:hidden sm:after:hidden";
+
 // Renders the shipped display remap (D / D+ / C / … / A, PR #96), not the
 // raw stored band ("C1"), so this subline reads consistently with every
 // other Level surface (`home-level-block.tsx`, `profile-level-card.tsx`) —
@@ -28,41 +32,6 @@ function seatSubline(position: SeatPosition, levelBand: LevelBand | null) {
     return positionLabel;
   }
   return `${positionLabel} — level ${displayLabelFromStoredBand(levelBand)}`;
-}
-
-function YouTag() {
-  return (
-    <span className="border-ink text-ink shrink-0 rounded-full border px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.04em]">
-      You
-    </span>
-  );
-}
-
-function WonTag() {
-  return (
-    <span className="bg-ink text-paper shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.04em]">
-      Won
-    </span>
-  );
-}
-
-/**
- * Open-seat hatch, adapted from `game-summary-card.tsx`'s `OpenFlag`/`SeatChip`
- * hatch and `home-seat-row.tsx`'s `HomeSeat` (game-details redesign, TEM-180)
- * — 42px, `+` glyph `aria-hidden`, "Open" conveyed only via `sr-only` text
- * (established convention: hatch is always decoration, meaning lives in
- * adjacent `sr-only` text). Replaces `game-seat-grid.tsx`'s dashed-border
- * `VacantAvatar` on this page.
- */
-function LineupOpenChip() {
-  return (
-    <span
-      aria-hidden="true"
-      className="hatch text-dim flex size-[42px] shrink-0 items-center justify-center rounded-full text-base font-semibold"
-    >
-      +
-    </span>
-  );
 }
 
 function LineupSeatRow({
@@ -106,12 +75,12 @@ function LineupSeatRow({
               className="focus-visible:ring-ring/50 flex size-[42px] shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={onMove}
             >
-              <LineupOpenChip />
+              <OpenSeat size="lg" />
             </button>
           ) : (
             <>
-              <LineupOpenChip />
-              <span className="sr-only">Open</span>
+              <OpenSeat size="lg" />
+              <span className="sr-only">{`Open ${position} seat`}</span>
             </>
           )}
         </div>
@@ -121,6 +90,7 @@ function LineupSeatRow({
             variant="outline"
             size="sm"
             className="shrink-0"
+            aria-label={`Invite to ${sideLabel}, ${position}`}
             onClick={onInvite}
           >
             Invite
@@ -131,22 +101,11 @@ function LineupSeatRow({
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <UserAvatar
-        name={occupant.name}
-        image={occupant.image}
-        className="size-[42px] shrink-0"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-medium">{occupant.name}</p>
-          {isViewer ? <YouTag /> : null}
-        </div>
-        <p className="text-muted-foreground text-meta truncate">
-          {seatSubline(position, occupant.levelBand)}
-        </p>
-      </div>
-    </div>
+    <SeatRow
+      occupant={occupant}
+      isViewer={isViewer}
+      subline={seatSubline(position, occupant.levelBand)}
+    />
   );
 }
 
@@ -180,7 +139,9 @@ function LineupTeamColumn({
         <h3 className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
           {sideLabel}
         </h3>
-        {showWonTag && isWinner ? <WonTag /> : null}
+        {showWonTag && isWinner ? (
+          <ResultTag variant="won">Won</ResultTag>
+        ) : null}
       </div>
       <div className="space-y-3">
         <LineupSeatRow
@@ -262,16 +223,13 @@ export function GameLineupSection({
       </h2>
       <div
         className={cn(
-          "border-rule flex items-start gap-3 border-t px-[22px] pb-[22px] pt-[18px]",
+          "border-rule flex flex-col gap-4 border-t px-[22px] pb-[22px] pt-[18px] sm:flex-row sm:items-start sm:gap-3",
         )}
       >
         {sides.map((side, index) => (
           <Fragment key={side.sideIndex}>
             {index > 0 ? (
-              <span
-                aria-hidden="true"
-                className="text-dim shrink-0 self-center px-1 text-xs font-semibold"
-              >
+              <span aria-hidden="true" className={VS_DIVIDER}>
                 vs
               </span>
             ) : null}

@@ -11,7 +11,10 @@ import { TRPCReactProvider } from "~/trpc/react";
 import { display, mono, sans } from "./fonts";
 
 export const metadata: Metadata = {
-  title: "Temba - the future of competitive sports",
+  title: {
+    template: "%s · Temba",
+    default: "Temba",
+  },
   description: "Temba - the future of competitive sport",
   icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };

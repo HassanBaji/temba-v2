@@ -46,7 +46,7 @@ function HomeSeat({
   return (
     <div
       className={cn(
-        "relative flex h-[60px] min-w-0 flex-1 flex-col items-center justify-center rounded-[5px]",
+        "rounded-xs relative flex h-[60px] min-w-0 flex-1 flex-col items-center justify-center",
         seat.filled ? "bg-raised" : null,
       )}
     >
@@ -60,7 +60,7 @@ function HomeSeat({
           <span className="sr-only">{seat.name ?? "Filled seat"}</span>
           <span
             aria-hidden="true"
-            className="text-paper truncate px-1 text-xs font-medium"
+            className="text-paper text-eyebrow truncate px-1 font-medium"
           >
             {caption}
           </span>
@@ -69,7 +69,7 @@ function HomeSeat({
         <>
           <span
             aria-hidden="true"
-            className="hatch hatch-on-ink absolute inset-0 rounded-[5px]"
+            className="hatch hatch-on-ink rounded-xs absolute inset-0"
           />
           <span aria-hidden="true" className="text-paper text-lead">
             +

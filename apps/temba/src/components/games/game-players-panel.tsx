@@ -13,6 +13,7 @@ import {
   gameTeamDisplayName,
 } from "~/components/games/game-side-label";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
+import { REGISTER_TEAM_ACTION } from "~/lib/game-copy";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
@@ -153,9 +154,9 @@ export function GamePlayersPanel({
             />
             {game.unseatedPlayers.length > 0 ? (
               <div className="space-y-2">
-                <h3 className="text-body text-muted-foreground font-semibold">
+                <h2 className="text-body text-muted-foreground font-semibold">
                   Not seated yet
-                </h3>
+                </h2>
                 <RowList>
                   {game.unseatedPlayers.map((player) => {
                     const isViewer = player.id === game.viewerUserId;
@@ -231,9 +232,9 @@ export function GamePlayersPanel({
             />
             {game.unseatedPlayers.length > 0 ? (
               <div className="space-y-2">
-                <h3 className="text-body text-muted-foreground font-semibold">
+                <h2 className="text-body text-muted-foreground font-semibold">
                   Not seated yet
-                </h3>
+                </h2>
                 <RowList>
                   {game.unseatedPlayers.map((player) => (
                     <ListRow
@@ -339,7 +340,12 @@ export function GamePlayersPanel({
 
       <Section title="Waitlist">
         {game.waitlist.length === 0 ? (
-          <EmptyState icon={Users} title="Waitlist is empty" className="py-8" />
+          <EmptyState
+            headingLevel={3}
+            icon={Users}
+            title="Waitlist is empty"
+            className="py-8"
+          />
         ) : (
           <RowList aria-label="Waitlist">
             {game.waitlist.map((entry, index) => (
@@ -370,7 +376,7 @@ export function GamePlayersPanel({
       {game.canWaitlist && individualSeats ? (
         <Card variant="outlined" className="space-y-3">
           <h3 className="text-title font-medium">Join the waitlist</h3>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-body">
             The Game is full. You promote into a vacated Position.
           </p>
           <Button
@@ -417,7 +423,7 @@ export function GamePlayersPanel({
           >
             <h3 className="text-title font-medium">Register a Team</h3>
             {game.eligibleTeams.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 You need a complete Team whose both partners are allowed on this
                 Game.
               </p>
@@ -439,7 +445,7 @@ export function GamePlayersPanel({
                   </Select>
                 </Field>
                 <Button type="submit" disabled={registerTeamPending}>
-                  {registerTeamPending ? "Registering…" : "Register Team"}
+                  {registerTeamPending ? "Registering…" : REGISTER_TEAM_ACTION}
                 </Button>
               </>
             )}
@@ -534,7 +540,7 @@ function PartnerRegisterCard({
             ? "Join waitlist with a partner"
             : "Register with a partner"}
         </h3>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-body">
           {game.canWaitlist
             ? "The Game is full. You both join the waitlist and promote separately."
             : game.sides.every(

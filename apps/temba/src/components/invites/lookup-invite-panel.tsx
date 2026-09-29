@@ -2,7 +2,8 @@
 
 import * as React from "react";
 
-import { RowList } from "~/components/common/row-list";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
@@ -16,10 +17,9 @@ import type { LookupListItem } from "~/server/invites/doors";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 
 export function LookupInvitePanel({
-  description,
   lookupInvites,
   sendPending,
-  revokePending,
+  revokePendingId,
   sendError,
   searchQuery,
   onSearchQueryChange,
@@ -32,10 +32,9 @@ export function LookupInvitePanel({
   onSendUserIds,
   onRevokeLookup,
 }: {
-  description?: React.ReactNode;
   lookupInvites?: LookupListItem[];
   sendPending: boolean;
-  revokePending?: boolean;
+  revokePendingId?: string;
   sendError?: { message: string; data?: { zodError?: unknown } | null } | null;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
@@ -57,6 +56,11 @@ export function LookupInvitePanel({
   );
   const formError = globalFormErrorMessage(sendError);
   const [selected, setSelected] = React.useState<LookupUserSearchRow[]>([]);
+  const [revokeTarget, setRevokeTarget] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [confirmRevokeOpen, setConfirmRevokeOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!sendError) {
@@ -80,7 +84,7 @@ export function LookupInvitePanel({
     <section className="space-y-4">
       <FormErrorSummary ref={summaryRef} message={formError} />
       {refused && refused.length > 0 ? (
-        <ul className="text-destructive space-y-1 text-sm">
+        <ul className="text-destructive text-meta space-y-1">
           {refused.map((item) => (
             <li key={`${item.name}-${item.message}`}>
               {item.name}: {item.message}
@@ -128,36 +132,49 @@ export function LookupInvitePanel({
         </form>
       ) : null}
       {!compact && lookupInvites?.length === 0 ? (
-        <p className="text-body text-muted-foreground">
-          No unused Lookup invites.
-        </p>
+        <p className="text-body text-muted-foreground">No pending invites.</p>
       ) : null}
       {lookupInvites && lookupInvites.length > 0 && !compact ? (
         <RowList>
-          {lookupInvites.map((invite) => (
-            <li
-              key={invite.id}
-              className="flex min-h-16 flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="text-lead font-semibold">
-                  {invite.user.name ?? "User"}
-                </p>
-                <p className="text-meta text-muted-foreground">
-                  {invite.user.email}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => onRevokeLookup?.(invite.id)}
-                disabled={revokePending}
-              >
-                Revoke
-              </Button>
-            </li>
-          ))}
+          {lookupInvites.map((invite) => {
+            const name = invite.user.name ?? "User";
+            return (
+              <ListRow
+                key={invite.id}
+                stackTrailing
+                title={name}
+                meta={invite.user.email ?? undefined}
+                trailing={
+                  <Button
+                    variant="outline"
+                    aria-label={`Revoke invite for ${name}`}
+                    onClick={() => {
+                      setRevokeTarget({ id: invite.id, name });
+                      setConfirmRevokeOpen(true);
+                    }}
+                    pending={revokePendingId === invite.id}
+                    pendingLabel="Revoking…"
+                  >
+                    Revoke
+                  </Button>
+                }
+              />
+            );
+          })}
         </RowList>
       ) : null}
+      <ConfirmDialog
+        open={confirmRevokeOpen}
+        onOpenChange={setConfirmRevokeOpen}
+        title={`Revoke the invite for ${revokeTarget?.name ?? "User"}?`}
+        description="They can no longer accept it."
+        confirmLabel="Revoke"
+        onConfirm={() => {
+          if (revokeTarget) {
+            onRevokeLookup?.(revokeTarget.id);
+          }
+        }}
+      />
     </section>
   );
 }

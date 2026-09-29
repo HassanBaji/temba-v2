@@ -1,13 +1,20 @@
 "use client";
 
 import { Plus, Trophy } from "lucide-react";
-import Link from "next/link";
 import * as React from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
+import {
+  SUMMARY_CARD_ACTION_CLASS,
+  SUMMARY_CARD_INSET,
+  SummaryCardBody,
+  SummaryCardFooter,
+  SummaryCardShell,
+} from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
-import { Button } from "~/components/ui/button";
+import { HatchFlag } from "~/components/temba/seat";
+import { Button, buttonVariants } from "~/components/ui/button";
 import { formatGameCardDay, formatRelativeDay } from "~/lib/format-game-start";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
 import { formatLevelRangeLabel } from "~/lib/level-range";
@@ -53,59 +60,12 @@ type TournamentCardTeam = NonNullable<
 >["teams"][number];
 type TeamOccupant = TournamentCardTeam["left"];
 
-const SURFACE_CHROME = {
-  list: { radius: "rounded-2xl", inset: "px-[18px]" },
-  home: { radius: "rounded-[14px]", inset: "px-5" },
-} as const;
-
-type CardSurface = keyof typeof SURFACE_CHROME;
-
-function CardFrame({
-  href,
-  linkLabel,
-  surface,
-  children,
-}: {
-  href: string;
-  linkLabel: string;
-  surface: CardSurface;
-  children: React.ReactNode;
-}) {
-  const { radius } = SURFACE_CHROME[surface];
-  return (
-    <div
-      className={cn(
-        "border-ink bg-paper relative overflow-hidden border",
-        radius,
-      )}
-    >
-      <Link
-        href={href}
-        aria-label={linkLabel}
-        className={cn(
-          "focus-visible:ring-ring/50 absolute inset-0 z-0 outline-none focus-visible:ring-[3px]",
-          radius,
-        )}
-      />
-      {children}
-    </div>
-  );
-}
-
-function CardBand({
-  label,
-  meta,
-  surface = "list",
-}: {
-  label: string;
-  meta: string | null;
-  surface?: CardSurface;
-}) {
+function CardBand({ label, meta }: { label: string; meta: string | null }) {
   return (
     <div
       className={cn(
         "bg-ink text-paper pointer-events-none relative z-10 flex items-center justify-between gap-2.5 py-3",
-        SURFACE_CHROME[surface].inset,
+        SUMMARY_CARD_INSET,
       )}
     >
       <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] uppercase tracking-[0.04em]">
@@ -124,17 +84,9 @@ function CardBand({
 function OpenFlag({ openTeams }: { openTeams: number }) {
   const label = tournamentOpenFlagLabel(openTeams);
   if (openTeams <= 0) {
-    return <span className="text-dim shrink-0">{label}</span>;
+    return <span className="text-muted-foreground shrink-0">{label}</span>;
   }
-  return (
-    <span className="text-ink inline-flex shrink-0 items-center gap-1.5 font-semibold">
-      <i
-        aria-hidden="true"
-        className="hatch inline-block size-[13px] shrink-0 rounded-[3px]"
-      />
-      {label}
-    </span>
-  );
+  return <HatchFlag className="shrink-0 font-semibold">{label}</HatchFlag>;
 }
 
 function PairSquare({
@@ -149,7 +101,7 @@ function PairSquare({
   large?: boolean;
 }) {
   const shape = cn(
-    large ? "size-9 rounded-[10px]" : "size-8 rounded-[9px]",
+    large ? "size-9 rounded-md" : "size-8 rounded-sm",
     "shrink-0",
     overlap ? "-ml-2" : null,
     overlap && onInk && occupant ? "ring-paper ring-2" : null,
@@ -165,7 +117,7 @@ function PairSquare({
         shape,
         "*:data-[slot=avatar-fallback]:rounded-none",
         large
-          ? "*:data-[slot=avatar-fallback]:text-[12px]"
+          ? "*:data-[slot=avatar-fallback]:text-eyebrow"
           : "*:data-[slot=avatar-fallback]:text-[11px]",
         onInk
           ? "*:data-[slot=avatar-fallback]:bg-ink *:data-[slot=avatar-fallback]:text-paper"
@@ -193,7 +145,7 @@ function PlaceholderSquare({ overlap }: { overlap: boolean }) {
   return (
     <span
       className={cn(
-        "border-dim/60 bg-paper text-dim flex size-8 shrink-0 items-center justify-center rounded-[9px] border border-dashed",
+        "border-muted-foreground/50 bg-paper text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-sm border border-dashed",
         overlap ? "-ml-2" : null,
       )}
     >
@@ -226,7 +178,7 @@ function TeamPairs({
   });
   if (shown.length === 0 && placeholders === 0) {
     return (
-      <p className="text-muted-foreground text-[13px]">{NO_TEAMS_YET_COPY}</p>
+      <p className="text-muted-foreground text-meta">{NO_TEAMS_YET_COPY}</p>
     );
   }
   return (
@@ -238,7 +190,7 @@ function TeamPairs({
         <PlaceholderPair key={index} />
       ))}
       {remaining > 0 ? (
-        <span className="text-muted-foreground text-[13px]">+{remaining}</span>
+        <span className="text-muted-foreground text-meta">+{remaining}</span>
       ) : null}
     </div>
   );
@@ -251,18 +203,15 @@ function PriceLine({ cents }: { cents: number | null }) {
   }
   return (
     <span className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate">
-      <b className="text-[17px] font-bold tracking-[-0.03em]">{amount}</b>
+      <b className="text-lead font-bold tracking-[-0.03em]">{amount}</b>
       {amount === "Free" ? null : (
-        <span className="text-muted-foreground truncate text-[13px]">
+        <span className="text-muted-foreground text-meta truncate">
           per player
         </span>
       )}
     </span>
   );
 }
-
-const ACTION_CLASS =
-  "inline-flex min-h-11 flex-none items-center justify-center rounded-[11px] px-[22px] text-sm font-semibold";
 
 export function TournamentSummaryCard({
   game,
@@ -300,9 +249,9 @@ export function TournamentSummaryCard({
 
   return (
     <Element data-slot="tournament-summary-card">
-      <CardFrame
+      <SummaryCardShell
+        emphasis
         href={href}
-        surface="list"
         linkLabel={[title, TOURNAMENT_CARD_BAND_LABEL, dateLine]
           .filter(Boolean)
           .join(", ")}
@@ -312,8 +261,8 @@ export function TournamentSummaryCard({
           meta={tournamentCardBandMeta(tournament?.roundCount)}
         />
 
-        <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
-          <div className="flex items-center justify-between gap-2.5 text-sm">
+        <SummaryCardBody>
+          <div className="text-body flex items-center justify-between gap-2.5">
             <span className="text-muted-foreground min-w-0 truncate">
               {game.windowStart
                 ? `Starts ${formatGameCardDay(game.windowStart)}`
@@ -328,19 +277,19 @@ export function TournamentSummaryCard({
             ) : null}
           </div>
 
-          <h3 className="font-expanded mt-4 line-clamp-2 text-[32px] leading-none tracking-[-0.035em]">
+          <h3 className="font-expanded text-h1-lg mt-4 line-clamp-2 leading-none tracking-[-0.035em]">
             {title}
           </h3>
-          {dateLine ? <p className="mt-2.5 text-[15px]">{dateLine}</p> : null}
+          {dateLine ? <p className="text-body mt-2.5">{dateLine}</p> : null}
           {subLine ? (
-            <p className="text-muted-foreground mt-0.5 truncate text-[13px]">
+            <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {subLine}
             </p>
           ) : null}
 
           <div className="border-rule my-4 border-t" />
 
-          <p className="text-muted-foreground pb-2.5 text-[13px]">
+          <p className="text-muted-foreground text-meta pb-2.5">
             {tournamentTeamsLine(game)}
           </p>
           <TeamPairs
@@ -348,15 +297,15 @@ export function TournamentSummaryCard({
             teamsAllowed={game.teamsAllowed}
             registrationOpen={showsTournamentOpenFlag(game)}
           />
-        </div>
+        </SummaryCardBody>
 
-        <div className="border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] px-[18px] py-3.5">
+        <SummaryCardFooter>
           <PriceLine cents={game.pricePerPlayerCents} />
           {interactive ? (
             <Button
               type="button"
               variant={"default"}
-              className={cn(ACTION_CLASS, "pointer-events-auto h-auto")}
+              className={cn(SUMMARY_CARD_ACTION_CLASS, "pointer-events-auto")}
               disabled={actionPending}
               onClick={(event) => {
                 event.preventDefault();
@@ -373,17 +322,17 @@ export function TournamentSummaryCard({
           ) : (
             <span
               className={cn(
-                ACTION_CLASS,
-                action === "invite_partner"
-                  ? "bg-ink text-paper"
-                  : "border-rule bg-paper text-ink border",
+                buttonVariants({
+                  variant: action === "invite_partner" ? "default" : "outline",
+                }),
+                SUMMARY_CARD_ACTION_CLASS,
               )}
             >
               {actionLabel}
             </span>
           )}
-        </div>
-      </CardFrame>
+        </SummaryCardFooter>
+      </SummaryCardShell>
 
       {action === "join" && tournament ? (
         <FriendlyGameJoinSheet
@@ -446,7 +395,7 @@ function MatchupColumn({
       {name ? (
         <span
           className={cn(
-            "max-w-full truncate text-[13px]",
+            "text-meta max-w-full truncate",
             isViewerSide ? "font-semibold" : "text-muted-foreground text-right",
           )}
         >
@@ -475,7 +424,7 @@ function Matchup({ sides }: { sides: TournamentCardGame["sides"] }) {
   return (
     <div className="flex items-center gap-2.5">
       <MatchupColumn side={viewer} isViewerSide={viewer != null} />
-      <span className="text-dim flex-none text-xs">vs</span>
+      <span className="text-muted-foreground text-eyebrow flex-none">vs</span>
       <MatchupColumn side={opponent} isViewerSide={false} />
     </div>
   );
@@ -502,9 +451,9 @@ export function TournamentMatchCard({
 
   return (
     <li data-slot="tournament-match-card">
-      <CardFrame
+      <SummaryCardShell
+        emphasis
         href={href}
-        surface="list"
         linkLabel={[
           title,
           roundLine,
@@ -519,18 +468,18 @@ export function TournamentMatchCard({
           meta={poolRoundLabel(game.roundNumber, game.roundCount)}
         />
 
-        <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
+        <SummaryCardBody>
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-px">
-              <p className="truncate text-sm font-semibold">{title}</p>
+              <h3 className="text-body truncate font-semibold">{title}</h3>
               {roundLine ? (
-                <p className="text-muted-foreground truncate text-xs">
+                <p className="text-muted-foreground text-eyebrow truncate">
                   {roundLine}
                 </p>
               ) : null}
             </div>
             {status ? (
-              <span className="text-dim shrink-0 text-[13px] tabular-nums">
+              <span className="text-muted-foreground text-meta shrink-0 tabular-nums">
                 {status}
               </span>
             ) : null}
@@ -541,14 +490,14 @@ export function TournamentMatchCard({
               {kickoff.time}
             </span>
             {kickoff.meridiem ? (
-              <span className="text-dim text-[19px] font-medium leading-none">
+              <span className="text-muted-foreground text-title font-medium leading-none">
                 {kickoff.meridiem}
               </span>
             ) : null}
-            <span className="text-[15px] font-medium">{day}</span>
+            <span className="text-body font-medium">{day}</span>
           </p>
           {venueLine ? (
-            <p className="text-muted-foreground mt-2 truncate text-sm">
+            <p className="text-muted-foreground text-meta mt-2 truncate">
               {venueLine}
             </p>
           ) : null}
@@ -560,24 +509,25 @@ export function TournamentMatchCard({
           {standingLine ? (
             <>
               <div className="border-rule my-4 border-t" />
-              <p className="text-muted-foreground text-[13px]">
-                {standingLine}
-              </p>
+              <p className="text-muted-foreground text-meta">{standingLine}</p>
             </>
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div className="border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] px-[18px] py-3.5">
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+        <SummaryCardFooter>
+          <span className="text-muted-foreground text-meta min-w-0 flex-1 truncate">
             {lastResultLine}
           </span>
           <span
-            className={cn(ACTION_CLASS, "border-rule bg-paper text-ink border")}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              SUMMARY_CARD_ACTION_CLASS,
+            )}
           >
             {tournamentMatchActionLabel("view")}
           </span>
-        </div>
-      </CardFrame>
+        </SummaryCardFooter>
+      </SummaryCardShell>
     </li>
   );
 }
@@ -612,20 +562,19 @@ export function HomeTournamentMatchCard({
 
   return (
     <article data-slot="tournament-match-card">
-      <CardFrame
+      <SummaryCardShell
+        emphasis
         href={href}
-        surface="home"
         linkLabel={[title, headline, kickoffLine].filter(Boolean).join(", ")}
       >
         <CardBand
           label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
           meta={poolRoundLabel(game.roundNumber, game.roundCount)}
-          surface="home"
         />
 
-        <div className="pointer-events-none relative z-10 min-w-0 px-5 pb-5 pt-[18px]">
-          <div className="text-muted-foreground flex items-center justify-between gap-3 text-[13px]">
-            <span className="min-w-0 truncate">{title}</span>
+        <SummaryCardBody>
+          <div className="text-muted-foreground text-meta flex items-center justify-between gap-3">
+            <h3 className="min-w-0 truncate">{title}</h3>
             {status ? (
               <span className="shrink-0 tabular-nums">{status}</span>
             ) : null}
@@ -634,9 +583,9 @@ export function HomeTournamentMatchCard({
           <p className="font-expanded mt-2.5 text-[30px] leading-none tracking-[-0.035em]">
             {headline}
           </p>
-          <p className="mt-2 truncate text-sm">{kickoffLine}</p>
+          <p className="text-body mt-2 truncate">{kickoffLine}</p>
           {game.courtName ? (
-            <p className="text-muted-foreground truncate text-[13px]">
+            <p className="text-muted-foreground text-meta truncate">
               {game.courtName}
             </p>
           ) : null}
@@ -648,7 +597,7 @@ export function HomeTournamentMatchCard({
           {groupLabel ? (
             <>
               <div className="border-rule my-4 border-t" />
-              <div className="flex items-center justify-between gap-2.5 text-[13px]">
+              <div className="text-meta flex items-center justify-between gap-2.5">
                 <span className="text-muted-foreground shrink-0">
                   {groupLabel}
                 </span>
@@ -658,25 +607,26 @@ export function HomeTournamentMatchCard({
               </div>
             </>
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div className="border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] px-5 py-3.5">
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+        <SummaryCardFooter>
+          <span className="text-muted-foreground text-meta min-w-0 flex-1 truncate">
             {roundsLeftLine}
           </span>
           <span
             className={cn(
-              ACTION_CLASS,
+              buttonVariants({
+                variant: action === "add_results" ? "default" : "outline",
+              }),
+              SUMMARY_CARD_ACTION_CLASS,
               "px-[18px]",
-              action === "add_results"
-                ? "bg-ink text-paper"
-                : "border-ink bg-paper text-ink border",
+              action !== "add_results" && "border-ink",
             )}
           >
             {homeTournamentMatchActionLabel(action)}
           </span>
-        </div>
-      </CardFrame>
+        </SummaryCardFooter>
+      </SummaryCardShell>
     </article>
   );
 }

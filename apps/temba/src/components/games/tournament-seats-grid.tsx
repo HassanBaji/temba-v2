@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "~/components/ui/button";
 import {
   INVITE_FROM_A_GROUP_LABEL,
   SEATS_HEADING,
@@ -29,10 +30,10 @@ export function TournamentSeatsGrid({
   const countLine = tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal);
 
   return (
-    <section className="border-rule rounded-[14px] border p-5">
+    <section className="border-rule rounded-card border p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold">{SEATS_HEADING}</h2>
-        <p aria-hidden="true" className="text-muted-foreground text-[13px]">
+        <h2 className="text-body font-semibold">{SEATS_HEADING}</h2>
+        <p aria-hidden="true" className="text-muted-foreground text-meta">
           {countLine}
         </p>
       </div>
@@ -41,7 +42,7 @@ export function TournamentSeatsGrid({
           <span
             key={cell.key}
             className={cn(
-              "h-[22px] rounded-[5px]",
+              "rounded-xs h-[22px]",
               cell.filled ? "bg-ink" : "hatch border-rule box-border border",
             )}
           />
@@ -51,13 +52,14 @@ export function TournamentSeatsGrid({
         {tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal)}
       </p>
       {onInvite ? (
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={onInvite}
-          className="border-ink focus-visible:ring-ring/50 mt-[18px] flex min-h-11 w-full items-center justify-center rounded-[11px] border text-sm font-semibold outline-none focus-visible:ring-[3px]"
+          className="border-ink mt-[18px] w-full font-semibold"
         >
           {INVITE_FROM_A_GROUP_LABEL}
-        </button>
+        </Button>
       ) : null}
     </section>
   );

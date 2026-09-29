@@ -15,12 +15,11 @@ import { AvatarStack } from "~/components/common/avatar-stack";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { ListRow, RowList } from "~/components/common/row-list";
+import { MemberRow } from "~/components/common/member-row";
+import { RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
-import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
+import { InvitesDialog } from "~/components/invites/invites-dialog";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -29,18 +28,30 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
+import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import {
+  NO_LINKABLE_COMMUNITY_COPY,
+  teamLinkCommunityPicker,
+} from "~/lib/team-link-community-picker";
 import { api } from "~/trpc/react";
 
 function isForbiddenError(error: unknown) {
@@ -135,6 +146,12 @@ export default function TeamHomePage({
     enabled: Boolean(team.data?.canRequestLink),
   });
 
+  const linkPicker = teamLinkCommunityPicker({
+    isLoading: communities.isLoading,
+    isError: communities.isError,
+    data: communities.data,
+  });
+
   const requestLink = api.teams.requestLink.useMutation({
     onSuccess: async () => {
       toast.success("Link request sent");
@@ -164,7 +181,7 @@ export default function TeamHomePage({
 
   if (team.isLoading) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" hidePageHeader isSubPage>
         <DetailPageSkeleton />
       </DashboardShell>
     );
@@ -172,7 +189,7 @@ export default function TeamHomePage({
 
   if (isForbiddenError(team.error)) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" isSubPage>
         <EmptyState
           icon={Lock}
           title="You cannot open this Team"
@@ -189,7 +206,7 @@ export default function TeamHomePage({
 
   if (team.error) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" isSubPage>
         <ErrorState
           title="Team could not be loaded"
           message={team.error.message}
@@ -203,7 +220,7 @@ export default function TeamHomePage({
 
   if (!team.data) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" isSubPage>
         <ErrorState
           title="Team could not be loaded"
           onRetry={() => {
@@ -222,28 +239,19 @@ export default function TeamHomePage({
   }));
 
   return (
-    <DashboardShell title={displayName} hidePageHeader>
+    <DashboardShell title="Team" hidePageHeader isSubPage>
       <div className="space-y-6">
-        {data.waitingForPartner && data.canInvite ? (
-          <Button
-            className="min-h-11 w-full sm:w-auto"
-            onClick={() => setInviteOpen(true)}
-          >
-            Invite your partner
-          </Button>
-        ) : null}
-
-        <header className="flex items-start gap-3">
-          <AvatarStack
-            people={people}
-            openSeats={data.waitingForPartner ? 1 : 0}
-            size="lg"
-          />
-          <div className="min-w-0 flex-1 space-y-2">
-            <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
-              {displayName}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
+        <EntityHomeHeader
+          leading={
+            <AvatarStack
+              people={people}
+              openSeats={data.waitingForPartner ? 1 : 0}
+              size="lg"
+            />
+          }
+          title={displayName}
+          badges={
+            <>
               <SportBadge sport={data.sport} />
               {data.isLoose ? (
                 <Badge variant="outline">Not linked to a Community</Badge>
@@ -253,9 +261,11 @@ export default function TeamHomePage({
               {data.waitingForPartner ? (
                 <Badge variant="outline">Incomplete</Badge>
               ) : null}
-            </div>
-            {data.community ? (
-              <p className="text-meta text-muted-foreground">
+            </>
+          }
+          meta={
+            data.community ? (
+              <>
                 Linked to{" "}
                 <Link
                   href={`/dashboard/communities/${data.community.id}`}
@@ -263,10 +273,17 @@ export default function TeamHomePage({
                 >
                   {data.community.name}
                 </Link>
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 flex-nowrap items-center gap-1">
+              </>
+            ) : undefined
+          }
+          primaryAction={
+            data.waitingForPartner && data.canInvite ? (
+              <Button onClick={() => setInviteOpen(true)}>
+                Invite your partner
+              </Button>
+            ) : undefined
+          }
+          menu={
             <ActionMenu triggerRef={menuTriggerRef} label="Team actions">
               <ActionMenuItem asChild>
                 <Link href="/dashboard/teams">All Teams</Link>
@@ -301,8 +318,8 @@ export default function TeamHomePage({
                 </ActionMenuItem>
               ) : null}
             </ActionMenu>
-          </div>
-        </header>
+          }
+        />
 
         {data.waitingForPartner && !data.canInvite ? (
           <p className="text-body text-muted-foreground">
@@ -332,6 +349,7 @@ export default function TeamHomePage({
         <Section title="Members">
           {data.members.length === 0 ? (
             <EmptyState
+              headingLevel={3}
               icon={Users}
               title="No members"
               description="People on this Team will show up here."
@@ -339,17 +357,12 @@ export default function TeamHomePage({
           ) : (
             <RowList>
               {data.members.map((member) => (
-                <ListRow
+                <MemberRow
                   key={member.id}
-                  leading={
-                    <UserAvatar
-                      name={member.name ?? "Member"}
-                      image={member.image}
-                      size="lg"
-                    />
-                  }
-                  title={member.name ?? "Member"}
-                  trailing={
+                  name={member.name ?? "Member"}
+                  image={member.image}
+                  isViewer={member.isViewer}
+                  badge={
                     member.isCreator ? (
                       <Badge variant="outline">Creator</Badge>
                     ) : undefined
@@ -365,7 +378,7 @@ export default function TeamHomePage({
         open={dissolveOpen}
         onOpenChange={setDissolveOpen}
         title={`Dissolve ${displayName}?`}
-        description="This cannot be undone. Cancelling does nothing."
+        description="This cannot be undone."
         confirmLabel="Dissolve Team"
         pending={dissolve.isPending}
         restoreFocusRef={menuTriggerRef}
@@ -378,7 +391,7 @@ export default function TeamHomePage({
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
         title={`Unlink ${displayName}?`}
-        description="This Team will no longer be linked to its Community. Cancelling does nothing."
+        description="This Team will no longer be linked to its Community."
         confirmLabel="Unlink from Community"
         pending={unlink.isPending}
         restoreFocusRef={menuTriggerRef}
@@ -388,7 +401,7 @@ export default function TeamHomePage({
       />
 
       {data.canInvite ? (
-        <ResponsiveDialog
+        <InvitesDialog
           open={inviteOpen}
           onOpenChange={(next) => {
             setInviteOpen(next);
@@ -397,46 +410,37 @@ export default function TeamHomePage({
               setLookupRefused(null);
             }
           }}
-        >
-          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
-            <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>Invite your partner</ResponsiveDialogTitle>
-              <ResponsiveDialogDescription>
-                Search existing Users and send a Lookup invite for the open
-                seat. The invitee accepts on Invites. Lookup invites do not
-                expire.
-              </ResponsiveDialogDescription>
-            </ResponsiveDialogHeader>
-            <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
-              <LookupInvitePanel
-                description="Pick one existing User for the open seat. The invitee accepts on Invites. Lookup invites do not expire."
-                lookupInvites={data.unusedInvite ? [data.unusedInvite] : []}
-                sendPending={inviteInApp.isPending}
-                revokePending={revokeInvite.isPending}
-                sendError={inviteInApp.error}
-                searchQuery={lookupQuery}
-                onSearchQueryChange={setLookupQuery}
-                searchResults={lookupSearch.data}
-                searchPending={lookupSearch.isFetching}
-                refused={lookupRefused}
-                selection="single"
-                onSendUserIds={(userIds) => {
-                  const userId = userIds[0];
-                  if (!userId) {
-                    return;
-                  }
-                  inviteInApp.mutate({ teamId: id, userId });
-                }}
-                onRevokeLookup={(inviteId) => revokeInvite.mutate({ inviteId })}
-              />
-              <InviteLinkPanel
-                inviteUrl={inviteLink.data?.inviteUrl}
-                copyPending={createInviteLink.isPending}
-                onCopy={() => createInviteLink.mutate({ teamId: id })}
-              />
-            </div>
-          </ResponsiveDialogContent>
-        </ResponsiveDialog>
+          restoreFocusRef={menuTriggerRef}
+          description="Invite a partner for the open seat, or copy a link to share."
+          lookup={{
+            note: "Pick one person. Invites don't expire.",
+            lookupInvites: data.unusedInvite ? [data.unusedInvite] : [],
+            sendPending: inviteInApp.isPending,
+            revokePendingId: revokeInvite.isPending
+              ? revokeInvite.variables?.inviteId
+              : undefined,
+            sendError: inviteInApp.error,
+            searchQuery: lookupQuery,
+            onSearchQueryChange: setLookupQuery,
+            searchResults: lookupSearch.data,
+            searchPending: lookupSearch.isFetching,
+            refused: lookupRefused,
+            selection: "single",
+            onSendUserIds: (userIds) => {
+              const userId = userIds[0];
+              if (!userId) {
+                return;
+              }
+              inviteInApp.mutate({ teamId: id, userId });
+            },
+            onRevokeLookup: (inviteId) => revokeInvite.mutate({ inviteId }),
+          }}
+          link={{
+            inviteUrl: inviteLink.data?.inviteUrl,
+            copyPending: createInviteLink.isPending,
+            onCopy: () => createInviteLink.mutate({ teamId: id }),
+          }}
+        />
       ) : null}
 
       {data.canRequestLink ? (
@@ -472,47 +476,95 @@ export default function TeamHomePage({
               <FormErrorSummary
                 message={globalFormErrorMessage(requestLink.error)}
               />
-              <Field>
-                <FieldLabel htmlFor="team-link-community">Community</FieldLabel>
-                <select
-                  id="team-link-community"
-                  name="communityId"
-                  required
-                  className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
-                  defaultValue=""
-                  aria-invalid={
-                    fieldErrorMessage(requestLink.error, "communityId")
-                      ? true
-                      : undefined
+              {linkPicker.status === "error" ? (
+                <ErrorState
+                  headingLevel={3}
+                  className="py-6"
+                  title="Communities could not be loaded"
+                  message={communities.error?.message}
+                  onRetry={() => {
+                    void communities.refetch();
+                  }}
+                />
+              ) : linkPicker.status === "empty" ? (
+                <EmptyState
+                  icon={Users}
+                  headingLevel={3}
+                  className="py-6"
+                  title="No Community to link"
+                  description={NO_LINKABLE_COMMUNITY_COPY}
+                  action={
+                    <Button asChild variant="outline">
+                      <Link href="/dashboard/communities">
+                        Go to Communities
+                      </Link>
+                    </Button>
                   }
-                  aria-describedby={
-                    fieldErrorMessage(requestLink.error, "communityId")
-                      ? "team-link-community-error"
-                      : undefined
-                  }
-                >
-                  <option value="" disabled>
-                    Select a Community
-                  </option>
-                  {communities.data
-                    ?.filter((community) => !community.archivedAt)
-                    .map((community) => (
-                      <option key={community.id} value={community.id}>
-                        {community.name}
-                      </option>
-                    ))}
-                </select>
-                <FieldError id="team-link-community-error">
-                  {fieldErrorMessage(requestLink.error, "communityId")}
-                </FieldError>
-              </Field>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={requestLink.isPending}
-              >
-                {requestLink.isPending ? "Requesting…" : "Request link"}
-              </Button>
+                />
+              ) : (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="team-link-community">
+                      Community
+                    </FieldLabel>
+                    <Select
+                      name="communityId"
+                      required
+                      disabled={linkPicker.status === "loading"}
+                    >
+                      <SelectTrigger
+                        id="team-link-community"
+                        className="w-full"
+                        aria-busy={
+                          linkPicker.status === "loading" ? true : undefined
+                        }
+                        aria-invalid={
+                          fieldErrorMessage(requestLink.error, "communityId")
+                            ? true
+                            : undefined
+                        }
+                        aria-describedby={
+                          fieldErrorMessage(requestLink.error, "communityId")
+                            ? "team-link-community-error"
+                            : undefined
+                        }
+                      >
+                        <SelectValue
+                          placeholder={
+                            linkPicker.status === "loading"
+                              ? "Loading Communities…"
+                              : "Select a Community"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {linkPicker.status === "ready"
+                          ? linkPicker.communities.map((community) => (
+                              <SelectItem
+                                key={community.id}
+                                value={community.id}
+                              >
+                                {community.name}
+                              </SelectItem>
+                            ))
+                          : null}
+                      </SelectContent>
+                    </Select>
+                    <FieldError id="team-link-community-error">
+                      {fieldErrorMessage(requestLink.error, "communityId")}
+                    </FieldError>
+                  </Field>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      requestLink.isPending || linkPicker.status === "loading"
+                    }
+                  >
+                    {requestLink.isPending ? "Requesting…" : "Request link"}
+                  </Button>
+                </>
+              )}
             </form>
           </ResponsiveDialogContent>
         </ResponsiveDialog>

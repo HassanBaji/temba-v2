@@ -21,7 +21,7 @@ export function CommunityHomeSkeleton() {
         <Skeleton className="h-11 w-24" />
         <Skeleton className="h-11 w-24" />
       </div>
-      <div className="divide-border overflow-hidden rounded-lg border">
+      <div className="divide-border divide-y overflow-hidden rounded-lg border">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}

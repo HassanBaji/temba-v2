@@ -226,7 +226,8 @@ export function TournamentHalfTeamsPanel({
       <div className="border-rule mt-auto flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
-          className="h-[52px] min-h-[52px] w-full rounded-[12px] text-base font-semibold"
+          size="lg"
+          className="w-full font-semibold"
           disabled={mergePending || !canMerge}
           aria-busy={mergePending}
           onClick={() => {
@@ -238,7 +239,8 @@ export function TournamentHalfTeamsPanel({
         <Button
           type="button"
           variant="outline"
-          className="h-[52px] min-h-[52px] w-full rounded-[12px] text-[15px]"
+          size="lg"
+          className="w-full"
           disabled={mergePending}
           onClick={() => {
             setSwapped(false);
@@ -247,7 +249,7 @@ export function TournamentHalfTeamsPanel({
         >
           {MERGE_DISMISS_ACTION_LABEL}
         </Button>
-        <p className="text-muted-foreground text-center text-[13px] leading-relaxed">
+        <p className="text-muted-foreground text-meta text-center leading-relaxed">
           {MERGE_TAKES_EFFECT_COPY}
         </p>
       </div>
@@ -260,7 +262,7 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
   const openLabel = mergeOpenPositionLabel(team.openPosition);
 
   return (
-    <div className="border-rule min-w-0 flex-1 rounded-[14px] border p-4">
+    <div className="border-rule rounded-card min-w-0 flex-1 border p-4">
       <p className="text-eyebrow text-muted-foreground tabular-nums">
         {mergeTeamEyebrow(team.sideIndex)}
       </p>
@@ -268,21 +270,21 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
         <UserAvatar
           name={team.occupant.name}
           image={team.occupant.image}
-          className="border-rule size-[34px] shrink-0 rounded-[8px] border"
+          className="border-rule size-[34px] shrink-0 rounded-sm border"
         />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[15px]">{team.occupant.name}</span>
-          <span className="text-muted-foreground text-xs">
+          <span className="text-body truncate">{team.occupant.name}</span>
+          <span className="text-muted-foreground text-eyebrow">
             {mergeOccupantSubline(team.takenPosition, levelLabel)}
           </span>
         </span>
       </div>
-      <div className="border-rule relative mt-2 flex h-[52px] min-h-[52px] items-center justify-center overflow-hidden rounded-[10px] border">
+      <div className="border-rule relative mt-2 flex h-[52px] min-h-[52px] items-center justify-center overflow-hidden rounded-md border">
         <span aria-hidden="true" className="hatch absolute inset-0" />
         <span className="sr-only">{MERGE_OPEN_POSITION_SR}</span>
         <span
           aria-hidden="true"
-          className="text-muted-foreground relative text-xs"
+          className="text-muted-foreground text-eyebrow relative"
         >
           {openLabel}
         </span>
@@ -314,21 +316,21 @@ function MergedPreview({
       : { team: second, position: assignment.secondPosition };
 
   return (
-    <div className="border-ink rounded-[14px] border p-5">
-      <p className="text-muted-foreground text-[13px]">{MERGE_PREVIEW_LABEL}</p>
+    <div className="border-ink rounded-card border p-5">
+      <p className="text-muted-foreground text-meta">{MERGE_PREVIEW_LABEL}</p>
       <div className="mt-3.5 flex gap-2">
         <PreviewSeat occupant={left.team} position={left.position} />
         <PreviewSeat occupant={right.team} position={right.position} />
       </div>
       <div className="mt-3.5 flex items-center justify-between gap-3">
-        <p className="text-muted-foreground min-w-0 flex-1 text-[13px]">
+        <p className="text-muted-foreground text-meta min-w-0 flex-1">
           {mergeSwapHint(second.occupant.name, assignment.firstPosition)}
         </p>
         <button
           type="button"
           onClick={onSwap}
           disabled={mergePending}
-          className="min-h-11 min-w-11 shrink-0 text-[13px] font-semibold underline underline-offset-2 disabled:opacity-50"
+          className="focus-visible:ring-ring/50 text-meta min-h-11 min-w-11 shrink-0 rounded-sm font-semibold underline underline-offset-2 outline-none focus-visible:ring-[3px] disabled:opacity-50"
         >
           {MERGE_SWAP_LABEL}
         </button>
@@ -348,14 +350,14 @@ function PreviewSeat({
     position === "left" ? LEFT_SEAT_LABEL : RIGHT_SEAT_LABEL;
 
   return (
-    <div className="bg-ink text-paper flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-3">
+    <div className="bg-ink text-paper flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">
       <UserAvatar
         name={occupant.occupant.name}
         image={occupant.occupant.image}
-        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-[8px]"
+        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-sm">{occupant.occupant.name}</span>
+        <span className="text-body truncate">{occupant.occupant.name}</span>
         <span className="text-dim text-[11px] leading-none">
           {positionLabel}
         </span>

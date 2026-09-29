@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "~/components/ui/badge";
+import { ResultTag } from "~/components/temba/result-mark";
 import {
   POOL_WINNER_LABEL,
   TOURNAMENT_FINISHED_COPY,
@@ -13,7 +13,7 @@ type PoolTables = NonNullable<RouterOutputs["games"]["byId"]["poolTables"]>;
 type PoolTable = PoolTables["pools"][number];
 type PoolRow = PoolTable["rows"][number];
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
+const CARD = "border-rule overflow-hidden rounded-card border";
 const COL_POSITION = "w-10 pl-[18px] pr-0 text-left";
 const COL_TEAM = "px-2 text-left";
 const COL_STAT = "w-[38px] px-0 text-center";
@@ -65,7 +65,7 @@ export function PoolRecordTable({
                 className={cn(
                   COL_POSITION,
                   BODY_CELL,
-                  "font-expanded text-[15px]",
+                  "font-expanded text-body",
                 )}
               >
                 {row.position}
@@ -73,16 +73,16 @@ export function PoolRecordTable({
               <td className={cn(COL_TEAM, BODY_CELL)}>
                 <span
                   className={cn(
-                    "block truncate text-[15px]",
+                    "text-body block truncate",
                     row.isViewer && "font-semibold",
                   )}
                 >
                   {row.name}
                 </span>
                 {finished && row.isWinner ? (
-                  <Badge variant="success" className="mt-1">
+                  <ResultTag variant="won" className="text-eyebrow mt-1">
                     {POOL_WINNER_LABEL}
-                  </Badge>
+                  </ResultTag>
                 ) : null}
               </td>
               <td
@@ -141,7 +141,7 @@ export function TournamentPoolTablesPanel({
   return (
     <div className="space-y-4">
       {poolTables.finished ? (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-body">
           {TOURNAMENT_FINISHED_COPY}
         </p>
       ) : null}

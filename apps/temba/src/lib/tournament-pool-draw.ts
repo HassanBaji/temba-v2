@@ -20,6 +20,10 @@ export const DRAW_POOLS_ACTION = "Draw the groups";
 export const DRAW_AGAIN_ACTION = "Draw again";
 export const POST_POOL_DRAW_ACTION = "Post the group draw";
 export const UNDO_POOL_DRAW_ACTION = "Undo the group draw";
+export const UNDO_POOL_DRAW_CONFIRM_TITLE = "Undo the group draw?";
+export const UNDO_POOL_DRAW_CONFIRM_COPY =
+  "Teams leave their groups and every group Match is deleted.";
+export const UNDO_POOL_DRAW_CONFIRM_LABEL = "Undo draw";
 export const DRAW_DRAWER_TITLE = "The draw";
 export const DRAW_ENTRY_TITLE = "The group draw";
 export const DRAW_ENTRY_DRAFTED_TITLE = "The groups are drafted";

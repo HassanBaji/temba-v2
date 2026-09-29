@@ -1,18 +1,23 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
-import { CreateFlowShell } from "~/app/dashboard/games/new/create-flow-shell";
+import {
+  CreateFlowShell,
+  CreateFlowSkeleton,
+} from "~/app/dashboard/games/new/create-flow-shell";
 import { FriendlyGameSteps } from "~/app/dashboard/games/new/friendly-game-steps";
 import { FriendlyTournamentSteps } from "~/app/dashboard/games/new/friendly-tournament-steps";
 import { TypeStep } from "~/app/dashboard/games/new/type-step";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
@@ -41,6 +46,16 @@ import {
   type FriendlyGameDraft,
 } from "~/lib/create-game-flow";
 import {
+  browserSessionStorage,
+  clearCreateGameDrafts,
+  initialCreateGameDraft,
+  isCreateGameDraftDirty,
+  readCreateGameDraft,
+  serializeCreateGameDraft,
+  writeCreateGameDraft,
+  type CreateGameDraft,
+} from "~/lib/create-game-draft";
+import {
   fieldErrorMessage,
   focusFormFailure,
   globalFormErrorMessage,
@@ -63,7 +78,6 @@ import {
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "~/lib/tournament-sizing";
-import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 type FormFailure = Parameters<typeof focusFormFailure>[0];
@@ -123,6 +137,40 @@ function NewGameForm() {
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
   >({});
+  const [draftRestored, setDraftRestored] = React.useState(false);
+  const [discardOpen, setDiscardOpen] = React.useState(false);
+  const draftClosed = React.useRef(false);
+
+  React.useEffect(() => {
+    if (draftRestored) {
+      return;
+    }
+    const restored = typeParam
+      ? readCreateGameDraft(browserSessionStorage(), typeParam)
+      : null;
+    if (restored) {
+      setSelectedGroupId(restored.groupId);
+      setVenueId(restored.venueId);
+      setCourtId(restored.courtId);
+      setCourtIds(restored.courtIds);
+      setDay(restored.day);
+      setStartTime(restored.startTime);
+      setFinishTime(restored.finishTime);
+      setPricePerPlayer(restored.pricePerPlayer);
+      setLevelMin(restored.levelMin);
+      setLevelMax(restored.levelMax);
+      setPreferLevelRange(restored.preferLevelRange);
+      setTeamCount(restored.teamCount);
+      setPoolCount(restored.poolCount);
+      setRoundCount(restored.roundCount);
+      setMatchMinutesInput(restored.matchMinutes);
+      setName(restored.name);
+      setNameTouched(restored.nameTouched);
+      setIsPublic(restored.isPublic);
+      setAllowSoloRegister(restored.allowSoloRegister);
+    }
+    setDraftRestored(true);
+  }, [draftRestored, typeParam]);
 
   const draft: FriendlyGameDraft & { matchMinutes: string } = {
     groupId: selectedGroupId,
@@ -176,8 +224,55 @@ function NewGameForm() {
     setVenueId(linkedVenueId);
   }, [linkedVenueId]);
 
+  const createDraft: CreateGameDraft = {
+    groupId: selectedGroupId,
+    venueId,
+    courtId,
+    courtIds,
+    day,
+    startTime,
+    finishTime,
+    pricePerPlayer,
+    levelMin,
+    levelMax,
+    preferLevelRange,
+    teamCount,
+    poolCount,
+    roundCount,
+    matchMinutes: matchMinutesInput,
+    name,
+    nameTouched,
+    isPublic,
+    allowSoloRegister,
+  };
+  const initialGroupId =
+    requestedGroupId &&
+    createGroups.data?.some((group) => group.id === requestedGroupId)
+      ? requestedGroupId
+      : "";
+  const draftDirty = isCreateGameDraftDirty(createDraft, {
+    ...initialCreateGameDraft(session.now),
+    groupId: initialGroupId,
+    venueId:
+      initialGroupId && selectedGroupId === initialGroupId
+        ? (linkedVenueId ?? "")
+        : "",
+  });
+  const storedDraft = draftDirty ? serializeCreateGameDraft(createDraft) : null;
+
   React.useEffect(() => {
-    if (!createGroups.data || createGroups.data.length === 0) {
+    if (!draftRestored || !typeParam || draftClosed.current) {
+      return;
+    }
+    writeCreateGameDraft(browserSessionStorage(), typeParam, storedDraft);
+  }, [draftRestored, storedDraft, typeParam]);
+
+  React.useEffect(() => {
+    if (
+      !draftRestored ||
+      !createGroups.data ||
+      createGroups.data.length === 0
+    ) {
       return;
     }
     if (stepParam != null && stepParam !== displayedStep) {
@@ -192,6 +287,7 @@ function NewGameForm() {
   }, [
     createGroups.data,
     displayedStep,
+    draftRestored,
     requestedGroupId,
     router,
     stepParam,
@@ -201,6 +297,7 @@ function NewGameForm() {
   const utils = api.useUtils();
   const createGame = api.games.create.useMutation({
     onSuccess: async (game) => {
+      leaveCreateFlow();
       toast.success("Game created");
       await utils.users.home.invalidate();
       await utils.games.listPublicPickup.invalidate();
@@ -216,6 +313,7 @@ function NewGameForm() {
   });
   const createTournament = api.games.createTournament.useMutation({
     onSuccess: async (game) => {
+      leaveCreateFlow();
       toast.success("Tournament created");
       await utils.users.home.invalidate();
       await utils.games.listPublicPickup.invalidate();
@@ -248,6 +346,20 @@ function NewGameForm() {
       focusElement(pending.elementId);
     }
   }, [displayedStep]);
+
+  function leaveCreateFlow() {
+    draftClosed.current = true;
+    clearCreateGameDrafts(browserSessionStorage());
+  }
+
+  function onCancel(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (draftDirty) {
+      event.preventDefault();
+      setDiscardOpen(true);
+      return;
+    }
+    leaveCreateFlow();
+  }
 
   function clearField(field: string) {
     setErrors((current) => ({ ...current, [field]: undefined }));
@@ -675,17 +787,17 @@ function NewGameForm() {
     ? (selectedGroup.name ?? "Untitled Group")
     : "Group";
 
-  if (createGroups.isLoading) {
+  if (createGroups.isLoading || !draftRestored) {
     return (
-      <DashboardShell title="Create Game" hideMobileTopBar>
-        <p className="text-muted-foreground text-sm">Loading…</p>
+      <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
+        <CreateFlowSkeleton />
       </DashboardShell>
     );
   }
 
   if (createGroups.error) {
     return (
-      <DashboardShell title="Create Game" hideMobileTopBar>
+      <DashboardShell title="Create Game">
         <ErrorState
           title="Groups could not be loaded"
           message={createGroups.error.message}
@@ -699,9 +811,9 @@ function NewGameForm() {
 
   if (createGroups.data?.length === 0) {
     return (
-      <DashboardShell title="Create Game" hideMobileTopBar>
+      <DashboardShell title="Create Game">
         <EmptyState
-          emoji="🎾"
+          icon={Users}
           title="Games are created inside a Group"
           description="Create a Group first, then you can create a Game."
           action={
@@ -723,13 +835,13 @@ function NewGameForm() {
           </span>
           <span className="text-dim text-[18px] leading-none">Game teams</span>
           {tournamentRounds ? (
-            <span className="text-dim text-[15px] leading-none">
+            <span className="text-dim text-body leading-none">
               {friendlyTournamentMatchCountLabel(tournamentRounds.poolMatches)}
             </span>
           ) : null}
         </h1>
         {tournamentPreviewDetail ? (
-          <p className="text-dim mt-2 text-sm">{tournamentPreviewDetail}</p>
+          <p className="text-dim text-meta mt-2">{tournamentPreviewDetail}</p>
         ) : null}
       </>
     ) : kickoff && displayedStep > 1 ? (
@@ -743,12 +855,12 @@ function NewGameForm() {
           </span>
         </h1>
         {previewDetail ? (
-          <p className="text-dim mt-2 text-sm">{previewDetail}</p>
+          <p className="text-dim text-meta mt-2">{previewDetail}</p>
         ) : null}
       </>
     ) : (
       <>
-        <h1 className="font-expanded text-[36px] leading-none">
+        <PageTitle variant="hero">
           {displayedStep === 1 ? (
             <>
               What are you
@@ -758,8 +870,8 @@ function NewGameForm() {
           ) : (
             "Friendly game"
           )}
-        </h1>
-        <p className="text-dim mt-2.5 text-sm leading-normal">
+        </PageTitle>
+        <p className="text-dim text-meta mt-2.5 leading-normal">
           {displayedStep === 1
             ? "Both start with a court and a time. The rest of the form follows your pick."
             : previewDetail ||
@@ -769,7 +881,7 @@ function NewGameForm() {
     );
 
   return (
-    <DashboardShell title="Create Game" hideMobileTopBar>
+    <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -783,6 +895,7 @@ function NewGameForm() {
         <CreateFlowShell
           step={displayedStep}
           cancelHref={cancelHref}
+          onCancel={onCancel}
           onBack={() => {
             if (displayedStep > 1) {
               router.push(hrefForStep((displayedStep - 1) as CreateFlowStep));
@@ -795,17 +908,17 @@ function NewGameForm() {
               {displayedStep > 1 && displayedStep < 4 ? (
                 <div className="min-w-0 flex-1">
                   <p className="text-muted-foreground text-meta">Next</p>
-                  <p className="text-sm font-semibold">{nextTitle}</p>
+                  <p className="text-body font-semibold">{nextTitle}</p>
                 </div>
               ) : null}
               <Button
                 type="submit"
-                className={cn(
-                  "h-12 min-h-11",
+                size="lg"
+                className={
                   displayedStep === 2 || displayedStep === 3
-                    ? "shrink-0 px-5"
-                    : "flex-1",
-                )}
+                    ? "shrink-0"
+                    : "flex-1"
+                }
                 disabled={submitting || (displayedStep === 2 && emptyCatalog)}
               >
                 {primaryLabel}
@@ -813,8 +926,10 @@ function NewGameForm() {
                   <ArrowRight aria-hidden="true" className="size-4" />
                 ) : null}
               </Button>
-              <Button variant="outline" className="h-12 min-h-11" asChild>
-                <Link href={cancelHref}>Cancel</Link>
+              <Button variant="outline" size="lg" asChild>
+                <Link href={cancelHref} onClick={onCancel}>
+                  Cancel
+                </Link>
               </Button>
             </div>
           }
@@ -1091,6 +1206,17 @@ function NewGameForm() {
           )}
         </CreateFlowShell>
       </form>
+      <ConfirmDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        title="Discard this Game?"
+        description="Your choices so far will be lost."
+        confirmLabel="Discard"
+        onConfirm={() => {
+          leaveCreateFlow();
+          router.push(cancelHref);
+        }}
+      />
     </DashboardShell>
   );
 }
@@ -1099,8 +1225,8 @@ export default function NewGamePage() {
   return (
     <React.Suspense
       fallback={
-        <DashboardShell title="Create Game" hideMobileTopBar>
-          <p className="text-muted-foreground text-sm">Loading…</p>
+        <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
+          <CreateFlowSkeleton />
         </DashboardShell>
       }
     >

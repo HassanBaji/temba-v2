@@ -153,10 +153,12 @@ export function GameVenueSelect({
           className="border-border bg-popover absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border shadow-md"
         >
           {pending && venues.length === 0 ? (
-            <p className="text-muted-foreground px-3 py-3 text-sm">Loading…</p>
+            <p className="text-muted-foreground text-body px-3 py-3">
+              Loading…
+            </p>
           ) : null}
           {!pending && filtered.length === 0 ? (
-            <p className="text-muted-foreground px-3 py-3 text-sm">
+            <p className="text-muted-foreground text-body px-3 py-3">
               {venues.length === 0 ? "No live Venues." : "No Venues match."}
             </p>
           ) : null}
@@ -169,7 +171,7 @@ export function GameVenueSelect({
                 role="option"
                 aria-selected={isSelected}
                 className={cn(
-                  "hover:bg-accent hover:text-accent-foreground flex w-full px-3 py-2 text-left text-sm outline-none",
+                  "hover:bg-accent hover:text-accent-foreground text-body flex w-full px-3 py-2 text-left outline-none",
                   "focus-visible:bg-accent focus-visible:text-accent-foreground",
                   isSelected && "bg-accent text-accent-foreground",
                 )}

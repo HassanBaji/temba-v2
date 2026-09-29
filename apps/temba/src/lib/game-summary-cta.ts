@@ -2,6 +2,7 @@ import {
   hasFullyVacantSide,
   type FriendlyGamePartnerSides,
 } from "~/lib/friendly-game-partner";
+import { JOIN_GAME_ACTION } from "~/lib/game-copy";
 import { isPoolTournament } from "~/lib/tournament-rounds";
 
 export type GameSummaryCta = "join" | "join_waitlist" | "register" | "view";
@@ -90,7 +91,7 @@ export function gameCardActionLabel(
 ) {
   switch (action) {
     case "join":
-      return "Join game";
+      return JOIN_GAME_ACTION;
     case "join_waitlist":
       return "Join waitlist";
     case "register":

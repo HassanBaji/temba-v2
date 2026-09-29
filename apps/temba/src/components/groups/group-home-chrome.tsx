@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { ChevronLeftIcon, PlusIcon, UserPlusIcon } from "lucide-react";
+import { Loader2Icon, PlusIcon, UserPlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
+import { EntityHomeHeader } from "~/components/layout/entity-home-header";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { groupHomeMetaLine } from "~/lib/group-home-chrome";
+import {
+  groupHomeBackTarget,
+  groupHomeMetaLine,
+} from "~/lib/group-home-chrome";
 import type { GroupHomeTab } from "~/lib/group-home-tab";
 import { cn } from "~/lib/utils";
 
@@ -13,10 +18,7 @@ const HEADER_BLEED =
   "-mx-4 px-4 min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8";
 
 const ACTION_BOX =
-  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]";
-
-export const TAB_SEGMENT =
-  "border-rule text-muted-foreground h-11 min-h-11 min-w-11 flex-1 rounded-none border-0 border-l first:border-l-0 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none data-[state=active]:bg-ink data-[state=active]:text-paper data-[state=active]:font-semibold";
+  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]";
 
 /**
  * The one Group home header, shared by Standing, Games, and Members: back, a
@@ -32,6 +34,7 @@ export const TAB_SEGMENT =
  */
 export function GroupHomeChrome({
   groupId,
+  communityId,
   name,
   imageUrl,
   sport,
@@ -42,8 +45,10 @@ export function GroupHomeChrome({
   canCreateGame,
   onInvite,
   overflow,
+  imagePending = false,
 }: {
   groupId: string;
+  communityId: string | null;
   name: string;
   imageUrl?: string | null;
   sport: string | null;
@@ -54,21 +59,17 @@ export function GroupHomeChrome({
   canCreateGame: boolean;
   onInvite: () => void;
   overflow?: ReactNode;
+  imagePending?: boolean;
 }) {
   const meta = groupHomeMetaLine({ sport, memberCount, createdAt });
+  const back = groupHomeBackTarget(communityId);
   const showCreateBox = tab === "games" && canCreateGame;
   const showInviteBox = tab !== "games" && canInvite;
 
   return (
-    <header className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
+    <div className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
       <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/dashboard/groups"
-          aria-label="Back to Groups"
-          className={ACTION_BOX}
-        >
-          <ChevronLeftIcon aria-hidden="true" className="size-5" />
-        </Link>
+        <BackButton variant="boxed" href={back.href} label={back.label} />
 
         <div className="flex items-center gap-2">
           {showInviteBox ? (
@@ -85,7 +86,7 @@ export function GroupHomeChrome({
           {showCreateBox ? (
             <Link
               href={`/dashboard/games/new?groupId=${groupId}`}
-              aria-label="Create"
+              aria-label="Create Game"
               className={ACTION_BOX}
             >
               <PlusIcon aria-hidden="true" className="size-5" />
@@ -96,31 +97,33 @@ export function GroupHomeChrome({
         </div>
       </div>
 
-      <div className="mt-5 flex items-start gap-3">
-        <EntityMonogram name={name} image={imageUrl} size="lg" />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-h1 min-w-0 break-words font-bold tracking-[-0.01em]">
-            {name}
-          </h1>
-          {meta ? (
-            <p className="text-meta text-muted-foreground mt-1 min-w-0 break-words">
-              {meta}
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <EntityHomeHeader
+        className="mt-5"
+        leading={
+          <div className="relative" aria-busy={imagePending || undefined}>
+            <EntityMonogram name={name} image={imageUrl} size="lg" />
+            {imagePending ? (
+              <span className="bg-background/70 absolute inset-0 grid place-items-center rounded-lg">
+                <Loader2Icon
+                  aria-hidden="true"
+                  className="size-4 animate-spin"
+                />
+              </span>
+            ) : null}
+            <span role="status" className="sr-only">
+              {imagePending ? "Uploading image…" : ""}
+            </span>
+          </div>
+        }
+        title={name}
+        meta={meta || undefined}
+      />
 
-      <TabsList className="border-rule bg-paper mt-5 w-full max-w-full justify-stretch overflow-hidden rounded-[12px] border p-0 group-data-[orientation=horizontal]/tabs:h-auto">
-        <TabsTrigger value="standing" className={TAB_SEGMENT}>
-          Standing
-        </TabsTrigger>
-        <TabsTrigger value="games" className={TAB_SEGMENT}>
-          Games
-        </TabsTrigger>
-        <TabsTrigger value="members" className={TAB_SEGMENT}>
-          Members
-        </TabsTrigger>
+      <TabsList variant="segmented" className="mt-5">
+        <TabsTrigger value="standing">Standing</TabsTrigger>
+        <TabsTrigger value="games">Games</TabsTrigger>
+        <TabsTrigger value="members">Members</TabsTrigger>
       </TabsList>
-    </header>
+    </div>
   );
 }

@@ -34,8 +34,10 @@
 
   --container-content: 44rem; /* 704px — detail pages, forms */
   --container-wide: 64rem; /* 1024px — list plus aside */
+  --container-column: 26.25rem; /* 420px — Home single column */
   --rail-width: 15rem; /* 240px — desktop nav rail */
   --bottom-nav-height: 3.5rem; /* 56px, plus safe-area */
+  --mobile-top-bar-height: 4.25rem; /* 68px: 16 top + 44 row + 8 bottom */
 
   --radius: 0.75rem; /* 12px; sm/md/lg/xl calc to 8/10/12/16px */
 
@@ -43,15 +45,6 @@
   --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
   --shadow-md: 0 4px 12px oklch(0 0 0 / 0.08);
   --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.12);
-
-  /* Near-monochrome Home tokens. Do not add faint (#9A9A9A) — 2.56:1 on wash. */
-  --color-ink: #000000;
-  --color-paper: #ffffff;
-  --color-rule: #e6e6e6;
-  --color-wash: #f4f4f4;
-  --color-dim: #8e8e8e;
-  --color-dimrule: #2e2e2e;
-  --color-raised: #1c1c1c;
 }
 
 @theme inline {
@@ -66,6 +59,17 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-xs: 5px; /* score, form and seat slots */
+  --radius-card: 14px;
+  /* Home names alias the semantic tokens in :root; never give them their own
+     values. Do not add faint (#9A9A9A) — 2.56:1 on wash. */
+  --color-ink: var(--primary);
+  --color-paper: var(--card);
+  --color-rule: var(--border);
+  --color-wash: var(--muted);
+  --color-dim: var(--on-ink-muted);
+  --color-dimrule: var(--on-ink-border);
+  --color-raised: var(--on-ink-raised);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -125,11 +129,18 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --border: #e5e5e2;
-  --input: oklch(0.89 0 0);
+  /* #8C8C8C — control boundaries (WCAG 1.4.11): 3.36:1 on paper, 3.06:1 on
+     wash. Decorative hairlines stay on --border. */
+  --input: oklch(0.64 0 0);
 
   --primary: #0a0a0a;
   --primary-foreground: #ffffff;
   --ring: #0a0a0a;
+
+  /* Text, hairlines and raised tiles on an ink (black) surface. */
+  --on-ink-muted: #8e8e8e;
+  --on-ink-border: #2e2e2e;
+  --on-ink-raised: #1c1c1c;
 
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
@@ -207,6 +218,14 @@
     @apply bg-background text-body text-foreground font-sans antialiased;
     font-feature-settings: "tnum" 1;
   }
+  /* Toasts sit above the fixed BottomNav wherever it is shown (below lg). */
+  @media (width < 64rem) {
+    :root:has([data-slot="bottom-nav"]) {
+      --toast-offset-bottom: calc(
+        var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 8px
+      );
+    }
+  }
 }
 
 /* Always emit Home foundation utilities so later tickets can apply them. */
@@ -237,6 +256,12 @@
   --hatch-inset: var(--color-dimrule);
 }
 
+/* Black-surface scope: the default --ring is near-black and ~1:1 on ink, so
+   every ring-ring / outline-ring / border-ring inside reads light (WCAG 2.4.7). */
+@utility surface-ink {
+  --ring: var(--color-paper);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -248,7 +273,5 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 100ms !important;
-    transition-property: opacity !important;
-    transform: none !important;
   }
 }

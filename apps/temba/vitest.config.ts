@@ -6,6 +6,9 @@ import { defineConfig } from "vitest/config";
 const appRoot = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  oxc: {
+    jsx: { runtime: "automatic" },
+  },
   resolve: {
     alias: {
       "~": resolve(appRoot, "src"),

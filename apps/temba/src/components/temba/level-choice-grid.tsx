@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   type AssignableDisplayLevelBand,
@@ -49,9 +50,8 @@ export function LevelChoiceGrid({
   invalid?: boolean;
 }) {
   return (
-    <div
+    <RovingRadioGroup
       id={id}
-      role="radiogroup"
       aria-labelledby={labelledBy}
       aria-invalid={invalid ? true : undefined}
       aria-describedby={describedBy}
@@ -80,6 +80,6 @@ export function LevelChoiceGrid({
           </Button>
         );
       })}
-    </div>
+    </RovingRadioGroup>
   );
 }

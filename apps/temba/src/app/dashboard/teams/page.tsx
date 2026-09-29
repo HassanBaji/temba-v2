@@ -11,9 +11,11 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { Section } from "~/components/layout/section";
+import { PendingInvitesSection } from "~/components/invites/pending-invites-section";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { entityListIsEmpty } from "~/lib/entity-list-empty";
 import { teamAvatarPeople } from "~/lib/team-avatar-people";
 import { api } from "~/trpc/react";
 
@@ -32,20 +34,24 @@ export default function TeamsIndexPage() {
     },
   });
 
-  const isEmpty =
-    !teams.isLoading &&
-    !pending.isLoading &&
-    (teams.data?.length ?? 0) === 0 &&
-    (pending.data?.length ?? 0) === 0;
+  const isEmpty = entityListIsEmpty({
+    list: {
+      isLoading: teams.isLoading,
+      error: teams.error,
+      count: teams.data?.length ?? 0,
+    },
+    invites: { isLoading: pending.isLoading, count: pending.data?.length ?? 0 },
+  });
+  const acceptingId = acceptTeam.isPending
+    ? (acceptTeam.variables?.inviteId ?? null)
+    : null;
 
   return (
     <DashboardShell
       title="Teams"
       description="Partnerships you play as"
       action={
-        <Button asChild>
-          <Link href="/dashboard/teams/new">Create Team</Link>
-        </Button>
+        <PageCreateAction href="/dashboard/teams/new" label="Create Team" />
       }
     >
       {teams.isLoading ? <ListPageSkeleton rows={4} /> : null}
@@ -60,93 +66,75 @@ export default function TeamsIndexPage() {
         />
       ) : null}
 
-      {isEmpty ? (
-        <EmptyState
-          icon={Users}
-          title="No Teams yet"
-          description="A Team is a lasting partnership with one other player."
-          action={
-            <Button asChild>
-              <Link href="/dashboard/teams/new">Create Team</Link>
-            </Button>
-          }
+      <div className="space-y-6">
+        <PendingInvitesSection
+          invites={pending.data?.map((invite) => ({
+            id: invite.id,
+            leading: (
+              <UserAvatar
+                name={invite.invitedBy.name ?? "Member"}
+                image={invite.invitedBy.image}
+                size="lg"
+              />
+            ),
+            title: invite.displayName,
+            invitedBy: invite.invitedBy.name ?? "Member",
+          }))}
+          pendingId={acceptingId}
+          error={pending.error}
+          onAccept={(inviteId) => acceptTeam.mutate({ inviteId })}
+          onRetry={() => {
+            void pending.refetch();
+          }}
         />
-      ) : null}
 
-      {!isEmpty && teams.data ? (
-        <div className="space-y-6">
-          {pending.data && pending.data.length > 0 ? (
-            <Section title="Pending invites">
-              <RowList>
-                {pending.data.map((invite) => {
-                  const accepting =
-                    acceptTeam.isPending &&
-                    acceptTeam.variables?.inviteId === invite.id;
-                  return (
-                    <ListRow
-                      key={invite.id}
-                      leading={
-                        <UserAvatar
-                          name={invite.invitedBy.name ?? "Member"}
-                          image={invite.invitedBy.image}
-                          size="lg"
-                        />
-                      }
-                      title={invite.displayName}
-                      meta={`Invite from ${invite.invitedBy.name}`}
-                      trailing={
-                        <Button
-                          className="min-h-11"
-                          disabled={accepting}
-                          onClick={() =>
-                            acceptTeam.mutate({ inviteId: invite.id })
-                          }
-                        >
-                          {accepting ? "Accepting…" : "Accept"}
-                        </Button>
-                      }
+        {isEmpty ? (
+          <EmptyState
+            icon={Users}
+            title="No Teams yet"
+            description="A Team is a lasting partnership with one other player."
+            action={
+              <Button asChild>
+                <Link href="/dashboard/teams/new">Create Team</Link>
+              </Button>
+            }
+          />
+        ) : null}
+
+        {teams.data && teams.data.length > 0 ? (
+          <RowList>
+            {teams.data.map((team) => {
+              const people = teamAvatarPeople(team.members);
+              return (
+                <ListRow
+                  key={team.id}
+                  asChild
+                  leading={
+                    <AvatarStack
+                      people={people}
+                      openSeats={team.incomplete ? 1 : 0}
+                      size="lg"
                     />
-                  );
-                })}
-              </RowList>
-            </Section>
-          ) : null}
-
-          {teams.data.length > 0 ? (
-            <RowList>
-              {teams.data.map((team) => {
-                const people = teamAvatarPeople(team.members);
-                return (
-                  <ListRow
-                    key={team.id}
-                    asChild
-                    leading={
-                      <AvatarStack
-                        people={people}
-                        openSeats={team.incomplete ? 1 : 0}
-                        size="lg"
-                      />
-                    }
-                    title={team.displayName}
-                    meta={
-                      team.community
-                        ? `Club Team · ${team.community.name}`
-                        : "Not linked to a Community"
-                    }
-                    trailing={
-                      team.incomplete ? (
-                        <Badge variant="outline">Incomplete</Badge>
-                      ) : undefined
-                    }
-                  >
-                    <Link href={`/dashboard/teams/${team.id}`} />
-                  </ListRow>
-                );
-              })}
-            </RowList>
-          ) : null}
-        </div>
-      ) : null}
+                  }
+                  title={team.displayName}
+                  meta={
+                    team.community
+                      ? `Club Team · ${team.community.name}`
+                      : "Not linked to a Community"
+                  }
+                  trailing={
+                    team.incomplete ? (
+                      <Badge variant="outline">Incomplete</Badge>
+                    ) : undefined
+                  }
+                >
+                  <Link href={`/dashboard/teams/${team.id}`} />
+                </ListRow>
+              );
+            })}
+          </RowList>
+        ) : null}
+      </div>
     </DashboardShell>
   );
 }

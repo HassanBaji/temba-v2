@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import {
   onboardingRedirectTarget,
   onboardingStepFromState,
+  shouldFocusStepHeading,
   type OnboardingQuestionnaireState,
 } from "./onboarding-step";
 
@@ -93,5 +94,20 @@ describe("onboardingRedirectTarget", () => {
     assert.equal(onboardingRedirectTarget("https://evil.com"), "/dashboard");
     assert.equal(onboardingRedirectTarget("/a\\b"), "/dashboard");
     assert.equal(onboardingRedirectTarget("/@evil.com"), "/dashboard");
+  });
+});
+
+describe("shouldFocusStepHeading", () => {
+  it("focuses the heading when the questionnaire moves between steps", () => {
+    assert.equal(shouldFocusStepHeading("position", "level"), true);
+    assert.equal(shouldFocusStepHeading("level", "position"), true);
+    assert.equal(shouldFocusStepHeading("provisioning", "position"), true);
+    assert.equal(shouldFocusStepHeading("level", "finishing"), true);
+  });
+
+  it("leaves focus alone on the first load and when the step is unchanged", () => {
+    assert.equal(shouldFocusStepHeading("loading", "position"), false);
+    assert.equal(shouldFocusStepHeading("loading", "provisioning"), false);
+    assert.equal(shouldFocusStepHeading("position", "position"), false);
   });
 });

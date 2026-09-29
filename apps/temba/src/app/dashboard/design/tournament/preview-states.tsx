@@ -10,7 +10,7 @@ import {
   TournamentMatchCard,
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
-import { TAB_SEGMENT } from "~/components/groups/group-home-chrome";
+import { buttonVariants } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import type { TournamentFixture } from "~/fixtures/tournament";
@@ -67,7 +67,7 @@ import {
 import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import { cn } from "~/lib/utils";
 
-const FIELD_LABEL = "text-muted-foreground text-[13px] font-normal";
+const FIELD_LABEL = "text-muted-foreground text-meta font-normal";
 
 export function TournamentPreviewStates({
   fixtures,
@@ -159,7 +159,7 @@ export function TournamentPreviewStates({
       </section>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Create screen controls</h2>
-        <div className="mx-auto w-full max-w-[420px]">
+        <div className="max-w-column mx-auto w-full">
           <TournamentCreateControlsPreview />
         </div>
       </section>
@@ -175,7 +175,7 @@ function PreviewColumn({
   data: TournamentFixture;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
       <h2 className="text-title font-semibold">{title}</h2>
       <TournamentHomePreview data={data} />
     </div>
@@ -190,8 +190,8 @@ function CardPreviewColumn({
   game: TournamentCardFixture;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
-      <h3 className="text-muted-foreground text-sm">{title}</h3>
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
+      <h3 className="text-muted-foreground text-meta">{title}</h3>
       <ul>
         <TournamentSummaryCard
           game={game}
@@ -212,8 +212,8 @@ function MatchCardPreviewColumn({
   game: TournamentCardFixture;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
-      <h3 className="text-muted-foreground text-sm">{title}</h3>
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
+      <h3 className="text-muted-foreground text-meta">{title}</h3>
       <ul>
         <TournamentMatchCard
           game={game}
@@ -236,8 +236,8 @@ function HomeMatchCardPreviewColumn({
   canAddResults?: boolean;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
-      <h3 className="text-muted-foreground text-sm">{title}</h3>
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
+      <h3 className="text-muted-foreground text-meta">{title}</h3>
       <HomeTournamentMatchCard
         game={game}
         href={`/dashboard/design/tournament#${game.id}`}
@@ -322,13 +322,13 @@ function TournamentCreateControlsPreview() {
   return (
     <div className="flex flex-col gap-[18px]">
       <div>
-        <p className="text-muted-foreground text-[13px]">Bromma</p>
-        <h3 className="font-expanded mt-4 text-[38px] leading-none tracking-[-0.03em]">
+        <p className="text-muted-foreground text-meta">Bromma</p>
+        <h3 className="font-expanded text-display mt-4 leading-none tracking-[-0.03em]">
           {CREATE_TOURNAMENT_HEADING_LEAD}
           <br />
           {CREATE_TOURNAMENT_HEADING_TRAIL}
         </h3>
-        <p className="text-muted-foreground mt-2.5 text-[15px] leading-relaxed">
+        <p className="text-muted-foreground text-body mt-2.5 leading-relaxed">
           {CREATE_SUBLINE}
         </p>
       </div>
@@ -345,7 +345,7 @@ function TournamentCreateControlsPreview() {
         decreaseLabel="Fewer Game teams"
         increaseLabel="More Game teams"
         description={
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {playersInPairsLine(teamCount)}
           </p>
         }
@@ -365,11 +365,11 @@ function TournamentCreateControlsPreview() {
         description={
           sizing ? (
             <div className="flex flex-col gap-1">
-              <p className="text-muted-foreground text-[13px]">
+              <p className="text-muted-foreground text-meta">
                 {formatPoolSizeLine(sizing)}
               </p>
               {sizing.uneven ? (
-                <p className="text-muted-foreground text-[13px]">
+                <p className="text-muted-foreground text-meta">
                   {UNEVEN_POOLS_COPY}
                 </p>
               ) : null}
@@ -448,12 +448,12 @@ function TournamentCreateControlsPreview() {
       ) : null}
 
       {fit ? (
-        <div className="border-ink rounded-[14px] border p-5">
-          <p className="text-muted-foreground text-[13px]">
+        <div className="border-ink rounded-card border p-5">
+          <p className="text-muted-foreground text-meta">
             {ONE_DAY_CALLOUT_LABEL}
           </p>
           {fit.lastFinish ? (
-            <p className="mt-2 text-[17px] leading-snug">
+            <p className="text-lead mt-2 leading-snug">
               {lastMatchFinishCopy(
                 fit.lastFinish.toLocaleTimeString(undefined, {
                   hour: "numeric",
@@ -463,7 +463,7 @@ function TournamentCreateControlsPreview() {
             </p>
           ) : null}
           {fit.overruns ? (
-            <p className="text-muted-foreground mt-2 text-[13px] leading-relaxed">
+            <p className="text-muted-foreground text-meta mt-2 leading-relaxed">
               {ONE_DAY_OVERRUN_MESSAGE}
             </p>
           ) : null}
@@ -471,10 +471,10 @@ function TournamentCreateControlsPreview() {
       ) : null}
 
       <div className="border-rule flex flex-col gap-2.5 border-t pt-5">
-        <div className="bg-ink text-paper flex h-[52px] min-h-[52px] items-center justify-center rounded-[12px] text-base font-semibold">
+        <div className={cn(buttonVariants({ size: "lg" }), "font-semibold")}>
           {CREATE_PRIMARY_ACTION}
         </div>
-        <p className="text-muted-foreground text-center text-[12px] leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           {CREATE_FOOTER_COPY}
         </p>
       </div>
@@ -510,17 +510,9 @@ function PreviewSegment<T extends string>({
           }
         }}
       >
-        <TabsList
-          id={id}
-          aria-labelledby={labelId}
-          className="border-rule bg-paper w-full max-w-full justify-stretch overflow-hidden rounded-[12px] border p-0 group-data-[orientation=horizontal]/tabs:h-auto"
-        >
+        <TabsList variant="segmented" id={id} aria-labelledby={labelId}>
           {options.map((option) => (
-            <TabsTrigger
-              key={option.value}
-              value={option.value}
-              className={cn(TAB_SEGMENT, "px-2 text-[14px]")}
-            >
+            <TabsTrigger key={option.value} value={option.value}>
               {option.label}
             </TabsTrigger>
           ))}

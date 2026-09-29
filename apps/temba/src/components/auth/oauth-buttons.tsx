@@ -88,7 +88,7 @@ export function OauthButtons({
         <Button
           key={strategy}
           type="button"
-          size="auth"
+          size="lg"
           variant="outline"
           aria-busy={pending}
           disabled={!loaded || pending}

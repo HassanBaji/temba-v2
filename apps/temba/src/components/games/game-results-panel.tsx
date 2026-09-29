@@ -11,7 +11,7 @@ import {
   matchSlotOccupantLabel,
 } from "~/components/games/game-side-label";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
-import { Badge } from "~/components/ui/badge";
+import { ResultTag } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Field, FieldLabel } from "~/components/ui/field";
@@ -32,6 +32,11 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { formatGameClock } from "~/lib/format-game-start";
+import {
+  CANCEL_GAME_ACTION,
+  CANCEL_MATCH_ACTION,
+  setLabel,
+} from "~/lib/game-copy";
 import { cn } from "~/lib/utils";
 
 export type GameResultsMatch = {
@@ -193,14 +198,14 @@ export function GameResultsPanel({
     return (
       <EmptyState
         icon={Trophy}
-        title="No match results"
+        title="No Match results"
         description="Americano Games do not have Matches."
       />
     );
   }
 
   if (matches.length === 0) {
-    return <EmptyState icon={Trophy} title="No match results" />;
+    return <EmptyState icon={Trophy} title="No Match results" />;
   }
 
   const canEditMatch =
@@ -263,7 +268,7 @@ export function GameResultsPanel({
             </div>
 
             {match.sets.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No Sets yet.</p>
+              <p className="text-muted-foreground text-body">No Sets yet.</p>
             ) : (
               <div className="border-border overflow-hidden rounded-lg border">
                 <Table>
@@ -272,7 +277,7 @@ export function GameResultsPanel({
                       <TableHead>Teams</TableHead>
                       {match.sets.map((set, index) => (
                         <TableHead key={set.id} className="text-center">
-                          Set-{index + 1}
+                          {setLabel(index)}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -288,9 +293,7 @@ export function GameResultsPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{slot1Label}</p>
                           {matchCompleted && slot1Won ? (
-                            <Badge variant="success" size="sm">
-                              Won
-                            </Badge>
+                            <ResultTag variant="won">Won</ResultTag>
                           ) : null}
                         </div>
                         {slot1Names ? (
@@ -318,9 +321,7 @@ export function GameResultsPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{slot2Label}</p>
                           {matchCompleted && slot2Won ? (
-                            <Badge variant="success" size="sm">
-                              Won
-                            </Badge>
+                            <ResultTag variant="won">Won</ResultTag>
                           ) : null}
                         </div>
                         {slot2Names ? (
@@ -357,8 +358,8 @@ export function GameResultsPanel({
                         key={set.id}
                         className="flex flex-wrap items-end gap-2"
                       >
-                        <p className="text-muted-foreground w-12 text-sm">
-                          Set {index + 1}
+                        <p className="text-muted-foreground text-meta w-12">
+                          {setLabel(index)}
                         </p>
                         <Field>
                           <FieldLabel htmlFor={`set-${set.id}-slot1`}>
@@ -381,7 +382,9 @@ export function GameResultsPanel({
                             }
                           />
                         </Field>
-                        <span className="text-muted-foreground text-sm">–</span>
+                        <span className="text-muted-foreground text-meta">
+                          –
+                        </span>
                         <Field>
                           <FieldLabel htmlFor={`set-${set.id}-slot2`}>
                             {slot2Label} games
@@ -433,7 +436,7 @@ export function GameResultsPanel({
 
             {(!match.bothSidesComplete || !match.bothSlotsFilled) &&
             match.status !== "completed" ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 Scoring opens once both teams are full.
               </p>
             ) : null}
@@ -566,8 +569,8 @@ export function GameResultsPanel({
                 disabled={cancelPending}
               >
                 {format === "friendly_game"
-                  ? "Cancel Match (cancels Game)"
-                  : "Cancel Match"}
+                  ? CANCEL_GAME_ACTION
+                  : CANCEL_MATCH_ACTION}
               </Button>
             ) : null}
           </Card>

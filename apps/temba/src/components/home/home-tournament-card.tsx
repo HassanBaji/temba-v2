@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { gameJoinToast } from "~/lib/game-copy";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type HomeTournamentGame =
@@ -22,7 +23,7 @@ export function HomeTournamentCard({ game }: { game: HomeTournamentGame }) {
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      toast.success(gameJoinToast(result.waitlisted));
       await refresh();
     },
     onError: async (error) => {

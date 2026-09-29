@@ -12,7 +12,7 @@ export function SettingsSection({
       <h2 className="text-muted-foreground font-mono text-[11px] font-normal uppercase tracking-[0.04em]">
         {eyebrow}
       </h2>
-      <div className="border-rule overflow-hidden rounded-[14px] border">
+      <div className="border-rule rounded-card overflow-hidden border">
         {children}
       </div>
     </section>

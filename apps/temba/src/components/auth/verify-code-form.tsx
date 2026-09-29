@@ -1,10 +1,11 @@
 "use client";
 
 import { OtpInput } from "~/components/ui/otp-input";
-import { Button } from "~/components/ui/button";
+import { Button, touchHitArea } from "~/components/ui/button";
 import { FieldError } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { ResendCountdown } from "~/components/auth/resend-countdown";
+import { cn } from "~/lib/utils";
 
 export function VerifyCodeForm({
   destination,
@@ -19,6 +20,7 @@ export function VerifyCodeForm({
   globalMessage,
   codeError,
   codeInputId = "sign-up-code",
+  summaryRef,
 }: {
   destination: string;
   changeLabel: string;
@@ -32,6 +34,7 @@ export function VerifyCodeForm({
   globalMessage: string | null;
   codeError?: string;
   codeInputId?: string;
+  summaryRef?: React.Ref<HTMLDivElement>;
 }) {
   const ready = code.length === 6;
   const helperId = `${codeInputId}-helper`;
@@ -52,13 +55,16 @@ export function VerifyCodeForm({
         Sent to {destination}.{" "}
         <button
           type="button"
-          className="text-ink font-medium underline"
+          className={cn(
+            touchHitArea,
+            "text-ink focus-visible:ring-ring/50 rounded-sm font-medium underline outline-none focus-visible:ring-[3px]",
+          )}
           onClick={onChangeIdentifier}
         >
           {changeLabel}
         </button>
       </p>
-      <FormErrorSummary message={globalMessage} />
+      <FormErrorSummary ref={summaryRef} message={globalMessage} />
       <OtpInput
         id={codeInputId}
         value={code}
@@ -77,14 +83,11 @@ export function VerifyCodeForm({
       <div>
         <Button
           type="submit"
-          size="auth"
-          aria-busy={pending}
+          size="lg"
+          pending={ready && pending}
+          pendingLabel="Verifying…"
           disabled={!ready || pending}
-          className={
-            ready
-              ? "bg-ink text-paper hover:bg-dimrule w-full font-semibold"
-              : "bg-rule text-muted-foreground w-full font-semibold"
-          }
+          className="w-full font-semibold"
         >
           Verify
         </Button>

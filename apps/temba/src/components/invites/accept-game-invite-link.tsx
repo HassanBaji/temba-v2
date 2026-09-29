@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { ErrorState } from "~/components/common/error-state";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteAuthButtons } from "~/components/invites/invite-auth-buttons";
+import {
+  InviteOutcome,
+  InvitePreviewError,
+} from "~/components/invites/invite-outcome";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { GAME_TOAST } from "~/lib/game-copy";
 import {
   formatLevelRangeGateCopy,
   formatLevelRangeLabel,
@@ -48,11 +54,11 @@ export function AcceptGameInviteLink({
         return;
       }
       if (result.outcome === "waitlisted") {
-        toast.success("Joined Game waitlist");
+        toast.success(GAME_TOAST.joinedWaitlist);
       } else if (result.outcome === "already") {
         toast.success("Already on this Game");
       } else {
-        toast.success("Joined Game");
+        toast.success(GAME_TOAST.joined);
       }
       router.replace(`/dashboard/games/${result.gameId}`);
     },
@@ -124,66 +130,50 @@ export function AcceptGameInviteLink({
     accept.mutate({ token });
   }
 
-  if (preview.isLoading) {
+  if (preview.isLoading || (preview.isError && preview.isFetching)) {
     return (
-      <div className="space-y-3">
+      <div aria-busy="true" className="space-y-3">
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-4 w-full" />
       </div>
     );
   }
 
-  if (preview.data?.status === "invalid") {
-    return (
-      <div className="space-y-3">
-        <h1 className="text-title font-semibold">Invite unavailable</h1>
-        <p className="text-body text-muted-foreground">
-          This Invite link is invalid or expired.
-        </p>
-        <Button variant="outline" asChild>
-          <Link href="/login">Go to login</Link>
-        </Button>
-      </div>
-    );
+  if (preview.isError) {
+    return <InvitePreviewError onRetry={() => void preview.refetch()} />;
   }
 
-  if (preview.data?.status === "unavailable") {
+  if (
+    preview.data?.status === "invalid" ||
+    preview.data?.status === "unavailable"
+  ) {
     return (
-      <div className="space-y-3">
-        <h1 className="text-title font-semibold">Invite unavailable</h1>
-        <p className="text-body text-muted-foreground">
-          This Game cannot accept Invite links right now.
-        </p>
-      </div>
+      <InviteOutcome
+        outcome={preview.data.status}
+        hostLabel="Game"
+        isSignedIn={isSignedIn}
+      />
     );
   }
 
   if (accept.data?.outcome === "waiting_for_partner") {
     return (
-      <div className="space-y-3">
-        <h1 className="text-title font-semibold">Waiting for your partner</h1>
-        <p className="text-body text-muted-foreground">
-          This Team-only Game registers the Team only after both partners
-          accept. Pending does not occupy a seat or the waitlist.
-        </p>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard">Go to dashboard</Link>
-        </Button>
-      </div>
+      <InviteOutcome
+        outcome="waiting_for_partner"
+        hostLabel="Game"
+        isSignedIn={isSignedIn}
+      />
     );
   }
 
   if (accept.isError && !seatRaceError) {
     return (
-      <div className="space-y-3">
-        <h1 className="text-title font-semibold">Could not join</h1>
-        <p className="text-body text-muted-foreground">
-          {accept.error.message}
-        </p>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard">Go to dashboard</Link>
-        </Button>
-      </div>
+      <ErrorState
+        title="Could not join"
+        message={accept.error.message}
+        onRetry={() => accept.mutate(accept.variables ?? { token })}
+        headingLevel={1}
+      />
     );
   }
 
@@ -280,7 +270,7 @@ export function AcceptGameInviteLink({
                 ? waitlistOnly
                   ? "No vacant Position. Occupied seats show who is already registered. Accept to join the waitlist."
                   : "Occupied seats show who is already registered. Pick a vacant Position to sit."
-                : "Occupied seats show who is already registered. Sign in or sign up with Clerk to pick a vacant Position."}
+                : "Occupied seats show who is already registered. Sign in or create an account to pick a vacant Position."}
           </p>
         </div>
         <GameSeatGrid
@@ -329,8 +319,7 @@ export function AcceptGameInviteLink({
             <p className="text-body text-muted-foreground">{rangeLabel}</p>
           ) : null}
           <p className="text-body text-muted-foreground">
-            Sign in or sign up with Clerk to join. Opening this URL does not log
-            anyone in without Clerk.
+            Sign in or create an account to join {ready?.gameName ?? "Game"}.
           </p>
         </div>
         <InviteAuthButtons
@@ -342,16 +331,13 @@ export function AcceptGameInviteLink({
   }
 
   return (
-    <div className="space-y-3">
+    <div aria-busy="true" className="space-y-3">
       <h1 className="text-title font-semibold">
         Joining {ready?.gameName ?? "Game"}…
       </h1>
       {rangeLabel ? (
         <p className="text-body text-muted-foreground">{rangeLabel}</p>
       ) : null}
-      <p className="text-body text-muted-foreground">
-        Accepting the Invite link as the signed-in User.
-      </p>
     </div>
   );
 }

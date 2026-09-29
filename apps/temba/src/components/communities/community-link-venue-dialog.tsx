@@ -1,6 +1,7 @@
 "use client";
 
-import { RowList } from "~/components/common/row-list";
+import { ErrorState } from "~/components/common/error-state";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -24,7 +25,8 @@ export function CommunityLinkVenueDialog({
   venues,
   isLoading,
   errorMessage,
-  pending,
+  onRetry,
+  pendingVenueId,
   onRequest,
 }: {
   open: boolean;
@@ -34,7 +36,8 @@ export function CommunityLinkVenueDialog({
   venues: LiveVenue[] | undefined;
   isLoading: boolean;
   errorMessage?: string;
-  pending: boolean;
+  onRetry: () => void;
+  pendingVenueId: string | null;
   onRequest: (venueId: string) => void;
 }) {
   return (
@@ -58,7 +61,13 @@ export function CommunityLinkVenueDialog({
           </Field>
           {isLoading ? <Skeleton className="h-16 w-full" /> : null}
           {errorMessage ? (
-            <p className="text-destructive text-body">{errorMessage}</p>
+            <ErrorState
+              headingLevel={3}
+              className="py-6"
+              title="Venues could not be loaded"
+              message={errorMessage}
+              onRetry={onRetry}
+            />
           ) : null}
           {venues?.length === 0 ? (
             <p className="text-body text-muted-foreground">
@@ -68,24 +77,23 @@ export function CommunityLinkVenueDialog({
           {venues && venues.length > 0 ? (
             <RowList>
               {venues.map((venue) => (
-                <li
+                <ListRow
                   key={venue.id}
-                  className="flex min-h-16 flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-lead font-semibold">{venue.name}</p>
-                    <p className="text-meta text-muted-foreground">
-                      {venue.city}, {venue.country}
-                    </p>
-                  </div>
-                  <Button
-                    className="min-h-11"
-                    disabled={pending}
-                    onClick={() => onRequest(venue.id)}
-                  >
-                    Request link
-                  </Button>
-                </li>
+                  stackTrailing
+                  title={venue.name}
+                  meta={`${venue.city}, ${venue.country}`}
+                  trailing={
+                    <Button
+                      aria-label={`Request a link to ${venue.name}`}
+                      disabled={pendingVenueId !== null}
+                      pending={pendingVenueId === venue.id}
+                      pendingLabel="Requesting…"
+                      onClick={() => onRequest(venue.id)}
+                    >
+                      Request link
+                    </Button>
+                  }
+                />
               ))}
             </RowList>
           ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronRight, UserRound, Users, X } from "lucide-react";
+import { UserRound, Users } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -11,7 +11,6 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import { UserAvatar } from "~/components/common/user-avatar";
 import {
   FriendlyGamePartnerPicker,
   type FriendlyGamePartnerPick,
@@ -19,8 +18,11 @@ import {
 import { FriendlyGamePartnerReview } from "~/components/games/friendly-game-partner-review";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
+import { SeatTile } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
+import { SelectCard, SelectCardNote } from "~/components/ui/select-card";
 import { formatGameCardDay } from "~/lib/format-game-start";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
@@ -35,6 +37,7 @@ import {
   PARTNER_VACANT_SIDE_RACE_MESSAGE,
   partnerVacantSideRaceRecovery,
 } from "~/lib/friendly-game-partner";
+import { JOIN_GAME_ACTION } from "~/lib/game-copy";
 import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { defaultJoinSeat } from "~/lib/preferred-seat";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
@@ -64,6 +67,8 @@ import { api } from "~/trpc/react";
 type JoinSheetStep = "chooser" | "seat" | "partner" | "partnerConfirm";
 
 type SeatPosition = "left" | "right";
+
+const SEAT_JOIN_FAILED_MESSAGE = "Couldn't take that seat. Try again.";
 
 /**
  * Structural side shape rather than one screen's router output: the sheet is
@@ -126,85 +131,36 @@ function ModeChooser({
 }) {
   return (
     <div className="flex flex-col gap-3 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-[18px]">
-      <button
-        type="button"
+      <SelectCard
         onClick={onJoinAlone}
         aria-label="Join alone. One seat. Someone else takes the other."
-        className={cn(
-          "border-ink bg-paper text-ink flex w-full flex-col gap-2.5 rounded-[14px] border px-5 py-[18px] text-left",
-          "hover:bg-wash outline-none transition-colors",
-          "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        )}
+        icon={<UserRound className="size-[17px]" strokeWidth={1.75} />}
+        title="Join alone"
+        description="One seat. Someone else takes the other."
+        trailing="chevron"
+        className="border-ink"
       >
-        <span className="flex w-full items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="border-rule flex size-[34px] shrink-0 items-center justify-center rounded-lg border"
-          >
-            <UserRound className="size-[17px]" strokeWidth={1.75} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="text-[17px] font-semibold">Join alone</span>
-            <span className="text-muted-foreground mt-0.5 block text-xs">
-              One seat. Someone else takes the other.
-            </span>
-          </span>
-          <ChevronRight
-            aria-hidden="true"
-            className="text-dim size-[18px] shrink-0"
-          />
-        </span>
         <TwoSeatDiagram onInk={false} />
-        <span className="text-muted-foreground font-mono text-[10px] uppercase tracking-wide">
-          You are in straight away
-        </span>
-      </button>
+        <SelectCardNote>You are in straight away</SelectCardNote>
+      </SelectCard>
 
-      <button
-        type="button"
+      <SelectCard
+        selected
         onClick={onJoinWithPartner}
         aria-label="Join with a partner. Both seats. You play as a team. Both seats are booked now; your partner is in straight away."
-        className={cn(
-          "bg-ink text-paper flex w-full flex-col gap-2.5 rounded-[14px] px-5 py-[18px] text-left",
-          "hover:bg-dimrule outline-none transition-colors",
-          "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        )}
+        icon={<Users className="size-[17px]" strokeWidth={1.75} />}
+        title="Join with a partner"
+        description="Both seats. You play as a team."
+        trailing="chevron"
+        className="hover:bg-dimrule"
       >
-        <span className="flex w-full items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="bg-raised flex size-[34px] shrink-0 items-center justify-center rounded-lg"
-          >
-            <Users className="size-[17px]" strokeWidth={1.75} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="text-[17px] font-semibold">
-              Join with a partner
-            </span>
-            <span className="text-dim mt-0.5 block text-xs">
-              Both seats. You play as a team.
-            </span>
-          </span>
-          <ChevronRight
-            aria-hidden="true"
-            className="text-dim size-[18px] shrink-0"
-          />
-        </span>
         <TwoSeatDiagram onInk />
-        <span className="text-dim font-mono text-[10px] uppercase tracking-wide">
-          Both seats booked now
-        </span>
-      </button>
+        <SelectCardNote>Both seats booked now</SelectCardNote>
+      </SelectCard>
     </div>
   );
 }
 
-/**
- * One Position in the picker: hatched while open (the same "not yet" device
- * as `game-lineup-section.tsx`'s `LineupOpenChip` and the Home seat row),
- * solid ink once picked, plain paper with the occupant once taken. Meaning
- * never rides on the hatch alone — the accessible name states it.
- */
 function PositionButton({
   occupant,
   position,
@@ -220,64 +176,19 @@ function PositionButton({
   disabled: boolean;
   onSelect: () => void;
 }) {
-  const taken = occupant != null;
-
+  const seatName = `${sideLabel} ${positionLabel(position).toLowerCase()}`;
   return (
-    <div className="min-w-0 flex-1">
-      <button
-        type="button"
-        disabled={taken || disabled}
-        aria-pressed={taken ? undefined : selected}
-        aria-label={
-          taken
-            ? `${sideLabel} ${positionLabel(position).toLowerCase()}, taken by ${occupant.name}`
-            : `Take ${sideLabel} ${positionLabel(position).toLowerCase()}`
-        }
-        onClick={onSelect}
-        className={cn(
-          "flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border px-1",
-          "outline-none transition-colors",
-          "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-          "disabled:cursor-default",
-          taken && "border-rule bg-paper",
-          !taken && selected && "border-ink bg-ink text-paper",
-          !taken && !selected && "hatch text-dim border-transparent",
-        )}
-      >
-        {taken ? (
-          <>
-            <UserAvatar
-              name={occupant.name}
-              image={occupant.image}
-              size="sm"
-              className="shrink-0"
-            />
-            <span className="text-eyebrow text-ink max-w-full truncate leading-tight">
-              {occupant.name}
-            </span>
-            {occupantLevelLabel(occupant) ? (
-              <span className="text-muted-foreground text-[10px] leading-tight">
-                {occupantLevelLabel(occupant)}
-              </span>
-            ) : null}
-          </>
-        ) : selected ? (
-          <span className="text-meta font-semibold">You</span>
-        ) : (
-          <span aria-hidden="true" className="text-lead leading-none">
-            +
-          </span>
-        )}
-      </button>
-      <p
-        className={cn(
-          "text-eyebrow mt-2 text-center",
-          selected ? "text-ink font-medium" : "text-muted-foreground",
-        )}
-      >
-        {positionLabel(position)}
-      </p>
-    </div>
+    <SeatTile
+      occupant={occupant}
+      level={occupantLevelLabel(occupant)}
+      selected={selected}
+      caption={positionLabel(position)}
+      label={
+        occupant ? `${seatName}, taken by ${occupant.name}` : `Take ${seatName}`
+      }
+      disabled={occupant != null || disabled}
+      onSelect={onSelect}
+    />
   );
 }
 
@@ -291,7 +202,9 @@ function NetDivider() {
     >
       <span className="h-5 shrink-0" />
       <span className="bg-rule w-px flex-1" />
-      <span className="text-dim py-1.5 text-xs font-semibold">vs</span>
+      <span className="text-muted-foreground text-eyebrow py-1.5 font-semibold">
+        vs
+      </span>
       <span className="bg-rule w-px flex-1" />
       <span className="h-7 shrink-0" />
     </div>
@@ -370,12 +283,12 @@ function TournamentTeamSides({
         <div className="pb-2.5">
           <h3
             id="tournament-join-sides"
-            className="font-expanded text-[19px] tracking-[-0.03em]"
+            className="font-expanded text-title tracking-[-0.03em]"
           >
             {teamLabel}
           </h3>
         </div>
-        <div className="border-rule rounded-[14px] border px-4 py-4">
+        <div className="border-rule rounded-card border px-4 py-4">
           <SideColumn
             side={focused}
             format={format}
@@ -393,7 +306,7 @@ function TournamentTeamSides({
       <div className="flex items-baseline gap-2.5 pb-2.5">
         <h3
           id="tournament-join-sides"
-          className="font-expanded text-[19px] tracking-[-0.03em]"
+          className="font-expanded text-title tracking-[-0.03em]"
         >
           Teams
         </h3>
@@ -405,7 +318,7 @@ function TournamentTeamSides({
         {sides.map((side) => (
           <div
             key={side.sideIndex}
-            className="border-rule rounded-[14px] border px-4 py-4"
+            className="border-rule rounded-card border px-4 py-4"
           >
             <SideColumn
               side={side}
@@ -439,12 +352,14 @@ function TournamentTakeASeat({
   onChooseSeat,
   onConfirm,
   onJoinWithPartner,
+  error,
 }: {
   title: string;
   sides: readonly FriendlyGameJoinSheetSide[];
   format: string;
   picked: FriendlyGameJoinSeat | null;
   pending: boolean;
+  error: string | null;
   pricePerPlayerCents?: number | null;
   roundCount: number | null;
   windowStart?: Date | string | null;
@@ -505,37 +420,23 @@ function TournamentTakeASeat({
       <div className="border-rule shrink-0 px-[22px] pb-0 pt-[22px]">
         <div className="flex items-center justify-between">
           {onBackToTeams ? (
-            <button
-              type="button"
+            <BackButton
+              variant="boxed"
+              label="All teams"
               onClick={onBackToTeams}
-              className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-              aria-label="All teams"
-            >
-              <ArrowLeft
-                aria-hidden="true"
-                className="size-5"
-                strokeWidth={2}
-              />
-            </button>
+            />
           ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-              aria-label="Close"
-            >
-              <X aria-hidden="true" className="size-5" strokeWidth={2} />
-            </button>
+            <CloseButton variant="boxed" onClick={onClose} />
           )}
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {tournamentJoinSeatsTakenLine(field.seatsTaken, field.seatTotal)}
           </p>
         </div>
         <ResponsiveDialogHeader className="p-0 pt-6 text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-          <ResponsiveDialogTitle className="font-expanded text-[38px] leading-none tracking-[-0.03em]">
+          <ResponsiveDialogTitle className="font-expanded text-display leading-none tracking-[-0.03em]">
             {TAKE_A_SEAT_TITLE}
           </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="text-[15px] leading-relaxed">
+          <ResponsiveDialogDescription className="text-body leading-relaxed">
             {tournamentJoinHeaderLine({
               name: title,
               roundCount,
@@ -546,6 +447,7 @@ function TournamentTakeASeat({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px] py-[22px]">
+        <FormErrorSummary message={error} />
         <TournamentTeamSides
           sides={sides}
           format={format}
@@ -556,7 +458,7 @@ function TournamentTakeASeat({
           onPick={onChooseSeat}
         />
         {explanation ? (
-          <p className="text-muted-foreground text-[13px] leading-relaxed">
+          <p className="text-muted-foreground text-meta leading-relaxed">
             {explanation}
           </p>
         ) : null}
@@ -566,7 +468,8 @@ function TournamentTakeASeat({
       <div className="border-rule mt-auto flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
-          className="h-[52px] min-h-[52px] w-full"
+          size="lg"
+          className="w-full"
           disabled={!picked || pending}
           onClick={onConfirm}
         >
@@ -580,14 +483,15 @@ function TournamentTakeASeat({
           <Button
             type="button"
             variant="outline"
-            className="h-[52px] min-h-[52px] w-full"
+            size="lg"
+            className="w-full"
             disabled={pending}
             onClick={onJoinWithPartner}
           >
             Join with a partner
           </Button>
         ) : null}
-        <p className="text-muted-foreground text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           {LEAVE_SEAT_UNTIL_POOL_DRAW_COPY}
         </p>
       </div>
@@ -652,7 +556,11 @@ export function FriendlyGameJoinSheet({
   sides: readonly FriendlyGameJoinSheetSide[];
   pending: boolean;
   pricePerPlayerCents?: number | null;
-  onPickSeat: (sideIndex: number, position: SeatPosition) => void;
+  /** Return the join promise to keep the sheet open until it settles. */
+  onPickSeat: (
+    sideIndex: number,
+    position: SeatPosition,
+  ) => void | Promise<unknown>;
   gameId?: string;
   format?: string;
   registrationMode?: string;
@@ -710,6 +618,7 @@ export function FriendlyGameJoinSheet({
   );
   const [openedAtPartner, setOpenedAtPartner] = useState(false);
   const [focusedSideIndex, setFocusedSideIndex] = useState<number | null>(null);
+  const [seatError, setSeatError] = useState<string | null>(null);
 
   const utils = api.useUtils();
 
@@ -784,6 +693,7 @@ export function FriendlyGameJoinSheet({
       );
       setSelectedPartner(null);
       setPartnerRaceMessage(null);
+      setSeatError(null);
       setFocusedSideIndex(initialSeat?.sideIndex ?? null);
       registerWithPartner.reset();
     }
@@ -842,12 +752,25 @@ export function FriendlyGameJoinSheet({
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
   const vacantSideIndex = firstFullyVacantSideIndex(sides);
 
-  function confirmSeat() {
+  async function confirmSeat() {
     if (!picked) {
       return;
     }
-    onOpenChange(false);
-    onPickSeat(picked.sideIndex, picked.position);
+    const joining = onPickSeat(picked.sideIndex, picked.position);
+    if (!(joining instanceof Promise)) {
+      onOpenChange(false);
+      return;
+    }
+    setSeatError(null);
+    try {
+      await joining;
+      onOpenChange(false);
+    } catch (error) {
+      setSeatError(
+        globalFormErrorMessage(error instanceof Error ? error : null) ??
+          SEAT_JOIN_FAILED_MESSAGE,
+      );
+    }
   }
 
   function goPartner() {
@@ -858,10 +781,6 @@ export function FriendlyGameJoinSheet({
 
   function leavePartner() {
     registerWithPartner.reset();
-    if (openedAtPartner) {
-      onOpenChange(false);
-      return;
-    }
     setStep("chooser");
   }
 
@@ -968,17 +887,20 @@ export function FriendlyGameJoinSheet({
             focusedSideIndex={focusedSideIndex}
             onFocusSide={focusTeam}
             onChooseSeat={pick}
-            onConfirm={confirmSeat}
+            onConfirm={() => {
+              void confirmSeat();
+            }}
             onJoinWithPartner={offersPartner && gameId ? goPartner : undefined}
+            error={seatError}
           />
         ) : null}
 
         {step === "seat" && !isTournamentJoin ? (
           <>
             <div className="px-[22px] pt-[18px]">
-              {partnerRaceMessage ? (
+              {(partnerRaceMessage ?? seatError) ? (
                 <FormErrorSummary
-                  message={partnerRaceMessage}
+                  message={partnerRaceMessage ?? seatError}
                   className="mb-4"
                 />
               ) : null}
@@ -1019,11 +941,14 @@ export function FriendlyGameJoinSheet({
               ) : null}
               <Button
                 type="button"
-                className="h-[52px] flex-1"
+                size="lg"
+                className="flex-1"
                 disabled={!picked || pending}
-                onClick={confirmSeat}
+                onClick={() => {
+                  void confirmSeat();
+                }}
               >
-                {pending ? "Joining…" : "Join game"}
+                {pending ? "Joining…" : JOIN_GAME_ACTION}
               </Button>
             </div>
           </>
@@ -1040,7 +965,7 @@ export function FriendlyGameJoinSheet({
             notice={partnerRaceMessage}
             selectedPartner={selectedPartner}
             onSelectedPartnerChange={setSelectedPartner}
-            onBack={leavePartner}
+            onBack={openedAtPartner ? undefined : leavePartner}
             onClose={() => onOpenChange(false)}
             onContinue={() => {
               registerWithPartner.reset();

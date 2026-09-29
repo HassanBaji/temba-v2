@@ -1,6 +1,7 @@
 "use client";
 
 import { ErrorState } from "~/components/common/error-state";
+import { SurfaceLabel } from "~/components/common/surface-label";
 import { Skeleton } from "~/components/ui/skeleton";
 import { shortPlayerName } from "~/lib/player-name";
 import { api } from "~/trpc/react";
@@ -52,14 +53,14 @@ export function ProfileAllTimeCard({
   const hasMatches = matchesPlayed > 0;
 
   return (
-    <section className="border-rule bg-paper overflow-hidden rounded-[14px] border">
-      <div className="border-rule flex items-baseline justify-between border-b px-5 py-4">
-        <p className="text-ink text-body font-semibold">All time</p>
-        {sinceYear != null ? (
-          <p className="text-eyebrow text-dim">since {sinceYear}</p>
-        ) : null}
-      </div>
-      <div className="p-5">
+    <section className="border-rule bg-paper rounded-card overflow-hidden border">
+      <SurfaceLabel
+        inset="profile"
+        meta={sinceYear != null ? `Since ${sinceYear}` : null}
+      >
+        All time
+      </SurfaceLabel>
+      <div className="px-5 pb-5">
         <div className="flex items-end justify-between gap-4">
           <div className="flex items-baseline gap-2.5">
             <p className="font-expanded text-[44px] tabular-nums leading-[0.9]">
@@ -110,13 +111,13 @@ function ProfileAllTimeSkeleton() {
   return (
     <div
       aria-busy="true"
-      className="border-rule overflow-hidden rounded-[14px] border"
+      className="border-rule rounded-card overflow-hidden border"
     >
-      <div className="border-rule flex items-baseline justify-between border-b px-5 py-4">
-        <Skeleton className="h-[15px] w-16" />
+      <div className="flex items-baseline justify-between px-5 pb-3 pt-5">
+        <Skeleton className="h-3.5 w-16" />
         <Skeleton className="h-3 w-16" />
       </div>
-      <div className="p-5">
+      <div className="px-5 pb-5">
         <Skeleton className="h-10 w-24" />
         <Skeleton className="mt-4 h-1.5 w-full rounded-[3px]" />
       </div>
@@ -145,6 +146,8 @@ export function ProfileAllTime() {
   if (stats.error) {
     return (
       <ErrorState
+        variant="inline"
+        className="rounded-card px-5"
         title="All time could not be loaded"
         message={stats.error.message}
         onRetry={() => {

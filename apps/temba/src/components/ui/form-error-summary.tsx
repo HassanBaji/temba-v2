@@ -21,7 +21,7 @@ export const FormErrorSummary = React.forwardRef<
       role="alert"
       tabIndex={-1}
       className={cn(
-        "border-destructive/30 bg-destructive/5 text-destructive focus-visible:ring-ring rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2",
+        "border-destructive/30 bg-destructive/5 text-destructive focus-visible:ring-ring text-body rounded-md border px-3 py-2 outline-none focus-visible:ring-2",
         className,
       )}
     >

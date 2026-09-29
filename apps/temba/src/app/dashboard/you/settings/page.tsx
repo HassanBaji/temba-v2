@@ -1,15 +1,16 @@
 "use client";
 
 import { useClerk, useUser } from "@clerk/nextjs";
-import Link from "next/link";
-import { ArrowLeft, Building2, Mail, Users } from "lucide-react";
+import { Building2, Mail, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { PageTitle } from "~/components/layout/page-title";
 import { PreferredPositionControl } from "~/components/settings/preferred-position-control";
 import { SettingsFooter } from "~/components/settings/settings-footer";
 import { SettingsLinkRow } from "~/components/settings/settings-link-row";
 import { SettingsSection } from "~/components/settings/settings-section";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { activeVenueCountLabel } from "~/lib/active-venue-count";
@@ -21,16 +22,8 @@ const settingsPageClassName =
 function SettingsHeader() {
   return (
     <header className="mt-6 flex items-center gap-1.5 lg:mt-2">
-      <Link
-        href="/dashboard/you"
-        aria-label="Back to Profile"
-        className="text-ink focus-visible:ring-ring/50 -ml-3 inline-flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
-      >
-        <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-      </Link>
-      <h1 className="text-ink text-[26px] font-bold tracking-[-0.01em]">
-        Settings
-      </h1>
+      <BackButton href="/dashboard/you" label="Back to Profile" />
+      <PageTitle className="text-ink">Settings</PageTitle>
     </header>
   );
 }
@@ -44,11 +37,11 @@ function SettingsLoadingBody() {
     <div aria-busy="true" className="flex flex-col gap-7 pt-[26px]">
       <div className="flex flex-col gap-3">
         <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-40 w-full rounded-[14px]" />
+        <Skeleton className="rounded-card h-40 w-full" />
       </div>
       <div className="flex flex-col gap-3">
         <Skeleton className="h-3 w-16" />
-        <div className="border-rule overflow-hidden rounded-[14px] border">
+        <div className="border-rule rounded-card overflow-hidden border">
           <Skeleton className="h-[72px] w-full rounded-none" />
           <Skeleton className="h-[72px] w-full rounded-none" />
         </div>
@@ -121,12 +114,12 @@ export default function SettingsPage() {
                   <span
                     role="status"
                     aria-label={`${invites.count} pending invites`}
-                    className="bg-ink text-paper flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-[11px] px-[7px] text-xs font-semibold"
+                    className="bg-ink text-paper text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full px-[7px] font-semibold"
                   >
                     <span aria-hidden="true">{invites.count}</span>
                   </span>
                 ) : invites.isLoading ? (
-                  <Skeleton className="h-[22px] w-8 shrink-0 rounded-[11px]" />
+                  <Skeleton className="h-[22px] w-8 shrink-0 rounded-full" />
                 ) : null
               }
             />
@@ -160,9 +153,7 @@ export default function SettingsPage() {
         <SettingsFooter
           displayName={displayName}
           phoneNumber={phoneNumber}
-          onSignOut={() => {
-            void clerk.signOut({ redirectUrl: "/login" });
-          }}
+          onSignOut={() => clerk.signOut({ redirectUrl: "/login" })}
         />
       </SettingsPageFrame>
     </DashboardShell>

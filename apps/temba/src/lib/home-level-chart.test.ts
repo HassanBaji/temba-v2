@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { chartPointGeometry, plottedFraction } from "./home-level-chart";
+import {
+  chartPointGeometry,
+  levelChangeView,
+  plottedFraction,
+} from "./home-level-chart";
 
 describe("plottedFraction", () => {
   it("clamps zero rated matches to the 0.25 floor", () => {
@@ -31,5 +35,32 @@ describe("chartPointGeometry", () => {
     const points = chartPointGeometry([3.4], 40, 58);
     assert.equal(points.length, 1);
     assert.equal(points[0]?.x, 20);
+  });
+});
+
+describe("levelChangeView", () => {
+  it("names an upward change", () => {
+    assert.deepEqual(levelChangeView(0.3), {
+      direction: "up",
+      amount: "0.3",
+      spoken: "Up",
+    });
+  });
+
+  it("names a downward change without a minus sign in the amount", () => {
+    assert.deepEqual(levelChangeView(-0.4), {
+      direction: "down",
+      amount: "0.4",
+      spoken: "Down",
+    });
+  });
+
+  it("treats a change that rounds to 0.0 as no change", () => {
+    assert.deepEqual(levelChangeView(0), {
+      direction: "none",
+      amount: "0.0",
+      spoken: "No change",
+    });
+    assert.equal(levelChangeView(-0.04).direction, "none");
   });
 });

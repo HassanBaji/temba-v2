@@ -1,14 +1,14 @@
 "use client";
 
-import { X } from "lucide-react";
-
 import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
+import { Button } from "~/components/ui/button";
 import {
   Drawer,
   DrawerContent,
   DrawerDescription,
   DrawerTitle,
 } from "~/components/ui/drawer";
+import { CloseButton } from "~/components/ui/nav-icon-button";
 import {
   MERGE_BANNER_ACTION_LABEL,
   MERGE_BANNER_TITLE,
@@ -63,12 +63,12 @@ export function TournamentMergeBanner({
   const completesField = mergeCompletesTheField(halfTeams);
 
   return (
-    <div className="border-ink rounded-[14px] border p-5">
+    <div className="border-ink rounded-card border p-5">
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>
-      <p className="mt-2 text-[15px] font-semibold">{MERGE_BANNER_TITLE}</p>
-      <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
+      <p className="text-body mt-2 font-semibold">{MERGE_BANNER_TITLE}</p>
+      <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {mergePairCopy({
           firstName: first.occupant.name,
           secondName: second.occupant.name,
@@ -76,13 +76,13 @@ export function TournamentMergeBanner({
           teamCount,
         })}
       </p>
-      <button
+      <Button
         type="button"
         onClick={onOpen}
-        className="bg-ink text-paper mt-4 flex h-[46px] min-h-11 w-full items-center justify-center rounded-[12px] text-sm font-semibold"
+        className="mt-4 w-full font-semibold"
       >
         {MERGE_BANNER_ACTION_LABEL}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -95,21 +95,22 @@ export function TournamentMergeEntry({
   onOpen: () => void;
 }) {
   return (
-    <div className="border-rule rounded-[14px] border p-5">
+    <div className="border-rule rounded-card border p-5">
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>
-      <p className="mt-2 text-[15px] font-semibold">{MERGE_MANY_TITLE}</p>
-      <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
+      <p className="text-body mt-2 font-semibold">{MERGE_MANY_TITLE}</p>
+      <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {mergeManyHalfTeamsCopy(halfTeamCount)}
       </p>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={onOpen}
-        className="border-ink mt-4 flex h-[46px] min-h-11 w-full items-center justify-center rounded-[12px] border text-sm font-semibold"
+        className="border-ink mt-4 w-full font-semibold"
       >
         {MERGE_SEATS_ACTION_LABEL}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -166,23 +167,19 @@ export function TournamentMergeDrawer({
         <div className="flex h-full min-h-0 flex-col">
           <div className="border-rule shrink-0 px-[22px] pb-0 pt-[22px]">
             <div className="flex items-center justify-between">
-              <button
-                type="button"
+              <CloseButton
+                variant="boxed"
                 onClick={close}
                 disabled={mergePending}
-                className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px] disabled:opacity-50"
-                aria-label="Close"
-              >
-                <X aria-hidden="true" className="size-5" strokeWidth={2} />
-              </button>
+              />
               <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
                 {ORGANIZER_EYEBROW}
               </p>
             </div>
-            <DrawerTitle className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
+            <DrawerTitle className="font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
               {MERGE_DRAWER_TITLE}
             </DrawerTitle>
-            <DrawerDescription className="mt-2.5 text-[15px] leading-relaxed">
+            <DrawerDescription className="text-body mt-2.5 leading-relaxed">
               {lead}
             </DrawerDescription>
           </div>

@@ -1,8 +1,14 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+} from "~/components/common/action-menu";
+import { FooterAction } from "~/components/games/friendly-game-actions-footer";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import {
@@ -32,6 +38,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { detailBackHref } from "~/lib/dashboard-paths";
+import {
+  CANCEL_GAME_ACTION,
+  EDIT_GAME_ACTION,
+  REGISTER_TEAM_ACTION,
+} from "~/lib/game-copy";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import {
@@ -170,6 +182,7 @@ export function TournamentHome({
 }) {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
+  const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
   const sizing =
     data.poolCount != null && data.teamsAllowed != null
       ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
@@ -258,6 +271,7 @@ export function TournamentHome({
           name={data.name ?? "Tournament"}
           roundsPlayed={roundsPlayedLabel(data.poolTables, roundCount)}
           poolTables={data.poolTables}
+          backHref={backHref}
           showUndo={showUndo}
           undoPending={undoPending}
           undoError={undoError}
@@ -282,7 +296,7 @@ export function TournamentHome({
             left={viewerSide?.left ?? null}
             right={viewerSide?.right ?? null}
             showYourTeam={seated}
-            backHref="/dashboard/games"
+            backHref={backHref}
             onShare={onShare}
             sharePending={sharePending}
             onInvite={onInvite}
@@ -543,6 +557,7 @@ function TournamentStandingsTree({
   name,
   roundsPlayed,
   poolTables,
+  backHref,
   showUndo,
   undoPending,
   undoError,
@@ -551,6 +566,7 @@ function TournamentStandingsTree({
   name: string;
   roundsPlayed: string | null;
   poolTables: GameDetail["poolTables"];
+  backHref: string;
   showUndo: boolean;
   undoPending: boolean;
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
@@ -563,7 +579,7 @@ function TournamentStandingsTree({
           name={name}
           roundsPlayed={roundsPlayed}
           finished={Boolean(poolTables?.finished)}
-          backHref="/dashboard/games"
+          backHref={backHref}
         />
         {poolTables ? (
           <div className="pt-[18px]">
@@ -726,7 +742,7 @@ function TournamentHomeActions({
               className="min-h-11 w-full"
               disabled={registerTeamPending || teamId.length === 0}
             >
-              {registerTeamPending ? "Registering…" : "Register Team"}
+              {registerTeamPending ? "Registering…" : REGISTER_TEAM_ACTION}
             </Button>
           </form>
         )
@@ -743,94 +759,85 @@ function TournamentHomeActions({
         </Button>
       ) : null}
       {isOrganizerActive ? (
-        <div className="flex flex-wrap gap-2">
-          {onInvite ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              onClick={onInvite}
+        <>
+          <div className="flex items-center gap-2">
+            {onInvite ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 flex-1"
+                onClick={onInvite}
+              >
+                {INVITE_ACTION_LABEL}
+              </Button>
+            ) : null}
+            <div className="ml-auto">
+              <ActionMenu label="Game actions">
+                {onShare ? (
+                  <ActionMenuItem disabled={sharePending} onSelect={onShare}>
+                    Share
+                  </ActionMenuItem>
+                ) : null}
+                {registrationClosed ? (
+                  <ActionMenuItem
+                    disabled={joinFrozen || reopenPending}
+                    onSelect={onReopenRegistration}
+                  >
+                    Reopen registration
+                  </ActionMenuItem>
+                ) : (
+                  <ActionMenuItem
+                    disabled={closePending}
+                    onSelect={onCloseRegistration}
+                  >
+                    Close registration
+                  </ActionMenuItem>
+                )}
+                {showKick ? (
+                  <>
+                    <ActionMenuSeparator />
+                    {kickable.map((occupant) => (
+                      <ActionMenuItem
+                        key={occupant.userId}
+                        variant="destructive"
+                        disabled={kickPending}
+                        onSelect={() => onKick?.(occupant.userId)}
+                      >
+                        Kick {occupant.name}
+                      </ActionMenuItem>
+                    ))}
+                    {waitlist.map((entry) => (
+                      <ActionMenuItem
+                        key={entry.id}
+                        variant="destructive"
+                        disabled={kickPending}
+                        onSelect={() => onKickWaitlist?.(entry.id)}
+                      >
+                        Kick {entry.name} from the waitlist
+                      </ActionMenuItem>
+                    ))}
+                  </>
+                ) : null}
+              </ActionMenu>
+            </div>
+          </div>
+          {onEdit || onCancelGame ? (
+            <div
+              data-slot="tournament-actions-footer"
+              className="border-rule divide-rule divide-y border-t"
             >
-              {INVITE_ACTION_LABEL}
-            </Button>
+              {onEdit ? (
+                <FooterAction label={EDIT_GAME_ACTION} onClick={onEdit} />
+              ) : null}
+              {onCancelGame ? (
+                <FooterAction
+                  label={CANCEL_GAME_ACTION}
+                  onClick={onCancelGame}
+                />
+              ) : null}
+            </div>
           ) : null}
-          {onShare ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={sharePending}
-              onClick={onShare}
-            >
-              Share
-            </Button>
-          ) : null}
-          {onEdit ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              onClick={onEdit}
-            >
-              Edit Game
-            </Button>
-          ) : null}
-          {registrationClosed ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={joinFrozen || reopenPending}
-              onClick={onReopenRegistration}
-            >
-              Reopen registration
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={closePending}
-              onClick={onCloseRegistration}
-            >
-              Close registration
-            </Button>
-          )}
-          {showKick ? (
-            <ActionMenu label="Kick a player">
-              {kickable.map((occupant) => (
-                <ActionMenuItem
-                  key={occupant.userId}
-                  variant="destructive"
-                  disabled={kickPending}
-                  onSelect={() => onKick?.(occupant.userId)}
-                >
-                  Kick {occupant.name}
-                </ActionMenuItem>
-              ))}
-              {waitlist.map((entry) => (
-                <ActionMenuItem
-                  key={entry.id}
-                  variant="destructive"
-                  disabled={kickPending}
-                  onSelect={() => onKickWaitlist?.(entry.id)}
-                >
-                  Kick {entry.name} from waitlist
-                </ActionMenuItem>
-              ))}
-            </ActionMenu>
-          ) : null}
-          {onCancelGame ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="text-destructive min-h-11"
-              onClick={onCancelGame}
-            >
-              Cancel Game
-            </Button>
-          ) : null}
-        </div>
+        </>
       ) : null}
     </div>
   );

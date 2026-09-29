@@ -22,7 +22,7 @@ function HatchSwatches() {
         <div className="space-y-2">
           <div
             aria-hidden="true"
-            className="hatch border-rule size-16 rounded-[5px] border"
+            className="hatch border-rule rounded-xs size-16 border"
           />
           <p className="text-muted-foreground text-meta">
             Light hatch — not yet
@@ -31,7 +31,7 @@ function HatchSwatches() {
         <div className="bg-ink space-y-2 rounded-xl p-3">
           <div
             aria-hidden="true"
-            className="hatch hatch-on-ink size-16 rounded-[5px]"
+            className="hatch hatch-on-ink rounded-xs size-16"
           />
           <p className="text-dim text-meta">Black-surface hatch — not yet</p>
         </div>
@@ -50,7 +50,7 @@ function HomeColumn({
   const nextGame = fixture.nextGame;
 
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[26px]">
+    <div className="max-w-column mx-auto flex w-full flex-col gap-[26px]">
       <h2 className="text-title font-semibold">{title}</h2>
       <HomeHeader
         name={fixture.userName}
@@ -146,7 +146,7 @@ function EmptyScaffolds({ fixture }: { fixture: HomeFixture }) {
               <div
                 key={index}
                 aria-hidden="true"
-                className="hatch h-[38px] min-w-0 flex-1 rounded-[5px]"
+                className="hatch rounded-xs h-[38px] min-w-0 flex-1"
               />
             ))}
           </div>

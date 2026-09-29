@@ -10,7 +10,7 @@ import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
-import { Button } from "~/components/ui/button";
+import { Button, touchHitArea } from "~/components/ui/button";
 import {
   Field,
   FieldError,
@@ -31,9 +31,6 @@ import {
   formatInternationalNumber,
 } from "~/lib/phone-number";
 import { cn } from "~/lib/utils";
-
-const AUTH_INPUT_CLASS =
-  "border-rule h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 const FIELD_IDS = {
   username: "sign-up-username",
@@ -96,6 +93,13 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
   const [pending, setPending] = React.useState(false);
   const [split, setSplit] = React.useState<SplitFormError | null>(null);
 
+  // After render, so the input is enabled again and the summary is mounted.
+  React.useEffect(() => {
+    if (split) {
+      focusSplit(split, summaryRef.current);
+    }
+  }, [split]);
+
   React.useEffect(() => {
     if (step === "details") {
       return;
@@ -153,7 +157,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
         globalMessage: null,
       };
       setSplit(next);
-      focusSplit(next, summaryRef.current);
       return;
     }
     setPending(true);
@@ -170,7 +173,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -194,7 +196,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -247,16 +248,22 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
         verifying ? (
           <p className="text-eyebrow text-muted-foreground leading-[1.5]">
             Codes expire after a short time. Too many wrong tries will lock this
-            identifier.
+            number.
           </p>
         ) : (
           <p className="text-eyebrow text-muted-foreground leading-[1.6]">
             By creating an account you agree to the{" "}
-            <Link className="text-ink underline" href="/terms">
+            <Link
+              className={cn(touchHitArea, "text-ink underline")}
+              href="/terms"
+            >
               Terms
             </Link>{" "}
             and{" "}
-            <Link className="text-ink underline" href="/privacy">
+            <Link
+              className={cn(touchHitArea, "text-ink underline")}
+              href="/privacy"
+            >
               Privacy Policy
             </Link>
             .
@@ -314,7 +321,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
                 aria-describedby={
                   usernameError ? `${FIELD_IDS.username}-error` : undefined
                 }
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {usernameError ? (
@@ -368,7 +375,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
                 aria-describedby={
                   passwordError ? `${FIELD_IDS.password}-error` : undefined
                 }
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {passwordError ? (
@@ -380,10 +387,11 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
           </FieldGroup>
           <Button
             type="submit"
-            size="auth"
-            aria-busy={pending}
-            disabled={!isLoaded || pending}
-            className="bg-ink text-paper hover:bg-dimrule w-full font-semibold"
+            size="lg"
+            pending={pending}
+            pendingLabel="Sending code…"
+            disabled={!isLoaded}
+            className="w-full font-semibold"
           >
             Send code
           </Button>
