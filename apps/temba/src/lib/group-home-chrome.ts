@@ -56,6 +56,17 @@ export function groupHomeMetaLine(input: {
   return parts.join(", ");
 }
 
+/** A Club Group home returns to its Community; a Loose Group to Groups. */
+export function groupHomeBackTarget(communityId: string | null | undefined) {
+  if (communityId) {
+    return {
+      href: `/dashboard/communities/${communityId}`,
+      label: "Back to Community",
+    };
+  }
+  return { href: "/dashboard/groups", label: "Back to Groups" };
+}
+
 export function groupHomeHasStandingResults(
   members: readonly {
     totalSetsWon: number;

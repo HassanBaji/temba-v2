@@ -558,6 +558,7 @@ export default function GroupHomePage({
       <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-0">
         <GroupHomeChrome
           groupId={id}
+          communityId={data.communityId ?? null}
           name={groupName}
           imageUrl={data.imageUrl}
           sport={data.sport ?? null}

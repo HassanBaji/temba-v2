@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { ChevronLeftIcon, PlusIcon, UserPlusIcon } from "lucide-react";
+import { PlusIcon, UserPlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { groupHomeMetaLine } from "~/lib/group-home-chrome";
+import {
+  groupHomeBackTarget,
+  groupHomeMetaLine,
+} from "~/lib/group-home-chrome";
 import type { GroupHomeTab } from "~/lib/group-home-tab";
 import { cn } from "~/lib/utils";
 
@@ -29,6 +33,7 @@ const ACTION_BOX =
  */
 export function GroupHomeChrome({
   groupId,
+  communityId,
   name,
   imageUrl,
   sport,
@@ -41,6 +46,7 @@ export function GroupHomeChrome({
   overflow,
 }: {
   groupId: string;
+  communityId: string | null;
   name: string;
   imageUrl?: string | null;
   sport: string | null;
@@ -53,19 +59,14 @@ export function GroupHomeChrome({
   overflow?: ReactNode;
 }) {
   const meta = groupHomeMetaLine({ sport, memberCount, createdAt });
+  const back = groupHomeBackTarget(communityId);
   const showCreateBox = tab === "games" && canCreateGame;
   const showInviteBox = tab !== "games" && canInvite;
 
   return (
     <header className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
       <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/dashboard/groups"
-          aria-label="Back to Groups"
-          className={ACTION_BOX}
-        >
-          <ChevronLeftIcon aria-hidden="true" className="size-5" />
-        </Link>
+        <BackButton variant="boxed" href={back.href} label={back.label} />
 
         <div className="flex items-center gap-2">
           {showInviteBox ? (
