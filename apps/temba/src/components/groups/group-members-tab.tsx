@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
-import { UserAvatar } from "~/components/common/user-avatar";
+import { MemberRow } from "~/components/common/member-row";
+import { RowList } from "~/components/common/row-list";
 import { FormStrip } from "~/components/temba/form-strip";
 import { LevelCell } from "~/components/temba/level-cell";
 import type { ResultMarkVariant } from "~/components/temba/result-mark";
@@ -16,8 +17,6 @@ import {
   groupMemberRoleCaption,
 } from "~/lib/group-home-chrome";
 import type { LevelBand } from "~/lib/level-bands";
-import { cardFrame } from "~/lib/page-layout";
-import { cn } from "~/lib/utils";
 
 /** Design 06c draws four marks per member; the derivation returns up to five. */
 const MEMBER_FORM_MARKS = 4;
@@ -34,52 +33,29 @@ type GroupMember = {
   levelProvisional: boolean;
 };
 
-function MemberRow({ member }: { member: GroupMember }) {
-  const caption = groupMemberRoleCaption(member);
-
+function GroupMemberRow({ member }: { member: GroupMember }) {
   return (
-    <li className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0">
-      <UserAvatar
-        name={member.name}
-        image={member.image}
-        size="lg"
-        className={cn(
-          "[&_[data-slot=avatar-fallback]]:text-meta rounded-md [&_[data-slot=avatar-fallback]]:rounded-md [&_[data-slot=avatar-fallback]]:font-semibold",
-          member.isViewer
-            ? "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper"
-            : "border-rule border [&_[data-slot=avatar-fallback]]:bg-transparent",
-        )}
-      />
-
-      <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            "text-body truncate",
-            member.isViewer && "font-semibold",
-          )}
-        >
-          {member.isViewer ? "You" : member.name}
-        </p>
-        {caption ? (
-          <p className="text-eyebrow text-muted-foreground truncate">
-            {caption}
-          </p>
-        ) : null}
-      </div>
-
-      <FormStrip
-        marks={member.formMarks.slice(-MEMBER_FORM_MARKS)}
-        size={14}
-        gap={4}
-        className="shrink-0"
-      />
-
-      <LevelCell
-        band={member.levelBand}
-        provisional={member.levelProvisional}
-        className="w-12 shrink-0"
-      />
-    </li>
+    <MemberRow
+      size="lg"
+      name={member.name}
+      image={member.image}
+      isViewer={member.isViewer}
+      meta={groupMemberRoleCaption(member) ?? undefined}
+      trailing={
+        <>
+          <FormStrip
+            marks={member.formMarks.slice(-MEMBER_FORM_MARKS)}
+            size={14}
+            gap={4}
+          />
+          <LevelCell
+            band={member.levelBand}
+            provisional={member.levelProvisional}
+            className="w-12"
+          />
+        </>
+      }
+    />
   );
 }
 
@@ -146,11 +122,11 @@ export function GroupMembersTab({
           No members match that name.
         </p>
       ) : (
-        <ul className={cardFrame}>
+        <RowList variant="card">
           {visible.map((member) => (
-            <MemberRow key={member.userId} member={member} />
+            <GroupMemberRow key={member.userId} member={member} />
           ))}
-        </ul>
+        </RowList>
       )}
 
       {canInvite ? <InviteBlock onInvite={onInvite} /> : null}

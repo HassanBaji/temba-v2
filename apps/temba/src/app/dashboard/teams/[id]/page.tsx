@@ -15,9 +15,9 @@ import { AvatarStack } from "~/components/common/avatar-stack";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { ListRow, RowList } from "~/components/common/row-list";
+import { MemberRow } from "~/components/common/member-row";
+import { RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
@@ -356,17 +356,12 @@ export default function TeamHomePage({
           ) : (
             <RowList>
               {data.members.map((member) => (
-                <ListRow
+                <MemberRow
                   key={member.id}
-                  leading={
-                    <UserAvatar
-                      name={member.name ?? "Member"}
-                      image={member.image}
-                      size="lg"
-                    />
-                  }
-                  title={member.name ?? "Member"}
-                  trailing={
+                  name={member.name ?? "Member"}
+                  image={member.image}
+                  isViewer={member.isViewer}
+                  badge={
                     member.isCreator ? (
                       <Badge variant="outline">Creator</Badge>
                     ) : undefined

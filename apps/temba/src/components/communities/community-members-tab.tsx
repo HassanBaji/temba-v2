@@ -5,8 +5,8 @@ import { type KeyboardEvent, useRef, useState } from "react";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
-import { ListRow, RowList } from "~/components/common/row-list";
-import { UserAvatar } from "~/components/common/user-avatar";
+import { MemberRow } from "~/components/common/member-row";
+import { RowList } from "~/components/common/row-list";
 import { ROLE_LABELS, RoleBadge } from "~/components/temba/role-badge";
 import { ErrorState } from "~/components/common/error-state";
 import {
@@ -132,21 +132,11 @@ export function CommunityMembersTab({
           const isSelf = member.user.id === viewerUserId;
           const selectId = `member-role-${member.id}`;
           return (
-            <ListRow
+            <MemberRow
               key={member.id}
-              leading={
-                <UserAvatar name={name} image={member.user.image} size="lg" />
-              }
-              title={
-                <>
-                  {name}
-                  {isSelf ? (
-                    <span className="text-meta text-muted-foreground ml-2 font-normal">
-                      You
-                    </span>
-                  ) : null}
-                </>
-              }
+              name={name}
+              image={member.user.image}
+              isViewer={isSelf}
               meta={member.user.email ?? undefined}
               trailing={
                 canManageRoles ? (
@@ -185,9 +175,10 @@ export function CommunityMembersTab({
                       ))}
                     </SelectContent>
                   </Select>
-                ) : (
-                  <RoleBadge role={member.role} />
-                )
+                ) : undefined
+              }
+              badge={
+                canManageRoles ? undefined : <RoleBadge role={member.role} />
               }
             />
           );
