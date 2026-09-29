@@ -71,11 +71,13 @@ export function TournamentUndoPoolDraw({
   onUndo: () => void | Promise<void>;
 }) {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const undoButtonRef = React.useRef<HTMLButtonElement>(null);
 
   return (
     <div className="space-y-3">
       <FormErrorSummary message={globalFormErrorMessage(undoError)} />
       <Button
+        ref={undoButtonRef}
         type="button"
         variant="outline"
         className="min-h-11 w-full"
@@ -92,6 +94,7 @@ export function TournamentUndoPoolDraw({
         description={UNDO_POOL_DRAW_CONFIRM_COPY}
         confirmLabel={UNDO_POOL_DRAW_CONFIRM_LABEL}
         pending={undoPending}
+        restoreFocusRef={undoButtonRef}
         onConfirm={async () => {
           try {
             await onUndo();
