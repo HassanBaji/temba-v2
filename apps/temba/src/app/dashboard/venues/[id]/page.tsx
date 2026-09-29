@@ -7,6 +7,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { EntityImageField } from "~/components/common/entity-image-field";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
@@ -32,38 +33,10 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import { entityImageUploadInput } from "~/lib/entity-image-file";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
-import type { VenueLogoContentType } from "~/server/storage/venue-logos";
-
-const LOGO_MAX_BYTES = 2 * 1024 * 1024;
-
-function asLogoContentType(value: string): VenueLogoContentType | null {
-  if (value === "image/jpg") {
-    return "image/jpeg";
-  }
-  if (
-    value === "image/jpeg" ||
-    value === "image/png" ||
-    value === "image/webp"
-  ) {
-    return value;
-  }
-  return null;
-}
-
-async function fileToBase64(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.subarray(index, index + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return btoa(binary);
-}
 
 export default function VenueHomePage({
   params,
@@ -232,24 +205,17 @@ export default function VenueHomePage({
     addCourt.mutate({ venueId: id, name: newCourtName });
   }
 
-  async function onLogoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  function onLogoPicked(file: File | null) {
     if (!file) {
       return;
     }
-    const contentType = asLogoContentType(file.type);
-    if (!contentType) {
-      setLogoError("Logo must be a JPEG, PNG, or WebP image");
-      return;
-    }
-    if (file.size > LOGO_MAX_BYTES) {
-      setLogoError("Logo must be at most 2 MB");
-      return;
-    }
-    setLogoError(null);
-    const dataBase64 = await fileToBase64(file);
-    uploadLogo.mutate({ venueId: id, contentType, dataBase64 });
+    void entityImageUploadInput(file, "Logo")
+      .then((input) => uploadLogo.mutate({ venueId: id, ...input }))
+      .catch((error: unknown) => {
+        setLogoError(
+          error instanceof Error ? error.message : "Logo could not be read",
+        );
+      });
   }
 
   if (isNotFoundError(venue.error)) {
@@ -518,41 +484,22 @@ export default function VenueHomePage({
           </form>
         </Section>
 
-        <Section
-          title="Logo"
-          description="Optional. JPEG, PNG, or WebP, at most 2 MB."
-        >
-          {data.logoImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.logoImageUrl}
-              alt={`${data.name} logo`}
-              className="size-24 rounded-lg object-cover"
-            />
-          ) : (
-            <p className="text-body text-muted-foreground">No logo yet.</p>
-          )}
-          <Field>
-            <FieldLabel htmlFor="venue-logo">Upload logo</FieldLabel>
-            <Input
-              id="venue-logo"
-              className="min-h-11"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-invalid={logoError ? true : undefined}
-              aria-describedby={logoError ? "venue-logo-error" : undefined}
-              onChange={(event) => {
-                void onLogoFileChange(event);
-              }}
-              disabled={uploadLogo.isPending || clearLogo.isPending}
-            />
-            <FieldError id="venue-logo-error">{logoError}</FieldError>
-          </Field>
+        <Section title="Logo">
+          <EntityImageField
+            id="venue-logo"
+            label="Upload logo"
+            noun="Logo"
+            currentImageUrl={data.logoImageUrl}
+            error={logoError}
+            disabled={clearLogo.isPending}
+            pending={uploadLogo.isPending}
+            onFileChange={onLogoPicked}
+            onError={setLogoError}
+          />
           {data.logoImageUrl ? (
             <Button
               type="button"
               variant="outline"
-              className="min-h-11"
               disabled={clearLogo.isPending || uploadLogo.isPending}
               onClick={() => setClearLogoOpen(true)}
             >

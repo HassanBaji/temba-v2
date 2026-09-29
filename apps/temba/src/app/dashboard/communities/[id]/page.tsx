@@ -40,8 +40,8 @@ import { stickyAsideClass } from "~/lib/page-layout";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
-  groupImageUploadInput,
-} from "~/lib/group-image-file";
+  entityImageUploadInput,
+} from "~/lib/entity-image-file";
 import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({
@@ -308,7 +308,7 @@ export default function CommunityHomePage({
   ) {
     if (image) {
       try {
-        const input = await groupImageUploadInput(image);
+        const input = await entityImageUploadInput(image);
         await uploadGroupImage.mutateAsync({
           groupId: group.id,
           contentType: input.contentType,

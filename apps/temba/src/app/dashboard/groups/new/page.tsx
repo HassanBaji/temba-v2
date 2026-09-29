@@ -6,7 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
-import { GroupImageField } from "~/components/groups/group-image-field";
+import { EntityImageField } from "~/components/common/entity-image-field";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -34,9 +34,9 @@ import {
 } from "~/lib/form-mutation-error";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
-  groupImageFileError,
-  groupImageUploadInput,
-} from "~/lib/group-image-file";
+  entityImageFileError,
+  entityImageUploadInput,
+} from "~/lib/entity-image-file";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type GroupType = NonNullable<RouterOutputs["groups"]["byId"]["type"]>;
@@ -79,7 +79,7 @@ export default function NewLooseGroupPage() {
   async function afterCreate(group: { id: string }, successMessage: string) {
     if (imageFile) {
       try {
-        const input = await groupImageUploadInput(imageFile);
+        const input = await entityImageUploadInput(imageFile);
         await uploadImage.mutateAsync({
           groupId: group.id,
           contentType: input.contentType,
@@ -103,7 +103,7 @@ export default function NewLooseGroupPage() {
       return;
     }
     if (imageFile) {
-      const pickedError = groupImageFileError(imageFile);
+      const pickedError = entityImageFileError(imageFile);
       if (pickedError) {
         setImageError(pickedError);
         return;
@@ -207,7 +207,7 @@ export default function NewLooseGroupPage() {
               </Field>
             ) : null}
 
-            <GroupImageField
+            <EntityImageField
               id="group-image"
               file={imageFile}
               error={imageError}

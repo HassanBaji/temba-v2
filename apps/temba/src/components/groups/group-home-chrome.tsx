@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusIcon, UserPlusIcon } from "lucide-react";
+import { Loader2Icon, PlusIcon, UserPlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
@@ -45,6 +45,7 @@ export function GroupHomeChrome({
   canCreateGame,
   onInvite,
   overflow,
+  imagePending = false,
 }: {
   groupId: string;
   communityId: string | null;
@@ -58,6 +59,7 @@ export function GroupHomeChrome({
   canCreateGame: boolean;
   onInvite: () => void;
   overflow?: ReactNode;
+  imagePending?: boolean;
 }) {
   const meta = groupHomeMetaLine({ sport, memberCount, createdAt });
   const back = groupHomeBackTarget(communityId);
@@ -97,7 +99,22 @@ export function GroupHomeChrome({
 
       <EntityHomeHeader
         className="mt-5"
-        leading={<EntityMonogram name={name} image={imageUrl} size="lg" />}
+        leading={
+          <div className="relative" aria-busy={imagePending || undefined}>
+            <EntityMonogram name={name} image={imageUrl} size="lg" />
+            {imagePending ? (
+              <span className="bg-background/70 absolute inset-0 grid place-items-center rounded-lg">
+                <Loader2Icon
+                  aria-hidden="true"
+                  className="size-4 animate-spin"
+                />
+              </span>
+            ) : null}
+            <span role="status" className="sr-only">
+              {imagePending ? "Uploading image…" : ""}
+            </span>
+          </div>
+        }
         title={name}
         meta={meta || undefined}
       />

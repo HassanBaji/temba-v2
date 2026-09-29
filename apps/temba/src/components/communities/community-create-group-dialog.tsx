@@ -19,13 +19,13 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import { GroupImageField } from "~/components/groups/group-image-field";
+import { EntityImageField } from "~/components/common/entity-image-field";
 import {
   fieldErrorMessage,
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-import { groupImageFileError } from "~/lib/group-image-file";
+import { entityImageFileError } from "~/lib/entity-image-file";
 
 export function CommunityCreateGroupDialog({
   open,
@@ -131,7 +131,7 @@ export function CommunityCreateGroupDialog({
                 return;
               }
               if (publicImage) {
-                const pickedError = groupImageFileError(publicImage);
+                const pickedError = entityImageFileError(publicImage);
                 if (pickedError) {
                   setPublicImageError(pickedError);
                   return;
@@ -189,7 +189,7 @@ export function CommunityCreateGroupDialog({
                 Group home.
               </FieldDescription>
             </Field>
-            <GroupImageField
+            <EntityImageField
               id="club-group-public-image"
               file={publicImage}
               error={publicImageError}
@@ -216,7 +216,7 @@ export function CommunityCreateGroupDialog({
                 return;
               }
               if (privateImage) {
-                const pickedError = groupImageFileError(privateImage);
+                const pickedError = entityImageFileError(privateImage);
                 if (pickedError) {
                   setPrivateImageError(pickedError);
                   return;
@@ -258,7 +258,7 @@ export function CommunityCreateGroupDialog({
                 {privateNameError}
               </FieldError>
             </Field>
-            <GroupImageField
+            <EntityImageField
               id="club-group-private-image"
               file={privateImage}
               error={privateImageError}

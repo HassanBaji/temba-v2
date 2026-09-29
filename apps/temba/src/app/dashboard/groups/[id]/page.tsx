@@ -29,10 +29,10 @@ import {
 } from "~/lib/group-home-cta";
 import { groupHomeTabFromQuery, groupHomeTabQuery } from "~/lib/group-home-tab";
 import {
-  GROUP_IMAGE_ACCEPT,
-  groupImageFileError,
-  groupImageUploadInput,
-} from "~/lib/group-image-file";
+  ENTITY_IMAGE_ACCEPT,
+  entityImageFileError,
+  entityImageUploadInput,
+} from "~/lib/entity-image-file";
 import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -390,12 +390,12 @@ export default function GroupHomePage({
     if (!file || uploadImage.isPending) {
       return;
     }
-    const pickedError = groupImageFileError(file);
+    const pickedError = entityImageFileError(file);
     if (pickedError) {
       toast.error(pickedError);
       return;
     }
-    void groupImageUploadInput(file)
+    void entityImageUploadInput(file)
       .then((input) =>
         uploadImage.mutateAsync({
           groupId: id,
@@ -574,6 +574,7 @@ export default function GroupHomePage({
           canCreateGame={canShowCreateGame}
           onInvite={() => setInvitesOpen(true)}
           overflow={overflowMenu("desktop")}
+          imagePending={uploadImage.isPending}
         />
 
         <div className="space-y-6 pt-6">
@@ -722,7 +723,7 @@ export default function GroupHomePage({
         <input
           ref={imageInputRef}
           type="file"
-          accept={GROUP_IMAGE_ACCEPT}
+          accept={ENTITY_IMAGE_ACCEPT}
           className="hidden"
           tabIndex={-1}
           disabled={uploadImage.isPending || clearImage.isPending}
