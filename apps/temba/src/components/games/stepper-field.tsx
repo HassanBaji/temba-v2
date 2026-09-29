@@ -3,7 +3,7 @@
 import { Minus, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Field, FieldError, FieldLabel } from "~/components/ui/field";
+import { Field, FieldError, FieldTitle } from "~/components/ui/field";
 import { cn } from "~/lib/utils";
 
 export function StepperField({
@@ -48,21 +48,21 @@ export function StepperField({
 
   return (
     <Field>
-      <FieldLabel
+      <FieldTitle
         id={`${id}-label`}
-        htmlFor={id}
         className={cn(
           "text-muted-foreground text-meta font-normal",
           labelClassName,
         )}
       >
         {label}
-      </FieldLabel>
+      </FieldTitle>
       <div
         id={id}
         tabIndex={-1}
         role="group"
         aria-labelledby={`${id}-label`}
+        aria-describedby={error ? `${id}-error` : undefined}
         className="border-rule flex h-14 min-h-14 items-center overflow-hidden rounded-lg border outline-none"
       >
         <button
@@ -80,7 +80,11 @@ export function StepperField({
         >
           <Minus aria-hidden="true" className="size-[17px]" strokeWidth={2} />
         </button>
-        <div className="flex min-w-0 flex-1 items-baseline justify-center gap-[7px]">
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          className="flex min-w-0 flex-1 items-baseline justify-center gap-[7px]"
+        >
           <span className="font-expanded text-[22px] tabular-nums tracking-[-0.03em]">
             {value}
           </span>
@@ -103,7 +107,7 @@ export function StepperField({
         </button>
       </div>
       {description}
-      <FieldError>{error}</FieldError>
+      <FieldError id={`${id}-error`}>{error}</FieldError>
     </Field>
   );
 }
