@@ -13,9 +13,9 @@ import {
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
-import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
+import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
@@ -638,8 +638,8 @@ export default function GameHomePage({
 
   if (game.isLoading) {
     return (
-      <DashboardShell title="Game" hidePageHeader>
-        <DetailPageSkeleton />
+      <DashboardShell title="Game" hidePageHeader isSubPage hideNav>
+        <GameDetailsSkeleton />
       </DashboardShell>
     );
   }

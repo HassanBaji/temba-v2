@@ -6,7 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
-import { CreateFlowShell } from "~/app/dashboard/games/new/create-flow-shell";
+import {
+  CreateFlowShell,
+  CreateFlowSkeleton,
+} from "~/app/dashboard/games/new/create-flow-shell";
 import { FriendlyGameSteps } from "~/app/dashboard/games/new/friendly-game-steps";
 import { FriendlyTournamentSteps } from "~/app/dashboard/games/new/friendly-tournament-steps";
 import { TypeStep } from "~/app/dashboard/games/new/type-step";
@@ -787,7 +790,7 @@ function NewGameForm() {
   if (createGroups.isLoading || !draftRestored) {
     return (
       <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
-        <p className="text-muted-foreground text-body">Loading…</p>
+        <CreateFlowSkeleton />
       </DashboardShell>
     );
   }
@@ -1223,7 +1226,7 @@ export default function NewGamePage() {
     <React.Suspense
       fallback={
         <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
-          <p className="text-muted-foreground text-body">Loading…</p>
+          <CreateFlowSkeleton />
         </DashboardShell>
       }
     >

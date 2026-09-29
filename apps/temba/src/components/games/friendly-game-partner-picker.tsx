@@ -3,12 +3,14 @@
 import { Check } from "lucide-react";
 import { useState } from "react";
 
+import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   formatGameCardDay,
   formatGameClockWithoutMeridiem,
@@ -272,6 +274,44 @@ function SuggestionSection({
   );
 }
 
+function RecentsSkeleton() {
+  return (
+    <div aria-hidden="true" className="flex gap-1">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div
+          key={index}
+          className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-1 py-2"
+        >
+          <Skeleton className="size-10 rounded-full" />
+          <Skeleton className="h-3 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SuggestionRowsSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="border-rule rounded-card overflow-hidden border"
+    >
+      {Array.from({ length: 3 }, (_, index) => (
+        <div
+          key={index}
+          className="border-rule flex items-center gap-3 border-t px-[18px] py-4 first:border-t-0"
+        >
+          <Skeleton className="size-6 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-32 max-w-full" />
+            <Skeleton className="h-3 w-44 max-w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function FriendlyGamePartnerPicker({
   gameId,
   vacantSeatCount,
@@ -376,11 +416,28 @@ export function FriendlyGamePartnerPicker({
           </p>
         </div>
 
-        <RecentsShowcase
-          rows={suggestions.data?.playedWithBefore ?? []}
-          selectedId={selectedPartner?.id ?? null}
-          onSelect={pickSuggestion}
-        />
+        {suggestions.isLoading ? (
+          <div aria-busy="true">
+            <span className="sr-only">Loading partner suggestions</span>
+            <RecentsSkeleton />
+          </div>
+        ) : suggestions.error ? (
+          <ErrorState
+            title="Suggestions could not be loaded"
+            message={suggestions.error.message}
+            headingLevel={3}
+            className="py-4"
+            onRetry={() => {
+              void suggestions.refetch();
+            }}
+          />
+        ) : (
+          <RecentsShowcase
+            rows={suggestions.data?.playedWithBefore ?? []}
+            selectedId={selectedPartner?.id ?? null}
+            onSelect={pickSuggestion}
+          />
+        )}
 
         <Field>
           <FieldLabel htmlFor="partner-picker-search">Search</FieldLabel>
@@ -397,6 +454,7 @@ export function FriendlyGamePartnerPicker({
           />
         </Field>
 
+        {suggestions.isLoading ? <SuggestionRowsSkeleton /> : null}
         <SuggestionSection
           title="From your groups"
           eyebrow={groupName?.trim() ?? ""}

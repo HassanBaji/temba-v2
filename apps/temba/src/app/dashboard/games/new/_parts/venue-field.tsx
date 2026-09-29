@@ -15,6 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   venueCardMeta,
   venueMatchesQuery,
@@ -119,7 +120,22 @@ export function VenueField({
         </div>
       ) : null}
       {selectedGroupId && venuesPending ? (
-        <p className="text-muted-foreground text-body">Loading…</p>
+        <div
+          aria-busy="true"
+          className="border-rule rounded-card overflow-hidden border"
+        >
+          <span className="sr-only">Loading Venues</span>
+          {Array.from({ length: 2 }, (_, index) => (
+            <div
+              key={index}
+              aria-hidden="true"
+              className="border-rule border-b px-[18px] py-4 last:border-b-0"
+            >
+              <Skeleton className="h-5 w-40 max-w-full" />
+              <Skeleton className="mt-1.5 h-3.5 w-28 max-w-full" />
+            </div>
+          ))}
+        </div>
       ) : null}
       {selectedGroupId && !venuesPending && venuesLocked ? (
         <div

@@ -7,7 +7,12 @@ import {
   ListPageSkeleton,
 } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { pageHidesMobileTopBar, titleFromPath } from "~/lib/dashboard-paths";
+
+function isGameDetailPath(pathname: string) {
+  return /\/dashboard\/games\/(?!new$)[^/]+$/.test(pathname);
+}
 
 function isDetailPath(pathname: string) {
   return /\/dashboard\/(groups|communities|teams|venues|games)\/(?!new$)[^/]+/.test(
@@ -28,7 +33,13 @@ export function DashboardRouteLoading() {
       hideMobileTopBar={hidesTopBar}
       hidePageHeader={hidesTopBar}
     >
-      {isDetailPath(pathname) ? <DetailPageSkeleton /> : <ListPageSkeleton />}
+      {isGameDetailPath(pathname) ? (
+        <GameDetailsSkeleton />
+      ) : isDetailPath(pathname) ? (
+        <DetailPageSkeleton />
+      ) : (
+        <ListPageSkeleton />
+      )}
     </DashboardShell>
   );
 }
