@@ -352,14 +352,6 @@ export function TournamentHome({
         {TOURNAMENT_CLOSING_LINE}
       </p>
 
-      {showJoinBar ? (
-        <TournamentJoinBar
-          pending={joinPending}
-          onJoin={canJoin && onJoin ? () => onJoin() : undefined}
-          onJoinWaitlist={canJoinWaitlist ? onJoinWaitlist : undefined}
-        />
-      ) : null}
-
       <TournamentHomeActions
         joinKind={joinKind}
         isWaitlisted={data.isWaitlisted}
@@ -390,6 +382,14 @@ export function TournamentHome({
       />
 
       <GameLevelRangePanel game={data} />
+
+      {showJoinBar ? (
+        <TournamentJoinBar
+          pending={joinPending}
+          onJoin={canJoin && onJoin ? () => onJoin() : undefined}
+          onJoinWaitlist={canJoinWaitlist ? onJoinWaitlist : undefined}
+        />
+      ) : null}
     </div>
   );
 }
@@ -597,7 +597,7 @@ function TournamentJoinBar({
       className={cn(
         "bg-background border-border flex flex-col gap-2 max-lg:border-t max-lg:px-4 max-lg:py-3 max-lg:pb-6",
         "max-lg:fixed max-lg:inset-x-0 max-lg:z-40",
-        "lg:static",
+        "lg:sticky lg:z-10 lg:py-4",
       )}
       style={{
         bottom: "env(safe-area-inset-bottom, 0px)",
