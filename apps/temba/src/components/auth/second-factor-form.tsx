@@ -157,7 +157,7 @@ export function SecondFactorForm({
       footer={
         <p className="text-eyebrow text-muted-foreground leading-[1.5]">
           Codes expire after a short time. Too many wrong tries will lock this
-          identifier.
+          account.
         </p>
       }
     >

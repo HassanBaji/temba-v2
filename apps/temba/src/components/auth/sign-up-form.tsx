@@ -244,7 +244,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
         verifying ? (
           <p className="text-eyebrow text-muted-foreground leading-[1.5]">
             Codes expire after a short time. Too many wrong tries will lock this
-            identifier.
+            number.
           </p>
         ) : (
           <p className="text-eyebrow text-muted-foreground leading-[1.6]">

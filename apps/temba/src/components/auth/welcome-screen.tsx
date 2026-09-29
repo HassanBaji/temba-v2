@@ -24,9 +24,9 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
 
       <div className="mt-24 px-[26px]">
         <h1 className="text-hero font-bold leading-[0.96] tracking-[-0.035em] [font-variation-settings:'wdth'_112,'wght'_700]">
-          Every match counts
+          Every match counts.
           <br />
-          fill the court,
+          Fill the court,
           <br />
           keep the score.
         </h1>
