@@ -2,6 +2,8 @@
  * Groups list presentation helpers (`.scratch/groups-redesign/spec.md` §1.1).
  */
 
+import { memberCountLabel } from "~/lib/member-count-label";
+
 /**
  * A Group row's meta line: `"{n} members, you are rank {r}"`, or just the
  * member count when the viewer holds no standing position yet. `member` is
@@ -11,8 +13,7 @@ export function groupRowMetaLine(input: {
   memberCount: number;
   standingPosition: number | null | undefined;
 }) {
-  const members =
-    input.memberCount === 1 ? "1 member" : `${input.memberCount} members`;
+  const members = memberCountLabel(input.memberCount);
   const rank = input.standingPosition;
   if (rank == null || !Number.isFinite(rank)) {
     return members;

@@ -28,7 +28,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
-import { PageTitle } from "~/components/layout/page-title";
+import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
@@ -241,24 +241,17 @@ export default function TeamHomePage({
   return (
     <DashboardShell title="Team" hidePageHeader isSubPage>
       <div className="space-y-6">
-        {data.waitingForPartner && data.canInvite ? (
-          <Button
-            className="min-h-11 w-full sm:w-auto"
-            onClick={() => setInviteOpen(true)}
-          >
-            Invite your partner
-          </Button>
-        ) : null}
-
-        <header className="flex items-start gap-3">
-          <AvatarStack
-            people={people}
-            openSeats={data.waitingForPartner ? 1 : 0}
-            size="lg"
-          />
-          <div className="min-w-0 flex-1 space-y-2">
-            <PageTitle>{displayName}</PageTitle>
-            <div className="flex flex-wrap items-center gap-2">
+        <EntityHomeHeader
+          leading={
+            <AvatarStack
+              people={people}
+              openSeats={data.waitingForPartner ? 1 : 0}
+              size="lg"
+            />
+          }
+          title={displayName}
+          badges={
+            <>
               <SportBadge sport={data.sport} />
               {data.isLoose ? (
                 <Badge variant="outline">Not linked to a Community</Badge>
@@ -268,9 +261,11 @@ export default function TeamHomePage({
               {data.waitingForPartner ? (
                 <Badge variant="outline">Incomplete</Badge>
               ) : null}
-            </div>
-            {data.community ? (
-              <p className="text-meta text-muted-foreground">
+            </>
+          }
+          meta={
+            data.community ? (
+              <>
                 Linked to{" "}
                 <Link
                   href={`/dashboard/communities/${data.community.id}`}
@@ -278,10 +273,17 @@ export default function TeamHomePage({
                 >
                   {data.community.name}
                 </Link>
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 flex-nowrap items-center gap-1">
+              </>
+            ) : undefined
+          }
+          primaryAction={
+            data.waitingForPartner && data.canInvite ? (
+              <Button onClick={() => setInviteOpen(true)}>
+                Invite your partner
+              </Button>
+            ) : undefined
+          }
+          menu={
             <ActionMenu triggerRef={menuTriggerRef} label="Team actions">
               <ActionMenuItem asChild>
                 <Link href="/dashboard/teams">All Teams</Link>
@@ -316,8 +318,8 @@ export default function TeamHomePage({
                 </ActionMenuItem>
               ) : null}
             </ActionMenu>
-          </div>
-        </header>
+          }
+        />
 
         {data.waitingForPartner && !data.canInvite ? (
           <p className="text-body text-muted-foreground">

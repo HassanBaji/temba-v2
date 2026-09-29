@@ -3,7 +3,7 @@ import { PlusIcon, UserPlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
-import { PageTitle } from "~/components/layout/page-title";
+import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
@@ -65,7 +65,7 @@ export function GroupHomeChrome({
   const showInviteBox = tab !== "games" && canInvite;
 
   return (
-    <header className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
+    <div className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
       <div className="flex items-center justify-between gap-3">
         <BackButton variant="boxed" href={back.href} label={back.label} />
 
@@ -95,23 +95,18 @@ export function GroupHomeChrome({
         </div>
       </div>
 
-      <div className="mt-5 flex items-start gap-3">
-        <EntityMonogram name={name} image={imageUrl} size="lg" />
-        <div className="min-w-0 flex-1">
-          <PageTitle>{name}</PageTitle>
-          {meta ? (
-            <p className="text-meta text-muted-foreground mt-1 min-w-0 break-words">
-              {meta}
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <EntityHomeHeader
+        className="mt-5"
+        leading={<EntityMonogram name={name} image={imageUrl} size="lg" />}
+        title={name}
+        meta={meta || undefined}
+      />
 
       <TabsList variant="segmented" className="mt-5">
         <TabsTrigger value="standing">Standing</TabsTrigger>
         <TabsTrigger value="games">Games</TabsTrigger>
         <TabsTrigger value="members">Members</TabsTrigger>
       </TabsList>
-    </header>
+    </div>
   );
 }

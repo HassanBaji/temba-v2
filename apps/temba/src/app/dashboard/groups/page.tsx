@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { entityListIsEmpty } from "~/lib/entity-list-empty";
 import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
 import { groupsTabFromQuery, groupsTabQuery } from "~/lib/groups-tab";
+import { memberCountLabel } from "~/lib/member-count-label";
 import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -159,8 +160,7 @@ function PublicGroupRows({
       {groups.map((group) => {
         const name = group.name ?? "Untitled Group";
         const isPending = pendingGroupId === group.id;
-        const members =
-          group.memberCount === 1 ? "1 member" : `${group.memberCount} members`;
+        const members = memberCountLabel(group.memberCount);
         const meta = group.requiresApproval
           ? `${members} · Requires approval`
           : members;

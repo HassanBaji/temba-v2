@@ -403,59 +403,54 @@ export default function CommunityHomePage({
   const showOverflowAboveDestructive =
     showAllCommunities || canManageInvites || data.canUnarchive;
 
-  const headerActions = (
-    <>
-      {canRequestJoin ? (
-        <Button
-          className="min-h-11"
-          onClick={() => requestJoin.mutate({ communityId: id })}
-          disabled={requestJoin.isPending}
+  const requestJoinAction = canRequestJoin ? (
+    <Button
+      onClick={() => requestJoin.mutate({ communityId: id })}
+      pending={requestJoin.isPending}
+      pendingLabel="Requesting…"
+    >
+      Request to join
+    </Button>
+  ) : null;
+
+  const headerMenu = showCommunityOverflow ? (
+    <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
+      {showAllCommunities ? (
+        <ActionMenuItem asChild>
+          <Link href="/dashboard/communities">All Communities</Link>
+        </ActionMenuItem>
+      ) : null}
+      {canManageInvites ? (
+        <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+          Manage invites
+        </ActionMenuItem>
+      ) : null}
+      {data.canUnarchive ? (
+        <ActionMenuItem onSelect={() => unarchive.mutate({ communityId: id })}>
+          Unarchive
+        </ActionMenuItem>
+      ) : null}
+      {showOverflowAboveDestructive && (isMember || data.canSoftArchive) ? (
+        <ActionMenuSeparator />
+      ) : null}
+      {isMember ? (
+        <ActionMenuItem
+          variant="destructive"
+          onSelect={() => setLeaveOpen(true)}
         >
-          {requestJoin.isPending ? "Requesting…" : "Request to join"}
-        </Button>
+          Leave Community
+        </ActionMenuItem>
       ) : null}
-      {showCommunityOverflow ? (
-        <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
-          {showAllCommunities ? (
-            <ActionMenuItem asChild>
-              <Link href="/dashboard/communities">All Communities</Link>
-            </ActionMenuItem>
-          ) : null}
-          {canManageInvites ? (
-            <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-              Manage invites
-            </ActionMenuItem>
-          ) : null}
-          {data.canUnarchive ? (
-            <ActionMenuItem
-              onSelect={() => unarchive.mutate({ communityId: id })}
-            >
-              Unarchive
-            </ActionMenuItem>
-          ) : null}
-          {showOverflowAboveDestructive && (isMember || data.canSoftArchive) ? (
-            <ActionMenuSeparator />
-          ) : null}
-          {isMember ? (
-            <ActionMenuItem
-              variant="destructive"
-              onSelect={() => setLeaveOpen(true)}
-            >
-              Leave Community
-            </ActionMenuItem>
-          ) : null}
-          {data.canSoftArchive ? (
-            <ActionMenuItem
-              variant="destructive"
-              onSelect={() => setArchiveOpen(true)}
-            >
-              Soft-archive
-            </ActionMenuItem>
-          ) : null}
-        </ActionMenu>
+      {data.canSoftArchive ? (
+        <ActionMenuItem
+          variant="destructive"
+          onSelect={() => setArchiveOpen(true)}
+        >
+          Soft-archive
+        </ActionMenuItem>
       ) : null}
-    </>
-  );
+    </ActionMenu>
+  ) : null;
 
   const venueBlock = isMember ? (
     <CommunityVenueBlock
@@ -520,7 +515,9 @@ export default function CommunityHomePage({
           isArchived={!isLive}
           joinStatus={!isMember ? joinStatus : null}
           logoImageUrl={data.venue?.logoImageUrl}
-          actions={headerActions}
+          memberCount={isMember ? members.data?.length : null}
+          primaryAction={requestJoinAction}
+          menu={headerMenu}
         />
 
         {!isLive && !isMember ? (

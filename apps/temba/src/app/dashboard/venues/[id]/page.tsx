@@ -7,10 +7,12 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Badge } from "~/components/ui/badge";
@@ -295,33 +297,40 @@ export default function VenueHomePage({
     data.courts.find((court) => court.id === deleteCourtId)?.name ?? "Court";
 
   return (
-    <DashboardShell
-      title={venueName}
-      isSubPage
-      description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
-      action={
-        data.archivedAt ? (
-          <Button
-            type="button"
-            className="min-h-11"
-            onClick={() => unarchive.mutate({ id })}
-            disabled={unarchive.isPending}
-          >
-            {unarchive.isPending ? "Unarchiving…" : "Unarchive"}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11"
-            onClick={() => setArchiveOpen(true)}
-          >
-            Soft-archive
-          </Button>
-        )
-      }
-    >
+    <DashboardShell title="Venue" hidePageHeader isSubPage>
       <div className="space-y-6">
+        <EntityHomeHeader
+          leading={
+            <EntityMonogram
+              name={venueName}
+              image={data.logoImageUrl}
+              size="lg"
+            />
+          }
+          title={venueName}
+          meta={`${data.city}, ${data.country}`}
+          primaryAction={
+            data.archivedAt ? (
+              <Button
+                type="button"
+                onClick={() => unarchive.mutate({ id })}
+                pending={unarchive.isPending}
+                pendingLabel="Unarchiving…"
+              >
+                Unarchive
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setArchiveOpen(true)}
+              >
+                Soft-archive
+              </Button>
+            )
+          }
+        />
+
         {data.archivedAt ? (
           <SoftArchiveBanner
             headingLevel={2}
@@ -358,7 +367,10 @@ export default function VenueHomePage({
           )}
         </Section>
 
-        <Section title="Details">
+        <Section
+          title="Details"
+          description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
+        >
           <form onSubmit={onSubmit} className="space-y-6">
             <FormErrorSummary
               ref={detailsSummaryRef}

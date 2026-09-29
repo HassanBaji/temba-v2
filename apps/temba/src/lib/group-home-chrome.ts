@@ -1,3 +1,4 @@
+import { memberCountLabel } from "~/lib/member-count-label";
 import { shortPlayerName } from "~/lib/player-name";
 
 const SPORT_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ export function groupHomeMetaLine(input: {
 
   const memberCount = input.memberCount;
   if (memberCount != null && Number.isFinite(memberCount)) {
-    parts.push(memberCount === 1 ? "1 member" : `${memberCount} members`);
+    parts.push(memberCountLabel(memberCount));
   }
 
   const since = seasonSinceMonth(input.createdAt);

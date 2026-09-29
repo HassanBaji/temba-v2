@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
-import { PageTitle } from "~/components/layout/page-title";
+import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
 import { RoleBadge } from "~/components/temba/role-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
+import { memberCountLabel } from "~/lib/member-count-label";
 
 export function CommunityHomeHeader({
   name,
@@ -15,7 +16,9 @@ export function CommunityHomeHeader({
   isArchived,
   joinStatus,
   logoImageUrl,
-  actions,
+  memberCount,
+  primaryAction,
+  menu,
 }: {
   name: string;
   type: string;
@@ -24,14 +27,16 @@ export function CommunityHomeHeader({
   isArchived: boolean;
   joinStatus: string | null;
   logoImageUrl?: string | null;
-  actions: ReactNode;
+  memberCount?: number | null;
+  primaryAction?: ReactNode;
+  menu?: ReactNode;
 }) {
   return (
-    <header className="flex items-start gap-3">
-      <EntityMonogram name={name} image={logoImageUrl} size="lg" />
-      <div className="min-w-0 flex-1 space-y-2">
-        <PageTitle>{name}</PageTitle>
-        <div className="flex flex-wrap items-center gap-2">
+    <EntityHomeHeader
+      leading={<EntityMonogram name={name} image={logoImageUrl} size="lg" />}
+      title={name}
+      badges={
+        <>
           <CommunityTypeBadge type={type} />
           {sports.map((sport) => (
             <SportBadge key={sport} sport={sport} />
@@ -44,11 +49,13 @@ export function CommunityHomeHeader({
           {joinStatus === "rejected" ? (
             <Badge variant="outline">Join request rejected</Badge>
           ) : null}
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-nowrap items-center gap-1">
-        {actions}
-      </div>
-    </header>
+        </>
+      }
+      // The desktop aside carries the count card; below lg it lives here.
+      meta={memberCount != null ? memberCountLabel(memberCount) : undefined}
+      metaClassName="lg:hidden"
+      primaryAction={primaryAction}
+      menu={menu}
+    />
   );
 }
