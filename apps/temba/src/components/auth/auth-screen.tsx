@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { touchHitArea } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
 export function AuthScreen({
@@ -73,7 +74,7 @@ export function AuthScreen({
             {crossLink ? (
               <Link
                 href={crossLink.href}
-                className="text-body text-muted-foreground"
+                className={cn(touchHitArea, "text-body text-muted-foreground")}
               >
                 {crossLink.label}
               </Link>

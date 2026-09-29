@@ -50,7 +50,7 @@ export function HomeHeader({
       <Link
         href="/dashboard/invites"
         aria-label={unread ? "Invites, unread" : "Invites"}
-        className="border-rule text-ink focus-visible:ring-ring/50 relative flex size-10 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]"
+        className="border-rule text-ink focus-visible:ring-ring/50 relative flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]"
       >
         <BellIcon className="size-5" />
         {unread ? (

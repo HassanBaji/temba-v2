@@ -8,7 +8,7 @@ import * as React from "react";
 
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
-import { Button } from "~/components/ui/button";
+import { Button, touchHitArea } from "~/components/ui/button";
 import {
   Field,
   FieldError,
@@ -24,6 +24,7 @@ import {
 } from "~/lib/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
 import { DEFAULT_CALLING_COUNTRY_ISO, assembleE164 } from "~/lib/phone-number";
+import { cn } from "~/lib/utils";
 
 const FIELD_IDS = {
   identifier: "sign-in-identifier",
@@ -155,7 +156,10 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
             </FieldLabel>
             <button
               type="button"
-              className="text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]"
+              className={cn(
+                touchHitArea,
+                "text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]",
+              )}
               onClick={switchMode}
               disabled={pending}
             >
@@ -231,7 +235,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
       <p>
         <Link
           href={authAppPathUrl("/login/reset-password", redirectUrl)}
-          className="text-body text-ink underline"
+          className={cn(touchHitArea, "text-body text-ink underline")}
         >
           Forgot password
         </Link>

@@ -1,10 +1,11 @@
 "use client";
 
 import { OtpInput } from "~/components/ui/otp-input";
-import { Button } from "~/components/ui/button";
+import { Button, touchHitArea } from "~/components/ui/button";
 import { FieldError } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { ResendCountdown } from "~/components/auth/resend-countdown";
+import { cn } from "~/lib/utils";
 
 export function VerifyCodeForm({
   destination,
@@ -52,7 +53,10 @@ export function VerifyCodeForm({
         Sent to {destination}.{" "}
         <button
           type="button"
-          className="text-ink focus-visible:ring-ring/50 rounded-sm font-medium underline outline-none focus-visible:ring-[3px]"
+          className={cn(
+            touchHitArea,
+            "text-ink focus-visible:ring-ring/50 rounded-sm font-medium underline outline-none focus-visible:ring-[3px]",
+          )}
           onClick={onChangeIdentifier}
         >
           {changeLabel}

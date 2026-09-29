@@ -13,8 +13,8 @@ export function GroupHomeSkeleton() {
 
       <div className="border-rule -mx-4 border-b px-4 pb-5 min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8">
         <div className="flex items-center justify-between gap-3">
-          <Skeleton className="size-10 shrink-0 rounded-[10px]" />
-          <Skeleton className="size-10 shrink-0 rounded-[10px]" />
+          <Skeleton className="size-11 shrink-0 rounded-[10px]" />
+          <Skeleton className="size-11 shrink-0 rounded-[10px]" />
         </div>
         <Skeleton className="mt-5 h-[34px] w-56 max-w-full" />
         <Skeleton className="mt-1 h-[18px] w-64 max-w-full" />

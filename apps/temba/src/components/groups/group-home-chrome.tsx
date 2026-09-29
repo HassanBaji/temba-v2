@@ -13,7 +13,7 @@ const HEADER_BLEED =
   "-mx-4 px-4 min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8";
 
 const ACTION_BOX =
-  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]";
+  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]";
 
 export const TAB_SEGMENT =
   "border-rule text-muted-foreground h-11 min-h-11 min-w-11 flex-1 rounded-none border-0 border-l first:border-l-0 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none data-[state=active]:bg-ink data-[state=active]:text-paper data-[state=active]:font-semibold";

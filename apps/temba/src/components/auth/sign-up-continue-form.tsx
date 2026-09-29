@@ -10,7 +10,7 @@ import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
-import { Button } from "~/components/ui/button";
+import { Button, touchHitArea } from "~/components/ui/button";
 import {
   Field,
   FieldError,
@@ -30,6 +30,7 @@ import {
   assembleE164,
   formatInternationalNumber,
 } from "~/lib/phone-number";
+import { cn } from "~/lib/utils";
 
 const FIELD_IDS = {
   username: "signup-continue-username",
@@ -440,7 +441,10 @@ export function SignUpContinueForm({
         <p className="text-muted-foreground text-center text-sm">
           Already have an account?{" "}
           <Link
-            className="text-foreground font-medium underline-offset-4 hover:underline"
+            className={cn(
+              touchHitArea,
+              "text-foreground font-medium underline-offset-4 hover:underline",
+            )}
             href={signInUrl}
           >
             Sign in

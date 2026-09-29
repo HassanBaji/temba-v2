@@ -156,7 +156,7 @@ function InvitationsCard({
                 onClick={() => {
                   onAccept(invite.id);
                 }}
-                className="border-ink h-10 min-h-10 shrink-0 rounded-[10px] font-semibold"
+                className="border-ink shrink-0 rounded-[10px] font-semibold"
               >
                 {isPending ? "Joining" : "Join"}
               </Button>
@@ -251,7 +251,7 @@ function PublicGroupRows({
                   onJoin(group);
                 }
               }}
-              className="h-10 min-h-10 shrink-0 rounded-[10px] font-semibold"
+              className="shrink-0 rounded-[10px] font-semibold"
             >
               {group.joinMode === "requested"
                 ? "Requested"

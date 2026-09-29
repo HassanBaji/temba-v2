@@ -185,13 +185,13 @@ export function FriendlyGamePartnerReview({
           <button
             type="button"
             onClick={onBack}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
+            className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
             aria-label="Back"
           >
             <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
           </button>
           <p className="text-muted-foreground text-[13px]">Step 2 of 2</p>
-          <span className="size-10" aria-hidden="true" />
+          <span className="size-11" aria-hidden="true" />
         </div>
         <h2 className="font-expanded mt-6 text-[32px] leading-none tracking-[-0.03em]">
           Register the team

@@ -10,7 +10,7 @@ import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
-import { Button } from "~/components/ui/button";
+import { Button, touchHitArea } from "~/components/ui/button";
 import {
   Field,
   FieldError,
@@ -30,6 +30,7 @@ import {
   assembleE164,
   formatInternationalNumber,
 } from "~/lib/phone-number";
+import { cn } from "~/lib/utils";
 
 const FIELD_IDS = {
   username: "sign-up-username",
@@ -248,11 +249,17 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
         ) : (
           <p className="text-eyebrow text-muted-foreground leading-[1.6]">
             By creating an account you agree to the{" "}
-            <Link className="text-ink underline" href="/terms">
+            <Link
+              className={cn(touchHitArea, "text-ink underline")}
+              href="/terms"
+            >
               Terms
             </Link>{" "}
             and{" "}
-            <Link className="text-ink underline" href="/privacy">
+            <Link
+              className={cn(touchHitArea, "text-ink underline")}
+              href="/privacy"
+            >
               Privacy Policy
             </Link>
             .

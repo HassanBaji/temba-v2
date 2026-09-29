@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+import { touchHitArea } from "~/components/ui/button";
 import {
   formatCountdown,
   isResendAvailable,
   remainingSeconds,
   resendAccessibleName,
 } from "~/lib/resend-countdown";
+import { cn } from "~/lib/utils";
 
 export function ResendCountdown({
   startedAt,
@@ -40,7 +42,10 @@ export function ResendCountdown({
         aria-label={resendAccessibleName(remaining)}
         disabled={disabled === true || !available}
         onClick={onResend}
-        className="text-meta text-muted-foreground focus-visible:ring-ring/50 rounded-sm outline-none focus-visible:ring-[3px] disabled:opacity-100"
+        className={cn(
+          touchHitArea,
+          "text-meta text-muted-foreground focus-visible:ring-ring/50 rounded-sm outline-none focus-visible:ring-[3px] disabled:opacity-100",
+        )}
       >
         Resend code
       </button>

@@ -368,7 +368,7 @@ export function FriendlyGamePartnerPicker({
           <button
             type="button"
             onClick={onClose}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
+            className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
             aria-label="Close"
           >
             <X aria-hidden="true" className="size-5" strokeWidth={2} />

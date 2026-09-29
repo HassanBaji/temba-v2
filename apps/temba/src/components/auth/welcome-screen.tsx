@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
-import { Button } from "~/components/ui/button";
+import { Button, touchHitArea } from "~/components/ui/button";
 import { TembaMark } from "~/components/ui/icons/temba-mark";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
+import { cn } from "~/lib/utils";
 
 const PREVIEW_TILES = [
   { initials: "MK", level: "C+" },
@@ -75,11 +76,17 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
         </Button>
         <p className="text-eyebrow text-dim mt-2 text-center leading-[1.6]">
           By continuing you agree to the{" "}
-          <Link className="text-paper underline" href="/terms">
+          <Link
+            className={cn(touchHitArea, "text-paper underline")}
+            href="/terms"
+          >
             Terms
           </Link>{" "}
           and{" "}
-          <Link className="text-paper underline" href="/privacy">
+          <Link
+            className={cn(touchHitArea, "text-paper underline")}
+            href="/privacy"
+          >
             Privacy Policy
           </Link>
           .
