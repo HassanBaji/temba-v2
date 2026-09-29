@@ -1,17 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "~/components/ui/field";
-import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -19,38 +7,20 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import { EntityImageField } from "~/components/common/entity-image-field";
-import {
-  fieldErrorMessage,
-  focusFormFailure,
-  globalFormErrorMessage,
-} from "~/lib/form-mutation-error";
-import { entityImageFileError } from "~/lib/entity-image-file";
+import { GroupCreateForm } from "~/components/groups/group-create-form";
 
 export function CommunityCreateGroupDialog({
   open,
   onOpenChange,
   pending,
-  publicPending,
-  privatePending,
-  publicError,
-  privateError,
+  error,
   onCreatePublic,
   onCreatePrivate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pending: boolean;
-  publicPending: boolean;
-  privatePending: boolean;
-  publicError?: {
-    message: string;
-    data?: { zodError?: unknown } | null;
-  } | null;
-  privateError?: {
-    message: string;
-    data?: { zodError?: unknown } | null;
-  } | null;
+  error?: { message: string; data?: { zodError?: unknown } | null } | null;
   onCreatePublic: (
     name: string,
     requiresApproval: boolean,
@@ -58,51 +28,6 @@ export function CommunityCreateGroupDialog({
   ) => void;
   onCreatePrivate: (name: string, image: File | null) => void;
 }) {
-  const publicSummaryRef = useRef<HTMLDivElement>(null);
-  const privateSummaryRef = useRef<HTMLDivElement>(null);
-  const [requiresApproval, setRequiresApproval] = useState(false);
-  const [publicImage, setPublicImage] = useState<File | null>(null);
-  const [privateImage, setPrivateImage] = useState<File | null>(null);
-  const [publicImageError, setPublicImageError] = useState<string | null>(null);
-  const [privateImageError, setPrivateImageError] = useState<string | null>(
-    null,
-  );
-  const publicNameError = fieldErrorMessage(publicError, "name");
-  const privateNameError = fieldErrorMessage(privateError, "name");
-
-  useEffect(() => {
-    if (open) {
-      return;
-    }
-    setRequiresApproval(false);
-    setPublicImage(null);
-    setPrivateImage(null);
-    setPublicImageError(null);
-    setPrivateImageError(null);
-  }, [open]);
-
-  useEffect(() => {
-    if (!publicError) {
-      return;
-    }
-    focusFormFailure(
-      publicError,
-      { name: "club-group-public-name" },
-      publicSummaryRef.current,
-    );
-  }, [publicError]);
-
-  useEffect(() => {
-    if (!privateError) {
-      return;
-    }
-    focusFormFailure(
-      privateError,
-      { name: "club-group-private-name" },
-      privateSummaryRef.current,
-    );
-  }, [privateError]);
-
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent>
@@ -113,160 +38,24 @@ export function CommunityCreateGroupDialog({
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
-          <form
-            className="space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (pending) {
+        <div className="px-4 pb-4 md:px-0 md:pb-0">
+          <GroupCreateForm
+            context="club"
+            idPrefix="club-group"
+            pending={pending}
+            error={error}
+            onSubmit={(values) => {
+              if (values.type === "private") {
+                onCreatePrivate(values.name, values.image);
                 return;
               }
-              const formData = new FormData(event.currentTarget);
-              const nameValue = formData.get("name");
-              if (typeof nameValue !== "string") {
-                return;
-              }
-              const name = nameValue.trim();
-              if (!name) {
-                return;
-              }
-              if (publicImage) {
-                const pickedError = entityImageFileError(publicImage);
-                if (pickedError) {
-                  setPublicImageError(pickedError);
-                  return;
-                }
-              }
-              onCreatePublic(name, requiresApproval, publicImage);
+              onCreatePublic(
+                values.name,
+                values.requiresApproval,
+                values.image,
+              );
             }}
-          >
-            <h3 className="text-title font-semibold">Club Group Public</h3>
-            <p className="text-body text-muted-foreground">
-              Open to Community members. You join as a Group member, or they
-              request if you require approval.
-            </p>
-            <FormErrorSummary
-              ref={publicSummaryRef}
-              message={globalFormErrorMessage(publicError)}
-            />
-            <Field>
-              <FieldLabel htmlFor="club-group-public-name">Name</FieldLabel>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                <Input
-                  id="club-group-public-name"
-                  name="name"
-                  required
-                  maxLength={255}
-                  className="flex-1"
-                  aria-invalid={publicNameError ? true : undefined}
-                  aria-describedby={
-                    publicNameError ? "club-group-public-name-error" : undefined
-                  }
-                />
-                <Button type="submit" disabled={pending}>
-                  {publicPending ? "Creating…" : "Create Public"}
-                </Button>
-              </div>
-              <FieldError id="club-group-public-name-error">
-                {publicNameError}
-              </FieldError>
-            </Field>
-            <Field>
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="club-group-requires-approval"
-                  checked={requiresApproval}
-                  onCheckedChange={(checked) =>
-                    setRequiresApproval(checked === true)
-                  }
-                />
-                <FieldLabel htmlFor="club-group-requires-approval">
-                  Require approval
-                </FieldLabel>
-              </div>
-              <FieldDescription>
-                Community Members request to join. You approve or reject them on
-                Group home.
-              </FieldDescription>
-            </Field>
-            <EntityImageField
-              id="club-group-public-image"
-              file={publicImage}
-              error={publicImageError}
-              disabled={pending}
-              onFileChange={setPublicImage}
-              onError={setPublicImageError}
-            />
-          </form>
-
-          <form
-            className="space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (pending) {
-                return;
-              }
-              const formData = new FormData(event.currentTarget);
-              const nameValue = formData.get("name");
-              if (typeof nameValue !== "string") {
-                return;
-              }
-              const name = nameValue.trim();
-              if (!name) {
-                return;
-              }
-              if (privateImage) {
-                const pickedError = entityImageFileError(privateImage);
-                if (pickedError) {
-                  setPrivateImageError(pickedError);
-                  return;
-                }
-              }
-              onCreatePrivate(name, privateImage);
-            }}
-          >
-            <h3 className="text-title font-semibold">Club Group Private</h3>
-            <p className="text-body text-muted-foreground">
-              Owner or Admin can send Lookup invites and copy Invite links. The
-              Group creator may Lookup existing Members only.
-            </p>
-            <FormErrorSummary
-              ref={privateSummaryRef}
-              message={globalFormErrorMessage(privateError)}
-            />
-            <Field>
-              <FieldLabel htmlFor="club-group-private-name">Name</FieldLabel>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                <Input
-                  id="club-group-private-name"
-                  name="name"
-                  required
-                  maxLength={255}
-                  className="flex-1"
-                  aria-invalid={privateNameError ? true : undefined}
-                  aria-describedby={
-                    privateNameError
-                      ? "club-group-private-name-error"
-                      : undefined
-                  }
-                />
-                <Button type="submit" disabled={pending}>
-                  {privatePending ? "Creating…" : "Create Private"}
-                </Button>
-              </div>
-              <FieldError id="club-group-private-name-error">
-                {privateNameError}
-              </FieldError>
-            </Field>
-            <EntityImageField
-              id="club-group-private-image"
-              file={privateImage}
-              error={privateImageError}
-              disabled={pending}
-              onFileChange={setPrivateImage}
-              onError={setPrivateImageError}
-            />
-          </form>
+          />
         </div>
       </ResponsiveDialogContent>
     </ResponsiveDialog>

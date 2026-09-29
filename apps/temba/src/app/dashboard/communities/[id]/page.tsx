@@ -748,17 +748,11 @@ export default function CommunityHomePage({
           open={createGroupOpen}
           onOpenChange={setCreateGroupOpen}
           pending={createClubPending}
-          publicPending={
-            createClubPublic.isPending || uploadGroupImage.isPending
-          }
-          privatePending={
-            createClubPrivate.isPending || uploadGroupImage.isPending
-          }
-          publicError={createClubPublic.error}
-          privateError={createClubPrivate.error}
+          error={createClubPublic.error ?? createClubPrivate.error}
           onCreatePublic={(name, requiresApproval, image) => {
             void (async () => {
               try {
+                createClubPrivate.reset();
                 const group = await createClubPublic.mutateAsync({
                   communityId: id,
                   name,
@@ -778,6 +772,7 @@ export default function CommunityHomePage({
           onCreatePrivate={(name, image) => {
             void (async () => {
               try {
+                createClubPublic.reset();
                 const group = await createClubPrivate.mutateAsync({
                   communityId: id,
                   name,
