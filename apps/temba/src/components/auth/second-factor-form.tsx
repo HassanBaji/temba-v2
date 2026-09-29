@@ -6,11 +6,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
 import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
 import { splitClerkAuthError } from "~/lib/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
+
+const CODE_INPUT_ID = "second-factor-code";
+
+function focusSplit(split: SplitFormError, summary: HTMLElement | null) {
+  if (split.fieldErrors.code) {
+    document.getElementById(CODE_INPUT_ID)?.focus();
+    return;
+  }
+  summary?.focus();
+}
 
 export function SecondFactorForm({
   redirectUrl,
@@ -22,6 +33,7 @@ export function SecondFactorForm({
   const { signIn, isLoaded } = useSignIn();
   const completeUrl = authCompleteUrl(redirectUrl);
   const loginUrl = authCrossLinkUrl("/login", redirectUrl);
+  const summaryRef = React.useRef<HTMLDivElement>(null);
 
   const [code, setCode] = React.useState("");
   const [startedAt, setStartedAt] = React.useState(() => Date.now());
@@ -32,6 +44,13 @@ export function SecondFactorForm({
   React.useEffect(() => {
     document.getElementById("auth-screen-heading")?.focus();
   }, []);
+
+  // After render, so the code input is enabled and the summary is mounted.
+  React.useEffect(() => {
+    if (split) {
+      focusSplit(split, summaryRef.current);
+    }
+  }, [split]);
 
   React.useEffect(() => {
     if (!isLoaded || !signIn || prepared || pending) {
@@ -103,7 +122,7 @@ export function SecondFactorForm({
   if (!isLoaded) {
     return (
       <AuthScreen title="Check your phone">
-        <p className="text-body text-muted-foreground">Loading…</p>
+        <AuthLoading />
       </AuthScreen>
     );
   }
@@ -160,7 +179,8 @@ export function SecondFactorForm({
         pending={pending || !prepared}
         globalMessage={split?.globalMessage ?? null}
         codeError={split?.fieldErrors.code}
-        codeInputId="second-factor-code"
+        codeInputId={CODE_INPUT_ID}
+        summaryRef={summaryRef}
       />
     </AuthScreen>
   );

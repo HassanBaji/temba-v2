@@ -1,8 +1,10 @@
 "use client";
 
+import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { ErrorState } from "~/components/common/error-state";
 import {
@@ -42,6 +44,8 @@ const FIELD_IDS = {
 
 /** How often the wait state re-asks whether the `user` row has landed. */
 const PROVISIONING_POLL_MS = 2000;
+/** About ten polls; past this the wait offers a retry and a way out. */
+const PROVISIONING_TIMEOUT_MS = 10 * PROVISIONING_POLL_MS;
 
 /**
  * The Onboarding questionnaire: Preferred Position, then the one-time Level
@@ -58,6 +62,7 @@ export function OnboardingQuestionnaire({
   redirectTo: string;
 }) {
   const router = useRouter();
+  const { signOut } = useClerk();
   const utils = api.useUtils();
   const summaryRef = React.useRef<HTMLDivElement>(null);
 
@@ -71,6 +76,8 @@ export function OnboardingQuestionnaire({
     "",
   );
   const [changingPosition, setChangingPosition] = React.useState(false);
+  const [provisioningStalled, setProvisioningStalled] = React.useState(false);
+  const [signingOut, setSigningOut] = React.useState(false);
 
   const setPreferredPosition = api.users.setPreferredPosition.useMutation({
     onSuccess: async () => {
@@ -111,6 +118,16 @@ export function OnboardingQuestionnaire({
       document.getElementById("auth-screen-heading")?.focus();
     }
   }, [step]);
+
+  React.useEffect(() => {
+    if (step !== "provisioning" || provisioningStalled) {
+      return;
+    }
+    const id = window.setTimeout(() => {
+      setProvisioningStalled(true);
+    }, PROVISIONING_TIMEOUT_MS);
+    return () => window.clearTimeout(id);
+  }, [provisioningStalled, step]);
 
   React.useEffect(() => {
     if (!activeError) {
@@ -156,6 +173,13 @@ export function OnboardingQuestionnaire({
     });
   }
 
+  function onSignOut() {
+    setSigningOut(true);
+    signOut({ redirectUrl: "/login" }).catch(() => {
+      setSigningOut(false);
+    });
+  }
+
   function onBack() {
     setPreferredPosition.reset();
     setPosition(state.data?.preferredPosition ?? "");
@@ -182,12 +206,35 @@ export function OnboardingQuestionnaire({
   if (step === "loading") {
     return (
       <AuthScreen brand>
-        <div aria-busy="true" className="space-y-4">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-7 w-52 max-w-full" />
-          <Skeleton className="h-24 w-full rounded-lg" />
-          <Skeleton className="h-11 w-full rounded-lg" />
-        </div>
+        <AuthLoading />
+      </AuthScreen>
+    );
+  }
+
+  if (step === "provisioning" && provisioningStalled) {
+    return (
+      <AuthScreen brand>
+        <ErrorState
+          headingLevel={1}
+          title="Setup is taking longer than usual"
+          message="Your Temba account is still being created. Try again, or sign out and come back later."
+          onRetry={() => {
+            setProvisioningStalled(false);
+            void state.refetch();
+          }}
+          secondaryAction={
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              pending={signingOut}
+              pendingLabel="Signing out…"
+              onClick={onSignOut}
+            >
+              Sign out
+            </Button>
+          }
+        />
       </AuthScreen>
     );
   }

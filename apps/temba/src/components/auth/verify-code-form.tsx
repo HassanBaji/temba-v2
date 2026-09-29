@@ -20,6 +20,7 @@ export function VerifyCodeForm({
   globalMessage,
   codeError,
   codeInputId = "sign-up-code",
+  summaryRef,
 }: {
   destination: string;
   changeLabel: string;
@@ -33,6 +34,7 @@ export function VerifyCodeForm({
   globalMessage: string | null;
   codeError?: string;
   codeInputId?: string;
+  summaryRef?: React.Ref<HTMLDivElement>;
 }) {
   const ready = code.length === 6;
   const helperId = `${codeInputId}-helper`;
@@ -62,7 +64,7 @@ export function VerifyCodeForm({
           {changeLabel}
         </button>
       </p>
-      <FormErrorSummary message={globalMessage} />
+      <FormErrorSummary ref={summaryRef} message={globalMessage} />
       <OtpInput
         id={codeInputId}
         value={code}

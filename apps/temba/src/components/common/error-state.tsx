@@ -1,4 +1,5 @@
 import { CircleAlert } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -22,6 +23,7 @@ export function ErrorState({
   message,
   onRetry,
   retryLabel = "Try again",
+  secondaryAction,
   headingLevel = 2,
   className,
 }: {
@@ -29,6 +31,7 @@ export function ErrorState({
   message?: string;
   onRetry: () => void;
   retryLabel?: string;
+  secondaryAction?: ReactNode;
   headingLevel?: 1 | 2 | 3;
   className?: string;
 }) {
@@ -53,6 +56,7 @@ export function ErrorState({
       <Button className="min-h-11" onClick={onRetry} type="button">
         {retryLabel}
       </Button>
+      {secondaryAction}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
@@ -336,7 +337,7 @@ export function SignUpContinueForm({
   if (!isLoaded) {
     return (
       <AuthScreen title="Almost there">
-        <p className="text-body text-muted-foreground">Loading…</p>
+        <AuthLoading />
       </AuthScreen>
     );
   }
