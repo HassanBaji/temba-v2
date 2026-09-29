@@ -684,7 +684,7 @@ export default function GroupHomePage({
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
         title={`Leave ${groupName}?`}
-        description="You will leave this Group. Cancelling does nothing."
+        description="You will leave this Group."
         confirmLabel="Leave Group"
         pending={leaveGroup.isPending}
         restoreFocusRef={restoreFocusRef}
@@ -697,7 +697,7 @@ export default function GroupHomePage({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title={`Delete ${groupName}?`}
-        description="This cannot be undone. Cancelling does nothing."
+        description="This cannot be undone."
         confirmLabel="Delete Group"
         pending={deleteGroup.isPending}
         restoreFocusRef={restoreFocusRef}
@@ -710,7 +710,7 @@ export default function GroupHomePage({
         open={removeImageOpen}
         onOpenChange={setRemoveImageOpen}
         title={`Remove image for ${groupName}?`}
-        description="The current image will be removed. Cancelling does nothing."
+        description="The current image will be removed."
         confirmLabel="Remove image"
         pending={clearImage.isPending}
         restoreFocusRef={restoreFocusRef}

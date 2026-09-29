@@ -666,7 +666,7 @@ export default function CommunityHomePage({
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
         title={`Leave ${communityName}?`}
-        description="You will leave this Community and its Club Groups. Cancelling does nothing."
+        description="You will leave this Community and its Club Groups."
         confirmLabel="Leave Community"
         pending={leaveCommunity.isPending}
         restoreFocusRef={menuTriggerRef}
@@ -679,7 +679,7 @@ export default function CommunityHomePage({
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
         title={`Soft-archive ${communityName}?`}
-        description="New joins, requests, and invites pause until an Owner or Admin unarchives. Cancelling does nothing."
+        description="New joins, requests, and invites pause until an Owner or Admin unarchives."
         confirmLabel="Soft-archive"
         pending={softArchive.isPending}
         restoreFocusRef={menuTriggerRef}
@@ -692,7 +692,7 @@ export default function CommunityHomePage({
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
         title={data.venue ? `Unlink ${data.venue.name}?` : "Unlink Venue?"}
-        description="This Community will no longer be linked to that Venue. Cancelling does nothing."
+        description="This Community will no longer be linked to that Venue."
         confirmLabel="Unlink Venue"
         pending={unlinkVenue.isPending}
         onConfirm={async () => {

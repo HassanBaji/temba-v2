@@ -378,7 +378,7 @@ export default function TeamHomePage({
         open={dissolveOpen}
         onOpenChange={setDissolveOpen}
         title={`Dissolve ${displayName}?`}
-        description="This cannot be undone. Cancelling does nothing."
+        description="This cannot be undone."
         confirmLabel="Dissolve Team"
         pending={dissolve.isPending}
         restoreFocusRef={menuTriggerRef}
@@ -391,7 +391,7 @@ export default function TeamHomePage({
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
         title={`Unlink ${displayName}?`}
-        description="This Team will no longer be linked to its Community. Cancelling does nothing."
+        description="This Team will no longer be linked to its Community."
         confirmLabel="Unlink from Community"
         pending={unlink.isPending}
         restoreFocusRef={menuTriggerRef}

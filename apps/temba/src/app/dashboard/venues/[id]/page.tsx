@@ -639,7 +639,7 @@ export default function VenueHomePage({
           }
         }}
         title={`Delete ${deleteCourtName}?`}
-        description="This cannot be undone. Cancelling does nothing."
+        description="This cannot be undone."
         confirmLabel="Delete Court"
         pending={deleteCourt.isPending}
         onConfirm={async () => {
@@ -654,7 +654,7 @@ export default function VenueHomePage({
         open={clearLogoOpen}
         onOpenChange={setClearLogoOpen}
         title={`Clear logo for ${venueName}?`}
-        description="The current logo will be removed. Cancelling does nothing."
+        description="The current logo will be removed."
         confirmLabel="Clear logo"
         pending={clearLogo.isPending}
         onConfirm={async () => {
@@ -666,7 +666,7 @@ export default function VenueHomePage({
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
         title={`Soft-archive ${venueName}?`}
-        description="It is hidden from the Community request catalog. Live Community links stay. Cancelling does nothing."
+        description="It is hidden from the Community request catalog. Live Community links stay."
         confirmLabel="Soft-archive Venue"
         pending={softArchive.isPending}
         onConfirm={async () => {
