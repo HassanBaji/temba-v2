@@ -6,6 +6,7 @@ import { StepperField } from "~/components/games/stepper-field";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHome } from "~/components/games/tournament-home";
 import {
+  HomeTournamentMatchCard,
   TournamentMatchCard,
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
@@ -236,10 +237,9 @@ function HomeMatchCardPreviewColumn({
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
       <h3 className="text-muted-foreground text-sm">{title}</h3>
-      <TournamentMatchCard
+      <HomeTournamentMatchCard
         game={game}
         href={`/dashboard/design/tournament#${game.id}`}
-        surface="home"
         phase={phase}
         canAddResults={canAddResults}
       />
