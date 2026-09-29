@@ -27,7 +27,7 @@ export function AppRail() {
   return (
     <Sidebar
       collapsible="none"
-      className="hidden border-r lg:flex"
+      className="hidden border-r lg:sticky lg:top-0 lg:flex lg:h-svh"
       style={{ width: "var(--rail-width)" }}
       role="navigation"
       aria-label="Primary"
