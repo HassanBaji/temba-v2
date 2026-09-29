@@ -5,6 +5,7 @@ import * as React from "react";
 
 import { PoolRecordTable } from "~/components/games/tournament-pool-tables-panel";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
+import { PageTitle } from "~/components/layout/page-title";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
@@ -161,9 +162,9 @@ export function TournamentStandingsHeader({
           <span className="size-11 shrink-0" aria-hidden="true" />
         )}
       </div>
-      <h1 className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
+      <PageTitle variant="hero" className="mt-6">
         {STANDINGS_HEADING}
-      </h1>
+      </PageTitle>
       <p className="text-body mt-2">{name}</p>
       <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
         {TOURNAMENT_ENDS_COPY}

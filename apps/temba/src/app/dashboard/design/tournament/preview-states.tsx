@@ -323,7 +323,7 @@ function TournamentCreateControlsPreview() {
     <div className="flex flex-col gap-[18px]">
       <div>
         <p className="text-muted-foreground text-meta">Bromma</p>
-        <h3 className="font-expanded mt-4 text-[38px] leading-none tracking-[-0.03em]">
+        <h3 className="font-expanded text-display mt-4 leading-none tracking-[-0.03em]">
           {CREATE_TOURNAMENT_HEADING_LEAD}
           <br />
           {CREATE_TOURNAMENT_HEADING_TRAIL}

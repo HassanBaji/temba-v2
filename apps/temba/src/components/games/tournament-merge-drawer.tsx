@@ -176,7 +176,7 @@ export function TournamentMergeDrawer({
                 {ORGANIZER_EYEBROW}
               </p>
             </div>
-            <DrawerTitle className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
+            <DrawerTitle className="font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
               {MERGE_DRAWER_TITLE}
             </DrawerTitle>
             <DrawerDescription className="text-body mt-2.5 leading-relaxed">

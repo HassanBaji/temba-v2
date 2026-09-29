@@ -521,7 +521,7 @@ function TournamentTakeASeat({
           </p>
         </div>
         <ResponsiveDialogHeader className="p-0 pt-6 text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-          <ResponsiveDialogTitle className="font-expanded text-[38px] leading-none tracking-[-0.03em]">
+          <ResponsiveDialogTitle className="font-expanded text-display leading-none tracking-[-0.03em]">
             {TAKE_A_SEAT_TITLE}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription className="text-body leading-relaxed">

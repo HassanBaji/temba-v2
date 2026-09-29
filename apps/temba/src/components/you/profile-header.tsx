@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
 
+import { PageTitle } from "~/components/layout/page-title";
 import { profileSettingsAriaLabel } from "~/lib/profile-chrome";
 
 export function ProfileHeader({
@@ -15,9 +16,7 @@ export function ProfileHeader({
 
   return (
     <header className="flex items-center justify-between gap-3">
-      <h1 className="text-ink min-w-0 truncate text-[26px] font-bold tracking-[-0.01em]">
-        Profile
-      </h1>
+      <PageTitle className="text-ink truncate">Profile</PageTitle>
       <Link
         href="/dashboard/you/settings"
         aria-label={ariaLabel}

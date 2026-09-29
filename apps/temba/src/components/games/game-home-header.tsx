@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Globe } from "lucide-react";
 import Link from "next/link";
 
+import { PageTitle } from "~/components/layout/page-title";
 import { GameViewerStatusBadge } from "~/components/temba/game-viewer-status-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import {
@@ -40,9 +41,7 @@ export function GameHomeHeader({
   return (
     <header className="flex items-start gap-3">
       <div className="min-w-0 flex-1 space-y-2">
-        <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
-          {name}
-        </h1>
+        <PageTitle>{name}</PageTitle>
         {groupId ? (
           <p className="text-meta text-muted-foreground">
             On Group{" "}

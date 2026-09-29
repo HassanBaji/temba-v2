@@ -3,6 +3,7 @@ import { PlusIcon, UserPlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
+import { PageTitle } from "~/components/layout/page-title";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
@@ -97,9 +98,7 @@ export function GroupHomeChrome({
       <div className="mt-5 flex items-start gap-3">
         <EntityMonogram name={name} image={imageUrl} size="lg" />
         <div className="min-w-0 flex-1">
-          <h1 className="text-h1 min-w-0 break-words font-bold tracking-[-0.01em]">
-            {name}
-          </h1>
+          <PageTitle>{name}</PageTitle>
           {meta ? (
             <p className="text-meta text-muted-foreground mt-1 min-w-0 break-words">
               {meta}

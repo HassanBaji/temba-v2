@@ -5,6 +5,7 @@ import { Building2, Mail, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { PageTitle } from "~/components/layout/page-title";
 import { PreferredPositionControl } from "~/components/settings/preferred-position-control";
 import { SettingsFooter } from "~/components/settings/settings-footer";
 import { SettingsLinkRow } from "~/components/settings/settings-link-row";
@@ -22,9 +23,7 @@ function SettingsHeader() {
   return (
     <header className="mt-6 flex items-center gap-1.5 lg:mt-2">
       <BackButton href="/dashboard/you" label="Back to Profile" />
-      <h1 className="text-ink text-[26px] font-bold tracking-[-0.01em]">
-        Settings
-      </h1>
+      <PageTitle className="text-ink">Settings</PageTitle>
     </header>
   );
 }

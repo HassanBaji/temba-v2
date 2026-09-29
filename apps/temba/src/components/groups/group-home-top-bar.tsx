@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+import { PageTitle } from "~/components/layout/page-title";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { cn } from "~/lib/utils";
 
@@ -34,17 +35,19 @@ export function GroupHomeTopBar({
       )}
     >
       <BackButton href="/dashboard/groups" label="Back to Groups" />
-      <p
+      <PageTitle
+        as="p"
+        variant="compact"
         aria-hidden={!collapsed}
         className={cn(
-          "min-w-0 flex-1 truncate text-center text-base font-semibold tracking-[-0.01em] transition-opacity",
+          "flex-1 truncate transition-opacity",
           collapsed ? "opacity-100" : "opacity-0",
           collapsed ? "motion-safe:translate-y-0" : "motion-safe:translate-y-1",
           "motion-safe:transition-transform",
         )}
       >
         {name}
-      </p>
+      </PageTitle>
       <div className="flex size-11 shrink-0 items-center justify-end">
         {overflow}
       </div>

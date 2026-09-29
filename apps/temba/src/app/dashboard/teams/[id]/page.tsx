@@ -29,6 +29,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
+import { PageTitle } from "~/components/layout/page-title";
 import { Section } from "~/components/layout/section";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
@@ -257,9 +258,7 @@ export default function TeamHomePage({
             size="lg"
           />
           <div className="min-w-0 flex-1 space-y-2">
-            <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
-              {displayName}
-            </h1>
+            <PageTitle>{displayName}</PageTitle>
             <div className="flex flex-wrap items-center gap-2">
               <SportBadge sport={data.sport} />
               {data.isLoose ? (

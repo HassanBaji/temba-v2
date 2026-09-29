@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { PageTitle } from "~/components/layout/page-title";
 import { cn } from "~/lib/utils";
 
 export function PageHeader({
@@ -21,9 +22,7 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h1 className="text-h2 lg:text-h1 min-w-0 break-words font-bold tracking-[-0.02em]">
-          {title}
-        </h1>
+        <PageTitle>{title}</PageTitle>
         {description ? (
           <p className="text-body text-muted-foreground">{description}</p>
         ) : null}

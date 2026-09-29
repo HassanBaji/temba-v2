@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useCreateAccess } from "~/components/create-access-gate";
+import { PageTitle } from "~/components/layout/page-title";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { detailBackHref } from "~/lib/dashboard-paths";
 import { pageGutterX } from "~/lib/page-layout";
@@ -15,7 +16,7 @@ export function MobileTopBar({
   action,
   icon,
   isSubPage,
-  titleAs: Title = "h1",
+  titleAs = "h1",
 }: {
   title?: string;
   icon?: ReactNode;
@@ -35,14 +36,13 @@ export function MobileTopBar({
     >
       {backHref && <BackButton href={backHref} />}
       {title ? (
-        <Title
-          className={cn(
-            "min-w-0 flex-1 truncate text-3xl font-bold tracking-[-0.01em]",
-            isSubPage && "text-foreground text-center text-base",
-          )}
+        <PageTitle
+          as={titleAs}
+          variant={isSubPage ? "compact" : "standard"}
+          className="text-foreground flex-1 truncate"
         >
           {title}
-        </Title>
+        </PageTitle>
       ) : null}
 
       {icon ? <div className="size-11 shrink-0">{icon}</div> : null}

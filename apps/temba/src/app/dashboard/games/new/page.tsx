@@ -14,6 +14,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
@@ -856,7 +857,7 @@ function NewGameForm() {
       </>
     ) : (
       <>
-        <h1 className="font-expanded text-display leading-none">
+        <PageTitle variant="hero">
           {displayedStep === 1 ? (
             <>
               What are you
@@ -866,7 +867,7 @@ function NewGameForm() {
           ) : (
             "Friendly game"
           )}
-        </h1>
+        </PageTitle>
         <p className="text-dim text-meta mt-2.5 leading-normal">
           {displayedStep === 1
             ? "Both start with a court and a time. The rest of the form follows your pick."

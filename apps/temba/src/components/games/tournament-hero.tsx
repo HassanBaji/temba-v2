@@ -3,6 +3,7 @@
 import { ShareIcon } from "lucide-react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import {
@@ -118,9 +119,9 @@ export function TournamentHero({
       </div>
 
       <p className="text-dim text-meta mt-7">{eyebrow}</p>
-      <h1 className="font-expanded mt-2.5 text-[38px] leading-none tracking-[-0.03em]">
+      <PageTitle variant="hero" className="mt-2.5">
         {name}
-      </h1>
+      </PageTitle>
       {startLine ? (
         <p className="mt-2.5 text-[16px] leading-snug">{startLine}</p>
       ) : null}
