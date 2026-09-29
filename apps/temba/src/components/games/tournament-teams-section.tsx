@@ -119,12 +119,14 @@ function sideByIndex(sides: readonly TournamentHomeSide[], sideIndex: number) {
 function TeamSeat({
   occupant,
   position,
+  teamLabel,
   viewerUserId,
   joinable,
   onJoin,
 }: {
   occupant: TournamentHomeOccupant | null;
   position: "left" | "right";
+  teamLabel: string;
   viewerUserId: string;
   joinable: boolean;
   onJoin?: () => void;
@@ -139,8 +141,8 @@ function TeamSeat({
         caption={positionName}
         label={
           canJoin
-            ? `Take the ${positionName.toLowerCase()} seat`
-            : `Open ${positionName.toLowerCase()} seat`
+            ? `Take the ${positionName.toLowerCase()} seat on ${teamLabel}`
+            : `Open ${positionName.toLowerCase()} seat on ${teamLabel}`
         }
         onSelect={canJoin ? onJoin : undefined}
       />
@@ -211,6 +213,7 @@ function TeamRow({
         <TeamSeat
           occupant={side?.left ?? null}
           position="left"
+          teamLabel={teamLabel}
           viewerUserId={viewerUserId}
           joinable={canTakeSeat && !row.isViewer && side?.left == null}
           onJoin={
@@ -224,6 +227,7 @@ function TeamRow({
         <TeamSeat
           occupant={side?.right ?? null}
           position="right"
+          teamLabel={teamLabel}
           viewerUserId={viewerUserId}
           joinable={canTakeSeat && !row.isViewer && side?.right == null}
           onJoin={

@@ -80,7 +80,7 @@ function LineupSeatRow({
           ) : (
             <>
               <OpenSeat size="lg" />
-              <span className="sr-only">Open</span>
+              <span className="sr-only">{`Open ${position} seat`}</span>
             </>
           )}
         </div>

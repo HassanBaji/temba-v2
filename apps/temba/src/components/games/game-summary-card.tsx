@@ -173,12 +173,12 @@ function SideJoinButton({
           onJoin(sideIndex, position);
         }}
       >
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
+        <span className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
           <OpenSeat size="chip" />
           <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
             Join {position === "left" ? "Left" : "Right"}
           </small>
-        </div>
+        </span>
       </Button>
     </div>
   );
