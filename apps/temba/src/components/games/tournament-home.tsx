@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
@@ -32,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { detailBackHref } from "~/lib/dashboard-paths";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import {
@@ -169,6 +171,7 @@ export function TournamentHome({
 }) {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
+  const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
   const sizing =
     data.poolCount != null && data.teamsAllowed != null
       ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
@@ -245,6 +248,7 @@ export function TournamentHome({
           name={data.name ?? "Tournament"}
           roundsPlayed={roundsPlayedLabel(data.poolTables, roundCount)}
           poolTables={data.poolTables}
+          backHref={backHref}
           showUndo={showUndo}
           undoPending={undoPending}
           undoError={undoError}
@@ -269,7 +273,7 @@ export function TournamentHome({
             left={viewerSide?.left ?? null}
             right={viewerSide?.right ?? null}
             showYourTeam={seated}
-            backHref="/dashboard/games"
+            backHref={backHref}
             onShare={onShare}
             sharePending={sharePending}
             onInvite={onInvite}
@@ -528,6 +532,7 @@ function TournamentStandingsTree({
   name,
   roundsPlayed,
   poolTables,
+  backHref,
   showUndo,
   undoPending,
   undoError,
@@ -536,6 +541,7 @@ function TournamentStandingsTree({
   name: string;
   roundsPlayed: string | null;
   poolTables: GameDetail["poolTables"];
+  backHref: string;
   showUndo: boolean;
   undoPending: boolean;
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
@@ -548,7 +554,7 @@ function TournamentStandingsTree({
           name={name}
           roundsPlayed={roundsPlayed}
           finished={Boolean(poolTables?.finished)}
-          backHref="/dashboard/games"
+          backHref={backHref}
         />
         {poolTables ? (
           <div className="pt-[18px]">
