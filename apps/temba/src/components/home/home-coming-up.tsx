@@ -5,6 +5,7 @@ import { formatGameClock } from "~/lib/format-game-start";
 import {
   type HomeComingUpGameRow,
   type HomeComingUpRow,
+  type HomeComingUpTournamentMatchRow,
   type HomeComingUpTournamentRow,
 } from "~/lib/home-coming-up";
 import { cn } from "~/lib/utils";
@@ -67,7 +68,43 @@ function GameRow({ game }: { game: HomeComingUpGameRow }) {
   );
 }
 
-function TournamentMatchRow({ game }: { game: HomeComingUpTournamentRow }) {
+function TournamentTitle({ title }: { title: string }) {
+  return (
+    <p className="flex min-w-0 items-center gap-1.5 font-medium">
+      <Trophy aria-hidden="true" className="size-3.5 shrink-0" />
+      <span className="truncate">{title}</span>
+    </p>
+  );
+}
+
+function TournamentRow({ game }: { game: HomeComingUpTournamentRow }) {
+  return (
+    <Link
+      href={`/dashboard/games/${game.id}`}
+      data-slot="home-coming-up-tournament"
+      className={ROW_CLASS}
+    >
+      <DayBox startsAt={game.startsAt} />
+      <div className="min-w-0 flex-1">
+        <TournamentTitle title={game.title} />
+        <p className="text-muted-foreground text-meta truncate">
+          {game.teamsLine}
+        </p>
+      </div>
+      {game.actionLabel ? (
+        <span className="bg-ink text-paper shrink-0 rounded-[9px] px-3 py-1.5 text-[13px] font-semibold">
+          {game.actionLabel}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+function TournamentMatchRow({
+  game,
+}: {
+  game: HomeComingUpTournamentMatchRow;
+}) {
   const meta = [formatGameClock(game.startsAt), game.opponentLine]
     .filter(Boolean)
     .join(", ");
@@ -79,10 +116,7 @@ function TournamentMatchRow({ game }: { game: HomeComingUpTournamentRow }) {
     >
       <DayBox startsAt={game.startsAt} />
       <div className="min-w-0 flex-1">
-        <p className="flex min-w-0 items-center gap-1.5 font-medium">
-          <Trophy aria-hidden="true" className="size-3.5 shrink-0" />
-          <span className="truncate">{game.title}</span>
-        </p>
+        <TournamentTitle title={game.title} />
         <p className="text-muted-foreground text-meta truncate">{meta}</p>
       </div>
       {game.roundTag ? (
@@ -109,6 +143,8 @@ export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
           <li key={game.rowKey}>
             {game.kind === "tournament_match" ? (
               <TournamentMatchRow game={game} />
+            ) : game.kind === "tournament" ? (
+              <TournamentRow game={game} />
             ) : (
               <GameRow game={game} />
             )}
