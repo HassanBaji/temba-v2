@@ -65,10 +65,34 @@ export function ResponsiveDialogClose({
   return <Close data-slot="responsive-dialog-close" {...props} />;
 }
 
+function focusTargetFor(element: Element | null): HTMLElement | null {
+  if (!(element instanceof HTMLElement) || element === document.body) {
+    return null;
+  }
+  // A menu item unmounts once the menu closes; the menu's trigger is the
+  // opener a keyboard user expects to land back on.
+  const menu = element.closest('[role="menu"]');
+  const menuTriggerId = menu?.getAttribute("aria-labelledby");
+  if (menuTriggerId) {
+    return document.getElementById(menuTriggerId);
+  }
+  return element;
+}
+
+function canTakeFocus(element: HTMLElement | null | undefined) {
+  return (
+    element != null &&
+    element.isConnected &&
+    element.getClientRects().length > 0 &&
+    !element.matches(":disabled")
+  );
+}
+
 export function ResponsiveDialogContent({
   className,
   children,
   restoreFocusRef,
+  onOpenAutoFocus,
   onCloseAutoFocus,
   showCloseButton,
   ...props
@@ -76,11 +100,27 @@ export function ResponsiveDialogContent({
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
   const { isMobile } = useResponsiveDialog();
+  const openerRef = React.useRef<HTMLElement | null>(null);
+
+  function handleOpenAutoFocus(event: Event) {
+    openerRef.current = focusTargetFor(document.activeElement);
+    if (isMobile && event.target instanceof HTMLElement) {
+      // vaul skips open autofocus so a phone keyboard doesn't pop up for the
+      // first input; focusing the panel itself still moves keyboard and
+      // screen reader users into the drawer.
+      event.target.focus();
+    }
+    onOpenAutoFocus?.(event);
+  }
 
   function handleCloseAutoFocus(event: Event) {
-    if (restoreFocusRef?.current) {
+    const target = [restoreFocusRef?.current, openerRef.current].find(
+      canTakeFocus,
+    );
+    openerRef.current = null;
+    if (target) {
       event.preventDefault();
-      restoreFocusRef.current.focus();
+      target.focus();
     }
     onCloseAutoFocus?.(event);
   }
@@ -90,9 +130,11 @@ export function ResponsiveDialogContent({
       <DrawerContent
         data-slot="responsive-dialog-content"
         className={cn(
-          "motion-reduce:transition-opacity motion-reduce:duration-100",
+          "outline-none motion-reduce:transition-opacity motion-reduce:duration-100",
           className,
         )}
+        onOpenAutoFocus={handleOpenAutoFocus}
+        onCloseAutoFocus={handleCloseAutoFocus}
         {...props}
       >
         {children}
@@ -105,6 +147,7 @@ export function ResponsiveDialogContent({
       data-slot="responsive-dialog-content"
       className={className}
       showCloseButton={showCloseButton}
+      onOpenAutoFocus={handleOpenAutoFocus}
       onCloseAutoFocus={handleCloseAutoFocus}
       {...props}
     >
