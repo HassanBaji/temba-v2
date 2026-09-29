@@ -34,7 +34,7 @@ export function CommunityCreateGroupDialog({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>Create Club Group</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Owner or Admin only. Sport is padel.
+            A padel Group inside this Community.
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 

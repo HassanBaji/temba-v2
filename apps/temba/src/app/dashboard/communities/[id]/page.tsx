@@ -713,7 +713,7 @@ export default function CommunityHomePage({
         lookup={
           data.canManageLookupInvites
             ? {
-                note: "Owner and Admin can send Lookup invites. They do not expire.",
+                note: "Owners and Admins can invite people. Invites don't expire.",
                 lookupInvites: lookupInvites.data,
                 sendPending: sendLookupInvite.isPending,
                 revokePendingId: revokeLookupInvite.isPending

@@ -49,7 +49,7 @@ export default function VenuesPage() {
   return (
     <DashboardShell
       title="Venues"
-      description="Physical sites in the catalog, including Soft-archived Venues. Create a Venue before any Community claims it."
+      description="Every Venue, including Soft-archived ones. Create a Venue before a Community asks to link it."
       action={
         <PageCreateAction href="/dashboard/venues/new" label="Create Venue" />
       }
@@ -57,7 +57,7 @@ export default function VenuesPage() {
       <div className="space-y-6">
         <Section
           title="Requests"
-          description="Approve sets the Community live Venue pointer. Reject is silent and does not admit Users."
+          description="Approve to link the Venue to that Community. If you reject, they can ask again."
           action={
             requestCount > 0 ? (
               <Badge variant="secondary">{requestCount}</Badge>

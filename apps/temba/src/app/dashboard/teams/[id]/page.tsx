@@ -411,9 +411,9 @@ export default function TeamHomePage({
             }
           }}
           restoreFocusRef={menuTriggerRef}
-          description="Invite a partner for the open seat: send a Lookup invite to an existing User, or copy an Invite link. Invitees accept on Invites."
+          description="Invite a partner for the open seat, or copy a link to share."
           lookup={{
-            note: "Pick one existing User. Lookup invites do not expire.",
+            note: "Pick one person. Invites don't expire.",
             lookupInvites: data.unusedInvite ? [data.unusedInvite] : [],
             sendPending: inviteInApp.isPending,
             revokePendingId: revokeInvite.isPending

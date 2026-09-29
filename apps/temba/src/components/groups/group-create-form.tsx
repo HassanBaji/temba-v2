@@ -42,24 +42,24 @@ export type GroupCreateContext = "loose" | "club";
 
 const COPY = {
   loose: {
-    publicLabel: "Public (open-with-link)",
-    privateLabel: "Private (Lookup invite + Invite link)",
+    publicLabel: "Public (anyone with the link)",
+    privateLabel: "Private (invite only)",
     publicHelp:
-      "Share the Group URL. Anyone with the link can join, or request if you require approval.",
-    privateHelp: "Only you can send Lookup invites and copy Invite links.",
+      "Anyone with the Group link can join, or ask to join if you require approval.",
+    privateHelp: "Only you can invite people.",
     approvalHelp:
-      "People request to join. You approve or reject them on Group home.",
+      "People ask to join. You approve or reject them on Group home.",
     submit: "Create Group",
   },
   club: {
-    publicLabel: "Public (open to Community members)",
-    privateLabel: "Private (Lookup invite + Invite link)",
+    publicLabel: "Public (Community Members)",
+    privateLabel: "Private (invite only)",
     publicHelp:
-      "Open to Community members. You join as a Group member, or they request if you require approval.",
+      "Any Community Member can join, or ask to join if you require approval.",
     privateHelp:
-      "Owner or Admin can send Lookup invites and copy Invite links. The Group creator may Lookup existing Members only.",
+      "Owners and Admins can invite anyone. The Group's creator can invite Community Members.",
     approvalHelp:
-      "Community Members request to join. You approve or reject them on Group home.",
+      "Community Members ask to join. You approve or reject them on Group home.",
     submit: "Create Club Group",
   },
 } as const;

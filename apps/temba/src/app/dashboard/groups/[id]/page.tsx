@@ -39,9 +39,9 @@ import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 const GROUP_LOOSE_LOOKUP_NOTE =
-  "Only you can send Lookup invites. They do not expire.";
+  "Only you can invite people here. Invites don't expire.";
 const GROUP_CLUB_LOOKUP_NOTE =
-  "Owner or Admin can invite any existing User; accepting also admits them to the Community. The Group creator may invite existing Members only.";
+  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator can invite Community Members.";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 

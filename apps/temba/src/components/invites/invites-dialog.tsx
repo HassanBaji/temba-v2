@@ -13,7 +13,7 @@ import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
 
 export const INVITES_DIALOG_DESCRIPTION =
-  "Send a Lookup invite to an existing User, or copy an Invite link. Invitees accept on Invites.";
+  "Invite someone who already uses Temba, or copy a link to share. They accept it from Invites.";
 
 function InviteSection({
   title,

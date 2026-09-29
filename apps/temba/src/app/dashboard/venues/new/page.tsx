@@ -170,7 +170,7 @@ export default function NewVenuePage() {
                 }
               />
               <FieldDescription id="venue-latitude-help">
-                Optional. Range −90 to 90. Blank persists as null.
+                Optional. Between −90 and 90.
               </FieldDescription>
               <FieldError id="venue-latitude-error">
                 {fieldErrorMessage(error, "latitude")}
@@ -197,7 +197,7 @@ export default function NewVenuePage() {
                 }
               />
               <FieldDescription id="venue-longitude-help">
-                Optional. Range −180 to 180. Blank persists as null.
+                Optional. Between −180 and 180.
               </FieldDescription>
               <FieldError id="venue-longitude-error">
                 {fieldErrorMessage(error, "longitude")}

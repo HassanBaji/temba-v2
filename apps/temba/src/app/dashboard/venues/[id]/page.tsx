@@ -438,7 +438,7 @@ export default function VenueHomePage({
                   }
                 />
                 <FieldDescription id="venue-latitude-help">
-                  Optional. Range −90 to 90. Blank persists as null.
+                  Optional. Between −90 and 90.
                 </FieldDescription>
                 <FieldError id="venue-latitude-error">
                   {fieldErrorMessage(updateVenue.error, "latitude")}
@@ -466,7 +466,7 @@ export default function VenueHomePage({
                   }
                 />
                 <FieldDescription id="venue-longitude-help">
-                  Optional. Range −180 to 180. Blank persists as null.
+                  Optional. Between −180 and 180.
                 </FieldDescription>
                 <FieldError id="venue-longitude-error">
                   {fieldErrorMessage(updateVenue.error, "longitude")}
@@ -514,7 +514,7 @@ export default function VenueHomePage({
 
         <Section
           title="Courts"
-          description="A Venue may have zero Courts. Names are unique on this Venue after trim and case-fold."
+          description="Each Court on this Venue needs its own name."
         >
           <form onSubmit={onAddCourt} className="space-y-3">
             <FormErrorSummary

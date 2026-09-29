@@ -93,7 +93,7 @@ export default function NewLooseGroupPage() {
   return (
     <DashboardShell
       title="Create Group"
-      description="A squad outside any Community. Public joins via the Group URL unless you require approval; Private uses Lookup invites and 6-hour Invite links. You become a Group member."
+      description="A Group of people you play with, outside any Community. You join it as its first member."
     >
       <Card variant="outlined" className="w-full">
         <GroupCreateForm
