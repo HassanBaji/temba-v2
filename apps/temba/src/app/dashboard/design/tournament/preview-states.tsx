@@ -63,6 +63,7 @@ import {
   WHO_CAN_TAKE_A_SEAT_LABEL,
   WITH_A_PARTNER_ONLY_LABEL,
 } from "~/lib/tournament-sizing";
+import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import { cn } from "~/lib/utils";
 
 const FIELD_LABEL = "text-muted-foreground text-[13px] font-normal";
@@ -311,7 +312,8 @@ function TournamentCreateControlsPreview() {
     ? oneDayFit({
         start,
         finish,
-        poolMatches: sizing.poolMatches,
+        roundMatches: sizeTournamentRounds(sizing.poolSizes, sizing.roundCount)
+          .roundMatches,
         courtCount: 2,
         matchMinutes: null,
       })
