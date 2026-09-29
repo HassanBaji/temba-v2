@@ -30,10 +30,6 @@ import {
   assembleE164,
   formatInternationalNumber,
 } from "~/lib/phone-number";
-import { cn } from "~/lib/utils";
-
-const AUTH_INPUT_CLASS =
-  "h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 const FIELD_IDS = {
   username: "signup-continue-username",
@@ -475,7 +471,7 @@ export function SignUpContinueForm({
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
                 aria-invalid={Boolean(firstNameError)}
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {firstNameError ? (
@@ -498,7 +494,7 @@ export function SignUpContinueForm({
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
                 aria-invalid={Boolean(lastNameError)}
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {lastNameError ? <FieldError>{lastNameError}</FieldError> : null}
@@ -520,7 +516,7 @@ export function SignUpContinueForm({
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 aria-invalid={Boolean(usernameError)}
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {usernameError ? <FieldError>{usernameError}</FieldError> : null}
@@ -542,7 +538,7 @@ export function SignUpContinueForm({
                 value={emailAddress}
                 onChange={(event) => setEmailAddress(event.target.value)}
                 aria-invalid={Boolean(emailError)}
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {emailError ? <FieldError>{emailError}</FieldError> : null}
@@ -593,7 +589,7 @@ export function SignUpContinueForm({
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 aria-invalid={Boolean(passwordError)}
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {passwordError ? <FieldError>{passwordError}</FieldError> : null}
@@ -602,10 +598,10 @@ export function SignUpContinueForm({
         </FieldGroup>
         <Button
           type="submit"
-          size="auth"
-          aria-busy={pending}
-          disabled={pending}
-          className="bg-ink text-paper hover:bg-dimrule w-full font-semibold"
+          size="lg"
+          pending={pending}
+          pendingLabel="Continuing…"
+          className="w-full font-semibold"
         >
           Continue
         </Button>

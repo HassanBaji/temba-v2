@@ -52,7 +52,7 @@ export function VerifyCodeForm({
         Sent to {destination}.{" "}
         <button
           type="button"
-          className="text-ink font-medium underline"
+          className="text-ink focus-visible:ring-ring/50 rounded-sm font-medium underline outline-none focus-visible:ring-[3px]"
           onClick={onChangeIdentifier}
         >
           {changeLabel}
@@ -77,12 +77,13 @@ export function VerifyCodeForm({
       <div>
         <Button
           type="submit"
-          size="auth"
-          aria-busy={pending}
+          size="lg"
+          pending={ready && pending}
+          pendingLabel="Verifying…"
           disabled={!ready || pending}
           className={
             ready
-              ? "bg-ink text-paper hover:bg-dimrule w-full font-semibold"
+              ? "w-full font-semibold"
               : "bg-rule text-muted-foreground w-full font-semibold"
           }
         >

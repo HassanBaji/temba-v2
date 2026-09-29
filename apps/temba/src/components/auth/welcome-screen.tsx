@@ -59,16 +59,17 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
       <div className="mt-auto flex flex-col gap-2.5 p-[26px]">
         <Button
           asChild
-          className="bg-paper text-ink hover:bg-rule w-full font-semibold"
-          size="auth"
+          className="w-full font-semibold"
+          size="lg"
+          variant="inverse"
         >
           <Link href={signUpHref}>Create account</Link>
         </Button>
         <Button
           asChild
-          className="border-dimrule bg-ink text-paper hover:bg-raised w-full border font-semibold"
-          size="auth"
-          variant="outline"
+          className="w-full font-semibold"
+          size="lg"
+          variant="outline-inverse"
         >
           <Link href={signInHref}>Sign in</Link>
         </Button>

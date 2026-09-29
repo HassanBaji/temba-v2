@@ -160,9 +160,7 @@ export default function SettingsPage() {
         <SettingsFooter
           displayName={displayName}
           phoneNumber={phoneNumber}
-          onSignOut={() => {
-            void clerk.signOut({ redirectUrl: "/login" });
-          }}
+          onSignOut={() => clerk.signOut({ redirectUrl: "/login" })}
         />
       </SettingsPageFrame>
     </DashboardShell>

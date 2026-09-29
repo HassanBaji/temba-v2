@@ -30,10 +30,6 @@ import {
   assembleE164,
   formatInternationalNumber,
 } from "~/lib/phone-number";
-import { cn } from "~/lib/utils";
-
-const AUTH_INPUT_CLASS =
-  "h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 const FIELD_IDS = {
   username: "sign-up-username",
@@ -314,7 +310,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
                 aria-describedby={
                   usernameError ? `${FIELD_IDS.username}-error` : undefined
                 }
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {usernameError ? (
@@ -368,7 +364,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
                 aria-describedby={
                   passwordError ? `${FIELD_IDS.password}-error` : undefined
                 }
-                className={cn(AUTH_INPUT_CLASS)}
+                size="lg"
                 disabled={pending}
               />
               {passwordError ? (
@@ -380,10 +376,11 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
           </FieldGroup>
           <Button
             type="submit"
-            size="auth"
-            aria-busy={pending}
-            disabled={!isLoaded || pending}
-            className="bg-ink text-paper hover:bg-dimrule w-full font-semibold"
+            size="lg"
+            pending={pending}
+            pendingLabel="Sending code…"
+            disabled={!isLoaded}
+            className="w-full font-semibold"
           >
             Send code
           </Button>

@@ -24,15 +24,11 @@ import {
 } from "~/lib/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
 import { DEFAULT_CALLING_COUNTRY_ISO, assembleE164 } from "~/lib/phone-number";
-import { cn } from "~/lib/utils";
 
 const FIELD_IDS = {
   identifier: "sign-in-identifier",
   password: "sign-in-password",
 };
-
-const AUTH_INPUT_CLASS =
-  "h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 function splitSignInError(err: unknown): SplitFormError {
   const split = splitClerkAuthError(err);
@@ -159,7 +155,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
             </FieldLabel>
             <button
               type="button"
-              className="text-body text-ink underline"
+              className="text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]"
               onClick={switchMode}
               disabled={pending}
             >
@@ -193,7 +189,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
               aria-describedby={
                 identifierError ? `${FIELD_IDS.identifier}-error` : undefined
               }
-              className={cn(AUTH_INPUT_CLASS)}
+              size="lg"
               disabled={pending}
             />
           )}
@@ -222,7 +218,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
             aria-describedby={
               passwordError ? `${FIELD_IDS.password}-error` : undefined
             }
-            className={cn(AUTH_INPUT_CLASS)}
+            size="lg"
             disabled={pending}
           />
           {passwordError ? (
@@ -242,10 +238,11 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
       </p>
       <Button
         type="submit"
-        size="auth"
-        aria-busy={pending}
-        disabled={!isLoaded || pending}
-        className="bg-ink text-paper hover:bg-dimrule w-full font-semibold"
+        size="lg"
+        pending={pending}
+        pendingLabel="Signing in…"
+        disabled={!isLoaded}
+        className="w-full font-semibold"
       >
         Sign in
       </Button>
