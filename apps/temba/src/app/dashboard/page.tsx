@@ -14,6 +14,7 @@ import { HomeRecentForm } from "~/components/home/home-recent-form-row";
 import { HomeStanding } from "~/components/home/home-standing";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
+import { homeComingUpRows } from "~/lib/home-coming-up";
 import { homeNextGameSeats } from "~/lib/home-seats";
 import { isPoolMatchRow } from "~/lib/tournament-card";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
@@ -107,16 +108,7 @@ export default function HomePage() {
             ) : (
               <HomeNoGames />
             )}
-            <HomeComingUp
-              games={comingUp.map((game) => ({
-                id: game.id,
-                rowKey: game.matchId ?? game.id,
-                venueName: game.venue?.name ?? "Game",
-                startsAt: new Date(game.startTime),
-                seatsTaken: game.registeredUserCount,
-                seatsTotal: game.playersAllowed ?? game.sides.length * 2,
-              }))}
-            />
+            <HomeComingUp games={homeComingUpRows(comingUp)} />
             <HomeLevel />
             <HomeRecentForm />
             <HomeAllTime
