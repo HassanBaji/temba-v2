@@ -37,6 +37,7 @@ import {
   priceChipIsSelected,
   visibleCreateCourts,
 } from "~/lib/create-game-flow";
+import { formatGameClock } from "~/lib/format-game-start";
 import {
   formatTimeSlotLabel,
   parseRequiredGameWindow,
@@ -72,13 +73,6 @@ import {
 import { cn } from "~/lib/utils";
 
 const STEPPER_LABEL = "text-foreground font-expanded text-title font-normal";
-
-function formatClock(date: Date) {
-  return date.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export function FriendlyTournamentSteps({
   step,
@@ -245,7 +239,7 @@ export function FriendlyTournamentSteps({
           roundMatches: rounds.roundMatches,
           courtCount: courtIds.length,
           matchMinutes: parsedMinutes.minutes,
-          clock: formatClock,
+          clock: formatGameClock,
         })
       : null;
   const selectedCourtNames = courts

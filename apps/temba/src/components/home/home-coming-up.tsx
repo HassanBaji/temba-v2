@@ -2,7 +2,7 @@ import { Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
-import { formatGameClock } from "~/lib/format-game-start";
+import { formatGameClock, formatWeekday } from "~/lib/format-game-start";
 import {
   type HomeComingUpGameRow,
   type HomeComingUpRow,
@@ -15,7 +15,7 @@ const ROW_CLASS =
   "focus-visible:ring-ring/50 flex items-center gap-3 px-[22px] py-3 outline-none focus-visible:ring-[3px]";
 
 function weekdayAbbrev(date: Date): string {
-  return date.toLocaleDateString("en-US", { weekday: "short" });
+  return formatWeekday(date, "short");
 }
 
 function DayBox({ startsAt }: { startsAt: Date }) {

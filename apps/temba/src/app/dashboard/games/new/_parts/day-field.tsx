@@ -12,6 +12,7 @@ import {
 } from "~/components/ui/popover";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { createFlowDayOptions, dayChipValue } from "~/lib/create-game-flow";
+import { formatWeekday } from "~/lib/format-game-start";
 import {
   earliestGameWindowDay,
   formatDateInputValue,
@@ -93,9 +94,7 @@ export function DayField({
         {dayOptions.map((option) => {
           const value = dayChipValue(option);
           const today = option.toDateString() === now.toDateString();
-          const label = today
-            ? "Today"
-            : option.toLocaleDateString("en-US", { weekday: "short" });
+          const label = today ? "Today" : formatWeekday(option, "short");
           return (
             <ChoiceChip
               key={value}

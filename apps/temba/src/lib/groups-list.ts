@@ -2,6 +2,7 @@
  * Groups list presentation helpers (`.scratch/groups-redesign/spec.md` §1.1).
  */
 
+import { formatWeekday } from "~/lib/format-game-start";
 import { memberCountLabel } from "~/lib/member-count-label";
 
 /**
@@ -27,5 +28,5 @@ export function groupNextGameWeekday(startTime: Date | string) {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return date.toLocaleDateString("en-US", { weekday: "short" });
+  return formatWeekday(date, "short");
 }

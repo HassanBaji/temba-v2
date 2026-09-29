@@ -1,3 +1,4 @@
+import { formatDayMonth } from "~/lib/format-game-start";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   isAssignableDisplayLevelBand,
@@ -629,11 +630,7 @@ export function friendlyTournamentDayLabel(day: string) {
   if (!date) {
     return null;
   }
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDayMonth(date, { weekday: "short" });
 }
 
 export function friendlyTournamentDefaultName(day: string) {

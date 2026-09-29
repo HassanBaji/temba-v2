@@ -1,3 +1,9 @@
+import {
+  formatDayMonth,
+  formatGameClock,
+  formatWeekday,
+} from "~/lib/format-game-start";
+
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME_PATTERN = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
 const LAST_SLOT_MINUTES = 23 * 60 + 30;
@@ -130,12 +136,7 @@ export function formatDayLabel(day: string) {
   if (!date) {
     return null;
   }
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatDayMonth(date, { weekday: "short", year: true });
 }
 
 export function formatTimeSlotLabel(time: string) {
@@ -146,10 +147,7 @@ export function formatTimeSlotLabel(time: string) {
   }
   const hours = Number(timeMatch[1]);
   const minutes = Number(timeMatch[2]);
-  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatGameClock(new Date(2000, 0, 1, hours, minutes));
 }
 
 export function formatGameWindowName(
@@ -158,9 +156,7 @@ export function formatGameWindowName(
   finishTime: string,
 ) {
   const date = parseDateInputValue(day);
-  const weekday = date
-    ? date.toLocaleDateString(undefined, { weekday: "short" })
-    : day;
+  const weekday = date ? formatWeekday(date, "short") : day;
   return `${weekday} ${formatTimeSlotLabel(startTime)} - ${formatTimeSlotLabel(finishTime)}`;
 }
 

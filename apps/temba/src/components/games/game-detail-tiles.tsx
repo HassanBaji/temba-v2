@@ -3,6 +3,7 @@ import { CalendarDays, Clock, Coins, Gauge } from "lucide-react";
 
 import { Card } from "~/components/ui/card";
 import {
+  formatDayMonth,
   formatGameTimeWindow,
   formatRelativeDay,
   gameDayProximity,
@@ -86,14 +87,10 @@ export function GameDetailTiles({
       ? formatRelativeDay(windowStart)
       : null;
   const dateValue = windowStart
-    ? (windowStart instanceof Date
-        ? windowStart
-        : new Date(windowStart)
-      ).toLocaleDateString(undefined, {
+    ? formatDayMonth(windowStart, {
         weekday: "long",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
+        month: "long",
+        year: true,
       })
     : "Not set";
   const windowLabel = windowStart

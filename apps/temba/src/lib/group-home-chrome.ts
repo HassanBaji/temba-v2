@@ -1,3 +1,4 @@
+import { formatDayMonth, formatMonth } from "~/lib/format-game-start";
 import { memberCountLabel } from "~/lib/member-count-label";
 import { shortPlayerName } from "~/lib/player-name";
 
@@ -22,7 +23,7 @@ function seasonSinceMonth(createdAt: Date | string | null | undefined) {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return date.toLocaleDateString("en-US", { month: "short" });
+  return formatMonth(date, "short");
 }
 
 /**
@@ -148,9 +149,7 @@ export function groupPlayedDayLabel(playedAt: Date | string) {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  // Composed rather than locale-formatted: `en-GB` reads "6 Sept" and `en-US`
-  // reverses the order. Same composition `formatGameCardDay` uses.
-  return `${date.getDate()} ${date.toLocaleDateString("en-US", { month: "short" })}`;
+  return formatDayMonth(date);
 }
 
 /** The Played row's second line: the other team, then the date. */

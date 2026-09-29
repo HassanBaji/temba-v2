@@ -1,4 +1,4 @@
-import { formatGameClock } from "~/lib/format-game-start";
+import { formatDayMonth, formatGameClock } from "~/lib/format-game-start";
 import { friendlyGameWaitlistOrdinal } from "~/lib/friendly-game-cta";
 import {
   gameSummaryPrimaryAction,
@@ -44,9 +44,7 @@ function asDate(value: Date | string) {
 
 /** `Thu 25 Sep` */
 function shortDay(date: Date) {
-  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
-  const month = date.toLocaleDateString("en-US", { month: "short" });
-  return `${weekday} ${date.getDate()} ${month}`;
+  return formatDayMonth(date, { weekday: "short" });
 }
 
 export function tournamentCardDateLine(
