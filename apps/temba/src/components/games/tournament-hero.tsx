@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronLeftIcon, ShareIcon } from "lucide-react";
+import { ShareIcon } from "lucide-react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { Button } from "~/components/ui/button";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import {
   INVITE_ACTION_LABEL,
   LEFT_SEAT_LABEL,
@@ -101,9 +101,7 @@ export function TournamentHero({
   return (
     <article className={cn("surface-ink bg-ink text-paper", BLEED)}>
       <div className="flex items-center justify-between">
-        <Link href={backHref} aria-label="Back" className={ACTION_BOX_DARK}>
-          <ChevronLeftIcon aria-hidden="true" className="size-5" />
-        </Link>
+        <BackButton variant="boxed" surface="ink" href={backHref} />
         {onShare ? (
           <button
             type="button"

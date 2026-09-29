@@ -1,7 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
-
 import { TournamentHalfTeamsPanel } from "~/components/games/tournament-half-teams-panel";
 import { Button } from "~/components/ui/button";
 import {
@@ -10,6 +8,7 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from "~/components/ui/drawer";
+import { CloseButton } from "~/components/ui/nav-icon-button";
 import {
   MERGE_BANNER_ACTION_LABEL,
   MERGE_BANNER_TITLE,
@@ -168,15 +167,11 @@ export function TournamentMergeDrawer({
         <div className="flex h-full min-h-0 flex-col">
           <div className="border-rule shrink-0 px-[22px] pb-0 pt-[22px]">
             <div className="flex items-center justify-between">
-              <button
-                type="button"
+              <CloseButton
+                variant="boxed"
                 onClick={close}
                 disabled={mergePending}
-                className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px] disabled:opacity-50"
-                aria-label="Close"
-              >
-                <X aria-hidden="true" className="size-5" strokeWidth={2} />
-              </button>
+              />
               <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
                 {ORGANIZER_EYEBROW}
               </p>

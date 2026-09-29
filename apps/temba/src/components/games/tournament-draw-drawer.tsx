@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import * as React from "react";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
@@ -13,6 +12,7 @@ import {
   DrawerTitle,
 } from "~/components/ui/drawer";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { CloseButton } from "~/components/ui/nav-icon-button";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { ORGANIZER_EYEBROW } from "~/lib/tournament-half-teams";
 import {
@@ -173,15 +173,7 @@ export function TournamentDrawDrawer({
         <div className="flex h-full min-h-0 flex-col">
           <div className="border-rule shrink-0 px-[22px] pb-0 pt-[22px]">
             <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={close}
-                disabled={busy}
-                className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px] disabled:opacity-50"
-                aria-label="Close"
-              >
-                <X aria-hidden="true" className="size-5" strokeWidth={2} />
-              </button>
+              <CloseButton variant="boxed" onClick={close} disabled={busy} />
               <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
                 {ORGANIZER_EYEBROW}
               </p>

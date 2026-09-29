@@ -1,11 +1,11 @@
 "use client";
 
-import { ChevronLeftIcon, ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import * as React from "react";
 
 import { PoolRecordTable } from "~/components/games/tournament-pool-tables-panel";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   POOLS_SEGMENT_LABEL,
@@ -24,8 +24,6 @@ type PoolTable = PoolTables["pools"][number];
 type PoolMatch = PoolTable["matches"][number];
 
 const CARD = "border-rule overflow-hidden rounded-[14px] border";
-const STANDINGS_BACK =
-  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]";
 
 function matchesByRound(matches: PoolMatch[]) {
   const groups = new Map<number, PoolMatch[]>();
@@ -156,9 +154,7 @@ export function TournamentStandingsHeader({
   return (
     <header className="border-rule -mx-4 border-b px-4 pb-[22px] pt-[22px] min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8">
       <div className="flex items-center justify-between">
-        <Link href={backHref} aria-label="Back" className={STANDINGS_BACK}>
-          <ChevronLeftIcon aria-hidden="true" className="size-5" />
-        </Link>
+        <BackButton variant="boxed" href={backHref} />
         {roundsPlayed ? (
           <p className="text-muted-foreground text-[13px]">{roundsPlayed}</p>
         ) : (

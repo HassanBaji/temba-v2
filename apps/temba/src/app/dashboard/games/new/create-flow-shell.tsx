@@ -1,7 +1,7 @@
-import { ChevronDown, ChevronLeft, X } from "lucide-react";
-import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
 
+import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
 import { cn } from "~/lib/utils";
 import {
   CREATE_FLOW_STEP_COUNT,
@@ -35,23 +35,14 @@ export function CreateFlowShell({
       <header className={cn("surface-ink bg-ink text-paper py-[22px]", BLEED)}>
         <div className="flex items-center justify-between">
           {step === 1 ? (
-            <Link
+            <CloseButton
+              label="Cancel"
+              surface="ink"
               href={cancelHref}
               onClick={onCancel}
-              aria-label="Cancel"
-              className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
-            >
-              <X aria-hidden="true" className="size-5" />
-            </Link>
+            />
           ) : (
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label="Back"
-              className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
-            >
-              <ChevronLeft aria-hidden="true" className="size-5" />
-            </button>
+            <BackButton surface="ink" onClick={onBack} />
           )}
           <p className="text-dim font-mono text-[10px] uppercase tracking-wide">
             Step {step} of {CREATE_FLOW_STEP_COUNT}

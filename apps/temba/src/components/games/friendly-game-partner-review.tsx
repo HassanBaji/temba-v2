@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import type { FriendlyGamePartnerPick } from "~/components/games/friendly-game-partner-picker";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { formatGameCardDay } from "~/lib/format-game-start";
 import { seedPartnerCallerPosition } from "~/lib/friendly-game-partner";
 import { formatHomeKickoff } from "~/lib/home-countdown";
@@ -182,14 +182,7 @@ export function FriendlyGamePartnerReview({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-rule shrink-0 border-b px-[22px] pb-0 pt-[22px]">
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onBack}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-            aria-label="Back"
-          >
-            <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-          </button>
+          <BackButton variant="boxed" onClick={onBack} />
           <p className="text-muted-foreground text-[13px]">Step 2 of 2</p>
           <span className="size-11" aria-hidden="true" />
         </div>

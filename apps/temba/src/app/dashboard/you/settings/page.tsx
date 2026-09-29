@@ -1,8 +1,7 @@
 "use client";
 
 import { useClerk, useUser } from "@clerk/nextjs";
-import Link from "next/link";
-import { ArrowLeft, Building2, Mail, Users } from "lucide-react";
+import { Building2, Mail, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -10,6 +9,7 @@ import { PreferredPositionControl } from "~/components/settings/preferred-positi
 import { SettingsFooter } from "~/components/settings/settings-footer";
 import { SettingsLinkRow } from "~/components/settings/settings-link-row";
 import { SettingsSection } from "~/components/settings/settings-section";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { activeVenueCountLabel } from "~/lib/active-venue-count";
@@ -21,13 +21,7 @@ const settingsPageClassName =
 function SettingsHeader() {
   return (
     <header className="mt-6 flex items-center gap-1.5 lg:mt-2">
-      <Link
-        href="/dashboard/you"
-        aria-label="Back to Profile"
-        className="text-ink focus-visible:ring-ring/50 -ml-3 inline-flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
-      >
-        <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-      </Link>
+      <BackButton href="/dashboard/you" label="Back to Profile" />
       <h1 className="text-ink text-[26px] font-bold tracking-[-0.01em]">
         Settings
       </h1>

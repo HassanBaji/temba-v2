@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useCreateAccess } from "~/components/create-access-gate";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { detailBackHref } from "~/lib/dashboard-paths";
 import { pageGutterX } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
@@ -34,15 +33,7 @@ export function MobileTopBar({
         isSubPage && "shadow-[inset_0_-1px_0_var(--border)]",
       )}
     >
-      {backHref && (
-        <Link
-          href={backHref}
-          aria-label="Back"
-          className="text-foreground focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
-        >
-          <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-        </Link>
-      )}
+      {backHref && <BackButton href={backHref} />}
       {title ? (
         <Title
           className={cn(

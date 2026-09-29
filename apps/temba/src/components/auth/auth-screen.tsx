@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { touchHitArea } from "~/components/ui/button";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { cn } from "~/lib/utils";
 
 export function AuthScreen({
@@ -29,6 +29,7 @@ export function AuthScreen({
   padContent?: boolean;
 }) {
   const welcome = variant === "welcome";
+  const surface = welcome ? "ink" : "paper";
   const showHeader = Boolean(backHref ?? onBack ?? crossLink);
 
   return (
@@ -44,30 +45,13 @@ export function AuthScreen({
         {showHeader ? (
           <header className="flex items-center justify-between px-[22px] pt-[22px]">
             {onBack ? (
-              <button
-                type="button"
-                aria-label={backLabel}
+              <BackButton
+                label={backLabel}
+                surface={surface}
                 onClick={onBack}
-                className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-current outline-none focus-visible:ring-[3px]"
-              >
-                <ArrowLeft
-                  aria-hidden="true"
-                  className="size-5"
-                  strokeWidth={2}
-                />
-              </button>
+              />
             ) : backHref ? (
-              <Link
-                href={backHref}
-                aria-label={backLabel}
-                className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-current outline-none focus-visible:ring-[3px]"
-              >
-                <ArrowLeft
-                  aria-hidden="true"
-                  className="size-5"
-                  strokeWidth={2}
-                />
-              </Link>
+              <BackButton label={backLabel} surface={surface} href={backHref} />
             ) : (
               <span className="size-11 shrink-0" aria-hidden="true" />
             )}
