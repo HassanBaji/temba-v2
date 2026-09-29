@@ -10,7 +10,7 @@ import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
-import { Button, touchHitArea } from "~/components/ui/button";
+import { Button } from "~/components/ui/button";
 import {
   Field,
   FieldError,
@@ -30,7 +30,6 @@ import {
   assembleE164,
   formatInternationalNumber,
 } from "~/lib/phone-number";
-import { cn } from "~/lib/utils";
 
 const FIELD_IDS = {
   username: "signup-continue-username",
@@ -437,20 +436,6 @@ export function SignUpContinueForm({
       crossLink={{ href: signInUrl, label: "Sign in" }}
       title="Almost there"
       description="A few details are still needed to finish your account."
-      footer={
-        <p className="text-muted-foreground text-meta text-center">
-          Already have an account?{" "}
-          <Link
-            className={cn(
-              touchHitArea,
-              "text-foreground font-medium underline-offset-4 hover:underline",
-            )}
-            href={signInUrl}
-          >
-            Sign in
-          </Link>
-        </p>
-      }
     >
       <form
         className="flex flex-col gap-[18px]"
@@ -475,11 +460,16 @@ export function SignUpContinueForm({
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
                 aria-invalid={Boolean(firstNameError)}
+                aria-describedby={
+                  firstNameError ? `${FIELD_IDS.firstName}-error` : undefined
+                }
                 size="lg"
                 disabled={pending}
               />
               {firstNameError ? (
-                <FieldError>{firstNameError}</FieldError>
+                <FieldError id={`${FIELD_IDS.firstName}-error`}>
+                  {firstNameError}
+                </FieldError>
               ) : null}
             </Field>
           ) : null}
@@ -498,10 +488,17 @@ export function SignUpContinueForm({
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
                 aria-invalid={Boolean(lastNameError)}
+                aria-describedby={
+                  lastNameError ? `${FIELD_IDS.lastName}-error` : undefined
+                }
                 size="lg"
                 disabled={pending}
               />
-              {lastNameError ? <FieldError>{lastNameError}</FieldError> : null}
+              {lastNameError ? (
+                <FieldError id={`${FIELD_IDS.lastName}-error`}>
+                  {lastNameError}
+                </FieldError>
+              ) : null}
             </Field>
           ) : null}
           {isMissing(signUp, "username") ? (
@@ -520,10 +517,17 @@ export function SignUpContinueForm({
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 aria-invalid={Boolean(usernameError)}
+                aria-describedby={
+                  usernameError ? `${FIELD_IDS.username}-error` : undefined
+                }
                 size="lg"
                 disabled={pending}
               />
-              {usernameError ? <FieldError>{usernameError}</FieldError> : null}
+              {usernameError ? (
+                <FieldError id={`${FIELD_IDS.username}-error`}>
+                  {usernameError}
+                </FieldError>
+              ) : null}
             </Field>
           ) : null}
           {isMissing(signUp, "email_address") ? (
@@ -542,10 +546,17 @@ export function SignUpContinueForm({
                 value={emailAddress}
                 onChange={(event) => setEmailAddress(event.target.value)}
                 aria-invalid={Boolean(emailError)}
+                aria-describedby={
+                  emailError ? `${FIELD_IDS.emailAddress}-error` : undefined
+                }
                 size="lg"
                 disabled={pending}
               />
-              {emailError ? <FieldError>{emailError}</FieldError> : null}
+              {emailError ? (
+                <FieldError id={`${FIELD_IDS.emailAddress}-error`}>
+                  {emailError}
+                </FieldError>
+              ) : null}
             </Field>
           ) : null}
           {isMissing(signUp, "phone_number") ? (
@@ -593,10 +604,17 @@ export function SignUpContinueForm({
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 aria-invalid={Boolean(passwordError)}
+                aria-describedby={
+                  passwordError ? `${FIELD_IDS.password}-error` : undefined
+                }
                 size="lg"
                 disabled={pending}
               />
-              {passwordError ? <FieldError>{passwordError}</FieldError> : null}
+              {passwordError ? (
+                <FieldError id={`${FIELD_IDS.password}-error`}>
+                  {passwordError}
+                </FieldError>
+              ) : null}
             </Field>
           ) : null}
         </FieldGroup>
