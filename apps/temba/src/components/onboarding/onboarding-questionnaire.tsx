@@ -12,7 +12,12 @@ import {
   type LevelChoiceValue,
 } from "~/components/temba/level-choice-grid";
 import { Button } from "~/components/ui/button";
-import { Field, FieldError, FieldLabel } from "~/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -26,6 +31,7 @@ import {
   onboardingStepFromState,
   shouldFocusStepHeading,
 } from "~/lib/onboarding-step";
+import { preferredPositionNote } from "~/lib/preferred-position";
 import { api, type RouterInputs } from "~/trpc/react";
 
 type PreferredPosition =
@@ -303,7 +309,7 @@ export function OnboardingQuestionnaire({
         brand
         eyebrow="Step 1 of 2"
         title="Which side do you play?"
-        description="Your Preferred Position is the side you like on a Game team. It only sets a default when you pick a seat, and you can change it any time on You."
+        description="Your default side when you pick a Game seat. You can change it later in Settings."
       >
         <form onSubmit={onSubmitPosition} className="space-y-4">
           <FormErrorSummary
@@ -321,7 +327,9 @@ export function OnboardingQuestionnaire({
               aria-describedby={
                 positionError
                   ? "onboarding-preferred-position-error"
-                  : undefined
+                  : position
+                    ? "onboarding-preferred-position-note"
+                    : undefined
               }
               className="grid grid-cols-3 gap-2"
             >
@@ -345,6 +353,11 @@ export function OnboardingQuestionnaire({
                 );
               })}
             </RovingRadioGroup>
+            {position ? (
+              <FieldDescription id="onboarding-preferred-position-note">
+                {preferredPositionNote(position)}
+              </FieldDescription>
+            ) : null}
             <FieldError id="onboarding-preferred-position-error">
               {positionError}
             </FieldError>
