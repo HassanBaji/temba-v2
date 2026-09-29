@@ -12,6 +12,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
 function inviteMeta(
@@ -43,7 +44,7 @@ export default function InvitesPage() {
       await utils.communities.mine.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -55,7 +56,7 @@ export default function InvitesPage() {
       await utils.communities.mine.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -66,7 +67,7 @@ export default function InvitesPage() {
       await utils.teams.mine.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -78,7 +79,7 @@ export default function InvitesPage() {
       await utils.users.home.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
       void gameInvites.refetch();
     },
   });
@@ -167,7 +168,7 @@ export default function InvitesPage() {
       title="Invites"
       description="Unused Lookup invites addressed to you. Accept here to join."
     >
-      {isLoading ? <ListPageSkeleton rows={4} /> : null}
+      {isLoading && items.length === 0 ? <ListPageSkeleton rows={4} /> : null}
 
       {error ? (
         <ErrorState
@@ -281,15 +282,17 @@ export default function InvitesPage() {
                 }
                 title={invite.title}
                 meta={inviteMeta(invite.kind, inviterName)}
+                stackTrailing
                 trailing={
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <InviteKindBadge kind={invite.kind} />
                     <Button
-                      className="min-h-11"
-                      disabled={pending}
+                      aria-label={`Accept the invite to ${invite.title}`}
+                      pending={pending}
+                      pendingLabel="Accepting…"
                       onClick={() => onAccept(invite.kind, invite.id)}
                     >
-                      {pending ? "Accepting…" : "Accept"}
+                      Accept
                     </Button>
                   </div>
                 }
