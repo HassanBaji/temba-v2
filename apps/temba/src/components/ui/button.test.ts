@@ -4,6 +4,11 @@ import { describe, expect, it } from "vitest";
 
 import { Button } from "~/components/ui/button";
 
+function hasClass(html: string, name: string) {
+  const classAttr = /class="([^"]*)"/.exec(html)?.[1] ?? "";
+  return classAttr.split(/\s+/).includes(name);
+}
+
 function render(props: Parameters<typeof Button>[0]) {
   return renderToStaticMarkup(createElement(Button, props));
 }
@@ -56,5 +61,33 @@ describe("Button sizes", () => {
     const html = render({ size, children: "Go" });
 
     expect(html).toContain(height);
+  });
+});
+
+describe("Button touch targets", () => {
+  it("renders the icon size at 44px without a pseudo hit area", () => {
+    const html = render({ size: "icon", "aria-label": "Close" });
+
+    expect(html).toContain("size-11");
+    expect(html).not.toContain("after:min-h-11");
+  });
+
+  it.each(["xs", "sm", "icon-xs", "icon-sm", "icon-lg"] as const)(
+    "gives size %s a hit area of at least 44px",
+    (size) => {
+      const html = render({ size, "aria-label": "Go" });
+
+      expect(hasClass(html, "relative")).toBe(true);
+      expect(html).toContain("after:min-h-11");
+      expect(html).toContain("after:min-w-11");
+    },
+  );
+
+  it("lets a positioned caller replace the relative anchor", () => {
+    const html = render({ size: "sm", className: "absolute", children: "Go" });
+
+    expect(hasClass(html, "absolute")).toBe(true);
+    expect(hasClass(html, "relative")).toBe(false);
+    expect(html).toContain("after:min-h-11");
   });
 });
