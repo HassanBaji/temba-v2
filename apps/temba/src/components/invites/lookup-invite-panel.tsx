@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
-import { RowList } from "~/components/common/row-list";
+import { ListRow, RowList } from "~/components/common/row-list";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
@@ -141,29 +141,26 @@ export function LookupInvitePanel({
           {lookupInvites.map((invite) => {
             const name = invite.user.name ?? "User";
             return (
-              <li
+              <ListRow
                 key={invite.id}
-                className="flex min-h-16 flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="text-lead font-semibold">{name}</p>
-                  <p className="text-meta text-muted-foreground">
-                    {invite.user.email}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  aria-label={`Revoke invite for ${name}`}
-                  onClick={() => {
-                    setRevokeTarget({ id: invite.id, name });
-                    setConfirmRevokeOpen(true);
-                  }}
-                  pending={revokePendingId === invite.id}
-                  pendingLabel="Revoking…"
-                >
-                  Revoke
-                </Button>
-              </li>
+                stackTrailing
+                title={name}
+                meta={invite.user.email ?? undefined}
+                trailing={
+                  <Button
+                    variant="outline"
+                    aria-label={`Revoke invite for ${name}`}
+                    onClick={() => {
+                      setRevokeTarget({ id: invite.id, name });
+                      setConfirmRevokeOpen(true);
+                    }}
+                    pending={revokePendingId === invite.id}
+                    pendingLabel="Revoking…"
+                  >
+                    Revoke
+                  </Button>
+                }
+              />
             );
           })}
         </RowList>

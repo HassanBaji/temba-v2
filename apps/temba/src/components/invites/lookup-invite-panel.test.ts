@@ -66,4 +66,16 @@ describe("LookupInvitePanel revoke", () => {
 
     expect(html).not.toContain("Revoke the invite for");
   });
+
+  it("drops the email line for a phone-only invitee", () => {
+    const html = render();
+    const rows = html.split('data-slot="list-row"').slice(1);
+    const phoneRow = rows.find((row) => row.includes("+46701234567"));
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toContain("sofia@example.com");
+    expect(phoneRow).toBeDefined();
+    expect(phoneRow).not.toMatch(/<p class="[^"]*text-meta[^"]*"><\/p>/);
+    expect(phoneRow?.match(/<p /g)).toHaveLength(1);
+  });
 });

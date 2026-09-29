@@ -808,7 +808,14 @@ export default function CommunityHomePage({
           venues={liveVenues.data}
           isLoading={liveVenues.isLoading}
           errorMessage={liveVenues.error?.message}
-          pending={requestVenueLink.isPending}
+          onRetry={() => {
+            void liveVenues.refetch();
+          }}
+          pendingVenueId={
+            requestVenueLink.isPending
+              ? (requestVenueLink.variables?.venueId ?? null)
+              : null
+          }
           onRequest={(venueId) =>
             requestVenueLink.mutate({ communityId: id, venueId })
           }
