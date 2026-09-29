@@ -28,9 +28,10 @@ export function MobileTopBar({
   return (
     <header
       className={cn(
-        "bg-background sticky top-0 z-40 flex min-h-11 items-center justify-between gap-2 py-2 pt-4 lg:hidden",
+        "bg-background sticky top-0 z-40 flex h-[var(--mobile-top-bar-height)] shrink-0 items-center justify-between gap-2 pb-2 pt-4 lg:hidden",
         pageGutterX,
-        isSubPage && "border-border border-b",
+        // Inset shadow, not a border, so the hairline stays inside --mobile-top-bar-height.
+        isSubPage && "shadow-[inset_0_-1px_0_var(--border)]",
       )}
     >
       {backHref && (

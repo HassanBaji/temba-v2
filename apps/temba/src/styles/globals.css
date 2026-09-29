@@ -36,6 +36,7 @@
   --container-wide: 64rem; /* 1024px — list plus aside */
   --rail-width: 15rem; /* 240px — desktop nav rail */
   --bottom-nav-height: 3.5rem; /* 56px, plus safe-area */
+  --mobile-top-bar-height: 4.25rem; /* 68px: 16 top + 44 row + 8 bottom */
 
   --radius: 0.75rem; /* 12px; sm/md/lg/xl calc to 8/10/12/16px */
 
