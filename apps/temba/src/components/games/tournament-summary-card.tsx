@@ -22,10 +22,16 @@ import {
   tournamentCardBandMeta,
   tournamentCardDateLine,
   tournamentCardPairs,
+  homeTournamentMatchActionLabel,
   tournamentMatchAction,
   tournamentMatchActionLabel,
+  tournamentMatchGroupLabel,
+  tournamentMatchGroupStanding,
+  tournamentMatchHeadline,
+  tournamentMatchKickoffLine,
   tournamentMatchLastResultLine,
   tournamentMatchRoundLine,
+  tournamentMatchRoundsLeftLine,
   tournamentMatchStandingLine,
   tournamentMatchStatus,
   tournamentMatchup,
@@ -54,18 +60,48 @@ const SURFACE_CHROME = {
 
 type CardSurface = keyof typeof SURFACE_CHROME;
 
-function StackedCard({
+function CardFrame({
   href,
   linkLabel,
-  surface = "list",
+  surface,
   children,
 }: {
   href: string;
   linkLabel: string;
-  surface?: CardSurface;
+  surface: CardSurface;
   children: React.ReactNode;
 }) {
   const { radius } = SURFACE_CHROME[surface];
+  return (
+    <div
+      className={cn(
+        "border-ink bg-paper relative overflow-hidden border",
+        radius,
+      )}
+    >
+      <Link
+        href={href}
+        aria-label={linkLabel}
+        className={cn(
+          "focus-visible:ring-ring/50 absolute inset-0 z-0 outline-none focus-visible:ring-[3px]",
+          radius,
+        )}
+      />
+      {children}
+    </div>
+  );
+}
+
+function StackedCard({
+  href,
+  linkLabel,
+  children,
+}: {
+  href: string;
+  linkLabel: string;
+  children: React.ReactNode;
+}) {
+  const { radius } = SURFACE_CHROME.list;
   return (
     <div className="relative pb-3">
       <div
@@ -82,22 +118,9 @@ function StackedCard({
           radius,
         )}
       />
-      <div
-        className={cn(
-          "border-ink bg-paper relative overflow-hidden border",
-          radius,
-        )}
-      >
-        <Link
-          href={href}
-          aria-label={linkLabel}
-          className={cn(
-            "focus-visible:ring-ring/50 absolute inset-0 z-0 outline-none focus-visible:ring-[3px]",
-            radius,
-          )}
-        />
+      <CardFrame href={href} linkLabel={linkLabel} surface="list">
         {children}
-      </div>
+      </CardFrame>
     </div>
   );
 }
@@ -423,19 +446,7 @@ function MatchupColumn({
   );
 }
 
-export function TournamentMatchCard({
-  game,
-  href,
-  surface = "list",
-  phase,
-  canAddResults = false,
-}: {
-  game: TournamentCardGame;
-  href: string;
-  surface?: CardSurface;
-  phase?: TournamentMatchPhase;
-  canAddResults?: boolean;
-}) {
+function useMatchStatus(startsAt: Date, phase?: TournamentMatchPhase) {
   const [now, setNow] = React.useState(() => new Date());
 
   React.useEffect(() => {
@@ -445,30 +456,43 @@ export function TournamentMatchCard({
     return () => window.clearInterval(timer);
   }, []);
 
+  return tournamentMatchStatus(phase, formatHomeCountdown(startsAt, now));
+}
+
+function Matchup({ sides }: { sides: TournamentCardGame["sides"] }) {
+  const { viewer, opponent } = tournamentMatchup(sides);
+  return (
+    <div className="flex items-center gap-2.5">
+      <MatchupColumn side={viewer} isViewerSide={viewer != null} />
+      <span className="text-muted-foreground flex-none text-xs">vs</span>
+      <MatchupColumn side={opponent} isViewerSide={false} />
+    </div>
+  );
+}
+
+export function TournamentMatchCard({
+  game,
+  href,
+}: {
+  game: TournamentCardGame;
+  href: string;
+}) {
   const startsAt = new Date(game.startTime);
   const kickoff = formatHomeKickoff(startsAt);
   const day = formatRelativeDay(startsAt, { sameDayLabel: "Tonight" });
-  const status = tournamentMatchStatus(
-    phase,
-    formatHomeCountdown(startsAt, now),
-  );
-  const action = tournamentMatchAction(phase, canAddResults);
-  const { inset } = SURFACE_CHROME[surface];
-  const Wrapper = surface === "home" ? "article" : "li";
+  const status = useMatchStatus(startsAt);
   const title = game.name ?? game.venue?.name ?? "Untitled Game";
   const roundLine = tournamentMatchRoundLine(game.roundNumber, game.poolMatch);
   const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
-  const { viewer, opponent } = tournamentMatchup(game.sides);
   const standingLine = tournamentMatchStandingLine(game.poolMatch);
   const lastResultLine = tournamentMatchLastResultLine(
     game.poolMatch?.lastResult,
   );
 
   return (
-    <Wrapper data-slot="tournament-match-card">
+    <li data-slot="tournament-match-card">
       <StackedCard
         href={href}
-        surface={surface}
         linkLabel={[
           title,
           roundLine,
@@ -481,15 +505,9 @@ export function TournamentMatchCard({
         <CardBand
           label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
           meta={poolRoundLabel(game.roundNumber, game.roundCount)}
-          surface={surface}
         />
 
-        <div
-          className={cn(
-            "pointer-events-none relative z-10 min-w-0 pb-5 pt-[18px]",
-            inset,
-          )}
-        >
+        <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-px">
               <p className="truncate text-sm font-semibold">{title}</p>
@@ -525,11 +543,7 @@ export function TournamentMatchCard({
 
           <div className="border-rule my-4 border-t" />
 
-          <div className="flex items-center gap-2.5">
-            <MatchupColumn side={viewer} isViewerSide={viewer != null} />
-            <span className="text-muted-foreground flex-none text-xs">vs</span>
-            <MatchupColumn side={opponent} isViewerSide={false} />
-          </div>
+          <Matchup sides={game.sides} />
 
           {standingLine ? (
             <>
@@ -541,14 +555,102 @@ export function TournamentMatchCard({
           ) : null}
         </div>
 
-        <div
-          className={cn(
-            "border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t py-3.5",
-            inset,
-          )}
-        >
+        <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-[18px] py-3.5">
           <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
             {lastResultLine}
+          </span>
+          <span
+            className={cn(buttonVariants({ variant: "outline" }), ACTION_CLASS)}
+          >
+            {tournamentMatchActionLabel("view")}
+          </span>
+        </div>
+      </StackedCard>
+    </li>
+  );
+}
+
+export function HomeTournamentMatchCard({
+  game,
+  href,
+  phase,
+  canAddResults = false,
+}: {
+  game: TournamentCardGame;
+  href: string;
+  phase: TournamentMatchPhase;
+  canAddResults?: boolean;
+}) {
+  const startsAt = new Date(game.startTime);
+  const kickoff = formatHomeKickoff(startsAt);
+  const status = useMatchStatus(startsAt, phase);
+  const action = tournamentMatchAction(phase, canAddResults);
+  const title = game.name ?? game.venue?.name ?? "Untitled Game";
+  const headline = tournamentMatchHeadline(
+    game.roundNumber,
+    kickoff.relativeDay,
+  );
+  const kickoffLine = tournamentMatchKickoffLine(kickoff, game.venue?.name);
+  const groupLabel = tournamentMatchGroupLabel(game.poolMatch);
+  const groupStanding = tournamentMatchGroupStanding(game.poolMatch);
+  const roundsLeftLine = tournamentMatchRoundsLeftLine(
+    game.roundNumber,
+    game.roundCount,
+  );
+
+  return (
+    <article data-slot="tournament-match-card">
+      <CardFrame
+        href={href}
+        surface="home"
+        linkLabel={[title, headline, kickoffLine].filter(Boolean).join(", ")}
+      >
+        <CardBand
+          label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
+          meta={poolRoundLabel(game.roundNumber, game.roundCount)}
+          surface="home"
+        />
+
+        <div className="pointer-events-none relative z-10 min-w-0 px-5 pb-5 pt-[18px]">
+          <div className="text-muted-foreground flex items-center justify-between gap-3 text-[13px]">
+            <span className="min-w-0 truncate">{title}</span>
+            {status ? (
+              <span className="shrink-0 tabular-nums">{status}</span>
+            ) : null}
+          </div>
+
+          <p className="font-expanded mt-2.5 text-[30px] leading-none tracking-[-0.035em]">
+            {headline}
+          </p>
+          <p className="mt-2 truncate text-sm">{kickoffLine}</p>
+          {game.courtName ? (
+            <p className="text-muted-foreground truncate text-[13px]">
+              {game.courtName}
+            </p>
+          ) : null}
+
+          <div className="border-rule my-4 border-t" />
+
+          <Matchup sides={game.sides} />
+
+          {groupLabel ? (
+            <>
+              <div className="border-rule my-4 border-t" />
+              <div className="flex items-center justify-between gap-2.5 text-[13px]">
+                <span className="text-muted-foreground shrink-0">
+                  {groupLabel}
+                </span>
+                <span className="min-w-0 truncate font-semibold">
+                  {groupStanding}
+                </span>
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-5 py-3.5">
+          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+            {roundsLeftLine}
           </span>
           <span
             className={cn(
@@ -556,12 +658,14 @@ export function TournamentMatchCard({
                 variant: action === "add_results" ? "default" : "outline",
               }),
               ACTION_CLASS,
+              "px-[18px]",
+              action !== "add_results" && "border-ink",
             )}
           >
-            {tournamentMatchActionLabel(action)}
+            {homeTournamentMatchActionLabel(action)}
           </span>
         </div>
-      </StackedCard>
-    </Wrapper>
+      </CardFrame>
+    </article>
   );
 }

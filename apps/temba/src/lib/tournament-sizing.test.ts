@@ -170,25 +170,20 @@ describe("sizeFriendlyTournament", () => {
 });
 
 describe("oneDayFit", () => {
-  it("places 45-minute slots from the start time", () => {
-    const sizing = sizeFriendlyTournament(12, 3);
-    assert.equal(sizing.ok, true);
-    if (!sizing.ok) {
-      return;
-    }
+  it("places each Round's 45-minute slots back to back from the start time", () => {
     const start = new Date("2026-09-20T10:00:00");
-    const finish = new Date("2026-09-20T14:00:00");
+    const finish = new Date("2026-09-20T14:30:00");
     const fit = oneDayFit({
       start,
       finish,
-      poolMatches: sizing.sizing.poolMatches,
+      roundMatches: [6, 6, 6],
       courtCount: 4,
       matchMinutes: null,
     });
-    assert.equal(fit.slotCount, 5);
+    assert.equal(fit.slotCount, 6);
     assert.equal(
       fit.lastFinish?.getTime(),
-      start.getTime() + 5 * tournamentMatchMinutes(null) * 60 * 1000,
+      start.getTime() + 6 * tournamentMatchMinutes(null) * 60 * 1000,
     );
     assert.equal(fit.overruns, false);
     assert.equal(tournamentMatchMinutes(null), 45);
@@ -196,47 +191,37 @@ describe("oneDayFit", () => {
   });
 
   it("uses 20, 30, and 45 minute Game lengths", () => {
-    const sizing = sizeFriendlyTournament(12, 3);
-    assert.equal(sizing.ok, true);
-    if (!sizing.ok) {
-      return;
-    }
     const start = new Date("2026-09-20T10:00:00");
     const finish = new Date("2026-09-20T18:00:00");
     for (const minutes of [20, 30, 45] as const) {
       const fit = oneDayFit({
         start,
         finish,
-        poolMatches: sizing.sizing.poolMatches,
+        roundMatches: [6, 6, 6],
         courtCount: 4,
         matchMinutes: minutes,
       });
       assert.equal(
         fit.lastFinish?.getTime(),
-        start.getTime() + 5 * minutes * 60 * 1000,
+        start.getTime() + 6 * minutes * 60 * 1000,
       );
     }
   });
 
   it("warns when the last Match would finish past the stated finish time", () => {
-    const sizing = sizeFriendlyTournament(12, 3);
-    assert.equal(sizing.ok, true);
-    if (!sizing.ok) {
-      return;
-    }
     const start = new Date("2026-09-20T10:00:00");
     const finish = new Date("2026-09-20T13:00:00");
     const fit = oneDayFit({
       start,
       finish,
-      poolMatches: sizing.sizing.poolMatches,
+      roundMatches: [6, 6, 6],
       courtCount: 4,
       matchMinutes: null,
     });
     assert.equal(fit.overruns, true);
     assert.equal(
       fit.lastFinish?.getTime(),
-      start.getTime() + 5 * 45 * 60 * 1000,
+      start.getTime() + 6 * 45 * 60 * 1000,
     );
     assert.equal(
       ONE_DAY_OVERRUN_MESSAGE,

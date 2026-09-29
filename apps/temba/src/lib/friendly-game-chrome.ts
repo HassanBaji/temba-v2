@@ -1,4 +1,4 @@
-import { formatAbsoluteDay, formatGameClock } from "~/lib/format-game-start";
+import { formatAbsoluteDay } from "~/lib/format-game-start";
 import { parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import type { GameViewerStatus } from "~/lib/game-summary-cta";
@@ -74,16 +74,6 @@ export function friendlyGameDirectionsUrl(
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
-export function friendlyGameVenueLine(
-  venueName: string | null | undefined,
-  courtName: string | null | undefined,
-) {
-  if (venueName && courtName) {
-    return `${venueName}`;
-  }
-  return venueName ?? courtName ?? null;
-}
-
 export function friendlyGameDateDurationLine(
   windowStart: Date | string | null | undefined,
   durationInMinutes: number | null | undefined,
@@ -96,13 +86,4 @@ export function friendlyGameDateDurationLine(
     return date;
   }
   return `${date} · ${durationInMinutes} min`;
-}
-
-export function friendlyGameDateTimeLine(
-  windowStart: Date | string | null | undefined,
-) {
-  if (!windowStart) {
-    return null;
-  }
-  return formatAbsoluteDay(windowStart);
 }

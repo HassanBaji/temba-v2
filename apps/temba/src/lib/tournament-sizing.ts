@@ -251,10 +251,12 @@ export type OneDayFit = {
   overruns: boolean;
 };
 
+// Rounds run back to back and a Round only starts once the last one has
+// cleared the Courts, so each Round rounds up to whole slots on its own.
 export function oneDayFit(input: {
   start: Date;
   finish: Date;
-  poolMatches: number;
+  roundMatches: readonly number[];
   courtCount: number;
   matchMinutes: number | null;
 }): OneDayFit {
@@ -262,7 +264,10 @@ export function oneDayFit(input: {
     return { slotCount: null, lastFinish: null, overruns: true };
   }
 
-  const slotCount = Math.ceil(input.poolMatches / input.courtCount);
+  const slotCount = input.roundMatches.reduce(
+    (total, matches) => total + Math.ceil(matches / input.courtCount),
+    0,
+  );
   const minutes = tournamentMatchMinutes(input.matchMinutes);
   const lastFinish = new Date(
     input.start.getTime() + slotCount * minutes * 60 * 1000,

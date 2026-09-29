@@ -543,7 +543,7 @@ describe("friendly tournament branch", () => {
     const shortGame = friendlyTournamentSchedule({
       start,
       finish,
-      poolMatches: 2,
+      roundMatches: [1, 1],
       courtCount: 1,
       matchMinutes: 20,
       clock,
@@ -556,7 +556,7 @@ describe("friendly tournament branch", () => {
     const longGame = friendlyTournamentSchedule({
       start,
       finish,
-      poolMatches: 2,
+      roundMatches: [1, 1],
       courtCount: 1,
       matchMinutes: 120,
       clock,
@@ -569,7 +569,7 @@ describe("friendly tournament branch", () => {
     const noCourts = friendlyTournamentSchedule({
       start,
       finish,
-      poolMatches: 18,
+      roundMatches: [6, 6, 6],
       courtCount: 0,
       matchMinutes: 45,
       clock,

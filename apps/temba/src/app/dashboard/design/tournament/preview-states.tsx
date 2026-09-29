@@ -6,6 +6,7 @@ import { StepperField } from "~/components/games/stepper-field";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHome } from "~/components/games/tournament-home";
 import {
+  HomeTournamentMatchCard,
   TournamentMatchCard,
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
@@ -64,6 +65,7 @@ import {
   WHO_CAN_TAKE_A_SEAT_LABEL,
   WITH_A_PARTNER_ONLY_LABEL,
 } from "~/lib/tournament-sizing";
+import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import { cn } from "~/lib/utils";
 
 const FIELD_LABEL = "text-muted-foreground text-[13px] font-normal";
@@ -237,10 +239,9 @@ function HomeMatchCardPreviewColumn({
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
       <h3 className="text-muted-foreground text-sm">{title}</h3>
-      <TournamentMatchCard
+      <HomeTournamentMatchCard
         game={game}
         href={`/dashboard/design/tournament#${game.id}`}
-        surface="home"
         phase={phase}
         canAddResults={canAddResults}
       />
@@ -312,7 +313,8 @@ function TournamentCreateControlsPreview() {
     ? oneDayFit({
         start,
         finish,
-        poolMatches: sizing.poolMatches,
+        roundMatches: sizeTournamentRounds(sizing.poolSizes, sizing.roundCount)
+          .roundMatches,
         courtCount: 2,
         matchMinutes: null,
       })

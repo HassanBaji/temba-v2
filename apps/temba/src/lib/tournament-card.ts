@@ -244,6 +244,92 @@ export function tournamentMatchLastResultLine(
   }
 }
 
+function capitalize(line: string) {
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
+
+/** Home: `Round 2, tonight`, or the day word alone without a Round. */
+export function tournamentMatchHeadline(
+  roundNumber: number | null | undefined,
+  relativeDay: string,
+) {
+  return roundNumber != null
+    ? `Round ${roundNumber}, ${relativeDay}`
+    : capitalize(relativeDay);
+}
+
+/** Home: `7:30 PM, Padelhuset Bromma`. The court gets its own line. */
+export function tournamentMatchKickoffLine(
+  kickoff: { time: string; meridiem: string },
+  venueName: string | null | undefined,
+) {
+  const clock = [kickoff.time, kickoff.meridiem].filter(Boolean).join(" ");
+  return [clock, venueName].filter(Boolean).join(", ");
+}
+
+export function tournamentMatchGroupLabel(
+  poolMatch: TournamentPoolMatch | null | undefined,
+) {
+  return poolMatch ? `Group ${poolMatch.poolLabel}` : null;
+}
+
+function lastResultPhrase(lastResult: TournamentPoolMatch["lastResult"]) {
+  if (!lastResult) {
+    return null;
+  }
+  const round = `R${lastResult.roundNumber}`;
+  const score = lastResult.viewerSets
+    .map((set) => `${set.viewer}-${set.opponent}`)
+    .join(" ");
+  switch (lastResult.outcome) {
+    case "cancelled":
+      return `${round} cancelled`;
+    case "draw":
+      return `drew ${round}`;
+    case "won":
+      return [`won ${round}`, score].filter(Boolean).join(" ");
+    case "lost":
+      return [`lost ${round}`, score].filter(Boolean).join(" ");
+  }
+}
+
+/** Home: `2nd, won R1 6-3 6-4`; the group size before the viewer's team has played. */
+export function tournamentMatchGroupStanding(
+  poolMatch: TournamentPoolMatch | null | undefined,
+) {
+  if (!poolMatch) {
+    return null;
+  }
+  const parts = [
+    poolMatch.viewerPosition != null
+      ? friendlyGameWaitlistOrdinal(poolMatch.viewerPosition)
+      : null,
+    lastResultPhrase(poolMatch.lastResult),
+  ].filter((part): part is string => part != null);
+  if (parts.length === 0) {
+    return `${poolMatch.poolSize} ${poolMatch.poolSize === 1 ? "team" : "teams"}`;
+  }
+  return capitalize(parts.join(", "));
+}
+
+/**
+ * Home footer. The design's "Top two play the quarters" describes a knockout
+ * that does not exist, so the line counts the Rounds left instead.
+ */
+export function tournamentMatchRoundsLeftLine(
+  roundNumber: number | null | undefined,
+  roundCount: number | null | undefined,
+) {
+  if (roundNumber == null || roundCount == null) {
+    return null;
+  }
+  const left = roundCount - roundNumber;
+  if (left <= 0) {
+    return "Last round";
+  }
+  return `Then ${left} more ${left === 1 ? "round" : "rounds"}`;
+}
+
 type MatchupSide = { left: Occupant; right: Occupant };
 
 function sideHasViewer(side: MatchupSide) {
@@ -322,4 +408,11 @@ export function tournamentMatchActionLabel(action: TournamentMatchAction) {
   return action === "add_results"
     ? "Add results"
     : tournamentCardActionLabel("view");
+}
+
+/** After the draw the Game opens on the viewer's group table. */
+export function homeTournamentMatchActionLabel(action: TournamentMatchAction) {
+  return action === "add_results"
+    ? tournamentMatchActionLabel(action)
+    : "View group";
 }

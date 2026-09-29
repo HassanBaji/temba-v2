@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { TournamentMatchCard } from "~/components/games/tournament-summary-card";
+import { HomeTournamentMatchCard } from "~/components/games/tournament-summary-card";
 import { HomeAllTime } from "~/components/home/home-all-time";
 import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
@@ -81,10 +81,9 @@ export default function HomePage() {
         {home.data ? (
           <>
             {nextGame && isPoolMatchRow(nextGame) ? (
-              <TournamentMatchCard
+              <HomeTournamentMatchCard
                 game={nextGame}
                 href={`/dashboard/games/${nextGame.id}`}
-                surface="home"
                 phase={nextGame.phase}
                 canAddResults={nextGame.canAddResults}
               />
