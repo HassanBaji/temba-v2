@@ -41,6 +41,12 @@ import {
 } from "~/lib/form-mutation-error";
 import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
 import {
+  gameKickConfirmCopy,
+  gameKickTarget,
+  type GameKickRequest,
+  type GameKickTarget,
+} from "~/lib/game-kick-confirm";
+import {
   friendlyGameCanMintInvite,
   friendlyGameCtaFamily,
   friendlyGameFooterCanLeaveGame,
@@ -166,10 +172,12 @@ export default function GameHomePage({
   const [joinPickerOpen, setJoinPickerOpen] = React.useState(false);
   const [joinPickerSeat, setJoinPickerSeat] =
     React.useState<FriendlyGameJoinSeat | null>(null);
-  const [kickConfirm, setKickConfirm] = React.useState<{
-    userId: string;
-    name: string;
-  } | null>(null);
+  const [kickConfirm, setKickConfirm] = React.useState<GameKickTarget | null>(
+    null,
+  );
+  const [completeMatchId, setCompleteMatchId] = React.useState<string | null>(
+    null,
+  );
   const [markAsNotPlayedOpen, setMarkAsNotPlayedOpen] = React.useState(false);
   const [reportWrongScoreOpen, setReportWrongScoreOpen] = React.useState(false);
 
@@ -921,28 +929,19 @@ export default function GameHomePage({
     setJoinPickerOpen(true);
   }
 
-  function occupantDisplayName(userId: string) {
+  function requestKick(request: GameKickRequest) {
     if (!data) {
-      return "player";
-    }
-    for (const side of data.sides) {
-      if (side.left?.userId === userId) {
-        return side.left.name;
-      }
-      if (side.right?.userId === userId) {
-        return side.right.name;
-      }
-    }
-    return "player";
-  }
-
-  function requestKick(userId: string) {
-    if (data && isPartnerRequiredGame(data) && !data.drawPostedAt) {
-      setKickConfirm({ userId, name: occupantDisplayName(userId) });
       return;
     }
-    kick.mutate({ gameId: id, userId });
+    setKickConfirm(gameKickTarget(data, request));
   }
+
+  const kickConfirmCopy = kickConfirm
+    ? gameKickConfirmCopy(kickConfirm, {
+        partnerRequired: isPartnerRequiredGame(data),
+        drawPosted: Boolean(data.drawPostedAt),
+      })
+    : null;
 
   return (
     <DashboardShell
@@ -1054,10 +1053,8 @@ export default function GameHomePage({
                 reopenRegistration.mutate({ gameId: id })
               }
               onCancelGame={() => setCancelGameOpen(true)}
-              onKick={requestKick}
-              onKickWaitlist={(waitlistId) =>
-                kick.mutate({ gameId: id, waitlistId })
-              }
+              onKick={(userId) => requestKick({ userId })}
+              onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
             />
           </>
         ) : usesFriendlyChrome ? (
@@ -1284,10 +1281,8 @@ export default function GameHomePage({
                   onMoveSeat={(sideIndex, position) =>
                     moveSeat.mutate({ gameId: id, sideIndex, position })
                   }
-                  onKick={(userId) => kick.mutate({ gameId: id, userId })}
-                  onKickWaitlist={(waitlistId) =>
-                    kick.mutate({ gameId: id, waitlistId })
-                  }
+                  onKick={(userId) => requestKick({ userId })}
+                  onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
                   onRegisterWithPartner={(input) =>
                     registerWithPartner.mutate({ gameId: id, ...input })
                   }
@@ -1320,9 +1315,7 @@ export default function GameHomePage({
                     slot2GamesWon: input.slot2GamesWon,
                   })
                 }
-                onComplete={(matchId) =>
-                  completeMatch.mutate({ gameId: id, matchId })
-                }
+                onComplete={(matchId) => setCompleteMatchId(matchId)}
                 onUpdateCourt={(input) =>
                   updateMatch.mutate({
                     gameId: id,
@@ -1549,18 +1542,42 @@ export default function GameHomePage({
             setKickConfirm(null);
           }
         }}
-        title={kickConfirm ? `Kick ${kickConfirm.name}?` : "Kick player?"}
-        description={tournamentLeaveOrKickConfirmCopy({
-          partnerRequired: isPartnerRequiredGame(data),
-          drawPosted: Boolean(data.drawPostedAt),
-        })}
+        title={kickConfirmCopy?.title ?? "Kick player?"}
+        description={kickConfirmCopy?.description}
         confirmLabel="Kick"
         pending={kick.isPending}
         onConfirm={async () => {
           if (!kickConfirm) {
             return;
           }
-          await kick.mutateAsync({ gameId: id, userId: kickConfirm.userId });
+          await kick.mutateAsync(
+            kickConfirm.kind === "player"
+              ? { gameId: id, userId: kickConfirm.userId }
+              : { gameId: id, waitlistId: kickConfirm.waitlistId },
+          );
+        }}
+      />
+
+      <ConfirmDialog
+        open={completeMatchId != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCompleteMatchId(null);
+          }
+        }}
+        title="Complete match and update ratings?"
+        description="The score becomes final and each player's rating updates from it."
+        confirmLabel="Complete match"
+        variant="default"
+        pending={completeMatch.isPending}
+        onConfirm={async () => {
+          if (!completeMatchId) {
+            return;
+          }
+          await completeMatch.mutateAsync({
+            gameId: id,
+            matchId: completeMatchId,
+          });
         }}
       />
 
