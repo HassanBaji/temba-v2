@@ -312,7 +312,7 @@ export function FriendlyGameDetailsHero({
           <p className="font-expanded text-display mt-3 leading-none tracking-[-0.03em]">
             You and {partnerBesideName}
           </p>
-          <p className="mt-3 text-[16px] leading-snug">
+          <p className="text-lead mt-3">
             {dateLabel}, {kickoff.time}
             {trailer ? ` ${trailer}` : ""}
           </p>

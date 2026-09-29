@@ -66,7 +66,7 @@ function PoolRoundResults({
                   <li
                     key={match.matchId}
                     className={cn(
-                      "flex min-h-11 items-center gap-3 px-5 py-4 text-[14px]",
+                      "text-body flex min-h-11 items-center gap-3 px-5 py-4",
                       matchIndex > 0 && "border-rule border-t",
                     )}
                   >
@@ -123,7 +123,7 @@ function OtherPoolsRow({
     <button
       type="button"
       className={cn(
-        "text-muted-foreground focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 px-5 py-4 text-left text-[14px] outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
+        "text-muted-foreground focus-visible:ring-ring/50 text-body flex min-h-11 w-full items-center gap-3 px-5 py-4 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
         className,
       )}
       onClick={() => {

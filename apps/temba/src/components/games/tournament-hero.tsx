@@ -122,9 +122,7 @@ export function TournamentHero({
       <PageTitle variant="hero" className="mt-2.5">
         {name}
       </PageTitle>
-      {startLine ? (
-        <p className="mt-2.5 text-[16px] leading-snug">{startLine}</p>
-      ) : null}
+      {startLine ? <p className="text-lead mt-2.5">{startLine}</p> : null}
       {sizeLine ? <p className="text-dim text-meta mt-1">{sizeLine}</p> : null}
 
       <div className="bg-dimrule my-[22px] h-px" />

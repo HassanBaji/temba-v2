@@ -85,7 +85,7 @@ function GroupRowCard({ groups }: { groups: GroupRow[] }) {
                   size="lg"
                 />
                 <div className="min-w-0">
-                  <p className="break-words text-[18px] font-semibold leading-6">
+                  <p className="text-lead break-words font-semibold">
                     {group.name ?? "Untitled Group"}
                   </p>
                   <p className="text-meta text-muted-foreground mt-0.5 break-words">
@@ -224,7 +224,7 @@ function PublicGroupRows({
               href={`/dashboard/groups/${group.id}`}
               className="focus-visible:ring-ring/50 min-w-0 flex-1 outline-none focus-visible:ring-[3px]"
             >
-              <p className="break-words text-[18px] font-semibold leading-6">
+              <p className="text-lead break-words font-semibold">
                 {group.name ?? "Untitled Group"}
               </p>
               {group.communityName ? (
