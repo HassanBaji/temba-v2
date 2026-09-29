@@ -64,7 +64,7 @@ export function ProfileLevelCard({
       : `${Math.round(fillPercent)}% of the way to ${displayNext}`;
 
   return (
-    <section className="border-rule bg-paper overflow-hidden rounded-[14px] border p-5">
+    <section className="border-rule bg-paper rounded-card overflow-hidden border p-5">
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-meta text-muted-foreground">Level</p>
@@ -95,8 +95,8 @@ export function ProfileLevelCard({
             aria-hidden="true"
             className={
               provisional
-                ? "hatch mt-[18px] h-2.5 w-full overflow-hidden rounded-[5px]"
-                : "bg-wash mt-[18px] h-2.5 w-full overflow-hidden rounded-[5px]"
+                ? "hatch rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
+                : "bg-wash rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
             }
           >
             <div
@@ -127,11 +127,11 @@ function ProfileLevelSkeleton() {
   return (
     <div
       aria-busy="true"
-      className="border-rule overflow-hidden rounded-[14px] border p-5"
+      className="border-rule rounded-card overflow-hidden border p-5"
     >
       <Skeleton className="h-3.5 w-12" />
       <Skeleton className="mt-1 h-[56px] w-24" />
-      <Skeleton className="mt-[18px] h-2.5 w-full rounded-[5px]" />
+      <Skeleton className="rounded-xs mt-[18px] h-2.5 w-full" />
     </div>
   );
 }

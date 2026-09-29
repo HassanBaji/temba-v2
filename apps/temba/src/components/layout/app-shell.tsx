@@ -60,9 +60,7 @@ export function AppShell({
               "mx-auto w-full min-w-0 flex-1 md:py-6",
               pageGutterX,
               "pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-6",
-              width === "wide"
-                ? "max-w-[var(--container-wide)]"
-                : "max-w-[var(--container-content)]",
+              width === "wide" ? "max-w-wide" : "max-w-content",
             )}
           >
             {hidePageHeader || !title ? null : (

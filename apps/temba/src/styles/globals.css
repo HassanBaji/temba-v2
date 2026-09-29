@@ -34,6 +34,7 @@
 
   --container-content: 44rem; /* 704px — detail pages, forms */
   --container-wide: 64rem; /* 1024px — list plus aside */
+  --container-column: 26.25rem; /* 420px — Home single column */
   --rail-width: 15rem; /* 240px — desktop nav rail */
   --bottom-nav-height: 3.5rem; /* 56px, plus safe-area */
   --mobile-top-bar-height: 4.25rem; /* 68px: 16 top + 44 row + 8 bottom */
@@ -58,6 +59,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-xs: 5px; /* score, form and seat slots */
+  --radius-card: 14px;
   /* Home names alias the semantic tokens in :root; never give them their own
      values. Do not add faint (#9A9A9A) — 2.56:1 on wash. */
   --color-ink: var(--primary);

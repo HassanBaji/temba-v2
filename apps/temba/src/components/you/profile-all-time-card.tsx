@@ -52,7 +52,7 @@ export function ProfileAllTimeCard({
   const hasMatches = matchesPlayed > 0;
 
   return (
-    <section className="border-rule bg-paper overflow-hidden rounded-[14px] border">
+    <section className="border-rule bg-paper rounded-card overflow-hidden border">
       <div className="border-rule flex items-baseline justify-between border-b px-5 py-4">
         <p className="text-ink text-body font-semibold">All time</p>
         {sinceYear != null ? (
@@ -112,7 +112,7 @@ function ProfileAllTimeSkeleton() {
   return (
     <div
       aria-busy="true"
-      className="border-rule overflow-hidden rounded-[14px] border"
+      className="border-rule rounded-card overflow-hidden border"
     >
       <div className="border-rule flex items-baseline justify-between border-b px-5 py-4">
         <Skeleton className="h-[15px] w-16" />

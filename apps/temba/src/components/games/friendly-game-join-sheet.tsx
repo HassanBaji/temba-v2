@@ -132,7 +132,7 @@ function ModeChooser({
         onClick={onJoinAlone}
         aria-label="Join alone. One seat. Someone else takes the other."
         className={cn(
-          "border-ink bg-paper text-ink flex w-full flex-col gap-2.5 rounded-[14px] border px-5 py-[18px] text-left",
+          "border-ink bg-paper text-ink rounded-card flex w-full flex-col gap-2.5 border px-5 py-[18px] text-left",
           "hover:bg-wash outline-none transition-colors",
           "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
         )}
@@ -166,7 +166,7 @@ function ModeChooser({
         onClick={onJoinWithPartner}
         aria-label="Join with a partner. Both seats. You play as a team. Both seats are booked now; your partner is in straight away."
         className={cn(
-          "bg-ink text-paper flex w-full flex-col gap-2.5 rounded-[14px] px-5 py-[18px] text-left",
+          "bg-ink text-paper rounded-card flex w-full flex-col gap-2.5 px-5 py-[18px] text-left",
           "hover:bg-dimrule outline-none transition-colors",
           "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
         )}
@@ -378,7 +378,7 @@ function TournamentTeamSides({
             {teamLabel}
           </h3>
         </div>
-        <div className="border-rule rounded-[14px] border px-4 py-4">
+        <div className="border-rule rounded-card border px-4 py-4">
           <SideColumn
             side={focused}
             format={format}
@@ -408,7 +408,7 @@ function TournamentTeamSides({
         {sides.map((side) => (
           <div
             key={side.sideIndex}
-            className="border-rule rounded-[14px] border px-4 py-4"
+            className="border-rule rounded-card border px-4 py-4"
           >
             <SideColumn
               side={side}

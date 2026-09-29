@@ -50,7 +50,7 @@ export function TournamentYourRounds(
       </div>
       <RowList
         aria-label={YOUR_ROUNDS_HEADING}
-        className="border-rule divide-rule rounded-[14px]"
+        className="border-rule divide-rule rounded-card"
       >
         {props.mode === "schedule"
           ? props.rounds.map((round) => (

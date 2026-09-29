@@ -44,7 +44,7 @@ export function TypeStep({
                 onSelect(card.id);
               }}
               className={cn(
-                "focus-visible:ring-ring/50 flex min-h-11 w-full flex-col gap-3.5 rounded-[14px] border p-5 text-left outline-none focus-visible:ring-[3px]",
+                "focus-visible:ring-ring/50 rounded-card flex min-h-11 w-full flex-col gap-3.5 border p-5 text-left outline-none focus-visible:ring-[3px]",
                 selected
                   ? "border-ink bg-ink text-paper"
                   : "border-rule bg-paper text-ink hover:bg-wash",

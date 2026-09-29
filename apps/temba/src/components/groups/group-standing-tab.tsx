@@ -25,7 +25,7 @@ type StandingEntry = {
   levelProvisional: boolean;
 };
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
+const CARD = "border-rule overflow-hidden rounded-card border";
 
 /**
  * Column geometry from design 06a: 26px position, flexible Player, 54px W-L,

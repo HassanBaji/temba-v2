@@ -135,7 +135,7 @@ export function PreferredPositionControl() {
                 tabIndex={tabIndex}
                 disabled={disabled}
                 className={cn(
-                  "focus-visible:ring-ring/50 text-body min-h-11 w-full rounded-[9px] outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
+                  "focus-visible:ring-ring/50 text-body min-h-11 w-full rounded-sm outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
                   isSelected
                     ? "bg-ink text-paper font-semibold"
                     : "text-muted-foreground hover:text-ink bg-transparent",

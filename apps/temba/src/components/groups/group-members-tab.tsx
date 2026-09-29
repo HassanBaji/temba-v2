@@ -33,7 +33,7 @@ type GroupMember = {
   levelProvisional: boolean;
 };
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
+const CARD = "border-rule overflow-hidden rounded-card border";
 
 function MemberRow({ member }: { member: GroupMember }) {
   const caption = groupMemberRoleCaption(member);
@@ -45,7 +45,7 @@ function MemberRow({ member }: { member: GroupMember }) {
         image={member.image}
         size="lg"
         className={cn(
-          "[&_[data-slot=avatar-fallback]]:text-meta rounded-[10px] [&_[data-slot=avatar-fallback]]:rounded-[10px] [&_[data-slot=avatar-fallback]]:font-semibold",
+          "[&_[data-slot=avatar-fallback]]:text-meta rounded-md [&_[data-slot=avatar-fallback]]:rounded-md [&_[data-slot=avatar-fallback]]:font-semibold",
           member.isViewer
             ? "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper"
             : "border-rule border [&_[data-slot=avatar-fallback]]:bg-transparent",
@@ -86,7 +86,7 @@ function MemberRow({ member }: { member: GroupMember }) {
 
 function InviteBlock({ onInvite }: { onInvite: () => void }) {
   return (
-    <section className="border-rule rounded-[14px] border p-5">
+    <section className="border-rule rounded-card border p-5">
       <h2 className="text-body font-semibold">Invite players</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
         Invite players and the standing fills in as their matches are rated.

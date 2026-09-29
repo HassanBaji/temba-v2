@@ -24,7 +24,7 @@ type GroupRow = RouterOutputs["groups"]["mine"][number];
 type GroupInvite = RouterOutputs["groups"]["pendingLookupInvites"][number];
 type PublicGroupRow = RouterOutputs["groups"]["listPublic"][number];
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
+const CARD = "border-rule overflow-hidden rounded-card border";
 
 function GroupRowsSkeleton() {
   return (
@@ -156,7 +156,7 @@ function InvitationsCard({
                 onClick={() => {
                   onAccept(invite.id);
                 }}
-                className="border-ink shrink-0 rounded-[10px] font-semibold"
+                className="border-ink shrink-0 rounded-md font-semibold"
               >
                 {isPending ? "Joining" : "Join"}
               </Button>
@@ -170,7 +170,7 @@ function InvitationsCard({
 
 function StartAGroupCard() {
   return (
-    <section className="border-rule rounded-[14px] border p-5">
+    <section className="border-rule rounded-card border p-5">
       <h2 className="text-body font-semibold">Start a group</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
         Pick a sport, invite players, and Temba keeps the standing and history.
@@ -181,7 +181,7 @@ function StartAGroupCard() {
         </Button>
         <span
           aria-disabled="true"
-          className="hatch text-muted-foreground text-body flex h-11 flex-1 items-center justify-center rounded-[10px]"
+          className="hatch text-muted-foreground text-body flex h-11 flex-1 items-center justify-center rounded-md"
         >
           Football
         </span>
@@ -251,7 +251,7 @@ function PublicGroupRows({
                   onJoin(group);
                 }
               }}
-              className="shrink-0 rounded-[10px] font-semibold"
+              className="shrink-0 rounded-md font-semibold"
             >
               {group.joinMode === "requested"
                 ? "Requested"

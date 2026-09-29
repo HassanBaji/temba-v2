@@ -18,7 +18,7 @@ const HEADER_BLEED =
   "-mx-4 px-4 min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8";
 
 const ACTION_BOX =
-  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]";
+  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]";
 
 /**
  * The one Group home header, shared by Standing, Games, and Members: back, a

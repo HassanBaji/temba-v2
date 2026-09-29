@@ -40,7 +40,7 @@ export function TournamentDrawEntry({
   onOpen: () => void;
 }) {
   return (
-    <div className="border-rule rounded-[14px] border p-5">
+    <div className="border-rule rounded-card border p-5">
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>

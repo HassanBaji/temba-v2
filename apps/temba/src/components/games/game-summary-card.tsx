@@ -521,7 +521,7 @@ export function GameSummaryCard({
     <li data-slot="game-summary-card">
       <Card
         className={cn(
-          "border-rule group relative gap-0 overflow-hidden rounded-[14px] p-0",
+          "border-rule rounded-card group relative gap-0 overflow-hidden p-0",
           href ? "hover:border-foreground/20" : null,
         )}
       >
@@ -529,7 +529,7 @@ export function GameSummaryCard({
           <Link
             href={href}
             aria-label={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
-            className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
+            className="focus-visible:ring-ring/50 rounded-card absolute inset-0 z-0 outline-none focus-visible:ring-[3px]"
           />
         ) : null}
 

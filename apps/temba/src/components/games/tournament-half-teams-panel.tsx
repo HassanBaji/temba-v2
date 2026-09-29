@@ -262,7 +262,7 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
   const openLabel = mergeOpenPositionLabel(team.openPosition);
 
   return (
-    <div className="border-rule min-w-0 flex-1 rounded-[14px] border p-4">
+    <div className="border-rule rounded-card min-w-0 flex-1 border p-4">
       <p className="text-eyebrow text-muted-foreground tabular-nums">
         {mergeTeamEyebrow(team.sideIndex)}
       </p>
@@ -270,7 +270,7 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
         <UserAvatar
           name={team.occupant.name}
           image={team.occupant.image}
-          className="border-rule size-[34px] shrink-0 rounded-[8px] border"
+          className="border-rule size-[34px] shrink-0 rounded-sm border"
         />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-body truncate">{team.occupant.name}</span>
@@ -279,7 +279,7 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
           </span>
         </span>
       </div>
-      <div className="border-rule relative mt-2 flex h-[52px] min-h-[52px] items-center justify-center overflow-hidden rounded-[10px] border">
+      <div className="border-rule relative mt-2 flex h-[52px] min-h-[52px] items-center justify-center overflow-hidden rounded-md border">
         <span aria-hidden="true" className="hatch absolute inset-0" />
         <span className="sr-only">{MERGE_OPEN_POSITION_SR}</span>
         <span
@@ -316,7 +316,7 @@ function MergedPreview({
       : { team: second, position: assignment.secondPosition };
 
   return (
-    <div className="border-ink rounded-[14px] border p-5">
+    <div className="border-ink rounded-card border p-5">
       <p className="text-muted-foreground text-meta">{MERGE_PREVIEW_LABEL}</p>
       <div className="mt-3.5 flex gap-2">
         <PreviewSeat occupant={left.team} position={left.position} />
@@ -350,11 +350,11 @@ function PreviewSeat({
     position === "left" ? LEFT_SEAT_LABEL : RIGHT_SEAT_LABEL;
 
   return (
-    <div className="bg-ink text-paper flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-3">
+    <div className="bg-ink text-paper flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">
       <UserAvatar
         name={occupant.occupant.name}
         image={occupant.occupant.image}
-        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-[8px]"
+        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body truncate">{occupant.occupant.name}</span>

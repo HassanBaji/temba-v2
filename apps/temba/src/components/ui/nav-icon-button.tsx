@@ -12,7 +12,7 @@ const navIconButtonVariants = cva("shrink-0", {
     // page gutter; `boxed` is a bordered/filled action box that stays in line.
     variant: {
       plain: "-ms-3 text-current",
-      boxed: "rounded-[10px]",
+      boxed: "rounded-md",
     },
     surface: {
       paper: "",

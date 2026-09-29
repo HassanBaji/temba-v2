@@ -33,14 +33,14 @@ function SeatRow({
 }) {
   if (!seat) {
     return (
-      <div className="hatch text-meta flex items-center justify-between rounded-[5px] px-3 py-2">
+      <div className="hatch text-meta rounded-xs flex items-center justify-between px-3 py-2">
         <span aria-hidden="true">+ Open</span>
         <span className="sr-only">{label}: open seat</span>
       </div>
     );
   }
   return (
-    <div className="border-rule text-meta flex items-center justify-between rounded-[5px] border px-3 py-2">
+    <div className="border-rule text-meta rounded-xs flex items-center justify-between border px-3 py-2">
       <span>
         {seat.name}
         {isViewer ? " (You)" : ""}
@@ -123,7 +123,7 @@ function GameDetailsStateColumn({
             {match.sets.map((set) => (
               <div
                 key={set.id}
-                className="border-rule text-meta rounded-[5px] border px-2 py-1 tabular-nums"
+                className="border-rule text-meta rounded-xs border px-2 py-1 tabular-nums"
               >
                 {set.slot1GamesWon}–{set.slot2GamesWon}
               </div>
@@ -132,7 +132,7 @@ function GameDetailsStateColumn({
         ) : (
           <div
             aria-hidden="true"
-            className="hatch text-meta flex h-10 items-center justify-center rounded-[5px]"
+            className="hatch text-meta rounded-xs flex h-10 items-center justify-center"
           >
             No score yet
           </div>
@@ -183,7 +183,7 @@ function GameDetailsStateColumn({
 
       <details className="text-muted-foreground text-meta">
         <summary className="cursor-pointer select-none">Raw fixture</summary>
-        <pre className="bg-wash text-eyebrow mt-2 overflow-x-auto rounded-[5px] p-2">
+        <pre className="bg-wash text-eyebrow rounded-xs mt-2 overflow-x-auto p-2">
           {JSON.stringify(fixture, null, 2)}
         </pre>
       </details>

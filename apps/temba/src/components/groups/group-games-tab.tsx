@@ -21,7 +21,7 @@ import { type RouterOutputs } from "~/trpc/react";
 type GroupHome = RouterOutputs["groups"]["byId"];
 type ScheduledGame = GroupHome["upcomingGames"][number];
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
+const CARD = "border-rule overflow-hidden rounded-card border";
 const HEADING = "font-expanded pb-2.5 text-title leading-tight";
 
 export function GroupGamesTab({

@@ -13,15 +13,15 @@ export function GroupHomeSkeleton() {
 
       <div className="border-rule -mx-4 border-b px-4 pb-5 min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8">
         <div className="flex items-center justify-between gap-3">
-          <Skeleton className="size-11 shrink-0 rounded-[10px]" />
-          <Skeleton className="size-11 shrink-0 rounded-[10px]" />
+          <Skeleton className="size-11 shrink-0 rounded-md" />
+          <Skeleton className="size-11 shrink-0 rounded-md" />
         </div>
         <Skeleton className="mt-5 h-[34px] w-56 max-w-full" />
         <Skeleton className="mt-1 h-[18px] w-64 max-w-full" />
-        <Skeleton className="mt-5 h-11 w-full rounded-[12px]" />
+        <Skeleton className="mt-5 h-11 w-full rounded-lg" />
       </div>
 
-      <div className="divide-rule border-rule mt-6 divide-y overflow-hidden rounded-[14px] border">
+      <div className="divide-rule border-rule rounded-card mt-6 divide-y overflow-hidden border">
         {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}

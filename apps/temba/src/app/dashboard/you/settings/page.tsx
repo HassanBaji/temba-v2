@@ -37,11 +37,11 @@ function SettingsLoadingBody() {
     <div aria-busy="true" className="flex flex-col gap-7 pt-[26px]">
       <div className="flex flex-col gap-3">
         <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-40 w-full rounded-[14px]" />
+        <Skeleton className="rounded-card h-40 w-full" />
       </div>
       <div className="flex flex-col gap-3">
         <Skeleton className="h-3 w-16" />
-        <div className="border-rule overflow-hidden rounded-[14px] border">
+        <div className="border-rule rounded-card overflow-hidden border">
           <Skeleton className="h-[72px] w-full rounded-none" />
           <Skeleton className="h-[72px] w-full rounded-none" />
         </div>
@@ -114,12 +114,12 @@ export default function SettingsPage() {
                   <span
                     role="status"
                     aria-label={`${invites.count} pending invites`}
-                    className="bg-ink text-paper text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-[11px] px-[7px] font-semibold"
+                    className="bg-ink text-paper text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full px-[7px] font-semibold"
                   >
                     <span aria-hidden="true">{invites.count}</span>
                   </span>
                 ) : invites.isLoading ? (
-                  <Skeleton className="h-[22px] w-8 shrink-0 rounded-[11px]" />
+                  <Skeleton className="h-[22px] w-8 shrink-0 rounded-full" />
                 ) : null
               }
             />

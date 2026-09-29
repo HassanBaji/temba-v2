@@ -24,7 +24,7 @@ type PoolTables = NonNullable<RouterOutputs["games"]["byId"]["poolTables"]>;
 type PoolTable = PoolTables["pools"][number];
 type PoolMatch = PoolTable["matches"][number];
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
+const CARD = "border-rule overflow-hidden rounded-card border";
 
 function matchesByRound(matches: PoolMatch[]) {
   const groups = new Map<number, PoolMatch[]>();

@@ -73,7 +73,7 @@ function SeatTile({
   member: MatchHistoryMember | null;
   onInk: boolean;
 }) {
-  const shared = "-ml-1.5 size-[26px] shrink-0 rounded-[7px] first:ml-0";
+  const shared = "-ml-1.5 size-[26px] shrink-0 rounded-sm first:ml-0";
 
   if (!member) {
     return <span aria-hidden="true" className={cn("hatch", shared)} />;
@@ -85,7 +85,7 @@ function SeatTile({
       image={member.image}
       className={cn(
         shared,
-        "[&_[data-slot=avatar-fallback]]:rounded-[7px] [&_[data-slot=avatar-fallback]]:text-[10px]",
+        "[&_[data-slot=avatar-fallback]]:rounded-sm [&_[data-slot=avatar-fallback]]:text-[10px]",
         onInk
           ? "[&_[data-slot=avatar-fallback]]:bg-dimrule [&_[data-slot=avatar-fallback]]:text-paper"
           : member.isViewer
@@ -138,7 +138,7 @@ function TeamRow({
   return (
     <div
       className={cn(
-        "mt-1.5 flex items-center gap-2 rounded-[11px] px-3 py-2.5",
+        "mt-1.5 flex items-center gap-2 rounded-lg px-3 py-2.5",
         filled
           ? "bg-ink text-paper"
           : cn("border", outlined ? "border-ink" : "border-rule"),
@@ -263,7 +263,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
     <li data-slot="match-history-card">
       <Card
         className={cn(
-          "relative gap-0 overflow-hidden rounded-[14px] p-0",
+          "rounded-card relative gap-0 overflow-hidden p-0",
           won ? "border-ink" : "border-rule",
           "motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
           "hover:border-foreground/20 hover:shadow-sm",
@@ -272,7 +272,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
         <Link
           href={`/dashboard/games/${row.id}`}
           aria-label={`${OUTCOME_LABEL[row.outcome]}, ${meta}`}
-          className="focus-visible:ring-ring/50 absolute inset-0 z-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
+          className="focus-visible:ring-ring/50 rounded-card absolute inset-0 z-0 outline-none focus-visible:ring-[3px]"
         />
         <div className="pointer-events-none relative z-10 flex items-start gap-3 px-5 py-4">
           <ResultMark

@@ -18,7 +18,7 @@ export function InviteShell({
         pageGutterX,
       )}
     >
-      <div className="mx-auto w-full max-w-[var(--container-content)] space-y-6">
+      <div className="max-w-content mx-auto w-full space-y-6">
         <div className="text-center">
           <Link
             href="/"
@@ -29,10 +29,7 @@ export function InviteShell({
         </div>
         <Card
           variant="elevated"
-          className={cn(
-            "mx-auto w-full",
-            wide ? "max-w-[var(--container-content)]" : "max-w-md",
-          )}
+          className={cn("mx-auto w-full", wide ? "max-w-content" : "max-w-md")}
         >
           {children}
         </Card>

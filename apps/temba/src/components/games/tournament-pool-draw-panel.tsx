@@ -83,7 +83,7 @@ export function TournamentPoolDrawPanel({
                 </div>
                 <RowList
                   aria-label={pool.label}
-                  className="border-rule divide-rule rounded-[14px]"
+                  className="border-rule divide-rule rounded-card"
                 >
                   {pool.teams.map((team) => (
                     <ListRow

@@ -55,7 +55,7 @@ type TeamOccupant = TournamentCardTeam["left"];
 
 const SURFACE_CHROME = {
   list: { radius: "rounded-2xl", inset: "px-[18px]" },
-  home: { radius: "rounded-[14px]", inset: "px-5" },
+  home: { radius: "rounded-card", inset: "px-5" },
 } as const;
 
 type CardSurface = keyof typeof SURFACE_CHROME;
@@ -182,7 +182,7 @@ function PairSquare({
   large?: boolean;
 }) {
   const shape = cn(
-    large ? "size-9 rounded-[10px]" : "size-8 rounded-[9px]",
+    large ? "size-9 rounded-md" : "size-8 rounded-sm",
     "shrink-0",
     overlap ? "-ml-2" : null,
     overlap && onInk && occupant ? "ring-paper ring-2" : null,

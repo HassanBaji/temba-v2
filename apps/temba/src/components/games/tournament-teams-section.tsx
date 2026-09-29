@@ -53,7 +53,7 @@ export function TournamentTeamsSection({
       </div>
       <RowList
         aria-label={TEAMS_HEADING}
-        className="border-rule divide-rule rounded-[14px]"
+        className="border-rule divide-rule rounded-card"
       >
         {view.head.map((row) => (
           <TeamRow

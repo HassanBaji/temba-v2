@@ -66,7 +66,7 @@ function GamesHubTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-card border-rule flex flex-col gap-4 overflow-hidden rounded-[14px] border p-[22px]"
+            className="bg-card border-rule rounded-card flex flex-col gap-4 overflow-hidden border p-[22px]"
           >
             <div className="flex justify-between gap-3">
               <Skeleton className="h-4 w-24" />
@@ -106,7 +106,7 @@ function GamesHubTabPanel({
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-3 w-24 max-w-full" />
               </div>
-              <Skeleton className="h-10 w-24 rounded-[9px]" />
+              <Skeleton className="h-10 w-24 rounded-sm" />
             </div>
           </div>
         ))}

@@ -63,7 +63,7 @@ export function StepperField({
         tabIndex={-1}
         role="group"
         aria-labelledby={`${id}-label`}
-        className="border-rule flex h-14 min-h-14 items-center overflow-hidden rounded-[12px] border outline-none"
+        className="border-rule flex h-14 min-h-14 items-center overflow-hidden rounded-lg border outline-none"
       >
         <button
           type="button"

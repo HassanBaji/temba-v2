@@ -30,7 +30,7 @@ export function TournamentSeatsGrid({
   const countLine = tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal);
 
   return (
-    <section className="border-rule rounded-[14px] border p-5">
+    <section className="border-rule rounded-card border p-5">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-body font-semibold">{SEATS_HEADING}</h2>
         <p aria-hidden="true" className="text-muted-foreground text-meta">
@@ -42,7 +42,7 @@ export function TournamentSeatsGrid({
           <span
             key={cell.key}
             className={cn(
-              "h-[22px] rounded-[5px]",
+              "rounded-xs h-[22px]",
               cell.filled ? "bg-ink" : "hatch border-rule box-border border",
             )}
           />

@@ -10,7 +10,7 @@ import { preferredPositionProfileLine } from "~/lib/preferred-position";
 import { api } from "~/trpc/react";
 
 const avatarClassName =
-  "border-rule size-[72px] rounded-[14px] border text-[22px] font-semibold data-[size=default]:size-[72px] data-[size=default]:rounded-[14px] [&_[data-slot=avatar-fallback]]:rounded-[14px] [&_[data-slot=avatar-fallback]]:text-[22px] [&_[data-slot=avatar-fallback]]:font-semibold";
+  "border-rule size-[72px] rounded-card border text-[22px] font-semibold data-[size=default]:size-[72px] data-[size=default]:rounded-card [&_[data-slot=avatar-fallback]]:rounded-card [&_[data-slot=avatar-fallback]]:text-[22px] [&_[data-slot=avatar-fallback]]:font-semibold";
 
 function ProfileIdentityAvatar({
   displayName,
@@ -29,7 +29,7 @@ function ProfileIdentityAvatar({
     <button
       type="button"
       aria-label={photoLabel}
-      className="focus-visible:ring-ring/50 relative size-[72px] shrink-0 rounded-[14px] outline-none focus-visible:ring-[3px]"
+      className="focus-visible:ring-ring/50 rounded-card relative size-[72px] shrink-0 outline-none focus-visible:ring-[3px]"
       onClick={() => {
         clerk.openUserProfile();
         void user?.reload();
@@ -79,7 +79,7 @@ export function ProfileIdentity({
   if (!ready) {
     return (
       <div className="flex items-center gap-4">
-        <Skeleton className="size-[72px] shrink-0 rounded-[14px]" />
+        <Skeleton className="rounded-card size-[72px] shrink-0" />
         <div className="min-w-0 flex-1 space-y-2">
           <Skeleton className="h-[22px] w-40 max-w-full" />
           <Skeleton className="h-3.5 w-24 max-w-full" />

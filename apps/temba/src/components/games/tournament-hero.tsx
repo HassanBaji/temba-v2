@@ -16,7 +16,7 @@ import {
 import { cn } from "~/lib/utils";
 
 const ACTION_BOX_DARK =
-  "bg-raised text-paper focus-visible:ring-ring/50 inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[10px] outline-none focus-visible:ring-[3px]";
+  "bg-raised text-paper focus-visible:ring-ring/50 inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]";
 
 export type TournamentHeroSeat = {
   userId: string;
@@ -38,10 +38,10 @@ function TournamentHeroSeatBlock({
 
   if (!occupant) {
     return (
-      <div className="bg-raised relative flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 overflow-hidden rounded-[10px] px-3">
+      <div className="bg-raised relative flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 overflow-hidden rounded-md px-3">
         <span
           aria-hidden="true"
-          className="hatch hatch-on-ink absolute inset-0 rounded-[10px]"
+          className="hatch hatch-on-ink absolute inset-0 rounded-md"
         />
         <span className="sr-only">{OPEN_POSITION_SR_LABEL}</span>
       </div>
@@ -51,11 +51,11 @@ function TournamentHeroSeatBlock({
   const displayName = isViewer ? "You" : occupant.name;
 
   return (
-    <div className="bg-raised flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-3">
+    <div className="bg-raised flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">
       <UserAvatar
         name={occupant.name}
         image={occupant.image}
-        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-[8px]"
+        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body truncate">{displayName}</span>

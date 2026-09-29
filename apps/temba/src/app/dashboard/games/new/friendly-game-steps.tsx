@@ -161,7 +161,7 @@ function VenueCards({
       aria-invalid={invalid ? true : undefined}
       aria-describedby={describedBy}
       tabIndex={labelledBy ? -1 : undefined}
-      className="border-rule overflow-hidden rounded-[14px] border outline-none"
+      className="border-rule rounded-card overflow-hidden border outline-none"
     >
       {venues.map((venue) => {
         const selected = venue.id === venueId;
@@ -451,7 +451,7 @@ export function FriendlyGameSteps({
               meta={selectedGroupId ? "Required" : undefined}
             />
             {!selectedGroupId ? (
-              <div className="border-rule hatch flex min-h-11 items-center gap-3 rounded-[14px] px-[18px] py-4">
+              <div className="border-rule hatch rounded-card flex min-h-11 items-center gap-3 px-[18px] py-4">
                 <Lock
                   aria-hidden="true"
                   className="text-muted-foreground size-4 shrink-0"
@@ -466,7 +466,7 @@ export function FriendlyGameSteps({
               <div
                 id="game-venue"
                 tabIndex={-1}
-                className="border-rule rounded-[14px] border px-[18px] py-4 outline-none"
+                className="border-rule rounded-card border px-[18px] py-4 outline-none"
               >
                 <p className="font-semibold">{venues[0]?.name ?? "Venue"}</p>
                 {venues[0] ? (
@@ -958,7 +958,7 @@ export function FriendlyGameSteps({
             </FieldError>
           </section>
 
-          <div className="border-rule overflow-hidden rounded-[14px] border">
+          <div className="border-rule rounded-card overflow-hidden border">
             <ReviewRow label="Group" value={reviewGroup} />
             <ReviewRow label="Venue" value={reviewVenue} />
             <ReviewRow label="Seats" value={CREATE_FLOW_OPEN_SEATS_LABEL} />

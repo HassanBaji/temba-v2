@@ -3,7 +3,8 @@ import { extendTailwindMerge } from "tailwind-merge";
 
 // The named type scale in globals.css (`text-body`, `text-meta`, …) must be
 // registered as font sizes, or tailwind-merge treats them as text colours and
-// drops one of `text-meta text-muted-foreground`.
+// drops one of `text-meta text-muted-foreground`. The named radius and
+// container widths need the same so they replace other radii and max widths.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
@@ -19,6 +20,8 @@ const twMerge = extendTailwindMerge({
         "display",
         "hero",
       ],
+      radius: ["card"],
+      container: ["content", "wide", "column"],
     },
   },
 });

@@ -49,7 +49,7 @@ export function FormSlot({
           className={
             compact
               ? "hatch absolute inset-0 rounded-[4px]"
-              : "hatch absolute inset-0 rounded-[5px]"
+              : "hatch rounded-xs absolute inset-0"
           }
         />
         <span className="sr-only">{slotLabel(bar)}</span>
@@ -63,7 +63,7 @@ export function FormSlot({
         className={
           compact
             ? "bg-ink h-[26px] min-w-0 flex-1 rounded-[4px]"
-            : "bg-ink text-paper flex h-[38px] min-w-0 flex-1 items-center justify-center rounded-[5px] text-sm font-semibold"
+            : "bg-ink text-paper rounded-xs flex h-[38px] min-w-0 flex-1 items-center justify-center text-sm font-semibold"
         }
       >
         <span className="sr-only">{slotLabel(bar)}</span>
@@ -77,7 +77,7 @@ export function FormSlot({
       className={
         compact
           ? "border-ink bg-paper relative h-[26px] min-w-0 flex-1 overflow-hidden rounded-[4px] border"
-          : "border-ink bg-paper text-ink relative flex h-[38px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-[5px] border-[1.5px] text-sm font-semibold"
+          : "border-ink bg-paper text-ink rounded-xs relative flex h-[38px] min-w-0 flex-1 items-center justify-center overflow-hidden border-[1.5px] text-sm font-semibold"
       }
     >
       {bar.outcome === "draw" ? (
@@ -112,7 +112,7 @@ export function WinLossMark({ outcome }: { outcome: "won" | "lost" | "draw" }) {
 
   if (outcome === "won") {
     return (
-      <div className="bg-ink text-paper flex size-[46px] shrink-0 items-center justify-center rounded-[7px] text-xl font-semibold">
+      <div className="bg-ink text-paper flex size-[46px] shrink-0 items-center justify-center rounded-sm text-xl font-semibold">
         <span className="sr-only">{label}</span>
         <span aria-hidden="true">{glyph}</span>
       </div>
@@ -120,7 +120,7 @@ export function WinLossMark({ outcome }: { outcome: "won" | "lost" | "draw" }) {
   }
 
   return (
-    <div className="border-ink bg-paper text-ink relative flex size-[46px] shrink-0 items-center justify-center overflow-hidden rounded-[7px] border-[1.5px] text-xl font-semibold">
+    <div className="border-ink bg-paper text-ink relative flex size-[46px] shrink-0 items-center justify-center overflow-hidden rounded-sm border-[1.5px] text-xl font-semibold">
       {outcome === "draw" ? (
         <span
           aria-hidden="true"
@@ -194,7 +194,7 @@ export function HomeRecentForm() {
         <Skeleton className="h-12 w-28" />
         <div className="mt-4 flex gap-1">
           {Array.from({ length: 10 }).map((_, index) => (
-            <Skeleton key={index} className="h-[38px] flex-1 rounded-[5px]" />
+            <Skeleton key={index} className="rounded-xs h-[38px] flex-1" />
           ))}
         </div>
       </div>

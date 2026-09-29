@@ -109,14 +109,14 @@ function SetBox({
     return (
       <span
         aria-hidden="true"
-        className="hatch inline-block h-10 w-11 shrink-0 rounded-[5px]"
+        className="hatch rounded-xs inline-block h-10 w-11 shrink-0"
       />
     );
   }
 
   if (state === "solid") {
     return (
-      <div className="bg-ink text-paper flex h-10 w-11 shrink-0 items-center justify-center rounded-[5px] text-base font-semibold tabular-nums">
+      <div className="bg-ink text-paper rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums">
         <span className="sr-only">
           {label}: {value} games, won this Set
         </span>
@@ -127,7 +127,7 @@ function SetBox({
 
   if (state === "outline") {
     return (
-      <div className="border-ink bg-paper text-ink flex h-10 w-11 shrink-0 items-center justify-center rounded-[5px] border-[1.5px] text-base font-semibold tabular-nums">
+      <div className="border-ink bg-paper text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center border-[1.5px] text-base font-semibold tabular-nums">
         <span className="sr-only">
           {label}: {value} games, lost this Set
         </span>
@@ -139,7 +139,7 @@ function SetBox({
   if (state === "readonly") {
     return (
       <div
-        className="hatch text-ink flex h-10 w-11 shrink-0 items-center justify-center rounded-[5px] text-base font-semibold tabular-nums"
+        className="hatch text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums"
         aria-label={`${label}: ${value ?? "not entered yet"}`}
       >
         <span aria-hidden="true">{value ?? ""}</span>
@@ -168,7 +168,7 @@ function SetBox({
         );
       }}
       className={cn(
-        "hatch h-10 w-11 shrink-0 rounded-[5px] p-0 text-center text-base font-semibold tabular-nums",
+        "hatch rounded-xs h-10 w-11 shrink-0 p-0 text-center text-base font-semibold tabular-nums",
         "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
       )}
     />

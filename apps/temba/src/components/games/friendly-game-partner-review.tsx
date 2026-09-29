@@ -260,7 +260,7 @@ export function FriendlyGamePartnerReview({
         </section>
 
         {details.length > 0 ? (
-          <div className="border-rule overflow-hidden rounded-[14px] border">
+          <div className="border-rule rounded-card overflow-hidden border">
             {details.map((row, index) => (
               <DetailRow
                 key={row.label}

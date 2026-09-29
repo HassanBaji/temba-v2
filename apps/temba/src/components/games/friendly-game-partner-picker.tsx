@@ -97,7 +97,7 @@ function RecentPartnerChip({
       aria-pressed={blocked ? undefined : selected}
       aria-label={suggestionButtonLabel(row)}
       className={cn(
-        "flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-[14px] px-1 py-2",
+        "rounded-card flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-1 py-2",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
         blocked && "hatch text-muted-foreground cursor-default",
         !blocked && selected && "bg-wash",
@@ -254,7 +254,7 @@ function SuggestionSection({
         <h3 className="font-expanded text-title leading-tight">{title}</h3>
         <p className="text-muted-foreground text-meta">{eyebrow}</p>
       </div>
-      <div className="border-rule overflow-hidden rounded-[14px] border">
+      <div className="border-rule rounded-card overflow-hidden border">
         {rows.map((row, index) => (
           <div
             key={row.id}

@@ -13,7 +13,7 @@ type PoolTables = NonNullable<RouterOutputs["games"]["byId"]["poolTables"]>;
 type PoolTable = PoolTables["pools"][number];
 type PoolRow = PoolTable["rows"][number];
 
-const CARD = "border-rule overflow-hidden rounded-[14px] border";
+const CARD = "border-rule overflow-hidden rounded-card border";
 const COL_POSITION = "w-10 pl-[18px] pr-0 text-left";
 const COL_TEAM = "px-2 text-left";
 const COL_STAT = "w-[38px] px-0 text-center";

@@ -159,7 +159,7 @@ export function TournamentPreviewStates({
       </section>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Create screen controls</h2>
-        <div className="mx-auto w-full max-w-[420px]">
+        <div className="max-w-column mx-auto w-full">
           <TournamentCreateControlsPreview />
         </div>
       </section>
@@ -175,7 +175,7 @@ function PreviewColumn({
   data: TournamentFixture;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
       <h2 className="text-title font-semibold">{title}</h2>
       <TournamentHomePreview data={data} />
     </div>
@@ -190,7 +190,7 @@ function CardPreviewColumn({
   game: TournamentCardFixture;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
       <h3 className="text-muted-foreground text-meta">{title}</h3>
       <ul>
         <TournamentSummaryCard
@@ -212,7 +212,7 @@ function MatchCardPreviewColumn({
   game: TournamentCardFixture;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
       <h3 className="text-muted-foreground text-meta">{title}</h3>
       <ul>
         <TournamentMatchCard
@@ -236,7 +236,7 @@ function HomeMatchCardPreviewColumn({
   canAddResults?: boolean;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
+    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
       <h3 className="text-muted-foreground text-meta">{title}</h3>
       <HomeTournamentMatchCard
         game={game}
@@ -448,7 +448,7 @@ function TournamentCreateControlsPreview() {
       ) : null}
 
       {fit ? (
-        <div className="border-ink rounded-[14px] border p-5">
+        <div className="border-ink rounded-card border p-5">
           <p className="text-muted-foreground text-meta">
             {ONE_DAY_CALLOUT_LABEL}
           </p>
