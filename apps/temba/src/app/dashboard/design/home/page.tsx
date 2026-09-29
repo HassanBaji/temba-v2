@@ -73,11 +73,8 @@ function HomeColumn({
       )}
       <HomeComingUp
         games={fixture.comingUp.map((game) => ({
-          id: game.id,
-          venueName: game.venueName,
+          ...game,
           startsAt: new Date(game.startsAt),
-          seatsTaken: game.seatsTaken,
-          seatsTotal: game.seatsTotal,
         }))}
       />
       {fixture.level.band && fixture.level.level ? (

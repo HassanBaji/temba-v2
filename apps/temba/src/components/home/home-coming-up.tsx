@@ -1,19 +1,97 @@
+import { Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { formatGameClock } from "~/lib/format-game-start";
+import {
+  type HomeComingUpGameRow,
+  type HomeComingUpRow,
+  type HomeComingUpTournamentRow,
+} from "~/lib/home-coming-up";
 import { cn } from "~/lib/utils";
 
-export type HomeComingUpRow = {
-  id: string;
-  rowKey?: string;
-  venueName: string;
-  startsAt: Date;
-  seatsTaken: number;
-  seatsTotal: number;
-};
+const ROW_CLASS =
+  "focus-visible:ring-ring/50 flex items-center gap-3 px-[22px] py-3 outline-none focus-visible:ring-[3px]";
 
 function weekdayAbbrev(date: Date): string {
   return date.toLocaleDateString("en-US", { weekday: "short" });
+}
+
+function DayBox({ startsAt }: { startsAt: Date }) {
+  return (
+    <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center">
+      <span className="font-expanded text-title leading-none">
+        {startsAt.getDate()}
+      </span>
+      <span className="text-muted-foreground text-meta leading-none">
+        {weekdayAbbrev(startsAt)}
+      </span>
+    </div>
+  );
+}
+
+function GameRow({ game }: { game: HomeComingUpGameRow }) {
+  const open = Math.max(0, game.seatsTotal - game.seatsTaken);
+  const bars = [
+    ...Array.from({ length: game.seatsTaken }, () => "taken" as const),
+    ...Array.from({ length: open }, () => "open" as const),
+  ];
+  return (
+    <Link href={`/dashboard/games/${game.id}`} className={ROW_CLASS}>
+      <DayBox startsAt={game.startsAt} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{game.venueName}</p>
+        <p className="text-muted-foreground text-meta">
+          {formatGameClock(game.startsAt)}
+        </p>
+      </div>
+      <div className="flex h-6 items-end gap-0.5" aria-hidden="true">
+        {bars.map((kind, index) => (
+          <span
+            key={`${game.id}-${index}`}
+            aria-hidden="true"
+            className={cn(
+              "h-full w-1 rounded-sm",
+              kind === "taken" ? "bg-ink" : "hatch",
+            )}
+          />
+        ))}
+      </div>
+      <span className="sr-only">
+        {open === 0
+          ? "All seats filled"
+          : open === 1
+            ? "Open seat"
+            : `${open} open seats`}
+      </span>
+    </Link>
+  );
+}
+
+function TournamentMatchRow({ game }: { game: HomeComingUpTournamentRow }) {
+  const meta = [formatGameClock(game.startsAt), game.opponentLine]
+    .filter(Boolean)
+    .join(", ");
+  return (
+    <Link
+      href={`/dashboard/games/${game.id}`}
+      data-slot="home-coming-up-tournament-match"
+      className={ROW_CLASS}
+    >
+      <DayBox startsAt={game.startsAt} />
+      <div className="min-w-0 flex-1">
+        <p className="flex min-w-0 items-center gap-1.5 font-medium">
+          <Trophy aria-hidden="true" className="size-3.5 shrink-0" />
+          <span className="truncate">{game.title}</span>
+        </p>
+        <p className="text-muted-foreground text-meta truncate">{meta}</p>
+      </div>
+      {game.roundTag ? (
+        <span className="bg-ink text-paper shrink-0 rounded-md px-2 py-1 font-mono text-[10px] uppercase">
+          {game.roundTag}
+        </span>
+      ) : null}
+    </Link>
+  );
 }
 
 export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
@@ -27,55 +105,15 @@ export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
         Coming up
       </h2>
       <ul className="divide-rule divide-y">
-        {games.map((game) => {
-          const open = Math.max(0, game.seatsTotal - game.seatsTaken);
-          const bars = [
-            ...Array.from({ length: game.seatsTaken }, () => "taken" as const),
-            ...Array.from({ length: open }, () => "open" as const),
-          ];
-          return (
-            <li key={game.rowKey ?? game.id}>
-              <Link
-                href={`/dashboard/games/${game.id}`}
-                className="focus-visible:ring-ring/50 flex items-center gap-3 px-[22px] py-3 outline-none focus-visible:ring-[3px]"
-              >
-                <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center">
-                  <span className="font-expanded text-title leading-none">
-                    {game.startsAt.getDate()}
-                  </span>
-                  <span className="text-muted-foreground text-meta leading-none">
-                    {weekdayAbbrev(game.startsAt)}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{game.venueName}</p>
-                  <p className="text-muted-foreground text-meta">
-                    {formatGameClock(game.startsAt)}
-                  </p>
-                </div>
-                <div className="flex h-6 items-end gap-0.5" aria-hidden="true">
-                  {bars.map((kind, index) => (
-                    <span
-                      key={`${game.id}-${index}`}
-                      aria-hidden="true"
-                      className={cn(
-                        "h-full w-1 rounded-sm",
-                        kind === "taken" ? "bg-ink" : "hatch",
-                      )}
-                    />
-                  ))}
-                </div>
-                <span className="sr-only">
-                  {open === 0
-                    ? "All seats filled"
-                    : open === 1
-                      ? "Open seat"
-                      : `${open} open seats`}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
+        {games.map((game) => (
+          <li key={game.rowKey}>
+            {game.kind === "tournament_match" ? (
+              <TournamentMatchRow game={game} />
+            ) : (
+              <GameRow game={game} />
+            )}
+          </li>
+        ))}
       </ul>
     </section>
   );
