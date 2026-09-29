@@ -49,10 +49,14 @@ export function OtpInput({
   }
 
   const activeIndex = focused ? Math.min(caret, LENGTH - 1) : -1;
+  const invalid = ariaInvalid === true;
 
   return (
     <div className={cn("relative", className)}>
-      <div aria-hidden="true" className="grid grid-cols-6 gap-2">
+      <div
+        aria-hidden="true"
+        className={cn("grid grid-cols-6 gap-2", disabled && "opacity-50")}
+      >
         {Array.from({ length: LENGTH }, (_, index) => {
           const char = digits[index];
           const isActive = index === activeIndex;
@@ -63,7 +67,12 @@ export function OtpInput({
               key={index}
               className={cn(
                 "flex h-16 items-center justify-center rounded-lg",
-                isActive ? "border-ink border-2" : "border-input border",
+                isActive ? "border-2" : "border",
+                invalid
+                  ? "border-destructive"
+                  : isActive
+                    ? "border-ink"
+                    : "border-input",
                 isHatched && "hatch",
               )}
             >
@@ -100,7 +109,7 @@ export function OtpInput({
         aria-label={ariaLabel}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid}
-        className="absolute inset-0 cursor-text opacity-0"
+        className="absolute inset-0 cursor-text opacity-0 disabled:cursor-not-allowed"
       />
     </div>
   );

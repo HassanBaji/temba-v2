@@ -85,11 +85,7 @@ export function VerifyCodeForm({
           pending={ready && pending}
           pendingLabel="Verifying…"
           disabled={!ready || pending}
-          className={
-            ready
-              ? "w-full font-semibold"
-              : "bg-rule text-muted-foreground w-full font-semibold"
-          }
+          className="w-full font-semibold"
         >
           Verify
         </Button>
