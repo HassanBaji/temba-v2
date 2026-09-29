@@ -13,6 +13,7 @@ import {
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
+import { HatchFlag } from "~/components/temba/seat";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { formatGameCardDay, formatRelativeDay } from "~/lib/format-game-start";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
@@ -85,15 +86,7 @@ function OpenFlag({ openTeams }: { openTeams: number }) {
   if (openTeams <= 0) {
     return <span className="text-muted-foreground shrink-0">{label}</span>;
   }
-  return (
-    <span className="text-ink inline-flex shrink-0 items-center gap-1.5 font-semibold">
-      <i
-        aria-hidden="true"
-        className="hatch inline-block size-[13px] shrink-0 rounded-[3px]"
-      />
-      {label}
-    </span>
-  );
+  return <HatchFlag className="shrink-0 font-semibold">{label}</HatchFlag>;
 }
 
 function PairSquare({

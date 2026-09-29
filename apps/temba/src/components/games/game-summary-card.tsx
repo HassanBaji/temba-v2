@@ -11,7 +11,7 @@ import {
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
-import { OpenSeat } from "~/components/temba/seat";
+import { HatchFlag, OpenSeat } from "~/components/temba/seat";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Button, buttonVariants } from "~/components/ui/button";
 import {
@@ -316,15 +316,7 @@ function OpenFlag({ openSpots }: { openSpots: number }) {
     return <span className="text-muted-foreground">{spotsOpenLabel(0)}</span>;
   }
 
-  return (
-    <span className="text-ink inline-flex items-center gap-1.5">
-      <i
-        aria-hidden="true"
-        className="hatch inline-block size-[13px] shrink-0 rounded-[3px]"
-      />
-      {spotsOpenLabel(openSpots)}
-    </span>
-  );
+  return <HatchFlag>{spotsOpenLabel(openSpots)}</HatchFlag>;
 }
 
 export function GameSummaryCard({

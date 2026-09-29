@@ -206,3 +206,24 @@ export function SeatTile({
     </div>
   );
 }
+
+/** The hub's open-spots flag: a hatch swatch beside the count it names. */
+export function HatchFlag({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn("text-ink inline-flex items-center gap-1.5", className)}
+    >
+      <i
+        aria-hidden="true"
+        className="hatch inline-block size-[13px] shrink-0 rounded-[3px]"
+      />
+      {children}
+    </span>
+  );
+}
