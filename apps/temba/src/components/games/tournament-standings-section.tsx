@@ -132,11 +132,7 @@ function OtherPoolsRow({
     >
       <span className="min-w-0 flex-1 truncate">{summary.namesLine}</span>
       <span className="text-meta">{summary.playedLabel}</span>
-      <ChevronRight
-        aria-hidden="true"
-        className="size-4 shrink-0"
-        strokeWidth={1.75}
-      />
+      <ChevronRight aria-hidden="true" className="size-[18px] shrink-0" />
     </button>
   );
 }

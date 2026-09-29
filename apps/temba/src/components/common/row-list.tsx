@@ -73,8 +73,7 @@ export function ListRow({
       {navigates ? (
         <ChevronRight
           aria-hidden="true"
-          className="text-muted-foreground hidden size-4 shrink-0 sm:block"
-          strokeWidth={1.75}
+          className="text-muted-foreground hidden size-[18px] shrink-0 sm:block"
         />
       ) : null}
     </>
