@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
 import { Button, touchHitArea } from "~/components/ui/button";
@@ -17,7 +18,11 @@ import {
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
-import { authAppPathUrl, authCompleteUrl } from "~/lib/auth-redirect";
+import {
+  authAppPathUrl,
+  authCompleteUrl,
+  authCrossLinkUrl,
+} from "~/lib/auth-redirect";
 import {
   CLERK_AUTH_ERROR_COPY,
   splitClerkAuthError,
@@ -48,6 +53,11 @@ function splitSignInError(err: unknown): SplitFormError {
 }
 
 type IdentifierMode = "username" | "phone";
+
+const MODE_DESCRIPTIONS: Record<IdentifierMode, string> = {
+  username: "Use your Temba username and password.",
+  phone: "Use the number your Groups know you by.",
+};
 
 export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
   const router = useRouter();
@@ -143,114 +153,130 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
   }
 
   return (
-    <form className="flex flex-col gap-[18px]" onSubmit={onSubmit} noValidate>
-      <FormErrorSummary ref={summaryRef} message={split?.globalMessage} />
-      <FieldGroup className="gap-[18px]">
-        <Field>
-          <div className="flex items-baseline justify-between gap-3">
+    <AuthScreen
+      backHref={authCrossLinkUrl("/", redirectUrl)}
+      backLabel="Back"
+      crossLink={{
+        href: authCrossLinkUrl("/signup", redirectUrl),
+        label: "Create account",
+      }}
+      title="Sign in"
+      description={MODE_DESCRIPTIONS[mode]}
+      footer={
+        <p className="text-meta text-muted-foreground">
+          Invited to a Group? Open the invite link you were sent.
+        </p>
+      }
+    >
+      <form className="flex flex-col gap-[18px]" onSubmit={onSubmit} noValidate>
+        <FormErrorSummary ref={summaryRef} message={split?.globalMessage} />
+        <FieldGroup className="gap-[18px]">
+          <Field>
+            <div className="flex items-baseline justify-between gap-3">
+              <FieldLabel
+                htmlFor={FIELD_IDS.identifier}
+                className="text-meta text-muted-foreground"
+              >
+                {usePhone ? "Mobile number" : "Username"}
+              </FieldLabel>
+              <button
+                type="button"
+                className={cn(
+                  touchHitArea,
+                  "text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]",
+                )}
+                onClick={switchMode}
+                disabled={pending}
+              >
+                {usePhone ? "Use username" : "Use phone"}
+              </button>
+            </div>
+            {usePhone ? (
+              <PhoneField
+                id={FIELD_IDS.identifier}
+                name="identifier"
+                countryIso={countryIso}
+                national={national}
+                onCountryIsoChange={setCountryIso}
+                onNationalChange={setNational}
+                invalid={Boolean(identifierError)}
+                describedBy={
+                  identifierError ? `${FIELD_IDS.identifier}-error` : undefined
+                }
+                disabled={pending}
+              />
+            ) : (
+              <Input
+                id={FIELD_IDS.identifier}
+                name="identifier"
+                type="text"
+                autoComplete="username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                aria-invalid={Boolean(identifierError)}
+                aria-describedby={
+                  identifierError ? `${FIELD_IDS.identifier}-error` : undefined
+                }
+                size="lg"
+                disabled={pending}
+              />
+            )}
+            {identifierError ? (
+              <FieldError id={`${FIELD_IDS.identifier}-error`}>
+                {identifierError}
+              </FieldError>
+            ) : null}
+          </Field>
+          <Field>
             <FieldLabel
-              htmlFor={FIELD_IDS.identifier}
+              htmlFor={FIELD_IDS.password}
               className="text-meta text-muted-foreground"
             >
-              {usePhone ? "Mobile number" : "Username"}
+              Password
             </FieldLabel>
-            <button
-              type="button"
-              className={cn(
-                touchHitArea,
-                "text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]",
-              )}
-              onClick={switchMode}
-              disabled={pending}
-            >
-              {usePhone ? "Use username" : "Use phone"}
-            </button>
-          </div>
-          {usePhone ? (
-            <PhoneField
-              id={FIELD_IDS.identifier}
-              name="identifier"
-              countryIso={countryIso}
-              national={national}
-              onCountryIsoChange={setCountryIso}
-              onNationalChange={setNational}
-              invalid={Boolean(identifierError)}
-              describedBy={
-                identifierError ? `${FIELD_IDS.identifier}-error` : undefined
-              }
-              disabled={pending}
-            />
-          ) : (
             <Input
-              id={FIELD_IDS.identifier}
-              name="identifier"
-              type="text"
-              autoComplete="username"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              aria-invalid={Boolean(identifierError)}
+              id={FIELD_IDS.password}
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              aria-invalid={Boolean(passwordError)}
               aria-describedby={
-                identifierError ? `${FIELD_IDS.identifier}-error` : undefined
+                passwordError ? `${FIELD_IDS.password}-error` : undefined
               }
               size="lg"
               disabled={pending}
             />
-          )}
-          {identifierError ? (
-            <FieldError id={`${FIELD_IDS.identifier}-error`}>
-              {identifierError}
-            </FieldError>
-          ) : null}
-        </Field>
-        <Field>
-          <FieldLabel
-            htmlFor={FIELD_IDS.password}
-            className="text-meta text-muted-foreground"
+            {passwordError ? (
+              <FieldError id={`${FIELD_IDS.password}-error`}>
+                {passwordError}
+              </FieldError>
+            ) : null}
+          </Field>
+        </FieldGroup>
+        <p>
+          <Link
+            href={authAppPathUrl("/login/reset-password", redirectUrl)}
+            className={cn(touchHitArea, "text-body text-ink underline")}
           >
-            Password
-          </FieldLabel>
-          <Input
-            id={FIELD_IDS.password}
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            aria-invalid={Boolean(passwordError)}
-            aria-describedby={
-              passwordError ? `${FIELD_IDS.password}-error` : undefined
-            }
-            size="lg"
-            disabled={pending}
-          />
-          {passwordError ? (
-            <FieldError id={`${FIELD_IDS.password}-error`}>
-              {passwordError}
-            </FieldError>
-          ) : null}
-        </Field>
-      </FieldGroup>
-      <p>
-        <Link
-          href={authAppPathUrl("/login/reset-password", redirectUrl)}
-          className={cn(touchHitArea, "text-body text-ink underline")}
+            Forgot password
+          </Link>
+        </p>
+        <Button
+          type="submit"
+          size="lg"
+          pending={pending}
+          pendingLabel="Signing in…"
+          disabled={!isLoaded}
+          className="w-full font-semibold"
         >
-          Forgot password
-        </Link>
-      </p>
-      <Button
-        type="submit"
-        size="lg"
-        pending={pending}
-        pendingLabel="Signing in…"
-        disabled={!isLoaded}
-        className="w-full font-semibold"
-      >
-        Sign in
-      </Button>
-      <OauthButtons flow="sign-in" redirectUrl={redirectUrl} />
-    </form>
+          Sign in
+        </Button>
+        <OauthButtons flow="sign-in" redirectUrl={redirectUrl} />
+      </form>
+    </AuthScreen>
   );
 }
