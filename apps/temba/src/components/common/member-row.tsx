@@ -28,8 +28,10 @@ export function MemberRow({
       size={size}
       leading={<UserAvatar name={name} image={image} size="lg" />}
       title={
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate">{name}</span>
+        // Wraps instead of truncating: trailing form and level columns leave
+        // a narrow name column at 360px, and the You tag must stay visible.
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 whitespace-normal">
+          <span className="min-w-0 break-words">{name}</span>
           {isViewer ? <YouTag /> : null}
         </span>
       }
