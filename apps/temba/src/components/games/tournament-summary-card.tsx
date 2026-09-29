@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy } from "lucide-react";
+import { Plus, Trophy } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -189,9 +189,42 @@ function TeamPair({ team }: { team: TournamentCardTeam }) {
   );
 }
 
-function TeamPairs({ teams }: { teams: readonly TournamentCardTeam[] }) {
-  const { shown, remaining } = tournamentCardPairs(teams);
-  if (shown.length === 0) {
+function PlaceholderSquare({ overlap }: { overlap: boolean }) {
+  return (
+    <span
+      className={cn(
+        "border-dim/60 bg-paper text-dim flex size-8 shrink-0 items-center justify-center rounded-[9px] border border-dashed",
+        overlap ? "-ml-2" : null,
+      )}
+    >
+      <Plus className="size-3.5" strokeWidth={1.5} />
+    </span>
+  );
+}
+
+function PlaceholderPair() {
+  return (
+    <span aria-hidden="true" className="flex flex-none items-center">
+      <PlaceholderSquare overlap={false} />
+      <PlaceholderSquare overlap />
+    </span>
+  );
+}
+
+function TeamPairs({
+  teams,
+  teamsAllowed,
+  registrationOpen,
+}: {
+  teams: readonly TournamentCardTeam[];
+  teamsAllowed: number | null;
+  registrationOpen: boolean;
+}) {
+  const { shown, remaining, placeholders } = tournamentCardPairs(teams, {
+    teamsAllowed,
+    registrationOpen,
+  });
+  if (shown.length === 0 && placeholders === 0) {
     return (
       <p className="text-muted-foreground text-[13px]">{NO_TEAMS_YET_COPY}</p>
     );
@@ -200,6 +233,9 @@ function TeamPairs({ teams }: { teams: readonly TournamentCardTeam[] }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       {shown.map((team) => (
         <TeamPair key={team.gameTeamId} team={team} />
+      ))}
+      {Array.from({ length: placeholders }, (_, index) => (
+        <PlaceholderPair key={index} />
       ))}
       {remaining > 0 ? (
         <span className="text-muted-foreground text-[13px]">+{remaining}</span>
@@ -305,7 +341,11 @@ export function TournamentSummaryCard({
           <p className="text-muted-foreground pb-2.5 text-[13px]">
             {tournamentTeamsLine(game)}
           </p>
-          <TeamPairs teams={teams} />
+          <TeamPairs
+            teams={teams}
+            teamsAllowed={game.teamsAllowed}
+            registrationOpen={showsTournamentOpenFlag(game)}
+          />
         </div>
 
         <div className="border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] px-[18px] py-3.5">

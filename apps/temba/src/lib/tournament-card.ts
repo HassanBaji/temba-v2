@@ -113,12 +113,26 @@ export function tournamentTeamsLine(game: TournamentCardInput) {
 
 export function tournamentCardPairs<T extends TournamentCardTeam>(
   teams: readonly T[],
+  {
+    teamsAllowed,
+    registrationOpen,
+  }: { teamsAllowed?: number | null; registrationOpen?: boolean } = {},
 ) {
   const occupied = teams.filter(
     (team) => team.left != null || team.right != null,
   );
   const shown = occupied.slice(0, TOURNAMENT_CARD_MAX_PAIRS);
-  return { shown, remaining: occupied.length - shown.length };
+  const emptyTeams = registrationOpen
+    ? Math.max(0, (teamsAllowed ?? 0) - occupied.length)
+    : 0;
+  return {
+    shown,
+    remaining: occupied.length - shown.length,
+    placeholders: Math.min(
+      TOURNAMENT_CARD_MAX_PAIRS - shown.length,
+      emptyTeams,
+    ),
+  };
 }
 
 function viewerTeamIsHalf(teams: readonly TournamentCardTeam[]) {
