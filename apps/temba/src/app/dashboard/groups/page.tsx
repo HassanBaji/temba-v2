@@ -12,11 +12,16 @@ import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import {
+  PendingInvitesSection,
+  type PendingInviteRow,
+} from "~/components/invites/pending-invites-section";
 import { PageCreateAction } from "~/components/layout/page-create-action";
 import { FormStrip } from "~/components/temba/form-strip";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { entityListIsEmpty } from "~/lib/entity-list-empty";
 import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
 import { groupsTabFromQuery, groupsTabQuery } from "~/lib/groups-tab";
 import { cardFrame } from "~/lib/page-layout";
@@ -106,58 +111,14 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
   );
 }
 
-function InvitationsCard({
-  invites,
-  pendingInviteId,
-  onAccept,
-}: {
-  invites: GroupInvite[];
-  pendingInviteId: string | null;
-  onAccept: (inviteId: string) => void;
-}) {
-  return (
-    <section className={cardFrame}>
-      <h2 className="text-meta text-muted-foreground border-rule border-b px-5 py-4">
-        Invitations
-      </h2>
-      <ul>
-        {invites.map((invite) => {
-          const isPending = pendingInviteId === invite.id;
-          return (
-            <li
-              key={invite.id}
-              className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px] first:border-t-0"
-            >
-              <EntityMonogram
-                name={invite.groupName ?? "Untitled Group"}
-                image={invite.imageUrl}
-                size="lg"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-body break-words">
-                  {invite.groupName ?? "Untitled Group"}
-                </p>
-                <p className="text-meta text-muted-foreground break-words">
-                  Invited by {invite.invitedBy.name}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isPending}
-                onClick={() => {
-                  onAccept(invite.id);
-                }}
-                className="border-ink shrink-0 rounded-md font-semibold"
-              >
-                {isPending ? "Joining" : "Join"}
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
+function toPendingInviteRow(invite: GroupInvite): PendingInviteRow {
+  const title = invite.groupName ?? "Untitled Group";
+  return {
+    id: invite.id,
+    leading: <EntityMonogram name={title} image={invite.imageUrl} size="lg" />,
+    title,
+    invitedBy: invite.invitedBy.name,
+  };
 }
 
 function StartAGroupCard() {
@@ -339,16 +300,19 @@ export default function GroupsIndexPage({
     null;
 
   const groupRows = groups.data ?? [];
-  const inviteRows = invites.data ?? [];
   const showGroups = groupRows.length > 0;
-  const showInvites = inviteRows.length > 0;
   const showEmpty =
-    !groups.isLoading &&
-    !groups.error &&
-    !invites.isLoading &&
-    !showGroups &&
-    !showInvites &&
-    !hasCreateAccess;
+    entityListIsEmpty({
+      list: {
+        isLoading: groups.isLoading,
+        error: groups.error,
+        count: groupRows.length,
+      },
+      invites: {
+        isLoading: invites.isLoading,
+        count: invites.data?.length ?? 0,
+      },
+    }) && !hasCreateAccess;
 
   return (
     <DashboardShell
@@ -381,15 +345,20 @@ export default function GroupsIndexPage({
 
             {showGroups ? <GroupRows groups={groupRows} /> : null}
 
-            {showInvites ? (
-              <InvitationsCard
-                invites={inviteRows}
-                pendingInviteId={pendingInviteId}
-                onAccept={(inviteId) => {
-                  acceptInvite.mutate({ inviteId });
-                }}
-              />
-            ) : null}
+            <PendingInvitesSection
+              variant="card"
+              invites={invites.data?.map((invite) =>
+                toPendingInviteRow(invite),
+              )}
+              pendingId={pendingInviteId}
+              error={invites.error}
+              onAccept={(inviteId) => {
+                acceptInvite.mutate({ inviteId });
+              }}
+              onRetry={() => {
+                void invites.refetch();
+              }}
+            />
 
             {hasCreateAccess ? <StartAGroupCard /> : null}
 
