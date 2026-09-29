@@ -438,7 +438,7 @@ export function SignUpContinueForm({
       title="Almost there"
       description="A few details are still needed to finish your account."
       footer={
-        <p className="text-muted-foreground text-center text-sm">
+        <p className="text-muted-foreground text-meta text-center">
           Already have an account?{" "}
           <Link
             className={cn(

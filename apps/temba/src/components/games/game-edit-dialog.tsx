@@ -311,7 +311,7 @@ export function GameEditDialog({
             </form>
           ) : null}
           {format === "friendly_game" ? (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-body">
               Friendly game caps stay 4 players / 2 Teams.
             </p>
           ) : null}

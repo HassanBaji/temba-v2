@@ -213,7 +213,7 @@ function VenueCards({
             )}
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-base font-semibold">
+              <span className="text-lead block font-semibold">
                 {venue.name}
               </span>
               <span
@@ -237,7 +237,7 @@ function VenueCards({
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-rule flex items-center justify-between gap-3 border-t px-[18px] py-3.5 text-sm first:border-t-0">
+    <div className="border-rule text-body flex items-center justify-between gap-3 border-t px-[18px] py-3.5 first:border-t-0">
       <span className="text-muted-foreground">{label}</span>
       <span className="min-w-0 text-right">{value}</span>
     </div>
@@ -569,7 +569,7 @@ export function FriendlyTournamentSteps({
                     aria-label="Search groups"
                   />
                   {filteredGroups.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-body">
                       No groups match.
                     </p>
                   ) : (
@@ -599,11 +599,11 @@ export function FriendlyTournamentSteps({
                   aria-hidden="true"
                   className="text-muted-foreground size-4 shrink-0"
                 />
-                <p className="text-muted-foreground text-sm">{venueCopy}</p>
+                <p className="text-muted-foreground text-body">{venueCopy}</p>
               </div>
             ) : null}
             {selectedGroupId && venuesPending ? (
-              <p className="text-muted-foreground text-sm">Loading…</p>
+              <p className="text-muted-foreground text-body">Loading…</p>
             ) : null}
             {selectedGroupId && !venuesPending && venuesLocked ? (
               <div
@@ -667,7 +667,7 @@ export function FriendlyTournamentSteps({
                         aria-label="Search venues"
                       />
                       {filteredVenues.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-muted-foreground text-body">
                           No venues match.
                         </p>
                       ) : (
@@ -712,7 +712,7 @@ export function FriendlyTournamentSteps({
               className="flex flex-wrap gap-1.5 outline-none"
             >
               {courts.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-body">
                   {selectedVenue
                     ? "This Venue has no Courts to record."
                     : "Pick a Venue to choose Courts."}
@@ -826,7 +826,7 @@ export function FriendlyTournamentSteps({
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="text-muted-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center gap-1.5 text-sm outline-none focus-visible:ring-[3px]"
+                    className="text-muted-foreground focus-visible:ring-ring/50 text-body inline-flex min-h-11 items-center gap-1.5 outline-none focus-visible:ring-[3px]"
                     aria-pressed={!dayInChips}
                   >
                     {dayInChips
@@ -943,7 +943,7 @@ export function FriendlyTournamentSteps({
               </div>
             </div>
             {startSlots.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 No upcoming times for this day.
               </p>
             ) : null}
@@ -996,7 +996,7 @@ export function FriendlyTournamentSteps({
               </div>
             </div>
             {!startTime ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 Pick a start time first.
               </p>
             ) : null}

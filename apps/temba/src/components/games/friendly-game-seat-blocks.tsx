@@ -23,7 +23,7 @@ function VacantPlus({ joinable }: { joinable: boolean }) {
     <span
       aria-hidden="true"
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-sm font-medium",
+        "text-body flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed font-medium",
         joinable
           ? "border-foreground bg-muted text-foreground"
           : "border-border text-muted-foreground/70",
@@ -185,7 +185,7 @@ export function FriendlyGameSeatBlocks({
         return (
           <div key={side.sideIndex} className="gap-0 overflow-hidden">
             <div className="flex items-center justify-between gap-3 px-2">
-              <h3 className="text-sm font-medium">{sideLabel}</h3>
+              <h3 className="text-body font-medium">{sideLabel}</h3>
               <p className="text-meta text-muted-foreground tabular-nums">
                 {fill.label}
               </p>

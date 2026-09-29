@@ -73,7 +73,7 @@ function PoolRoundResults({
                       {match.slot1Name}
                     </span>
                     {match.cancelled ? (
-                      <span className="text-muted-foreground text-sm">
+                      <span className="text-muted-foreground text-meta">
                         Not played
                       </span>
                     ) : match.scoreLabel ? (
@@ -81,7 +81,7 @@ function PoolRoundResults({
                         {match.scoreLabel}
                       </span>
                     ) : (
-                      <span className="text-sm font-semibold">Open</span>
+                      <span className="text-body font-semibold">Open</span>
                     )}
                     <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">
                       {match.slot2Name}

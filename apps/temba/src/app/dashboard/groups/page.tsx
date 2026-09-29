@@ -181,7 +181,7 @@ function StartAGroupCard() {
         </Button>
         <span
           aria-disabled="true"
-          className="hatch text-muted-foreground flex h-11 flex-1 items-center justify-center rounded-[10px] text-sm"
+          className="hatch text-muted-foreground text-body flex h-11 flex-1 items-center justify-center rounded-[10px]"
         >
           Football
         </span>

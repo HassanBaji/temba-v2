@@ -84,7 +84,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/dashboard">
-                <span className="text-base font-semibold">Temba</span>
+                <span className="text-lead font-semibold">Temba</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

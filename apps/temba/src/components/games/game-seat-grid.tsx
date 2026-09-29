@@ -29,7 +29,7 @@ function VacantAvatar({ joinable }: { joinable: boolean }) {
     <span
       aria-hidden="true"
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed text-sm font-medium",
+        "text-body flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed font-medium",
         joinable
           ? "border-foreground bg-muted text-foreground"
           : "border-border text-muted-foreground/70",

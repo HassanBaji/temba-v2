@@ -15,7 +15,7 @@ export function PricePerPlayerAmountInput({
       <Input className={cn("w-auto min-w-0 flex-1", className)} {...props} />
       <span
         aria-hidden="true"
-        className="text-muted-foreground shrink-0 text-sm font-medium"
+        className="text-muted-foreground text-body shrink-0 font-medium"
       >
         {PRICE_PER_PLAYER_CURRENCY}
       </span>

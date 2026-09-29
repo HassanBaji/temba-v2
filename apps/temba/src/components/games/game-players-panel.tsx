@@ -375,7 +375,7 @@ export function GamePlayersPanel({
       {game.canWaitlist && individualSeats ? (
         <Card variant="outlined" className="space-y-3">
           <h3 className="text-title font-medium">Join the waitlist</h3>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-body">
             The Game is full. You promote into a vacated Position.
           </p>
           <Button
@@ -422,7 +422,7 @@ export function GamePlayersPanel({
           >
             <h3 className="text-title font-medium">Register a Team</h3>
             {game.eligibleTeams.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 You need a complete Team whose both partners are allowed on this
                 Game.
               </p>
@@ -539,7 +539,7 @@ function PartnerRegisterCard({
             ? "Join waitlist with a partner"
             : "Register with a partner"}
         </h3>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-body">
           {game.canWaitlist
             ? "The Game is full. You both join the waitlist and promote separately."
             : game.sides.every(

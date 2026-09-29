@@ -68,7 +68,7 @@ export function TournamentYourRounds(
                 title={formatGameStart(round.start)}
                 subtitle={props.venueName ?? undefined}
                 trailing={
-                  <span className="text-muted-foreground text-sm">
+                  <span className="text-muted-foreground text-meta">
                     {NOT_DRAWN_TRAILER}
                   </span>
                 }
@@ -110,7 +110,7 @@ function resultMark(
 
 function roundTrailing(round: TournamentYourRoundsResult) {
   if (round.cancelled) {
-    return <span className="text-muted-foreground text-sm">Not played</span>;
+    return <span className="text-muted-foreground text-meta">Not played</span>;
   }
   if (round.scoreLabel) {
     return (
@@ -122,7 +122,7 @@ function roundTrailing(round: TournamentYourRoundsResult) {
   if (round.viewerOutcome === "draw") {
     return <span className="font-expanded text-[16px] tabular-nums">Draw</span>;
   }
-  return <span className="text-sm font-semibold">Open</span>;
+  return <span className="text-body font-semibold">Open</span>;
 }
 
 function roundSubtitle(

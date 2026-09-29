@@ -156,7 +156,7 @@ function TeamRow({
       <span className="flex min-w-0 flex-1 flex-col gap-px">
         <span
           className={cn(
-            "truncate text-sm",
+            "text-body truncate",
             filled || outlined ? "font-semibold" : null,
           )}
         >

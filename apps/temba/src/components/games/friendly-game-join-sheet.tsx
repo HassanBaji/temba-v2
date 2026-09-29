@@ -146,7 +146,7 @@ function ModeChooser({
           </span>
           <span className="min-w-0 flex-1">
             <span className="text-lead font-semibold">Join alone</span>
-            <span className="text-muted-foreground mt-0.5 block text-xs">
+            <span className="text-muted-foreground text-eyebrow mt-0.5 block">
               One seat. Someone else takes the other.
             </span>
           </span>
@@ -180,7 +180,7 @@ function ModeChooser({
           </span>
           <span className="min-w-0 flex-1">
             <span className="text-lead font-semibold">Join with a partner</span>
-            <span className="text-dim mt-0.5 block text-xs">
+            <span className="text-dim text-eyebrow mt-0.5 block">
               Both seats. You play as a team.
             </span>
           </span>
@@ -292,7 +292,7 @@ function NetDivider() {
     >
       <span className="h-5 shrink-0" />
       <span className="bg-rule w-px flex-1" />
-      <span className="text-muted-foreground py-1.5 text-xs font-semibold">
+      <span className="text-muted-foreground text-eyebrow py-1.5 font-semibold">
         vs
       </span>
       <span className="bg-rule w-px flex-1" />
@@ -578,7 +578,7 @@ function TournamentTakeASeat({
             Join with a partner
           </Button>
         ) : null}
-        <p className="text-muted-foreground text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           {LEAVE_SEAT_UNTIL_POOL_DRAW_COPY}
         </p>
       </div>

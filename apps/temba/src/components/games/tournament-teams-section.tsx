@@ -74,7 +74,7 @@ export function TournamentTeamsSection({
               className="focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left outline-none focus-visible:ring-[3px]"
             >
               <span aria-hidden="true" className="w-[22px] shrink-0" />
-              <span className="text-muted-foreground min-w-0 flex-1 text-sm">
+              <span className="text-muted-foreground text-meta min-w-0 flex-1">
                 {tournamentCollapsedTeamsLabel(view.collapsedCount)}
               </span>
               <ChevronDown
@@ -234,7 +234,9 @@ function TeamRow({
           {teamLabel}
         </span>
         {row.isViewer ? (
-          <span className="text-muted-foreground text-xs">{YOUR_TEAM_TAG}</span>
+          <span className="text-muted-foreground text-eyebrow">
+            {YOUR_TEAM_TAG}
+          </span>
         ) : null}
       </div>
       <div className="flex gap-2">

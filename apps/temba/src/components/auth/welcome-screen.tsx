@@ -47,7 +47,7 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
               key={tile.initials}
               className="bg-raised flex h-[66px] flex-col items-center justify-center gap-1 rounded-md"
             >
-              <span className="text-sm font-semibold">{tile.initials}</span>
+              <span className="text-body font-semibold">{tile.initials}</span>
               <span className="text-eyebrow text-dim">{tile.level}</span>
             </div>
           ))}

@@ -67,7 +67,7 @@ export function TypeStep({
                   </span>
                   <span
                     className={cn(
-                      "mt-0.5 block text-xs",
+                      "text-eyebrow mt-0.5 block",
                       selected ? "text-dim" : "text-muted-foreground",
                     )}
                   >
@@ -98,7 +98,7 @@ export function TypeStep({
         <p
           id="game-type-error"
           role="alert"
-          className="text-destructive text-sm"
+          className="text-destructive text-meta"
         >
           {error}
         </p>

@@ -106,7 +106,7 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
         </div>
         <p
           className={cn(
-            "text-muted-foreground max-w-full truncate text-xs font-light leading-none",
+            "text-muted-foreground text-eyebrow max-w-full truncate font-light leading-none",
           )}
         >
           {occupant.isViewer ? "You" : firstName(occupant.name)}
@@ -120,7 +120,7 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
       <div className="hatch text-muted-foreground flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
         +
       </div>
-      <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
+      <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
         Open
       </small>
     </div>
@@ -166,7 +166,7 @@ function SideJoinButton({
         type="button"
         size="sm"
         variant="ghost"
-        className="h-auto min-h-9 w-full rounded-lg px-2 py-1.5 text-sm font-semibold"
+        className="text-body h-auto min-h-9 w-full rounded-lg px-2 py-1.5 font-semibold"
         disabled={pending}
         aria-label={sideJoinAccessibleName(sideIndex, position, partnerName)}
         onClick={(event) => {
@@ -179,7 +179,7 @@ function SideJoinButton({
           <div className="hatch text-muted-foreground flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
             +
           </div>
-          <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
+          <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
             Join {position === "left" ? "Left" : "Right"}
           </small>
         </div>
@@ -270,7 +270,7 @@ function FriendlyRoster({
           {index > 0 ? (
             <span
               aria-hidden="true"
-              className="text-muted-foreground shrink-0 text-xs font-semibold"
+              className="text-muted-foreground text-eyebrow shrink-0 font-semibold"
             >
               vs
             </span>
@@ -539,7 +539,7 @@ export function GameSummaryCard({
             href ? "pointer-events-none" : null,
           )}
         >
-          <div className="text-muted-foreground flex items-center justify-between text-sm font-medium">
+          <div className="text-muted-foreground text-meta flex items-center justify-between font-medium">
             <span>{dayLabel}</span>
             {cancelled ? (
               <GameStatusBadge status="cancelled" />
@@ -562,7 +562,7 @@ export function GameSummaryCard({
             ) : null}
           </div>
 
-          <div className="mt-2.5 text-base">
+          <div className="text-lead mt-2.5">
             {title}
             {subtitle ? (
               <small className="text-muted-foreground text-meta mt-[3px] block">

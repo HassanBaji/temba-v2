@@ -15,7 +15,7 @@ import {
  */
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 text-meta">
+    <div className="text-meta flex items-baseline justify-between gap-3">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-medium">{value}</span>
     </div>
@@ -33,14 +33,14 @@ function SeatRow({
 }) {
   if (!seat) {
     return (
-      <div className="hatch flex items-center justify-between rounded-[5px] px-3 py-2 text-meta">
+      <div className="hatch text-meta flex items-center justify-between rounded-[5px] px-3 py-2">
         <span aria-hidden="true">+ Open</span>
         <span className="sr-only">{label}: open seat</span>
       </div>
     );
   }
   return (
-    <div className="border-rule flex items-center justify-between rounded-[5px] border px-3 py-2 text-meta">
+    <div className="border-rule text-meta flex items-center justify-between rounded-[5px] border px-3 py-2">
       <span>
         {seat.name}
         {isViewer ? " (You)" : ""}
@@ -123,7 +123,7 @@ function GameDetailsStateColumn({
             {match.sets.map((set) => (
               <div
                 key={set.id}
-                className="border-rule tabular-nums rounded-[5px] border px-2 py-1 text-meta"
+                className="border-rule text-meta rounded-[5px] border px-2 py-1 tabular-nums"
               >
                 {set.slot1GamesWon}–{set.slot2GamesWon}
               </div>
@@ -132,7 +132,7 @@ function GameDetailsStateColumn({
         ) : (
           <div
             aria-hidden="true"
-            className="hatch flex h-10 items-center justify-center rounded-[5px] text-meta"
+            className="hatch text-meta flex h-10 items-center justify-center rounded-[5px]"
           >
             No score yet
           </div>
@@ -183,7 +183,7 @@ function GameDetailsStateColumn({
 
       <details className="text-muted-foreground text-meta">
         <summary className="cursor-pointer select-none">Raw fixture</summary>
-        <pre className="bg-wash mt-2 overflow-x-auto rounded-[5px] p-2 text-xs">
+        <pre className="bg-wash text-eyebrow mt-2 overflow-x-auto rounded-[5px] p-2">
           {JSON.stringify(fixture, null, 2)}
         </pre>
       </details>
@@ -212,9 +212,9 @@ export default function GameDetailsDesignPreviewPage() {
             Additional confirmation coverage
           </h2>
           <p className="text-muted-foreground text-meta max-w-prose">
-            Needs a score, partially confirmed — one Set entered (the
-            entering User auto-confirmed per ADR-0011), three confirmations
-            still outstanding.
+            Needs a score, partially confirmed — one Set entered (the entering
+            User auto-confirmed per ADR-0011), three confirmations still
+            outstanding.
           </p>
           <div className="grid gap-4 lg:grid-cols-3">
             <GameDetailsStateColumn

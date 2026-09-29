@@ -418,7 +418,7 @@ export function FriendlyGamePartnerPicker({
             ? `Continue with ${selectedPartner.name}`
             : "Continue"}
         </Button>
-        <p className="text-muted-foreground text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           No seat is taken until you register the team.
         </p>
       </div>

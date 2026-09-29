@@ -62,7 +62,7 @@ function FooterAction({
           : "hover:bg-wash disabled:cursor-not-allowed disabled:opacity-50",
       )}
     >
-      <span className="block text-sm font-medium">{label}</span>
+      <span className="text-body block font-medium">{label}</span>
       {consequence ? (
         <span className="text-muted-foreground text-meta mt-0.5 block">
           {consequence}

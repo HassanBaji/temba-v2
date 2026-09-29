@@ -191,7 +191,7 @@ function CardPreviewColumn({
 }) {
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
-      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <h3 className="text-muted-foreground text-meta">{title}</h3>
       <ul>
         <TournamentSummaryCard
           game={game}
@@ -213,7 +213,7 @@ function MatchCardPreviewColumn({
 }) {
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
-      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <h3 className="text-muted-foreground text-meta">{title}</h3>
       <ul>
         <TournamentMatchCard
           game={game}
@@ -237,7 +237,7 @@ function HomeMatchCardPreviewColumn({
 }) {
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4">
-      <h3 className="text-muted-foreground text-sm">{title}</h3>
+      <h3 className="text-muted-foreground text-meta">{title}</h3>
       <HomeTournamentMatchCard
         game={game}
         href={`/dashboard/design/tournament#${game.id}`}

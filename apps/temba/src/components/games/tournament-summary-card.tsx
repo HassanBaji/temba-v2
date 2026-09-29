@@ -306,7 +306,7 @@ export function TournamentSummaryCard({
         />
 
         <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
-          <div className="flex items-center justify-between gap-2.5 text-sm">
+          <div className="text-body flex items-center justify-between gap-2.5">
             <span className="text-muted-foreground min-w-0 truncate">
               {game.windowStart
                 ? `Starts ${formatGameCardDay(game.windowStart)}`
@@ -464,7 +464,7 @@ function Matchup({ sides }: { sides: TournamentCardGame["sides"] }) {
   return (
     <div className="flex items-center gap-2.5">
       <MatchupColumn side={viewer} isViewerSide={viewer != null} />
-      <span className="text-muted-foreground flex-none text-xs">vs</span>
+      <span className="text-muted-foreground text-eyebrow flex-none">vs</span>
       <MatchupColumn side={opponent} isViewerSide={false} />
     </div>
   );
@@ -510,9 +510,9 @@ export function TournamentMatchCard({
         <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-px">
-              <p className="truncate text-sm font-semibold">{title}</p>
+              <p className="text-body truncate font-semibold">{title}</p>
               {roundLine ? (
-                <p className="text-muted-foreground truncate text-xs">
+                <p className="text-muted-foreground text-eyebrow truncate">
                   {roundLine}
                 </p>
               ) : null}
@@ -536,7 +536,7 @@ export function TournamentMatchCard({
             <span className="text-body font-medium">{day}</span>
           </p>
           {venueLine ? (
-            <p className="text-muted-foreground mt-2 truncate text-sm">
+            <p className="text-muted-foreground text-meta mt-2 truncate">
               {venueLine}
             </p>
           ) : null}
@@ -554,7 +554,7 @@ export function TournamentMatchCard({
         </div>
 
         <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-[18px] py-3.5">
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+          <span className="text-muted-foreground text-meta min-w-0 flex-1 truncate">
             {lastResultLine}
           </span>
           <span
@@ -620,7 +620,7 @@ export function HomeTournamentMatchCard({
           <p className="font-expanded mt-2.5 text-[30px] leading-none tracking-[-0.035em]">
             {headline}
           </p>
-          <p className="mt-2 truncate text-sm">{kickoffLine}</p>
+          <p className="text-body mt-2 truncate">{kickoffLine}</p>
           {game.courtName ? (
             <p className="text-muted-foreground text-meta truncate">
               {game.courtName}
@@ -647,7 +647,7 @@ export function HomeTournamentMatchCard({
         </div>
 
         <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-5 py-3.5">
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+          <span className="text-muted-foreground text-meta min-w-0 flex-1 truncate">
             {roundsLeftLine}
           </span>
           <span

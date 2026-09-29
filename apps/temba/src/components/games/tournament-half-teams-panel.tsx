@@ -274,7 +274,7 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
         />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-body truncate">{team.occupant.name}</span>
-          <span className="text-muted-foreground text-xs">
+          <span className="text-muted-foreground text-eyebrow">
             {mergeOccupantSubline(team.takenPosition, levelLabel)}
           </span>
         </span>
@@ -284,7 +284,7 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
         <span className="sr-only">{MERGE_OPEN_POSITION_SR}</span>
         <span
           aria-hidden="true"
-          className="text-muted-foreground relative text-xs"
+          className="text-muted-foreground text-eyebrow relative"
         >
           {openLabel}
         </span>
@@ -357,7 +357,7 @@ function PreviewSeat({
         className="bg-dimrule text-paper size-[34px] shrink-0 rounded-[8px]"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-sm">{occupant.occupant.name}</span>
+        <span className="text-body truncate">{occupant.occupant.name}</span>
         <span className="text-dim text-[11px] leading-none">
           {positionLabel}
         </span>

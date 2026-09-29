@@ -786,7 +786,7 @@ function NewGameForm() {
   if (createGroups.isLoading || !draftRestored) {
     return (
       <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <p className="text-muted-foreground text-body">Loading…</p>
       </DashboardShell>
     );
   }
@@ -837,7 +837,7 @@ function NewGameForm() {
           ) : null}
         </h1>
         {tournamentPreviewDetail ? (
-          <p className="text-dim mt-2 text-sm">{tournamentPreviewDetail}</p>
+          <p className="text-dim text-meta mt-2">{tournamentPreviewDetail}</p>
         ) : null}
       </>
     ) : kickoff && displayedStep > 1 ? (
@@ -851,7 +851,7 @@ function NewGameForm() {
           </span>
         </h1>
         {previewDetail ? (
-          <p className="text-dim mt-2 text-sm">{previewDetail}</p>
+          <p className="text-dim text-meta mt-2">{previewDetail}</p>
         ) : null}
       </>
     ) : (
@@ -867,7 +867,7 @@ function NewGameForm() {
             "Friendly game"
           )}
         </h1>
-        <p className="text-dim mt-2.5 text-sm leading-normal">
+        <p className="text-dim text-meta mt-2.5 leading-normal">
           {displayedStep === 1
             ? "Both start with a court and a time. The rest of the form follows your pick."
             : previewDetail ||
@@ -904,7 +904,7 @@ function NewGameForm() {
               {displayedStep > 1 && displayedStep < 4 ? (
                 <div className="min-w-0 flex-1">
                   <p className="text-muted-foreground text-meta">Next</p>
-                  <p className="text-sm font-semibold">{nextTitle}</p>
+                  <p className="text-body font-semibold">{nextTitle}</p>
                 </div>
               ) : null}
               <Button
@@ -1222,7 +1222,7 @@ export default function NewGamePage() {
     <React.Suspense
       fallback={
         <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <p className="text-muted-foreground text-body">Loading…</p>
         </DashboardShell>
       }
     >

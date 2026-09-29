@@ -139,7 +139,7 @@ function LineupSeatRow({
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-medium">{occupant.name}</p>
+          <p className="text-body truncate font-medium">{occupant.name}</p>
           {isViewer ? <YouTag /> : null}
         </div>
         <p className="text-muted-foreground text-meta truncate">

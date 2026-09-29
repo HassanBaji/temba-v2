@@ -93,7 +93,7 @@ export function PreferredPositionControl() {
     <div className="px-5 pb-5 pt-[18px]">
       <div className="flex items-start justify-between gap-3.5">
         <div className="min-w-0">
-          <h3 id={TITLE_ID} className="text-ink text-base font-semibold">
+          <h3 id={TITLE_ID} className="text-ink text-lead font-semibold">
             Preferred Position
           </h3>
           <p className="text-muted-foreground text-meta mt-[3px] leading-[1.45]">
@@ -135,7 +135,7 @@ export function PreferredPositionControl() {
                 tabIndex={tabIndex}
                 disabled={disabled}
                 className={cn(
-                  "focus-visible:ring-ring/50 min-h-11 w-full rounded-[9px] text-sm outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
+                  "focus-visible:ring-ring/50 text-body min-h-11 w-full rounded-[9px] outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
                   isSelected
                     ? "bg-ink text-paper font-semibold"
                     : "text-muted-foreground hover:text-ink bg-transparent",
@@ -152,7 +152,7 @@ export function PreferredPositionControl() {
       )}
 
       {state.isLoading ? null : (
-        <p id={NOTE_ID} className="text-muted-foreground mt-2.5 text-xs">
+        <p id={NOTE_ID} className="text-muted-foreground text-eyebrow mt-2.5">
           {preferredPositionNote(selected)}
         </p>
       )}

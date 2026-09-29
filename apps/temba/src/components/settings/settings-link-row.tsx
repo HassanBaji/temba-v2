@@ -22,7 +22,7 @@ export function SettingsLinkRow({
     >
       <span className="text-ink shrink-0">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="text-ink block truncate text-base font-semibold">
+        <span className="text-ink text-lead block truncate font-semibold">
           {title}
         </span>
         <span className="text-muted-foreground text-meta mt-0.5 block truncate">

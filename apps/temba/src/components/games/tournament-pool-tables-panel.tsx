@@ -141,7 +141,7 @@ export function TournamentPoolTablesPanel({
   return (
     <div className="space-y-4">
       {poolTables.finished ? (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-body">
           {TOURNAMENT_FINISHED_COPY}
         </p>
       ) : null}

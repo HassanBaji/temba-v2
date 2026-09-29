@@ -80,7 +80,7 @@ export function LookupInvitePanel({
     <section className="space-y-4">
       <FormErrorSummary ref={summaryRef} message={formError} />
       {refused && refused.length > 0 ? (
-        <ul className="text-destructive space-y-1 text-sm">
+        <ul className="text-destructive text-meta space-y-1">
           {refused.map((item) => (
             <li key={`${item.name}-${item.message}`}>
               {item.name}: {item.message}

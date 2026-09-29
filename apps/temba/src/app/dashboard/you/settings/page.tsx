@@ -115,7 +115,7 @@ export default function SettingsPage() {
                   <span
                     role="status"
                     aria-label={`${invites.count} pending invites`}
-                    className="bg-ink text-paper flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-[11px] px-[7px] text-xs font-semibold"
+                    className="bg-ink text-paper text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-[11px] px-[7px] font-semibold"
                   >
                     <span aria-hidden="true">{invites.count}</span>
                   </span>

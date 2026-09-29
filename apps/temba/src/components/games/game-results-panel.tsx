@@ -263,7 +263,7 @@ export function GameResultsPanel({
             </div>
 
             {match.sets.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No Sets yet.</p>
+              <p className="text-muted-foreground text-body">No Sets yet.</p>
             ) : (
               <div className="border-border overflow-hidden rounded-lg border">
                 <Table>
@@ -357,7 +357,7 @@ export function GameResultsPanel({
                         key={set.id}
                         className="flex flex-wrap items-end gap-2"
                       >
-                        <p className="text-muted-foreground w-12 text-sm">
+                        <p className="text-muted-foreground text-meta w-12">
                           Set {index + 1}
                         </p>
                         <Field>
@@ -381,7 +381,9 @@ export function GameResultsPanel({
                             }
                           />
                         </Field>
-                        <span className="text-muted-foreground text-sm">–</span>
+                        <span className="text-muted-foreground text-meta">
+                          –
+                        </span>
                         <Field>
                           <FieldLabel htmlFor={`set-${set.id}-slot2`}>
                             {slot2Label} games
@@ -433,7 +435,7 @@ export function GameResultsPanel({
 
             {(!match.bothSidesComplete || !match.bothSlotsFilled) &&
             match.status !== "completed" ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 Scoring opens once both teams are full.
               </p>
             ) : null}

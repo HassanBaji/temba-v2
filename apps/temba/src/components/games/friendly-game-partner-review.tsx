@@ -74,7 +74,7 @@ function DetailRow({
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-5 py-4 text-sm",
+        "text-body flex items-center justify-between px-5 py-4",
         !first && "border-rule border-t",
       )}
     >
@@ -106,7 +106,7 @@ function PlayerCard({
     >
       <UserAvatar name={name} image={image} size="sm" className="shrink-0" />
       <p className="text-body truncate font-semibold">{name}</p>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-eyebrow">
         {playerMeta({ levelBand, position })}
       </p>
     </div>
@@ -283,7 +283,7 @@ export function FriendlyGamePartnerReview({
         >
           {pending ? "Registering…" : "Register us as a team"}
         </Button>
-        <p className="text-muted-foreground text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           Both seats are booked straight away. Your partner is in now.
         </p>
       </div>
