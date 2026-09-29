@@ -68,7 +68,7 @@ export function OtpInput({
               )}
             >
               {char !== undefined ? (
-                <span className="text-[26px] font-bold leading-none tracking-[-0.02em] [font-variation-settings:'wdth'_112,'wght'_700]">
+                <span className="text-h1 font-bold leading-none tracking-[-0.02em] [font-variation-settings:'wdth'_112,'wght'_700]">
                   {char}
                 </span>
               ) : isActive ? (

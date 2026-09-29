@@ -60,7 +60,7 @@ export function ListRow({
           <p className="text-lead truncate font-semibold">{title}</p>
 
           {subtitle ? (
-            <p className="text-muted-foreground truncate text-sm font-light">
+            <p className="text-muted-foreground text-meta truncate">
               {subtitle}
             </p>
           ) : null}

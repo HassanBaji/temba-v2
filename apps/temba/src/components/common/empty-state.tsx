@@ -34,7 +34,7 @@ export function EmptyState({
       {emoji ? (
         <span
           aria-hidden="true"
-          className="bg-surface-raised border-border flex size-14 items-center justify-center rounded-full border text-2xl"
+          className="bg-surface-raised border-border text-h2 flex size-14 items-center justify-center rounded-full border"
         >
           {emoji}
         </span>
