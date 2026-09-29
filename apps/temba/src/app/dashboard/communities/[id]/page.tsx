@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, usePathname, useRouter } from "next/navigation";
 import { use, useRef, useState } from "react";
 import * as React from "react";
 import { toast } from "sonner";
@@ -30,6 +30,11 @@ import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import {
+  communityHomeTabFromQuery,
+  communityHomeTabQuery,
+  type CommunityHomeTab,
+} from "~/lib/community-home-tab";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { stickyAsideClass } from "~/lib/page-layout";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -41,10 +46,16 @@ import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const { id } = use(params);
+  const query = use(searchParams);
+  const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  const router = useRouter();
+  const pathname = usePathname() ?? `/dashboard/communities/${id}`;
   const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -364,6 +375,22 @@ export default function CommunityHomePage({
   const canManageInvites =
     data.canManageLookupInvites || data.canManageInviteLinks;
   const showRequestsTab = data.canManageJoinRequests || data.canManageTeamLinks;
+  const availableTabs: CommunityHomeTab[] = [
+    "groups",
+    ...(isMember ? (["teams", "members"] as const) : []),
+    ...(showRequestsTab ? (["requests"] as const) : []),
+  ];
+  const tab = communityHomeTabFromQuery(tabParam, availableTabs);
+
+  function setTab(next: string) {
+    const resolved = communityHomeTabFromQuery(next, availableTabs);
+    if (resolved === tab) {
+      return;
+    }
+    router.replace(`${pathname}${communityHomeTabQuery(resolved)}`, {
+      scroll: false,
+    });
+  }
   const requestCount =
     (joinRequests.data?.length ?? 0) + (teamLinkRequests.data?.length ?? 0);
   const showAllCommunities = hasCreateAccess;
@@ -517,7 +544,7 @@ export default function CommunityHomePage({
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_17.5rem]">
           <div className="min-w-0 space-y-6 lg:hidden">{venueBlock}</div>
           <div className="min-w-0">
-            <Tabs defaultValue="groups" className="gap-4">
+            <Tabs value={tab} onValueChange={setTab} className="gap-4">
               <TabsList
                 variant="line"
                 className="bg-background sticky top-[var(--mobile-top-bar-height)] z-20 lg:top-0"
