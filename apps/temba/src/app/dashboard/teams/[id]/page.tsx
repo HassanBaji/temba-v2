@@ -19,8 +19,7 @@ import { MemberRow } from "~/components/common/member-row";
 import { RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
-import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
+import { InvitesDialog } from "~/components/invites/invites-dialog";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -400,7 +399,7 @@ export default function TeamHomePage({
       />
 
       {data.canInvite ? (
-        <ResponsiveDialog
+        <InvitesDialog
           open={inviteOpen}
           onOpenChange={(next) => {
             setInviteOpen(next);
@@ -409,50 +408,37 @@ export default function TeamHomePage({
               setLookupRefused(null);
             }
           }}
-        >
-          <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
-            <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>Invite your partner</ResponsiveDialogTitle>
-              <ResponsiveDialogDescription>
-                Search existing Users and send a Lookup invite for the open
-                seat. The invitee accepts on Invites. Lookup invites do not
-                expire.
-              </ResponsiveDialogDescription>
-            </ResponsiveDialogHeader>
-            <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
-              <LookupInvitePanel
-                description="Pick one existing User for the open seat. The invitee accepts on Invites. Lookup invites do not expire."
-                lookupInvites={data.unusedInvite ? [data.unusedInvite] : []}
-                sendPending={inviteInApp.isPending}
-                revokePendingId={
-                  revokeInvite.isPending
-                    ? revokeInvite.variables?.inviteId
-                    : undefined
-                }
-                sendError={inviteInApp.error}
-                searchQuery={lookupQuery}
-                onSearchQueryChange={setLookupQuery}
-                searchResults={lookupSearch.data}
-                searchPending={lookupSearch.isFetching}
-                refused={lookupRefused}
-                selection="single"
-                onSendUserIds={(userIds) => {
-                  const userId = userIds[0];
-                  if (!userId) {
-                    return;
-                  }
-                  inviteInApp.mutate({ teamId: id, userId });
-                }}
-                onRevokeLookup={(inviteId) => revokeInvite.mutate({ inviteId })}
-              />
-              <InviteLinkPanel
-                inviteUrl={inviteLink.data?.inviteUrl}
-                copyPending={createInviteLink.isPending}
-                onCopy={() => createInviteLink.mutate({ teamId: id })}
-              />
-            </div>
-          </ResponsiveDialogContent>
-        </ResponsiveDialog>
+          restoreFocusRef={menuTriggerRef}
+          description="Invite a partner for the open seat: send a Lookup invite to an existing User, or copy an Invite link. Invitees accept on Invites."
+          lookup={{
+            note: "Pick one existing User. Lookup invites do not expire.",
+            lookupInvites: data.unusedInvite ? [data.unusedInvite] : [],
+            sendPending: inviteInApp.isPending,
+            revokePendingId: revokeInvite.isPending
+              ? revokeInvite.variables?.inviteId
+              : undefined,
+            sendError: inviteInApp.error,
+            searchQuery: lookupQuery,
+            onSearchQueryChange: setLookupQuery,
+            searchResults: lookupSearch.data,
+            searchPending: lookupSearch.isFetching,
+            refused: lookupRefused,
+            selection: "single",
+            onSendUserIds: (userIds) => {
+              const userId = userIds[0];
+              if (!userId) {
+                return;
+              }
+              inviteInApp.mutate({ teamId: id, userId });
+            },
+            onRevokeLookup: (inviteId) => revokeInvite.mutate({ inviteId }),
+          }}
+          link={{
+            inviteUrl: inviteLink.data?.inviteUrl,
+            copyPending: createInviteLink.isPending,
+            onCopy: () => createInviteLink.mutate({ teamId: id }),
+          }}
+        />
       ) : null}
 
       {data.canRequestLink ? (

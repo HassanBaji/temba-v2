@@ -17,7 +17,6 @@ import type { LookupListItem } from "~/server/invites/doors";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 
 export function LookupInvitePanel({
-  description,
   lookupInvites,
   sendPending,
   revokePendingId,
@@ -33,7 +32,6 @@ export function LookupInvitePanel({
   onSendUserIds,
   onRevokeLookup,
 }: {
-  description?: React.ReactNode;
   lookupInvites?: LookupListItem[];
   sendPending: boolean;
   revokePendingId?: string;

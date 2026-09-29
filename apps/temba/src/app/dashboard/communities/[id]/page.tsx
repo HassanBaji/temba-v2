@@ -17,7 +17,6 @@ import { CommunityCreateGroupDialog } from "~/components/communities/community-c
 import { CommunityGroupsTab } from "~/components/communities/community-groups-tab";
 import { CommunityHomeHeader } from "~/components/communities/community-home-header";
 import { CommunityHomeSkeleton } from "~/components/communities/community-home-skeleton";
-import { CommunityInvitesDialog } from "~/components/communities/community-invites-dialog";
 import { CommunityLinkVenueDialog } from "~/components/communities/community-link-venue-dialog";
 import { CommunityMembersTab } from "~/components/communities/community-members-tab";
 import { CommunityRequestsTab } from "~/components/communities/community-requests-tab";
@@ -25,6 +24,7 @@ import { CommunityTeamsTab } from "~/components/communities/community-teams-tab"
 import { CommunityVenueBlock } from "~/components/communities/community-venue-block";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { InvitesDialog } from "~/components/invites/invites-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -703,7 +703,7 @@ export default function CommunityHomePage({
         }}
       />
 
-      <CommunityInvitesDialog
+      <InvitesDialog
         open={invitesOpen}
         onOpenChange={(next) => {
           setInvitesOpen(next);
@@ -713,28 +713,37 @@ export default function CommunityHomePage({
           }
         }}
         restoreFocusRef={menuTriggerRef}
-        canManageLookupInvites={data.canManageLookupInvites}
-        canManageInviteLinks={data.canManageInviteLinks}
-        lookupInvites={lookupInvites.data}
-        inviteUrl={inviteLink.data?.inviteUrl}
-        sendPending={sendLookupInvite.isPending}
-        revokePendingId={
-          revokeLookupInvite.isPending
-            ? revokeLookupInvite.variables?.inviteId
-            : undefined
+        lookup={
+          data.canManageLookupInvites
+            ? {
+                note: "Owner and Admin can send Lookup invites. They do not expire.",
+                lookupInvites: lookupInvites.data,
+                sendPending: sendLookupInvite.isPending,
+                revokePendingId: revokeLookupInvite.isPending
+                  ? revokeLookupInvite.variables?.inviteId
+                  : undefined,
+                sendError: sendLookupInvite.error,
+                searchQuery: lookupQuery,
+                onSearchQueryChange: setLookupQuery,
+                searchResults: lookupSearch.data,
+                searchPending: lookupSearch.isFetching,
+                refused: lookupRefused,
+                onSendUserIds: (userIds) =>
+                  sendLookupInvite.mutate({ communityId: id, userIds }),
+                onRevokeLookup: (inviteId) =>
+                  revokeLookupInvite.mutate({ inviteId }),
+              }
+            : null
         }
-        copyPending={createInviteLink.isPending}
-        sendError={sendLookupInvite.error}
-        searchQuery={lookupQuery}
-        onSearchQueryChange={setLookupQuery}
-        searchResults={lookupSearch.data}
-        searchPending={lookupSearch.isFetching}
-        refused={lookupRefused}
-        onSendLookup={(userIds) =>
-          sendLookupInvite.mutate({ communityId: id, userIds })
+        link={
+          data.canManageInviteLinks
+            ? {
+                inviteUrl: inviteLink.data?.inviteUrl,
+                copyPending: createInviteLink.isPending,
+                onCopy: () => createInviteLink.mutate({ communityId: id }),
+              }
+            : null
         }
-        onRevokeLookup={(inviteId) => revokeLookupInvite.mutate({ inviteId })}
-        onCopyInviteLink={() => createInviteLink.mutate({ communityId: id })}
       />
 
       {canShowCreateClubGroup ? (

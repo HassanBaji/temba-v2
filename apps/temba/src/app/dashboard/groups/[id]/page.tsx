@@ -12,10 +12,10 @@ import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
-import { GroupInvitesDialog } from "~/components/groups/group-invites-dialog";
 import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
+import { InvitesDialog } from "~/components/invites/invites-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
@@ -36,6 +36,11 @@ import {
 import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
+
+const GROUP_LOOSE_LOOKUP_NOTE =
+  "Only you can send Lookup invites. They do not expire.";
+const GROUP_CLUB_LOOKUP_NOTE =
+  "Owner or Admin can invite any existing User; accepting also admits them to the Community. The Group creator may invite existing Members only.";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
@@ -725,7 +730,7 @@ export default function GroupHomePage({
         />
       ) : null}
 
-      <GroupInvitesDialog
+      <InvitesDialog
         open={invitesOpen}
         onOpenChange={(next) => {
           setInvitesOpen(next);
@@ -735,29 +740,40 @@ export default function GroupHomePage({
           }
         }}
         restoreFocusRef={restoreFocusRef}
-        isLoose={data.isLoose}
-        canManageLookupInvites={data.canManageLookupInvites}
-        canManageInviteLinks={data.canManageInviteLinks}
-        lookupInvites={lookupInvites.data}
-        inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
-        sendPending={sendLookupInvite.isPending}
-        revokePendingId={
-          revokeLookupInvite.isPending
-            ? revokeLookupInvite.variables?.inviteId
-            : undefined
+        lookup={
+          data.canManageLookupInvites
+            ? {
+                note: data.isLoose
+                  ? GROUP_LOOSE_LOOKUP_NOTE
+                  : GROUP_CLUB_LOOKUP_NOTE,
+                lookupInvites: lookupInvites.data,
+                sendPending: sendLookupInvite.isPending,
+                revokePendingId: revokeLookupInvite.isPending
+                  ? revokeLookupInvite.variables?.inviteId
+                  : undefined,
+                sendError: sendLookupInvite.error,
+                searchQuery: lookupQuery,
+                onSearchQueryChange: setLookupQuery,
+                searchResults: lookupSearch.data,
+                searchPending: lookupSearch.isFetching,
+                refused: lookupRefused,
+                onSendUserIds: (userIds) =>
+                  sendLookupInvite.mutate({ groupId: id, userIds }),
+                onRevokeLookup: (inviteId) =>
+                  revokeLookupInvite.mutate({ inviteId }),
+              }
+            : null
         }
-        copyPending={createInviteLink.isPending}
-        sendError={sendLookupInvite.error}
-        searchQuery={lookupQuery}
-        onSearchQueryChange={setLookupQuery}
-        searchResults={lookupSearch.data}
-        searchPending={lookupSearch.isFetching}
-        refused={lookupRefused}
-        onSendLookup={(userIds) =>
-          sendLookupInvite.mutate({ groupId: id, userIds })
+        link={
+          data.canManageInviteLinks
+            ? {
+                inviteUrl:
+                  inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl,
+                copyPending: createInviteLink.isPending,
+                onCopy: () => createInviteLink.mutate({ groupId: id }),
+              }
+            : null
         }
-        onRevokeLookup={(inviteId) => revokeLookupInvite.mutate({ inviteId })}
-        onCopyInviteLink={() => createInviteLink.mutate({ groupId: id })}
       />
     </DashboardShell>
   );
