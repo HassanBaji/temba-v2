@@ -67,7 +67,7 @@ export function GroupHomeOverflowMenu({
             {item === "create_game" ? (
               <ActionMenuItem asChild>
                 <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-                  Create
+                  Create Game
                 </Link>
               </ActionMenuItem>
             ) : null}

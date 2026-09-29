@@ -75,7 +75,7 @@ export default function NewLooseGroupPage() {
           name: values.name,
           sport: "padel",
         });
-        await afterCreate(group, values.image, "Group Private created");
+        await afterCreate(group, values.image, "Group created");
         return;
       }
       createLoosePrivate.reset();

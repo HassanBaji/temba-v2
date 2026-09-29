@@ -86,7 +86,7 @@ export function GroupHomeChrome({
           {showCreateBox ? (
             <Link
               href={`/dashboard/games/new?groupId=${groupId}`}
-              aria-label="Create"
+              aria-label="Create Game"
               className={ACTION_BOX}
             >
               <PlusIcon aria-hidden="true" className="size-5" />

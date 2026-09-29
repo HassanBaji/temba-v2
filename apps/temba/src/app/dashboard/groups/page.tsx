@@ -69,7 +69,7 @@ function NextGameCell({ startTime }: { startTime: Date | string | null }) {
   return (
     <div className="shrink-0 text-right">
       <p className="font-expanded text-[22px] leading-7">{weekday}</p>
-      <p className="text-eyebrow text-muted-foreground">next game</p>
+      <p className="text-eyebrow text-muted-foreground">Next Game</p>
     </div>
   );
 }
@@ -405,7 +405,7 @@ export default function GroupsIndexPage({
             publicGroups.data?.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title="No public Groups to join right now."
+                title="No public Groups to join right now"
               />
             ) : null}
           </div>

@@ -759,11 +759,7 @@ export default function CommunityHomePage({
                   sport: "padel",
                   requiresApproval,
                 });
-                await finishClubGroupCreate(
-                  group,
-                  image,
-                  "Club Group Public created",
-                );
+                await finishClubGroupCreate(group, image, "Club Group created");
               } catch {
                 return;
               }
@@ -778,11 +774,7 @@ export default function CommunityHomePage({
                   name,
                   sport: "padel",
                 });
-                await finishClubGroupCreate(
-                  group,
-                  image,
-                  "Club Group Private created",
-                );
+                await finishClubGroupCreate(group, image, "Club Group created");
               } catch {
                 return;
               }

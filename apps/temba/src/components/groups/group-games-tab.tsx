@@ -55,7 +55,7 @@ export function GroupGamesTab({
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-        Create the first game
+        Create the first Game
       </Link>
     </Button>
   ) : null;

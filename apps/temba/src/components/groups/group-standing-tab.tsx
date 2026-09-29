@@ -161,8 +161,8 @@ export function GroupStandingTab({
     return (
       <EmptyState
         icon={Users}
-        title="Join to see your standing"
-        description="You are not a member of this Group, so you do not have a standing position here. Join to appear on the leaderboard."
+        title="Join to see your Standing"
+        description="Join this Group to get a Standing among its members."
       />
     );
   }
@@ -171,7 +171,7 @@ export function GroupStandingTab({
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-        Create the first game
+        Create the first Game
       </Link>
     </Button>
   ) : null;
@@ -181,7 +181,7 @@ export function GroupStandingTab({
       {hasResults ? null : (
         <EmptyState
           icon={Users}
-          title="Standings appear once the first result is recorded."
+          title="Standings appear after the first result"
           action={createFirstGame}
           className={leaderboard.length > 0 ? "py-6" : undefined}
         />
