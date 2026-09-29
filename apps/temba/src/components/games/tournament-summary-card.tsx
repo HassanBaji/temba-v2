@@ -1,11 +1,17 @@
 "use client";
 
 import { Trophy } from "lucide-react";
-import Link from "next/link";
 import * as React from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
+import {
+  SUMMARY_CARD_ACTION_CLASS,
+  SUMMARY_CARD_INSET,
+  SummaryCardBody,
+  SummaryCardFooter,
+  SummaryCardShell,
+} from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { formatGameCardDay, formatRelativeDay } from "~/lib/format-game-start";
@@ -53,92 +59,12 @@ type TournamentCardTeam = NonNullable<
 >["teams"][number];
 type TeamOccupant = TournamentCardTeam["left"];
 
-const SURFACE_CHROME = {
-  list: { radius: "rounded-2xl", inset: "px-[18px]" },
-  home: { radius: "rounded-card", inset: "px-5" },
-} as const;
-
-type CardSurface = keyof typeof SURFACE_CHROME;
-
-function CardFrame({
-  href,
-  linkLabel,
-  surface,
-  children,
-}: {
-  href: string;
-  linkLabel: string;
-  surface: CardSurface;
-  children: React.ReactNode;
-}) {
-  const { radius } = SURFACE_CHROME[surface];
-  return (
-    <div
-      className={cn(
-        "border-ink bg-paper relative overflow-hidden border",
-        radius,
-      )}
-    >
-      <Link
-        href={href}
-        aria-label={linkLabel}
-        className={cn(
-          "focus-visible:ring-ring/50 absolute inset-0 z-0 outline-none focus-visible:ring-[3px]",
-          radius,
-        )}
-      />
-      {children}
-    </div>
-  );
-}
-
-function StackedCard({
-  href,
-  linkLabel,
-  children,
-}: {
-  href: string;
-  linkLabel: string;
-  children: React.ReactNode;
-}) {
-  const { radius } = SURFACE_CHROME.list;
-  return (
-    <div className="relative pb-3">
-      <div
-        aria-hidden="true"
-        className={cn(
-          "border-rule bg-surface-raised absolute inset-x-[18px] bottom-0 h-[60px] border",
-          radius,
-        )}
-      />
-      <div
-        aria-hidden="true"
-        className={cn(
-          "border-rule bg-paper absolute inset-x-[9px] bottom-[6px] h-[60px] border",
-          radius,
-        )}
-      />
-      <CardFrame href={href} linkLabel={linkLabel} surface="list">
-        {children}
-      </CardFrame>
-    </div>
-  );
-}
-
-function CardBand({
-  label,
-  meta,
-  surface = "list",
-}: {
-  label: string;
-  meta: string | null;
-  surface?: CardSurface;
-}) {
+function CardBand({ label, meta }: { label: string; meta: string | null }) {
   return (
     <div
       className={cn(
         "bg-ink text-paper pointer-events-none relative z-10 flex items-center justify-between gap-2.5 py-3",
-        SURFACE_CHROME[surface].inset,
+        SUMMARY_CARD_INSET,
       )}
     >
       <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] uppercase tracking-[0.04em]">
@@ -258,8 +184,6 @@ function PriceLine({ cents }: { cents: number | null }) {
   );
 }
 
-const ACTION_CLASS = "flex-none font-semibold";
-
 export function TournamentSummaryCard({
   game,
   href,
@@ -296,7 +220,9 @@ export function TournamentSummaryCard({
 
   return (
     <Element data-slot="tournament-summary-card">
-      <StackedCard
+      <SummaryCardShell
+        stacked
+        emphasis
         href={href}
         linkLabel={[title, TOURNAMENT_CARD_BAND_LABEL, dateLine]
           .filter(Boolean)
@@ -307,7 +233,7 @@ export function TournamentSummaryCard({
           meta={tournamentCardBandMeta(tournament?.roundCount)}
         />
 
-        <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
+        <SummaryCardBody>
           <div className="text-body flex items-center justify-between gap-2.5">
             <span className="text-muted-foreground min-w-0 truncate">
               {game.windowStart
@@ -339,15 +265,15 @@ export function TournamentSummaryCard({
             {tournamentTeamsLine(game)}
           </p>
           <TeamPairs teams={teams} />
-        </div>
+        </SummaryCardBody>
 
-        <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-[18px] py-3.5">
+        <SummaryCardFooter>
           <PriceLine cents={game.pricePerPlayerCents} />
           {interactive ? (
             <Button
               type="button"
               variant={"default"}
-              className={cn(ACTION_CLASS, "pointer-events-auto")}
+              className={cn(SUMMARY_CARD_ACTION_CLASS, "pointer-events-auto")}
               disabled={actionPending}
               onClick={(event) => {
                 event.preventDefault();
@@ -367,14 +293,14 @@ export function TournamentSummaryCard({
                 buttonVariants({
                   variant: action === "invite_partner" ? "default" : "outline",
                 }),
-                ACTION_CLASS,
+                SUMMARY_CARD_ACTION_CLASS,
               )}
             >
               {actionLabel}
             </span>
           )}
-        </div>
-      </StackedCard>
+        </SummaryCardFooter>
+      </SummaryCardShell>
 
       {action === "join" && tournament ? (
         <FriendlyGameJoinSheet
@@ -493,7 +419,9 @@ export function TournamentMatchCard({
 
   return (
     <li data-slot="tournament-match-card">
-      <StackedCard
+      <SummaryCardShell
+        stacked
+        emphasis
         href={href}
         linkLabel={[
           title,
@@ -509,10 +437,10 @@ export function TournamentMatchCard({
           meta={poolRoundLabel(game.roundNumber, game.roundCount)}
         />
 
-        <div className="pointer-events-none relative z-10 min-w-0 px-[18px] pb-5 pt-[18px]">
+        <SummaryCardBody>
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-px">
-              <p className="text-body truncate font-semibold">{title}</p>
+              <h3 className="text-body truncate font-semibold">{title}</h3>
               {roundLine ? (
                 <p className="text-muted-foreground text-eyebrow truncate">
                   {roundLine}
@@ -553,19 +481,22 @@ export function TournamentMatchCard({
               <p className="text-muted-foreground text-meta">{standingLine}</p>
             </>
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-[18px] py-3.5">
+        <SummaryCardFooter>
           <span className="text-muted-foreground text-meta min-w-0 flex-1 truncate">
             {lastResultLine}
           </span>
           <span
-            className={cn(buttonVariants({ variant: "outline" }), ACTION_CLASS)}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              SUMMARY_CARD_ACTION_CLASS,
+            )}
           >
             {tournamentMatchActionLabel("view")}
           </span>
-        </div>
-      </StackedCard>
+        </SummaryCardFooter>
+      </SummaryCardShell>
     </li>
   );
 }
@@ -600,20 +531,19 @@ export function HomeTournamentMatchCard({
 
   return (
     <article data-slot="tournament-match-card">
-      <CardFrame
+      <SummaryCardShell
+        emphasis
         href={href}
-        surface="home"
         linkLabel={[title, headline, kickoffLine].filter(Boolean).join(", ")}
       >
         <CardBand
           label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
           meta={poolRoundLabel(game.roundNumber, game.roundCount)}
-          surface="home"
         />
 
-        <div className="pointer-events-none relative z-10 min-w-0 px-5 pb-5 pt-[18px]">
+        <SummaryCardBody>
           <div className="text-muted-foreground text-meta flex items-center justify-between gap-3">
-            <span className="min-w-0 truncate">{title}</span>
+            <h3 className="min-w-0 truncate">{title}</h3>
             {status ? (
               <span className="shrink-0 tabular-nums">{status}</span>
             ) : null}
@@ -646,9 +576,9 @@ export function HomeTournamentMatchCard({
               </div>
             </>
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-5 py-3.5">
+        <SummaryCardFooter>
           <span className="text-muted-foreground text-meta min-w-0 flex-1 truncate">
             {roundsLeftLine}
           </span>
@@ -657,15 +587,15 @@ export function HomeTournamentMatchCard({
               buttonVariants({
                 variant: action === "add_results" ? "default" : "outline",
               }),
-              ACTION_CLASS,
+              SUMMARY_CARD_ACTION_CLASS,
               "px-[18px]",
               action !== "add_results" && "border-ink",
             )}
           >
             {homeTournamentMatchActionLabel(action)}
           </span>
-        </div>
-      </CardFrame>
+        </SummaryCardFooter>
+      </SummaryCardShell>
     </article>
   );
 }

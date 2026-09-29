@@ -1,15 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import * as React from "react";
 
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
+import {
+  SUMMARY_CARD_ACTION_CLASS,
+  SummaryCardBody,
+  SummaryCardFooter,
+  SummaryCardShell,
+} from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { OpenSeat } from "~/components/temba/seat";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Button, buttonVariants } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
 import {
   formatGameCardDay,
   formatWindowDuration,
@@ -323,8 +327,6 @@ function OpenFlag({ openSpots }: { openSpots: number }) {
   );
 }
 
-const CARD_ACTION_CLASS = "relative z-10 shrink-0 font-semibold";
-
 export function GameSummaryCard({
   name,
   startTime,
@@ -461,7 +463,7 @@ export function GameSummaryCard({
       <Button
         type="button"
         variant={actionVariant}
-        className={CARD_ACTION_CLASS}
+        className={SUMMARY_CARD_ACTION_CLASS}
         disabled={actionPending}
         onClick={(event) => {
           event.preventDefault();
@@ -475,7 +477,7 @@ export function GameSummaryCard({
       <span
         className={cn(
           buttonVariants({ variant: actionVariant }),
-          CARD_ACTION_CLASS,
+          SUMMARY_CARD_ACTION_CLASS,
         )}
       >
         {ctaText}
@@ -511,26 +513,11 @@ export function GameSummaryCard({
 
   return (
     <li data-slot="game-summary-card">
-      <Card
-        className={cn(
-          "border-rule rounded-card group relative gap-0 overflow-hidden p-0",
-          href ? "hover:border-foreground/20" : null,
-        )}
+      <SummaryCardShell
+        href={href}
+        linkLabel={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
       >
-        {href ? (
-          <Link
-            href={href}
-            aria-label={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
-            className="focus-visible:ring-ring/50 rounded-card absolute inset-0 z-0 outline-none focus-visible:ring-[3px]"
-          />
-        ) : null}
-
-        <div
-          className={cn(
-            "relative z-10 min-w-0 p-[22px]",
-            href ? "pointer-events-none" : null,
-          )}
-        >
+        <SummaryCardBody>
           <div className="text-muted-foreground text-meta flex items-center justify-between font-medium">
             <span>{dayLabel}</span>
             {cancelled ? (
@@ -554,14 +541,12 @@ export function GameSummaryCard({
             ) : null}
           </div>
 
-          <div className="text-lead mt-2.5">
-            {title}
-            {subtitle ? (
-              <small className="text-muted-foreground text-meta mt-[3px] block">
-                {subtitle}
-              </small>
-            ) : null}
-          </div>
+          <h3 className="text-lead mt-2.5">{title}</h3>
+          {subtitle ? (
+            <p className="text-muted-foreground text-meta mt-[3px]">
+              {subtitle}
+            </p>
+          ) : null}
 
           {showPrice || showFormat ? (
             <div className="border-rule mt-4 flex gap-4 border-t pt-4">
@@ -601,14 +586,9 @@ export function GameSummaryCard({
               onJoinSeat={onJoinSeat}
             />
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div
-          className={cn(
-            "border-rule bg-surface-raised relative z-10 flex min-w-0 items-center justify-between gap-3 border-t px-[22px] py-3.5",
-            href ? "pointer-events-none" : null,
-          )}
-        >
+        <SummaryCardFooter>
           <div className="min-w-0 flex-1 text-[13.5px]">
             {formatMeta ? <p className="truncate">{formatMeta}</p> : null}
             {groupName ? (
@@ -630,7 +610,7 @@ export function GameSummaryCard({
                     type="button"
                     variant="outline"
                     data-slot="game-card-partner-join"
-                    className={CARD_ACTION_CLASS}
+                    className={SUMMARY_CARD_ACTION_CLASS}
                     disabled={actionPending}
                     onClick={(event) => {
                       event.preventDefault();
@@ -655,8 +635,8 @@ export function GameSummaryCard({
               ) : null}
             </div>
           ) : null}
-        </div>
-      </Card>
+        </SummaryCardFooter>
+      </SummaryCardShell>
       {showPartnerJoin || (primaryAction === "join" && !showRoster)
         ? picker
         : null}

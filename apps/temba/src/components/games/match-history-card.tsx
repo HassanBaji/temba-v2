@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
-
 import { UserAvatar } from "~/components/common/user-avatar";
+import {
+  SummaryCardBody,
+  SummaryCardShell,
+} from "~/components/games/summary-card-shell";
 import { ResultMark } from "~/components/temba/result-mark";
-import { Card } from "~/components/ui/card";
 import { formatRelativeDay } from "~/lib/format-game-start";
 import { RESULT_MARK_LABEL } from "~/lib/result-mark";
 import { shortPlayerName } from "~/lib/player-name";
@@ -256,32 +257,28 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
 
   return (
     <li data-slot="match-history-card">
-      <Card
-        className={cn(
-          "rounded-card relative gap-0 overflow-hidden p-0",
-          won ? "border-ink" : "border-rule",
-          "motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
-          "hover:border-foreground/20 hover:shadow-sm",
-        )}
+      <SummaryCardShell
+        emphasis={won}
+        href={`/dashboard/games/${row.id}`}
+        linkLabel={`${RESULT_MARK_LABEL[row.outcome]}, ${meta}`}
       >
-        <Link
-          href={`/dashboard/games/${row.id}`}
-          aria-label={`${RESULT_MARK_LABEL[row.outcome]}, ${meta}`}
-          className="focus-visible:ring-ring/50 rounded-card absolute inset-0 z-0 outline-none focus-visible:ring-[3px]"
-        />
-        <div className="pointer-events-none relative z-10 flex items-start gap-3 px-5 py-4">
-          <ResultMark variant={row.outcome} className="mt-0.5 size-6" />
+        <SummaryCardBody className="flex items-start gap-3 pb-4">
+          <ResultMark
+            variant={row.outcome}
+            decorative
+            className="mt-0.5 size-6"
+          />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
-              <span
+              <h3
                 className={cn(
                   "font-expanded text-[22px]",
                   won ? null : "text-muted-foreground",
                 )}
               >
                 {RESULT_MARK_LABEL[row.outcome]}
-              </span>
+              </h3>
               {scored ? (
                 <span className="font-expanded text-muted-foreground text-body tabular-nums">
                   {tally.won}&ndash;{tally.lost} in sets
@@ -302,13 +299,13 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
               {groupName}
             </span>
           ) : null}
-        </div>
+        </SummaryCardBody>
 
-        <div className="pointer-events-none relative z-10 px-5 pb-[18px]">
+        <SummaryCardBody className="pt-0">
           {scored ? <SetHeader columns={sets.length} /> : null}
           {lost ? [theirs, mine] : [mine, theirs]}
-        </div>
-      </Card>
+        </SummaryCardBody>
+      </SummaryCardShell>
     </li>
   );
 }

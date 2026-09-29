@@ -67,7 +67,7 @@ function GamesHubTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-card border-rule rounded-card flex flex-col gap-4 overflow-hidden border p-[22px]"
+            className="bg-paper border-rule rounded-card flex flex-col gap-4 overflow-hidden border p-5"
           >
             <div className="flex justify-between gap-3">
               <Skeleton className="h-4 w-24" />
@@ -237,18 +237,20 @@ function HistoryTabPanel({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="bg-card border-border shadow-xs flex items-center gap-3 rounded-xl border p-4 md:p-5"
+            className="bg-paper border-rule rounded-card flex flex-col gap-4 overflow-hidden border p-5"
           >
-            <div className="w-16 shrink-0 space-y-1.5">
-              <Skeleton className="h-4 w-12" />
-              <Skeleton className="h-4 w-10" />
+            <div className="flex items-start gap-3">
+              <Skeleton className="mt-0.5 size-6 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-6 w-40 max-w-full" />
+                <Skeleton className="h-4 w-48 max-w-full" />
+              </div>
+              <Skeleton className="mt-1 h-3 w-16 shrink-0" />
             </div>
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <Skeleton className="h-5 w-40 max-w-full" />
-              <Skeleton className="h-4 w-28 max-w-full" />
-              <Skeleton className="h-4 w-24 max-w-full" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-[52px] w-full rounded-lg" />
+              <Skeleton className="h-[52px] w-full rounded-lg" />
             </div>
-            <Skeleton className="h-6 w-14 rounded-sm" />
           </div>
         ))}
       </div>
