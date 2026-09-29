@@ -87,6 +87,7 @@ import {
   splitGameWindow,
 } from "~/lib/game-window";
 import { isNotFoundError } from "~/lib/is-not-found-error";
+import { shareLinkWithFeedback } from "~/lib/share-link";
 import {
   LEVEL_BAND_SELECT_NONE,
   LEVEL_RANGE_INVERTED_MESSAGE,
@@ -507,28 +508,26 @@ export default function GameHomePage({
     onSuccess: async (result) => {
       const url = result.shortUrl ?? result.inviteUrl;
       const row = game.data;
-      await navigator.clipboard.writeText(
-        gameInviteClipboardText({
-          format: row?.format ?? "",
-          registrationMode: row?.registrationMode ?? "",
-          shortUrl: url,
-          roster: row
-            ? {
-                venueName: row.venue?.name ?? "Venue",
-                courtName: row.matches[0]?.courtName ?? null,
-                windowStart: row.windowStart,
-                windowEnd: row.windowEnd,
-                sides: row.sides,
-                shortUrl: url,
-              }
-            : null,
-        }),
-      );
-      toast.success("Invite link copied");
+      const text = gameInviteClipboardText({
+        format: row?.format ?? "",
+        registrationMode: row?.registrationMode ?? "",
+        shortUrl: url,
+        roster: row
+          ? {
+              venueName: row.venue?.name ?? "Venue",
+              courtName: row.matches[0]?.courtName ?? null,
+              windowStart: row.windowStart,
+              windowEnd: row.windowEnd,
+              sides: row.sides,
+              shortUrl: url,
+            }
+          : null,
+      });
+      await shareLinkWithFeedback({ text }, "Invite link copied");
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toastGlobalFormError(error);
     },
   });
 
@@ -1136,8 +1135,13 @@ export default function GameHomePage({
               onShareResult={
                 ctaFamily.kind === "final"
                   ? () => {
-                      void navigator.clipboard.writeText(window.location.href);
-                      toast.success("Link copied");
+                      void shareLinkWithFeedback(
+                        {
+                          text: window.location.href,
+                          url: window.location.href,
+                        },
+                        "Link copied",
+                      );
                     }
                   : undefined
               }
