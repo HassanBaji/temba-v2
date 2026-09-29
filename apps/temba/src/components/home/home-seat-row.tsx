@@ -60,7 +60,7 @@ function HomeSeat({
           <span className="sr-only">{seat.name ?? "Filled seat"}</span>
           <span
             aria-hidden="true"
-            className="text-paper truncate px-1 text-xs font-medium"
+            className="text-paper text-eyebrow truncate px-1 font-medium"
           >
             {caption}
           </span>

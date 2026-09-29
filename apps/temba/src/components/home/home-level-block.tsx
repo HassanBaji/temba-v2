@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
+import { SurfaceLabel } from "~/components/common/surface-label";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { DeclareLevelDialog } from "~/components/you/declare-level-dialog";
@@ -11,6 +12,7 @@ import {
   chartPointGeometry,
   HOME_CHART_HEIGHT,
   HOME_CHART_WIDTH,
+  levelChangeView,
   parseLevelHistory,
   plottedFraction,
 } from "~/lib/home-level-chart";
@@ -21,8 +23,15 @@ import {
   type LevelBand,
   type SelfDeclareChoice,
 } from "~/lib/level-bands";
+import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
+
+const CHANGE_ICONS = {
+  up: ArrowUpRight,
+  down: ArrowDownRight,
+  none: ArrowRight,
+} as const;
 
 function polyline(points: { x: number; y: number }[]) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
@@ -68,8 +77,8 @@ export function HomeLevelBlock({
         ? "last 1 match"
         : `last ${parsed.matchCount} matches`
       : null;
-  const delta = parsed?.delta ?? 0;
-  const deltaLabel = delta === 0 ? "0.0" : `${Math.abs(delta).toFixed(1)}`;
+  const change = levelChangeView(parsed?.delta ?? 0);
+  const ChangeIcon = CHANGE_ICONS[change.direction];
   const chartLabel = provisional
     ? `Level over ${played} rated matches; not yet confirmed`
     : `Level over ${played} rated matches`;
@@ -81,10 +90,8 @@ export function HomeLevelBlock({
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <div className="flex items-center justify-between px-6 pt-4">
-        <p className="text-muted-foreground text-sm font-normal">Padel Level</p>
-      </div>
-      <div className="mt-4 flex items-stretch gap-4 p-[22px] pt-0">
+      <SurfaceLabel meta="Padel">Level</SurfaceLabel>
+      <div className="flex items-stretch gap-4 px-[22px] pb-[22px] pt-1">
         <p className="font-expanded text-[88px] leading-none">{displayBand}</p>
         <div className="bg-rule w-px self-stretch" />
         <div className="flex min-w-0 flex-col justify-center gap-1">
@@ -92,22 +99,17 @@ export function HomeLevelBlock({
             <p className="font-expanded text-2xl tabular-nums leading-none">
               {level}{" "}
             </p>
-            <span className="text-muted-foreground mt-1 text-sm font-normal">
-              Rating
-            </span>
+            <span className="text-muted-foreground text-meta mt-1">Level</span>
           </div>
           {windowLabel ? (
             <div className="flex items-center gap-1">
-              {delta > 0 ? (
-                <ArrowUpRight className="size-8" />
-              ) : delta < 0 ? (
-                <ArrowDownRight className="size-6" />
-              ) : (
-                <ArrowRight className="size-6" />
-              )}
+              <ChangeIcon aria-hidden="true" className="size-6 shrink-0" />
               <div className="flex items-center gap-2">
-                <p className="font-expanded text-2xl">{deltaLabel}</p>
-                <p className="text-muted-foreground mt-1 text-sm font-normal">
+                <p className="font-expanded text-2xl">
+                  <span className="sr-only">{change.spoken} </span>
+                  {change.amount}
+                </p>
+                <p className="text-muted-foreground text-meta mt-1">
                   {windowLabel}
                 </p>
               </div>
@@ -221,9 +223,9 @@ export function HomeLevelBlock({
         />
         {provisional ? (
           <p>
-            <span className="font-semibold">Provisional level.</span> play about{" "}
-            {ratedMatchesRemaining} more rated{" "}
-            {ratedMatchesRemaining === 1 ? "game" : "games"} and your level
+            <span className="font-semibold">Provisional Level.</span> Hatched
+            means unconfirmed — play about {ratedMatchesRemaining} more rated{" "}
+            {ratedMatchesRemaining === 1 ? "game" : "games"} and your Level
             confirms.
           </p>
         ) : (
@@ -237,7 +239,11 @@ export function HomeLevelBlock({
   );
 }
 
-export function HomeDeclareLevel() {
+export function HomeDeclareLevel({
+  surface = "home",
+}: {
+  surface?: "home" | "profile";
+}) {
   const declareButtonRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const utils = api.useUtils();
@@ -253,7 +259,12 @@ export function HomeDeclareLevel() {
   });
 
   return (
-    <div className="border-rule bg-paper rounded-xl border p-[22px]">
+    <div
+      className={cn(
+        "border-rule bg-paper border",
+        surface === "profile" ? "rounded-card p-5" : "rounded-xl p-[22px]",
+      )}
+    >
       <p className="text-lead font-semibold">Declare your Level</p>
       <p className="text-muted-foreground text-meta mt-1">
         Place yourself on the padel ladder. You can do this once, before you
@@ -299,6 +310,7 @@ export function HomeLevel() {
   if (me.error) {
     return (
       <ErrorState
+        variant="inline"
         title="Level could not be loaded"
         message={me.error.message}
         onRetry={() => {

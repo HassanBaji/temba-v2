@@ -1,6 +1,7 @@
 import { Trophy } from "lucide-react";
 import Link from "next/link";
 
+import { SurfaceLabel } from "~/components/common/surface-label";
 import { formatGameClock } from "~/lib/format-game-start";
 import {
   type HomeComingUpGameRow,
@@ -135,9 +136,7 @@ export function HomeComingUp({ games }: { games: HomeComingUpRow[] }) {
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <h2 className="text-muted-foreground text-meta px-[22px] pb-3 pt-[22px]">
-        Coming up
-      </h2>
+      <SurfaceLabel>Coming up</SurfaceLabel>
       <ul className="divide-rule divide-y">
         {games.map((game) => (
           <li key={game.rowKey}>

@@ -57,3 +57,19 @@ export function parseLevelHistory(history: readonly string[]): {
     delta: Math.round((latest - first) * 10) / 10,
   };
 }
+
+export type LevelChangeDirection = "up" | "down" | "none";
+
+export function levelChangeView(delta: number): {
+  direction: LevelChangeDirection;
+  amount: string;
+  spoken: string;
+} {
+  const amount = Math.abs(delta).toFixed(1);
+  if (amount === "0.0") {
+    return { direction: "none", amount, spoken: "No change" };
+  }
+  return delta > 0
+    ? { direction: "up", amount, spoken: "Up" }
+    : { direction: "down", amount, spoken: "Down" };
+}

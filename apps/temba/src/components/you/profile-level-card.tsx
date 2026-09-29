@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
+import { SurfaceLabel } from "~/components/common/surface-label";
 import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
@@ -10,18 +11,12 @@ import {
   nextDistinctDisplayRung,
   type LevelBand,
 } from "~/lib/level-bands";
-import { confirmationFraction, lastMatchMovement } from "~/lib/profile-level";
+import {
+  confirmationFraction,
+  confirmationProgressCaption,
+  lastMatchMovement,
+} from "~/lib/profile-level";
 import { api } from "~/trpc/react";
-
-function ratedMatchesCaption(count: number) {
-  return count === 1 ? "1 rated match" : `${count} rated matches`;
-}
-
-function moreToConfirmCaption(remaining: number) {
-  return remaining === 1
-    ? "about 1 more to confirm"
-    : `about ${remaining} more to confirm`;
-}
 
 export function ProfileLevelCard({
   band,
@@ -64,61 +59,63 @@ export function ProfileLevelCard({
       : `${Math.round(fillPercent)}% of the way to ${displayNext}`;
 
   return (
-    <section className="border-rule bg-paper rounded-card overflow-hidden border p-5">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-meta text-muted-foreground">Level</p>
-          <p
-            aria-hidden="true"
-            className="font-expanded mt-1 text-[60px] leading-[0.94]"
-          >
-            {displayBand}
-          </p>
-          <span className="sr-only">
-            {displayBand}, Level {level}
-          </span>
-        </div>
-        {movement ? (
-          <div className="text-right">
-            <p className="font-expanded text-[20px]">{movement}</p>
-            <p className="text-eyebrow text-muted-foreground">last match</p>
-          </div>
-        ) : null}
-      </div>
-      {atTopBand ? (
-        <p className="text-eyebrow text-muted-foreground mt-[18px]">
-          {progressCaption}
-        </p>
-      ) : (
-        <>
-          <div
-            aria-hidden="true"
-            className={
-              provisional
-                ? "hatch rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
-                : "bg-wash rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
-            }
-          >
-            <div
-              className="bg-ink h-full motion-reduce:transition-none"
-              style={{
-                width: drawn ? `${fillPercent}%` : "0%",
-                transition: "width 900ms cubic-bezier(0.2, 0.7, 0.2, 1)",
-              }}
-            />
-          </div>
-          {provisional ? (
-            <div className="text-eyebrow text-muted-foreground mt-2 flex justify-between gap-3">
-              <span>{ratedMatchesCaption(ratedMatchCount)}</span>
-              <span>{moreToConfirmCaption(ratedMatchesRemaining)}</span>
-            </div>
-          ) : (
-            <p className="text-eyebrow text-muted-foreground mt-2">
-              {progressCaption}
+    <section className="border-rule bg-paper rounded-card overflow-hidden border">
+      <SurfaceLabel inset="profile" meta="Padel">
+        Level
+      </SurfaceLabel>
+      <div className="px-5 pb-5">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p
+              aria-hidden="true"
+              className="font-expanded text-[60px] leading-[0.94]"
+            >
+              {displayBand}
             </p>
-          )}
-        </>
-      )}
+            <span className="sr-only">
+              {displayBand}, Level {level}
+            </span>
+          </div>
+          {movement ? (
+            <div className="text-right">
+              <p className="font-expanded text-[20px]">{movement}</p>
+              <p className="text-eyebrow text-muted-foreground">last match</p>
+            </div>
+          ) : null}
+        </div>
+        {atTopBand ? (
+          <p className="text-eyebrow text-muted-foreground mt-[18px]">
+            {progressCaption}
+          </p>
+        ) : (
+          <>
+            <div
+              aria-hidden="true"
+              className={
+                provisional
+                  ? "hatch rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
+                  : "bg-wash rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
+              }
+            >
+              <div
+                className="bg-ink h-full motion-reduce:transition-none"
+                style={{
+                  width: drawn ? `${fillPercent}%` : "0%",
+                  transition: "width 900ms cubic-bezier(0.2, 0.7, 0.2, 1)",
+                }}
+              />
+            </div>
+            <p className="text-eyebrow text-muted-foreground mt-2">
+              {provisional
+                ? confirmationProgressCaption(
+                    ratedMatchCount,
+                    ratedMatchesRemaining,
+                  )
+                : progressCaption}
+            </p>
+          </>
+        )}
+      </div>
     </section>
   );
 }
@@ -130,7 +127,7 @@ function ProfileLevelSkeleton() {
       className="border-rule rounded-card overflow-hidden border p-5"
     >
       <Skeleton className="h-3.5 w-12" />
-      <Skeleton className="mt-1 h-[56px] w-24" />
+      <Skeleton className="mt-4 h-[56px] w-24" />
       <Skeleton className="rounded-xs mt-[18px] h-2.5 w-full" />
     </div>
   );
@@ -146,6 +143,8 @@ export function ProfileLevel() {
   if (me.error) {
     return (
       <ErrorState
+        variant="inline"
+        className="rounded-card px-5"
         title="Level could not be loaded"
         message={me.error.message}
         onRetry={() => {
@@ -160,7 +159,9 @@ export function ProfileLevel() {
   }
 
   if (!me.data.rating) {
-    return me.data.canSelfDeclare ? <HomeDeclareLevel /> : null;
+    return me.data.canSelfDeclare ? (
+      <HomeDeclareLevel surface="profile" />
+    ) : null;
   }
 
   return (

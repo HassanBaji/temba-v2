@@ -13,12 +13,14 @@ export function HomeHeader({
   pendingInviteCount,
   bookedGameCount,
   ready,
+  failed = false,
 }: {
   name: string;
   image?: string | null;
   pendingInviteCount: number;
   bookedGameCount: number;
   ready: boolean;
+  failed?: boolean;
 }) {
   const stateLine = ready
     ? homeStateLine(pendingInviteCount, bookedGameCount)
@@ -42,7 +44,7 @@ export function HomeHeader({
             stateLine ? (
               <p className="text-muted-foreground text-meta">{stateLine}</p>
             ) : null
-          ) : (
+          ) : failed ? null : (
             <Skeleton className="mt-1 h-3 w-28" />
           )}
         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SurfaceLabel } from "~/components/common/surface-label";
 import { SPORT_LABELS, type SportValue } from "~/components/temba/sport-badge";
 
 export type HomeStandingRow = {
@@ -24,9 +25,7 @@ export function HomeStanding({ rows }: { rows: readonly HomeStandingRow[] }) {
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <h2 className="text-muted-foreground text-meta px-[22px] pb-3 pt-[22px]">
-        Standing
-      </h2>
+      <SurfaceLabel>Standing</SurfaceLabel>
       <ul className="divide-rule divide-y">
         {rows.map((row) => {
           const sport = sportLabel(row.sport);

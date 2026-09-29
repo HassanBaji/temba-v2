@@ -69,12 +69,14 @@ export default function HomePage() {
           pendingInviteCount={pendingInviteCount}
           bookedGameCount={bookedGameCount}
           ready={home.data != null}
+          failed={home.error != null}
         />
 
         {home.isLoading ? <HomeSkeleton /> : null}
 
         {home.error ? (
           <ErrorState
+            variant="inline"
             title="Home could not be loaded"
             message={home.error.message}
             onRetry={() => {
