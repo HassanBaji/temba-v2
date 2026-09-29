@@ -3,7 +3,12 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+} from "~/components/common/action-menu";
+import { FooterAction } from "~/components/games/friendly-game-actions-footer";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import {
@@ -717,94 +722,82 @@ function TournamentHomeActions({
         </Button>
       ) : null}
       {isOrganizerActive ? (
-        <div className="flex flex-wrap gap-2">
-          {onInvite ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              onClick={onInvite}
+        <>
+          <div className="flex items-center gap-2">
+            {onInvite ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 flex-1"
+                onClick={onInvite}
+              >
+                {INVITE_ACTION_LABEL}
+              </Button>
+            ) : null}
+            <div className="ml-auto">
+              <ActionMenu label="Game actions">
+                {onShare ? (
+                  <ActionMenuItem disabled={sharePending} onSelect={onShare}>
+                    Share
+                  </ActionMenuItem>
+                ) : null}
+                {registrationClosed ? (
+                  <ActionMenuItem
+                    disabled={joinFrozen || reopenPending}
+                    onSelect={onReopenRegistration}
+                  >
+                    Reopen registration
+                  </ActionMenuItem>
+                ) : (
+                  <ActionMenuItem
+                    disabled={closePending}
+                    onSelect={onCloseRegistration}
+                  >
+                    Close registration
+                  </ActionMenuItem>
+                )}
+                {showKick ? (
+                  <>
+                    <ActionMenuSeparator />
+                    {kickable.map((occupant) => (
+                      <ActionMenuItem
+                        key={occupant.userId}
+                        variant="destructive"
+                        disabled={kickPending}
+                        onSelect={() => onKick?.(occupant.userId)}
+                      >
+                        Kick {occupant.name}
+                      </ActionMenuItem>
+                    ))}
+                    {waitlist.map((entry) => (
+                      <ActionMenuItem
+                        key={entry.id}
+                        variant="destructive"
+                        disabled={kickPending}
+                        onSelect={() => onKickWaitlist?.(entry.id)}
+                      >
+                        Kick {entry.name} from waitlist
+                      </ActionMenuItem>
+                    ))}
+                  </>
+                ) : null}
+              </ActionMenu>
+            </div>
+          </div>
+          {onEdit || onCancelGame ? (
+            <div
+              data-slot="tournament-actions-footer"
+              className="border-rule divide-rule divide-y border-t"
             >
-              {INVITE_ACTION_LABEL}
-            </Button>
+              {onEdit ? (
+                <FooterAction label="Edit game" onClick={onEdit} />
+              ) : null}
+              {onCancelGame ? (
+                <FooterAction label="Cancel game" onClick={onCancelGame} />
+              ) : null}
+            </div>
           ) : null}
-          {onShare ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={sharePending}
-              onClick={onShare}
-            >
-              Share
-            </Button>
-          ) : null}
-          {onEdit ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              onClick={onEdit}
-            >
-              Edit Game
-            </Button>
-          ) : null}
-          {registrationClosed ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={joinFrozen || reopenPending}
-              onClick={onReopenRegistration}
-            >
-              Reopen registration
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={closePending}
-              onClick={onCloseRegistration}
-            >
-              Close registration
-            </Button>
-          )}
-          {showKick ? (
-            <ActionMenu label="Kick a player">
-              {kickable.map((occupant) => (
-                <ActionMenuItem
-                  key={occupant.userId}
-                  variant="destructive"
-                  disabled={kickPending}
-                  onSelect={() => onKick?.(occupant.userId)}
-                >
-                  Kick {occupant.name}
-                </ActionMenuItem>
-              ))}
-              {waitlist.map((entry) => (
-                <ActionMenuItem
-                  key={entry.id}
-                  variant="destructive"
-                  disabled={kickPending}
-                  onSelect={() => onKickWaitlist?.(entry.id)}
-                >
-                  Kick {entry.name} from waitlist
-                </ActionMenuItem>
-              ))}
-            </ActionMenu>
-          ) : null}
-          {onCancelGame ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="text-destructive min-h-11"
-              onClick={onCancelGame}
-            >
-              Cancel Game
-            </Button>
-          ) : null}
-        </div>
+        </>
       ) : null}
     </div>
   );

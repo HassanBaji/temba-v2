@@ -33,7 +33,7 @@ export type FriendlyGameActionsFooterPhase =
   | "needs_results"
   | "final";
 
-function FooterAction({
+export function FooterAction({
   label,
   consequence,
   onClick,
