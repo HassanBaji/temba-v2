@@ -35,12 +35,23 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import {
+  NO_LINKABLE_COMMUNITY_COPY,
+  teamLinkCommunityPicker,
+} from "~/lib/team-link-community-picker";
 import { api } from "~/trpc/react";
 
 function isForbiddenError(error: unknown) {
@@ -133,6 +144,12 @@ export default function TeamHomePage({
 
   const communities = api.communities.mine.useQuery(undefined, {
     enabled: Boolean(team.data?.canRequestLink),
+  });
+
+  const linkPicker = teamLinkCommunityPicker({
+    isLoading: communities.isLoading,
+    isError: communities.isError,
+    data: communities.data,
   });
 
   const requestLink = api.teams.requestLink.useMutation({
@@ -473,47 +490,95 @@ export default function TeamHomePage({
               <FormErrorSummary
                 message={globalFormErrorMessage(requestLink.error)}
               />
-              <Field>
-                <FieldLabel htmlFor="team-link-community">Community</FieldLabel>
-                <select
-                  id="team-link-community"
-                  name="communityId"
-                  required
-                  className="border-input bg-background text-foreground focus-visible:ring-ring/50 min-h-11 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
-                  defaultValue=""
-                  aria-invalid={
-                    fieldErrorMessage(requestLink.error, "communityId")
-                      ? true
-                      : undefined
+              {linkPicker.status === "error" ? (
+                <ErrorState
+                  headingLevel={3}
+                  className="py-6"
+                  title="Communities could not be loaded"
+                  message={communities.error?.message}
+                  onRetry={() => {
+                    void communities.refetch();
+                  }}
+                />
+              ) : linkPicker.status === "empty" ? (
+                <EmptyState
+                  icon={Users}
+                  headingLevel={3}
+                  className="py-6"
+                  title="No Community to link"
+                  description={NO_LINKABLE_COMMUNITY_COPY}
+                  action={
+                    <Button asChild variant="outline">
+                      <Link href="/dashboard/communities">
+                        Go to Communities
+                      </Link>
+                    </Button>
                   }
-                  aria-describedby={
-                    fieldErrorMessage(requestLink.error, "communityId")
-                      ? "team-link-community-error"
-                      : undefined
-                  }
-                >
-                  <option value="" disabled>
-                    Select a Community
-                  </option>
-                  {communities.data
-                    ?.filter((community) => !community.archivedAt)
-                    .map((community) => (
-                      <option key={community.id} value={community.id}>
-                        {community.name}
-                      </option>
-                    ))}
-                </select>
-                <FieldError id="team-link-community-error">
-                  {fieldErrorMessage(requestLink.error, "communityId")}
-                </FieldError>
-              </Field>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={requestLink.isPending}
-              >
-                {requestLink.isPending ? "Requesting…" : "Request link"}
-              </Button>
+                />
+              ) : (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="team-link-community">
+                      Community
+                    </FieldLabel>
+                    <Select
+                      name="communityId"
+                      required
+                      disabled={linkPicker.status === "loading"}
+                    >
+                      <SelectTrigger
+                        id="team-link-community"
+                        className="w-full"
+                        aria-busy={
+                          linkPicker.status === "loading" ? true : undefined
+                        }
+                        aria-invalid={
+                          fieldErrorMessage(requestLink.error, "communityId")
+                            ? true
+                            : undefined
+                        }
+                        aria-describedby={
+                          fieldErrorMessage(requestLink.error, "communityId")
+                            ? "team-link-community-error"
+                            : undefined
+                        }
+                      >
+                        <SelectValue
+                          placeholder={
+                            linkPicker.status === "loading"
+                              ? "Loading Communities…"
+                              : "Select a Community"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {linkPicker.status === "ready"
+                          ? linkPicker.communities.map((community) => (
+                              <SelectItem
+                                key={community.id}
+                                value={community.id}
+                              >
+                                {community.name}
+                              </SelectItem>
+                            ))
+                          : null}
+                      </SelectContent>
+                    </Select>
+                    <FieldError id="team-link-community-error">
+                      {fieldErrorMessage(requestLink.error, "communityId")}
+                    </FieldError>
+                  </Field>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      requestLink.isPending || linkPicker.status === "loading"
+                    }
+                  >
+                    {requestLink.isPending ? "Requesting…" : "Request link"}
+                  </Button>
+                </>
+              )}
             </form>
           </ResponsiveDialogContent>
         </ResponsiveDialog>
