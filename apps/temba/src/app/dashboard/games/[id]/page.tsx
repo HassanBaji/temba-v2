@@ -43,6 +43,27 @@ import {
   gameEditSectionsToReseed,
   type GameEditSection,
 } from "~/lib/game-edit-sections";
+import {
+  CANCEL_GAME_ACTION,
+  CANCEL_MATCH_ACTION,
+  CANNOT_BE_UNDONE_COPY,
+  COMPLETE_MATCH_ACTION,
+  COMPLETE_MATCH_CONSEQUENCE,
+  EDIT_GAME_ACTION,
+  GAME_TOAST,
+  KICK_ACTION,
+  LEAVE_GAME_ACTION,
+  LEAVE_WAITLIST_ACTION,
+  LEAVE_WAITLIST_CONSEQUENCE,
+  MARK_AS_NOT_PLAYED_ACTION,
+  MARK_AS_NOT_PLAYED_CONSEQUENCE,
+  REPORT_WRONG_SCORE_ACTION,
+  REPORT_WRONG_SCORE_CONSEQUENCE,
+  cancelGameConsequence,
+  gameJoinToast,
+  kickedToast,
+} from "~/lib/game-copy";
+import { occupiedFriendlyPositions } from "~/lib/game-invite-open-graph";
 import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
 import {
   gameKickConfirmCopy,
@@ -207,7 +228,7 @@ export default function GameHomePage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      toast.success(gameJoinToast(result.waitlisted));
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -221,7 +242,7 @@ export default function GameHomePage({
 
   const moveSeat = api.games.moveSeat.useMutation({
     onSuccess: async () => {
-      toast.success("Moved");
+      toast.success(GAME_TOAST.seatChanged);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -233,7 +254,7 @@ export default function GameHomePage({
 
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      toast.success(gameJoinToast(result.waitlisted));
       setPartnerQuery("");
       setSelectedPartner([]);
       setPartnerSide("");
@@ -251,7 +272,9 @@ export default function GameHomePage({
   const registerTeam = api.games.registerTeam.useMutation({
     onSuccess: async (result) => {
       toast.success(
-        result.waitlisted ? "Team joined waitlist" : "Team registered",
+        result.waitlisted
+          ? GAME_TOAST.teamJoinedWaitlist
+          : GAME_TOAST.teamRegistered,
       );
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
@@ -264,7 +287,7 @@ export default function GameHomePage({
 
   const mergeHalfTeams = api.games.mergeHalfTeams.useMutation({
     onSuccess: async () => {
-      toast.success("Merged");
+      toast.success(GAME_TOAST.halfTeamsMerged);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -276,7 +299,7 @@ export default function GameHomePage({
 
   const drawPools = api.games.drawPools.useMutation({
     onSuccess: async () => {
-      toast.success("Groups drawn");
+      toast.success(GAME_TOAST.poolsDrawn);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -288,7 +311,7 @@ export default function GameHomePage({
 
   const postPoolDraw = api.games.postPoolDraw.useMutation({
     onSuccess: async () => {
-      toast.success("group draw posted");
+      toast.success(GAME_TOAST.poolDrawPosted);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -300,7 +323,7 @@ export default function GameHomePage({
 
   const undoPoolDraw = api.games.undoPoolDraw.useMutation({
     onSuccess: async () => {
-      toast.success("group draw undone");
+      toast.success(GAME_TOAST.poolDrawUndone);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -312,7 +335,7 @@ export default function GameHomePage({
 
   const leaveGame = api.games.leave.useMutation({
     onSuccess: async () => {
-      toast.success("Left Game");
+      toast.success(GAME_TOAST.left);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -324,7 +347,7 @@ export default function GameHomePage({
 
   const leaveWaitlist = api.games.leaveWaitlist.useMutation({
     onSuccess: async () => {
-      toast.success("Left waitlist");
+      toast.success(GAME_TOAST.leftWaitlist);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -344,7 +367,6 @@ export default function GameHomePage({
 
   const kick = api.games.kick.useMutation({
     onSuccess: async () => {
-      toast.success("Removed");
       await refreshGame();
     },
     onError: (error) => {
@@ -354,7 +376,7 @@ export default function GameHomePage({
 
   const closeRegistration = api.games.closeRegistration.useMutation({
     onSuccess: async () => {
-      toast.success("Registration closed");
+      toast.success(GAME_TOAST.registrationClosed);
       await refreshGame();
     },
     onError: (error) => {
@@ -364,7 +386,7 @@ export default function GameHomePage({
 
   const reopenRegistration = api.games.reopenRegistration.useMutation({
     onSuccess: async () => {
-      toast.success("Registration reopened");
+      toast.success(GAME_TOAST.registrationReopened);
       await refreshGame();
     },
     onError: (error) => {
@@ -374,7 +396,7 @@ export default function GameHomePage({
 
   const cancelGame = api.games.cancel.useMutation({
     onSuccess: async () => {
-      toast.success("Game cancelled");
+      toast.success(GAME_TOAST.gameCancelled);
       await refreshGame();
     },
     onError: (error) => {
@@ -385,7 +407,9 @@ export default function GameHomePage({
   const cancelMatch = api.games.cancelMatch.useMutation({
     onSuccess: async (result) => {
       toast.success(
-        result.cancelledGame ? "Game cancelled" : "Match cancelled",
+        result.cancelledGame
+          ? GAME_TOAST.gameCancelled
+          : GAME_TOAST.matchCancelled,
       );
       await refreshGame();
     },
@@ -807,7 +831,7 @@ export default function GameHomePage({
       })
     : [];
   // Organiser actions footer (game-details redesign, TEM-184, amended
-  // TEM-193): Leave game for every seated/registered non-waitlisted User
+  // TEM-193): Leave Game for every seated/registered non-waitlisted User
   // who `canLeave`, including an organizer who sits. Distinct from Cancel.
   const canLeaveGame = friendlyGameFooterCanLeaveGame({
     isSeated: data.isSeated,
@@ -866,7 +890,7 @@ export default function GameHomePage({
       {showMenu ? (
         <>
           <ActionMenuItem onSelect={() => setEditOpen(true)}>
-            Edit Game
+            {EDIT_GAME_ACTION}
           </ActionMenuItem>
           {data.registrationClosedAt ? (
             <ActionMenuItem
@@ -892,12 +916,12 @@ export default function GameHomePage({
       ) : null}
       {primaryLeave ? (
         <ActionMenuItem onSelect={() => setLeaveGameOpen(true)}>
-          Leave Game
+          {LEAVE_GAME_ACTION}
         </ActionMenuItem>
       ) : null}
       {primaryLeaveWaitlist ? (
         <ActionMenuItem onSelect={() => setLeaveWaitlistOpen(true)}>
-          Leave waitlist
+          {LEAVE_WAITLIST_ACTION}
         </ActionMenuItem>
       ) : null}
       {showMenu ? (
@@ -907,7 +931,7 @@ export default function GameHomePage({
             variant="destructive"
             onSelect={() => setCancelGameOpen(true)}
           >
-            Cancel Game
+            {CANCEL_GAME_ACTION}
           </ActionMenuItem>
         </>
       ) : null}
@@ -1261,6 +1285,7 @@ export default function GameHomePage({
                 isOrganizer={data.isOrganizer}
                 canLeaveGame={canLeaveGame}
                 canReportWrongScore={data.canReportWrongScore}
+                playerCount={occupiedFriendlyPositions(data.sides)}
                 cancelGamePending={cancelGame.isPending}
                 markAsNotPlayedPending={cancelMatch.isPending}
                 reportWrongScorePending={reportWrongScore.isPending}
@@ -1506,17 +1531,12 @@ export default function GameHomePage({
         open={cancelGameOpen}
         onOpenChange={setCancelGameOpen}
         title={`Cancel ${gameName}?`}
-        // "Cancel game" copy fix (game-details redesign, TEM-184): the
-        // individual Friendly game details page states the
-        // consequence-for-others line instead of the generic "This cannot be
-        // undone." — every other Game format is left with its existing
-        // copy, out of scope for this ticket.
         description={
           usesFriendlyChrome
-            ? "Removes it from the calendar for all three players"
-            : "This cannot be undone."
+            ? cancelGameConsequence(occupiedFriendlyPositions(data.sides))
+            : CANNOT_BE_UNDONE_COPY
         }
-        confirmLabel={usesFriendlyChrome ? "Cancel game" : "Cancel Game"}
+        confirmLabel={CANCEL_GAME_ACTION}
         pending={cancelGame.isPending}
         onConfirm={async () => {
           await cancelGame.mutateAsync({ gameId: id });
@@ -1527,8 +1547,8 @@ export default function GameHomePage({
         open={markAsNotPlayedOpen}
         onOpenChange={setMarkAsNotPlayedOpen}
         title="Mark as not played?"
-        description="No result is recorded and nobody's level changes"
-        confirmLabel="Mark as not played"
+        description={MARK_AS_NOT_PLAYED_CONSEQUENCE}
+        confirmLabel={MARK_AS_NOT_PLAYED_ACTION}
         pending={cancelMatch.isPending}
         onConfirm={async () => {
           if (!firstMatch) {
@@ -1542,8 +1562,8 @@ export default function GameHomePage({
         open={reportWrongScoreOpen}
         onOpenChange={setReportWrongScoreOpen}
         title="Report a wrong score?"
-        description="The other three players are asked to check it again"
-        confirmLabel="Report a wrong score"
+        description={REPORT_WRONG_SCORE_CONSEQUENCE}
+        confirmLabel={REPORT_WRONG_SCORE_ACTION}
         pending={reportWrongScore.isPending}
         onConfirm={async () => {
           if (!firstMatch) {
@@ -1564,7 +1584,7 @@ export default function GameHomePage({
           partnerRequired: isPartnerRequiredGame(data),
           drawPosted: Boolean(data.drawPostedAt),
         })}
-        confirmLabel="Leave Game"
+        confirmLabel={LEAVE_GAME_ACTION}
         pending={leaveGame.isPending}
         onConfirm={async () => {
           await leaveGame.mutateAsync({ gameId: id });
@@ -1580,7 +1600,7 @@ export default function GameHomePage({
         }}
         title={kickConfirmCopy?.title ?? "Kick player?"}
         description={kickConfirmCopy?.description}
-        confirmLabel="Kick"
+        confirmLabel={KICK_ACTION}
         pending={kick.isPending}
         onConfirm={async () => {
           if (!kickConfirm) {
@@ -1591,6 +1611,7 @@ export default function GameHomePage({
               ? { gameId: id, userId: kickConfirm.userId }
               : { gameId: id, waitlistId: kickConfirm.waitlistId },
           );
+          toast.success(kickedToast(kickConfirm.name));
         }}
       />
 
@@ -1601,9 +1622,9 @@ export default function GameHomePage({
             setCompleteMatchId(null);
           }
         }}
-        title="Complete match and update ratings?"
-        description="The score becomes final and each player's rating updates from it."
-        confirmLabel="Complete match"
+        title="Complete Match and update ratings?"
+        description={COMPLETE_MATCH_CONSEQUENCE}
+        confirmLabel={COMPLETE_MATCH_ACTION}
         variant="default"
         pending={completeMatch.isPending}
         onConfirm={async () => {
@@ -1620,9 +1641,9 @@ export default function GameHomePage({
       <ConfirmDialog
         open={leaveWaitlistOpen}
         onOpenChange={setLeaveWaitlistOpen}
-        title="Leave waitlist?"
-        description="You'll lose your place on the Waitlist."
-        confirmLabel="Leave waitlist"
+        title={`${LEAVE_WAITLIST_ACTION}?`}
+        description={LEAVE_WAITLIST_CONSEQUENCE}
+        confirmLabel={LEAVE_WAITLIST_ACTION}
         pending={leaveWaitlist.isPending}
         onConfirm={async () => {
           await leaveWaitlist.mutateAsync({ gameId: id });
@@ -1638,18 +1659,14 @@ export default function GameHomePage({
         }}
         title={
           data.format === "friendly_game"
-            ? "Cancel Match (cancels Game)?"
-            : "Cancel Match?"
+            ? `Cancel ${gameName}?`
+            : `${CANCEL_MATCH_ACTION}?`
         }
-        description={
-          data.format === "friendly_game"
-            ? "Cancelling this Match also cancels the Game. This cannot be undone."
-            : "This cannot be undone."
-        }
+        description={CANNOT_BE_UNDONE_COPY}
         confirmLabel={
           data.format === "friendly_game"
-            ? "Cancel Match (cancels Game)"
-            : "Cancel Match"
+            ? CANCEL_GAME_ACTION
+            : CANCEL_MATCH_ACTION
         }
         pending={cancelMatch.isPending}
         onConfirm={async () => {

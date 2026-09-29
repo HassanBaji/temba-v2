@@ -23,6 +23,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { offersPartnerJoin } from "~/lib/friendly-game-partner";
+import { gameJoinToast } from "~/lib/game-copy";
 import { gamesHubTabFromQuery, gamesHubTabQuery } from "~/lib/games-hub-tab";
 import {
   gameSummaryPrimaryAction,
@@ -333,7 +334,7 @@ export default function GamesHubPage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      toast.success(gameJoinToast(result.waitlisted));
       await refreshLists();
     },
     onError: async (error) => {
@@ -409,12 +410,12 @@ export default function GamesHubPage({
             emptyState={
               <EmptyState
                 icon={Calendar}
-                title="No games yet"
+                title="No Games yet"
                 description="Games you create or join show up here."
                 action={
                   hasCreateAccess ? (
                     <Button asChild>
-                      <Link href="/dashboard/games/new">Create</Link>
+                      <Link href="/dashboard/games/new">Create Game</Link>
                     </Button>
                   ) : undefined
                 }
@@ -437,7 +438,7 @@ export default function GamesHubPage({
             emptyState={
               <EmptyState
                 icon={Trophy}
-                title="No match history yet"
+                title="No Match history yet"
                 description="Completed Games you played in show up here."
               />
             }

@@ -10,11 +10,11 @@ import {
 import type { FriendlyGameOverflowItem } from "~/lib/friendly-game-cta";
 
 /**
- * Organizer overflow menu (game-details redesign, TEM-184 note: "Edit game",
- * "Cancel game", and "Leave" no longer render here — those destructive/editing
+ * Organizer overflow menu (game-details redesign, TEM-184 note: "Edit Game",
+ * "Cancel Game", and "Leave" no longer render here — those destructive/editing
  * actions live only in the new bottom-of-page organiser actions footer. This
  * menu now carries only the non-destructive registration/invite tools plus
- * "Leave waitlist", a distinct action from "Leave game" that this ticket does
+ * "Leave waitlist", a distinct action from "Leave Game" that this ticket does
  * not touch.
  */
 export function FriendlyGameOverflowMenu({

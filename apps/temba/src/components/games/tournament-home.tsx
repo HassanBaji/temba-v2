@@ -39,6 +39,11 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { detailBackHref } from "~/lib/dashboard-paths";
+import {
+  CANCEL_GAME_ACTION,
+  EDIT_GAME_ACTION,
+  REGISTER_TEAM_ACTION,
+} from "~/lib/game-copy";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import {
@@ -737,7 +742,7 @@ function TournamentHomeActions({
               className="min-h-11 w-full"
               disabled={registerTeamPending || teamId.length === 0}
             >
-              {registerTeamPending ? "Registering…" : "Register Team"}
+              {registerTeamPending ? "Registering…" : REGISTER_TEAM_ACTION}
             </Button>
           </form>
         )
@@ -808,7 +813,7 @@ function TournamentHomeActions({
                         disabled={kickPending}
                         onSelect={() => onKickWaitlist?.(entry.id)}
                       >
-                        Kick {entry.name} from waitlist
+                        Kick {entry.name} from the waitlist
                       </ActionMenuItem>
                     ))}
                   </>
@@ -822,10 +827,13 @@ function TournamentHomeActions({
               className="border-rule divide-rule divide-y border-t"
             >
               {onEdit ? (
-                <FooterAction label="Edit game" onClick={onEdit} />
+                <FooterAction label={EDIT_GAME_ACTION} onClick={onEdit} />
               ) : null}
               {onCancelGame ? (
-                <FooterAction label="Cancel game" onClick={onCancelGame} />
+                <FooterAction
+                  label={CANCEL_GAME_ACTION}
+                  onClick={onCancelGame}
+                />
               ) : null}
             </div>
           ) : null}

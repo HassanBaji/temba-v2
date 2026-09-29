@@ -37,6 +37,7 @@ import {
   PARTNER_VACANT_SIDE_RACE_MESSAGE,
   partnerVacantSideRaceRecovery,
 } from "~/lib/friendly-game-partner";
+import { JOIN_GAME_ACTION } from "~/lib/game-copy";
 import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { defaultJoinSeat } from "~/lib/preferred-seat";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
@@ -947,7 +948,7 @@ export function FriendlyGameJoinSheet({
                   void confirmSeat();
                 }}
               >
-                {pending ? "Joining…" : "Join game"}
+                {pending ? "Joining…" : JOIN_GAME_ACTION}
               </Button>
             </div>
           </>

@@ -176,7 +176,7 @@ export function friendlyGameLevelUpdatedLine(
  * bottom-of-page organiser actions footer — a destructive/editing action
  * must never render inside an overflow menu on this screen). Only the
  * non-destructive registration/invite tools and "leave waitlist" (a distinct
- * action from "Leave game", untouched by this ticket) remain here.
+ * action from "Leave Game", untouched by this ticket) remain here.
  */
 export type FriendlyGameOverflowItem =
   | "close_registration"
@@ -199,7 +199,7 @@ export type FriendlyGameJoinSeat = {
 };
 
 /**
- * Footer "Leave game" on individual Friendly details (TEM-193): seated or
+ * Footer "Leave Game" on individual Friendly details (TEM-193): seated or
  * registered, `canLeave`, not waitlisted. Organizer status is not a gate —
  * a seated organizer frees their Position; they do not cancel the Game.
  */

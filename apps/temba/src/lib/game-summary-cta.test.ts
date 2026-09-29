@@ -199,8 +199,8 @@ describe("showsFriendlyRoster", () => {
 });
 
 describe("gameCardActionLabel", () => {
-  it("uses Join game for an open Friendly join", () => {
-    assert.equal(gameCardActionLabel("join"), "Join game");
+  it("uses Join Game for an open Friendly join", () => {
+    assert.equal(gameCardActionLabel("join"), "Join Game");
   });
 
   it("offers Invite a player when the viewer is in and a seat is open", () => {
@@ -222,17 +222,17 @@ describe("gameCardActionLabel", () => {
 describe("gameCardActionSolid", () => {
   it("keeps Invite a player and join actions solid", () => {
     assert.equal(gameCardActionSolid("Invite a player", "view"), true);
-    assert.equal(gameCardActionSolid("Join game", "join"), true);
+    assert.equal(gameCardActionSolid("Join Game", "join"), true);
     assert.equal(gameCardActionSolid("Details", "view"), false);
   });
 });
 
 describe("showsGameCardFooterAction", () => {
-  it("omits Join game when the Friendly roster is shown", () => {
+  it("omits Join Game when the Friendly roster is shown", () => {
     assert.equal(showsGameCardFooterAction("join", true), false);
   });
 
-  it("keeps Join game when there is no roster to join from", () => {
+  it("keeps Join Game when there is no roster to join from", () => {
     assert.equal(showsGameCardFooterAction("join", false), true);
   });
 

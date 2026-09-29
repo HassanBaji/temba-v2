@@ -32,6 +32,11 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { formatGameClock } from "~/lib/format-game-start";
+import {
+  CANCEL_GAME_ACTION,
+  CANCEL_MATCH_ACTION,
+  setLabel,
+} from "~/lib/game-copy";
 import { cn } from "~/lib/utils";
 
 export type GameResultsMatch = {
@@ -193,14 +198,14 @@ export function GameResultsPanel({
     return (
       <EmptyState
         icon={Trophy}
-        title="No match results"
+        title="No Match results"
         description="Americano Games do not have Matches."
       />
     );
   }
 
   if (matches.length === 0) {
-    return <EmptyState icon={Trophy} title="No match results" />;
+    return <EmptyState icon={Trophy} title="No Match results" />;
   }
 
   const canEditMatch =
@@ -272,7 +277,7 @@ export function GameResultsPanel({
                       <TableHead>Teams</TableHead>
                       {match.sets.map((set, index) => (
                         <TableHead key={set.id} className="text-center">
-                          Set-{index + 1}
+                          {setLabel(index)}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -354,7 +359,7 @@ export function GameResultsPanel({
                         className="flex flex-wrap items-end gap-2"
                       >
                         <p className="text-muted-foreground text-meta w-12">
-                          Set {index + 1}
+                          {setLabel(index)}
                         </p>
                         <Field>
                           <FieldLabel htmlFor={`set-${set.id}-slot1`}>
@@ -564,8 +569,8 @@ export function GameResultsPanel({
                 disabled={cancelPending}
               >
                 {format === "friendly_game"
-                  ? "Cancel Match (cancels Game)"
-                  : "Cancel Match"}
+                  ? CANCEL_GAME_ACTION
+                  : CANCEL_MATCH_ACTION}
               </Button>
             ) : null}
           </Card>

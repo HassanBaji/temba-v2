@@ -1,5 +1,17 @@
 "use client";
 
+import {
+  CANCEL_GAME_ACTION,
+  EDIT_GAME_ACTION,
+  LEAVE_GAME_ACTION,
+  LEAVE_GAME_CONSEQUENCE,
+  MARK_AS_NOT_PLAYED_ACTION,
+  MARK_AS_NOT_PLAYED_CONSEQUENCE,
+  REPORT_WRONG_SCORE_ACTION,
+  REPORT_WRONG_SCORE_CONSEQUENCE,
+  REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
+  cancelGameConsequence,
+} from "~/lib/game-copy";
 import { cn } from "~/lib/utils";
 
 /**
@@ -8,12 +20,12 @@ import { cn } from "~/lib/utils";
  * details page, above a hairline — never inside the Score section, never
  * inside the organizer overflow menu (that duplicate placement is removed by
  * this ticket, see `friendly-game-cta.ts`/`friendly-game-overflow-menu.tsx`).
- * One organiser action per phase, plus "Leave game" for every seated or
+ * One organiser action per phase, plus "Leave Game" for every seated or
  * registered (non-waitlisted) User who `canLeave`, including an organizer
  * who also sits, in every phase:
  *
- * - Upcoming/Ongoing (organizer): "Edit game" (no consequence line — not
- *   destructive) and "Cancel game" (existing `cancel` door, unchanged
+ * - Upcoming/Ongoing (organizer): "Edit Game" (no consequence line — not
+ *   destructive) and "Cancel Game" (existing `cancel` door, unchanged
  *   permission, new copy only).
  * - Needs a score (organizer): "Mark as not played" (existing
  *   `cancelMatch`/`cancel` door — Friendly Match-cancel already cascades to
@@ -23,9 +35,9 @@ import { cn } from "~/lib/utils";
  *   `canReportWrongScore` eligibility read — eligible renders a live,
  *   confirm-dialog-gated action; ineligible renders disabled/inert with
  *   support-routing copy instead of a button that would fail on tap.
- * - Every phase (seated/registered, not waitlisted): "Leave game" (existing
+ * - Every phase (seated/registered, not waitlisted): "Leave Game" (existing
  *   `leave` door and `canLeave` check, unchanged permission). Distinct from
- *   Cancel game.
+ *   Cancel Game.
  */
 export type FriendlyGameActionsFooterPhase =
   | "upcoming"
@@ -77,6 +89,7 @@ export function FriendlyGameActionsFooter({
   isOrganizer,
   canLeaveGame,
   canReportWrongScore,
+  playerCount,
   cancelGamePending,
   markAsNotPlayedPending,
   reportWrongScorePending,
@@ -91,6 +104,7 @@ export function FriendlyGameActionsFooter({
   isOrganizer: boolean;
   canLeaveGame: boolean;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;
+  playerCount: number;
   cancelGamePending: boolean;
   markAsNotPlayedPending: boolean;
   reportWrongScorePending: boolean;
@@ -114,10 +128,10 @@ export function FriendlyGameActionsFooter({
     >
       {isOrganizer && isUpcoming ? (
         <>
-          <FooterAction label="Edit game" onClick={onEditGame} />
+          <FooterAction label={EDIT_GAME_ACTION} onClick={onEditGame} />
           <FooterAction
-            label="Cancel game"
-            consequence="Removes it from the calendar for all three players"
+            label={CANCEL_GAME_ACTION}
+            consequence={cancelGameConsequence(playerCount)}
             onClick={onCancelGame}
             pending={cancelGamePending}
           />
@@ -125,8 +139,8 @@ export function FriendlyGameActionsFooter({
       ) : null}
       {isOrganizer && phase === "needs_results" ? (
         <FooterAction
-          label="Mark as not played"
-          consequence="No result is recorded and nobody's level changes"
+          label={MARK_AS_NOT_PLAYED_ACTION}
+          consequence={MARK_AS_NOT_PLAYED_CONSEQUENCE}
           onClick={onMarkAsNotPlayed}
           pending={markAsNotPlayedPending}
         />
@@ -134,23 +148,23 @@ export function FriendlyGameActionsFooter({
       {isOrganizer && phase === "final" ? (
         canReportWrongScore?.eligible ? (
           <FooterAction
-            label="Report a wrong score"
-            consequence="The other three players are asked to check it again"
+            label={REPORT_WRONG_SCORE_ACTION}
+            consequence={REPORT_WRONG_SCORE_CONSEQUENCE}
             onClick={onReportWrongScore}
             pending={reportWrongScorePending}
           />
         ) : (
           <FooterAction
-            label="Report a wrong score"
-            consequence="A later rated game means this can't be self-corrected — contact support to fix it"
+            label={REPORT_WRONG_SCORE_ACTION}
+            consequence={REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE}
             disabled
           />
         )
       ) : null}
       {canLeaveGame ? (
         <FooterAction
-          label="Leave game"
-          consequence="Your spot can open for someone else."
+          label={LEAVE_GAME_ACTION}
+          consequence={LEAVE_GAME_CONSEQUENCE}
           onClick={onLeaveGame}
           pending={leaveGamePending}
         />

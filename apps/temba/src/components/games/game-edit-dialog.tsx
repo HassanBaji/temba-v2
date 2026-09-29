@@ -26,6 +26,7 @@ import {
   fieldErrorMessage,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
+import { EDIT_GAME_ACTION } from "~/lib/game-copy";
 import {
   LEVEL_RANGE_FIELD_DESCRIPTION,
   type LevelBandSelectValue,
@@ -133,7 +134,7 @@ export function GameEditDialog({
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent restoreFocusRef={restoreFocusRef}>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Edit Game</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{EDIT_GAME_ACTION}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             Venue cannot change. Update the window, optional price per player,
             and optional Level range. Each section saves on its own.

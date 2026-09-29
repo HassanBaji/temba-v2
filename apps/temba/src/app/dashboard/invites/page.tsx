@@ -13,6 +13,7 @@ import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { gameJoinToast } from "~/lib/game-copy";
 import { api } from "~/trpc/react";
 
 function inviteMeta(
@@ -73,7 +74,7 @@ export default function InvitesPage() {
 
   const acceptGame = api.games.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined Game waitlist" : "Joined Game");
+      toast.success(gameJoinToast(result.waitlisted));
       await utils.games.pendingLookupInvites.invalidate();
       await utils.games.byId.invalidate({ id: result.gameId });
       await utils.users.home.invalidate();

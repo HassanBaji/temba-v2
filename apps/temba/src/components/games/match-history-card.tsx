@@ -7,6 +7,7 @@ import {
 } from "~/components/games/summary-card-shell";
 import { ResultMark } from "~/components/temba/result-mark";
 import { formatRelativeDay } from "~/lib/format-game-start";
+import { setLabel, setShortLabel } from "~/lib/game-copy";
 import { RESULT_MARK_LABEL } from "~/lib/result-mark";
 import { shortPlayerName } from "~/lib/player-name";
 import { cn } from "~/lib/utils";
@@ -102,7 +103,9 @@ function SetHeader({ columns }: { columns: number }) {
             key={index}
             className="text-muted-foreground w-7 text-center font-mono text-[10px]"
           >
-            S{index + 1}
+            <abbr title={setLabel(index)} className="no-underline">
+              {setShortLabel(index)}
+            </abbr>
           </span>
         ))}
       </span>

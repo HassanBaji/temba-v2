@@ -14,6 +14,7 @@ import {
 } from "~/components/invites/invite-outcome";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { GAME_TOAST } from "~/lib/game-copy";
 import {
   formatLevelRangeGateCopy,
   formatLevelRangeLabel,
@@ -53,11 +54,11 @@ export function AcceptGameInviteLink({
         return;
       }
       if (result.outcome === "waitlisted") {
-        toast.success("Joined Game waitlist");
+        toast.success(GAME_TOAST.joinedWaitlist);
       } else if (result.outcome === "already") {
         toast.success("Already on this Game");
       } else {
-        toast.success("Joined Game");
+        toast.success(GAME_TOAST.joined);
       }
       router.replace(`/dashboard/games/${result.gameId}`);
     },

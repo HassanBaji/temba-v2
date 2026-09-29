@@ -20,6 +20,7 @@ import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { gameJoinToast } from "~/lib/game-copy";
 import {
   groupHomeCanManageInvites,
   groupHomeCanShowCreateGame,
@@ -304,7 +305,7 @@ export default function GroupHomePage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Seated");
+      toast.success(gameJoinToast(result.waitlisted));
       await refreshAfterGameJoin();
     },
     onError: async (error) => {

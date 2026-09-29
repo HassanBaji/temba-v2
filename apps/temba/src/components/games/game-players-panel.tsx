@@ -13,6 +13,7 @@ import {
   gameTeamDisplayName,
 } from "~/components/games/game-side-label";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
+import { REGISTER_TEAM_ACTION } from "~/lib/game-copy";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
@@ -444,7 +445,7 @@ export function GamePlayersPanel({
                   </Select>
                 </Field>
                 <Button type="submit" disabled={registerTeamPending}>
-                  {registerTeamPending ? "Registering…" : "Register Team"}
+                  {registerTeamPending ? "Registering…" : REGISTER_TEAM_ACTION}
                 </Button>
               </>
             )}

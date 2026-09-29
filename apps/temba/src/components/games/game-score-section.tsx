@@ -14,6 +14,7 @@ import {
   clampFriendlySetGames,
   friendlyGameResultsSaveSets,
 } from "~/lib/friendly-game-results";
+import { setLabel } from "~/lib/game-copy";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -378,7 +379,7 @@ export function GameScoreSection({
               slot1: set.slot1GamesWon,
               slot2: set.slot2GamesWon,
             };
-            const setLabel = `Set ${index + 1}`;
+            const setName = setLabel(index);
             const neverPlayed =
               set.slot1GamesWon == null && set.slot2GamesWon == null;
 
@@ -388,11 +389,11 @@ export function GameScoreSection({
                 className="flex flex-wrap items-center justify-between gap-3"
               >
                 <span className="text-muted-foreground text-meta w-14 shrink-0">
-                  {setLabel}
+                  {setName}
                 </span>
                 <div className="flex items-center gap-2">
                   {sides.map((side) => {
-                    const boxLabel = `${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setLabel}`;
+                    const boxLabel = `${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setName}`;
                     if (isUpcoming) {
                       return (
                         <SetBox
