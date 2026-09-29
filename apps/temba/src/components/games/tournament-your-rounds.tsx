@@ -3,6 +3,7 @@
 import { ListRow, RowList } from "~/components/common/row-list";
 import { ResultMark } from "~/components/temba/result-mark";
 import { formatGameCardDay, formatGameStart } from "~/lib/format-game-start";
+import { resultMarkVariant } from "~/lib/result-mark";
 import {
   NOT_DRAWN_TRAILER,
   YOUR_ROUNDS_PREDRAW_CAPTION,
@@ -79,12 +80,10 @@ export function TournamentYourRounds(
                 key={round.matchId}
                 className="min-h-11"
                 icon={
-                  round.viewerOutcome === "draw" ? undefined : (
-                    <ResultMark
-                      variant={resultMark(round)}
-                      className="size-5"
-                    />
-                  )
+                  <ResultMark
+                    variant={resultMarkVariant(round.viewerOutcome)}
+                    className="size-5"
+                  />
                 }
                 title={round.opponentName}
                 subtitle={roundSubtitle(round.roundNumber, round.startTime)}
@@ -94,18 +93,6 @@ export function TournamentYourRounds(
       </RowList>
     </section>
   );
-}
-
-function resultMark(
-  round: TournamentYourRoundsResult,
-): "won" | "lost" | "not-played" {
-  if (round.viewerOutcome === "won") {
-    return "won";
-  }
-  if (round.viewerOutcome === "lost") {
-    return "lost";
-  }
-  return "not-played";
 }
 
 function roundTrailing(round: TournamentYourRoundsResult) {

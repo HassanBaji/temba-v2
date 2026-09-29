@@ -6,18 +6,13 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { ResultMark } from "~/components/temba/result-mark";
 import { Card } from "~/components/ui/card";
 import { formatRelativeDay } from "~/lib/format-game-start";
+import { RESULT_MARK_LABEL } from "~/lib/result-mark";
 import { shortPlayerName } from "~/lib/player-name";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
 type MatchHistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
 type MatchHistoryMember = MatchHistoryRow["slot1Members"][number];
-
-const OUTCOME_LABEL: Record<MatchHistoryRow["outcome"], string> = {
-  won: "Won",
-  lost: "Lost",
-  draw: "Draw",
-};
 
 /** Score columns drawn when a Match carries no scored sets. */
 const PENDING_SET_COLUMNS = 3;
@@ -271,14 +266,11 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
       >
         <Link
           href={`/dashboard/games/${row.id}`}
-          aria-label={`${OUTCOME_LABEL[row.outcome]}, ${meta}`}
+          aria-label={`${RESULT_MARK_LABEL[row.outcome]}, ${meta}`}
           className="focus-visible:ring-ring/50 rounded-card absolute inset-0 z-0 outline-none focus-visible:ring-[3px]"
         />
         <div className="pointer-events-none relative z-10 flex items-start gap-3 px-5 py-4">
-          <ResultMark
-            variant={won ? "won" : "lost"}
-            className="mt-0.5 size-6"
-          />
+          <ResultMark variant={row.outcome} className="mt-0.5 size-6" />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
@@ -288,7 +280,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
                   won ? null : "text-muted-foreground",
                 )}
               >
-                {OUTCOME_LABEL[row.outcome]}
+                {RESULT_MARK_LABEL[row.outcome]}
               </span>
               {scored ? (
                 <span className="font-expanded text-muted-foreground text-body tabular-nums">

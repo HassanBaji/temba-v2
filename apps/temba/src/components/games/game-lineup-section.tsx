@@ -4,6 +4,7 @@ import { Fragment } from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { ResultTag } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import { vacantJoinSeats } from "~/lib/friendly-game-cta";
 import {
@@ -34,14 +35,6 @@ function YouTag() {
   return (
     <span className="border-ink text-ink shrink-0 rounded-full border px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.04em]">
       You
-    </span>
-  );
-}
-
-function WonTag() {
-  return (
-    <span className="bg-ink text-paper shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.04em]">
-      Won
     </span>
   );
 }
@@ -180,7 +173,9 @@ function LineupTeamColumn({
         <h3 className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
           {sideLabel}
         </h3>
-        {showWonTag && isWinner ? <WonTag /> : null}
+        {showWonTag && isWinner ? (
+          <ResultTag variant="won">Won</ResultTag>
+        ) : null}
       </div>
       <div className="space-y-3">
         <LineupSeatRow

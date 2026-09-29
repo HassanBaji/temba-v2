@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "~/components/ui/badge";
+import { ResultTag } from "~/components/temba/result-mark";
 import {
   POOL_WINNER_LABEL,
   TOURNAMENT_FINISHED_COPY,
@@ -80,9 +80,9 @@ export function PoolRecordTable({
                   {row.name}
                 </span>
                 {finished && row.isWinner ? (
-                  <Badge variant="success" className="mt-1">
+                  <ResultTag variant="won" className="mt-1">
                     {POOL_WINNER_LABEL}
-                  </Badge>
+                  </ResultTag>
                 ) : null}
               </td>
               <td

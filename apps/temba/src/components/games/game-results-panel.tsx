@@ -11,7 +11,7 @@ import {
   matchSlotOccupantLabel,
 } from "~/components/games/game-side-label";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
-import { Badge } from "~/components/ui/badge";
+import { ResultTag } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Field, FieldLabel } from "~/components/ui/field";
@@ -288,9 +288,7 @@ export function GameResultsPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{slot1Label}</p>
                           {matchCompleted && slot1Won ? (
-                            <Badge variant="success" size="sm">
-                              Won
-                            </Badge>
+                            <ResultTag variant="won">Won</ResultTag>
                           ) : null}
                         </div>
                         {slot1Names ? (
@@ -318,9 +316,7 @@ export function GameResultsPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{slot2Label}</p>
                           {matchCompleted && slot2Won ? (
-                            <Badge variant="success" size="sm">
-                              Won
-                            </Badge>
+                            <ResultTag variant="won">Won</ResultTag>
                           ) : null}
                         </div>
                         {slot2Names ? (
