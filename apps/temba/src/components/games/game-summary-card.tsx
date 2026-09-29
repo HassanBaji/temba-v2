@@ -61,11 +61,6 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
-function seatLetter(name: string) {
-  const grapheme = Array.from(firstName(name))[0];
-  return grapheme ? grapheme.toUpperCase() : "?";
-}
-
 function venueSubtitle(
   venueName: string | null | undefined,
   location: string | null | undefined,
@@ -300,7 +295,7 @@ function MetaCell({
     <div
       className={cn(
         "min-w-0 flex-1",
-        // ruled ? "border-rule border-l pl-4" : null,
+        ruled ? "border-rule border-l pl-4" : null,
       )}
     >
       <b className="text-lead block font-semibold tracking-[-0.01em]">
@@ -572,14 +567,14 @@ export function GameSummaryCard({
           </div>
 
           {showPrice || showFormat ? (
-            <div className="border-rule mt-4 flex border-t pt-4">
+            <div className="border-rule mt-4 flex gap-4 border-t pt-4">
               {levelMeta ? (
                 <MetaCell value={levelMeta ?? ""} note={"Level"} />
               ) : null}
 
               {showPrice && priceAmount ? (
                 <MetaCell
-                  ruled={showPrice}
+                  ruled={levelMeta != null}
                   value={priceAmount}
                   note={priceAmount === "Free" ? null : "per player"}
                 />
@@ -595,7 +590,7 @@ export function GameSummaryCard({
                         ? levelMeta
                         : null
                   }
-                  ruled={showPrice}
+                  ruled={levelMeta != null || showPrice}
                 />
               ) : null}
             </div>
