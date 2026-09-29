@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy } from "lucide-react";
+import { Plus, Trophy } from "lucide-react";
 import * as React from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -141,9 +141,42 @@ function TeamPair({ team }: { team: TournamentCardTeam }) {
   );
 }
 
-function TeamPairs({ teams }: { teams: readonly TournamentCardTeam[] }) {
-  const { shown, remaining } = tournamentCardPairs(teams);
-  if (shown.length === 0) {
+function PlaceholderSquare({ overlap }: { overlap: boolean }) {
+  return (
+    <span
+      className={cn(
+        "border-muted-foreground/50 bg-paper text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-sm border border-dashed",
+        overlap ? "-ml-2" : null,
+      )}
+    >
+      <Plus className="size-3.5" strokeWidth={1.5} />
+    </span>
+  );
+}
+
+function PlaceholderPair() {
+  return (
+    <span aria-hidden="true" className="flex flex-none items-center">
+      <PlaceholderSquare overlap={false} />
+      <PlaceholderSquare overlap />
+    </span>
+  );
+}
+
+function TeamPairs({
+  teams,
+  teamsAllowed,
+  registrationOpen,
+}: {
+  teams: readonly TournamentCardTeam[];
+  teamsAllowed: number | null;
+  registrationOpen: boolean;
+}) {
+  const { shown, remaining, placeholders } = tournamentCardPairs(teams, {
+    teamsAllowed,
+    registrationOpen,
+  });
+  if (shown.length === 0 && placeholders === 0) {
     return (
       <p className="text-muted-foreground text-meta">{NO_TEAMS_YET_COPY}</p>
     );
@@ -152,6 +185,9 @@ function TeamPairs({ teams }: { teams: readonly TournamentCardTeam[] }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       {shown.map((team) => (
         <TeamPair key={team.gameTeamId} team={team} />
+      ))}
+      {Array.from({ length: placeholders }, (_, index) => (
+        <PlaceholderPair key={index} />
       ))}
       {remaining > 0 ? (
         <span className="text-muted-foreground text-meta">+{remaining}</span>
@@ -214,7 +250,6 @@ export function TournamentSummaryCard({
   return (
     <Element data-slot="tournament-summary-card">
       <SummaryCardShell
-        stacked
         emphasis
         href={href}
         linkLabel={[title, TOURNAMENT_CARD_BAND_LABEL, dateLine]
@@ -257,7 +292,11 @@ export function TournamentSummaryCard({
           <p className="text-muted-foreground text-meta pb-2.5">
             {tournamentTeamsLine(game)}
           </p>
-          <TeamPairs teams={teams} />
+          <TeamPairs
+            teams={teams}
+            teamsAllowed={game.teamsAllowed}
+            registrationOpen={showsTournamentOpenFlag(game)}
+          />
         </SummaryCardBody>
 
         <SummaryCardFooter>
@@ -413,7 +452,6 @@ export function TournamentMatchCard({
   return (
     <li data-slot="tournament-match-card">
       <SummaryCardShell
-        stacked
         emphasis
         href={href}
         linkLabel={[

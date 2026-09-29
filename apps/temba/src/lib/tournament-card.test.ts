@@ -178,6 +178,35 @@ describe("tournamentCardPairs", () => {
     assert.equal(pairs.shown.length, 1);
     assert.equal(pairs.remaining, 0);
   });
+
+  it("fills the free pair slots with placeholders while registration is open", () => {
+    const teams = [team(), team(), team()];
+    assert.equal(
+      tournamentCardPairs(teams, { teamsAllowed: 8, registrationOpen: true })
+        .placeholders,
+      1,
+    );
+    assert.equal(
+      tournamentCardPairs([], { teamsAllowed: 2, registrationOpen: true })
+        .placeholders,
+      2,
+    );
+    assert.equal(
+      tournamentCardPairs([team({ right: null })], {
+        teamsAllowed: 1,
+        registrationOpen: true,
+      }).placeholders,
+      0,
+    );
+  });
+
+  it("shows no placeholders once registration is not open", () => {
+    const pairs = tournamentCardPairs([team()], {
+      teamsAllowed: 8,
+      registrationOpen: false,
+    });
+    assert.equal(pairs.placeholders, 0);
+  });
 });
 
 describe("tournamentTeamPairLabel", () => {

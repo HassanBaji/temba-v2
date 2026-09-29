@@ -20,7 +20,6 @@ export function SummaryCardShell({
   href,
   linkLabel,
   emphasis = false,
-  stacked = false,
   className,
   children,
 }: {
@@ -28,12 +27,10 @@ export function SummaryCardShell({
   linkLabel?: string;
   /** Ink border — a tournament card, or a Match the viewer won. */
   emphasis?: boolean;
-  /** Two paper sheets peek out below: a tournament is many Matches. */
-  stacked?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
-  const card = (
+  return (
     <div
       data-slot="summary-card"
       className={cn(
@@ -58,24 +55,6 @@ export function SummaryCardShell({
         />
       ) : null}
       {children}
-    </div>
-  );
-
-  if (!stacked) {
-    return card;
-  }
-
-  return (
-    <div className="relative pb-3">
-      <div
-        aria-hidden="true"
-        className="border-rule bg-surface-raised rounded-card absolute inset-x-[18px] bottom-0 h-[60px] border"
-      />
-      <div
-        aria-hidden="true"
-        className="border-rule bg-paper rounded-card absolute inset-x-[9px] bottom-[6px] h-[60px] border"
-      />
-      {card}
     </div>
   );
 }
