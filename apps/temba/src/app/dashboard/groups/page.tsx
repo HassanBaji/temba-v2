@@ -129,16 +129,13 @@ function StartAGroupCard() {
       <p className="text-meta text-muted-foreground mt-1.5">
         Pick a sport, invite players, and Temba keeps the standing and history.
       </p>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <Button asChild className="flex-1 font-semibold">
           <Link href="/dashboard/groups/new">Padel</Link>
         </Button>
-        <span
-          aria-disabled="true"
-          className="hatch text-muted-foreground text-body flex h-11 flex-1 items-center justify-center rounded-md"
-        >
-          Football
-        </span>
+        <Button type="button" variant="outline" disabled className="flex-1">
+          Football · coming soon
+        </Button>
       </div>
     </section>
   );
