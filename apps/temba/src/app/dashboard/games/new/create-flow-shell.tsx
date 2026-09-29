@@ -3,14 +3,14 @@ import type { MouseEvent, ReactNode } from "react";
 
 import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { pageBleed, pageGutterX } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import {
   CREATE_FLOW_STEP_COUNT,
   type CreateFlowStep,
 } from "~/lib/create-game-flow";
 
-const PAD = "px-4 min-[430px]:px-5 md:px-6 xl:px-8";
-const BLEED = "-mx-4 min-[430px]:-mx-5 md:-mx-6 xl:-mx-8 md:-mt-6 " + PAD;
+const BLEED = `${pageBleed} md:-mt-6`;
 
 export function CreateFlowShell({
   step,
@@ -90,7 +90,7 @@ export function CreateFlowShell({
       <div
         className={cn(
           "bg-paper border-rule fixed inset-x-0 z-40 border-t py-3.5 lg:static lg:inset-auto lg:z-auto lg:border-0 lg:px-0 lg:py-0",
-          PAD,
+          pageGutterX,
           "bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px))] lg:bottom-auto",
         )}
       >

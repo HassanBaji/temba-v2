@@ -13,6 +13,7 @@ import {
   RIGHT_SEAT_LABEL,
   YOUR_TEAM_LABEL,
 } from "~/lib/tournament-home";
+import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 const ACTION_BOX_DARK =
@@ -67,9 +68,6 @@ function TournamentHeroSeatBlock({
   );
 }
 
-const PAD = "px-4 min-[430px]:px-5 md:px-6 xl:px-8";
-const BLEED =
-  "-mx-4 min-[430px]:-mx-5 md:-mx-6 xl:-mx-8 md:-mt-6 " + PAD + " p-[22px]";
 export function TournamentHero({
   name,
   eyebrow,
@@ -100,7 +98,12 @@ export function TournamentHero({
   onInvite?: () => void;
 }) {
   return (
-    <article className={cn("surface-ink bg-ink text-paper", BLEED)}>
+    <article
+      className={cn(
+        "surface-ink bg-ink text-paper py-[22px] md:-mt-6",
+        pageBleed,
+      )}
+    >
       <div className="flex items-center justify-between">
         <BackButton variant="boxed" surface="ink" href={backHref} />
         {onShare ? (

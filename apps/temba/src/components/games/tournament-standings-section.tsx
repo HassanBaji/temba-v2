@@ -17,6 +17,7 @@ import {
   roundResultsHeading,
 } from "~/lib/tournament-home";
 import { TOURNAMENT_FINISHED_COPY } from "~/lib/tournament-pool-table";
+import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
 
@@ -149,7 +150,7 @@ export function TournamentStandingsHeader({
   backHref: string;
 }) {
   return (
-    <header className="border-rule -mx-4 border-b px-4 pb-[22px] pt-[22px] min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8">
+    <header className={cn("border-rule border-b py-[22px]", pageBleed)}>
       <div className="flex items-center justify-between">
         <BackButton variant="boxed" href={backHref} />
         {roundsPlayed ? (
