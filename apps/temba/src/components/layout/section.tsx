@@ -16,10 +16,10 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn("space-y-0 md:space-y-4", className)}>
+    <section className={cn("space-y-3 md:space-y-4", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className="lg:text-title text-muted-foreground min-w-0 break-words text-sm font-semibold tracking-[-0.01em] lg:font-semibold">
+          <h2 className="text-title text-foreground min-w-0 break-words font-semibold tracking-[-0.01em]">
             {title}
           </h2>
           {description ? (
