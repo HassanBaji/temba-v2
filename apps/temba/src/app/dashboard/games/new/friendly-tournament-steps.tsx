@@ -15,6 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   Sheet,
   SheetContent,
@@ -140,8 +141,7 @@ function GroupChips({
   onSelect: (groupId: string) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
+    <RovingRadioGroup
       aria-label={labelledBy ? undefined : "Group"}
       aria-labelledby={labelledBy}
       className="flex flex-wrap gap-2"
@@ -164,7 +164,7 @@ function GroupChips({
           </ChoiceChip>
         );
       })}
-    </div>
+    </RovingRadioGroup>
   );
 }
 
@@ -184,9 +184,8 @@ function VenueCards({
   onSelect: (venueId: string) => void;
 }) {
   return (
-    <div
+    <RovingRadioGroup
       id={labelledBy ? "game-venue" : undefined}
-      role="radiogroup"
       aria-label={labelledBy ? undefined : "Venue"}
       aria-labelledby={labelledBy}
       aria-invalid={invalid ? true : undefined}
@@ -231,7 +230,7 @@ function VenueCards({
           </button>
         );
       })}
-    </div>
+    </RovingRadioGroup>
   );
 }
 
@@ -268,9 +267,8 @@ function LevelBandRow({
       <p id={`${id}-label`} className="text-muted-foreground text-meta">
         {label}
       </p>
-      <div
+      <RovingRadioGroup
         id={id}
-        role="radiogroup"
         aria-labelledby={`${id}-label`}
         aria-invalid={invalid ? true : undefined}
         aria-describedby={describedBy}
@@ -290,7 +288,7 @@ function LevelBandRow({
             {band}
           </ChoiceChip>
         ))}
-      </div>
+      </RovingRadioGroup>
     </div>
   );
 }
@@ -853,9 +851,8 @@ export function FriendlyTournamentSteps({
                 </PopoverContent>
               </Popover>
             </div>
-            <div
+            <RovingRadioGroup
               id="game-window-day"
-              role="radiogroup"
               aria-labelledby="game-window-day-label"
               aria-invalid={dayError ? true : undefined}
               aria-describedby={dayError ? "game-window-day-error" : undefined}
@@ -892,7 +889,7 @@ export function FriendlyTournamentSteps({
                   </ChoiceChip>
                 );
               })}
-            </div>
+            </RovingRadioGroup>
             <FieldError id="game-window-day-error">{dayError}</FieldError>
           </section>
 
@@ -904,8 +901,7 @@ export function FriendlyTournamentSteps({
             />
             <div id="game-window-start" tabIndex={-1} className="outline-none">
               <div className="grid grid-cols-4 gap-1.5">
-                <div
-                  role="radiogroup"
+                <RovingRadioGroup
                   aria-labelledby="game-window-start-label"
                   aria-invalid={startError ? true : undefined}
                   aria-describedby={
@@ -929,7 +925,7 @@ export function FriendlyTournamentSteps({
                       {formatTimeSlotLabel(slot)}
                     </ChoiceChip>
                   ))}
-                </div>
+                </RovingRadioGroup>
                 {startSlots.length > visibleStarts.length || startExpanded ? (
                   <ChoiceChip
                     dashed={!startExpanded}
@@ -958,8 +954,7 @@ export function FriendlyTournamentSteps({
             />
             <div id="game-window-finish" tabIndex={-1} className="outline-none">
               <div className="grid grid-cols-4 gap-1.5">
-                <div
-                  role="radiogroup"
+                <RovingRadioGroup
                   aria-labelledby="game-window-finish-label"
                   aria-invalid={finishError ? true : undefined}
                   aria-describedby={
@@ -980,7 +975,7 @@ export function FriendlyTournamentSteps({
                       {formatTimeSlotLabel(slot)}
                     </ChoiceChip>
                   ))}
-                </div>
+                </RovingRadioGroup>
                 {finishSlots.length > visibleFinishes.length ||
                 finishExpanded ? (
                   <ChoiceChip
@@ -1009,8 +1004,7 @@ export function FriendlyTournamentSteps({
               title="Game length"
               meta="Required"
             />
-            <div
-              role="radiogroup"
+            <RovingRadioGroup
               aria-labelledby="tournament-match-minutes-label"
               className="grid grid-cols-3 gap-1.5"
             >
@@ -1030,7 +1024,7 @@ export function FriendlyTournamentSteps({
                   </ChoiceChip>
                 );
               })}
-            </div>
+            </RovingRadioGroup>
             <Input
               id="tournament-match-minutes"
               type="number"
@@ -1105,8 +1099,7 @@ export function FriendlyTournamentSteps({
               title="Who can enter"
               meta="Optional"
             />
-            <div
-              role="radiogroup"
+            <RovingRadioGroup
               aria-labelledby="tournament-entry-label"
               className="grid grid-cols-2 gap-1.5"
             >
@@ -1128,7 +1121,7 @@ export function FriendlyTournamentSteps({
               >
                 Set a Level range
               </ChoiceChip>
-            </div>
+            </RovingRadioGroup>
             {showLevelRange ? (
               <>
                 <LevelBandRow
@@ -1240,8 +1233,7 @@ export function FriendlyTournamentSteps({
               id="tournament-public-label"
               title={WHO_CAN_TAKE_A_SEAT_LABEL}
             />
-            <div
-              role="radiogroup"
+            <RovingRadioGroup
               aria-labelledby="tournament-public-label"
               className="flex flex-wrap gap-1.5"
             >
@@ -1263,7 +1255,7 @@ export function FriendlyTournamentSteps({
               >
                 {ANYONE_WITH_THE_LINK_LABEL}
               </ChoiceChip>
-            </div>
+            </RovingRadioGroup>
           </section>
 
           <section className="flex flex-col gap-3">
@@ -1271,8 +1263,7 @@ export function FriendlyTournamentSteps({
               id="tournament-join-label"
               title={HOW_PEOPLE_JOIN_LABEL}
             />
-            <div
-              role="radiogroup"
+            <RovingRadioGroup
               aria-labelledby="tournament-join-label"
               className="flex flex-wrap gap-1.5"
             >
@@ -1294,7 +1285,7 @@ export function FriendlyTournamentSteps({
               >
                 {WITH_A_PARTNER_ONLY_LABEL}
               </ChoiceChip>
-            </div>
+            </RovingRadioGroup>
           </section>
 
           <div className="border-rule rounded-card overflow-hidden border">

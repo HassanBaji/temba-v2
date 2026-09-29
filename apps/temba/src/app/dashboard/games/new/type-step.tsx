@@ -1,5 +1,6 @@
 import { ChevronRight, Shuffle, Trophy } from "lucide-react";
 
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { cn } from "~/lib/utils";
 import {
   CREATE_GAME_TYPE_CARDS,
@@ -22,9 +23,8 @@ export function TypeStep({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div
+      <RovingRadioGroup
         id="game-type"
-        role="radiogroup"
         aria-label="Game type"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? "game-type-error" : undefined}
@@ -93,7 +93,7 @@ export function TypeStep({
             </button>
           );
         })}
-      </div>
+      </RovingRadioGroup>
       {error ? (
         <p
           id="game-type-error"

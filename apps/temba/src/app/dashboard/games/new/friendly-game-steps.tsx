@@ -13,6 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   Sheet,
   SheetContent,
@@ -109,8 +110,7 @@ function GroupChips({
   onSelect: (groupId: string) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
+    <RovingRadioGroup
       aria-label={labelledBy ? undefined : "Group"}
       aria-labelledby={labelledBy}
       className="flex flex-wrap gap-2"
@@ -133,7 +133,7 @@ function GroupChips({
           </ChoiceChip>
         );
       })}
-    </div>
+    </RovingRadioGroup>
   );
 }
 
@@ -153,9 +153,8 @@ function VenueCards({
   onSelect: (venueId: string) => void;
 }) {
   return (
-    <div
+    <RovingRadioGroup
       id={labelledBy ? "game-venue" : undefined}
-      role="radiogroup"
       aria-label={labelledBy ? undefined : "Venue"}
       aria-labelledby={labelledBy}
       aria-invalid={invalid ? true : undefined}
@@ -200,7 +199,7 @@ function VenueCards({
           </button>
         );
       })}
-    </div>
+    </RovingRadioGroup>
   );
 }
 
@@ -561,9 +560,8 @@ export function FriendlyGameSteps({
               title="Court"
               meta="Optional"
             />
-            <div
+            <RovingRadioGroup
               id="game-court"
-              role="radiogroup"
               aria-labelledby="game-court-label"
               aria-invalid={courtError ? true : undefined}
               aria-describedby={
@@ -604,7 +602,7 @@ export function FriendlyGameSteps({
                   All {courts.length} courts
                 </ChoiceChip>
               ) : null}
-            </div>
+            </RovingRadioGroup>
             <FieldDescription id="game-court-copy">
               Leave on None to settle the court at the venue.
             </FieldDescription>
@@ -654,9 +652,8 @@ export function FriendlyGameSteps({
                 </PopoverContent>
               </Popover>
             </div>
-            <div
+            <RovingRadioGroup
               id="game-window-day"
-              role="radiogroup"
               aria-labelledby="game-window-day-label"
               aria-invalid={dayError ? true : undefined}
               aria-describedby={dayError ? "game-window-day-error" : undefined}
@@ -693,7 +690,7 @@ export function FriendlyGameSteps({
                   </ChoiceChip>
                 );
               })}
-            </div>
+            </RovingRadioGroup>
             <FieldError id="game-window-day-error">{dayError}</FieldError>
           </section>
 
@@ -705,8 +702,7 @@ export function FriendlyGameSteps({
             />
             <div id="game-window-start" tabIndex={-1} className="outline-none">
               <div className="grid grid-cols-4 gap-1.5">
-                <div
-                  role="radiogroup"
+                <RovingRadioGroup
                   aria-labelledby="game-window-start-label"
                   aria-invalid={startError ? true : undefined}
                   aria-describedby={
@@ -727,7 +723,7 @@ export function FriendlyGameSteps({
                       {formatTimeSlotLabel(slot)}
                     </ChoiceChip>
                   ))}
-                </div>
+                </RovingRadioGroup>
                 {startSlots.length > visibleStarts.length || startExpanded ? (
                   <ChoiceChip
                     dashed={!startExpanded}
@@ -754,9 +750,8 @@ export function FriendlyGameSteps({
               title="Duration"
               meta={finishTime ? formatTimeSlotLabel(finishTime) : undefined}
             />
-            <div
+            <RovingRadioGroup
               id={showCustomFinish ? undefined : "game-window-finish"}
-              role="radiogroup"
               aria-labelledby="game-window-finish-label"
               aria-invalid={finishError ? true : undefined}
               aria-describedby={
@@ -794,11 +789,10 @@ export function FriendlyGameSteps({
               >
                 Set
               </ChoiceChip>
-            </div>
+            </RovingRadioGroup>
             {showCustomFinish ? (
-              <div
+              <RovingRadioGroup
                 id="game-window-finish"
-                role="radiogroup"
                 aria-label="Finish time"
                 tabIndex={-1}
                 className="flex flex-wrap gap-1.5 outline-none"
@@ -815,7 +809,7 @@ export function FriendlyGameSteps({
                     {formatTimeSlotLabel(slot)}
                   </ChoiceChip>
                 ))}
-              </div>
+              </RovingRadioGroup>
             ) : null}
             <FieldDescription id="game-window-copy">
               Day, start time, and finish time are required. Pick today or a
@@ -993,9 +987,8 @@ function LevelBandRow({
       <p id={`${id}-label`} className="text-muted-foreground text-meta">
         {label}
       </p>
-      <div
+      <RovingRadioGroup
         id={id}
-        role="radiogroup"
         aria-labelledby={`${id}-label`}
         aria-invalid={invalid ? true : undefined}
         aria-describedby={describedBy}
@@ -1015,7 +1008,7 @@ function LevelBandRow({
             {band}
           </ChoiceChip>
         ))}
-      </div>
+      </RovingRadioGroup>
     </div>
   );
 }

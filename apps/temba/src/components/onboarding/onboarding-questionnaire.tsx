@@ -11,6 +11,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
   fieldErrorMessage,
@@ -252,9 +253,8 @@ export function OnboardingQuestionnaire({
           <FieldLabel id="onboarding-preferred-position-label">
             Preferred Position
           </FieldLabel>
-          <div
+          <RovingRadioGroup
             id={FIELD_IDS.preferredPosition}
-            role="radiogroup"
             aria-labelledby="onboarding-preferred-position-label"
             aria-invalid={positionError ? true : undefined}
             aria-describedby={
@@ -281,7 +281,7 @@ export function OnboardingQuestionnaire({
                 </Button>
               );
             })}
-          </div>
+          </RovingRadioGroup>
           <FieldError id="onboarding-preferred-position-error">
             {positionError}
           </FieldError>

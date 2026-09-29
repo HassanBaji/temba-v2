@@ -1,8 +1,9 @@
 "use client";
 
 import { ArrowLeftRight } from "lucide-react";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useState } from "react";
 
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
@@ -26,9 +27,6 @@ function storedPosition(
 export function PreferredPositionControl() {
   const utils = api.useUtils();
   const state = api.users.onboardingState.useQuery();
-  const buttonRefs = useRef<
-    Partial<Record<PreferredPosition, HTMLButtonElement | null>>
-  >({});
   const [optimistic, setOptimistic] = useState<PreferredPosition | null>();
 
   const setPreferredPosition = api.users.setPreferredPosition.useMutation({
@@ -57,38 +55,6 @@ export function PreferredPositionControl() {
     setPreferredPosition.mutate({ preferredPosition: next });
   }
 
-  function onRadioGroupKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (disabled) {
-      return;
-    }
-    const values = PREFERRED_POSITION_CHOICES.map((choice) => choice.value);
-    const currentIndex = selected ? values.indexOf(selected) : -1;
-    let nextIndex = currentIndex;
-
-    if (event.key === "Home") {
-      nextIndex = 0;
-    } else if (event.key === "End") {
-      nextIndex = values.length - 1;
-    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-      nextIndex = currentIndex <= 0 ? values.length - 1 : currentIndex - 1;
-    } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-      nextIndex =
-        currentIndex === -1 || currentIndex >= values.length - 1
-          ? 0
-          : currentIndex + 1;
-    } else {
-      return;
-    }
-
-    event.preventDefault();
-    const next = values[nextIndex];
-    if (!next) {
-      return;
-    }
-    save(next);
-    buttonRefs.current[next]?.focus();
-  }
-
   return (
     <div className="px-5 pb-5 pt-[18px]">
       <div className="flex items-start justify-between gap-3.5">
@@ -110,29 +76,21 @@ export function PreferredPositionControl() {
       {state.isLoading ? (
         <Skeleton className="mt-4 h-[54px] w-full rounded-lg" />
       ) : (
-        <div
-          role="radiogroup"
+        <RovingRadioGroup
           aria-labelledby={TITLE_ID}
           aria-describedby={NOTE_ID}
           aria-disabled={disabled || undefined}
-          onKeyDown={onRadioGroupKeyDown}
           className="bg-wash mt-4 grid grid-cols-3 gap-1.5 rounded-lg p-[5px]"
         >
-          {PREFERRED_POSITION_CHOICES.map((option, index) => {
+          {PREFERRED_POSITION_CHOICES.map((option) => {
             const isSelected = selected === option.value;
-            const tabIndex =
-              isSelected || (selected == null && index === 0) ? 0 : -1;
 
             return (
               <button
                 key={option.value}
-                ref={(node) => {
-                  buttonRefs.current[option.value] = node;
-                }}
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
-                tabIndex={tabIndex}
                 disabled={disabled}
                 className={cn(
                   "focus-visible:ring-ring/50 text-body min-h-11 w-full rounded-sm outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
@@ -148,7 +106,7 @@ export function PreferredPositionControl() {
               </button>
             );
           })}
-        </div>
+        </RovingRadioGroup>
       )}
 
       {state.isLoading ? null : (
