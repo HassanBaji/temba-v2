@@ -89,6 +89,13 @@ export function ForgotPasswordForm({
   const [pending, setPending] = React.useState(false);
   const [split, setSplit] = React.useState<SplitFormError | null>(null);
 
+  // After render, so the input is enabled again and the summary is mounted.
+  React.useEffect(() => {
+    if (split) {
+      focusSplit(split, summaryRef.current);
+    }
+  }, [split]);
+
   React.useEffect(() => {
     document.getElementById("auth-screen-heading")?.focus();
   }, [step]);
@@ -129,7 +136,6 @@ export function ForgotPasswordForm({
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -162,7 +168,6 @@ export function ForgotPasswordForm({
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -207,12 +212,10 @@ export function ForgotPasswordForm({
         fieldErrors: {},
         globalMessage: "Something went wrong. Try again.",
       });
-      summaryRef.current?.focus();
     } catch (err) {
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 

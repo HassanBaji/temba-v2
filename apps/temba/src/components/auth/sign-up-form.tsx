@@ -93,6 +93,13 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
   const [pending, setPending] = React.useState(false);
   const [split, setSplit] = React.useState<SplitFormError | null>(null);
 
+  // After render, so the input is enabled again and the summary is mounted.
+  React.useEffect(() => {
+    if (split) {
+      focusSplit(split, summaryRef.current);
+    }
+  }, [split]);
+
   React.useEffect(() => {
     if (step === "details") {
       return;
@@ -150,7 +157,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
         globalMessage: null,
       };
       setSplit(next);
-      focusSplit(next, summaryRef.current);
       return;
     }
     setPending(true);
@@ -167,7 +173,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -191,7 +196,6 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 

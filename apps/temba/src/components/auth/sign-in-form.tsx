@@ -54,6 +54,15 @@ function splitSignInError(err: unknown): SplitFormError {
 
 type IdentifierMode = "username" | "phone";
 
+function focusSplit(split: SplitFormError, summary: HTMLElement | null) {
+  const firstField = Object.keys(split.fieldErrors)[0];
+  if (firstField === "identifier" || firstField === "password") {
+    document.getElementById(FIELD_IDS[firstField])?.focus();
+    return;
+  }
+  summary?.focus();
+}
+
 const MODE_DESCRIPTIONS: Record<IdentifierMode, string> = {
   username: "Use your Temba username and password.",
   phone: "Use the number your Groups know you by.",
@@ -79,6 +88,13 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
   const passwordError = split?.fieldErrors.password;
   const completeUrl = authCompleteUrl(redirectUrl);
   const usePhone = mode === "phone";
+
+  // After render, so the input is enabled again and the summary is mounted.
+  React.useEffect(() => {
+    if (split) {
+      focusSplit(split, summaryRef.current);
+    }
+  }, [split]);
 
   React.useLayoutEffect(() => {
     if (!shouldFocusIdentifier.current) {
@@ -112,7 +128,6 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
           globalMessage: null,
         };
         setSplit(next);
-        document.getElementById(FIELD_IDS.identifier)?.focus();
         return;
       }
       identifier = assembled.e164;
@@ -138,17 +153,9 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
         fieldErrors: {},
         globalMessage: "Something went wrong. Try again.",
       });
-      summaryRef.current?.focus();
     } catch (err) {
-      const next = splitSignInError(err);
-      setSplit(next);
+      setSplit(splitSignInError(err));
       setPending(false);
-      const firstField = Object.keys(next.fieldErrors)[0];
-      if (firstField === "identifier" || firstField === "password") {
-        document.getElementById(FIELD_IDS[firstField])?.focus();
-        return;
-      }
-      summaryRef.current?.focus();
     }
   }
 

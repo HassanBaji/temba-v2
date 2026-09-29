@@ -120,6 +120,13 @@ export function SignUpContinueForm({
   const [pending, setPending] = React.useState(false);
   const [split, setSplit] = React.useState<SplitFormError | null>(null);
 
+  // After render, so the input is enabled again and the summary is mounted.
+  React.useEffect(() => {
+    if (split) {
+      focusSplit(split, summaryRef.current);
+    }
+  }, [split]);
+
   React.useEffect(() => {
     if (step === "fields") {
       return;
@@ -222,7 +229,6 @@ export function SignUpContinueForm({
           globalMessage: null,
         };
         setSplit(next);
-        focusSplit(next, summaryRef.current);
         return;
       }
       phoneE164 = assembled.e164;
@@ -263,7 +269,6 @@ export function SignUpContinueForm({
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
@@ -306,7 +311,6 @@ export function SignUpContinueForm({
       const next = splitClerkAuthError(err);
       setSplit(next);
       setPending(false);
-      focusSplit(next, summaryRef.current);
     }
   }
 
