@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import { formatGameClock } from "./format-game-start";
 import {
+  homeTournamentMatchActionLabel,
   isPoolMatchRow,
   showsTournamentOpenFlag,
   tournamentCardAction,
@@ -15,8 +16,13 @@ import {
   tournamentTeamPairLabel,
   tournamentMatchAction,
   tournamentMatchActionLabel,
+  tournamentMatchGroupLabel,
+  tournamentMatchGroupStanding,
+  tournamentMatchHeadline,
+  tournamentMatchKickoffLine,
   tournamentMatchLastResultLine,
   tournamentMatchRoundLine,
+  tournamentMatchRoundsLeftLine,
   tournamentMatchStandingLine,
   tournamentMatchStatus,
   tournamentMatchup,
@@ -455,5 +461,126 @@ describe("tournamentMatchAction", () => {
   it("labels each action", () => {
     assert.equal(tournamentMatchActionLabel("add_results"), "Add results");
     assert.equal(tournamentMatchActionLabel("view"), "View tournament");
+  });
+});
+
+describe("tournamentMatchHeadline", () => {
+  it("leads with the Round and the day word", () => {
+    assert.equal(tournamentMatchHeadline(2, "tonight"), "Round 2, tonight");
+    assert.equal(tournamentMatchHeadline(3, "Thu 2 Oct"), "Round 3, Thu 2 Oct");
+  });
+
+  it("falls back to the day word alone without a Round", () => {
+    assert.equal(tournamentMatchHeadline(null, "tomorrow"), "Tomorrow");
+  });
+});
+
+describe("tournamentMatchKickoffLine", () => {
+  it("joins the kickoff time and the venue", () => {
+    assert.equal(
+      tournamentMatchKickoffLine(
+        { time: "7:30", meridiem: "PM" },
+        "Padelhuset Bromma",
+      ),
+      "7:30 PM, Padelhuset Bromma",
+    );
+  });
+
+  it("omits a missing venue", () => {
+    assert.equal(
+      tournamentMatchKickoffLine({ time: "19:30", meridiem: "" }, null),
+      "19:30",
+    );
+  });
+});
+
+describe("tournamentMatchGroupLabel", () => {
+  it("names the viewer's group", () => {
+    assert.equal(
+      tournamentMatchGroupLabel(poolMatch({ poolLabel: "A" })),
+      "Group A",
+    );
+    assert.equal(tournamentMatchGroupLabel(null), null);
+  });
+});
+
+describe("tournamentMatchGroupStanding", () => {
+  const wonRoundOne = {
+    roundNumber: 1,
+    outcome: "won" as const,
+    viewerSets: [
+      { viewer: 6, opponent: 3 },
+      { viewer: 6, opponent: 4 },
+    ],
+  };
+
+  it("gives the viewer's ordinal and last result", () => {
+    assert.equal(
+      tournamentMatchGroupStanding(
+        poolMatch({ viewerPosition: 2, lastResult: wonRoundOne }),
+      ),
+      "2nd, won R1 6-3 6-4",
+    );
+  });
+
+  it("shows a draw and a cancelled Round without scores", () => {
+    assert.equal(
+      tournamentMatchGroupStanding(
+        poolMatch({
+          viewerPosition: 1,
+          lastResult: { roundNumber: 2, outcome: "draw", viewerSets: [] },
+        }),
+      ),
+      "1st, drew R2",
+    );
+    assert.equal(
+      tournamentMatchGroupStanding(
+        poolMatch({
+          lastResult: { roundNumber: 1, outcome: "cancelled", viewerSets: [] },
+        }),
+      ),
+      "R1 cancelled",
+    );
+  });
+
+  it("capitalizes a result without an ordinal", () => {
+    assert.equal(
+      tournamentMatchGroupStanding(poolMatch({ lastResult: wonRoundOne })),
+      "Won R1 6-3 6-4",
+    );
+  });
+
+  it("falls back to the group size before the viewer's team has played", () => {
+    assert.equal(tournamentMatchGroupStanding(poolMatch()), "4 teams");
+    assert.equal(tournamentMatchGroupStanding(null), null);
+  });
+});
+
+describe("tournamentMatchRoundsLeftLine", () => {
+  it("counts the Rounds after this one", () => {
+    assert.equal(tournamentMatchRoundsLeftLine(1, 3), "Then 2 more rounds");
+    assert.equal(tournamentMatchRoundsLeftLine(2, 3), "Then 1 more round");
+    assert.equal(tournamentMatchRoundsLeftLine(3, 3), "Last round");
+  });
+
+  it("is null without a Round or a Round count", () => {
+    assert.equal(tournamentMatchRoundsLeftLine(null, 3), null);
+    assert.equal(tournamentMatchRoundsLeftLine(2, null), null);
+  });
+
+  it("never uses knockout copy", () => {
+    for (const round of [1, 2, 3]) {
+      assert.doesNotMatch(
+        tournamentMatchRoundsLeftLine(round, 3) ?? "",
+        /go through|quarter|top two/i,
+      );
+    }
+  });
+});
+
+describe("homeTournamentMatchActionLabel", () => {
+  it("offers the group table unless results are due", () => {
+    assert.equal(homeTournamentMatchActionLabel("view"), "View group");
+    assert.equal(homeTournamentMatchActionLabel("add_results"), "Add results");
   });
 });
