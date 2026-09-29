@@ -19,6 +19,9 @@ type GameDetailsSide = RouterOutputs["games"]["byId"]["sides"][number];
 type GameDetailsSeat = NonNullable<GameDetailsSide["left"]>;
 type SeatPosition = "left" | "right";
 
+const VS_DIVIDER =
+  "text-muted-foreground before:bg-rule after:bg-rule flex shrink-0 items-center gap-3 self-stretch text-xs font-semibold before:h-px before:flex-1 after:h-px after:flex-1 sm:self-center sm:px-1 sm:before:hidden sm:after:hidden";
+
 // Renders the shipped display remap (D / D+ / C / … / A, PR #96), not the
 // raw stored band ("C1"), so this subline reads consistently with every
 // other Level surface (`home-level-block.tsx`, `profile-level-card.tsx`) —
@@ -87,6 +90,7 @@ function LineupSeatRow({
             variant="outline"
             size="sm"
             className="shrink-0"
+            aria-label={`Invite to ${sideLabel}, ${position}`}
             onClick={onInvite}
           >
             Invite
@@ -219,16 +223,13 @@ export function GameLineupSection({
       </h2>
       <div
         className={cn(
-          "border-rule flex items-start gap-3 border-t px-[22px] pb-[22px] pt-[18px]",
+          "border-rule flex flex-col gap-4 border-t px-[22px] pb-[22px] pt-[18px] sm:flex-row sm:items-start sm:gap-3",
         )}
       >
         {sides.map((side, index) => (
           <Fragment key={side.sideIndex}>
             {index > 0 ? (
-              <span
-                aria-hidden="true"
-                className="text-muted-foreground shrink-0 self-center px-1 text-xs font-semibold"
-              >
+              <span aria-hidden="true" className={VS_DIVIDER}>
                 vs
               </span>
             ) : null}
