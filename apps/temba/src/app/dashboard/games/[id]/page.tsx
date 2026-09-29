@@ -764,58 +764,33 @@ export default function GameHomePage({
     canLeave: data.canLeave,
     isWaitlisted: data.isWaitlisted,
   });
-  const headerActions = usesFriendlyChrome ? null : (
-    <>
-      {usesPoolTournamentSeats && data.canRegister ? (
-        <Button
-          type="button"
-          className="min-h-11"
-          disabled={registerSeat.isPending}
-          onClick={() => openJoinPicker()}
-        >
-          Join
-        </Button>
-      ) : null}
-      {usesPoolTournamentSeats && data.canWaitlist ? (
-        <Button
-          type="button"
-          className="min-h-11"
-          disabled={registerSeat.isPending}
-          onClick={() => registerSeat.mutate({ gameId: id })}
-        >
-          Join waitlist
-        </Button>
-      ) : null}
-      {canManageGameInvites ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          onClick={() => setInvitesOpen(true)}
-        >
-          Invite
-        </Button>
-      ) : null}
-      {primaryLeave ? (
-        <Button
-          variant="outline"
-          className="min-h-11"
-          onClick={() => setLeaveGameOpen(true)}
-        >
-          Leave Game
-        </Button>
-      ) : null}
-      {primaryLeaveWaitlist ? (
-        <Button
-          variant="outline"
-          className="min-h-11"
-          onClick={() => setLeaveWaitlistOpen(true)}
-        >
-          Leave waitlist
-        </Button>
-      ) : null}
-    </>
-  );
+  const headerJoin = usesPoolTournamentSeats && data.canRegister;
+  const headerJoinWaitlist = usesPoolTournamentSeats && data.canWaitlist;
+  const headerActions =
+    usesFriendlyChrome || !(headerJoin || headerJoinWaitlist) ? null : (
+      <>
+        {headerJoin ? (
+          <Button
+            type="button"
+            className="min-h-11"
+            disabled={registerSeat.isPending}
+            onClick={() => openJoinPicker()}
+          >
+            Join
+          </Button>
+        ) : null}
+        {headerJoinWaitlist ? (
+          <Button
+            type="button"
+            className="min-h-11"
+            disabled={registerSeat.isPending}
+            onClick={() => registerSeat.mutate({ gameId: id })}
+          >
+            Join waitlist
+          </Button>
+        ) : null}
+      </>
+    );
   const overflowHandlers = {
     closePending: closeRegistration.isPending,
     reopenPending: reopenRegistration.isPending,
@@ -833,38 +808,58 @@ export default function GameHomePage({
     usesFriendlyChrome && overflowItems.length > 0 ? (
       <FriendlyGameOverflowMenu items={overflowItems} {...overflowHandlers} />
     ) : null;
-  const organizerMenu = usesFriendlyChrome ? null : showMenu ? (
+  const organizerMenu = usesFriendlyChrome ? null : showMenu ||
+    primaryLeave ||
+    primaryLeaveWaitlist ? (
     <ActionMenu label="Game actions">
-      <ActionMenuItem onSelect={() => setEditOpen(true)}>
-        Edit Game
-      </ActionMenuItem>
-      {data.registrationClosedAt ? (
-        <ActionMenuItem
-          disabled={data.joinFrozen || reopenRegistration.isPending}
-          onSelect={() => reopenRegistration.mutate({ gameId: id })}
-        >
-          Reopen registration
-        </ActionMenuItem>
-      ) : (
-        <ActionMenuItem
-          disabled={closeRegistration.isPending}
-          onSelect={() => closeRegistration.mutate({ gameId: id })}
-        >
-          Close registration
-        </ActionMenuItem>
-      )}
-      {canManageGameInvites ? (
-        <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-          Invite
+      {showMenu ? (
+        <>
+          <ActionMenuItem onSelect={() => setEditOpen(true)}>
+            Edit Game
+          </ActionMenuItem>
+          {data.registrationClosedAt ? (
+            <ActionMenuItem
+              disabled={data.joinFrozen || reopenRegistration.isPending}
+              onSelect={() => reopenRegistration.mutate({ gameId: id })}
+            >
+              Reopen registration
+            </ActionMenuItem>
+          ) : (
+            <ActionMenuItem
+              disabled={closeRegistration.isPending}
+              onSelect={() => closeRegistration.mutate({ gameId: id })}
+            >
+              Close registration
+            </ActionMenuItem>
+          )}
+          {canManageGameInvites ? (
+            <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
+              Invite
+            </ActionMenuItem>
+          ) : null}
+        </>
+      ) : null}
+      {primaryLeave ? (
+        <ActionMenuItem onSelect={() => setLeaveGameOpen(true)}>
+          Leave Game
         </ActionMenuItem>
       ) : null}
-      <ActionMenuSeparator />
-      <ActionMenuItem
-        variant="destructive"
-        onSelect={() => setCancelGameOpen(true)}
-      >
-        Cancel Game
-      </ActionMenuItem>
+      {primaryLeaveWaitlist ? (
+        <ActionMenuItem onSelect={() => setLeaveWaitlistOpen(true)}>
+          Leave waitlist
+        </ActionMenuItem>
+      ) : null}
+      {showMenu ? (
+        <>
+          <ActionMenuSeparator />
+          <ActionMenuItem
+            variant="destructive"
+            onSelect={() => setCancelGameOpen(true)}
+          >
+            Cancel Game
+          </ActionMenuItem>
+        </>
+      ) : null}
     </ActionMenu>
   ) : null;
 
