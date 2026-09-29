@@ -80,7 +80,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
               <td className={cn(COL_PLAYER, BODY_CELL)}>
                 <span
                   className={cn(
-                    "block truncate text-[15px]",
+                    "text-body block truncate",
                     entry.isViewer && "font-semibold",
                   )}
                 >
@@ -91,7 +91,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
                 className={cn(
                   COL_RECORD,
                   BODY_CELL,
-                  "font-expanded text-[15px] tabular-nums",
+                  "font-expanded text-body tabular-nums",
                 )}
               >
                 {groupStandingRecordLabel(entry.wins, entry.losses)}

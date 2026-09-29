@@ -39,7 +39,7 @@ export function GroupPlayedRow({ game }: { game: GroupPlayedGame }) {
         />
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px]">
+          <span className="text-body block truncate">
             {groupPlayedTeamLabel(viewerMembers)}
           </span>
           <span className="text-meta text-muted-foreground block truncate">

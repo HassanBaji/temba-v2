@@ -303,7 +303,7 @@ function MetaCell({
         // ruled ? "border-rule border-l pl-4" : null,
       )}
     >
-      <b className="block text-[17px] font-semibold tracking-[-0.01em]">
+      <b className="text-lead block font-semibold tracking-[-0.01em]">
         {value}
       </b>
       {note ? (
@@ -549,7 +549,7 @@ export function GameSummaryCard({
           </div>
 
           <div className="mt-3 flex items-baseline gap-2.5">
-            <b className="font-expanded text-[48px] tabular-nums leading-[0.9]">
+            <b className="font-expanded text-hero tabular-nums leading-[0.9]">
               {kickoff.time}
             </b>
             <i className="text-muted-foreground text-[18px] font-medium not-italic">
@@ -565,7 +565,7 @@ export function GameSummaryCard({
           <div className="mt-2.5 text-base">
             {title}
             {subtitle ? (
-              <small className="text-muted-foreground mt-[3px] block text-[13px]">
+              <small className="text-muted-foreground text-meta mt-[3px] block">
                 {subtitle}
               </small>
             ) : null}

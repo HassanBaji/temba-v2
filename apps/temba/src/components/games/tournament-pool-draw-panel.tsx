@@ -74,11 +74,11 @@ export function TournamentPoolDrawPanel({
             return (
               <section key={pool.poolIndex}>
                 <div className="flex items-baseline gap-2.5 pb-2.5">
-                  <h3 className="font-expanded text-[19px] tracking-[-0.03em]">
+                  <h3 className="font-expanded text-title tracking-[-0.03em]">
                     {pool.label}
                   </h3>
                   {meta ? (
-                    <p className="text-muted-foreground text-[13px]">{meta}</p>
+                    <p className="text-muted-foreground text-meta">{meta}</p>
                   ) : null}
                 </div>
                 <RowList
@@ -97,7 +97,7 @@ export function TournamentPoolDrawPanel({
             );
           })
         ) : (
-          <p className="text-muted-foreground text-[15px] leading-relaxed">
+          <p className="text-muted-foreground text-body leading-relaxed">
             {DRAW_EMPTY_DRAFT_COPY}
           </p>
         )}
@@ -135,7 +135,7 @@ export function TournamentPoolDrawPanel({
             >
               {drawPending ? "Drawing…" : DRAW_AGAIN_ACTION}
             </Button>
-            <p className="text-muted-foreground text-center text-[13px] leading-relaxed">
+            <p className="text-muted-foreground text-meta text-center leading-relaxed">
               {POST_POOL_DRAW_FOOTER_COPY}
             </p>
           </>

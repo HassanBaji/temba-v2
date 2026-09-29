@@ -62,7 +62,7 @@ export function TypeStep({
                   <Icon aria-hidden="true" className="size-[17px]" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[17px] font-semibold">
+                  <span className="text-lead block font-semibold">
                     {card.title}
                   </span>
                   <span

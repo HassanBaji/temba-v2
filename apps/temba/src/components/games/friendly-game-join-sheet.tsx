@@ -145,7 +145,7 @@ function ModeChooser({
             <UserRound className="size-[17px]" strokeWidth={1.75} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="text-[17px] font-semibold">Join alone</span>
+            <span className="text-lead font-semibold">Join alone</span>
             <span className="text-muted-foreground mt-0.5 block text-xs">
               One seat. Someone else takes the other.
             </span>
@@ -179,9 +179,7 @@ function ModeChooser({
             <Users className="size-[17px]" strokeWidth={1.75} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="text-[17px] font-semibold">
-              Join with a partner
-            </span>
+            <span className="text-lead font-semibold">Join with a partner</span>
             <span className="text-dim mt-0.5 block text-xs">
               Both seats. You play as a team.
             </span>
@@ -375,7 +373,7 @@ function TournamentTeamSides({
         <div className="pb-2.5">
           <h3
             id="tournament-join-sides"
-            className="font-expanded text-[19px] tracking-[-0.03em]"
+            className="font-expanded text-title tracking-[-0.03em]"
           >
             {teamLabel}
           </h3>
@@ -398,7 +396,7 @@ function TournamentTeamSides({
       <div className="flex items-baseline gap-2.5 pb-2.5">
         <h3
           id="tournament-join-sides"
-          className="font-expanded text-[19px] tracking-[-0.03em]"
+          className="font-expanded text-title tracking-[-0.03em]"
         >
           Teams
         </h3>
@@ -518,7 +516,7 @@ function TournamentTakeASeat({
           ) : (
             <CloseButton variant="boxed" onClick={onClose} />
           )}
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {tournamentJoinSeatsTakenLine(field.seatsTaken, field.seatTotal)}
           </p>
         </div>
@@ -526,7 +524,7 @@ function TournamentTakeASeat({
           <ResponsiveDialogTitle className="font-expanded text-[38px] leading-none tracking-[-0.03em]">
             {TAKE_A_SEAT_TITLE}
           </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="text-[15px] leading-relaxed">
+          <ResponsiveDialogDescription className="text-body leading-relaxed">
             {tournamentJoinHeaderLine({
               name: title,
               roundCount,
@@ -547,7 +545,7 @@ function TournamentTakeASeat({
           onPick={onChooseSeat}
         />
         {explanation ? (
-          <p className="text-muted-foreground text-[13px] leading-relaxed">
+          <p className="text-muted-foreground text-meta leading-relaxed">
             {explanation}
           </p>
         ) : null}

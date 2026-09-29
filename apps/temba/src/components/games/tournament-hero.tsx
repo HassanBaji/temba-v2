@@ -117,22 +117,20 @@ export function TournamentHero({
         )}
       </div>
 
-      <p className="text-dim mt-7 text-[13px]">{eyebrow}</p>
+      <p className="text-dim text-meta mt-7">{eyebrow}</p>
       <h1 className="font-expanded mt-2.5 text-[38px] leading-none tracking-[-0.03em]">
         {name}
       </h1>
       {startLine ? (
         <p className="mt-2.5 text-[16px] leading-snug">{startLine}</p>
       ) : null}
-      {sizeLine ? (
-        <p className="text-dim mt-1 text-[13px]">{sizeLine}</p>
-      ) : null}
+      {sizeLine ? <p className="text-dim text-meta mt-1">{sizeLine}</p> : null}
 
       <div className="bg-dimrule my-[22px] h-px" />
 
       {showYourTeam ? (
         <>
-          <p className="text-dim text-[13px]">{YOUR_TEAM_LABEL}</p>
+          <p className="text-dim text-meta">{YOUR_TEAM_LABEL}</p>
           <div className="mt-3 flex gap-2">
             <TournamentHeroSeatBlock
               occupant={left}
@@ -150,7 +148,7 @@ export function TournamentHero({
 
       <p
         className={cn(
-          "text-dim text-[13px] leading-normal",
+          "text-dim text-meta leading-normal",
           showYourTeam ? "mt-3.5" : "mt-0",
         )}
       >

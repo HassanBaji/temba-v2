@@ -67,7 +67,7 @@ import {
 import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import { cn } from "~/lib/utils";
 
-const FIELD_LABEL = "text-muted-foreground text-[13px] font-normal";
+const FIELD_LABEL = "text-muted-foreground text-meta font-normal";
 
 export function TournamentPreviewStates({
   fixtures,
@@ -322,13 +322,13 @@ function TournamentCreateControlsPreview() {
   return (
     <div className="flex flex-col gap-[18px]">
       <div>
-        <p className="text-muted-foreground text-[13px]">Bromma</p>
+        <p className="text-muted-foreground text-meta">Bromma</p>
         <h3 className="font-expanded mt-4 text-[38px] leading-none tracking-[-0.03em]">
           {CREATE_TOURNAMENT_HEADING_LEAD}
           <br />
           {CREATE_TOURNAMENT_HEADING_TRAIL}
         </h3>
-        <p className="text-muted-foreground mt-2.5 text-[15px] leading-relaxed">
+        <p className="text-muted-foreground text-body mt-2.5 leading-relaxed">
           {CREATE_SUBLINE}
         </p>
       </div>
@@ -345,7 +345,7 @@ function TournamentCreateControlsPreview() {
         decreaseLabel="Fewer Game teams"
         increaseLabel="More Game teams"
         description={
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {playersInPairsLine(teamCount)}
           </p>
         }
@@ -365,11 +365,11 @@ function TournamentCreateControlsPreview() {
         description={
           sizing ? (
             <div className="flex flex-col gap-1">
-              <p className="text-muted-foreground text-[13px]">
+              <p className="text-muted-foreground text-meta">
                 {formatPoolSizeLine(sizing)}
               </p>
               {sizing.uneven ? (
-                <p className="text-muted-foreground text-[13px]">
+                <p className="text-muted-foreground text-meta">
                   {UNEVEN_POOLS_COPY}
                 </p>
               ) : null}
@@ -449,11 +449,11 @@ function TournamentCreateControlsPreview() {
 
       {fit ? (
         <div className="border-ink rounded-[14px] border p-5">
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {ONE_DAY_CALLOUT_LABEL}
           </p>
           {fit.lastFinish ? (
-            <p className="mt-2 text-[17px] leading-snug">
+            <p className="text-lead mt-2 leading-snug">
               {lastMatchFinishCopy(
                 fit.lastFinish.toLocaleTimeString(undefined, {
                   hour: "numeric",
@@ -463,7 +463,7 @@ function TournamentCreateControlsPreview() {
             </p>
           ) : null}
           {fit.overruns ? (
-            <p className="text-muted-foreground mt-2 text-[13px] leading-relaxed">
+            <p className="text-muted-foreground text-meta mt-2 leading-relaxed">
               {ONE_DAY_OVERRUN_MESSAGE}
             </p>
           ) : null}
@@ -474,7 +474,7 @@ function TournamentCreateControlsPreview() {
         <div className={cn(buttonVariants({ size: "lg" }), "font-semibold")}>
           {CREATE_PRIMARY_ACTION}
         </div>
-        <p className="text-muted-foreground text-center text-[12px] leading-relaxed">
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           {CREATE_FOOTER_COPY}
         </p>
       </div>

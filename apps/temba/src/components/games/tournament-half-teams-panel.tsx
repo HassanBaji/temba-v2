@@ -249,7 +249,7 @@ export function TournamentHalfTeamsPanel({
         >
           {MERGE_DISMISS_ACTION_LABEL}
         </Button>
-        <p className="text-muted-foreground text-center text-[13px] leading-relaxed">
+        <p className="text-muted-foreground text-meta text-center leading-relaxed">
           {MERGE_TAKES_EFFECT_COPY}
         </p>
       </div>
@@ -273,7 +273,7 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
           className="border-rule size-[34px] shrink-0 rounded-[8px] border"
         />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[15px]">{team.occupant.name}</span>
+          <span className="text-body truncate">{team.occupant.name}</span>
           <span className="text-muted-foreground text-xs">
             {mergeOccupantSubline(team.takenPosition, levelLabel)}
           </span>
@@ -317,20 +317,20 @@ function MergedPreview({
 
   return (
     <div className="border-ink rounded-[14px] border p-5">
-      <p className="text-muted-foreground text-[13px]">{MERGE_PREVIEW_LABEL}</p>
+      <p className="text-muted-foreground text-meta">{MERGE_PREVIEW_LABEL}</p>
       <div className="mt-3.5 flex gap-2">
         <PreviewSeat occupant={left.team} position={left.position} />
         <PreviewSeat occupant={right.team} position={right.position} />
       </div>
       <div className="mt-3.5 flex items-center justify-between gap-3">
-        <p className="text-muted-foreground min-w-0 flex-1 text-[13px]">
+        <p className="text-muted-foreground text-meta min-w-0 flex-1">
           {mergeSwapHint(second.occupant.name, assignment.firstPosition)}
         </p>
         <button
           type="button"
           onClick={onSwap}
           disabled={mergePending}
-          className="focus-visible:ring-ring/50 min-h-11 min-w-11 shrink-0 rounded-sm text-[13px] font-semibold underline underline-offset-2 outline-none focus-visible:ring-[3px] disabled:opacity-50"
+          className="focus-visible:ring-ring/50 text-meta min-h-11 min-w-11 shrink-0 rounded-sm font-semibold underline underline-offset-2 outline-none focus-visible:ring-[3px] disabled:opacity-50"
         >
           {MERGE_SWAP_LABEL}
         </button>

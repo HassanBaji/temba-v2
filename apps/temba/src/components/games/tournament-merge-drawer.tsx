@@ -67,8 +67,8 @@ export function TournamentMergeBanner({
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>
-      <p className="mt-2 text-[15px] font-semibold">{MERGE_BANNER_TITLE}</p>
-      <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
+      <p className="text-body mt-2 font-semibold">{MERGE_BANNER_TITLE}</p>
+      <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {mergePairCopy({
           firstName: first.occupant.name,
           secondName: second.occupant.name,
@@ -99,8 +99,8 @@ export function TournamentMergeEntry({
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>
-      <p className="mt-2 text-[15px] font-semibold">{MERGE_MANY_TITLE}</p>
-      <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
+      <p className="text-body mt-2 font-semibold">{MERGE_MANY_TITLE}</p>
+      <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {mergeManyHalfTeamsCopy(halfTeamCount)}
       </p>
       <Button
@@ -179,7 +179,7 @@ export function TournamentMergeDrawer({
             <DrawerTitle className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
               {MERGE_DRAWER_TITLE}
             </DrawerTitle>
-            <DrawerDescription className="mt-2.5 text-[15px] leading-relaxed">
+            <DrawerDescription className="text-body mt-2.5 leading-relaxed">
               {lead}
             </DrawerDescription>
           </div>

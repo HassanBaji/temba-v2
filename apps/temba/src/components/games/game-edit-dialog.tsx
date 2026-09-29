@@ -301,7 +301,7 @@ export function GameEditDialog({
                 error={fieldErrorMessage(rounds.error, "roundCount")}
               />
               {rounds.overruns ? (
-                <p className="text-muted-foreground text-[13px] leading-relaxed">
+                <p className="text-muted-foreground text-meta leading-relaxed">
                   {ONE_DAY_OVERRUN_MESSAGE}
                 </p>
               ) : null}

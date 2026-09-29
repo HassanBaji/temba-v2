@@ -39,11 +39,11 @@ export function TournamentYourRounds(
   return (
     <section>
       <div className="flex items-baseline gap-2.5 pb-2.5">
-        <h2 className="font-expanded text-[19px] tracking-[-0.03em]">
+        <h2 className="font-expanded text-title tracking-[-0.03em]">
           {YOUR_ROUNDS_HEADING}
         </h2>
         {props.mode === "schedule" ? (
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-meta">
             {YOUR_ROUNDS_PREDRAW_CAPTION}
           </p>
         ) : null}

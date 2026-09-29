@@ -198,7 +198,7 @@ function PairSquare({
         shape,
         "*:data-[slot=avatar-fallback]:rounded-none",
         large
-          ? "*:data-[slot=avatar-fallback]:text-[12px]"
+          ? "*:data-[slot=avatar-fallback]:text-eyebrow"
           : "*:data-[slot=avatar-fallback]:text-[11px]",
         onInk
           ? "*:data-[slot=avatar-fallback]:bg-ink *:data-[slot=avatar-fallback]:text-paper"
@@ -226,7 +226,7 @@ function TeamPairs({ teams }: { teams: readonly TournamentCardTeam[] }) {
   const { shown, remaining } = tournamentCardPairs(teams);
   if (shown.length === 0) {
     return (
-      <p className="text-muted-foreground text-[13px]">{NO_TEAMS_YET_COPY}</p>
+      <p className="text-muted-foreground text-meta">{NO_TEAMS_YET_COPY}</p>
     );
   }
   return (
@@ -235,7 +235,7 @@ function TeamPairs({ teams }: { teams: readonly TournamentCardTeam[] }) {
         <TeamPair key={team.gameTeamId} team={team} />
       ))}
       {remaining > 0 ? (
-        <span className="text-muted-foreground text-[13px]">+{remaining}</span>
+        <span className="text-muted-foreground text-meta">+{remaining}</span>
       ) : null}
     </div>
   );
@@ -248,9 +248,9 @@ function PriceLine({ cents }: { cents: number | null }) {
   }
   return (
     <span className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate">
-      <b className="text-[17px] font-bold tracking-[-0.03em]">{amount}</b>
+      <b className="text-lead font-bold tracking-[-0.03em]">{amount}</b>
       {amount === "Free" ? null : (
-        <span className="text-muted-foreground truncate text-[13px]">
+        <span className="text-muted-foreground text-meta truncate">
           per player
         </span>
       )}
@@ -321,19 +321,19 @@ export function TournamentSummaryCard({
             ) : null}
           </div>
 
-          <h3 className="font-expanded mt-4 line-clamp-2 text-[32px] leading-none tracking-[-0.035em]">
+          <h3 className="font-expanded text-h1-lg mt-4 line-clamp-2 leading-none tracking-[-0.035em]">
             {title}
           </h3>
-          {dateLine ? <p className="mt-2.5 text-[15px]">{dateLine}</p> : null}
+          {dateLine ? <p className="text-body mt-2.5">{dateLine}</p> : null}
           {subLine ? (
-            <p className="text-muted-foreground mt-0.5 truncate text-[13px]">
+            <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {subLine}
             </p>
           ) : null}
 
           <div className="border-rule my-4 border-t" />
 
-          <p className="text-muted-foreground pb-2.5 text-[13px]">
+          <p className="text-muted-foreground text-meta pb-2.5">
             {tournamentTeamsLine(game)}
           </p>
           <TeamPairs teams={teams} />
@@ -435,7 +435,7 @@ function MatchupColumn({
       {name ? (
         <span
           className={cn(
-            "max-w-full truncate text-[13px]",
+            "text-meta max-w-full truncate",
             isViewerSide ? "font-semibold" : "text-muted-foreground text-right",
           )}
         >
@@ -518,7 +518,7 @@ export function TournamentMatchCard({
               ) : null}
             </div>
             {status ? (
-              <span className="text-muted-foreground shrink-0 text-[13px] tabular-nums">
+              <span className="text-muted-foreground text-meta shrink-0 tabular-nums">
                 {status}
               </span>
             ) : null}
@@ -529,11 +529,11 @@ export function TournamentMatchCard({
               {kickoff.time}
             </span>
             {kickoff.meridiem ? (
-              <span className="text-muted-foreground text-[19px] font-medium leading-none">
+              <span className="text-muted-foreground text-title font-medium leading-none">
                 {kickoff.meridiem}
               </span>
             ) : null}
-            <span className="text-[15px] font-medium">{day}</span>
+            <span className="text-body font-medium">{day}</span>
           </p>
           {venueLine ? (
             <p className="text-muted-foreground mt-2 truncate text-sm">
@@ -548,9 +548,7 @@ export function TournamentMatchCard({
           {standingLine ? (
             <>
               <div className="border-rule my-4 border-t" />
-              <p className="text-muted-foreground text-[13px]">
-                {standingLine}
-              </p>
+              <p className="text-muted-foreground text-meta">{standingLine}</p>
             </>
           ) : null}
         </div>
@@ -612,7 +610,7 @@ export function HomeTournamentMatchCard({
         />
 
         <div className="pointer-events-none relative z-10 min-w-0 px-5 pb-5 pt-[18px]">
-          <div className="text-muted-foreground flex items-center justify-between gap-3 text-[13px]">
+          <div className="text-muted-foreground text-meta flex items-center justify-between gap-3">
             <span className="min-w-0 truncate">{title}</span>
             {status ? (
               <span className="shrink-0 tabular-nums">{status}</span>
@@ -624,7 +622,7 @@ export function HomeTournamentMatchCard({
           </p>
           <p className="mt-2 truncate text-sm">{kickoffLine}</p>
           {game.courtName ? (
-            <p className="text-muted-foreground truncate text-[13px]">
+            <p className="text-muted-foreground text-meta truncate">
               {game.courtName}
             </p>
           ) : null}
@@ -636,7 +634,7 @@ export function HomeTournamentMatchCard({
           {groupLabel ? (
             <>
               <div className="border-rule my-4 border-t" />
-              <div className="flex items-center justify-between gap-2.5 text-[13px]">
+              <div className="text-meta flex items-center justify-between gap-2.5">
                 <span className="text-muted-foreground shrink-0">
                   {groupLabel}
                 </span>

@@ -56,7 +56,7 @@ function PoolRoundResults({
         const isLast = index === groups.length - 1;
         return (
           <section key={roundNumber}>
-            <h2 className="font-expanded pb-2.5 text-[19px] tracking-[-0.03em]">
+            <h2 className="font-expanded text-title pb-2.5 tracking-[-0.03em]">
               {roundResultsHeading(roundNumber)}
             </h2>
             <div className={CARD}>
@@ -130,7 +130,7 @@ function OtherPoolsRow({
       }}
     >
       <span className="min-w-0 flex-1 truncate">{summary.namesLine}</span>
-      <span className="text-[13px]">{summary.playedLabel}</span>
+      <span className="text-meta">{summary.playedLabel}</span>
       <ChevronRight
         aria-hidden="true"
         className="size-4 shrink-0"
@@ -156,7 +156,7 @@ export function TournamentStandingsHeader({
       <div className="flex items-center justify-between">
         <BackButton variant="boxed" href={backHref} />
         {roundsPlayed ? (
-          <p className="text-muted-foreground text-[13px]">{roundsPlayed}</p>
+          <p className="text-muted-foreground text-meta">{roundsPlayed}</p>
         ) : (
           <span className="size-11 shrink-0" aria-hidden="true" />
         )}
@@ -164,12 +164,12 @@ export function TournamentStandingsHeader({
       <h1 className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
         {STANDINGS_HEADING}
       </h1>
-      <p className="mt-2 text-[15px]">{name}</p>
-      <p className="text-muted-foreground mt-1 text-[13px] leading-relaxed">
+      <p className="text-body mt-2">{name}</p>
+      <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
         {TOURNAMENT_ENDS_COPY}
       </p>
       {finished ? (
-        <p className="text-muted-foreground mt-1 text-[13px] leading-relaxed">
+        <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
           {TOURNAMENT_FINISHED_COPY}
         </p>
       ) : null}

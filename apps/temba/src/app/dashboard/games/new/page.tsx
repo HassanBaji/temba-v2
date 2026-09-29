@@ -831,7 +831,7 @@ function NewGameForm() {
           </span>
           <span className="text-dim text-[18px] leading-none">Game teams</span>
           {tournamentRounds ? (
-            <span className="text-dim text-[15px] leading-none">
+            <span className="text-dim text-body leading-none">
               {friendlyTournamentMatchCountLabel(tournamentRounds.poolMatches)}
             </span>
           ) : null}
@@ -856,7 +856,7 @@ function NewGameForm() {
       </>
     ) : (
       <>
-        <h1 className="font-expanded text-[36px] leading-none">
+        <h1 className="font-expanded text-display leading-none">
           {displayedStep === 1 ? (
             <>
               What are you

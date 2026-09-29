@@ -764,7 +764,7 @@ export function FriendlyTournamentSteps({
             increaseLabel="More Game teams"
             error={teamCountError}
             description={
-              <p className="text-muted-foreground text-[13px]">
+              <p className="text-muted-foreground text-meta">
                 {playersInPairsLine(teamCount)}
               </p>
             }
@@ -790,11 +790,11 @@ export function FriendlyTournamentSteps({
             description={
               sizing ? (
                 <div className="flex flex-col gap-1">
-                  <p className="text-muted-foreground text-[13px]">
+                  <p className="text-muted-foreground text-meta">
                     {friendlyTournamentGroupsLine(sizing)}
                   </p>
                   {sizing.uneven ? (
-                    <p className="text-muted-foreground text-[13px]">
+                    <p className="text-muted-foreground text-meta">
                       {FRIENDLY_TOURNAMENT_UNEVEN_GROUPS}
                     </p>
                   ) : null}
@@ -1061,12 +1061,12 @@ export function FriendlyTournamentSteps({
           {schedule ? (
             <div className="border-ink rounded-[14px] border px-[18px] py-4">
               {schedule.line ? (
-                <p className="text-[17px] leading-snug">{schedule.line}</p>
+                <p className="text-lead leading-snug">{schedule.line}</p>
               ) : null}
               {schedule.overruns ? (
                 <p
                   className={cn(
-                    "text-muted-foreground text-[13px] leading-relaxed",
+                    "text-muted-foreground text-meta leading-relaxed",
                     schedule.line && "mt-2",
                   )}
                 >

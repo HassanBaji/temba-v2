@@ -178,7 +178,7 @@ function TeamRow({
               <span
                 key={index}
                 className={cn(
-                  "font-expanded w-7 text-center text-[17px] tabular-nums",
+                  "font-expanded text-lead w-7 text-center tabular-nums",
                   score.wonSet
                     ? null
                     : filled
@@ -291,16 +291,16 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
                 {OUTCOME_LABEL[row.outcome]}
               </span>
               {scored ? (
-                <span className="font-expanded text-muted-foreground text-[15px] tabular-nums">
+                <span className="font-expanded text-muted-foreground text-body tabular-nums">
                   {tally.won}&ndash;{tally.lost} in sets
                 </span>
               ) : (
-                <span className="text-muted-foreground text-[13px]">
+                <span className="text-muted-foreground text-meta">
                   No score yet
                 </span>
               )}
             </div>
-            <p className="text-muted-foreground mt-0.5 truncate text-[13px]">
+            <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {meta}
             </p>
           </div>

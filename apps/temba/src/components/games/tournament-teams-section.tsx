@@ -44,11 +44,11 @@ export function TournamentTeamsSection({
   return (
     <section>
       <div className="flex items-baseline gap-2.5 pb-2.5">
-        <h2 className="font-expanded text-[19px] tracking-[-0.03em]">
+        <h2 className="font-expanded text-title tracking-[-0.03em]">
           {TEAMS_HEADING}
         </h2>
         {countLine ? (
-          <p className="text-muted-foreground text-[13px]">{countLine}</p>
+          <p className="text-muted-foreground text-meta">{countLine}</p>
         ) : null}
       </div>
       <RowList
@@ -230,7 +230,7 @@ function TeamRow({
         >
           {row.indexLabel}
         </span>
-        <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
+        <span className="text-body min-w-0 flex-1 truncate font-medium">
           {teamLabel}
         </span>
         {row.isViewer ? (

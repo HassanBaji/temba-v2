@@ -65,7 +65,7 @@ export function PoolRecordTable({
                 className={cn(
                   COL_POSITION,
                   BODY_CELL,
-                  "font-expanded text-[15px]",
+                  "font-expanded text-body",
                 )}
               >
                 {row.position}
@@ -73,7 +73,7 @@ export function PoolRecordTable({
               <td className={cn(COL_TEAM, BODY_CELL)}>
                 <span
                   className={cn(
-                    "block truncate text-[15px]",
+                    "text-body block truncate",
                     row.isViewer && "font-semibold",
                   )}
                 >

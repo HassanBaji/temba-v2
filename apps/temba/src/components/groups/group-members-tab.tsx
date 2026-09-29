@@ -45,7 +45,7 @@ function MemberRow({ member }: { member: GroupMember }) {
         image={member.image}
         size="lg"
         className={cn(
-          "rounded-[10px] [&_[data-slot=avatar-fallback]]:rounded-[10px] [&_[data-slot=avatar-fallback]]:text-[13px] [&_[data-slot=avatar-fallback]]:font-semibold",
+          "[&_[data-slot=avatar-fallback]]:text-meta rounded-[10px] [&_[data-slot=avatar-fallback]]:rounded-[10px] [&_[data-slot=avatar-fallback]]:font-semibold",
           member.isViewer
             ? "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper"
             : "border-rule border [&_[data-slot=avatar-fallback]]:bg-transparent",
@@ -55,7 +55,7 @@ function MemberRow({ member }: { member: GroupMember }) {
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            "truncate text-[15px]",
+            "text-body truncate",
             member.isViewer && "font-semibold",
           )}
         >
@@ -87,7 +87,7 @@ function MemberRow({ member }: { member: GroupMember }) {
 function InviteBlock({ onInvite }: { onInvite: () => void }) {
   return (
     <section className="border-rule rounded-[14px] border p-5">
-      <h2 className="text-[15px] font-semibold">Invite players</h2>
+      <h2 className="text-body font-semibold">Invite players</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
         Invite players and the standing fills in as their matches are rated.
       </p>

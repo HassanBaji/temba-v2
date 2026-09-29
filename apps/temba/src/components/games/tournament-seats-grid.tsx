@@ -32,8 +32,8 @@ export function TournamentSeatsGrid({
   return (
     <section className="border-rule rounded-[14px] border p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold">{SEATS_HEADING}</h2>
-        <p aria-hidden="true" className="text-muted-foreground text-[13px]">
+        <h2 className="text-body font-semibold">{SEATS_HEADING}</h2>
+        <p aria-hidden="true" className="text-muted-foreground text-meta">
           {countLine}
         </p>
       </div>

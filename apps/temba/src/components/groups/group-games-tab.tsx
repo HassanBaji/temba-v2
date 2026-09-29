@@ -22,7 +22,7 @@ type GroupHome = RouterOutputs["groups"]["byId"];
 type ScheduledGame = GroupHome["upcomingGames"][number];
 
 const CARD = "border-rule overflow-hidden rounded-[14px] border";
-const HEADING = "font-expanded pb-2.5 text-[19px] leading-tight";
+const HEADING = "font-expanded pb-2.5 text-title leading-tight";
 
 export function GroupGamesTab({
   upcomingGames,

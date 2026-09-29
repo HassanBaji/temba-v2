@@ -121,7 +121,7 @@ function RecentPartnerChip({
       </span>
       <span
         className={cn(
-          "w-full truncate text-center text-[12px] leading-tight",
+          "text-eyebrow w-full truncate text-center leading-tight",
           selected && !blocked ? "font-semibold" : "font-medium",
           blocked && "text-muted-foreground",
         )}
@@ -148,7 +148,7 @@ function RecentsShowcase({
   return (
     <section>
       <div className="flex items-baseline gap-2.5 pb-2.5">
-        <h3 className="font-expanded text-[19px] leading-tight">
+        <h3 className="font-expanded text-title leading-tight">
           Played with before
         </h3>
       </div>
@@ -203,7 +203,7 @@ function PartnerSuggestionRow({
       <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "block truncate text-[15px]",
+            "text-body block truncate",
             selected && !blocked ? "font-semibold" : "font-medium",
             blocked && "text-muted-foreground",
           )}
@@ -251,8 +251,8 @@ function SuggestionSection({
   return (
     <section className="pb-4">
       <div className="flex items-baseline gap-2.5 pb-2.5">
-        <h3 className="font-expanded text-[19px] leading-tight">{title}</h3>
-        <p className="text-muted-foreground text-[13px]">{eyebrow}</p>
+        <h3 className="font-expanded text-title leading-tight">{title}</h3>
+        <p className="text-muted-foreground text-meta">{eyebrow}</p>
       </div>
       <div className="border-rule overflow-hidden rounded-[14px] border">
         {rows.map((row, index) => (
@@ -362,13 +362,13 @@ export function FriendlyGamePartnerPicker({
           ) : (
             <CloseButton variant="boxed" onClick={onClose} />
           )}
-          <p className="text-muted-foreground text-[13px]">{seatsChip}</p>
+          <p className="text-muted-foreground text-meta">{seatsChip}</p>
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px]">
         <div className="border-rule mt-6 shrink-0">
-          <h2 className="font-expanded text-[32px] leading-none tracking-[-0.03em]">
+          <h2 className="font-expanded text-h1-lg leading-none tracking-[-0.03em]">
             Pick a partner
           </h2>
           <p className="text-meta mt-2 leading-relaxed">

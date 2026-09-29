@@ -44,10 +44,8 @@ export function TournamentDrawEntry({
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>
-      <p className="mt-2 text-[15px] font-semibold">
-        {drawEntryTitle(hasDraft)}
-      </p>
-      <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
+      <p className="text-body mt-2 font-semibold">{drawEntryTitle(hasDraft)}</p>
+      <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {drawEntryStateLine(completeTeams, teamCount)}
       </p>
       <Button
@@ -181,7 +179,7 @@ export function TournamentDrawDrawer({
             <DrawerTitle className="font-expanded mt-6 text-[38px] leading-none tracking-[-0.03em]">
               {DRAW_DRAWER_TITLE}
             </DrawerTitle>
-            <DrawerDescription className="text-ink mt-2.5 text-[15px] leading-relaxed">
+            <DrawerDescription className="text-ink text-body mt-2.5 leading-relaxed">
               {drawDrawerLead(teamCount)}
             </DrawerDescription>
           </div>

@@ -105,7 +105,7 @@ function PlayerCard({
       )}
     >
       <UserAvatar name={name} image={image} size="sm" className="shrink-0" />
-      <p className="truncate text-[15px] font-semibold">{name}</p>
+      <p className="text-body truncate font-semibold">{name}</p>
       <p className="text-muted-foreground text-xs">
         {playerMeta({ levelBand, position })}
       </p>
@@ -183,10 +183,10 @@ export function FriendlyGamePartnerReview({
       <div className="border-rule shrink-0 border-b px-[22px] pb-0 pt-[22px]">
         <div className="flex items-center justify-between">
           <BackButton variant="boxed" onClick={onBack} />
-          <p className="text-muted-foreground text-[13px]">Step 2 of 2</p>
+          <p className="text-muted-foreground text-meta">Step 2 of 2</p>
           <span className="size-11" aria-hidden="true" />
         </div>
-        <h2 className="font-expanded mt-6 text-[32px] leading-none tracking-[-0.03em]">
+        <h2 className="font-expanded text-h1-lg mt-6 leading-none tracking-[-0.03em]">
           Register the team
         </h2>
         <p className="text-meta mt-2.5 leading-relaxed">
@@ -198,7 +198,7 @@ export function FriendlyGamePartnerReview({
         {errorMessage ? <FormErrorSummary message={errorMessage} /> : null}
 
         <section>
-          <h3 className="font-expanded pb-2.5 text-[19px] leading-tight">
+          <h3 className="font-expanded text-title pb-2.5 leading-tight">
             Your team
           </h3>
           <div className="flex gap-2">
@@ -230,7 +230,7 @@ export function FriendlyGamePartnerReview({
                 setCallerPosition("left");
               }}
               className={cn(
-                "flex-1 py-[15px] text-[15px] font-semibold outline-none",
+                "text-body flex-1 py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "left"
                   ? "bg-ink text-paper"
@@ -247,7 +247,7 @@ export function FriendlyGamePartnerReview({
                 setCallerPosition("right");
               }}
               className={cn(
-                "border-rule flex-1 border-l py-[15px] text-[15px] font-semibold outline-none",
+                "border-rule text-body flex-1 border-l py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "right"
                   ? "bg-ink text-paper"

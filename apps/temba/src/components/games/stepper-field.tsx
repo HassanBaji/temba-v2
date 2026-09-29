@@ -52,7 +52,7 @@ export function StepperField({
         id={`${id}-label`}
         htmlFor={id}
         className={cn(
-          "text-muted-foreground text-[13px] font-normal",
+          "text-muted-foreground text-meta font-normal",
           labelClassName,
         )}
       >
@@ -84,7 +84,7 @@ export function StepperField({
           <span className="font-expanded text-[22px] tabular-nums tracking-[-0.03em]">
             {value}
           </span>
-          <span className="text-muted-foreground text-[13px]">{unit}</span>
+          <span className="text-muted-foreground text-meta">{unit}</span>
         </div>
         <button
           type="button"
