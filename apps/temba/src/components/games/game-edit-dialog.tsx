@@ -49,6 +49,21 @@ export type GameEditRounds = {
   onSave: () => void;
 };
 
+function SectionSaveButton({
+  pending,
+  section,
+}: {
+  pending: boolean;
+  section: string;
+}) {
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending ? "Saving…" : "Save"}
+      <span className="sr-only"> {section}</span>
+    </Button>
+  );
+}
+
 export function GameEditDialog({
   open,
   onOpenChange,
@@ -121,7 +136,7 @@ export function GameEditDialog({
           <ResponsiveDialogTitle>Edit Game</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             Venue cannot change. Update the window, optional price per player,
-            and optional Level range.
+            and optional Level range. Each section saves on its own.
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
@@ -149,9 +164,7 @@ export function GameEditDialog({
               startError={fieldErrorMessage(windowError, "windowStart")}
               finishError={fieldErrorMessage(windowError, "windowEnd")}
             />
-            <Button type="submit" disabled={windowPending}>
-              {windowPending ? "Saving…" : "Save window"}
-            </Button>
+            <SectionSaveButton pending={windowPending} section="window" />
           </form>
           <form
             className="space-y-3"
@@ -203,9 +216,10 @@ export function GameEditDialog({
                 </FieldError>
               </Field>
             </FieldGroup>
-            <Button type="submit" disabled={pricePending}>
-              {pricePending ? "Saving…" : "Save price per player"}
-            </Button>
+            <SectionSaveButton
+              pending={pricePending}
+              section="price per player"
+            />
           </form>
           <form
             className="space-y-3"
@@ -274,9 +288,7 @@ export function GameEditDialog({
                 </FieldError>
               </Field>
             </FieldGroup>
-            <Button type="submit" disabled={levelPending}>
-              {levelPending ? "Saving…" : "Save Level range"}
-            </Button>
+            <SectionSaveButton pending={levelPending} section="Level range" />
           </form>
           {rounds ? (
             <form
@@ -305,9 +317,7 @@ export function GameEditDialog({
                   {ONE_DAY_OVERRUN_MESSAGE}
                 </p>
               ) : null}
-              <Button type="submit" disabled={rounds.pending}>
-                {rounds.pending ? "Saving…" : "Save Rounds"}
-              </Button>
+              <SectionSaveButton pending={rounds.pending} section="rounds" />
             </form>
           ) : null}
           {format === "friendly_game" ? (

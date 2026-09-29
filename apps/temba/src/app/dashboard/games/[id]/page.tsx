@@ -39,6 +39,10 @@ import {
   focusFormFailure,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import {
+  gameEditSectionsToReseed,
+  type GameEditSection,
+} from "~/lib/game-edit-sections";
 import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
 import {
   gameKickConfirmCopy,
@@ -122,9 +126,6 @@ export default function GameHomePage({
     });
   }
   const game = api.games.byId.useQuery({ id });
-  const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
-  const mobileMenuTriggerRef = React.useRef<HTMLButtonElement>(null);
-  const inviteButtonRef = React.useRef<HTMLButtonElement>(null);
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const levelSummaryRef = React.useRef<HTMLDivElement>(null);
   const roundsSummaryRef = React.useRef<HTMLDivElement>(null);
@@ -164,6 +165,7 @@ export default function GameHomePage({
     { name: string; message: string }[] | null
   >(null);
   const [editOpen, setEditOpen] = React.useState(false);
+  const justSavedEditSectionsRef = React.useRef(new Set<GameEditSection>());
   const [invitesOpen, setInvitesOpen] = React.useState(false);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
@@ -370,8 +372,8 @@ export default function GameHomePage({
 
   const updateWindow = api.games.updateWindow.useMutation({
     onSuccess: async () => {
-      toast.success("Window updated");
-      setEditOpen(false);
+      justSavedEditSectionsRef.current.add("window");
+      toast.success("Window saved");
       await refreshGame();
     },
     onError: (error) => {
@@ -381,8 +383,8 @@ export default function GameHomePage({
 
   const updatePricePerPlayer = api.games.updatePricePerPlayer.useMutation({
     onSuccess: async () => {
+      justSavedEditSectionsRef.current.add("price");
       toast.success("Price per player saved");
-      setEditOpen(false);
       await refreshGame();
     },
     onError: (error) => {
@@ -397,8 +399,8 @@ export default function GameHomePage({
 
   const updateLevelRange = api.games.updateLevelRange.useMutation({
     onSuccess: async () => {
+      justSavedEditSectionsRef.current.add("level");
       toast.success("Level range saved");
-      setEditOpen(false);
       await refreshGame();
     },
     onError: (error) => {
@@ -416,8 +418,8 @@ export default function GameHomePage({
 
   const updateRoundCount = api.games.updateRoundCount.useMutation({
     onSuccess: async () => {
+      justSavedEditSectionsRef.current.add("rounds");
       toast.success("Rounds saved");
-      setEditOpen(false);
       await refreshGame();
     },
     onError: (error) => {
@@ -593,18 +595,31 @@ export default function GameHomePage({
     if (!data) {
       return;
     }
-    const gameWindow = splitGameWindow(data.windowStart, data.windowEnd);
-    setWindowDay(gameWindow.day);
-    setWindowStartTime(gameWindow.startTime);
-    setWindowFinishTime(gameWindow.finishTime);
-    setPricePerPlayer(centsToMajorInput(data.pricePerPlayerCents));
-    setPricePerPlayerError(undefined);
-    setLevelMin(tenthsToLevelBandSelectValue(data.levelMinTenths));
-    setLevelMax(tenthsToLevelBandSelectValue(data.levelMaxTenths));
-    setLevelMinError(undefined);
-    setLevelMaxError(undefined);
-    setRoundCount(data.roundCount);
-  }, [data]);
+    const sections = gameEditSectionsToReseed({
+      dialogOpen: editOpen,
+      justSaved: justSavedEditSectionsRef.current,
+    });
+    justSavedEditSectionsRef.current.clear();
+    if (sections.includes("window")) {
+      const gameWindow = splitGameWindow(data.windowStart, data.windowEnd);
+      setWindowDay(gameWindow.day);
+      setWindowStartTime(gameWindow.startTime);
+      setWindowFinishTime(gameWindow.finishTime);
+    }
+    if (sections.includes("price")) {
+      setPricePerPlayer(centsToMajorInput(data.pricePerPlayerCents));
+      setPricePerPlayerError(undefined);
+    }
+    if (sections.includes("level")) {
+      setLevelMin(tenthsToLevelBandSelectValue(data.levelMinTenths));
+      setLevelMax(tenthsToLevelBandSelectValue(data.levelMaxTenths));
+      setLevelMinError(undefined);
+      setLevelMaxError(undefined);
+    }
+    if (sections.includes("rounds")) {
+      setRoundCount(data.roundCount);
+    }
+  }, [data, editOpen]);
 
   React.useEffect(() => {
     if (!tournamentInviteLandingOpensPartnerSheet(joinParam) || !data) {
@@ -774,7 +789,6 @@ export default function GameHomePage({
       ) : null}
       {canManageGameInvites ? (
         <Button
-          ref={inviteButtonRef}
           type="button"
           variant="outline"
           className="min-h-11"
@@ -814,22 +828,14 @@ export default function GameHomePage({
   };
   const mobileOverflow =
     usesFriendlyChrome && overflowItems.length > 0 ? (
-      <FriendlyGameOverflowMenu
-        items={overflowItems}
-        triggerRef={mobileMenuTriggerRef}
-        {...overflowHandlers}
-      />
+      <FriendlyGameOverflowMenu items={overflowItems} {...overflowHandlers} />
     ) : null;
   const desktopOverflow =
     usesFriendlyChrome && overflowItems.length > 0 ? (
-      <FriendlyGameOverflowMenu
-        items={overflowItems}
-        triggerRef={menuTriggerRef}
-        {...overflowHandlers}
-      />
+      <FriendlyGameOverflowMenu items={overflowItems} {...overflowHandlers} />
     ) : null;
   const organizerMenu = usesFriendlyChrome ? null : showMenu ? (
-    <ActionMenu triggerRef={menuTriggerRef} label="Game actions">
+    <ActionMenu label="Game actions">
       <ActionMenuItem onSelect={() => setEditOpen(true)}>
         Edit Game
       </ActionMenuItem>
@@ -1334,7 +1340,6 @@ export default function GameHomePage({
         <GameEditDialog
           open={editOpen}
           onOpenChange={setEditOpen}
-          restoreFocusRef={menuTriggerRef}
           format={data.format}
           windowDay={windowDay}
           windowStartTime={windowStartTime}
@@ -1434,7 +1439,6 @@ export default function GameHomePage({
               setLookupRefused(null);
             }
           }}
-          restoreFocusRef={inviteButtonRef}
           canSendLookup={canSendGameLookup}
           canCopyInviteLink
           inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
@@ -1469,7 +1473,6 @@ export default function GameHomePage({
         }
         confirmLabel={usesFriendlyChrome ? "Cancel game" : "Cancel Game"}
         pending={cancelGame.isPending}
-        restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
           await cancelGame.mutateAsync({ gameId: id });
         }}
