@@ -20,7 +20,10 @@ import {
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
 import { selfDeclareChoiceFromDisplay } from "~/lib/level-bands";
-import { onboardingStepFromState } from "~/lib/onboarding-step";
+import {
+  onboardingStepFromState,
+  shouldFocusStepHeading,
+} from "~/lib/onboarding-step";
 import { api, type RouterInputs } from "~/trpc/react";
 
 type PreferredPosition =
@@ -99,6 +102,15 @@ export function OnboardingQuestionnaire({
   const levelPending = selfDeclare.isPending || selfDeclare.isSuccess;
   const activeError =
     step === "position" ? setPreferredPosition.error : selfDeclare.error;
+
+  const previousStep = React.useRef(step);
+  React.useEffect(() => {
+    const previous = previousStep.current;
+    previousStep.current = step;
+    if (shouldFocusStepHeading(previous, step)) {
+      document.getElementById("auth-screen-heading")?.focus();
+    }
+  }, [step]);
 
   React.useEffect(() => {
     if (!activeError) {
