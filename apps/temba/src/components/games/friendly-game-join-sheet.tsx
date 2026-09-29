@@ -67,6 +67,8 @@ type JoinSheetStep = "chooser" | "seat" | "partner" | "partnerConfirm";
 
 type SeatPosition = "left" | "right";
 
+const SEAT_JOIN_FAILED_MESSAGE = "Couldn't take that seat. Try again.";
+
 /**
  * Structural side shape rather than one screen's router output: the sheet is
  * shared by the Game details page (`games.byId`) and the Games hub card
@@ -349,12 +351,14 @@ function TournamentTakeASeat({
   onChooseSeat,
   onConfirm,
   onJoinWithPartner,
+  error,
 }: {
   title: string;
   sides: readonly FriendlyGameJoinSheetSide[];
   format: string;
   picked: FriendlyGameJoinSeat | null;
   pending: boolean;
+  error: string | null;
   pricePerPlayerCents?: number | null;
   roundCount: number | null;
   windowStart?: Date | string | null;
@@ -442,6 +446,7 @@ function TournamentTakeASeat({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px] py-[22px]">
+        <FormErrorSummary message={error} />
         <TournamentTeamSides
           sides={sides}
           format={format}
@@ -550,7 +555,11 @@ export function FriendlyGameJoinSheet({
   sides: readonly FriendlyGameJoinSheetSide[];
   pending: boolean;
   pricePerPlayerCents?: number | null;
-  onPickSeat: (sideIndex: number, position: SeatPosition) => void;
+  /** Return the join promise to keep the sheet open until it settles. */
+  onPickSeat: (
+    sideIndex: number,
+    position: SeatPosition,
+  ) => void | Promise<unknown>;
   gameId?: string;
   format?: string;
   registrationMode?: string;
@@ -608,6 +617,7 @@ export function FriendlyGameJoinSheet({
   );
   const [openedAtPartner, setOpenedAtPartner] = useState(false);
   const [focusedSideIndex, setFocusedSideIndex] = useState<number | null>(null);
+  const [seatError, setSeatError] = useState<string | null>(null);
 
   const utils = api.useUtils();
 
@@ -682,6 +692,7 @@ export function FriendlyGameJoinSheet({
       );
       setSelectedPartner(null);
       setPartnerRaceMessage(null);
+      setSeatError(null);
       setFocusedSideIndex(initialSeat?.sideIndex ?? null);
       registerWithPartner.reset();
     }
@@ -740,12 +751,25 @@ export function FriendlyGameJoinSheet({
   const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
   const vacantSideIndex = firstFullyVacantSideIndex(sides);
 
-  function confirmSeat() {
+  async function confirmSeat() {
     if (!picked) {
       return;
     }
-    onOpenChange(false);
-    onPickSeat(picked.sideIndex, picked.position);
+    const joining = onPickSeat(picked.sideIndex, picked.position);
+    if (!(joining instanceof Promise)) {
+      onOpenChange(false);
+      return;
+    }
+    setSeatError(null);
+    try {
+      await joining;
+      onOpenChange(false);
+    } catch (error) {
+      setSeatError(
+        globalFormErrorMessage(error instanceof Error ? error : null) ??
+          SEAT_JOIN_FAILED_MESSAGE,
+      );
+    }
   }
 
   function goPartner() {
@@ -862,17 +886,20 @@ export function FriendlyGameJoinSheet({
             focusedSideIndex={focusedSideIndex}
             onFocusSide={focusTeam}
             onChooseSeat={pick}
-            onConfirm={confirmSeat}
+            onConfirm={() => {
+              void confirmSeat();
+            }}
             onJoinWithPartner={offersPartner && gameId ? goPartner : undefined}
+            error={seatError}
           />
         ) : null}
 
         {step === "seat" && !isTournamentJoin ? (
           <>
             <div className="px-[22px] pt-[18px]">
-              {partnerRaceMessage ? (
+              {(partnerRaceMessage ?? seatError) ? (
                 <FormErrorSummary
-                  message={partnerRaceMessage}
+                  message={partnerRaceMessage ?? seatError}
                   className="mb-4"
                 />
               ) : null}
@@ -916,7 +943,9 @@ export function FriendlyGameJoinSheet({
                 size="lg"
                 className="flex-1"
                 disabled={!picked || pending}
-                onClick={confirmSeat}
+                onClick={() => {
+                  void confirmSeat();
+                }}
               >
                 {pending ? "Joining…" : "Join game"}
               </Button>

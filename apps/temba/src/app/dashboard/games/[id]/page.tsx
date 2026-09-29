@@ -192,7 +192,9 @@ export default function GameHomePage({
       await utils.users.home.invalidate();
     },
     onError: (error) => {
-      toastGlobalFormError(error);
+      if (!joinPickerOpen) {
+        toastGlobalFormError(error);
+      }
     },
   });
 
@@ -1427,7 +1429,7 @@ export default function GameHomePage({
           matchMinutes={data.matchMinutes}
           allowSoloRegister={data.allowSoloRegister}
           onPickSeat={(sideIndex, position) =>
-            registerSeat.mutate({ gameId: id, sideIndex, position })
+            registerSeat.mutateAsync({ gameId: id, sideIndex, position })
           }
         />
       ) : null}
