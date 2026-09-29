@@ -3,7 +3,7 @@ import { type Metadata } from "next";
 import { AuthScreen } from "~/components/auth/auth-screen";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · Temba",
+  title: "Privacy Policy",
 };
 
 export default function PrivacyPage() {

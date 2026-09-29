@@ -3,7 +3,7 @@ import { type Metadata } from "next";
 import { AuthScreen } from "~/components/auth/auth-screen";
 
 export const metadata: Metadata = {
-  title: "Terms of Use · Temba",
+  title: "Terms of Use",
 };
 
 export default function TermsPage() {

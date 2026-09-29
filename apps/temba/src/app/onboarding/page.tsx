@@ -5,7 +5,7 @@ import { OnboardingQuestionnaire } from "~/components/onboarding/onboarding-ques
 import { onboardingRedirectTarget } from "~/lib/onboarding-step";
 
 export const metadata: Metadata = {
-  title: "Set up your Temba account",
+  title: "Set up your account",
 };
 
 /**

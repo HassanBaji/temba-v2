@@ -3,6 +3,7 @@ import { type Metadata } from "next";
 
 import { AcceptInviteFlow } from "~/components/invites/accept-invite-flow";
 import { InviteShell } from "~/components/invites/invite-shell";
+import { GENERIC_TEMBA_OPEN_GRAPH } from "~/lib/game-invite-open-graph";
 import { groupInviteShortPath } from "~/lib/invite-paths";
 import { db } from "~/server/db";
 import { findGroupInviteLinkByShortCode } from "~/server/invites/doors";
@@ -16,7 +17,10 @@ export async function generateMetadata({
   const { code } = await params;
   const fields = await loadGroupInviteOpenGraph(db, code);
   return {
-    title: fields.title,
+    title:
+      fields === GENERIC_TEMBA_OPEN_GRAPH
+        ? { absolute: fields.title }
+        : fields.title,
     description: fields.description,
     openGraph: {
       title: fields.title,
