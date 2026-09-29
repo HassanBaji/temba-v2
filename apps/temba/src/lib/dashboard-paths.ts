@@ -59,6 +59,17 @@ export function titleFromPath(pathname: string) {
   return "Home";
 }
 
+/** Mirrors the pages that pass `hideMobileTopBar` to `DashboardShell`. */
+export function pageHidesMobileTopBar(pathname: string) {
+  return (
+    pathname === "/dashboard" ||
+    pathname === "/dashboard/you" ||
+    pathname.startsWith("/dashboard/you/") ||
+    pathname.startsWith("/dashboard/games/new") ||
+    /^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)
+  );
+}
+
 export function detailBackHref(
   pathname: string | null,
   hasCreateAccess = false,

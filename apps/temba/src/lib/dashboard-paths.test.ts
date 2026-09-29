@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { detailBackHref, titleFromPath } from "./dashboard-paths";
+import {
+  detailBackHref,
+  pageHidesMobileTopBar,
+  titleFromPath,
+} from "./dashboard-paths";
 
 describe("titleFromPath", () => {
   it("titles Settings for the Profile settings route", () => {
@@ -48,5 +52,29 @@ describe("detailBackHref", () => {
       detailBackHref("/dashboard/communities/abc", false),
       "/dashboard",
     );
+  });
+});
+
+describe("pageHidesMobileTopBar", () => {
+  it.each([
+    "/dashboard",
+    "/dashboard/you",
+    "/dashboard/you/settings",
+    "/dashboard/games/new",
+    "/dashboard/groups/abc",
+  ])("hides the top bar on %s", (pathname) => {
+    assert.equal(pageHidesMobileTopBar(pathname), true);
+  });
+
+  it.each([
+    "/dashboard/games",
+    "/dashboard/games/abc",
+    "/dashboard/groups",
+    "/dashboard/groups/new",
+    "/dashboard/communities/abc",
+    "/dashboard/invites",
+    "/dashboard/youth",
+  ])("keeps the top bar on %s", (pathname) => {
+    assert.equal(pageHidesMobileTopBar(pathname), false);
   });
 });

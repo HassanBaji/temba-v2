@@ -2,15 +2,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 
 export function GroupHomeSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite">
-      <div className="md:-mt-6 lg:mt-0">
-        <div className="flex h-[52px] items-center gap-1 lg:hidden">
-          <Skeleton className="size-11 shrink-0 rounded-md" />
-          <div className="min-w-0 flex-1" />
-          <Skeleton className="size-11 shrink-0 rounded-md" />
-        </div>
-      </div>
-
+    <div aria-busy="true" aria-live="polite" className="mt-6">
       <div className="border-rule -mx-4 border-b px-4 pb-5 min-[430px]:-mx-5 min-[430px]:px-5 md:-mx-6 md:px-6 xl:-mx-8 xl:px-8">
         <div className="flex items-center justify-between gap-3">
           <Skeleton className="size-11 shrink-0 rounded-md" />

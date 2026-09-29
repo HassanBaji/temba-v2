@@ -13,7 +13,7 @@ export function ListPageSkeleton({
       aria-busy="true"
       aria-live="polite"
       className={cn(
-        "divide-border overflow-hidden rounded-lg border",
+        "divide-border divide-y overflow-hidden rounded-lg border",
         className,
       )}
     >
