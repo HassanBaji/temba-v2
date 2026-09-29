@@ -33,7 +33,7 @@ export function AuthScreen({
   const showHeader = Boolean(backHref ?? onBack ?? crossLink);
 
   return (
-    <div className="flex min-h-svh justify-center overflow-x-hidden bg-black sm:items-center">
+    <div className="bg-ink flex min-h-svh justify-center overflow-x-hidden sm:items-center">
       <div
         className={cn(
           "flex min-h-svh w-full max-w-[1000px] flex-col overflow-x-hidden sm:min-h-[844px]",

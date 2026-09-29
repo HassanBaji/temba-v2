@@ -1,5 +1,3 @@
-import "~/styles/globals.css";
-
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -37,7 +35,9 @@ export default async function DashboardLayout({
 
   return (
     <HydrateClient>
-      <div className="text-foreground min-h-screen bg-white">{children}</div>
+      <div className="bg-background text-foreground min-h-screen">
+        {children}
+      </div>
     </HydrateClient>
   );
 }
