@@ -129,6 +129,7 @@ export function poolRoundPairings<T>(
 export type TournamentRoundSizing = {
   roundCount: number;
   poolMatches: number;
+  roundMatches: number[];
   matchesPerTeamMin: number;
   matchesPerTeamMax: number;
   meets: RoundMeets;
@@ -140,6 +141,7 @@ export function sizeTournamentRounds(
 ): TournamentRoundSizing {
   const suggestedCount = suggestedRoundCount(poolSizes);
   let poolMatches = 0;
+  const roundMatches = Array.from({ length: Math.max(roundCount, 0) }, () => 0);
   const matchesPerTeam: number[] = [];
   const meetingsPerPair: number[] = [];
   for (const size of poolSizes) {
@@ -152,6 +154,8 @@ export function sizeTournamentRounds(
     const played = teams.map(() => 0);
     const meetings = new Map<string, number>();
     for (const pairing of pairings) {
+      roundMatches[pairing.roundNumber - 1] =
+        (roundMatches[pairing.roundNumber - 1] ?? 0) + 1;
       played[pairing.slot1] = (played[pairing.slot1] ?? 0) + 1;
       played[pairing.slot2] = (played[pairing.slot2] ?? 0) + 1;
       const key = pairKey(pairing.slot1, pairing.slot2);
@@ -168,6 +172,7 @@ export function sizeTournamentRounds(
   return {
     roundCount,
     poolMatches,
+    roundMatches,
     matchesPerTeamMin:
       matchesPerTeam.length > 0 ? Math.min(...matchesPerTeam) : 0,
     matchesPerTeamMax:

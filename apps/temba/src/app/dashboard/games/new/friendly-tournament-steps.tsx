@@ -490,7 +490,7 @@ export function FriendlyTournamentSteps({
       ? friendlyTournamentSchedule({
           start: parsedWindow.windowStart,
           finish: parsedWindow.windowEnd,
-          poolMatches: rounds.poolMatches,
+          roundMatches: rounds.roundMatches,
           courtCount: courtIds.length,
           matchMinutes: parsedMinutes.minutes,
           clock: formatClock,

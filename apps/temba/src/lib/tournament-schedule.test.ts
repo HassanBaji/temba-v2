@@ -9,7 +9,7 @@ import {
   schedulePoolMatches,
   sizeTournamentRounds,
 } from "./tournament-schedule";
-import { tournamentMatchMinutes } from "./tournament-sizing";
+import { oneDayFit, tournamentMatchMinutes } from "./tournament-sizing";
 
 describe("circleMethodPairings", () => {
   it("pairs an even Pool so every Game team meets every other once", () => {
@@ -393,6 +393,7 @@ describe("sizeTournamentRounds", () => {
     assert.deepEqual(sizeTournamentRounds([4, 4, 4], 3), {
       roundCount: 3,
       poolMatches: 18,
+      roundMatches: [6, 6, 6],
       matchesPerTeamMin: 3,
       matchesPerTeamMax: 3,
       meets: "once",
@@ -400,6 +401,7 @@ describe("sizeTournamentRounds", () => {
     assert.deepEqual(sizeTournamentRounds([4, 3, 3], 3), {
       roundCount: 3,
       poolMatches: 12,
+      roundMatches: [4, 4, 4],
       matchesPerTeamMin: 2,
       matchesPerTeamMax: 3,
       meets: "once",
@@ -410,6 +412,7 @@ describe("sizeTournamentRounds", () => {
     assert.deepEqual(sizeTournamentRounds([4], 1), {
       roundCount: 1,
       poolMatches: 2,
+      roundMatches: [2],
       matchesPerTeamMin: 1,
       matchesPerTeamMax: 1,
       meets: "partial",
@@ -417,6 +420,7 @@ describe("sizeTournamentRounds", () => {
     assert.deepEqual(sizeTournamentRounds([5, 5, 4], 3), {
       roundCount: 3,
       poolMatches: 18,
+      roundMatches: [6, 6, 6],
       matchesPerTeamMin: 2,
       matchesPerTeamMax: 3,
       meets: "partial",
@@ -427,6 +431,7 @@ describe("sizeTournamentRounds", () => {
     assert.deepEqual(sizeTournamentRounds([4], 4), {
       roundCount: 4,
       poolMatches: 8,
+      roundMatches: [2, 2, 2, 2],
       matchesPerTeamMin: 4,
       matchesPerTeamMax: 4,
       meets: "somePartialSecond",
@@ -438,6 +443,7 @@ describe("sizeTournamentRounds", () => {
     assert.deepEqual(sizeTournamentRounds([4, 4, 4], 6), {
       roundCount: 6,
       poolMatches: 36,
+      roundMatches: [6, 6, 6, 6, 6, 6],
       matchesPerTeamMin: 6,
       matchesPerTeamMax: 6,
       meets: "twice",
@@ -445,10 +451,69 @@ describe("sizeTournamentRounds", () => {
     assert.deepEqual(sizeTournamentRounds([5, 5, 4], 10), {
       roundCount: 10,
       poolMatches: 52,
+      roundMatches: [6, 6, 6, 4, 4, 6, 6, 6, 4, 4],
       matchesPerTeamMin: 6,
       matchesPerTeamMax: 8,
       meets: "twice",
     });
+  });
+});
+
+describe("oneDayFit against schedulePoolMatches", () => {
+  const windowStart = new Date("2026-09-20T09:00:00");
+  const windowEnd = new Date("2026-09-20T23:00:00");
+  const courts = ["court-1", "court-2", "court-3", "court-4"];
+
+  function poolsOf(sizes: readonly number[]) {
+    return sizes.map((size, poolIndex) => ({
+      poolIndex,
+      gameTeamIds: Array.from(
+        { length: size },
+        (_, index) => `${poolIndex}-${index}`,
+      ),
+    }));
+  }
+
+  it("estimates the same last Match finish the draw schedules", () => {
+    const cases = [
+      { poolSizes: [4, 4, 4], roundCount: 3 },
+      { poolSizes: [4, 4, 4], roundCount: 1 },
+      { poolSizes: [4, 4, 4], roundCount: 6 },
+      { poolSizes: [5, 5, 4], roundCount: 3 },
+      { poolSizes: [5, 5, 4], roundCount: 8 },
+      { poolSizes: [4, 3, 3], roundCount: 3 },
+      { poolSizes: [6], roundCount: 4 },
+    ];
+    for (const { poolSizes, roundCount } of cases) {
+      for (let courtCount = 1; courtCount <= courts.length; courtCount += 1) {
+        for (const matchMinutes of [20, 45]) {
+          const scheduled = schedulePoolMatches({
+            pools: poolsOf(poolSizes),
+            roundCount,
+            courtIds: courts.slice(0, courtCount),
+            windowStart,
+            windowEnd,
+            matchMinutes,
+          });
+          const lastEnd = Math.max(
+            ...scheduled.map((match) => match.endTime.getTime()),
+          );
+          const fit = oneDayFit({
+            start: windowStart,
+            finish: windowEnd,
+            roundMatches: sizeTournamentRounds(poolSizes, roundCount)
+              .roundMatches,
+            courtCount,
+            matchMinutes,
+          });
+          assert.equal(
+            fit.lastFinish?.getTime(),
+            lastEnd,
+            `${poolSizes.join("/")} × ${roundCount} Rounds on ${courtCount} Courts`,
+          );
+        }
+      }
+    }
   });
 });
 

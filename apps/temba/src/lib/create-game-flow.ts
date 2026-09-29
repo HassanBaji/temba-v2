@@ -663,7 +663,7 @@ export function friendlyTournamentScheduleLine(
 export function friendlyTournamentSchedule(input: {
   start: Date;
   finish: Date;
-  poolMatches: number;
+  roundMatches: readonly number[];
   courtCount: number;
   matchMinutes: number;
   clock: (date: Date) => string;
@@ -671,16 +671,17 @@ export function friendlyTournamentSchedule(input: {
   const fit = oneDayFit({
     start: input.start,
     finish: input.finish,
-    poolMatches: input.poolMatches,
+    roundMatches: input.roundMatches,
     courtCount: input.courtCount,
     matchMinutes: input.matchMinutes,
   });
+  const poolMatches = input.roundMatches.reduce(
+    (total, matches) => total + matches,
+    0,
+  );
   return {
     line: fit.lastFinish
-      ? friendlyTournamentScheduleLine(
-          input.poolMatches,
-          input.clock(fit.lastFinish),
-        )
+      ? friendlyTournamentScheduleLine(poolMatches, input.clock(fit.lastFinish))
       : null,
     overruns: fit.overruns,
   };

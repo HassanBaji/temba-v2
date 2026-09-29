@@ -676,8 +676,8 @@ export default function GameHomePage({
     oneDayFit({
       start: data.windowStart,
       finish: data.windowEnd,
-      poolMatches: sizeTournamentRounds(editRoundsPoolSizes, editRoundCount)
-        .poolMatches,
+      roundMatches: sizeTournamentRounds(editRoundsPoolSizes, editRoundCount)
+        .roundMatches,
       courtCount: data.recordedCourts.length,
       matchMinutes: data.matchMinutes,
     }).overruns;
