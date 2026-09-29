@@ -10,7 +10,6 @@ import {
   TournamentMatchCard,
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
-import { TAB_SEGMENT } from "~/components/groups/group-home-chrome";
 import { buttonVariants } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -511,17 +510,9 @@ function PreviewSegment<T extends string>({
           }
         }}
       >
-        <TabsList
-          id={id}
-          aria-labelledby={labelId}
-          className="border-rule bg-paper w-full max-w-full justify-stretch overflow-hidden rounded-[12px] border p-0 group-data-[orientation=horizontal]/tabs:h-auto"
-        >
+        <TabsList variant="segmented" id={id} aria-labelledby={labelId}>
           {options.map((option) => (
-            <TabsTrigger
-              key={option.value}
-              value={option.value}
-              className={cn(TAB_SEGMENT, "px-2 text-[14px]")}
-            >
+            <TabsTrigger key={option.value} value={option.value}>
               {option.label}
             </TabsTrigger>
           ))}

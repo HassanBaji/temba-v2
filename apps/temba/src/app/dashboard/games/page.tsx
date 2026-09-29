@@ -287,9 +287,9 @@ function TabCount({ count }: { count: number | undefined }) {
   }
 
   return (
-    <p className="text-muted-foreground group-data-[state=active]/tab:text-dim">
+    <span className="text-muted-foreground group-data-[state=active]/tab:text-dim">
       {count}
-    </p>
+    </span>
   );
 }
 
@@ -385,18 +385,12 @@ export default function GamesHubPage({
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
-        <TabsList className="bg-paper w-full justify-between">
-          <TabsTrigger
-            value="my-games"
-            className="group/tab w-1/2 rounded-r-none"
-          >
-            <p className="font-semibold">My Games</p>
+        <TabsList variant="segmented">
+          <TabsTrigger value="my-games" className="group/tab">
+            My Games
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
-          <TabsTrigger
-            value="history"
-            className="group/tab w-1/2 rounded-l-none"
-          >
+          <TabsTrigger value="history" className="group/tab">
             History
             <TabCount count={history.data?.length} />
           </TabsTrigger>
@@ -429,10 +423,7 @@ export default function GamesHubPage({
             pendingGameId={pendingGameId}
           />
         </TabsContent>
-        <TabsContent
-          value="history"
-          className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-        >
+        <TabsContent value="history">
           <HistoryTabPanel
             isLoading={history.isLoading}
             errorMessage={history.error?.message}

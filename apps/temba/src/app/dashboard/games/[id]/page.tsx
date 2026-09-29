@@ -1225,18 +1225,12 @@ export default function GameHomePage({
         ) : (
           <Tabs value={tab} onValueChange={setTab} className="gap-4">
             <TabsList
-              // variant="line"
-              className="sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-between overflow-x-auto overflow-y-hidden lg:top-0"
+              variant="segmented"
+              className="sticky top-[var(--mobile-top-bar-height)] z-20 lg:top-0"
             >
-              <TabsTrigger value="overview" className="w-[33%]">
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="players" className="w-[33%]">
-                Players
-              </TabsTrigger>
-              <TabsTrigger value="results" className="w-[33%]">
-                Results
-              </TabsTrigger>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="players">Players</TabsTrigger>
+              <TabsTrigger value="results">Results</TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
               <div className="space-y-6">
@@ -1246,10 +1240,7 @@ export default function GameHomePage({
                 <GameOverviewPanel game={data} />
               </div>
             </TabsContent>
-            <TabsContent
-              value="players"
-              className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-            >
+            <TabsContent value="players">
               <div className="space-y-6">
                 <GamePlayersPanel
                   game={data}
@@ -1292,10 +1283,7 @@ export default function GameHomePage({
                 />
               </div>
             </TabsContent>
-            <TabsContent
-              value="results"
-              className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-            >
+            <TabsContent value="results">
               <GameResultsPanel
                 format={data.format}
                 matches={data.matches}

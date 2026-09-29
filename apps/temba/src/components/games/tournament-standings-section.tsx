@@ -6,7 +6,6 @@ import * as React from "react";
 
 import { PoolRecordTable } from "~/components/games/tournament-pool-tables-panel";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
-import { TAB_SEGMENT } from "~/components/groups/group-home-chrome";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   POOLS_SEGMENT_LABEL,
@@ -221,16 +220,9 @@ export function TournamentStandingsSection({
       className="gap-0"
     >
       {poolTables.pools.length > 0 ? (
-        <TabsList
-          aria-label={POOLS_SEGMENT_LABEL}
-          className="border-rule bg-paper w-full max-w-full justify-stretch overflow-hidden rounded-[12px] border p-0 group-data-[orientation=horizontal]/tabs:h-auto"
-        >
+        <TabsList variant="segmented" aria-label={POOLS_SEGMENT_LABEL}>
           {poolTables.pools.map((pool) => (
-            <TabsTrigger
-              key={pool.poolIndex}
-              value={String(pool.poolIndex)}
-              className={TAB_SEGMENT}
-            >
+            <TabsTrigger key={pool.poolIndex} value={String(pool.poolIndex)}>
               {pool.label}
             </TabsTrigger>
           ))}

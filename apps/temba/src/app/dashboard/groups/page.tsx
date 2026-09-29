@@ -374,13 +374,9 @@ export default function GroupsIndexPage({
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
-        <TabsList className="bg-paper w-full justify-between">
-          <TabsTrigger value="mine" className="w-1/2 rounded-r-none">
-            Mine
-          </TabsTrigger>
-          <TabsTrigger value="public" className="w-1/2 rounded-l-none">
-            Public
-          </TabsTrigger>
+        <TabsList variant="segmented">
+          <TabsTrigger value="mine">Mine</TabsTrigger>
+          <TabsTrigger value="public">Public</TabsTrigger>
         </TabsList>
 
         <TabsContent value="mine">

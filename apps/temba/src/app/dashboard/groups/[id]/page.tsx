@@ -592,10 +592,7 @@ export default function GroupHomePage({
             </Button>
           ) : null}
 
-          <TabsContent
-            value="standing"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+          <TabsContent value="standing">
             <GroupStandingTab
               isMember={Boolean(data.membership)}
               leaderboard={data.standing.leaderboard}
@@ -605,10 +602,7 @@ export default function GroupHomePage({
               awaitingScoreCount={data.standing.awaitingScoreCount}
             />
           </TabsContent>
-          <TabsContent
-            value="games"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+          <TabsContent value="games">
             <GroupGamesTab
               upcomingGames={data.upcomingGames}
               gameHistory={data.gameHistory}
@@ -622,10 +616,7 @@ export default function GroupHomePage({
               onRegister={onRegisterGame}
             />
           </TabsContent>
-          <TabsContent
-            value="members"
-            className="focus-visible:ring-ring/50 rounded-md focus-visible:ring-[3px]"
-          >
+          <TabsContent value="members">
             <div className="flex flex-col gap-[26px]">
               <GroupApproverControls
                 canSetRequiresApproval={data.canSetRequiresApproval}

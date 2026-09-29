@@ -520,35 +520,17 @@ export default function CommunityHomePage({
             <Tabs defaultValue="groups" className="gap-4">
               <TabsList
                 variant="line"
-                className="bg-background sticky top-11 z-20 h-11 min-h-11 w-full max-w-full justify-start overflow-x-auto overflow-y-hidden rounded-none lg:top-0"
+                className="bg-background sticky top-[var(--mobile-top-bar-height)] z-20 lg:top-0"
               >
-                <TabsTrigger
-                  value="groups"
-                  className="min-h-11 min-w-11 flex-none px-3"
-                >
-                  Groups
-                </TabsTrigger>
+                <TabsTrigger value="groups">Groups</TabsTrigger>
                 {isMember ? (
-                  <TabsTrigger
-                    value="teams"
-                    className="min-h-11 min-w-11 flex-none px-3"
-                  >
-                    Teams
-                  </TabsTrigger>
+                  <TabsTrigger value="teams">Teams</TabsTrigger>
                 ) : null}
                 {isMember ? (
-                  <TabsTrigger
-                    value="members"
-                    className="min-h-11 min-w-11 flex-none px-3"
-                  >
-                    Members
-                  </TabsTrigger>
+                  <TabsTrigger value="members">Members</TabsTrigger>
                 ) : null}
                 {showRequestsTab ? (
-                  <TabsTrigger
-                    value="requests"
-                    className="min-h-11 min-w-11 flex-none gap-2 px-3"
-                  >
+                  <TabsTrigger value="requests" className="gap-2">
                     Requests
                     {requestCount > 0 ? (
                       <Badge variant="secondary" size="sm">
