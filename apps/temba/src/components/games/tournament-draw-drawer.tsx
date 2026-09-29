@@ -1,7 +1,9 @@
 "use client";
 
 import { X } from "lucide-react";
+import * as React from "react";
 
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
 import { Button } from "~/components/ui/button";
 import {
@@ -17,6 +19,9 @@ import {
   DRAW_DRAWER_TITLE,
   DRAW_ENTRY_ACTION_LABEL,
   UNDO_POOL_DRAW_ACTION,
+  UNDO_POOL_DRAW_CONFIRM_COPY,
+  UNDO_POOL_DRAW_CONFIRM_LABEL,
+  UNDO_POOL_DRAW_CONFIRM_TITLE,
   drawDrawerLead,
   drawEntryStateLine,
   drawEntryTitle,
@@ -65,6 +70,8 @@ export function TournamentUndoPoolDraw({
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
 }) {
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+
   return (
     <div className="space-y-3">
       <FormErrorSummary message={globalFormErrorMessage(undoError)} />
@@ -74,12 +81,25 @@ export function TournamentUndoPoolDraw({
         className="min-h-11 w-full"
         disabled={undoPending}
         aria-busy={undoPending}
-        onClick={() => {
-          void onUndo();
-        }}
+        onClick={() => setConfirmOpen(true)}
       >
         {undoPending ? "Undoing…" : UNDO_POOL_DRAW_ACTION}
       </Button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={UNDO_POOL_DRAW_CONFIRM_TITLE}
+        description={UNDO_POOL_DRAW_CONFIRM_COPY}
+        confirmLabel={UNDO_POOL_DRAW_CONFIRM_LABEL}
+        pending={undoPending}
+        onConfirm={async () => {
+          try {
+            await onUndo();
+          } catch {
+            // The failure is already shown by FormErrorSummary above.
+          }
+        }}
+      />
     </div>
   );
 }
