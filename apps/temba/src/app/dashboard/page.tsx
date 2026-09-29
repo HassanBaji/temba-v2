@@ -12,11 +12,15 @@ import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
 import { HomeLevel } from "~/components/home/home-level-block";
 import { HomeRecentForm } from "~/components/home/home-recent-form-row";
 import { HomeStanding } from "~/components/home/home-standing";
+import { HomeTournamentCard } from "~/components/home/home-tournament-card";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
 import { homeComingUpRows } from "~/lib/home-coming-up";
 import { homeNextGameSeats } from "~/lib/home-seats";
-import { isPoolMatchRow } from "~/lib/tournament-card";
+import {
+  isPoolMatchRow,
+  isPoolTournamentSummaryRow,
+} from "~/lib/tournament-card";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { api } from "~/trpc/react";
 
@@ -88,6 +92,8 @@ export default function HomePage() {
                 phase={nextGame.phase}
                 canAddResults={nextGame.canAddResults}
               />
+            ) : nextGame && isPoolTournamentSummaryRow(nextGame) ? (
+              <HomeTournamentCard game={nextGame} />
             ) : nextGame ? (
               <HomeNextGame
                 id={nextGame.id}

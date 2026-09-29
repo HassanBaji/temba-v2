@@ -5,6 +5,11 @@ import { homeComingUpRows, type HomeComingUpSource } from "./home-coming-up";
 
 const STARTS = new Date("2026-09-29T17:30:00.000Z");
 
+const YOU = { name: "Sam Rivera", isViewer: true };
+const SOFIA = { name: "Sofia Rossi", isViewer: false };
+const MAJA = { name: "Maja Svensson", isViewer: false };
+const OSKAR = { name: "Oskar Toll", isViewer: false };
+
 function friendly(
   overrides: Partial<HomeComingUpSource> = {},
 ): HomeComingUpSource {
@@ -21,30 +26,52 @@ function friendly(
     sides: [],
     roundNumber: null,
     roundCount: null,
+    registrationMode: "individual",
+    canRegister: false,
+    canWaitlist: false,
+    joinFrozen: false,
+    isRegistered: true,
+    isSeated: true,
+    isWaitlisted: false,
+    registrationStatus: "open",
+    registeredTeamCount: 0,
+    teamsAllowed: null,
+    tournament: null,
     ...overrides,
   };
+}
+
+function tournament(
+  overrides: Partial<HomeComingUpSource> = {},
+): HomeComingUpSource {
+  return friendly({
+    id: "cup-1",
+    format: "friendly_tournament",
+    poolCount: 2,
+    name: "Friday Cup",
+    registeredTeamCount: 5,
+    teamsAllowed: 8,
+    tournament: {
+      drawPosted: false,
+      teams: [
+        { isViewerTeam: true, poolIndex: null, left: YOU, right: SOFIA },
+        { isViewerTeam: false, poolIndex: null, left: MAJA, right: OSKAR },
+      ],
+    },
+    ...overrides,
+  });
 }
 
 function poolMatch(
   overrides: Partial<HomeComingUpSource> = {},
 ): HomeComingUpSource {
-  return friendly({
-    id: "cup-1",
+  return tournament({
     matchId: "match-2",
-    format: "friendly_tournament",
-    poolCount: 2,
-    name: "Friday Cup",
     roundNumber: 2,
     roundCount: 3,
     sides: [
-      {
-        left: { name: "Sam Rivera", isViewer: true },
-        right: { name: "Sofia Rossi", isViewer: false },
-      },
-      {
-        left: { name: "Maja Svensson", isViewer: false },
-        right: { name: "Oskar Toll", isViewer: false },
-      },
+      { left: YOU, right: SOFIA },
+      { left: MAJA, right: OSKAR },
     ],
     ...overrides,
   });
@@ -64,7 +91,7 @@ describe("homeComingUpRows", () => {
     });
   });
 
-  it("shows a Pool Match behind the hero as a tournament row", () => {
+  it("shows a Pool Match behind the hero as a tournament Match row", () => {
     const rows = homeComingUpRows([friendly(), poolMatch()]);
     assert.deepEqual(rows[1], {
       kind: "tournament_match",
@@ -92,10 +119,49 @@ describe("homeComingUpRows", () => {
     );
   });
 
-  it("leaves a tournament without a posted draw as a seat row", () => {
+  it("shows a tournament before the draw with its teams and no action once the viewer is in", () => {
+    const [row] = homeComingUpRows([tournament()]);
+    assert.deepEqual(row, {
+      kind: "tournament",
+      id: "cup-1",
+      rowKey: "cup-1",
+      title: "Friday Cup",
+      startsAt: STARTS,
+      teamsLine: "5 of 8 teams in",
+      actionLabel: null,
+    });
+  });
+
+  it("keeps the join action for an organizer who is not in yet", () => {
     const [row] = homeComingUpRows([
-      poolMatch({ matchId: null, roundNumber: null, sides: [] }),
+      tournament({
+        isRegistered: false,
+        isSeated: false,
+        canRegister: true,
+        tournament: { drawPosted: false, teams: [] },
+      }),
     ]);
-    assert.equal(row?.kind, "game");
+    assert.equal(row?.kind, "tournament");
+    assert.equal(
+      row?.kind === "tournament" ? row.actionLabel : null,
+      "Join tournament",
+    );
+  });
+
+  it("asks a Half team to invite a partner", () => {
+    const [row] = homeComingUpRows([
+      tournament({
+        tournament: {
+          drawPosted: false,
+          teams: [
+            { isViewerTeam: true, poolIndex: null, left: YOU, right: null },
+          ],
+        },
+      }),
+    ]);
+    assert.equal(
+      row?.kind === "tournament" ? row.actionLabel : null,
+      "Invite a partner",
+    );
   });
 });
