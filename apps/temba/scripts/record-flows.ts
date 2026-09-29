@@ -178,7 +178,7 @@ async function flows(): Promise<Flow[]> {
         await page.getByRole("radio", { name: /^right$/i }).click();
         await pause(page);
         await clickIfPresent(page, /^continue$/i);
-        await page.getByRole("radio", { name: /^C3$/ }).click();
+        await page.getByRole("radio", { name: /^C$/ }).click();
         await pause(page);
         await clickIfPresent(page, /^finish$/i);
         await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
