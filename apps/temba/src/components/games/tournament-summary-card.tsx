@@ -268,6 +268,7 @@ export function TournamentSummaryCard({
   actionPending = false,
   onJoinSeat,
   onJoinWaitlist,
+  as: Element = "li",
 }: {
   game: TournamentCardGame;
   href: string;
@@ -275,6 +276,7 @@ export function TournamentSummaryCard({
   actionPending?: boolean;
   onJoinSeat: (sideIndex: number, position: "left" | "right") => void;
   onJoinWaitlist: () => void;
+  as?: "li" | "article";
 }) {
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const tournament = game.tournament;
@@ -294,7 +296,7 @@ export function TournamentSummaryCard({
   const interactive = action === "join" || action === "join_waitlist";
 
   return (
-    <li data-slot="tournament-summary-card">
+    <Element data-slot="tournament-summary-card">
       <StackedCard
         href={href}
         linkLabel={[title, TOURNAMENT_CARD_BAND_LABEL, dateLine]
@@ -400,7 +402,7 @@ export function TournamentSummaryCard({
           onPickSeat={onJoinSeat}
         />
       ) : null}
-    </li>
+    </Element>
   );
 }
 
