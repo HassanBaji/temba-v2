@@ -623,7 +623,7 @@ export default function GameHomePage({
 
   if (game.error) {
     return (
-      <DashboardShell title="Game" hidePageHeader>
+      <DashboardShell title="Game">
         <ErrorState
           title="Game could not be loaded"
           message={game.error.message}
@@ -637,7 +637,7 @@ export default function GameHomePage({
 
   if (!data) {
     return (
-      <DashboardShell title="Game" hidePageHeader>
+      <DashboardShell title="Game">
         <ErrorState
           title="Game could not be loaded"
           onRetry={() => {
@@ -651,7 +651,7 @@ export default function GameHomePage({
   const gameName = data.name ?? "Game";
   const shellTitle = usesFriendlyChrome
     ? friendlyGameHomeTitle(data.groupId, data.groupName)
-    : gameName;
+    : "Game";
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const plannedSizing =
     isPoolTournament(data.format, data.poolCount) &&
@@ -982,7 +982,10 @@ export default function GameHomePage({
         {usesPoolTournamentChrome ? (
           <>
             {data.joinFrozen && !data.cancelledAt ? (
-              <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+              <SoftArchiveBanner
+                headingLevel={2}
+                heading="This Club Group's Community is Soft-archived"
+              >
                 Registration, the waitlist, and invites stay closed.
               </SoftArchiveBanner>
             ) : null}
@@ -1059,6 +1062,7 @@ export default function GameHomePage({
           </>
         ) : usesFriendlyChrome ? (
           <>
+            <h1 className="sr-only">Friendly Game</h1>
             {desktopOverflow ? (
               <div className="hidden justify-end lg:flex">
                 {desktopOverflow}
@@ -1139,7 +1143,10 @@ export default function GameHomePage({
         ) : null}
 
         {data.joinFrozen && !data.cancelledAt && !usesPoolTournamentChrome ? (
-          <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+          <SoftArchiveBanner
+            headingLevel={2}
+            heading="This Club Group's Community is Soft-archived"
+          >
             Registration, the waitlist, and invites stay closed.
           </SoftArchiveBanner>
         ) : null}

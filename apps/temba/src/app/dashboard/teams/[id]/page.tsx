@@ -164,7 +164,7 @@ export default function TeamHomePage({
 
   if (team.isLoading) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" hidePageHeader isSubPage>
         <DetailPageSkeleton />
       </DashboardShell>
     );
@@ -172,7 +172,7 @@ export default function TeamHomePage({
 
   if (isForbiddenError(team.error)) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" isSubPage>
         <EmptyState
           icon={Lock}
           title="You cannot open this Team"
@@ -189,7 +189,7 @@ export default function TeamHomePage({
 
   if (team.error) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" isSubPage>
         <ErrorState
           title="Team could not be loaded"
           message={team.error.message}
@@ -203,7 +203,7 @@ export default function TeamHomePage({
 
   if (!team.data) {
     return (
-      <DashboardShell title="Team" hidePageHeader>
+      <DashboardShell title="Team" isSubPage>
         <ErrorState
           title="Team could not be loaded"
           onRetry={() => {
@@ -222,7 +222,7 @@ export default function TeamHomePage({
   }));
 
   return (
-    <DashboardShell title={displayName} hidePageHeader>
+    <DashboardShell title="Team" hidePageHeader isSubPage>
       <div className="space-y-6">
         {data.waitingForPartner && data.canInvite ? (
           <Button
@@ -332,6 +332,7 @@ export default function TeamHomePage({
         <Section title="Members">
           {data.members.length === 0 ? (
             <EmptyState
+              headingLevel={3}
               icon={Users}
               title="No members"
               description="People on this Team will show up here."

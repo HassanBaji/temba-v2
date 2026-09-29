@@ -153,9 +153,9 @@ export function GamePlayersPanel({
             />
             {game.unseatedPlayers.length > 0 ? (
               <div className="space-y-2">
-                <h3 className="text-body text-muted-foreground font-semibold">
+                <h2 className="text-body text-muted-foreground font-semibold">
                   Not seated yet
-                </h3>
+                </h2>
                 <RowList>
                   {game.unseatedPlayers.map((player) => {
                     const isViewer = player.id === game.viewerUserId;
@@ -231,9 +231,9 @@ export function GamePlayersPanel({
             />
             {game.unseatedPlayers.length > 0 ? (
               <div className="space-y-2">
-                <h3 className="text-body text-muted-foreground font-semibold">
+                <h2 className="text-body text-muted-foreground font-semibold">
                   Not seated yet
-                </h3>
+                </h2>
                 <RowList>
                   {game.unseatedPlayers.map((player) => (
                     <ListRow
@@ -339,7 +339,12 @@ export function GamePlayersPanel({
 
       <Section title="Waitlist">
         {game.waitlist.length === 0 ? (
-          <EmptyState icon={Users} title="Waitlist is empty" className="py-8" />
+          <EmptyState
+            headingLevel={3}
+            icon={Users}
+            title="Waitlist is empty"
+            className="py-8"
+          />
         ) : (
           <RowList aria-label="Waitlist">
             {game.waitlist.map((entry, index) => (

@@ -22,14 +22,17 @@ export function ErrorState({
   message,
   onRetry,
   retryLabel = "Try again",
+  headingLevel = 2,
   className,
 }: {
   title?: string;
   message?: string;
   onRetry: () => void;
   retryLabel?: string;
+  headingLevel?: 2 | 3;
   className?: string;
 }) {
+  const Heading = headingLevel === 3 ? "h3" : "h2";
   return (
     <div
       role="alert"
@@ -44,7 +47,7 @@ export function ErrorState({
         className="text-muted-foreground size-8"
         strokeWidth={1.75}
       />
-      <h2 className="text-title font-semibold">{title}</h2>
+      <Heading className="text-title font-semibold">{title}</Heading>
       <p className="text-body text-muted-foreground">
         {safeErrorMessage(message)}
       </p>

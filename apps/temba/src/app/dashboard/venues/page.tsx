@@ -11,6 +11,7 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { RequestRow } from "~/components/invites/request-row";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -50,9 +51,7 @@ export default function VenuesPage() {
       title="Venues"
       description="Physical sites in the catalog, including Soft-archived Venues. Create a Venue before any Community claims it."
       action={
-        <Button asChild>
-          <Link href="/dashboard/venues/new">Create Venue</Link>
-        </Button>
+        <PageCreateAction href="/dashboard/venues/new" label="Create Venue" />
       }
     >
       <div className="space-y-6">
@@ -68,6 +67,7 @@ export default function VenuesPage() {
           {pendingLinks.isLoading ? <ListPageSkeleton rows={2} /> : null}
           {pendingLinks.error ? (
             <ErrorState
+              headingLevel={3}
               title="Requests could not be loaded"
               message={pendingLinks.error.message}
               onRetry={() => {
@@ -77,6 +77,7 @@ export default function VenuesPage() {
           ) : null}
           {pendingLinks.data?.length === 0 ? (
             <EmptyState
+              headingLevel={3}
               icon={Inbox}
               title="No pending requests"
               description="Venue link requests from Communities will show up here."

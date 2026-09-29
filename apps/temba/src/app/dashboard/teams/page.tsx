@@ -11,6 +11,7 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -43,9 +44,7 @@ export default function TeamsIndexPage() {
       title="Teams"
       description="Partnerships you play as"
       action={
-        <Button asChild>
-          <Link href="/dashboard/teams/new">Create Team</Link>
-        </Button>
+        <PageCreateAction href="/dashboard/teams/new" label="Create Team" />
       }
     >
       {teams.isLoading ? <ListPageSkeleton rows={4} /> : null}

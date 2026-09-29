@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { use } from "react";
@@ -11,6 +11,7 @@ import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { FormStrip } from "~/components/temba/form-strip";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -371,11 +372,7 @@ export default function GroupsIndexPage({
       title="Groups"
       action={
         hasCreateAccess ? (
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/dashboard/groups/new" aria-label="Create Group">
-              <PlusIcon className="size-5" />
-            </Link>
-          </Button>
+          <PageCreateAction href="/dashboard/groups/new" label="Create Group" />
         ) : undefined
       }
     >

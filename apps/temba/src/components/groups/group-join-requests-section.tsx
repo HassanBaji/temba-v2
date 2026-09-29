@@ -98,6 +98,7 @@ export function GroupApproverControls({
           {joinLoading ? <Skeleton className="h-16 w-full" /> : null}
           {joinError ? (
             <ErrorState
+              headingLevel={3}
               title="Join requests could not be loaded"
               message={joinError}
               onRetry={onRetryJoin}
@@ -134,6 +135,7 @@ export function GroupApproverControls({
           ) : null}
           {empty ? (
             <EmptyState
+              headingLevel={3}
               icon={Inbox}
               title="No pending requests"
               description="Group join requests will show up here."

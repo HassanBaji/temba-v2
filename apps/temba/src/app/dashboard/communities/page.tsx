@@ -9,6 +9,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
 import { GroupTypeBadge } from "~/components/temba/group-type-badge";
 import { RoleBadge } from "~/components/temba/role-badge";
@@ -75,9 +76,10 @@ export default function CommunitiesPage() {
       title="Communities"
       description="Communities you belong to, with every Club Group nested. Open a Community or Group to go to its home."
       action={
-        <Button asChild>
-          <Link href="/dashboard/communities/new">Create Community</Link>
-        </Button>
+        <PageCreateAction
+          href="/dashboard/communities/new"
+          label="Create Community"
+        />
       }
     >
       {mine.isLoading ? <CommunitiesListSkeleton /> : null}

@@ -16,12 +16,14 @@ export function MobileTopBar({
   action,
   icon,
   isSubPage,
+  titleAs: Title = "h1",
 }: {
   title?: string;
   icon?: ReactNode;
   backHref?: string;
   action?: ReactNode;
   isSubPage?: boolean;
+  titleAs?: "h1" | "p";
 }) {
   return (
     <header
@@ -41,14 +43,14 @@ export function MobileTopBar({
         </Link>
       )}
       {title ? (
-        <p
+        <Title
           className={cn(
             "min-w-0 flex-1 truncate text-3xl font-bold tracking-[-0.01em]",
             isSubPage && "text-foreground text-center text-base",
           )}
         >
           {title}
-        </p>
+        </Title>
       ) : null}
 
       {icon ? <div className="size-11 shrink-0">{icon}</div> : null}
@@ -62,11 +64,13 @@ export function MobileTopBarFromPath({
   icon,
   action,
   isSubPage,
+  titleAs,
 }: {
   title: string;
   icon?: ReactNode;
   action?: ReactNode;
   isSubPage?: boolean;
+  titleAs?: "h1" | "p";
 }) {
   const pathname = usePathname();
   const { isLoaded, hasCreateAccess } = useCreateAccess();
@@ -77,6 +81,7 @@ export function MobileTopBarFromPath({
       backHref={detailBackHref(pathname, isLoaded && hasCreateAccess)}
       action={action}
       icon={icon}
+      titleAs={titleAs}
     />
   );
 }

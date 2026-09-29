@@ -415,7 +415,7 @@ export default function GroupHomePage({
 
   if (group.error) {
     return (
-      <DashboardShell title="Group" hidePageHeader>
+      <DashboardShell title="Group">
         <ErrorState
           title="Group could not be loaded"
           message={group.error.message}
@@ -429,7 +429,7 @@ export default function GroupHomePage({
 
   if (!group.data) {
     return (
-      <DashboardShell title="Group" hidePageHeader>
+      <DashboardShell title="Group">
         <ErrorState
           title="Group could not be loaded"
           onRetry={() => {
@@ -516,14 +516,17 @@ export default function GroupHomePage({
   const banners = (
     <>
       {data.isCommunityArchived && !data.communityMembership ? (
-        <SoftArchiveBanner heading="This Club Group's Community is Soft-archived">
+        <SoftArchiveBanner
+          headingLevel={2}
+          heading="This Club Group's Community is Soft-archived"
+        >
           It is not open for join. Members of the Community can still open
           history and Games. This is not a missing page.
         </SoftArchiveBanner>
       ) : null}
 
       {data.isCommunityArchived && data.communityMembership ? (
-        <SoftArchiveBanner heading="Community Soft-archived">
+        <SoftArchiveBanner headingLevel={2} heading="Community Soft-archived">
           This Club Group stays attached to its Community. You can still open it
           and see history and Games while the Community is archived.
         </SoftArchiveBanner>

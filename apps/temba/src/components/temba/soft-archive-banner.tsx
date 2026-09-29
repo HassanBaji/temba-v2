@@ -6,12 +6,15 @@ import { cn } from "~/lib/utils";
 export function SoftArchiveBanner({
   heading,
   children,
+  headingLevel = 3,
   className,
 }: {
   heading: string;
   children: ReactNode;
+  headingLevel?: 2 | 3;
   className?: string;
 }) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
     <section
       role="status"
@@ -24,9 +27,9 @@ export function SoftArchiveBanner({
           strokeWidth={2}
         />
         <div className="min-w-0">
-          <h3 className="text-title font-semibold tracking-[-0.01em]">
+          <Heading className="text-title font-semibold tracking-[-0.01em]">
             {heading}
-          </h3>
+          </Heading>
           <div className="text-body text-muted-foreground mt-1">{children}</div>
         </div>
       </div>

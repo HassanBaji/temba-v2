@@ -28,11 +28,7 @@ export function PageHeader({
           <p className="text-body text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      {action ? (
-        <div className="w-full shrink-0 sm:w-auto [&_a]:flex [&_a]:min-h-11 [&_a]:w-full [&_a]:items-center [&_a]:justify-center sm:[&_a]:w-auto [&_button]:min-h-11 [&_button]:w-full sm:[&_button]:w-auto">
-          {action}
-        </div>
-      ) : null}
+      {action ? <div className="shrink-0">{action}</div> : null}
     </header>
   );
 }

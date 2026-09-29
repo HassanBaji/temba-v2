@@ -52,6 +52,7 @@ export function AppShell({
               icon={icon}
               action={action}
               isSubPage={isSubPage}
+              titleAs={hidePageHeader ? "p" : "h1"}
             />
           )}
           <main
@@ -64,6 +65,14 @@ export function AppShell({
                 : "max-w-[var(--container-content)]",
             )}
           >
+            {hidePageHeader || !title ? null : (
+              <PageHeader
+                title={title}
+                description={description}
+                action={action}
+                className="mb-6 hidden lg:flex"
+              />
+            )}
             {children}
           </main>
         </div>

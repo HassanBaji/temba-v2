@@ -80,6 +80,7 @@ export function CommunityRequestsTab({
           {joinLoading ? <Skeleton className="h-16 w-full" /> : null}
           {joinError ? (
             <ErrorState
+              headingLevel={3}
               title="Join requests could not be loaded"
               message={joinError}
               onRetry={onRetryJoin}
@@ -125,6 +126,7 @@ export function CommunityRequestsTab({
           {teamLoading ? <Skeleton className="h-16 w-full" /> : null}
           {teamError ? (
             <ErrorState
+              headingLevel={3}
               title="Team link requests could not be loaded"
               message={teamError}
               onRetry={onRetryTeam}

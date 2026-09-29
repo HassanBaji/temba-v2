@@ -325,7 +325,7 @@ export default function CommunityHomePage({
 
   if (community.isLoading) {
     return (
-      <DashboardShell title="Community" width="wide" hidePageHeader>
+      <DashboardShell title="Community" width="wide" hidePageHeader isSubPage>
         <CommunityHomeSkeleton />
       </DashboardShell>
     );
@@ -333,7 +333,7 @@ export default function CommunityHomePage({
 
   if (community.error) {
     return (
-      <DashboardShell title="Community" width="wide" hidePageHeader>
+      <DashboardShell title="Community" width="wide" isSubPage>
         <ErrorState
           title="Community could not be loaded"
           message={community.error.message}
@@ -347,7 +347,7 @@ export default function CommunityHomePage({
 
   if (!community.data) {
     return (
-      <DashboardShell title="Community" width="wide" hidePageHeader>
+      <DashboardShell title="Community" width="wide" isSubPage>
         <ErrorState
           title="Community could not be loaded"
           onRetry={() => {
@@ -483,7 +483,7 @@ export default function CommunityHomePage({
     ) : null;
 
   return (
-    <DashboardShell title={communityName} width="wide" hidePageHeader>
+    <DashboardShell title="Community" width="wide" hidePageHeader isSubPage>
       <div className="space-y-6">
         <CommunityHomeHeader
           name={communityName}
@@ -497,14 +497,17 @@ export default function CommunityHomePage({
         />
 
         {!isLive && !isMember ? (
-          <SoftArchiveBanner heading="This Community is Soft-archived">
+          <SoftArchiveBanner
+            headingLevel={2}
+            heading="This Community is Soft-archived"
+          >
             It is not open for new joins, requests, or invites. Members can
             still open history and Games. This is not a missing page.
           </SoftArchiveBanner>
         ) : null}
 
         {!isLive && isMember ? (
-          <SoftArchiveBanner heading="Soft-archived">
+          <SoftArchiveBanner headingLevel={2} heading="Soft-archived">
             Club Groups stay attached. You can still open Groups and see history
             and Games. New joins, requests, Lookup invites, and Invite links are
             paused until an Owner or Admin unarchives.

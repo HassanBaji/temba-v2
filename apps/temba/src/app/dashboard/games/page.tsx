@@ -16,6 +16,7 @@ import {
   TournamentMatchCard,
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
+import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -30,7 +31,6 @@ import {
 } from "~/lib/game-summary-cta";
 import { isPoolTournament, poolRoundLabel } from "~/lib/tournament-rounds";
 import { api, type RouterOutputs } from "~/trpc/react";
-import { PlusIcon } from "lucide-react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
 type HistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
@@ -376,11 +376,7 @@ export default function GamesHubPage({
       title="Games"
       action={
         hasCreateAccess ? (
-          <Button asChild variant={"ghost"} size={"icon"}>
-            <Link href="/dashboard/games/new" aria-label="Create">
-              <PlusIcon className="size-5" />
-            </Link>
-          </Button>
+          <PageCreateAction href="/dashboard/games/new" label="Create Game" />
         ) : undefined
       }
     >

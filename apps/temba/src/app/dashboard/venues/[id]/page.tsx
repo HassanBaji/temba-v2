@@ -256,7 +256,7 @@ export default function VenueHomePage({
 
   if (venue.isLoading) {
     return (
-      <DashboardShell title="Venue">
+      <DashboardShell title="Venue" isSubPage>
         <DetailPageSkeleton />
       </DashboardShell>
     );
@@ -264,7 +264,7 @@ export default function VenueHomePage({
 
   if (venue.error) {
     return (
-      <DashboardShell title="Venue">
+      <DashboardShell title="Venue" isSubPage>
         <ErrorState
           title="Venue could not be loaded"
           message={venue.error.message}
@@ -278,7 +278,7 @@ export default function VenueHomePage({
 
   if (!venue.data) {
     return (
-      <DashboardShell title="Venue">
+      <DashboardShell title="Venue" isSubPage>
         <ErrorState
           title="Venue could not be loaded"
           onRetry={() => {
@@ -297,6 +297,7 @@ export default function VenueHomePage({
   return (
     <DashboardShell
       title={venueName}
+      isSubPage
       description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
       action={
         data.archivedAt ? (
@@ -322,7 +323,10 @@ export default function VenueHomePage({
     >
       <div className="space-y-6">
         {data.archivedAt ? (
-          <SoftArchiveBanner heading="This Venue is Soft-archived">
+          <SoftArchiveBanner
+            headingLevel={2}
+            heading="This Venue is Soft-archived"
+          >
             It is hidden from the Community request catalog. You can still edit
             fields, Courts, and logo. Unarchive to restore it to the live
             catalog. Live Community links stay.

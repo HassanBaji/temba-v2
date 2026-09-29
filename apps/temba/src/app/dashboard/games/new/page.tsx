@@ -677,7 +677,7 @@ function NewGameForm() {
 
   if (createGroups.isLoading) {
     return (
-      <DashboardShell title="Create Game" hideMobileTopBar>
+      <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
         <p className="text-muted-foreground text-sm">Loading…</p>
       </DashboardShell>
     );
@@ -685,7 +685,7 @@ function NewGameForm() {
 
   if (createGroups.error) {
     return (
-      <DashboardShell title="Create Game" hideMobileTopBar>
+      <DashboardShell title="Create Game">
         <ErrorState
           title="Groups could not be loaded"
           message={createGroups.error.message}
@@ -699,7 +699,7 @@ function NewGameForm() {
 
   if (createGroups.data?.length === 0) {
     return (
-      <DashboardShell title="Create Game" hideMobileTopBar>
+      <DashboardShell title="Create Game">
         <EmptyState
           emoji="🎾"
           title="Games are created inside a Group"
@@ -769,7 +769,7 @@ function NewGameForm() {
     );
 
   return (
-    <DashboardShell title="Create Game" hideMobileTopBar>
+    <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -1099,7 +1099,7 @@ export default function NewGamePage() {
   return (
     <React.Suspense
       fallback={
-        <DashboardShell title="Create Game" hideMobileTopBar>
+        <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
           <p className="text-muted-foreground text-sm">Loading…</p>
         </DashboardShell>
       }

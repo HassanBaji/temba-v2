@@ -9,6 +9,7 @@ export function EmptyState({
   title,
   description,
   action,
+  headingLevel = 2,
   className,
 }: {
   icon?: LucideIcon;
@@ -17,8 +18,10 @@ export function EmptyState({
   title: string;
   description?: string;
   action?: ReactNode;
+  headingLevel?: 2 | 3;
   className?: string;
 }) {
+  const Heading = headingLevel === 3 ? "h3" : "h2";
   return (
     <div
       role="status"
@@ -42,7 +45,7 @@ export function EmptyState({
           strokeWidth={1.75}
         />
       ) : null}
-      <h2 className="text-title font-semibold">{title}</h2>
+      <Heading className="text-title font-semibold">{title}</Heading>
       {description ? (
         <p className="text-body text-muted-foreground">{description}</p>
       ) : null}
