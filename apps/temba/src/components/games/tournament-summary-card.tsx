@@ -92,39 +92,6 @@ function CardFrame({
   );
 }
 
-function StackedCard({
-  href,
-  linkLabel,
-  children,
-}: {
-  href: string;
-  linkLabel: string;
-  children: React.ReactNode;
-}) {
-  const { radius } = SURFACE_CHROME.list;
-  return (
-    <div className="relative pb-3">
-      <div
-        aria-hidden="true"
-        className={cn(
-          "border-rule absolute inset-x-[18px] bottom-0 h-[60px] border bg-[#fafafa]",
-          radius,
-        )}
-      />
-      <div
-        aria-hidden="true"
-        className={cn(
-          "border-rule bg-paper absolute inset-x-[9px] bottom-[6px] h-[60px] border",
-          radius,
-        )}
-      />
-      <CardFrame href={href} linkLabel={linkLabel} surface="list">
-        {children}
-      </CardFrame>
-    </div>
-  );
-}
-
 function CardBand({
   label,
   meta,
@@ -295,8 +262,9 @@ export function TournamentSummaryCard({
 
   return (
     <li data-slot="tournament-summary-card">
-      <StackedCard
+      <CardFrame
         href={href}
+        surface="list"
         linkLabel={[title, TOURNAMENT_CARD_BAND_LABEL, dateLine]
           .filter(Boolean)
           .join(", ")}
@@ -373,7 +341,7 @@ export function TournamentSummaryCard({
             </span>
           )}
         </div>
-      </StackedCard>
+      </CardFrame>
 
       {action === "join" && tournament ? (
         <FriendlyGameJoinSheet
@@ -492,8 +460,9 @@ export function TournamentMatchCard({
 
   return (
     <li data-slot="tournament-match-card">
-      <StackedCard
+      <CardFrame
         href={href}
+        surface="list"
         linkLabel={[
           title,
           roundLine,
@@ -566,7 +535,7 @@ export function TournamentMatchCard({
             {tournamentMatchActionLabel("view")}
           </span>
         </div>
-      </StackedCard>
+      </CardFrame>
     </li>
   );
 }
