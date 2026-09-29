@@ -46,6 +46,13 @@ async function pause(page: Page, ms = 1200) {
 /** Scroll the page top to bottom slowly so the video shows everything. */
 async function tour(page: Page) {
   await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page
+    .waitForFunction(
+      () => !document.querySelector('[data-slot="skeleton"]'),
+      undefined,
+      { timeout: 20_000 },
+    )
+    .catch(() => undefined);
   await pause(page, 1500);
   const height = await page.evaluate(() => document.body.scrollHeight);
   for (let y = 0; y < height; y += 350) {
@@ -85,10 +92,27 @@ async function openTab(page: Page, name: RegExp) {
 
 async function signIn(page: Page, username: string, password: string) {
   await page.goto(`${BASE_URL}/login`);
+  // The form ignores submit until Clerk has loaded.
+  await page.waitForFunction(
+    () => (window as { Clerk?: { loaded?: boolean } }).Clerk?.loaded === true,
+    undefined,
+    { timeout: 30_000 },
+  );
   await page.locator("#sign-in-identifier").fill(username);
   await page.locator("#sign-in-password").fill(password);
-  await page.locator("#sign-in-password").press("Enter");
-  await page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 30_000 });
+  await page.getByRole("button", { name: /^sign in$/i }).click();
+  await page.waitForURL(/\/(dashboard|onboarding|login\/factor-two)/, {
+    timeout: 30_000,
+  });
+  // Clerk's new-device check. Test phone numbers accept 424242.
+  if (page.url().includes("/login/factor-two")) {
+    await page
+      .locator("#second-factor-code")
+      .fill(process.env.RECORD_OTP ?? "424242");
+    const verify = page.getByRole("button", { name: /^verify$/i });
+    if (await verify.isEnabled().catch(() => false)) await verify.click();
+    await page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 30_000 });
+  }
 }
 
 type Flow = {
@@ -151,8 +175,13 @@ async function flows(): Promise<Flow[]> {
       as: "newbie",
       run: async (page) => {
         await visit(page, "/onboarding");
-        await clickIfPresent(page, /right/i);
-        await clickIfPresent(page, /continue|next/i);
+        await page.getByRole("radio", { name: /^right$/i }).click();
+        await pause(page);
+        await clickIfPresent(page, /^continue$/i);
+        await page.getByRole("radio", { name: /^C$/ }).click();
+        await pause(page);
+        await clickIfPresent(page, /^finish$/i);
+        await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
         await tour(page);
       },
     },
@@ -340,6 +369,14 @@ async function main() {
       viewport: VIEWPORT,
       storageState,
       recordVideo: { dir: OUT_DIR, size: VIEWPORT },
+    });
+    // Keep the Next.js dev indicator out of the videos.
+    await context.addInitScript(() => {
+      const style = document.createElement("style");
+      style.textContent = "nextjs-portal { display: none !important; }";
+      document.addEventListener("DOMContentLoaded", () =>
+        document.head.append(style),
+      );
     });
     const page = await context.newPage();
     try {
