@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronLeft, X } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
 import {
@@ -14,6 +14,7 @@ const BLEED = "-mx-4 min-[430px]:-mx-5 md:-mx-6 xl:-mx-8 md:-mt-6 " + PAD;
 export function CreateFlowShell({
   step,
   cancelHref,
+  onCancel,
   onBack,
   preview,
   futureSteps,
@@ -22,6 +23,7 @@ export function CreateFlowShell({
 }: {
   step: CreateFlowStep;
   cancelHref: string;
+  onCancel: (event: MouseEvent<HTMLAnchorElement>) => void;
   onBack: () => void;
   preview: ReactNode;
   futureSteps: readonly { step: CreateFlowStep; title: string }[];
@@ -35,6 +37,7 @@ export function CreateFlowShell({
           {step === 1 ? (
             <Link
               href={cancelHref}
+              onClick={onCancel}
               aria-label="Cancel"
               className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
             >
