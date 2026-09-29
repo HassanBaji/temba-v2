@@ -18,10 +18,10 @@ export function EmptyState({
   title: string;
   description?: string;
   action?: ReactNode;
-  headingLevel?: 2 | 3;
+  headingLevel?: 1 | 2 | 3;
   className?: string;
 }) {
-  const Heading = headingLevel === 3 ? "h3" : "h2";
+  const Heading = ({ 1: "h1", 2: "h2", 3: "h3" } as const)[headingLevel];
   return (
     <div
       role="status"
