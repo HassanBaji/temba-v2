@@ -171,7 +171,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
       description={MODE_DESCRIPTIONS[mode]}
       footer={
         <p className="text-meta text-muted-foreground">
-          Invited to a Group? Open the invite link you were sent.
+          Invited to a Group? Open your invite link.
         </p>
       }
     >
