@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { useState } from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -8,6 +8,7 @@ import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
 import {
   formatGameCardDay,
   formatGameClockWithoutMeridiem,
@@ -293,7 +294,7 @@ export function FriendlyGamePartnerPicker({
   pricePerPlayerCents?: number | null;
   selectedPartner: FriendlyGamePartnerPick | null;
   onSelectedPartnerChange: (partner: FriendlyGamePartnerPick | null) => void;
-  onBack: () => void;
+  onBack?: () => void;
   onClose: () => void;
   onContinue: () => void;
   notice?: string | null;
@@ -356,23 +357,11 @@ export function FriendlyGamePartnerPicker({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-rule shrink-0 px-[22px] pt-2">
         <div className="flex items-center justify-between">
-          {/* <button
-            type="button"
-            onClick={onBack}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-            aria-label="Back"
-          >
-            <ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2} />
-          </button> */}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-            aria-label="Close"
-          >
-            <X aria-hidden="true" className="size-5" strokeWidth={2} />
-          </button>
+          {onBack ? (
+            <BackButton variant="boxed" onClick={onBack} />
+          ) : (
+            <CloseButton variant="boxed" onClick={onClose} />
+          )}
           <p className="text-muted-foreground text-[13px]">{seatsChip}</p>
         </div>
       </div>

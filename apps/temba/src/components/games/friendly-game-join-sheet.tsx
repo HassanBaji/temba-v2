@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronRight, UserRound, Users, X } from "lucide-react";
+import { ChevronRight, UserRound, Users } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
 import { formatGameCardDay } from "~/lib/format-game-start";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
@@ -509,27 +510,13 @@ function TournamentTakeASeat({
       <div className="border-rule shrink-0 px-[22px] pb-0 pt-[22px]">
         <div className="flex items-center justify-between">
           {onBackToTeams ? (
-            <button
-              type="button"
+            <BackButton
+              variant="boxed"
+              label="All teams"
               onClick={onBackToTeams}
-              className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-              aria-label="All teams"
-            >
-              <ArrowLeft
-                aria-hidden="true"
-                className="size-5"
-                strokeWidth={2}
-              />
-            </button>
+            />
           ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="border-rule text-ink focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px]"
-              aria-label="Close"
-            >
-              <X aria-hidden="true" className="size-5" strokeWidth={2} />
-            </button>
+            <CloseButton variant="boxed" onClick={onClose} />
           )}
           <p className="text-muted-foreground text-[13px]">
             {tournamentJoinSeatsTakenLine(field.seatsTaken, field.seatTotal)}
@@ -864,10 +851,6 @@ export function FriendlyGameJoinSheet({
 
   function leavePartner() {
     registerWithPartner.reset();
-    if (openedAtPartner) {
-      onOpenChange(false);
-      return;
-    }
     setStep("chooser");
   }
 
@@ -1047,7 +1030,7 @@ export function FriendlyGameJoinSheet({
             notice={partnerRaceMessage}
             selectedPartner={selectedPartner}
             onSelectedPartnerChange={setSelectedPartner}
-            onBack={leavePartner}
+            onBack={openedAtPartner ? undefined : leavePartner}
             onClose={() => onOpenChange(false)}
             onContinue={() => {
               registerWithPartner.reset();
