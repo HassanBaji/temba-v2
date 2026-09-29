@@ -98,7 +98,7 @@ function RecentPartnerChip({
       className={cn(
         "flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-[14px] px-1 py-2",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
-        blocked && "hatch text-dim cursor-default",
+        blocked && "hatch text-muted-foreground cursor-default",
         !blocked && selected && "bg-wash",
       )}
     >
@@ -122,7 +122,7 @@ function RecentPartnerChip({
         className={cn(
           "w-full truncate text-center text-[12px] leading-tight",
           selected && !blocked ? "font-semibold" : "font-medium",
-          blocked && "text-dim",
+          blocked && "text-muted-foreground",
         )}
       >
         {row.name}
@@ -188,7 +188,7 @@ function PartnerSuggestionRow({
       className={cn(
         "flex w-full items-center gap-3 px-[18px] py-4 text-left",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
-        blocked && "hatch text-dim cursor-default",
+        blocked && "hatch text-muted-foreground cursor-default",
         !blocked && selected && "bg-wash",
         !blocked && !selected && "bg-paper",
       )}
@@ -204,17 +204,12 @@ function PartnerSuggestionRow({
           className={cn(
             "block truncate text-[15px]",
             selected && !blocked ? "font-semibold" : "font-medium",
-            blocked && "text-dim",
+            blocked && "text-muted-foreground",
           )}
         >
           {row.name}
         </span>
-        <span
-          className={cn(
-            "text-meta mt-0.5 block",
-            blocked ? "text-dim" : "text-muted-foreground",
-          )}
-        >
+        <span className="text-meta text-muted-foreground mt-0.5 block">
           {suggestionMetaLine(row)}
         </span>
       </span>
@@ -256,7 +251,7 @@ function SuggestionSection({
     <section className="pb-4">
       <div className="flex items-baseline gap-2.5 pb-2.5">
         <h3 className="font-expanded text-[19px] leading-tight">{title}</h3>
-        <p className="text-dim text-[13px]">{eyebrow}</p>
+        <p className="text-muted-foreground text-[13px]">{eyebrow}</p>
       </div>
       <div className="border-rule overflow-hidden rounded-[14px] border">
         {rows.map((row, index) => (
@@ -433,7 +428,7 @@ export function FriendlyGamePartnerPicker({
             ? `Continue with ${selectedPartner.name}`
             : "Continue"}
         </Button>
-        <p className="text-dim text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-center text-xs leading-relaxed">
           No seat is taken until you register the team.
         </p>
       </div>

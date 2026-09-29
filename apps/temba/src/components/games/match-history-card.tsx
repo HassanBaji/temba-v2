@@ -104,7 +104,7 @@ function SetHeader({ columns }: { columns: number }) {
         {Array.from({ length: columns }, (_, index) => (
           <span
             key={index}
-            className="text-dim w-7 text-center font-mono text-[10px]"
+            className="text-muted-foreground w-7 text-center font-mono text-[10px]"
           >
             S{index + 1}
           </span>
@@ -179,7 +179,11 @@ function TeamRow({
                 key={index}
                 className={cn(
                   "font-expanded w-7 text-center text-[17px] tabular-nums",
-                  score.wonSet ? null : "text-dim",
+                  score.wonSet
+                    ? null
+                    : filled
+                      ? "text-dim"
+                      : "text-muted-foreground",
                 )}
               >
                 {score.games}
@@ -287,16 +291,13 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
                 {OUTCOME_LABEL[row.outcome]}
               </span>
               {scored ? (
-                <span
-                  className={cn(
-                    "font-expanded text-[15px] tabular-nums",
-                    won ? "text-muted-foreground" : "text-dim",
-                  )}
-                >
+                <span className="font-expanded text-muted-foreground text-[15px] tabular-nums">
                   {tally.won}&ndash;{tally.lost} in sets
                 </span>
               ) : (
-                <span className="text-dim text-[13px]">No score yet</span>
+                <span className="text-muted-foreground text-[13px]">
+                  No score yet
+                </span>
               )}
             </div>
             <p className="text-muted-foreground mt-0.5 truncate text-[13px]">

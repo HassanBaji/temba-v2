@@ -71,7 +71,7 @@ function StackedCard({
       <div
         aria-hidden="true"
         className={cn(
-          "border-rule absolute inset-x-[18px] bottom-0 h-[60px] border bg-[#fafafa]",
+          "border-rule bg-surface-raised absolute inset-x-[18px] bottom-0 h-[60px] border",
           radius,
         )}
       />
@@ -134,7 +134,7 @@ function CardBand({
 function OpenFlag({ openTeams }: { openTeams: number }) {
   const label = tournamentOpenFlagLabel(openTeams);
   if (openTeams <= 0) {
-    return <span className="text-dim shrink-0">{label}</span>;
+    return <span className="text-muted-foreground shrink-0">{label}</span>;
   }
   return (
     <span className="text-ink inline-flex shrink-0 items-center gap-1.5 font-semibold">
@@ -317,7 +317,7 @@ export function TournamentSummaryCard({
           <TeamPairs teams={teams} />
         </div>
 
-        <div className="border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] px-[18px] py-3.5">
+        <div className="border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t px-[18px] py-3.5">
           <PriceLine cents={game.pricePerPlayerCents} />
           {interactive ? (
             <Button
@@ -501,7 +501,7 @@ export function TournamentMatchCard({
               ) : null}
             </div>
             {status ? (
-              <span className="text-dim shrink-0 text-[13px] tabular-nums">
+              <span className="text-muted-foreground shrink-0 text-[13px] tabular-nums">
                 {status}
               </span>
             ) : null}
@@ -512,7 +512,7 @@ export function TournamentMatchCard({
               {kickoff.time}
             </span>
             {kickoff.meridiem ? (
-              <span className="text-dim text-[19px] font-medium leading-none">
+              <span className="text-muted-foreground text-[19px] font-medium leading-none">
                 {kickoff.meridiem}
               </span>
             ) : null}
@@ -528,7 +528,7 @@ export function TournamentMatchCard({
 
           <div className="flex items-center gap-2.5">
             <MatchupColumn side={viewer} isViewerSide={viewer != null} />
-            <span className="text-dim flex-none text-xs">vs</span>
+            <span className="text-muted-foreground flex-none text-xs">vs</span>
             <MatchupColumn side={opponent} isViewerSide={false} />
           </div>
 
@@ -544,7 +544,7 @@ export function TournamentMatchCard({
 
         <div
           className={cn(
-            "border-rule pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t bg-[#fafafa] py-3.5",
+            "border-rule bg-surface-raised pointer-events-none relative z-10 flex min-w-0 items-center justify-between gap-2.5 border-t py-3.5",
             inset,
           )}
         >

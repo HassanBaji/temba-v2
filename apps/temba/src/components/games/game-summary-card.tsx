@@ -117,7 +117,7 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
-      <div className="hatch text-dim flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
+      <div className="hatch text-muted-foreground flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
         +
       </div>
       <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
@@ -176,7 +176,7 @@ function SideJoinButton({
         }}
       >
         <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
-          <div className="hatch text-dim flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
+          <div className="hatch text-muted-foreground flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
             +
           </div>
           <small className="text-muted-foreground max-w-full truncate text-xs leading-none">
@@ -270,7 +270,7 @@ function FriendlyRoster({
           {index > 0 ? (
             <span
               aria-hidden="true"
-              className="text-dim shrink-0 text-xs font-semibold"
+              className="text-muted-foreground shrink-0 text-xs font-semibold"
             >
               vs
             </span>
@@ -317,7 +317,7 @@ function MetaCell({
 
 function OpenFlag({ openSpots }: { openSpots: number }) {
   if (openSpots <= 0) {
-    return <span className="text-dim">{spotsOpenLabel(0)}</span>;
+    return <span className="text-muted-foreground">{spotsOpenLabel(0)}</span>;
   }
 
   return (
@@ -619,7 +619,7 @@ export function GameSummaryCard({
 
         <div
           className={cn(
-            "border-rule relative z-10 flex min-w-0 items-center justify-between gap-3 border-t bg-[#fafafa] px-[22px] py-3.5",
+            "border-rule bg-surface-raised relative z-10 flex min-w-0 items-center justify-between gap-3 border-t px-[22px] py-3.5",
             href ? "pointer-events-none" : null,
           )}
         >

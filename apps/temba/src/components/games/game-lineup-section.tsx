@@ -58,7 +58,7 @@ function LineupOpenChip() {
   return (
     <span
       aria-hidden="true"
-      className="hatch text-dim flex size-[42px] shrink-0 items-center justify-center rounded-full text-base font-semibold"
+      className="hatch text-muted-foreground flex size-[42px] shrink-0 items-center justify-center rounded-full text-base font-semibold"
     >
       +
     </span>
@@ -270,7 +270,7 @@ export function GameLineupSection({
             {index > 0 ? (
               <span
                 aria-hidden="true"
-                className="text-dim shrink-0 self-center px-1 text-xs font-semibold"
+                className="text-muted-foreground shrink-0 self-center px-1 text-xs font-semibold"
               >
                 vs
               </span>

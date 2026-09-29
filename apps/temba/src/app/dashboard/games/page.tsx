@@ -286,7 +286,11 @@ function TabCount({ count }: { count: number | undefined }) {
     return null;
   }
 
-  return <p className="text-dim">{count}</p>;
+  return (
+    <p className="text-muted-foreground group-data-[state=active]/tab:text-dim">
+      {count}
+    </p>
+  );
 }
 
 export default function GamesHubPage({
@@ -382,11 +386,17 @@ export default function GamesHubPage({
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
         <TabsList className="bg-paper w-full justify-between">
-          <TabsTrigger value="my-games" className="w-1/2 rounded-r-none">
+          <TabsTrigger
+            value="my-games"
+            className="group/tab w-1/2 rounded-r-none"
+          >
             <p className="font-semibold">My Games</p>
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
-          <TabsTrigger value="history" className="w-1/2 rounded-l-none">
+          <TabsTrigger
+            value="history"
+            className="group/tab w-1/2 rounded-l-none"
+          >
             History
             <TabCount count={history.data?.length} />
           </TabsTrigger>

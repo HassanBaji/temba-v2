@@ -233,7 +233,7 @@ function MatchResultConfirmations({
           return (
             <li
               key={userId}
-              className="flex items-center justify-between gap-3 text-meta"
+              className="text-meta flex items-center justify-between gap-3"
             >
               <span className="min-w-0 truncate">
                 {name}
@@ -359,7 +359,7 @@ export function GameScoreSection({
               {index > 0 ? (
                 <span
                   aria-hidden="true"
-                  className="text-dim shrink-0 self-center px-1 text-xs font-semibold"
+                  className="text-muted-foreground shrink-0 self-center px-1 text-xs font-semibold"
                 >
                   vs
                 </span>

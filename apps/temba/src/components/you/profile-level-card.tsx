@@ -86,7 +86,9 @@ export function ProfileLevelCard({
         ) : null}
       </div>
       {atTopBand ? (
-        <p className="text-eyebrow text-dim mt-[18px]">{progressCaption}</p>
+        <p className="text-eyebrow text-muted-foreground mt-[18px]">
+          {progressCaption}
+        </p>
       ) : (
         <>
           <div
@@ -106,12 +108,14 @@ export function ProfileLevelCard({
             />
           </div>
           {provisional ? (
-            <div className="text-eyebrow text-dim mt-2 flex justify-between gap-3">
+            <div className="text-eyebrow text-muted-foreground mt-2 flex justify-between gap-3">
               <span>{ratedMatchesCaption(ratedMatchCount)}</span>
               <span>{moreToConfirmCaption(ratedMatchesRemaining)}</span>
             </div>
           ) : (
-            <p className="text-eyebrow text-dim mt-2">{progressCaption}</p>
+            <p className="text-eyebrow text-muted-foreground mt-2">
+              {progressCaption}
+            </p>
           )}
         </>
       )}

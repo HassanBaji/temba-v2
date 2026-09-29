@@ -44,7 +44,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
     <div className={CARD}>
       <table className="w-full table-fixed">
         <thead>
-          <tr className="border-rule text-dim text-eyebrow border-b">
+          <tr className="border-rule text-muted-foreground text-eyebrow border-b">
             <th scope="col" className={cn(COL_POSITION, HEAD_CELL)}>
               #
             </th>
@@ -107,7 +107,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
           ))}
         </tbody>
       </table>
-      <p className="border-rule text-eyebrow text-dim border-t px-5 py-3.5">
+      <p className="border-rule text-eyebrow text-muted-foreground border-t px-5 py-3.5">
         Hatched level means the Rating is still Provisional
       </p>
     </div>

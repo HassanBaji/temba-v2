@@ -150,12 +150,12 @@ function TeamSeat({
             type="button"
             onClick={onJoin}
             aria-label={`Take the ${positionName.toLowerCase()} seat`}
-            className="hatch text-dim focus-visible:ring-ring/50 flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1 outline-none focus-visible:ring-[3px]"
+            className="hatch text-muted-foreground focus-visible:ring-ring/50 flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1 outline-none focus-visible:ring-[3px]"
           >
             {face}
           </button>
         ) : (
-          <div className="hatch text-dim flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1">
+          <div className="hatch text-muted-foreground flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1">
             {face}
           </div>
         )}

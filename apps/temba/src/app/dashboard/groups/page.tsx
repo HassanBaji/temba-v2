@@ -102,7 +102,7 @@ function GroupRowCard({ groups }: { groups: GroupRow[] }) {
             {group.formMarks.length > 0 ? (
               <div className="flex items-center gap-2">
                 <FormStrip marks={group.formMarks} size={18} gap={6} />
-                <span className="text-eyebrow text-dim ml-auto">
+                <span className="text-eyebrow text-muted-foreground ml-auto">
                   your form here
                 </span>
               </div>

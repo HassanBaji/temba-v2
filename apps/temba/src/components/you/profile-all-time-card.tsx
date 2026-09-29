@@ -56,7 +56,9 @@ export function ProfileAllTimeCard({
       <div className="border-rule flex items-baseline justify-between border-b px-5 py-4">
         <p className="text-ink text-body font-semibold">All time</p>
         {sinceYear != null ? (
-          <p className="text-eyebrow text-dim">since {sinceYear}</p>
+          <p className="text-eyebrow text-muted-foreground">
+            since {sinceYear}
+          </p>
         ) : null}
       </div>
       <div className="p-5">

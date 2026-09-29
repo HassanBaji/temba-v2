@@ -14,7 +14,7 @@ export function ProfileFormCard({ bars }: { bars: RecentFormBar[] }) {
     <section className="border-rule bg-paper overflow-hidden rounded-[14px] border">
       <div className="flex items-baseline justify-between px-5 pb-3 pt-5">
         <p className="text-ink text-body font-semibold">Form</p>
-        <p className="text-eyebrow text-dim">last 10 matches</p>
+        <p className="text-eyebrow text-muted-foreground">last 10 matches</p>
       </div>
       <div className="flex gap-1.5 px-5 pb-[18px]">
         {bars.map((bar, index) => (

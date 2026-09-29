@@ -289,7 +289,7 @@ export function FriendlyGamePartnerReview({
         >
           {pending ? "Registering…" : "Register us as a team"}
         </Button>
-        <p className="text-dim text-center text-xs leading-relaxed">
+        <p className="text-muted-foreground text-center text-xs leading-relaxed">
           Both seats are booked straight away. Your partner is in now.
         </p>
       </div>

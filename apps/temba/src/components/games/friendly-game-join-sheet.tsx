@@ -151,7 +151,7 @@ function ModeChooser({
           </span>
           <ChevronRight
             aria-hidden="true"
-            className="text-dim size-[18px] shrink-0"
+            className="text-muted-foreground size-[18px] shrink-0"
           />
         </span>
         <TwoSeatDiagram onInk={false} />
@@ -241,7 +241,9 @@ function PositionButton({
           "disabled:cursor-default",
           taken && "border-rule bg-paper",
           !taken && selected && "border-ink bg-ink text-paper",
-          !taken && !selected && "hatch text-dim border-transparent",
+          !taken &&
+            !selected &&
+            "hatch text-muted-foreground border-transparent",
         )}
       >
         {taken ? (
@@ -291,7 +293,9 @@ function NetDivider() {
     >
       <span className="h-5 shrink-0" />
       <span className="bg-rule w-px flex-1" />
-      <span className="text-dim py-1.5 text-xs font-semibold">vs</span>
+      <span className="text-muted-foreground py-1.5 text-xs font-semibold">
+        vs
+      </span>
       <span className="bg-rule w-px flex-1" />
       <span className="h-7 shrink-0" />
     </div>

@@ -112,8 +112,8 @@ export function ProfileIdentity({
           <p
             className={
               positionLine
-                ? "text-meta text-dim truncate"
-                : "text-meta text-dim mt-1 truncate"
+                ? "text-meta text-muted-foreground truncate"
+                : "text-meta text-muted-foreground mt-1 truncate"
             }
           >
             Playing padel since {playingSince}
