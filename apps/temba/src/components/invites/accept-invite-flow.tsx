@@ -1,16 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { CircleAlert, Inbox } from "lucide-react";
 import { toast } from "sonner";
 
-import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { InviteAuthButtons } from "~/components/invites/invite-auth-buttons";
-import { Button } from "~/components/ui/button";
+import {
+  InviteOutcome,
+  InvitePreviewError,
+} from "~/components/invites/invite-outcome";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import type { InviteHostKind } from "~/server/invites/doors";
@@ -43,7 +43,7 @@ export function AcceptInviteFlow({
 
   const communityAccept = api.communities.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success("Joined Community as Member");
+      toast.success("Joined Community");
       router.replace(`/dashboard/communities/${result.communityId}`);
     },
     onError: (error) => {
@@ -107,7 +107,7 @@ export function AcceptInviteFlow({
     accept.mutate({ token });
   }, [accept, isSignedIn, preview.data?.status, token]);
 
-  if (preview.isLoading) {
+  if (preview.isLoading || (preview.isError && preview.isFetching)) {
     return (
       <div aria-busy="true" className="space-y-3">
         <Skeleton className="size-10 rounded-lg" />
@@ -117,32 +117,19 @@ export function AcceptInviteFlow({
     );
   }
 
-  if (preview.data?.status === "invalid") {
-    return (
-      <EmptyState
-        icon={Inbox}
-        title="Invite unavailable"
-        description="This Invite link is invalid or expired."
-        action={
-          <Button asChild>
-            <Link href="/login">Go to login</Link>
-          </Button>
-        }
-      />
-    );
+  if (preview.isError) {
+    return <InvitePreviewError onRetry={() => void preview.refetch()} />;
   }
 
-  if (preview.data?.status === "unavailable") {
+  if (
+    preview.data?.status === "invalid" ||
+    preview.data?.status === "unavailable"
+  ) {
     return (
-      <EmptyState
-        icon={CircleAlert}
-        title="Invite unavailable"
-        description={`This ${entityLabel} cannot accept Invite links right now.`}
-        action={
-          <Button asChild variant="outline">
-            <Link href="/dashboard">Back to Home</Link>
-          </Button>
-        }
+      <InviteOutcome
+        outcome={preview.data.status}
+        hostLabel={entityLabel}
+        isSignedIn={isSignedIn}
       />
     );
   }
@@ -156,8 +143,7 @@ export function AcceptInviteFlow({
             <h1 className="text-title font-semibold">Join {entityName}</h1>
             <p className="text-meta text-muted-foreground">{entityLabel}</p>
             <p className="text-body text-muted-foreground">
-              Sign in or sign up with Clerk to join. Opening this URL does not
-              log anyone in without Clerk.
+              Sign in or create an account to join {entityName}.
             </p>
           </div>
         </div>
@@ -175,22 +161,18 @@ export function AcceptInviteFlow({
       <ErrorState
         title="Could not join"
         message={accept.error.message}
+        headingLevel={1}
         onRetry={() => accept.mutate({ token })}
       />
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-start gap-3">
-        <EntityMonogram name={entityName} size="lg" />
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-title font-semibold">Joining {entityName}…</h1>
-          <p className="text-body text-muted-foreground">
-            Accepting the Invite link as the signed-in User.
-          </p>
-        </div>
-      </div>
+    <div aria-busy="true" className="flex items-center gap-3">
+      <EntityMonogram name={entityName} size="lg" />
+      <h1 className="text-title min-w-0 font-semibold">
+        Joining {entityName}…
+      </h1>
     </div>
   );
 }

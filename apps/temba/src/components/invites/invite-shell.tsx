@@ -26,9 +26,6 @@ export function InviteShell({
           >
             Temba
           </Link>
-          <p className="text-body text-muted-foreground mt-2">
-            Sign in with Clerk to continue. Temba does not log you in itself.
-          </p>
         </div>
         <Card
           variant="elevated"
