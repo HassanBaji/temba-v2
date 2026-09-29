@@ -10,6 +10,7 @@ import { VerifyCodeForm } from "~/components/auth/verify-code-form";
 import { Button } from "~/components/ui/button";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -26,6 +27,7 @@ import type { SplitFormError } from "~/lib/form-mutation-error";
 
 const FIELD_IDS = {
   identifier: "reset-password-identifier",
+  identifierHelp: "reset-password-identifier-help",
   password: "reset-password-password",
   code: "reset-password-code",
 };
@@ -349,11 +351,18 @@ export function ForgotPasswordForm({
               onChange={(event) => setIdentifier(event.target.value)}
               aria-invalid={Boolean(identifierError)}
               aria-describedby={
-                identifierError ? `${FIELD_IDS.identifier}-error` : undefined
+                identifierError
+                  ? `${FIELD_IDS.identifierHelp} ${FIELD_IDS.identifier}-error`
+                  : FIELD_IDS.identifierHelp
               }
               size="lg"
               disabled={pending}
             />
+            <FieldDescription id={FIELD_IDS.identifierHelp}>
+              Reset works with the email address on your account. If you signed
+              up with a mobile number and no email, password reset is not
+              available yet.
+            </FieldDescription>
             {identifierError ? (
               <FieldError id={`${FIELD_IDS.identifier}-error`}>
                 {identifierError}
