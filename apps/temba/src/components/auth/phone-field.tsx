@@ -57,7 +57,7 @@ export function PhoneField({
   return (
     <InputGroup
       className={cn(
-        "border-rule h-13 min-h-13 rounded-lg shadow-none",
+        "h-13 min-h-13 rounded-lg shadow-none",
         "has-[[data-slot=input-group-control]:focus-visible]:border-ink has-[[data-slot=input-group-control]:focus-visible]:ring-0",
         "has-[[data-slot=select-trigger]:focus-visible]:border-ink has-[[data-slot=select-trigger]:focus-visible]:ring-0",
         "focus-within:border-ink",
@@ -81,7 +81,7 @@ export function PhoneField({
           <SelectTrigger
             aria-label={accessibleName}
             disabled={disabled}
-            className="text-ink h-13 min-h-13 data-[size=default]:h-13 data-[size=default]:min-h-13 rounded-none border-0 bg-transparent px-3.5 shadow-none focus-visible:border-0 focus-visible:ring-0 [&>svg]:size-[15px] [&>svg]:text-[#9A9A9A] [&>svg]:opacity-100"
+            className="text-ink h-13 min-h-13 data-[size=default]:h-13 data-[size=default]:min-h-13 [&>svg]:text-muted-foreground rounded-none border-0 bg-transparent px-3.5 shadow-none focus-visible:border-0 focus-visible:ring-0 [&>svg]:size-[15px] [&>svg]:opacity-100"
           >
             <span className="flex items-center gap-1.5 text-base font-medium [font-variation-settings:'wdth'_100,'wght'_500]">
               <span aria-hidden="true" className="leading-none">

@@ -63,7 +63,7 @@ export function OtpInput({
               key={index}
               className={cn(
                 "flex h-16 items-center justify-center rounded-lg",
-                isActive ? "border-ink border-2" : "border-rule border",
+                isActive ? "border-ink border-2" : "border-input border",
                 isHatched && "hatch",
               )}
             >

@@ -26,7 +26,7 @@ import type { SplitFormError } from "~/lib/form-mutation-error";
 import { cn } from "~/lib/utils";
 
 const AUTH_INPUT_CLASS =
-  "border-rule h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
+  "h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 const FIELD_IDS = {
   identifier: "reset-password-identifier",
@@ -37,7 +37,10 @@ const FIELD_IDS = {
 type Step = "identifier" | "code" | "password";
 
 function resetEmailCodePrepareParams(signIn: {
-  supportedFirstFactors: Array<{ strategy: string; emailAddressId?: string }> | null;
+  supportedFirstFactors: Array<{
+    strategy: string;
+    emailAddressId?: string;
+  }> | null;
 }) {
   const factor = signIn.supportedFirstFactors?.find(
     (item) => item.strategy === "reset_password_email_code",

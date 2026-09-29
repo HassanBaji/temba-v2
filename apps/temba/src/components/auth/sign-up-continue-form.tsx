@@ -33,7 +33,7 @@ import {
 import { cn } from "~/lib/utils";
 
 const AUTH_INPUT_CLASS =
-  "border-rule h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
+  "h-13 min-h-13 rounded-lg px-4 text-base md:text-base focus-visible:border-ink focus-visible:ring-0";
 
 const FIELD_IDS = {
   username: "signup-continue-username",
