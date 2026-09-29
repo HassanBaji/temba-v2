@@ -15,6 +15,7 @@ import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { requestRowMeta } from "~/lib/request-meta";
 import { api } from "~/trpc/react";
 
 export default function VenuesPage() {
@@ -96,7 +97,9 @@ export default function VenuesPage() {
                   <RequestRow
                     key={request.id}
                     title={request.community.name}
-                    meta={`Venue link request for ${request.venue.name}`}
+                    meta={requestRowMeta(request.createdAt, [
+                      `For ${request.venue.name}`,
+                    ])}
                     approvePending={approvePending}
                     rejectPending={rejectPending}
                     onApprove={() =>

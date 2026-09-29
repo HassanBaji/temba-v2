@@ -9,6 +9,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Section } from "~/components/layout/section";
+import { requestRowMeta } from "~/lib/request-meta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["communities"]["listJoinRequests"][number];
@@ -101,11 +102,7 @@ export function CommunityRequestsTab({
                       />
                     }
                     title={name}
-                    meta={
-                      request.user.email
-                        ? `Community join request · ${request.user.email}`
-                        : "Community join request"
-                    }
+                    meta={requestRowMeta(request.createdAt)}
                     approvePending={approveJoinPendingId === request.id}
                     rejectPending={rejectJoinPendingId === request.id}
                     onApprove={() => onApproveJoin(request.id)}
@@ -140,7 +137,9 @@ export function CommunityRequestsTab({
                   <RequestRow
                     key={request.id}
                     title={request.team.displayName}
-                    meta={`Team link request from ${requester}`}
+                    meta={requestRowMeta(request.createdAt, [
+                      `From ${requester}`,
+                    ])}
                     approvePending={approveTeamPendingId === request.id}
                     rejectPending={rejectTeamPendingId === request.id}
                     onApprove={() => onApproveTeam(request.id)}
