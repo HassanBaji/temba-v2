@@ -96,13 +96,13 @@ function SetBox({
   state,
   value,
   label,
-  disabled,
+  saving,
   onChange,
 }: {
   state: "locked" | "unplayed" | "enterable" | "readonly" | "solid" | "outline";
   value: number | null;
   label: string;
-  disabled?: boolean;
+  saving?: boolean;
   onChange?: (value: number | null) => void;
 }) {
   if (state === "locked" || state === "unplayed") {
@@ -154,7 +154,7 @@ function SetBox({
       min={FRIENDLY_SET_GAMES_MIN}
       max={FRIENDLY_SET_GAMES_MAX}
       value={value ?? ""}
-      disabled={disabled}
+      readOnly={saving}
       aria-label={label}
       onChange={(event) => {
         const raw = event.target.value;
@@ -315,8 +315,7 @@ export function GameScoreSection({
 
   const isUpcoming = phase === "upcoming" || phase === "ongoing";
   const isFinal = phase === "final";
-  const canEnter =
-    phase === "needs_results" && match.canScoreSets && !scorePending;
+  const canEnter = phase === "needs_results" && match.canScoreSets;
   const hasResult = match.outcome.result !== "none";
   const names = nameByUserId(sides);
 
@@ -332,8 +331,12 @@ export function GameScoreSection({
       toast.error("Enter games won for both teams");
       return;
     }
-    for (const payload of payloads) {
-      await onScoreSet(payload);
+    try {
+      for (const payload of payloads) {
+        await onScoreSet(payload);
+      }
+    } catch {
+      // The score mutation reports its own failure; stop at the first one.
     }
   }
 
@@ -442,7 +445,7 @@ export function GameScoreSection({
                         state="enterable"
                         value={value}
                         label={boxLabel}
-                        disabled={scorePending}
+                        saving={scorePending}
                         onChange={(next) =>
                           setDrafts((current) => ({
                             ...current,
@@ -468,7 +471,8 @@ export function GameScoreSection({
             onClick={() => {
               void saveSets();
             }}
-            disabled={scorePending}
+            pending={scorePending}
+            pendingLabel="Saving…"
           >
             Save score
           </Button>

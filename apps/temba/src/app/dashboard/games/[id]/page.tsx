@@ -1121,12 +1121,16 @@ export default function GameHomePage({
               onJoin={() => setJoinPickerOpen(true)}
               onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
               onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
-              onAddResult={() =>
-                resultsSectionRef.current?.scrollIntoView({
+              onAddResult={() => {
+                const section = resultsSectionRef.current;
+                section?.scrollIntoView({
                   behavior: "smooth",
                   block: "start",
-                })
-              }
+                });
+                section
+                  ?.querySelector<HTMLInputElement>("input")
+                  ?.focus({ preventScroll: true });
+              }}
               onInvite={
                 ctaFamily.kind === "upcoming" && ctaFamily.showInvite
                   ? () => setInvitesOpen(true)
