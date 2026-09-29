@@ -30,13 +30,13 @@ export function CreateFlowShell({
 }) {
   return (
     <div className="flex flex-col gap-6 pb-28 lg:pb-0">
-      <header className={cn("bg-ink text-paper py-[22px]", BLEED)}>
+      <header className={cn("surface-ink bg-ink text-paper py-[22px]", BLEED)}>
         <div className="flex items-center justify-between">
           {step === 1 ? (
             <Link
               href={cancelHref}
               aria-label="Cancel"
-              className="focus-visible:ring-paper/50 -ml-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
+              className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
             >
               <X aria-hidden="true" className="size-5" />
             </Link>
@@ -45,7 +45,7 @@ export function CreateFlowShell({
               type="button"
               onClick={onBack}
               aria-label="Back"
-              className="focus-visible:ring-paper/50 -ml-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
+              className="focus-visible:ring-ring/50 -ml-2.5 inline-flex size-11 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
             >
               <ChevronLeft aria-hidden="true" className="size-5" />
             </button>

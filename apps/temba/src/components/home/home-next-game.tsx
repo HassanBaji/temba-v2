@@ -59,7 +59,7 @@ export function HomeNextGame({
   const secondaryLine = [courtLabel, formatLabel].filter(Boolean).join(" · ");
 
   return (
-    <article className="bg-ink text-paper rounded-xl p-[22px]">
+    <article className="surface-ink bg-ink text-paper rounded-xl p-[22px]">
       <div className="text-dim text-meta flex items-start justify-between gap-3">
         <p className="min-w-0 truncate">{venueName}</p>
         {status ? (

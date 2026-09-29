@@ -98,7 +98,7 @@ export function TournamentHero({
   onInvite?: () => void;
 }) {
   return (
-    <article className={cn("bg-ink text-paper", BLEED)}>
+    <article className={cn("surface-ink bg-ink text-paper", BLEED)}>
       <div className="flex items-center justify-between">
         <Link href={backHref} aria-label="Back" className={ACTION_BOX_DARK}>
           <ChevronLeftIcon aria-hidden="true" className="size-5" />

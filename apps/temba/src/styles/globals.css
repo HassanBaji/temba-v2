@@ -237,6 +237,12 @@
   --hatch-inset: var(--color-dimrule);
 }
 
+/* Black-surface scope: the default --ring is near-black and ~1:1 on ink, so
+   every ring-ring / outline-ring / border-ring inside reads light (WCAG 2.4.7). */
+@utility surface-ink {
+  --ring: var(--color-paper);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

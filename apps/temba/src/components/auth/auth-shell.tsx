@@ -7,7 +7,7 @@ import { cn } from "~/lib/utils";
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background grid min-h-svh lg:grid-cols-2">
-      <aside className="bg-primary relative hidden flex-col justify-between overflow-hidden p-12 lg:flex">
+      <aside className="surface-ink bg-primary relative hidden flex-col justify-between overflow-hidden p-12 lg:flex">
         <Link
           href="/"
           className="text-primary-foreground text-title font-semibold tracking-[-0.01em]"

@@ -36,7 +36,7 @@ export function AuthScreen({
         className={cn(
           "flex min-h-svh w-full max-w-[1000px] flex-col overflow-x-hidden sm:min-h-[844px]",
           welcome
-            ? "bg-ink text-paper sm:border-ink sm:rounded-xl sm:border"
+            ? "surface-ink bg-ink text-paper sm:border-ink sm:rounded-xl sm:border"
             : "bg-paper text-ink sm:border-rule sm:rounded-xl sm:border",
         )}
       >

@@ -239,7 +239,7 @@ export function FriendlyGameDetailsHero({
 
   if (!windowStart) {
     return (
-      <article className="bg-ink text-paper rounded-xl p-[22px]">
+      <article className="surface-ink bg-ink text-paper rounded-xl p-[22px]">
         <p className="text-dim text-meta">Time unset</p>
       </article>
     );
@@ -295,7 +295,7 @@ export function FriendlyGameDetailsHero({
   const bookedWithPartner = Boolean(partnerBesideName);
 
   return (
-    <article className="bg-ink text-paper rounded-xl p-[22px]">
+    <article className="surface-ink bg-ink text-paper rounded-xl p-[22px]">
       <div className="text-dim text-meta flex items-start justify-between gap-3">
         <p className="min-w-0 truncate">
           {/* ADR-0013: booked now, not "Team confirmed" / seats held. */}
