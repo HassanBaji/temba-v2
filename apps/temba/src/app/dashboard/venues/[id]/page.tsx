@@ -34,6 +34,7 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { entityImageUploadInput } from "~/lib/entity-image-file";
+import { courtRenameIsDirty } from "~/lib/court-rename";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
 import { api } from "~/trpc/react";
@@ -321,13 +322,16 @@ export default function VenueHomePage({
               {data.linkedCommunities.map((community) => (
                 <ListRow
                   key={community.id}
+                  asChild
                   title={community.name}
                   trailing={
                     community.archivedAt ? (
                       <Badge variant="outline">Soft-archived</Badge>
                     ) : undefined
                   }
-                />
+                >
+                  <Link href={`/dashboard/communities/${community.id}`} />
+                </ListRow>
               ))}
             </RowList>
           )}
@@ -477,8 +481,8 @@ export default function VenueHomePage({
               >
                 {updateVenue.isPending ? "Saving…" : "Save"}
               </Button>
-              <Button variant="outline" className="min-h-11" asChild>
-                <Link href="/dashboard/venues">Back to Venues</Link>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/venues">Cancel</Link>
               </Button>
             </div>
           </form>
@@ -552,74 +556,76 @@ export default function VenueHomePage({
             </p>
           ) : (
             <RowList>
-              {data.courts.map((court) => (
-                <li
-                  key={court.id}
-                  className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center"
-                >
-                  <Field className="flex-1">
-                    <FieldLabel htmlFor={`court-name-${court.id}`}>
-                      Name
-                    </FieldLabel>
-                    <Input
-                      id={`court-name-${court.id}`}
-                      value={courtNames[court.id] ?? court.name}
-                      onChange={(event) =>
-                        setCourtNames((current) => ({
-                          ...current,
-                          [court.id]: event.target.value,
-                        }))
-                      }
-                      maxLength={255}
-                      required
-                      aria-invalid={
-                        renameCourt.error &&
-                        renameCourt.variables?.id === court.id &&
-                        fieldErrorMessage(renameCourt.error, "name")
-                          ? true
-                          : undefined
-                      }
-                      aria-describedby={
-                        renameCourt.error &&
-                        renameCourt.variables?.id === court.id
-                          ? `court-name-${court.id}-error`
-                          : undefined
-                      }
-                    />
-                    <FieldError id={`court-name-${court.id}-error`}>
-                      {renameCourt.error &&
-                      renameCourt.variables?.id === court.id
-                        ? fieldErrorMessage(renameCourt.error, "name")
-                        : undefined}
-                    </FieldError>
-                  </Field>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11"
-                      disabled={renameCourt.isPending}
-                      onClick={() =>
-                        renameCourt.mutate({
-                          id: court.id,
-                          name: courtNames[court.id] ?? court.name,
-                        })
-                      }
-                    >
-                      Rename
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11"
-                      disabled={deleteCourt.isPending}
-                      onClick={() => setDeleteCourtId(court.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </li>
-              ))}
+              {data.courts.map((court) => {
+                const draft = courtNames[court.id] ?? court.name;
+                const renaming =
+                  renameCourt.isPending &&
+                  renameCourt.variables?.id === court.id;
+                const renameError =
+                  renameCourt.error && renameCourt.variables?.id === court.id
+                    ? fieldErrorMessage(renameCourt.error, "name")
+                    : undefined;
+                return (
+                  <li
+                    key={court.id}
+                    className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-end"
+                  >
+                    <Field className="min-w-0 flex-1">
+                      <FieldLabel htmlFor={`court-name-${court.id}`}>
+                        Court name
+                      </FieldLabel>
+                      <Input
+                        id={`court-name-${court.id}`}
+                        value={draft}
+                        onChange={(event) =>
+                          setCourtNames((current) => ({
+                            ...current,
+                            [court.id]: event.target.value,
+                          }))
+                        }
+                        maxLength={255}
+                        required
+                        aria-invalid={renameError ? true : undefined}
+                        aria-describedby={
+                          renameError
+                            ? `court-name-${court.id}-error`
+                            : undefined
+                        }
+                      />
+                      <FieldError id={`court-name-${court.id}-error`}>
+                        {renameError}
+                      </FieldError>
+                    </Field>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        aria-label={`Rename ${court.name}`}
+                        disabled={
+                          !courtRenameIsDirty(draft, court.name) ||
+                          renameCourt.isPending
+                        }
+                        pending={renaming}
+                        pendingLabel="Renaming…"
+                        onClick={() =>
+                          renameCourt.mutate({ id: court.id, name: draft })
+                        }
+                      >
+                        Rename
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        aria-label={`Delete ${court.name}`}
+                        disabled={deleteCourt.isPending}
+                        onClick={() => setDeleteCourtId(court.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </RowList>
           )}
         </Section>
