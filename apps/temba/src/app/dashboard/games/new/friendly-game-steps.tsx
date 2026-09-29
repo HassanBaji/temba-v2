@@ -1,26 +1,23 @@
 "use client";
 
-import { Check, Lock, Search } from "lucide-react";
 import * as React from "react";
 
+import { DayField } from "~/app/dashboard/games/new/_parts/day-field";
+import {
+  GroupField,
+  type CreateGroup,
+} from "~/app/dashboard/games/new/_parts/group-field";
+import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
+import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
+import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
+import {
+  VenueField,
+  type CreateVenue,
+} from "~/app/dashboard/games/new/_parts/venue-field";
 import { ChoiceChip } from "~/app/dashboard/games/new/choice-chip";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
-import { Calendar } from "~/components/ui/calendar";
 import { FieldDescription, FieldError } from "~/components/ui/field";
-import { Input } from "~/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "~/components/ui/sheet";
-import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "~/lib/level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
   LEVEL_RANGE_FIELD_DESCRIPTION,
@@ -31,177 +28,18 @@ import {
   CREATE_FLOW_OPEN_SEATS_LABEL,
   CREATE_FLOW_PRICE_CHIPS,
   applyLevelBoundChange,
-  createFlowDayOptions,
-  dayChipValue,
   finishSlotForDuration,
-  isLevelBoundDisabled,
   matchingDurationPreset,
   openLevelRange,
   previewStartSlots,
   priceChipIsSelected,
-  venueCardMeta,
-  venueMatchesQuery,
   visibleCreateCourts,
-  visibleCreateGroups,
-  VISIBLE_GROUP_CHIP_COUNT,
 } from "~/lib/create-game-flow";
 import {
-  earliestGameWindowDay,
-  formatDateInputValue,
-  formatDayLabel,
   formatTimeSlotLabel,
-  parseDateInputValue,
   upcomingGameWindowTimeSlots,
 } from "~/lib/game-window";
 import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "~/lib/price-per-player";
-import { cn } from "~/lib/utils";
-
-type CreateGroup = {
-  id: string;
-  name: string | null;
-  communityName: string | null;
-};
-
-type CreateCourt = { id: string; name: string };
-
-type CreateVenue = {
-  id: string;
-  name: string;
-  city: string;
-  courts: CreateCourt[];
-};
-
-function groupOptionLabel(group: CreateGroup) {
-  const name = group.name ?? "Untitled Group";
-  if (!group.communityName) {
-    return name;
-  }
-  return `${name} · ${group.communityName}`;
-}
-
-function SectionHeading({
-  id,
-  title,
-  meta,
-}: {
-  id: string;
-  title: string;
-  meta?: string;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 id={id} className="font-expanded text-title">
-        {title}
-      </h2>
-      {meta ? <p className="text-muted-foreground text-meta">{meta}</p> : null}
-    </div>
-  );
-}
-
-function GroupChips({
-  groups,
-  selectedGroupId,
-  labelledBy,
-  onSelect,
-}: {
-  groups: readonly CreateGroup[];
-  selectedGroupId: string;
-  labelledBy?: string;
-  onSelect: (groupId: string) => void;
-}) {
-  return (
-    <RovingRadioGroup
-      aria-label={labelledBy ? undefined : "Group"}
-      aria-labelledby={labelledBy}
-      className="flex flex-wrap gap-2"
-    >
-      {groups.map((group) => {
-        const selected = group.id === selectedGroupId;
-        return (
-          <ChoiceChip
-            key={group.id}
-            role="radio"
-            selected={selected}
-            onClick={() => {
-              onSelect(group.id);
-            }}
-          >
-            {selected ? (
-              <Check aria-hidden="true" className="size-3.5" />
-            ) : null}
-            {groupOptionLabel(group)}
-          </ChoiceChip>
-        );
-      })}
-    </RovingRadioGroup>
-  );
-}
-
-function VenueCards({
-  venues,
-  venueId,
-  labelledBy,
-  invalid = false,
-  describedBy,
-  onSelect,
-}: {
-  venues: readonly CreateVenue[];
-  venueId: string;
-  labelledBy?: string;
-  invalid?: boolean;
-  describedBy?: string;
-  onSelect: (venueId: string) => void;
-}) {
-  return (
-    <RovingRadioGroup
-      id={labelledBy ? "game-venue" : undefined}
-      aria-label={labelledBy ? undefined : "Venue"}
-      aria-labelledby={labelledBy}
-      aria-invalid={invalid ? true : undefined}
-      aria-describedby={describedBy}
-      tabIndex={labelledBy ? -1 : undefined}
-      className="border-rule rounded-card overflow-hidden border outline-none"
-    >
-      {venues.map((venue) => {
-        const selected = venue.id === venueId;
-        return (
-          <button
-            key={venue.id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => {
-              onSelect(venue.id);
-            }}
-            className={cn(
-              "focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 border-b px-[18px] py-4 text-left outline-none last:border-b-0 focus-visible:ring-[3px]",
-              selected
-                ? "border-ink bg-ink text-paper"
-                : "border-rule bg-paper hover:bg-wash",
-            )}
-          >
-            <span className="min-w-0 flex-1">
-              <span className="text-lead block font-semibold">
-                {venue.name}
-              </span>
-              <span
-                className={cn(
-                  "text-meta mt-0.5 block",
-                  selected ? "text-dim" : "text-muted-foreground",
-                )}
-              >
-                {venueCardMeta(venue.courts.length, venue.city)}
-              </span>
-            </span>
-            {selected ? (
-              <Check aria-hidden="true" className="size-[18px] shrink-0" />
-            ) : null}
-          </button>
-        );
-      })}
-    </RovingRadioGroup>
-  );
-}
 
 export function FriendlyGameSteps({
   step,
@@ -283,28 +121,12 @@ export function FriendlyGameSteps({
   reviewGroup: string;
   reviewVenue: string;
 }) {
-  const [groupsOpen, setGroupsOpen] = React.useState(false);
-  const [groupQuery, setGroupQuery] = React.useState("");
-  const [venuesOpen, setVenuesOpen] = React.useState(false);
-  const [venueQuery, setVenueQuery] = React.useState("");
   const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
     string | null
   >(null);
-  const [dayOpen, setDayOpen] = React.useState(false);
   const [startExpanded, setStartExpanded] = React.useState(false);
   const [customFinishOpen, setCustomFinishOpen] = React.useState(false);
-  const [displayedMonth, setDisplayedMonth] = React.useState(
-    () => parseDateInputValue(day) ?? earliestGameWindowDay(now),
-  );
 
-  const dayOptions = createFlowDayOptions(now);
-  const selectedDay = parseDateInputValue(day);
-  const earliestDay = earliestGameWindowDay(now);
-  const calendarMonth =
-    displayedMonth.getTime() < earliestDay.getTime()
-      ? earliestDay
-      : displayedMonth;
-  const dayInChips = dayOptions.some((option) => dayChipValue(option) === day);
   const startSlots = upcomingGameWindowTimeSlots(day, now);
   const visibleStarts = previewStartSlots(startSlots, startTime, startExpanded);
   const finishSlots = startTime
@@ -323,16 +145,6 @@ export function FriendlyGameSteps({
         recentCourtIds,
         courtId === "none" ? [] : [courtId],
       );
-  const visibleGroups = visibleCreateGroups(groups, selectedGroupId);
-  const filteredGroups = groups.filter((group) =>
-    groupOptionLabel(group)
-      .toLowerCase()
-      .includes(groupQuery.trim().toLowerCase()),
-  );
-  const visibleVenues = visibleCreateGroups(venues, venueId);
-  const filteredVenues = venues.filter((venue) =>
-    venueMatchesQuery(venue, venueQuery),
-  );
   const levelOpen =
     levelMin === LEVEL_BAND_SELECT_NONE && levelMax === LEVEL_BAND_SELECT_NONE;
 
@@ -377,182 +189,24 @@ export function FriendlyGameSteps({
     <>
       {step === 2 ? (
         <>
-          <section className="flex flex-col gap-3">
-            <SectionHeading
-              id="game-group-label"
-              title="Group"
-              meta="Required"
-            />
-            <div
-              id="game-group"
-              tabIndex={-1}
-              aria-invalid={groupError ? true : undefined}
-              aria-describedby={groupError ? "game-group-error" : undefined}
-              className="outline-none"
-            >
-              <GroupChips
-                groups={visibleGroups}
-                selectedGroupId={selectedGroupId}
-                labelledBy="game-group-label"
-                onSelect={onGroupId}
-              />
-            </div>
-            {groups.length > VISIBLE_GROUP_CHIP_COUNT ? (
-              <ChoiceChip
-                dashed
-                onClick={() => {
-                  setGroupQuery("");
-                  setGroupsOpen(true);
-                }}
-              >
-                <Search aria-hidden="true" className="size-3.5" />
-                All {groups.length} groups
-              </ChoiceChip>
-            ) : null}
-            <FieldError id="game-group-error">{groupError}</FieldError>
-            <Sheet open={groupsOpen} onOpenChange={setGroupsOpen}>
-              <SheetContent side="bottom" className="max-h-[85svh]">
-                <SheetHeader>
-                  <SheetTitle>All {groups.length} groups</SheetTitle>
-                </SheetHeader>
-                <div className="flex flex-col gap-3 overflow-y-auto px-4 pb-4">
-                  <Input
-                    value={groupQuery}
-                    onChange={(event) => {
-                      setGroupQuery(event.target.value);
-                    }}
-                    placeholder="Search groups"
-                    aria-label="Search groups"
-                  />
-                  {filteredGroups.length === 0 ? (
-                    <p className="text-muted-foreground text-body">
-                      No groups match.
-                    </p>
-                  ) : (
-                    <GroupChips
-                      groups={filteredGroups}
-                      selectedGroupId={selectedGroupId}
-                      onSelect={(groupId) => {
-                        onGroupId(groupId);
-                        setGroupsOpen(false);
-                      }}
-                    />
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
-          </section>
+          <GroupField
+            groups={groups}
+            selectedGroupId={selectedGroupId}
+            groupError={groupError}
+            onGroupId={onGroupId}
+          />
 
-          <section className="flex flex-col gap-3">
-            <SectionHeading
-              id="game-venue-label"
-              title="Venue"
-              meta={selectedGroupId ? "Required" : undefined}
-            />
-            {!selectedGroupId ? (
-              <div className="border-rule hatch rounded-card flex min-h-11 items-center gap-3 px-[18px] py-4">
-                <Lock
-                  aria-hidden="true"
-                  className="text-muted-foreground size-4 shrink-0"
-                />
-                <p className="text-muted-foreground text-body">{venueCopy}</p>
-              </div>
-            ) : null}
-            {selectedGroupId && venuesPending ? (
-              <p className="text-muted-foreground text-body">Loading…</p>
-            ) : null}
-            {selectedGroupId && !venuesPending && venuesLocked ? (
-              <div
-                id="game-venue"
-                tabIndex={-1}
-                className="border-rule rounded-card border px-[18px] py-4 outline-none"
-              >
-                <p className="font-semibold">{venues[0]?.name ?? "Venue"}</p>
-                {venues[0] ? (
-                  <p className="text-muted-foreground text-meta mt-0.5">
-                    {venueCardMeta(venues[0].courts.length, venues[0].city)}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            {selectedGroupId && !venuesPending && emptyCatalog ? (
-              <div id="game-venue" tabIndex={-1} className="outline-none" />
-            ) : null}
-            {selectedGroupId &&
-            !venuesPending &&
-            !venuesLocked &&
-            !emptyCatalog ? (
-              <>
-                <VenueCards
-                  venues={visibleVenues}
-                  venueId={venueId}
-                  labelledBy="game-venue-label"
-                  invalid={Boolean(venueError)}
-                  describedBy={
-                    venueError ? "game-venue-error" : "game-venue-copy"
-                  }
-                  onSelect={onVenueId}
-                />
-                {venues.length > VISIBLE_GROUP_CHIP_COUNT ? (
-                  <ChoiceChip
-                    dashed
-                    onClick={() => {
-                      setVenueQuery("");
-                      setVenuesOpen(true);
-                    }}
-                  >
-                    <Search aria-hidden="true" className="size-3.5" />
-                    All {venues.length} venues
-                  </ChoiceChip>
-                ) : null}
-                <Sheet open={venuesOpen} onOpenChange={setVenuesOpen}>
-                  <SheetContent
-                    side="bottom"
-                    className="max-h-[85svh] overflow-hidden"
-                  >
-                    <SheetHeader>
-                      <SheetTitle>All {venues.length} venues</SheetTitle>
-                    </SheetHeader>
-                    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
-                      <Input
-                        value={venueQuery}
-                        onChange={(event) => {
-                          setVenueQuery(event.target.value);
-                        }}
-                        placeholder="Search venues"
-                        aria-label="Search venues"
-                      />
-                      {filteredVenues.length === 0 ? (
-                        <p className="text-muted-foreground text-body">
-                          No venues match.
-                        </p>
-                      ) : (
-                        <VenueCards
-                          venues={filteredVenues}
-                          venueId={venueId}
-                          onSelect={(nextVenueId) => {
-                            onVenueId(nextVenueId);
-                            setVenuesOpen(false);
-                          }}
-                        />
-                      )}
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </>
-            ) : null}
-            {selectedGroupId ? (
-              <FieldDescription id="game-venue-copy">
-                {venueCopy}
-              </FieldDescription>
-            ) : null}
-            <FieldError id="game-venue-error">
-              {venueError ??
-                (emptyCatalog
-                  ? "No live Venues. Create is not available."
-                  : undefined)}
-            </FieldError>
-          </section>
+          <VenueField
+            selectedGroupId={selectedGroupId}
+            venueCopy={venueCopy}
+            venues={venues}
+            venuesLocked={venuesLocked}
+            venuesPending={venuesPending}
+            venueId={venueId}
+            venueError={venueError}
+            onVenueId={onVenueId}
+            emptyCatalog={emptyCatalog}
+          />
 
           <section className="flex flex-col gap-3">
             <SectionHeading
@@ -613,86 +267,12 @@ export function FriendlyGameSteps({
 
       {step === 3 ? (
         <>
-          <section className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2
-                id="game-window-day-label"
-                className="font-expanded text-title"
-              >
-                Day
-              </h2>
-              <Popover open={dayOpen} onOpenChange={setDayOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-muted-foreground focus-visible:ring-ring/50 text-body inline-flex min-h-11 items-center gap-1.5 outline-none focus-visible:ring-[3px]"
-                    aria-pressed={!dayInChips}
-                  >
-                    {dayInChips
-                      ? "Later date"
-                      : (formatDayLabel(day) ?? "Later date")}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDay}
-                    month={calendarMonth}
-                    startMonth={earliestDay}
-                    disabled={{ before: earliestDay }}
-                    onMonthChange={setDisplayedMonth}
-                    onSelect={(next) => {
-                      if (!next) {
-                        return;
-                      }
-                      selectDay(formatDateInputValue(next));
-                      setDayOpen(false);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <RovingRadioGroup
-              id="game-window-day"
-              aria-labelledby="game-window-day-label"
-              aria-invalid={dayError ? true : undefined}
-              aria-describedby={dayError ? "game-window-day-error" : undefined}
-              tabIndex={-1}
-              className="grid grid-cols-5 gap-1.5 outline-none"
-            >
-              {dayOptions.map((option) => {
-                const value = dayChipValue(option);
-                const today = option.toDateString() === now.toDateString();
-                const label = today
-                  ? "Today"
-                  : option.toLocaleDateString("en-US", { weekday: "short" });
-                return (
-                  <ChoiceChip
-                    key={value}
-                    role="radio"
-                    selected={day === value}
-                    className="h-auto flex-col gap-0.5 px-1 py-1.5"
-                    onClick={() => {
-                      selectDay(value);
-                    }}
-                  >
-                    <span
-                      className={cn(
-                        "text-[11px]",
-                        day === value ? "text-dim" : "text-muted-foreground",
-                      )}
-                    >
-                      {label}
-                    </span>
-                    <span className="text-base tabular-nums">
-                      {option.getDate()}
-                    </span>
-                  </ChoiceChip>
-                );
-              })}
-            </RovingRadioGroup>
-            <FieldError id="game-window-day-error">{dayError}</FieldError>
-          </section>
+          <DayField
+            now={now}
+            day={day}
+            dayError={dayError}
+            onSelectDay={selectDay}
+          />
 
           <section className="flex flex-col gap-3">
             <SectionHeading
@@ -960,64 +540,5 @@ export function FriendlyGameSteps({
         </>
       ) : null}
     </>
-  );
-}
-
-function LevelBandRow({
-  id,
-  label,
-  bound,
-  value,
-  other,
-  invalid,
-  describedBy,
-  onSelect,
-}: {
-  id: string;
-  label: string;
-  bound: "min" | "max";
-  value: LevelBandSelectValue;
-  other: LevelBandSelectValue;
-  invalid: boolean;
-  describedBy?: string;
-  onSelect: (band: LevelBandSelectValue) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p id={`${id}-label`} className="text-muted-foreground text-meta">
-        {label}
-      </p>
-      <RovingRadioGroup
-        id={id}
-        aria-labelledby={`${id}-label`}
-        aria-invalid={invalid ? true : undefined}
-        aria-describedby={describedBy}
-        tabIndex={-1}
-        className="grid grid-cols-4 gap-1.5 outline-none sm:grid-cols-7"
-      >
-        {ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => (
-          <ChoiceChip
-            key={band}
-            role="radio"
-            selected={value === band}
-            disabled={isLevelBoundDisabled(bound, band, other)}
-            onClick={() => {
-              onSelect(value === band ? LEVEL_BAND_SELECT_NONE : band);
-            }}
-          >
-            {band}
-          </ChoiceChip>
-        ))}
-      </RovingRadioGroup>
-    </div>
-  );
-}
-
-function ReviewRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-rule text-body flex items-center justify-between gap-3 border-t px-[18px] py-3.5 first:border-t-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-right">{value}</span>
-    </div>
   );
 }
