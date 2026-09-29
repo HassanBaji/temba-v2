@@ -39,7 +39,7 @@ export function BottomNav() {
             className={cn(
               "focus-visible:ring-ring/50 relative flex h-full min-h-11 w-full min-w-11 flex-col items-center justify-center gap-0.5 text-[11.5px] leading-none outline-none focus-visible:ring-[3px]",
               active
-                ? "text-ink font-semibold"
+                ? "text-ink before:bg-ink font-semibold before:absolute before:inset-x-3 before:-top-px before:h-0.5 [&>svg]:stroke-[2.5]"
                 : "text-muted-foreground font-medium",
             )}
           >
