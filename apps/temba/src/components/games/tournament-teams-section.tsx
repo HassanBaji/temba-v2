@@ -4,8 +4,8 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 import { RowList } from "~/components/common/row-list";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { SeatTile } from "~/components/temba/seat";
 import { displayLabelFromStoredBand } from "~/lib/level-bands";
 import {
   TEAMS_HEADING,
@@ -130,66 +130,34 @@ function TeamSeat({
   onJoin?: () => void;
 }) {
   const positionName = position === "left" ? "Left" : "Right";
-  const level = occupant?.levelBand
-    ? displayLabelFromStoredBand(occupant.levelBand)
-    : null;
 
   if (!occupant) {
-    const face = (
-      <>
-        <span aria-hidden="true" className="text-lead leading-none">
-          +
-        </span>
-        <span className="sr-only">Open {positionName.toLowerCase()} seat</span>
-      </>
-    );
+    const canJoin = joinable && onJoin != null;
     return (
-      <div className="min-w-0 flex-1">
-        {joinable && onJoin ? (
-          <button
-            type="button"
-            onClick={onJoin}
-            aria-label={`Take the ${positionName.toLowerCase()} seat`}
-            className="hatch text-muted-foreground focus-visible:ring-ring/50 flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1 outline-none focus-visible:ring-[3px]"
-          >
-            {face}
-          </button>
-        ) : (
-          <div className="hatch text-muted-foreground flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent px-1">
-            {face}
-          </div>
-        )}
-        <p className="text-eyebrow text-muted-foreground mt-2 text-center">
-          {positionName}
-        </p>
-      </div>
+      <SeatTile
+        occupant={null}
+        caption={positionName}
+        label={
+          canJoin
+            ? `Take the ${positionName.toLowerCase()} seat`
+            : `Open ${positionName.toLowerCase()} seat`
+        }
+        onSelect={canJoin ? onJoin : undefined}
+      />
     );
   }
 
-  const displayName = occupant.userId === viewerUserId ? "You" : occupant.name;
-
   return (
-    <div className="min-w-0 flex-1">
-      <div className="border-rule bg-paper flex h-[78px] w-full flex-col items-center justify-center gap-1 rounded-lg border px-1">
-        <UserAvatar
-          name={occupant.name}
-          image={occupant.image ?? null}
-          size="sm"
-          className="shrink-0"
-        />
-        <span className="text-eyebrow text-ink max-w-full truncate leading-tight">
-          {displayName}
-        </span>
-        {level ? (
-          <span className="text-muted-foreground max-w-full truncate text-[10px] leading-tight">
-            {level}
-          </span>
-        ) : null}
-      </div>
-      <p className="text-eyebrow text-muted-foreground mt-2 text-center">
-        {positionName}
-      </p>
-    </div>
+    <SeatTile
+      occupant={{ name: occupant.name, image: occupant.image ?? null }}
+      name={occupant.userId === viewerUserId ? "You" : occupant.name}
+      level={
+        occupant.levelBand
+          ? displayLabelFromStoredBand(occupant.levelBand)
+          : null
+      }
+      caption={positionName}
+    />
   );
 }
 

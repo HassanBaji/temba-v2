@@ -1,38 +1,18 @@
 "use client";
 
 import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
-import { ListRow, RowList } from "~/components/common/row-list";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
-import { Badge } from "~/components/ui/badge";
-import { Card } from "~/components/ui/card";
+import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import {
   friendlyGameCanKickPlayer,
   friendlyGameSideFill,
   friendlyGameVacantSeatAction,
   friendlyGameVacantSeatLabel,
 } from "~/lib/friendly-game-players";
-import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameSide = RouterOutputs["games"]["byId"]["sides"][number];
 type SeatOccupant = NonNullable<GameSide["left"]>;
-
-function VacantPlus({ joinable }: { joinable: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "text-body flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed font-medium",
-        joinable
-          ? "border-foreground bg-muted text-foreground"
-          : "border-border text-muted-foreground/70",
-      )}
-    >
-      +
-    </span>
-  );
-}
 
 function FriendlySeatRow({
   sideLabel,
@@ -71,34 +51,24 @@ function FriendlySeatRow({
       isViewer,
     });
     return (
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <UserAvatar name={occupant.name} image={occupant.image} size="lg" />
-
-          {
-            <>
-              {occupant.name}
-              {isViewer ? (
-                <Badge variant="outline" className="ml-2 align-middle">
-                  You
-                </Badge>
-              ) : null}
-            </>
-          }
-        </div>
-
-        {canKick ? (
-          <ActionMenu label={`Actions for ${occupant.name}`}>
-            <ActionMenuItem
-              variant="destructive"
-              disabled={kickPending}
-              onClick={() => onKick(occupant.userId)}
-            >
-              Kick
-            </ActionMenuItem>
-          </ActionMenu>
-        ) : undefined}
-      </div>
+      <SeatRow
+        occupant={occupant}
+        isViewer={isViewer}
+        subline={positionLabel}
+        trailing={
+          canKick ? (
+            <ActionMenu label={`Actions for ${occupant.name}`}>
+              <ActionMenuItem
+                variant="destructive"
+                disabled={kickPending}
+                onClick={() => onKick(occupant.userId)}
+              >
+                Kick
+              </ActionMenuItem>
+            </ActionMenu>
+          ) : undefined
+        }
+      />
     );
   }
 
@@ -110,30 +80,31 @@ function FriendlySeatRow({
   const pending = vacantAction === "move" ? moving : joining;
 
   return (
-    <ListRow
-      leading={
+    <SeatRow
+      occupant={null}
+      open={
         vacantAction && vacantLabel ? (
           <button
             type="button"
             disabled={pending}
             aria-label={vacantLabel}
-            className="focus-visible:ring-ring/50 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-full outline-none focus-visible:ring-[3px] disabled:opacity-50"
+            className="focus-visible:ring-ring/50 flex size-[42px] shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-[3px] disabled:opacity-50"
             onClick={vacantAction === "move" ? onMove : onJoin}
           >
-            <VacantPlus joinable />
+            <OpenSeat size="lg" joinable />
           </button>
         ) : (
-          <VacantPlus joinable={false} />
+          <OpenSeat size="lg" />
         )
       }
       title={
         vacantAction ? (
-          <span className="text-foreground font-medium">Open</span>
+          <span className="text-foreground">Open</span>
         ) : (
-          <span className="text-muted-foreground font-medium">Vacant</span>
+          <span className="text-muted-foreground">Vacant</span>
         )
       }
-      subtitle={positionLabel}
+      subline={positionLabel}
     />
   );
 }

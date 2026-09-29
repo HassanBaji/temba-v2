@@ -6,6 +6,7 @@ import * as React from "react";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
+import { OpenSeat } from "~/components/temba/seat";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -112,9 +113,7 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
-      <div className="hatch text-muted-foreground flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
-        +
-      </div>
+      <OpenSeat size="chip" />
       <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
         Open
       </small>
@@ -171,9 +170,7 @@ function SideJoinButton({
         }}
       >
         <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
-          <div className="hatch text-muted-foreground flex h-[46px] w-full items-center justify-center rounded-lg text-base font-semibold">
-            +
-          </div>
+          <OpenSeat size="chip" />
           <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
             Join {position === "left" ? "Left" : "Right"}
           </small>

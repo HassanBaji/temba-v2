@@ -11,7 +11,6 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import { UserAvatar } from "~/components/common/user-avatar";
 import {
   FriendlyGamePartnerPicker,
   type FriendlyGamePartnerPick,
@@ -19,6 +18,7 @@ import {
 import { FriendlyGamePartnerReview } from "~/components/games/friendly-game-partner-review";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
+import { SeatTile } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
@@ -198,12 +198,6 @@ function ModeChooser({
   );
 }
 
-/**
- * One Position in the picker: hatched while open (the same "not yet" device
- * as `game-lineup-section.tsx`'s `LineupOpenChip` and the Home seat row),
- * solid ink once picked, plain paper with the occupant once taken. Meaning
- * never rides on the hatch alone — the accessible name states it.
- */
 function PositionButton({
   occupant,
   position,
@@ -219,66 +213,19 @@ function PositionButton({
   disabled: boolean;
   onSelect: () => void;
 }) {
-  const taken = occupant != null;
-
+  const seatName = `${sideLabel} ${positionLabel(position).toLowerCase()}`;
   return (
-    <div className="min-w-0 flex-1">
-      <button
-        type="button"
-        disabled={taken || disabled}
-        aria-pressed={taken ? undefined : selected}
-        aria-label={
-          taken
-            ? `${sideLabel} ${positionLabel(position).toLowerCase()}, taken by ${occupant.name}`
-            : `Take ${sideLabel} ${positionLabel(position).toLowerCase()}`
-        }
-        onClick={onSelect}
-        className={cn(
-          "flex h-[78px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border px-1",
-          "outline-none transition-colors",
-          "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-          "disabled:cursor-default",
-          taken && "border-rule bg-paper",
-          !taken && selected && "border-ink bg-ink text-paper",
-          !taken &&
-            !selected &&
-            "hatch text-muted-foreground border-transparent",
-        )}
-      >
-        {taken ? (
-          <>
-            <UserAvatar
-              name={occupant.name}
-              image={occupant.image}
-              size="sm"
-              className="shrink-0"
-            />
-            <span className="text-eyebrow text-ink max-w-full truncate leading-tight">
-              {occupant.name}
-            </span>
-            {occupantLevelLabel(occupant) ? (
-              <span className="text-muted-foreground text-[10px] leading-tight">
-                {occupantLevelLabel(occupant)}
-              </span>
-            ) : null}
-          </>
-        ) : selected ? (
-          <span className="text-meta font-semibold">You</span>
-        ) : (
-          <span aria-hidden="true" className="text-lead leading-none">
-            +
-          </span>
-        )}
-      </button>
-      <p
-        className={cn(
-          "text-eyebrow mt-2 text-center",
-          selected ? "text-ink font-medium" : "text-muted-foreground",
-        )}
-      >
-        {positionLabel(position)}
-      </p>
-    </div>
+    <SeatTile
+      occupant={occupant}
+      level={occupantLevelLabel(occupant)}
+      selected={selected}
+      caption={positionLabel(position)}
+      label={
+        occupant ? `${seatName}, taken by ${occupant.name}` : `Take ${seatName}`
+      }
+      disabled={occupant != null || disabled}
+      onSelect={onSelect}
+    />
   );
 }
 

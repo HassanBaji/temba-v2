@@ -2,9 +2,9 @@
 
 import { Fragment } from "react";
 
-import { UserAvatar } from "~/components/common/user-avatar";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
+import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { vacantJoinSeats } from "~/lib/friendly-game-cta";
 import {
@@ -29,33 +29,6 @@ function seatSubline(position: SeatPosition, levelBand: LevelBand | null) {
     return positionLabel;
   }
   return `${positionLabel} — level ${displayLabelFromStoredBand(levelBand)}`;
-}
-
-function YouTag() {
-  return (
-    <span className="border-ink text-ink shrink-0 rounded-full border px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.04em]">
-      You
-    </span>
-  );
-}
-
-/**
- * Open-seat hatch, adapted from `game-summary-card.tsx`'s `OpenFlag`/`SeatChip`
- * hatch and `home-seat-row.tsx`'s `HomeSeat` (game-details redesign, TEM-180)
- * — 42px, `+` glyph `aria-hidden`, "Open" conveyed only via `sr-only` text
- * (established convention: hatch is always decoration, meaning lives in
- * adjacent `sr-only` text). Replaces `game-seat-grid.tsx`'s dashed-border
- * `VacantAvatar` on this page.
- */
-function LineupOpenChip() {
-  return (
-    <span
-      aria-hidden="true"
-      className="hatch text-muted-foreground flex size-[42px] shrink-0 items-center justify-center rounded-full text-base font-semibold"
-    >
-      +
-    </span>
-  );
 }
 
 function LineupSeatRow({
@@ -99,11 +72,11 @@ function LineupSeatRow({
               className="focus-visible:ring-ring/50 flex size-[42px] shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={onMove}
             >
-              <LineupOpenChip />
+              <OpenSeat size="lg" />
             </button>
           ) : (
             <>
-              <LineupOpenChip />
+              <OpenSeat size="lg" />
               <span className="sr-only">Open</span>
             </>
           )}
@@ -124,22 +97,11 @@ function LineupSeatRow({
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <UserAvatar
-        name={occupant.name}
-        image={occupant.image}
-        className="size-[42px] shrink-0"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className="text-body truncate font-medium">{occupant.name}</p>
-          {isViewer ? <YouTag /> : null}
-        </div>
-        <p className="text-muted-foreground text-meta truncate">
-          {seatSubline(position, occupant.levelBand)}
-        </p>
-      </div>
-    </div>
+    <SeatRow
+      occupant={occupant}
+      isViewer={isViewer}
+      subline={seatSubline(position, occupant.levelBand)}
+    />
   );
 }
 

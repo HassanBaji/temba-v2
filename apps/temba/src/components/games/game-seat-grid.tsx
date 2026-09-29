@@ -4,8 +4,8 @@ import { Button } from "~/components/ui/button";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatSeatSideHeading } from "~/components/games/game-side-label";
+import { OpenSeat } from "~/components/temba/seat";
 import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
-import { cn } from "~/lib/utils";
 
 // Self-contained rather than derived from `RouterOutputs["games"]["byId"]`:
 // this grid also renders invite-preview sides (`~/server/games/utils`'s
@@ -23,22 +23,6 @@ type GameSide = {
   left: SeatOccupant | null;
   right: SeatOccupant | null;
 };
-
-function VacantAvatar({ joinable }: { joinable: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "text-body flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed font-medium",
-        joinable
-          ? "border-foreground bg-muted text-foreground"
-          : "border-border text-muted-foreground/70",
-      )}
-    >
-      +
-    </span>
-  );
-}
 
 function SeatRow({
   positionLabel,
@@ -98,7 +82,7 @@ function SeatRow({
         occupant ? (
           <UserAvatar name={occupant.name} image={occupant.image} size="lg" />
         ) : (
-          <VacantAvatar joinable={canJoin || canMove} />
+          <OpenSeat joinable={canJoin || canMove} />
         )
       }
       title={
