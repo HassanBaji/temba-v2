@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { formatAbsoluteDay, formatGameClock } from "./format-game-start";
+import { formatAbsoluteDay } from "./format-game-start";
 import {
   friendlyGameDateDurationLine,
-  friendlyGameDateTimeLine,
   friendlyGameDirectionsUrl,
   friendlyGameHomeTitle,
   friendlyGameOccupancyLabel,
   friendlyGamePriceRow,
-  friendlyGameVenueLine,
   friendlyGameViewerLine,
 } from "./friendly-game-chrome";
 import { showsFriendlyRoster } from "./game-summary-cta";
@@ -111,21 +109,6 @@ describe("friendlyGameDirectionsUrl", () => {
   });
 });
 
-describe("friendlyGameVenueLine", () => {
-  it("joins Venue and Court when both exist", () => {
-    assert.equal(
-      friendlyGameVenueLine("Padel Club", "Court 1"),
-      "Padel Club · Court 1",
-    );
-  });
-
-  it("keeps whichever of Venue or Court is present", () => {
-    assert.equal(friendlyGameVenueLine("Padel Club", null), "Padel Club");
-    assert.equal(friendlyGameVenueLine(null, "Court 1"), "Court 1");
-    assert.equal(friendlyGameVenueLine(null, null), null);
-  });
-});
-
 describe("friendlyGameDateDurationLine", () => {
   it("is the date when duration is unset", () => {
     const start = new Date(2026, 8, 6, 19, 0, 0);
@@ -145,15 +128,5 @@ describe("friendlyGameDateDurationLine", () => {
 
   it("is null when the window is unset", () => {
     assert.equal(friendlyGameDateDurationLine(null, 90), null);
-  });
-});
-
-describe("friendlyGameDateTimeLine", () => {
-  it("joins the date and local clock", () => {
-    const start = new Date(2026, 8, 6, 19, 0, 0);
-    assert.equal(
-      friendlyGameDateTimeLine(start),
-      `${formatAbsoluteDay(start)} · ${formatGameClock(start)}`,
-    );
   });
 });
