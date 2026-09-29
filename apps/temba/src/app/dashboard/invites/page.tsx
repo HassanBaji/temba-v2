@@ -167,7 +167,7 @@ export default function InvitesPage() {
   return (
     <DashboardShell
       title="Invites"
-      description="Unused Lookup invites addressed to you. Accept here to join."
+      description="Invites sent to you. Accept one to join."
     >
       {isLoading && items.length === 0 ? <ListPageSkeleton rows={4} /> : null}
 
@@ -188,7 +188,7 @@ export default function InvitesPage() {
         <EmptyState
           icon={Inbox}
           title="Nothing waiting"
-          description="Lookup invites to Communities, Groups and Teams show up here."
+          description="Invites to Games, Groups, Teams and Communities show up here."
         />
       ) : null}
 

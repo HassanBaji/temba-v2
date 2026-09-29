@@ -132,9 +132,7 @@ export function LookupInvitePanel({
         </form>
       ) : null}
       {!compact && lookupInvites?.length === 0 ? (
-        <p className="text-body text-muted-foreground">
-          No unused Lookup invites.
-        </p>
+        <p className="text-body text-muted-foreground">No pending invites.</p>
       ) : null}
       {lookupInvites && lookupInvites.length > 0 && !compact ? (
         <RowList>
