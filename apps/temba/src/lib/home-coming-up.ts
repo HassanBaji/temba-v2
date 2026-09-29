@@ -1,13 +1,18 @@
 import {
   isPoolMatchRow,
+  isPoolTournamentSummaryRow,
+  tournamentCardAction,
+  tournamentCardActionLabel,
   tournamentMatchup,
   tournamentMatchupName,
+  tournamentTeamsLine,
+  type TournamentCardInput,
 } from "~/lib/tournament-card";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
 
 type Occupant = { name: string; isViewer: boolean } | null;
 
-export type HomeComingUpSource = {
+export type HomeComingUpSource = TournamentCardInput & {
   id: string;
   matchId: string | null;
   format: string;
@@ -32,7 +37,7 @@ export type HomeComingUpGameRow = {
   seatsTotal: number;
 };
 
-export type HomeComingUpTournamentRow = {
+export type HomeComingUpTournamentMatchRow = {
   kind: "tournament_match";
   id: string;
   rowKey: string;
@@ -42,7 +47,25 @@ export type HomeComingUpTournamentRow = {
   opponentLine: string | null;
 };
 
-export type HomeComingUpRow = HomeComingUpGameRow | HomeComingUpTournamentRow;
+export type HomeComingUpTournamentRow = {
+  kind: "tournament";
+  id: string;
+  rowKey: string;
+  title: string;
+  startsAt: Date;
+  teamsLine: string;
+  /** Null once the viewer is in: the row itself opens the Game. */
+  actionLabel: string | null;
+};
+
+export type HomeComingUpRow =
+  | HomeComingUpGameRow
+  | HomeComingUpTournamentMatchRow
+  | HomeComingUpTournamentRow;
+
+function tournamentTitle(game: HomeComingUpSource) {
+  return game.name ?? game.venue?.name ?? "Tournament";
+}
 
 function toRow(game: HomeComingUpSource): HomeComingUpRow {
   const startsAt = new Date(game.startTime);
@@ -54,10 +77,22 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
       kind: "tournament_match",
       id: game.id,
       rowKey: game.matchId,
-      title: game.name ?? game.venue?.name ?? "Tournament",
+      title: tournamentTitle(game),
       startsAt,
       roundTag: poolRoundLabel(game.roundNumber, game.roundCount),
       opponentLine: opponent ? `vs ${opponent}` : null,
+    };
+  }
+  if (isPoolTournamentSummaryRow(game)) {
+    const action = tournamentCardAction(game);
+    return {
+      kind: "tournament",
+      id: game.id,
+      rowKey: game.id,
+      title: tournamentTitle(game),
+      startsAt,
+      teamsLine: tournamentTeamsLine(game),
+      actionLabel: action === "view" ? null : tournamentCardActionLabel(action),
     };
   }
   return {
@@ -71,7 +106,7 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
   };
 }
 
-/** Pool Matches behind the hero keep their tournament identity in Coming up. */
+/** Pool tournaments behind the hero keep their tournament identity in Coming up. */
 export function homeComingUpRows(games: readonly HomeComingUpSource[]) {
   return games.map(toRow);
 }
