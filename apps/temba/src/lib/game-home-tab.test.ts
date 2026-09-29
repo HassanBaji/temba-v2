@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { gameHomeTabFromQuery, gameHomeTabQuery } from "./game-home-tab";
+import {
+  gameHomeIntentFromQuery,
+  gameHomeIntentHref,
+  gameHomeTabFromQuery,
+  gameHomeTabQuery,
+} from "./game-home-tab";
 
 describe("gameHomeTabFromQuery", () => {
   it("opens Results when tab=results", () => {
@@ -29,5 +34,31 @@ describe("gameHomeTabQuery", () => {
   it("writes tab for Players and Results", () => {
     assert.equal(gameHomeTabQuery("players"), "?tab=players");
     assert.equal(gameHomeTabQuery("results"), "?tab=results");
+  });
+});
+
+describe("gameHomeIntentFromQuery", () => {
+  it("reads the invite and results intents", () => {
+    assert.equal(gameHomeIntentFromQuery("invite"), "invite");
+    assert.equal(gameHomeIntentFromQuery("results"), "results");
+  });
+
+  it("ignores anything else", () => {
+    assert.equal(gameHomeIntentFromQuery(undefined), null);
+    assert.equal(gameHomeIntentFromQuery(""), null);
+    assert.equal(gameHomeIntentFromQuery("edit"), null);
+  });
+});
+
+describe("gameHomeIntentHref", () => {
+  it("links to the game with the intent in the query", () => {
+    assert.equal(
+      gameHomeIntentHref("g1", "invite"),
+      "/dashboard/games/g1?intent=invite",
+    );
+    assert.equal(
+      gameHomeIntentHref("g1", "results"),
+      "/dashboard/games/g1?intent=results",
+    );
   });
 });

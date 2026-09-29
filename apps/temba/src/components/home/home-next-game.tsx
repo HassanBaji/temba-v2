@@ -7,11 +7,13 @@ import { useCreateAccess } from "~/components/create-access-gate";
 import { HomeSeatRow } from "~/components/home/home-seat-row";
 import { Button } from "~/components/ui/button";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
+import {
+  homeNextGameActions,
+  type HomeNextGamePhase,
+} from "~/lib/home-next-game";
 import { homeNoGamesCreateAction } from "~/lib/home-no-games";
 import type { HomeSeatView } from "~/lib/home-seats";
 import { api } from "~/trpc/react";
-
-export type HomeNextGamePhase = "upcoming" | "ongoing" | "needs_results";
 
 export function HomeNextGame({
   id,
@@ -48,14 +50,11 @@ export function HomeNextGame({
       : phase === "needs_results"
         ? "Add results"
         : countdown;
-  const hasOpenSeat = seats.some((seat) => !seat.filled);
-  const primary =
-    phase === "needs_results"
-      ? { href: `/dashboard/games/${id}`, label: "Add results" }
-      : phase === "upcoming" && hasOpenSeat
-        ? { href: `/dashboard/games/${id}`, label: "Invite a player" }
-        : { href: `/dashboard/games/${id}`, label: "View game" };
-  const detailsHref = `/dashboard/games/${id}`;
+  const { primary, detailsHref } = homeNextGameActions({
+    gameId: id,
+    phase,
+    hasOpenSeat: seats.some((seat) => !seat.filled),
+  });
   const secondaryLine = [courtLabel, formatLabel].filter(Boolean).join(" · ");
 
   return (
@@ -86,9 +85,11 @@ export function HomeNextGame({
         <Button asChild variant="inverse" className="flex-1">
           <Link href={primary.href}>{primary.label}</Link>
         </Button>
-        <Button asChild variant="outline-inverse" className="flex-1">
-          <Link href={detailsHref}>Details</Link>
-        </Button>
+        {detailsHref ? (
+          <Button asChild variant="outline-inverse" className="flex-1">
+            <Link href={detailsHref}>Details</Link>
+          </Button>
+        ) : null}
       </div>
     </article>
   );

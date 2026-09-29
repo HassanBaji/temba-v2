@@ -60,7 +60,11 @@ import {
 } from "~/lib/friendly-game-cta";
 import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
 import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
-import { gameHomeTabFromQuery, gameHomeTabQuery } from "~/lib/game-home-tab";
+import {
+  gameHomeIntentFromQuery,
+  gameHomeTabFromQuery,
+  gameHomeTabQuery,
+} from "~/lib/game-home-tab";
 import { gameViewerStatus } from "~/lib/game-summary-cta";
 import { gameDetailsChrome } from "~/lib/tournament-home";
 import {
@@ -106,13 +110,20 @@ export default function GameHomePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[]; join?: string | string[] }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    join?: string | string[];
+    intent?: string | string[];
+  }>;
 }) {
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const tab = gameHomeTabFromQuery(tabParam);
   const joinParam = Array.isArray(query.join) ? query.join[0] : query.join;
+  const intent = gameHomeIntentFromQuery(
+    Array.isArray(query.intent) ? query.intent[0] : query.intent,
+  );
   const router = useRouter();
   const pathname = usePathname() ?? `/dashboard/games/${id}`;
   const utils = api.useUtils();
@@ -131,6 +142,16 @@ export default function GameHomePage({
   const levelSummaryRef = React.useRef<HTMLDivElement>(null);
   const roundsSummaryRef = React.useRef<HTMLDivElement>(null);
   const resultsSectionRef = React.useRef<HTMLDivElement>(null);
+  const focusResultsSection = React.useCallback(() => {
+    const section = resultsSectionRef.current;
+    section?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    section
+      ?.querySelector<HTMLInputElement>("input")
+      ?.focus({ preventScroll: true });
+  }, []);
 
   const [partnerQuery, setPartnerQuery] = React.useState("");
   const [selectedPartner, setSelectedPartner] = React.useState<
@@ -633,6 +654,34 @@ export default function GameHomePage({
     router.replace(`${pathname}${gameHomeTabQuery(tab)}`, { scroll: false });
   }, [data, joinParam, pathname, router, tab]);
 
+  React.useEffect(() => {
+    if (!intent || !data) {
+      return;
+    }
+    if (intent === "invite" && canManageGameInvites) {
+      setInvitesOpen(true);
+    }
+    if (intent === "results" && !usesFriendlyChrome) {
+      router.replace(`${pathname}${gameHomeTabQuery("results")}`, {
+        scroll: false,
+      });
+      return;
+    }
+    if (intent === "results") {
+      focusResultsSection();
+    }
+    router.replace(`${pathname}${gameHomeTabQuery(tab)}`, { scroll: false });
+  }, [
+    canManageGameInvites,
+    data,
+    focusResultsSection,
+    intent,
+    pathname,
+    router,
+    tab,
+    usesFriendlyChrome,
+  ]);
+
   if (isNotFoundError(game.error)) {
     notFound();
   }
@@ -1118,16 +1167,7 @@ export default function GameHomePage({
               onJoin={() => setJoinPickerOpen(true)}
               onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
               onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
-              onAddResult={() => {
-                const section = resultsSectionRef.current;
-                section?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                });
-                section
-                  ?.querySelector<HTMLInputElement>("input")
-                  ?.focus({ preventScroll: true });
-              }}
+              onAddResult={focusResultsSection}
               onInvite={
                 ctaFamily.kind === "upcoming" && ctaFamily.showInvite
                   ? () => setInvitesOpen(true)
