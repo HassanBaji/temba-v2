@@ -18,6 +18,8 @@ export function SsoCallback({ redirectUrl }: { redirectUrl: string | null }) {
   return (
     <>
       <AuthLoading label="Finishing sign in…" />
+      {/* A new Google user arriving from /login is transferred to sign-up here, which runs bot protection. */}
+      <div id="clerk-captcha" />
       <AuthenticateWithRedirectCallback
         continueSignUpUrl={signupContinueUrl(redirectUrl)}
         signInFallbackRedirectUrl={complete}
