@@ -544,6 +544,8 @@ export default function CommunityHomePage({
                 }
                 linkedTeamBlocksLeave={linkedTeamBlocksLeave}
                 isLastOwnerBlockedLeave={isLastOwnerBlockedLeave}
+                canInvite={canManageInvites}
+                onInvite={() => setInvitesOpen(true)}
               />
             </TabsContent>
           ) : null}
