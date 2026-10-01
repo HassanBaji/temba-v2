@@ -8,6 +8,7 @@ import {
   isDrawnTournament,
   isKnockoutOnly,
   isPartnerRequiredGame,
+  plannedKnockoutRoundCount,
   plannedTournamentRoundCount,
   poolRoundLabel,
   postedRoundCount,
@@ -95,6 +96,50 @@ describe("plannedTournamentRoundCount", () => {
         resolvePlannedRoundCount(12, 3, null),
       );
     }
+  });
+});
+
+describe("plannedKnockoutRoundCount", () => {
+  const game = {
+    format: "friendly_tournament",
+    teamsAllowed: 12,
+    poolCount: 3,
+    qualifiersPerPool: null,
+  };
+
+  it("sizes the tree from the field on Knockout only", () => {
+    assert.equal(
+      plannedKnockoutRoundCount({
+        ...game,
+        poolCount: null,
+        tournamentShape: "knockout_only",
+      }),
+      4,
+    );
+  });
+
+  it("sizes the tree from the planned groups and Through from each group", () => {
+    const shape = { ...game, tournamentShape: "groups_then_knockout" };
+    assert.equal(plannedKnockoutRoundCount(shape), 3);
+    assert.equal(
+      plannedKnockoutRoundCount({ ...shape, qualifiersPerPool: 1 }),
+      2,
+    );
+    assert.equal(
+      plannedKnockoutRoundCount({ ...shape, qualifiersPerPool: 3 }),
+      4,
+    );
+  });
+
+  it("is null without a Knockout", () => {
+    assert.equal(
+      plannedKnockoutRoundCount({ ...game, tournamentShape: null }),
+      null,
+    );
+    assert.equal(
+      plannedKnockoutRoundCount({ ...game, tournamentShape: "groups_only" }),
+      null,
+    );
   });
 });
 

@@ -4,7 +4,13 @@ import type { LevelBand } from "~/lib/level-bands";
 import {
   buildKnockoutTree,
   knockoutRoundName,
+  knockoutStartWord,
 } from "~/lib/tournament-knockout";
+import {
+  knockoutCurrentRound,
+  knockoutNowLine,
+  type KnockoutViewRound,
+} from "~/lib/tournament-knockout-view";
 import {
   isDrawnTournament,
   plannedTournamentRoundCount,
@@ -100,6 +106,8 @@ export type TournamentStatusLineInput = {
   teamCount: number;
   organizerName: string | null;
   knockoutOnly?: boolean;
+  /** Groups then knockout: the line says the groups lead to a knockout. */
+  thenKnockout?: boolean;
 };
 
 /**
@@ -281,9 +289,16 @@ export function tournamentOpenPositionSubline(
   return `${positionSeatLabel(position)} open`;
 }
 
-export function tournamentSizeLine(sizing: TournamentSizing): string {
+/** `12 Game teams, 3 groups of 4`, then `, then quarters` with a Knockout. */
+export function tournamentSizeLine(
+  sizing: TournamentSizing,
+  knockoutRoundCount?: number | null,
+): string {
   const teamWord = sizing.teamCount === 1 ? "Game team" : "Game teams";
-  return `${sizing.teamCount} ${teamWord}, ${poolSizeClause(sizing)}`;
+  const line = `${sizing.teamCount} ${teamWord}, ${poolSizeClause(sizing)}`;
+  return knockoutRoundCount != null
+    ? `${line}, then ${knockoutStartWord(knockoutRoundCount)}`
+    : line;
 }
 
 /** `12 Game teams, knockout from the Round of 16` */
@@ -297,6 +312,13 @@ export function knockoutSizeLine(teamCount: number): string | null {
 }
 
 export function tournamentStatusLine(input: TournamentStatusLineInput): string {
+  const line = drawStatusLine(input);
+  return input.thenKnockout && !input.knockoutOnly
+    ? `${line} ${GROUPS_THEN_KNOCKOUT_LEAD}`
+    : line;
+}
+
+function drawStatusLine(input: TournamentStatusLineInput): string {
   if (input.seated) {
     if (input.seatsLeft === 0) {
       return input.knockoutOnly
@@ -333,9 +355,27 @@ export function tournamentRoundCount(game: {
   return plannedTournamentRoundCount(game);
 }
 
-export function tournamentEyebrow(roundCount: number): string {
+export function tournamentEyebrow(
+  roundCount: number,
+  knockoutOnly = false,
+): string {
+  if (knockoutOnly) {
+    return `${TOURNAMENT_EYEBROW_PREFIX}, knockout`;
+  }
   const rounds = roundCount === 1 ? "1 Round" : `${roundCount} Rounds`;
   return `${TOURNAMENT_EYEBROW_PREFIX}, ${rounds}`;
+}
+
+/**
+ * Standings header after the draw: the Knockout round now being played once
+ * a Game team is in it, else the Pool Rounds played.
+ */
+export function drawnTournamentProgressLine(args: {
+  roundsPlayed: string | null;
+  knockout: readonly KnockoutViewRound[] | null;
+}): string | null {
+  const current = knockoutCurrentRound(args.knockout);
+  return current ? knockoutNowLine(current.name) : args.roundsPlayed;
 }
 
 export function tournamentStartLine(

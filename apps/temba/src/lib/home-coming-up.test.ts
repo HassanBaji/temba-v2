@@ -104,6 +104,28 @@ describe("homeComingUpRows", () => {
     });
   });
 
+  it("tags a Knockout Match with its Knockout round, not a Round count", () => {
+    const [row] = homeComingUpRows([
+      poolMatch({
+        matchId: "match-sf",
+        poolCount: null,
+        tournamentShape: "knockout_only",
+        roundNumber: null,
+        roundCount: null,
+        knockoutMatch: { round: 2, roundCount: 3 },
+      }),
+    ]);
+    assert.deepEqual(row, {
+      kind: "tournament_match",
+      id: "cup-1",
+      rowKey: "match-sf",
+      title: "Friday Cup",
+      startsAt: STARTS,
+      roundTag: "Semi-final",
+      opponentLine: "vs Maja S and Oskar T",
+    });
+  });
+
   it("keeps each Round of the same tournament as its own row", () => {
     const rows = homeComingUpRows([
       poolMatch(),

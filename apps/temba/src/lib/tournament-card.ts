@@ -5,9 +5,19 @@ import {
   type GameSummaryCtaInput,
 } from "~/lib/game-summary-cta";
 import {
-  hasPools,
+  knockoutMatchRoundName,
+  knockoutRoundName,
+  knockoutStartWord,
+} from "~/lib/tournament-knockout";
+import {
+  KNOCKOUT_CHAMPION_TAG,
+  knockoutNowLine,
+} from "~/lib/tournament-knockout-view";
+import {
+  hasKnockout,
   isDrawnTournament,
   isKnockoutOnly,
+  poolRoundLabel,
 } from "~/lib/tournament-rounds";
 import { isOneDayTournamentWindow } from "~/lib/tournament-schedule";
 import { roundCountLabel } from "~/lib/tournament-sizing";
@@ -32,6 +42,12 @@ export type TournamentCardAction =
   | "invite_partner"
   | "view";
 
+export type TournamentCardKnockout = {
+  roundCount: number | null;
+  currentRoundName: string | null;
+  champion: string | null;
+};
+
 export type TournamentCardInput = GameSummaryCtaInput & {
   registeredTeamCount: number;
   teamsAllowed: number | null;
@@ -40,8 +56,18 @@ export type TournamentCardInput = GameSummaryCtaInput & {
   tournament: {
     drawPosted: boolean;
     teams: readonly TournamentCardTeam[];
+    knockout?: TournamentCardKnockout | null;
   } | null;
 };
+
+/** One Knockout Match row: its Knockout round and how many the tree has. */
+export type TournamentKnockoutMatch = { round: number; roundCount: number };
+
+export const KNOCKOUT_BAND_META = "Knockout";
+
+function knockoutMatchName(knockoutMatch: TournamentKnockoutMatch) {
+  return knockoutMatchRoundName(knockoutMatch.round, knockoutMatch.roundCount);
+}
 
 function asDate(value: Date | string) {
   return value instanceof Date ? value : new Date(value);
@@ -70,8 +96,24 @@ export function tournamentCardDateLine(
   return `${shortDay(start)} to ${shortDay(end)}`;
 }
 
-export function tournamentCardBandMeta(roundCount: number | null | undefined) {
-  return roundCount == null ? null : roundCountLabel(roundCount);
+/**
+ * Pool Rounds only. A Knockout only tournament names its stage instead of
+ * counting Rounds, since Knockout rounds are named, not numbered.
+ */
+export function tournamentCardBandMeta(
+  roundCount: number | null | undefined,
+  game?: { format: string; tournamentShape: string | null },
+) {
+  if (game && isKnockoutOnly(game.format, game.tournamentShape)) {
+    return KNOCKOUT_BAND_META;
+  }
+  if (roundCount == null) {
+    return null;
+  }
+  const rounds = roundCountLabel(roundCount);
+  return game && hasKnockout(game.format, game.tournamentShape)
+    ? `${rounds}, then knockout`
+    : rounds;
 }
 
 function isFullTeam(team: TournamentCardTeam) {
@@ -110,11 +152,38 @@ export function tournamentTeamsLine(game: TournamentCardInput) {
     const groupCount =
       new Set(drawn.map((team) => team.poolIndex)).size ||
       (game.poolCount ?? 0);
-    return `${teamCount} ${teamCount === 1 ? "team" : "teams"}, ${groupCount} ${
+    const line = `${teamCount} ${teamCount === 1 ? "team" : "teams"}, ${groupCount} ${
       groupCount === 1 ? "group" : "groups"
     }`;
+    const knockoutRounds = tournament.knockout?.roundCount;
+    return hasKnockout(game.format, game.tournamentShape) &&
+      knockoutRounds != null
+      ? `${line}, then ${knockoutStartWord(knockoutRounds)}`
+      : line;
   }
   return `${game.registeredTeamCount} of ${game.teamsAllowed ?? 0} teams in`;
+}
+
+/**
+ * After the draw of a tournament with a Knockout: the Champion once the
+ * Final is decided, else the Knockout round now being played. Null on a
+ * Groups only tournament.
+ */
+export function tournamentCardKnockoutLine(game: TournamentCardInput) {
+  const knockout = game.tournament?.knockout;
+  if (
+    !game.tournament?.drawPosted ||
+    !knockout ||
+    !hasKnockout(game.format, game.tournamentShape)
+  ) {
+    return null;
+  }
+  if (knockout.champion) {
+    return `${KNOCKOUT_CHAMPION_TAG}: ${knockout.champion}`;
+  }
+  return knockout.currentRoundName
+    ? knockoutNowLine(knockout.currentRoundName)
+    : null;
 }
 
 export function tournamentCardPairs<T extends TournamentCardTeam>(
@@ -205,10 +274,26 @@ export type TournamentPoolMatch = {
   } | null;
 };
 
+/** Band meta and Coming up tag: `R2 of 3` on a Pool Match, `Semi-final` on a Knockout Match. */
+export function tournamentMatchRoundLabel(row: {
+  roundNumber: number | null | undefined;
+  roundCount: number | null | undefined;
+  knockoutMatch?: TournamentKnockoutMatch | null;
+}) {
+  if (row.knockoutMatch) {
+    return knockoutMatchName(row.knockoutMatch);
+  }
+  return poolRoundLabel(row.roundNumber, row.roundCount);
+}
+
 export function tournamentMatchRoundLine(
   roundNumber: number | null | undefined,
   poolMatch: TournamentPoolMatch | null | undefined,
+  knockoutMatch?: TournamentKnockoutMatch | null,
 ) {
+  if (knockoutMatch) {
+    return knockoutMatchName(knockoutMatch);
+  }
   const parts = [
     roundNumber != null ? `Round ${roundNumber}` : null,
     poolMatch ? `group ${poolMatch.poolLabel}` : null,
@@ -268,11 +353,15 @@ function capitalize(line: string) {
   return line.charAt(0).toUpperCase() + line.slice(1);
 }
 
-/** Home: `Round 2, tonight`, or the day word alone without a Round. */
+/** Home: `Round 2, tonight`, `Semi-final, tonight`, or the day word alone. */
 export function tournamentMatchHeadline(
   roundNumber: number | null | undefined,
   relativeDay: string,
+  knockoutMatch?: TournamentKnockoutMatch | null,
 ) {
+  if (knockoutMatch) {
+    return `${knockoutMatchName(knockoutMatch)}, ${relativeDay}`;
+  }
   return roundNumber != null
     ? `Round ${roundNumber}, ${relativeDay}`
     : capitalize(relativeDay);
@@ -333,19 +422,34 @@ export function tournamentMatchGroupStanding(
 }
 
 /**
- * Home footer. The design's "Top two play the quarters" describes a knockout
- * that does not exist, so the line counts the Rounds left instead.
+ * Home footer. Counts the Pool Rounds left; the last Pool Round hands over
+ * to the knockout when the tournament has one. A Knockout Match names what
+ * its winner plays next.
  */
 export function tournamentMatchRoundsLeftLine(
   roundNumber: number | null | undefined,
   roundCount: number | null | undefined,
+  options: {
+    knockoutMatch?: TournamentKnockoutMatch | null;
+    thenKnockout?: boolean;
+  } = {},
 ) {
+  const { knockoutMatch } = options;
+  if (knockoutMatch) {
+    if (knockoutMatch.round >= knockoutMatch.roundCount) {
+      return `Winner is ${KNOCKOUT_CHAMPION_TAG}`;
+    }
+    return `Winner plays the ${knockoutRoundName(
+      knockoutMatch.round + 1,
+      knockoutMatch.roundCount,
+    )}`;
+  }
   if (roundNumber == null || roundCount == null) {
     return null;
   }
   const left = roundCount - roundNumber;
   if (left <= 0) {
-    return "Last round";
+    return options.thenKnockout ? "Then the knockout" : "Last round";
   }
   return `Then ${left} more ${left === 1 ? "round" : "rounds"}`;
 }
@@ -392,15 +496,20 @@ export function tournamentMatchupName(side: MatchupSide | null) {
 
 export type TournamentMatchPhase = "upcoming" | "ongoing" | "needs_results";
 
-export function isPoolMatchRow(row: {
+/** An expanded Pool Match or Knockout Match row of a drawn tournament. */
+export function isTournamentMatchRow(row: {
   format: string;
   poolCount: number | null;
+  tournamentShape?: string | null;
   matchId: string | null;
 }) {
-  return row.matchId != null && hasPools(row.format, row.poolCount);
+  return (
+    row.matchId != null &&
+    isDrawnTournament(row.format, row.poolCount, row.tournamentShape)
+  );
 }
 
-/** Before the draw, or drawn without the viewer on a Pool Match: one row for the whole tournament. */
+/** Before the draw, or drawn without the viewer on an open Match: one row for the whole tournament. */
 export function isDrawnTournamentSummaryRow(row: {
   format: string;
   poolCount: number | null;
@@ -443,9 +552,13 @@ export function tournamentMatchActionLabel(action: TournamentMatchAction) {
     : tournamentCardActionLabel("view");
 }
 
-/** After the draw the Game opens on the viewer's group table. */
-export function homeTournamentMatchActionLabel(action: TournamentMatchAction) {
-  return action === "add_results"
-    ? tournamentMatchActionLabel(action)
-    : "View group";
+/** After the draw the Game opens on the viewer's group table, or on the Knockout. */
+export function homeTournamentMatchActionLabel(
+  action: TournamentMatchAction,
+  knockoutMatch?: TournamentKnockoutMatch | null,
+) {
+  if (action === "add_results") {
+    return tournamentMatchActionLabel(action);
+  }
+  return knockoutMatch ? "View knockout" : "View group";
 }

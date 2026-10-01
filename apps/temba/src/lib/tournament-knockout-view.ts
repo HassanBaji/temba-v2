@@ -318,6 +318,30 @@ export function knockoutChampion(
   return side.kind === "team" ? side.team : null;
 }
 
+/**
+ * The earliest Knockout round with a Match still to settle that already has
+ * a Game team in it. Null while only placeholders wait, and after the Final.
+ */
+export function knockoutCurrentRound(
+  rounds: readonly KnockoutViewRound[] | null,
+): KnockoutViewRound | null {
+  return (
+    rounds?.find((round) =>
+      round.places.some(
+        (place) =>
+          place.kind === "match" &&
+          !place.settled &&
+          (place.slot1.kind === "team" || place.slot2.kind === "team"),
+      ),
+    ) ?? null
+  );
+}
+
+/** `Now at the Semi-finals` */
+export function knockoutNowLine(roundName: string) {
+  return `Now at the ${roundName}`;
+}
+
 export type KnockoutMatchPlace = Extract<KnockoutViewPlace, { kind: "match" }>;
 
 export type KnockoutCancelPrompt =

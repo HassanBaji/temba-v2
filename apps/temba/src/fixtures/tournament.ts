@@ -386,6 +386,7 @@ function baseTournament(args: {
     teamsAllowed: TEAM_COUNT,
     poolCount: POOL_COUNT,
     tournamentShape: null,
+    qualifiersPerPool: null,
     roundCount: null,
     matchMinutes: null,
     drawPostedAt: args.drawPostedAt,

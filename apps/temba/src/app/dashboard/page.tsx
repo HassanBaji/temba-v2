@@ -18,7 +18,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { homeComingUpRows } from "~/lib/home-coming-up";
 import { homeNextGameSeats } from "~/lib/home-seats";
 import {
-  isPoolMatchRow,
+  isTournamentMatchRow,
   isDrawnTournamentSummaryRow,
 } from "~/lib/tournament-card";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
@@ -87,7 +87,7 @@ export default function HomePage() {
 
         {home.data ? (
           <>
-            {nextGame && isPoolMatchRow(nextGame) ? (
+            {nextGame && isTournamentMatchRow(nextGame) ? (
               <HomeTournamentMatchCard
                 game={nextGame}
                 href={`/dashboard/games/${nextGame.id}`}

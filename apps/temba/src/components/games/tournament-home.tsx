@@ -67,6 +67,7 @@ import {
   TOURNAMENT_EYEBROW_PREFIX,
   YOU_OWE_AFTER_EACH_MATCH,
   YOU_OWE_ROW_LABEL,
+  drawnTournamentProgressLine,
   isTournamentStandingsView,
   knockoutSizeLine,
   tournamentEyebrow,
@@ -103,6 +104,7 @@ import {
   hasKnockout,
   isKnockoutOnly,
   isPartnerRequiredGame,
+  plannedKnockoutRoundCount,
   roundsPlayedLabel,
   tournamentRoundSchedule,
   type TournamentRoundScheduleEntry,
@@ -201,6 +203,8 @@ export function TournamentHome({
   const [drawOpen, setDrawOpen] = useState(false);
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
   const knockoutOnly = isKnockoutOnly(data.format, data.tournamentShape);
+  const thenKnockout =
+    !knockoutOnly && hasKnockout(data.format, data.tournamentShape);
   const sizing =
     data.poolCount != null && data.teamsAllowed != null
       ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
@@ -225,6 +229,7 @@ export function TournamentHome({
     teamCount: data.teamsAllowed ?? data.sides.length,
     organizerName,
     knockoutOnly,
+    thenKnockout,
   });
   const matchesForViewer = viewerTournamentMatchCount(data);
   const totalCents =
@@ -288,12 +293,13 @@ export function TournamentHome({
       {drawn ? (
         <TournamentStandingsTree
           name={data.name ?? "Tournament"}
-          roundsPlayed={roundsPlayedLabel(data.poolTables, roundCount)}
+          roundsPlayed={drawnTournamentProgressLine({
+            roundsPlayed: roundsPlayedLabel(data.poolTables, roundCount),
+            knockout: data.knockout,
+          })}
           poolTables={data.poolTables}
           knockoutOnly={knockoutOnly}
-          groupsThenKnockout={
-            !knockoutOnly && hasKnockout(data.format, data.tournamentShape)
-          }
+          groupsThenKnockout={thenKnockout}
           knockout={data.knockout}
           backHref={backHref}
           showUndo={showUndo}
@@ -308,7 +314,7 @@ export function TournamentHome({
             name={data.name ?? "Tournament"}
             eyebrow={
               roundCount != null
-                ? tournamentEyebrow(roundCount)
+                ? tournamentEyebrow(roundCount, knockoutOnly)
                 : TOURNAMENT_EYEBROW_PREFIX
             }
             startLine={tournamentStartLine(
@@ -319,7 +325,10 @@ export function TournamentHome({
               knockoutOnly
                 ? knockoutSizeLine(data.teamsAllowed ?? data.sides.length)
                 : sizing?.ok
-                  ? tournamentSizeLine(sizing.sizing)
+                  ? tournamentSizeLine(
+                      sizing.sizing,
+                      plannedKnockoutRoundCount(data),
+                    )
                   : null
             }
             statusLine={statusLine}

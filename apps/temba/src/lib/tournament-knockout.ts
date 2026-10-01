@@ -277,6 +277,36 @@ export function knockoutRoundName(round: number, roundCount: number) {
   return `Round of ${teamsLeft}`;
 }
 
+/** One Match of a Knockout round: `Quarter-final`, `Semi-final`, `Final`. */
+export function knockoutMatchRoundName(round: number, roundCount: number) {
+  const teamsLeft = knockoutTeamsLeft(round, roundCount);
+  if (teamsLeft === 2) {
+    return "Final";
+  }
+  if (teamsLeft === 4) {
+    return "Semi-final";
+  }
+  if (teamsLeft === 8) {
+    return "Quarter-final";
+  }
+  return `Round of ${teamsLeft}`;
+}
+
+/** Where the Knockout starts, as in `3 groups of 4, then quarters`. */
+export function knockoutStartWord(roundCount: number) {
+  const teamsLeft = knockoutTeamsLeft(1, roundCount);
+  if (teamsLeft === 2) {
+    return "the final";
+  }
+  if (teamsLeft === 4) {
+    return "semis";
+  }
+  if (teamsLeft === 8) {
+    return "quarters";
+  }
+  return `the round of ${teamsLeft}`;
+}
+
 export function knockoutMatchCode(
   round: number,
   position: number,

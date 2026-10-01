@@ -3,9 +3,15 @@ import {
   fewWeeksRoundStarts,
   isOneDayTournamentWindow,
 } from "~/lib/tournament-schedule";
-import { buildKnockoutTree } from "~/lib/tournament-knockout";
 import {
+  buildKnockoutTree,
+  buildPoolKnockoutTree,
+} from "~/lib/tournament-knockout";
+import {
+  clampQualifiersPerPool,
+  DEFAULT_QUALIFIERS_PER_POOL,
   resolvePlannedRoundCount,
+  sizeFriendlyTournament,
   tournamentMatchMinutes,
 } from "~/lib/tournament-sizing";
 
@@ -74,6 +80,45 @@ export function plannedTournamentRoundCount(game: {
     game.teamsAllowed,
     game.poolCount,
     game.roundCount,
+  );
+}
+
+/** Knockout rounds the tree will have, before the draw is posted. */
+export function plannedKnockoutRoundCount(game: {
+  format: string;
+  teamsAllowed: number | null | undefined;
+  poolCount: number | null | undefined;
+  tournamentShape: string | null | undefined;
+  qualifiersPerPool: number | null | undefined;
+}): number | null {
+  if (!hasKnockout(game.format, game.tournamentShape)) {
+    return null;
+  }
+  if (game.teamsAllowed == null) {
+    return null;
+  }
+  if (isKnockoutOnly(game.format, game.tournamentShape)) {
+    return (
+      buildKnockoutTree({ entrantCount: game.teamsAllowed })?.roundCount ?? null
+    );
+  }
+  if (game.poolCount == null) {
+    return null;
+  }
+  const sized = sizeFriendlyTournament(game.teamsAllowed, game.poolCount);
+  if (!sized.ok) {
+    return null;
+  }
+  const qualifiersPerPool = clampQualifiersPerPool(
+    sized.sizing.poolSizes,
+    game.qualifiersPerPool ?? DEFAULT_QUALIFIERS_PER_POOL,
+  );
+  if (qualifiersPerPool == null) {
+    return null;
+  }
+  return (
+    buildPoolKnockoutTree({ poolCount: game.poolCount, qualifiersPerPool })
+      ?.roundCount ?? null
   );
 }
 

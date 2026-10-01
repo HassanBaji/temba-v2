@@ -38,8 +38,17 @@ export type HubListTournamentTeam = {
   right: HubListSideOccupant | null;
 };
 
+export type HubListTournamentKnockout = {
+  /** Knockout rounds in the tree: planned before the draw is posted. */
+  roundCount: number | null;
+  /** The Knockout round now being played, e.g. `Semi-finals`. */
+  currentRoundName: string | null;
+  /** The Champion's name, once the Final is won or awarded as a Walkover. */
+  champion: string | null;
+};
+
 export type HubListTournament = {
-  /** Planned before the Pool draw is posted, the posted count after. */
+  /** Pool Rounds, or Knockout rounds on Knockout only: planned before the draw is posted, the posted count after. */
   roundCount: number | null;
   drawPosted: boolean;
   allowSoloRegister: boolean;
@@ -47,6 +56,8 @@ export type HubListTournament = {
   teams: HubListTournamentTeam[];
   /** Every side 1..teamsAllowed, for the join sheet. */
   joinSides: HubListSide[];
+  /** Null on a Groups only tournament. */
+  knockout: HubListTournamentKnockout | null;
 };
 
 export type HubListPoolMatchOutcome = "won" | "lost" | "draw" | "cancelled";
@@ -62,6 +73,11 @@ export type HubListPoolMatch = {
     outcome: HubListPoolMatchOutcome;
     viewerSets: { viewer: number; opponent: number }[];
   } | null;
+};
+
+export type HubListKnockoutMatch = {
+  round: number;
+  roundCount: number;
 };
 
 export type HubListRow = {
@@ -94,15 +110,17 @@ export type HubListRow = {
   sides: HubListSide[];
   poolCount: number | null;
   tournamentShape: string | null;
-  /** Null unless the Game is a Pool tournament. */
+  /** Null unless the Game is a drawn tournament. */
   tournament: HubListTournament | null;
-  /** Set when My Games / Home expand a posted Pool Match into its own row. */
+  /** Set when My Games / Home expand a posted Pool or Knockout Match into its own row. */
   matchId: string | null;
   roundNumber: number | null;
   roundCount: number | null;
   courtName: string | null;
   /** Only on expanded Pool Match rows. */
   poolMatch: HubListPoolMatch | null;
+  /** Only on expanded Knockout Match rows, which carry no Round number. */
+  knockoutMatch: HubListKnockoutMatch | null;
 };
 
 export type GameCreateGroupKind = "club" | "loose" | "none";

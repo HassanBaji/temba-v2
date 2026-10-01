@@ -9,12 +9,20 @@ import {
 } from "@repo/db";
 
 import {
+  knockoutChampion,
+  knockoutCurrentRound,
+  postedKnockoutRounds,
+} from "~/lib/tournament-knockout-view";
+import {
+  hasKnockout,
   hasPools,
   isDrawnTournament,
   isPartnerRequiredGame,
+  plannedKnockoutRoundCount,
   plannedTournamentRoundCount,
   postedRoundCount,
 } from "~/lib/tournament-rounds";
+import { matchOutcome } from "~/server/games/match-outcome";
 import {
   computePoolTables,
   type ViewerRoundResult,
@@ -30,6 +38,7 @@ import type {
   HubListSide,
   HubListSideOccupant,
   HubListTournament,
+  HubListTournamentKnockout,
   HubListTournamentTeam,
 } from "~/server/games/utils";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
@@ -58,6 +67,7 @@ export const hubListColumns = {
   teamsAllowed: true,
   poolCount: true,
   tournamentShape: true,
+  qualifiersPerPool: true,
   roundCount: true,
   allowSoloRegister: true,
   drawPostedAt: true,
@@ -95,6 +105,8 @@ export const hubListWith = {
       slot2GameTeamId: true,
       roundNumber: true,
       knockoutRound: true,
+      knockoutPosition: true,
+      walkoverGameTeamId: true,
       courtId: true,
     },
     with: {
@@ -175,6 +187,7 @@ export type HubQueryRow = {
   teamsAllowed: number | null;
   poolCount: number | null;
   tournamentShape: string | null;
+  qualifiersPerPool: number | null;
   roundCount: number | null;
   allowSoloRegister: boolean;
   drawPostedAt: Date | null;
@@ -195,6 +208,8 @@ export type HubQueryRow = {
     slot2GameTeamId: string | null;
     roundNumber: number | null;
     knockoutRound: number | null;
+    knockoutPosition: number | null;
+    walkoverGameTeamId: string | null;
     courtId: string | null;
     court: { name: string } | null;
     sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
@@ -340,6 +355,56 @@ function tournamentFromRow(
     allowSoloRegister: row.allowSoloRegister,
     teams: tournamentTeamsFromRow(row, viewerUserId),
     joinSides: sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
+    knockout: tournamentKnockoutFromRow(row, viewerUserId),
+  };
+}
+
+function knockoutRoundsFromRow(row: HubQueryRow, viewerUserId: string) {
+  return postedKnockoutRounds({
+    viewerUserId,
+    gameTeams: row.teams.map((team) => ({
+      id: team.id,
+      name: null,
+      members: team.players.flatMap((link) => {
+        const user = link.gamePlayer?.user;
+        return user ? [{ id: user.id, name: user.name }] : [];
+      }),
+    })),
+    matches: row.matches.map((match) => ({
+      id: match.id,
+      knockoutRound: match.knockoutRound,
+      knockoutPosition: match.knockoutPosition,
+      startTime: match.startTime,
+      courtName: match.court?.name ?? null,
+      slot1GameTeamId: match.slot1GameTeamId,
+      slot2GameTeamId: match.slot2GameTeamId,
+      status: match.status,
+      result: matchOutcome(match.sets).result,
+      walkoverGameTeamId: match.walkoverGameTeamId,
+    })),
+  });
+}
+
+function tournamentKnockoutFromRow(
+  row: HubQueryRow,
+  viewerUserId: string,
+): HubListTournamentKnockout | null {
+  if (!hasKnockout(row.format, row.tournamentShape)) {
+    return null;
+  }
+  const rounds =
+    row.drawPostedAt != null ? knockoutRoundsFromRow(row, viewerUserId) : null;
+  if (!rounds) {
+    return {
+      roundCount: plannedKnockoutRoundCount(row),
+      currentRoundName: null,
+      champion: null,
+    };
+  }
+  return {
+    roundCount: rounds.length,
+    currentRoundName: knockoutCurrentRound(rounds)?.name ?? null,
+    champion: knockoutChampion(rounds)?.name ?? null,
   };
 }
 
@@ -511,6 +576,7 @@ export function toHubListRow(
     roundCount: null,
     courtName: null,
     poolMatch: null,
+    knockoutMatch: null,
   };
 }
 
@@ -546,7 +612,7 @@ function viewerSitsOnMatch(
   );
 }
 
-function isOpenPoolMatch(match: HubQueryRow["matches"][number]) {
+function isOpenMatch(match: HubQueryRow["matches"][number]) {
   return match.status !== "completed" && match.status !== "cancelled";
 }
 
@@ -621,30 +687,45 @@ function lastSettledRound(
   return settled[settled.length - 1] ?? null;
 }
 
+function knockoutRoundCount(row: HubQueryRow) {
+  let max = 0;
+  for (const match of row.matches) {
+    if (match.knockoutRound != null && match.knockoutRound > max) {
+      max = match.knockoutRound;
+    }
+  }
+  return max;
+}
+
 /**
- * My Games and the Home carousel expand a posted Pool tournament into one
- * row per Pool Match the viewer sits on (ADR-0018). Group home and pickup
- * keep calling `toHubListRow` only.
+ * My Games and the Home carousel expand a posted drawn tournament into one
+ * row per open Pool Match or Knockout Match the viewer's Game team sits on
+ * (ADR-0018, ADR-0020). A Knockout Match whose slot is still a placeholder
+ * has no team of the viewer's in it, so it is not listed. Group home and
+ * pickup keep calling `toHubListRow` only.
  */
 export function expandDrawnTournamentHubRows(
   row: HubQueryRow,
   hubRow: HubListRow,
   viewerUserId: string,
 ): HubListRow[] {
-  if (!hasPools(row.format, row.poolCount) || row.drawPostedAt == null) {
+  if (
+    !isDrawnTournament(row.format, row.poolCount, row.tournamentShape) ||
+    row.drawPostedAt == null
+  ) {
     return [hubRow];
   }
   const mine = row.matches.filter(
     (match) =>
-      match.knockoutRound == null &&
-      isOpenPoolMatch(match) &&
-      viewerSitsOnMatch(row, match, viewerUserId),
+      isOpenMatch(match) && viewerSitsOnMatch(row, match, viewerUserId),
   );
   if (mine.length === 0) {
     return [hubRow];
   }
-  const roundCount = poolRoundCount(row);
-  const poolMatch = viewerPoolMatch(row, viewerUserId);
+  const withPools = hasPools(row.format, row.poolCount);
+  const roundCount = withPools ? poolRoundCount(row) : null;
+  const poolMatch = withPools ? viewerPoolMatch(row, viewerUserId) : null;
+  const knockoutRounds = knockoutRoundCount(row);
   return [...mine]
     .sort((left, right) => {
       const leftTime = left.startTime?.getTime() ?? 0;
@@ -660,19 +741,24 @@ export function expandDrawnTournamentHubRows(
         (count, side) => count + (side.left ? 1 : 0) + (side.right ? 1 : 0),
         0,
       );
+      const knockoutMatch =
+        match.knockoutRound != null
+          ? { round: match.knockoutRound, roundCount: knockoutRounds }
+          : null;
       return {
         ...hubRow,
         startTime: match.startTime ?? hubRow.startTime,
         matchId: match.id,
-        roundNumber: match.roundNumber,
-        roundCount,
+        roundNumber: knockoutMatch ? null : match.roundNumber,
+        roundCount: knockoutMatch ? null : roundCount,
         courtName: match.court?.name ?? null,
         sides,
         registeredUserCount,
         playersAllowed: 4,
         canRegister: false,
         canWaitlist: false,
-        poolMatch,
+        poolMatch: knockoutMatch ? null : poolMatch,
+        knockoutMatch,
       };
     });
 }

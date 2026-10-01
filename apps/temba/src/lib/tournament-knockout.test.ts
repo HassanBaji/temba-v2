@@ -8,9 +8,11 @@ import {
   knockoutFedBy,
   knockoutFeeds,
   knockoutMatchCode,
+  knockoutMatchRoundName,
   knockoutOnlyReviewValue,
   knockoutQualifierLabel,
   knockoutRoundName,
+  knockoutStartWord,
   qualifiersConsequenceLine,
   type KnockoutEntry,
   type KnockoutTree,
@@ -378,6 +380,24 @@ describe("Groups then knockout copy", () => {
         qualifiersPerPool: 2,
       }),
       "Top two in each group, semis, then the final",
+    );
+  });
+});
+
+describe("knockoutMatchRoundName", () => {
+  it("names one Match of each Knockout round", () => {
+    assert.deepEqual(
+      [1, 2, 3, 4, 5].map((round) => knockoutMatchRoundName(round, 5)),
+      ["Round of 32", "Round of 16", "Quarter-final", "Semi-final", "Final"],
+    );
+  });
+});
+
+describe("knockoutStartWord", () => {
+  it("names where the Knockout starts in a size line", () => {
+    assert.deepEqual(
+      [1, 2, 3, 4].map((roundCount) => knockoutStartWord(roundCount)),
+      ["the final", "semis", "quarters", "the round of 16"],
     );
   });
 });

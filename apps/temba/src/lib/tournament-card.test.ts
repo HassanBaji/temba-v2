@@ -4,12 +4,13 @@ import { describe, it } from "vitest";
 import { formatGameClock } from "./format-game-start";
 import {
   homeTournamentMatchActionLabel,
-  isPoolMatchRow,
+  isTournamentMatchRow,
   showsTournamentOpenFlag,
   tournamentCardAction,
   tournamentCardActionLabel,
   tournamentCardBandMeta,
   tournamentCardDateLine,
+  tournamentCardKnockoutLine,
   tournamentCardPairs,
   tournamentOpenFlagLabel,
   tournamentOpenTeamCount,
@@ -21,6 +22,7 @@ import {
   tournamentMatchHeadline,
   tournamentMatchKickoffLine,
   tournamentMatchLastResultLine,
+  tournamentMatchRoundLabel,
   tournamentMatchRoundLine,
   tournamentMatchRoundsLeftLine,
   tournamentMatchStandingLine,
@@ -30,9 +32,24 @@ import {
   tournamentMatchVenueLine,
   tournamentTeamsLine,
   type TournamentCardInput,
+  type TournamentCardKnockout,
   type TournamentCardTeam,
   type TournamentPoolMatch,
 } from "./tournament-card";
+
+const NO_POOL_OR_ROUND_COPY =
+  /\bgroups?\b|\bpools?\b|\bR\d|\bRounds?\b(?! of)/iu;
+
+function knockout(
+  overrides: Partial<TournamentCardKnockout> = {},
+): TournamentCardKnockout {
+  return {
+    roundCount: 3,
+    currentRoundName: null,
+    champion: null,
+    ...overrides,
+  };
+}
 
 const ADA = { name: "Ada Lovelace", isViewer: false };
 const SAM = { name: "Sam Chen", isViewer: false };
@@ -106,6 +123,24 @@ describe("tournamentCardBandMeta", () => {
     assert.equal(tournamentCardBandMeta(1), "1 Round");
     assert.equal(tournamentCardBandMeta(null), null);
   });
+
+  it("names the knockout only when the Tournament shape has one", () => {
+    const shape = (tournamentShape: string | null) => ({
+      format: "friendly_tournament",
+      tournamentShape,
+    });
+    assert.equal(tournamentCardBandMeta(3, shape(null)), "3 Rounds");
+    assert.equal(tournamentCardBandMeta(3, shape("groups_only")), "3 Rounds");
+    assert.equal(
+      tournamentCardBandMeta(3, shape("groups_then_knockout")),
+      "3 Rounds, then knockout",
+    );
+    assert.equal(tournamentCardBandMeta(3, shape("knockout_only")), "Knockout");
+    assert.equal(
+      tournamentCardBandMeta(null, shape("knockout_only")),
+      "Knockout",
+    );
+  });
 });
 
 describe("tournamentOpenTeamCount", () => {
@@ -159,6 +194,123 @@ describe("tournamentTeamsLine", () => {
       tournamentTeamsLine(game({}, teams.slice(0, 2), true)),
       "2 teams, 1 group",
     );
+  });
+
+  it("ends with where the knockout starts on Groups then knockout", () => {
+    const teams = Array.from({ length: 12 }, (_, index) =>
+      team({ poolIndex: (index % 3) + 1 }),
+    );
+    const drawn = (roundCount: number | null) =>
+      game(
+        {
+          tournamentShape: "groups_then_knockout",
+          tournament: {
+            drawPosted: true,
+            teams,
+            knockout: knockout({ roundCount }),
+          },
+        },
+        teams,
+        true,
+      );
+    assert.equal(
+      tournamentTeamsLine(drawn(3)),
+      "12 teams, 3 groups, then quarters",
+    );
+    assert.equal(
+      tournamentTeamsLine(drawn(2)),
+      "12 teams, 3 groups, then semis",
+    );
+    assert.equal(
+      tournamentTeamsLine(drawn(1)),
+      "12 teams, 3 groups, then the final",
+    );
+    assert.equal(
+      tournamentTeamsLine(drawn(4)),
+      "12 teams, 3 groups, then the round of 16",
+    );
+  });
+
+  it("names no group on a drawn Knockout only tournament", () => {
+    const teams = Array.from({ length: 8 }, () => team());
+    const line = tournamentTeamsLine(
+      game(
+        {
+          poolCount: null,
+          tournamentShape: "knockout_only",
+          tournament: {
+            drawPosted: true,
+            teams,
+            knockout: knockout({ roundCount: 3 }),
+          },
+        },
+        teams,
+        true,
+      ),
+    );
+    assert.equal(line, "8 teams, knockout");
+    assert.doesNotMatch(line, NO_POOL_OR_ROUND_COPY);
+  });
+});
+
+describe("tournamentCardKnockoutLine", () => {
+  function drawn(
+    tournamentShape: string | null,
+    overrides: Partial<TournamentCardKnockout> = {},
+    drawPosted = true,
+  ) {
+    return game({
+      tournamentShape,
+      tournament: {
+        drawPosted,
+        teams: [],
+        knockout: knockout(overrides),
+      },
+    });
+  }
+
+  it("names the Knockout round now being played", () => {
+    assert.equal(
+      tournamentCardKnockoutLine(
+        drawn("knockout_only", { currentRoundName: "Semi-finals" }),
+      ),
+      "Now at the Semi-finals",
+    );
+    assert.equal(
+      tournamentCardKnockoutLine(
+        drawn("groups_then_knockout", { currentRoundName: "Quarter-finals" }),
+      ),
+      "Now at the Quarter-finals",
+    );
+  });
+
+  it("names the Champion once the Final is decided", () => {
+    assert.equal(
+      tournamentCardKnockoutLine(
+        drawn("knockout_only", { champion: "Ada Lovelace / Sam Chen" }),
+      ),
+      "Champion: Ada Lovelace / Sam Chen",
+    );
+  });
+
+  it("is null before the draw, between stages and on Groups only", () => {
+    assert.equal(
+      tournamentCardKnockoutLine(
+        drawn("knockout_only", { currentRoundName: "Final" }, false),
+      ),
+      null,
+    );
+    assert.equal(
+      tournamentCardKnockoutLine(drawn("groups_then_knockout")),
+      null,
+    );
+    assert.equal(
+      tournamentCardKnockoutLine(
+        drawn(null, { currentRoundName: "Final", champion: "Ada / Sam" }),
+      ),
+      null,
+    );
+    assert.equal(tournamentCardKnockoutLine(game({}, [], true)), null);
   });
 });
 
@@ -302,6 +454,53 @@ describe("tournamentMatchRoundLine", () => {
   it("is null without a Round or a group", () => {
     assert.equal(tournamentMatchRoundLine(null, null), null);
   });
+
+  it("names a Knockout Match by its Knockout round, without a group", () => {
+    assert.equal(
+      tournamentMatchRoundLine(null, null, { round: 1, roundCount: 3 }),
+      "Quarter-final",
+    );
+    assert.equal(
+      tournamentMatchRoundLine(null, null, { round: 2, roundCount: 3 }),
+      "Semi-final",
+    );
+    assert.equal(
+      tournamentMatchRoundLine(null, null, { round: 3, roundCount: 3 }),
+      "Final",
+    );
+    assert.equal(
+      tournamentMatchRoundLine(null, null, { round: 1, roundCount: 4 }),
+      "Round of 16",
+    );
+  });
+});
+
+describe("tournamentMatchRoundLabel", () => {
+  it("counts Pool Rounds on a Pool Match", () => {
+    assert.equal(
+      tournamentMatchRoundLabel({ roundNumber: 2, roundCount: 3 }),
+      "R2 of 3",
+    );
+    assert.equal(
+      tournamentMatchRoundLabel({
+        roundNumber: 3,
+        roundCount: 3,
+        knockoutMatch: null,
+      }),
+      "R3 of 3",
+    );
+  });
+
+  it("names a Knockout Match instead of numbering it", () => {
+    assert.equal(
+      tournamentMatchRoundLabel({
+        roundNumber: null,
+        roundCount: null,
+        knockoutMatch: { round: 2, roundCount: 3 },
+      }),
+      "Semi-final",
+    );
+  });
 });
 
 describe("tournamentMatchVenueLine", () => {
@@ -340,7 +539,7 @@ describe("tournamentMatchStandingLine", () => {
     assert.equal(tournamentMatchStandingLine(null), null);
   });
 
-  it("never uses knockout copy", () => {
+  it("never uses knockout copy on a Groups only tournament", () => {
     const line = tournamentMatchStandingLine(poolMatch({ viewerPosition: 2 }));
     assert.doesNotMatch(line ?? "", /go through|quarter/i);
   });
@@ -428,10 +627,10 @@ describe("tournamentMatchup", () => {
   });
 });
 
-describe("isPoolMatchRow", () => {
-  it("is true only for an expanded Pool tournament Match row", () => {
+describe("isTournamentMatchRow", () => {
+  it("is true only for an expanded drawn tournament Match row", () => {
     assert.equal(
-      isPoolMatchRow({
+      isTournamentMatchRow({
         format: "friendly_tournament",
         poolCount: 1,
         matchId: "match-1",
@@ -439,7 +638,7 @@ describe("isPoolMatchRow", () => {
       true,
     );
     assert.equal(
-      isPoolMatchRow({
+      isTournamentMatchRow({
         format: "friendly_tournament",
         poolCount: 1,
         matchId: null,
@@ -447,7 +646,7 @@ describe("isPoolMatchRow", () => {
       false,
     );
     assert.equal(
-      isPoolMatchRow({
+      isTournamentMatchRow({
         format: "friendly_tournament",
         poolCount: null,
         matchId: "match-1",
@@ -455,9 +654,30 @@ describe("isPoolMatchRow", () => {
       false,
     );
     assert.equal(
-      isPoolMatchRow({
+      isTournamentMatchRow({
         format: "friendly_game",
         poolCount: null,
+        matchId: null,
+      }),
+      false,
+    );
+  });
+
+  it("is true for an expanded Knockout only Match row", () => {
+    assert.equal(
+      isTournamentMatchRow({
+        format: "friendly_tournament",
+        poolCount: null,
+        tournamentShape: "knockout_only",
+        matchId: "match-1",
+      }),
+      true,
+    );
+    assert.equal(
+      isTournamentMatchRow({
+        format: "friendly_tournament",
+        poolCount: null,
+        tournamentShape: "knockout_only",
         matchId: null,
       }),
       false,
@@ -501,6 +721,13 @@ describe("tournamentMatchHeadline", () => {
 
   it("falls back to the day word alone without a Round", () => {
     assert.equal(tournamentMatchHeadline(null, "tomorrow"), "Tomorrow");
+  });
+
+  it("leads a Knockout Match with its Knockout round", () => {
+    assert.equal(
+      tournamentMatchHeadline(null, "tonight", { round: 2, roundCount: 3 }),
+      "Semi-final, tonight",
+    );
   });
 });
 
@@ -597,7 +824,7 @@ describe("tournamentMatchRoundsLeftLine", () => {
     assert.equal(tournamentMatchRoundsLeftLine(2, null), null);
   });
 
-  it("never uses knockout copy", () => {
+  it("never uses knockout copy on a Groups only tournament", () => {
     for (const round of [1, 2, 3]) {
       assert.doesNotMatch(
         tournamentMatchRoundsLeftLine(round, 3) ?? "",
@@ -605,11 +832,83 @@ describe("tournamentMatchRoundsLeftLine", () => {
       );
     }
   });
+
+  it("hands the last Pool Round over to the knockout on Groups then knockout", () => {
+    const options = { thenKnockout: true };
+    assert.equal(
+      tournamentMatchRoundsLeftLine(1, 3, options),
+      "Then 2 more rounds",
+    );
+    assert.equal(
+      tournamentMatchRoundsLeftLine(3, 3, options),
+      "Then the knockout",
+    );
+  });
+
+  it("names what the winner of a Knockout Match plays next", () => {
+    assert.equal(
+      tournamentMatchRoundsLeftLine(null, null, {
+        knockoutMatch: { round: 1, roundCount: 3 },
+      }),
+      "Winner plays the Semi-finals",
+    );
+    assert.equal(
+      tournamentMatchRoundsLeftLine(null, null, {
+        knockoutMatch: { round: 2, roundCount: 3 },
+      }),
+      "Winner plays the Final",
+    );
+    assert.equal(
+      tournamentMatchRoundsLeftLine(null, null, {
+        knockoutMatch: { round: 3, roundCount: 3 },
+      }),
+      "Winner is Champion",
+    );
+  });
 });
 
 describe("homeTournamentMatchActionLabel", () => {
   it("offers the group table unless results are due", () => {
     assert.equal(homeTournamentMatchActionLabel("view"), "View group");
     assert.equal(homeTournamentMatchActionLabel("add_results"), "Add results");
+  });
+
+  it("opens the knockout from a Knockout Match", () => {
+    const knockoutMatch = { round: 2, roundCount: 3 };
+    assert.equal(
+      homeTournamentMatchActionLabel("view", knockoutMatch),
+      "View knockout",
+    );
+    assert.equal(
+      homeTournamentMatchActionLabel("add_results", knockoutMatch),
+      "Add results",
+    );
+  });
+});
+
+describe("Knockout only card copy", () => {
+  it("shows no group, Pool or Round copy on a Knockout Match", () => {
+    for (const round of [1, 2, 3]) {
+      const knockoutMatch = { round, roundCount: 3 };
+      const copy = [
+        tournamentCardBandMeta(3, {
+          format: "friendly_tournament",
+          tournamentShape: "knockout_only",
+        }),
+        tournamentMatchRoundLabel({
+          roundNumber: null,
+          roundCount: null,
+          knockoutMatch,
+        }),
+        tournamentMatchRoundLine(null, null, knockoutMatch),
+        tournamentMatchHeadline(null, "tonight", knockoutMatch),
+        tournamentMatchRoundsLeftLine(null, null, { knockoutMatch }),
+        tournamentMatchStandingLine(null),
+        tournamentMatchGroupLabel(null),
+        tournamentMatchGroupStanding(null),
+        homeTournamentMatchActionLabel("view", knockoutMatch),
+      ].join("\n");
+      assert.doesNotMatch(copy, NO_POOL_OR_ROUND_COPY);
+    }
   });
 });

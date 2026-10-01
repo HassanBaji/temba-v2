@@ -63,6 +63,10 @@ function fullTeam(index: number): TeamSeats {
   return { left: occupant(index * 2), right: occupant(index * 2 + 1) };
 }
 
+type Knockout = NonNullable<TournamentCardFixture["tournament"]>["knockout"];
+
+type Shape = "groups_then_knockout" | "knockout_only";
+
 function buildRow(args: {
   id: string;
   seats: (TeamSeats | null)[];
@@ -72,8 +76,11 @@ function buildRow(args: {
   registrationStatus?: TournamentCardFixture["registrationStatus"];
   canRegister?: boolean;
   canWaitlist?: boolean;
+  shape?: Shape;
+  knockout?: Knockout;
 }): TournamentCardFixture {
   const drawPosted = args.drawPosted ?? false;
+  const knockoutOnly = args.shape === "knockout_only";
   const windowStart = new Date(args.now);
   windowStart.setDate(windowStart.getDate() + 3);
   windowStart.setHours(18, 0, 0, 0);
@@ -91,7 +98,10 @@ function buildRow(args: {
     .map((side) => ({
       gameTeamId: `team-${args.id}-${side.sideIndex}`,
       sideIndex: side.sideIndex,
-      poolIndex: drawPosted ? ((side.sideIndex - 1) % POOL_COUNT) + 1 : null,
+      poolIndex:
+        drawPosted && !knockoutOnly
+          ? ((side.sideIndex - 1) % POOL_COUNT) + 1
+          : null,
       isViewerTeam:
         side.left?.isViewer === true || side.right?.isViewer === true,
       left: side.left,
@@ -131,20 +141,50 @@ function buildRow(args: {
     canRegister: args.canRegister ?? false,
     canWaitlist: args.canWaitlist ?? false,
     sides: [],
-    poolCount: POOL_COUNT,
-    tournamentShape: null,
+    poolCount: knockoutOnly ? null : POOL_COUNT,
+    tournamentShape: args.shape ?? null,
     tournament: {
-      roundCount: 3,
+      roundCount: knockoutOnly ? (args.knockout?.roundCount ?? null) : 3,
       drawPosted,
       allowSoloRegister: true,
       teams,
       joinSides,
+      knockout: args.knockout ?? null,
     },
     matchId: null,
     roundNumber: null,
     roundCount: null,
     courtName: null,
     poolMatch: null,
+    knockoutMatch: null,
+  };
+}
+
+/** A posted Knockout Match row: named by its Knockout round, no Round number (ADR-0020). */
+function buildKnockoutMatchRow(args: {
+  id: string;
+  drawn: TournamentCardFixture;
+  startTime: Date;
+  knockoutMatch: NonNullable<TournamentCardFixture["knockoutMatch"]>;
+}): TournamentCardFixture {
+  return {
+    ...args.drawn,
+    id: args.id,
+    startTime: args.startTime,
+    isRegistered: true,
+    isSeated: true,
+    matchId: `match-${args.id}`,
+    roundNumber: null,
+    roundCount: null,
+    courtName: "Court 1",
+    sides: [
+      { sideIndex: 1, left: VIEWER, right: occupant(1) },
+      { sideIndex: 2, left: occupant(6), right: occupant(7) },
+    ],
+    registeredUserCount: 4,
+    playersAllowed: 4,
+    poolMatch: null,
+    knockoutMatch: args.knockoutMatch,
   };
 }
 
@@ -210,6 +250,34 @@ export function createTournamentCardFixtures(now = new Date()) {
     registrationStatus: "closed",
   });
   const tonight = atHalfPast(now, 0, 19);
+  const viewerSeats = [
+    { left: VIEWER, right: occupant(1) },
+    ...fullSeats.slice(1),
+  ];
+  const drawnKnockoutOnly = buildRow({
+    id: "card-drawn-knockout-only",
+    seats: viewerSeats,
+    now,
+    viewerSeated: true,
+    drawPosted: true,
+    registrationStatus: "closed",
+    shape: "knockout_only",
+    knockout: {
+      roundCount: 4,
+      currentRoundName: "Quarter-finals",
+      champion: null,
+    },
+  });
+  const drawnGroupsThenKnockout = buildRow({
+    id: "card-drawn-groups-then-knockout",
+    seats: viewerSeats,
+    now,
+    viewerSeated: true,
+    drawPosted: true,
+    registrationStatus: "closed",
+    shape: "groups_then_knockout",
+    knockout: { roundCount: 3, currentRoundName: null, champion: null },
+  });
 
   return {
     open: buildRow({
@@ -232,6 +300,53 @@ export function createTournamentCardFixtures(now = new Date()) {
       canWaitlist: true,
     }),
     drawn,
+    drawnKnockoutOnly,
+    drawnGroupsThenKnockout,
+    knockoutChampion: buildRow({
+      id: "card-knockout-champion",
+      seats: viewerSeats,
+      now,
+      viewerSeated: true,
+      drawPosted: true,
+      registrationStatus: "closed",
+      shape: "knockout_only",
+      knockout: {
+        roundCount: 4,
+        currentRoundName: null,
+        champion: "Elin N / Nils A",
+      },
+    }),
+    knockoutSemiFinal: buildKnockoutMatchRow({
+      id: "card-knockout-semi-final",
+      drawn: drawnKnockoutOnly,
+      startTime: tonight > now ? tonight : atHalfPast(now, 1, 19),
+      knockoutMatch: { round: 3, roundCount: 4 },
+    }),
+    groupsThenKnockoutQuarterFinal: buildKnockoutMatchRow({
+      id: "card-groups-then-knockout-quarter-final",
+      drawn: drawnGroupsThenKnockout,
+      startTime: atHalfPast(now, 7, 19),
+      knockoutMatch: { round: 1, roundCount: 3 },
+    }),
+    groupsThenKnockoutLastPoolRound: buildMatchRow({
+      id: "card-groups-then-knockout-last-pool-round",
+      drawn: drawnGroupsThenKnockout,
+      startTime: tonight > now ? tonight : atHalfPast(now, 1, 19),
+      roundNumber: 3,
+      poolMatch: {
+        poolLabel: "1",
+        poolSize: 4,
+        viewerPosition: 1,
+        lastResult: {
+          roundNumber: 2,
+          outcome: "won",
+          viewerSets: [
+            { viewer: 6, opponent: 2 },
+            { viewer: 6, opponent: 3 },
+          ],
+        },
+      },
+    }),
     matchUpcoming: buildMatchRow({
       id: "card-match-upcoming",
       drawn,

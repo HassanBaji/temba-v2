@@ -396,6 +396,8 @@ export async function groupById(
           slot2GameTeamId: true,
           roundNumber: true,
           knockoutRound: true,
+          knockoutPosition: true,
+          walkoverGameTeamId: true,
           courtId: true,
         },
         with: {
