@@ -1,20 +1,40 @@
 "use client";
 
 import { Inbox } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Section } from "~/components/layout/section";
 import { requestRowMeta } from "~/lib/request-meta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["communities"]["listJoinRequests"][number];
 type TeamLinkRequest =
   RouterOutputs["communities"]["listTeamLinkRequests"][number];
+
+function RequestsCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border-rule overflow-hidden rounded-[14px] border">
+      <h2 className="text-meta text-muted-foreground border-rule border-b px-5 py-4">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function RequestRows({ children }: { children: ReactNode }) {
+  return <ul className="divide-rule divide-y">{children}</ul>;
+}
 
 export function CommunityRequestsTab({
   canManageJoinRequests,
@@ -72,23 +92,25 @@ export function CommunityRequestsTab({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-[26px]">
       {hasJoin ? (
-        <Section
-          title="Join requests"
-          description="Approve to make them a Member. If you reject, they can ask again."
-        >
-          {joinLoading ? <Skeleton className="h-16 w-full" /> : null}
+        <RequestsCard title="Join requests">
+          {joinLoading ? (
+            <div className="px-5 py-4">
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : null}
           {joinError ? (
             <ErrorState
               headingLevel={3}
+              className="px-5"
               title="Join requests could not be loaded"
               message={joinError}
               onRetry={onRetryJoin}
             />
           ) : null}
           {joinRequests && joinRequests.length > 0 ? (
-            <RowList>
+            <RequestRows>
               {joinRequests.map((request) => {
                 const name = request.user.name ?? "User";
                 return (
@@ -110,27 +132,29 @@ export function CommunityRequestsTab({
                   />
                 );
               })}
-            </RowList>
+            </RequestRows>
           ) : null}
-        </Section>
+        </RequestsCard>
       ) : null}
 
       {hasTeam ? (
-        <Section
-          title="Team link requests"
-          description="Approving links the Team to this Community and makes its players Members."
-        >
-          {teamLoading ? <Skeleton className="h-16 w-full" /> : null}
+        <RequestsCard title="Team link requests">
+          {teamLoading ? (
+            <div className="px-5 py-4">
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : null}
           {teamError ? (
             <ErrorState
               headingLevel={3}
+              className="px-5"
               title="Team link requests could not be loaded"
               message={teamError}
               onRetry={onRetryTeam}
             />
           ) : null}
           {teamLinkRequests && teamLinkRequests.length > 0 ? (
-            <RowList>
+            <RequestRows>
               {teamLinkRequests.map((request) => {
                 const requester = request.requestedBy.name ?? "User";
                 return (
@@ -147,9 +171,9 @@ export function CommunityRequestsTab({
                   />
                 );
               })}
-            </RowList>
+            </RequestRows>
           ) : null}
-        </Section>
+        </RequestsCard>
       ) : null}
     </div>
   );

@@ -15,7 +15,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { CommunityCreateGroupDialog } from "~/components/communities/community-create-group-dialog";
 import { CommunityGroupsTab } from "~/components/communities/community-groups-tab";
-import { CommunityHomeHeader } from "~/components/communities/community-home-header";
+import { CommunityHomeChrome } from "~/components/communities/community-home-chrome";
 import { CommunityHomeSkeleton } from "~/components/communities/community-home-skeleton";
 import { CommunityLinkVenueDialog } from "~/components/communities/community-link-venue-dialog";
 import { CommunityMembersTab } from "~/components/communities/community-members-tab";
@@ -26,17 +26,14 @@ import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { InvitesDialog } from "~/components/invites/invites-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
-import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Tabs, TabsContent } from "~/components/ui/tabs";
 import {
   communityHomeTabFromQuery,
   communityHomeTabQuery,
   type CommunityHomeTab,
 } from "~/lib/community-home-tab";
 import { isNotFoundError } from "~/lib/is-not-found-error";
-import { stickyAsideClass } from "~/lib/page-layout";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
@@ -336,7 +333,7 @@ export default function CommunityHomePage({
 
   if (community.isLoading) {
     return (
-      <DashboardShell title="Community" width="wide" hidePageHeader isSubPage>
+      <DashboardShell title="Community" hidePageHeader hideMobileTopBar>
         <CommunityHomeSkeleton />
       </DashboardShell>
     );
@@ -344,7 +341,7 @@ export default function CommunityHomePage({
 
   if (community.error) {
     return (
-      <DashboardShell title="Community" width="wide" isSubPage>
+      <DashboardShell title="Community" isSubPage>
         <ErrorState
           title="Community could not be loaded"
           message={community.error.message}
@@ -358,7 +355,7 @@ export default function CommunityHomePage({
 
   if (!community.data) {
     return (
-      <DashboardShell title="Community" width="wide" isSubPage>
+      <DashboardShell title="Community" isSubPage>
         <ErrorState
           title="Community could not be loaded"
           onRetry={() => {
@@ -402,16 +399,6 @@ export default function CommunityHomePage({
     data.canSoftArchive;
   const showOverflowAboveDestructive =
     showAllCommunities || canManageInvites || data.canUnarchive;
-
-  const requestJoinAction = canRequestJoin ? (
-    <Button
-      onClick={() => requestJoin.mutate({ communityId: id })}
-      pending={requestJoin.isPending}
-      pendingLabel="Requesting…"
-    >
-      Request to join
-    </Button>
-  ) : null;
 
   const headerMenu = showCommunityOverflow ? (
     <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
@@ -464,203 +451,158 @@ export default function CommunityHomePage({
     />
   ) : null;
 
-  const memberCountCard =
-    isMember && members.data ? (
-      <Card variant="raised">
-        <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-          Members
-        </p>
-        <p className="text-lead font-semibold tabular-nums">
-          {members.data.length}
-        </p>
-      </Card>
-    ) : null;
-
-  const staffCard =
-    canShowCreateClubGroup || canManageInvites ? (
-      <Card variant="raised" className="gap-2">
-        <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-          Actions
-        </p>
-        {canShowCreateClubGroup ? (
-          <Button
-            type="button"
-            className="min-h-11 w-full"
-            onClick={() => setCreateGroupOpen(true)}
-          >
-            Create Club Group
-          </Button>
-        ) : null}
-        {canManageInvites ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11 w-full"
-            onClick={() => setInvitesOpen(true)}
-          >
-            Manage invites
-          </Button>
-        ) : null}
-      </Card>
-    ) : null;
-
   return (
-    <DashboardShell title="Community" width="wide" hidePageHeader isSubPage>
-      <div className="space-y-6">
-        <CommunityHomeHeader
+    <DashboardShell
+      title={communityName}
+      hidePageHeader
+      hideMobileTopBar
+      hidePageTitle
+    >
+      <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-0">
+        <CommunityHomeChrome
           name={communityName}
           type={data.type}
           sports={data.sports}
+          memberCount={data.memberCount}
           role={data.membership?.role ?? null}
+          logoImageUrl={data.venue?.logoImageUrl}
           isArchived={!isLive}
           joinStatus={!isMember ? joinStatus : null}
-          logoImageUrl={data.venue?.logoImageUrl}
-          memberCount={isMember ? members.data?.length : null}
-          primaryAction={requestJoinAction}
-          menu={headerMenu}
+          hasCreateAccess={hasCreateAccess}
+          tab={tab}
+          availableTabs={availableTabs}
+          requestCount={requestCount}
+          canInvite={canManageInvites}
+          canCreateClubGroup={canShowCreateClubGroup}
+          onInvite={() => setInvitesOpen(true)}
+          onCreateClubGroup={() => setCreateGroupOpen(true)}
+          overflow={headerMenu}
         />
 
-        {!isLive && !isMember ? (
-          <SoftArchiveBanner
-            headingLevel={2}
-            heading="This Community is Soft-archived"
-          >
-            It is not open for new joins, requests, or invites. Members can
-            still open history and Games. This is not a missing page.
-          </SoftArchiveBanner>
-        ) : null}
+        <div className="space-y-6 pt-6">
+          {!isLive && !isMember ? (
+            <SoftArchiveBanner
+              headingLevel={2}
+              heading="This Community is Soft-archived"
+            >
+              It is not open for new joins, requests, or invites. Members can
+              still open history and Games. This is not a missing page.
+            </SoftArchiveBanner>
+          ) : null}
 
-        {!isLive && isMember ? (
-          <SoftArchiveBanner headingLevel={2} heading="Soft-archived">
-            Club Groups stay attached. You can still open Groups and see history
-            and Games. New joins, requests, Lookup invites, and Invite links are
-            paused until an Owner or Admin unarchives.
-          </SoftArchiveBanner>
-        ) : null}
+          {!isLive && isMember ? (
+            <SoftArchiveBanner headingLevel={2} heading="Soft-archived">
+              Club Groups stay attached. You can still open Groups and see
+              history and Games. New joins, requests, Lookup invites, and Invite
+              links are paused until an Owner or Admin unarchives.
+            </SoftArchiveBanner>
+          ) : null}
 
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_17.5rem]">
-          <div className="min-w-0 space-y-6 lg:hidden">{venueBlock}</div>
-          <div className="min-w-0">
-            <Tabs value={tab} onValueChange={setTab} className="gap-4">
-              <TabsList
-                variant="line"
-                className="bg-background sticky top-[var(--mobile-top-bar-height)] z-20 lg:top-0"
-              >
-                <TabsTrigger value="groups">Groups</TabsTrigger>
-                {isMember ? (
-                  <TabsTrigger value="teams">Teams</TabsTrigger>
-                ) : null}
-                {isMember ? (
-                  <TabsTrigger value="members">Members</TabsTrigger>
-                ) : null}
-                {showRequestsTab ? (
-                  <TabsTrigger value="requests" className="gap-2">
-                    Requests
-                    {requestCount > 0 ? (
-                      <Badge variant="secondary" size="sm">
-                        {requestCount}
-                      </Badge>
-                    ) : null}
-                  </TabsTrigger>
-                ) : null}
-              </TabsList>
-              <TabsContent value="groups">
-                <CommunityGroupsTab
-                  groups={data.groups}
-                  canCreateClubGroup={canShowCreateClubGroup}
-                  onCreate={() => setCreateGroupOpen(true)}
-                />
-              </TabsContent>
-              {isMember ? (
-                <TabsContent value="teams">
-                  <CommunityTeamsTab teams={data.teams} />
-                </TabsContent>
-              ) : null}
-              {isMember ? (
-                <TabsContent value="members">
-                  <CommunityMembersTab
-                    members={members.data}
-                    isLoading={members.isLoading}
-                    errorMessage={members.error?.message}
-                    onRetry={() => {
-                      void members.refetch();
-                    }}
-                    viewerUserId={viewerUserId}
-                    canManageRoles={data.canManageRoles}
-                    rolePending={setMemberRole.isPending}
-                    onRoleChange={(userId, role) =>
-                      setMemberRole.mutate({
-                        communityId: id,
-                        userId,
-                        role,
-                      })
-                    }
-                    linkedTeamBlocksLeave={linkedTeamBlocksLeave}
-                    isLastOwnerBlockedLeave={isLastOwnerBlockedLeave}
-                  />
-                </TabsContent>
-              ) : null}
-              {showRequestsTab ? (
-                <TabsContent value="requests">
-                  <CommunityRequestsTab
-                    canManageJoinRequests={data.canManageJoinRequests}
-                    canManageTeamLinks={data.canManageTeamLinks}
-                    joinRequests={joinRequests.data}
-                    joinLoading={joinRequests.isLoading}
-                    joinError={joinRequests.error?.message}
-                    onRetryJoin={() => {
-                      void joinRequests.refetch();
-                    }}
-                    teamLinkRequests={teamLinkRequests.data}
-                    teamLoading={teamLinkRequests.isLoading}
-                    teamError={teamLinkRequests.error?.message}
-                    onRetryTeam={() => {
-                      void teamLinkRequests.refetch();
-                    }}
-                    approveJoinPendingId={
-                      approveJoinRequest.isPending
-                        ? approveJoinRequest.variables?.requestId
-                        : undefined
-                    }
-                    rejectJoinPendingId={
-                      rejectJoinRequest.isPending
-                        ? rejectJoinRequest.variables?.requestId
-                        : undefined
-                    }
-                    approveTeamPendingId={
-                      approveTeamLink.isPending
-                        ? approveTeamLink.variables?.requestId
-                        : undefined
-                    }
-                    rejectTeamPendingId={
-                      rejectTeamLink.isPending
-                        ? rejectTeamLink.variables?.requestId
-                        : undefined
-                    }
-                    onApproveJoin={(requestId) =>
-                      approveJoinRequest.mutate({ requestId })
-                    }
-                    onRejectJoin={(requestId) =>
-                      rejectJoinRequest.mutate({ requestId })
-                    }
-                    onApproveTeam={(requestId) =>
-                      approveTeamLink.mutate({ requestId })
-                    }
-                    onRejectTeam={(requestId) =>
-                      rejectTeamLink.mutate({ requestId })
-                    }
-                  />
-                </TabsContent>
-              ) : null}
-            </Tabs>
-          </div>
-          <aside className={stickyAsideClass}>
-            {venueBlock}
-            {memberCountCard}
-            {staffCard}
-          </aside>
+          {canRequestJoin ? (
+            <Button
+              type="button"
+              className="min-h-11 w-full"
+              onClick={() => requestJoin.mutate({ communityId: id })}
+              pending={requestJoin.isPending}
+              pendingLabel="Requesting…"
+            >
+              Request to join
+            </Button>
+          ) : null}
+
+          <TabsContent value="groups">
+            <CommunityGroupsTab
+              venue={venueBlock}
+              groups={data.groups}
+              canCreateClubGroup={canShowCreateClubGroup}
+              onCreate={() => setCreateGroupOpen(true)}
+            />
+          </TabsContent>
+          {isMember ? (
+            <TabsContent value="teams">
+              <CommunityTeamsTab teams={data.teams} />
+            </TabsContent>
+          ) : null}
+          {isMember ? (
+            <TabsContent value="members">
+              <CommunityMembersTab
+                members={members.data}
+                isLoading={members.isLoading}
+                errorMessage={members.error?.message}
+                onRetry={() => {
+                  void members.refetch();
+                }}
+                viewerUserId={viewerUserId}
+                canManageRoles={data.canManageRoles}
+                rolePending={setMemberRole.isPending}
+                onRoleChange={(userId, role) =>
+                  setMemberRole.mutate({
+                    communityId: id,
+                    userId,
+                    role,
+                  })
+                }
+                linkedTeamBlocksLeave={linkedTeamBlocksLeave}
+                isLastOwnerBlockedLeave={isLastOwnerBlockedLeave}
+                canInvite={canManageInvites}
+                onInvite={() => setInvitesOpen(true)}
+              />
+            </TabsContent>
+          ) : null}
+          {showRequestsTab ? (
+            <TabsContent value="requests">
+              <CommunityRequestsTab
+                canManageJoinRequests={data.canManageJoinRequests}
+                canManageTeamLinks={data.canManageTeamLinks}
+                joinRequests={joinRequests.data}
+                joinLoading={joinRequests.isLoading}
+                joinError={joinRequests.error?.message}
+                onRetryJoin={() => {
+                  void joinRequests.refetch();
+                }}
+                teamLinkRequests={teamLinkRequests.data}
+                teamLoading={teamLinkRequests.isLoading}
+                teamError={teamLinkRequests.error?.message}
+                onRetryTeam={() => {
+                  void teamLinkRequests.refetch();
+                }}
+                approveJoinPendingId={
+                  approveJoinRequest.isPending
+                    ? approveJoinRequest.variables?.requestId
+                    : undefined
+                }
+                rejectJoinPendingId={
+                  rejectJoinRequest.isPending
+                    ? rejectJoinRequest.variables?.requestId
+                    : undefined
+                }
+                approveTeamPendingId={
+                  approveTeamLink.isPending
+                    ? approveTeamLink.variables?.requestId
+                    : undefined
+                }
+                rejectTeamPendingId={
+                  rejectTeamLink.isPending
+                    ? rejectTeamLink.variables?.requestId
+                    : undefined
+                }
+                onApproveJoin={(requestId) =>
+                  approveJoinRequest.mutate({ requestId })
+                }
+                onRejectJoin={(requestId) =>
+                  rejectJoinRequest.mutate({ requestId })
+                }
+                onApproveTeam={(requestId) =>
+                  approveTeamLink.mutate({ requestId })
+                }
+                onRejectTeam={(requestId) =>
+                  rejectTeamLink.mutate({ requestId })
+                }
+              />
+            </TabsContent>
+          ) : null}
         </div>
-      </div>
+      </Tabs>
 
       <ConfirmDialog
         open={leaveOpen}
