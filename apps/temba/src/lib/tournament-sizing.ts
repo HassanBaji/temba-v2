@@ -184,6 +184,100 @@ export function validateRoundCount(
   };
 }
 
+export const DEFAULT_QUALIFIERS_PER_POOL = 2;
+
+export type QualifiersPerPoolRange = { min: number; max: number };
+
+/** A single Pool sends at least two, so the Knockout always has a Final. */
+export function qualifiersPerPoolRange(
+  poolSizes: readonly number[],
+): QualifiersPerPoolRange | null {
+  if (poolSizes.length === 0) {
+    return null;
+  }
+  const min = poolSizes.length === 1 ? 2 : 1;
+  const max = Math.min(...poolSizes) - 1;
+  return max >= min ? { min, max } : null;
+}
+
+export function clampQualifiersPerPool(
+  poolSizes: readonly number[],
+  qualifiersPerPool: number,
+): number | null {
+  const range = qualifiersPerPoolRange(poolSizes);
+  if (!range) {
+    return null;
+  }
+  return Math.min(Math.max(qualifiersPerPool, range.min), range.max);
+}
+
+export function defaultQualifiersPerPool(
+  poolSizes: readonly number[],
+): number | null {
+  return clampQualifiersPerPool(poolSizes, DEFAULT_QUALIFIERS_PER_POOL);
+}
+
+export type QualifiersPerPoolValidation =
+  | { ok: true; qualifiersPerPool: number }
+  | { ok: false; issue: { path: "qualifiersPerPool"; message: string } };
+
+export function validateQualifiersPerPool(
+  poolSizes: readonly number[],
+  qualifiersPerPool: number | null | undefined,
+): QualifiersPerPoolValidation {
+  const range = qualifiersPerPoolRange(poolSizes);
+  if (!range) {
+    return {
+      ok: false,
+      issue: {
+        path: "qualifiersPerPool",
+        message: "These groups are too small for a knockout",
+      },
+    };
+  }
+  if (qualifiersPerPool == null) {
+    return {
+      ok: true,
+      qualifiersPerPool: defaultQualifiersPerPool(poolSizes) ?? range.max,
+    };
+  }
+  if (
+    !Number.isInteger(qualifiersPerPool) ||
+    qualifiersPerPool < range.min ||
+    qualifiersPerPool > range.max
+  ) {
+    return {
+      ok: false,
+      issue: {
+        path: "qualifiersPerPool",
+        message: `Through from each group must be between ${range.min} and ${range.max}`,
+      },
+    };
+  }
+  return { ok: true, qualifiersPerPool };
+}
+
+/**
+ * The Organizer's number capped by the drawn Pools, never rewritten
+ * (mirrors the Round count, ADR-0019), so a short field still posts.
+ */
+export function resolveQualifiersPerPool(
+  drawnPoolSizes: readonly number[],
+  storedQualifiersPerPool: number | null | undefined,
+): number | null {
+  if (drawnPoolSizes.length === 0) {
+    return null;
+  }
+  const cap = Math.min(...drawnPoolSizes) - 1;
+  const resolved = Math.min(
+    storedQualifiersPerPool ?? DEFAULT_QUALIFIERS_PER_POOL,
+    cap,
+  );
+  return resolved >= 1 && resolved * drawnPoolSizes.length >= 2
+    ? resolved
+    : null;
+}
+
 export function tournamentTeamCountIssue(
   teamCount: number,
 ): TournamentSizingIssue | null {

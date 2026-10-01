@@ -42,7 +42,7 @@ describe("draftKnockoutFirstRound", () => {
     assert.deepEqual(
       round?.places.map((place) =>
         place.kind === "bye"
-          ? `${place.code} ${place.team.name} bye`
+          ? `${place.code} ${knockoutSideLabel(place.side)} bye`
           : `${place.code} ${knockoutSideLabel(place.slot1)} v ${knockoutSideLabel(place.slot2)}`,
       ),
       [
@@ -53,7 +53,12 @@ describe("draftKnockoutFirstRound", () => {
       ],
     );
     const first = round?.places[0];
-    assert.equal(first?.kind === "bye" && first.team.isViewer, true);
+    assert.equal(
+      first?.kind === "bye" &&
+        first.side.kind === "team" &&
+        first.side.team.isViewer,
+      true,
+    );
   });
 
   it("is empty until the knockout is drafted", () => {

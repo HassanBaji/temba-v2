@@ -60,7 +60,12 @@ import {
 } from "~/lib/tournament-home";
 import {
   buildKnockoutTree,
+  buildPoolKnockoutTree,
+  groupsThenKnockoutReviewValue,
   knockoutOnlyReviewValue,
+  qualifierUnit,
+  qualifiersConsequenceLine,
+  THROUGH_FROM_EACH_GROUP_LABEL,
 } from "~/lib/tournament-knockout";
 import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import {
@@ -70,6 +75,7 @@ import {
   ONE_DAY_OVERRUN_MESSAGE,
   playersInPairsLine,
   poolCountOptions,
+  qualifiersPerPoolRange,
   resolveRoundCount,
   reviewRoundsValue,
   ROUNDS_LABEL,
@@ -114,6 +120,9 @@ export function FriendlyTournamentSteps({
   roundCount,
   roundCountError,
   onRoundCount,
+  qualifiersPerPool,
+  qualifiersPerPoolError,
+  onQualifiersPerPool,
   day,
   dayError,
   onDay,
@@ -174,6 +183,9 @@ export function FriendlyTournamentSteps({
   roundCount: number | null;
   roundCountError?: string;
   onRoundCount: (roundCount: number | null) => void;
+  qualifiersPerPool: number;
+  qualifiersPerPoolError?: string;
+  onQualifiersPerPool: (qualifiersPerPool: number) => void;
   day: string;
   dayError?: string;
   onDay: (day: string) => void;
@@ -243,6 +255,18 @@ export function FriendlyTournamentSteps({
     sizing && resolvedRoundCount != null
       ? sizeTournamentRounds(sizing.poolSizes, resolvedRoundCount)
       : null;
+  const groupsThenKnockout = tournamentShape === "groups_then_knockout";
+  const qualifiersRange =
+    groupsThenKnockout && sizing
+      ? qualifiersPerPoolRange(sizing.poolSizes)
+      : null;
+  const poolKnockoutTree =
+    qualifiersRange && sizing
+      ? buildPoolKnockoutTree({
+          poolCount: sizing.poolCount,
+          qualifiersPerPool,
+        })
+      : null;
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
@@ -262,6 +286,7 @@ export function FriendlyTournamentSteps({
           matchMinutes: parsedMinutes.minutes,
           clock: formatGameClock,
           knockoutOnly,
+          knockoutRoundMatches: poolKnockoutTree?.matchesPerRound,
         })
       : null;
   const selectedCourtNames = courts
@@ -451,6 +476,30 @@ export function FriendlyTournamentSteps({
               roundCount={roundCount}
               onRoundCount={onRoundCount}
               error={roundCountError}
+            />
+          ) : null}
+
+          {qualifiersRange ? (
+            <StepperField
+              id="tournament-qualifiers-per-pool"
+              label={THROUGH_FROM_EACH_GROUP_LABEL}
+              labelClassName={STEPPER_LABEL}
+              value={qualifiersPerPool}
+              unit={qualifierUnit(qualifiersPerPool)}
+              min={qualifiersRange.min}
+              max={qualifiersRange.max}
+              step={1}
+              onChange={onQualifiersPerPool}
+              decreaseLabel="Fewer teams through"
+              increaseLabel="More teams through"
+              error={qualifiersPerPoolError}
+              description={
+                poolKnockoutTree ? (
+                  <p className="text-muted-foreground text-meta">
+                    {qualifiersConsequenceLine(poolKnockoutTree)}
+                  </p>
+                ) : null
+              }
             />
           ) : null}
 
@@ -873,6 +922,16 @@ export function FriendlyTournamentSteps({
               <ReviewRow
                 label={KNOCKOUT_REVIEW_LABEL}
                 value={knockoutOnlyReviewValue(knockoutTree)}
+              />
+            ) : null}
+            {poolKnockoutTree && sizing ? (
+              <ReviewRow
+                label={KNOCKOUT_REVIEW_LABEL}
+                value={groupsThenKnockoutReviewValue({
+                  tree: poolKnockoutTree,
+                  poolCount: sizing.poolCount,
+                  qualifiersPerPool,
+                })}
               />
             ) : null}
             {sizing && rounds ? (

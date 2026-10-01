@@ -3,14 +3,29 @@ import { describe, it } from "vitest";
 
 import {
   buildKnockoutTree,
+  buildPoolKnockoutTree,
+  groupsThenKnockoutReviewValue,
   knockoutFedBy,
   knockoutFeeds,
   knockoutMatchCode,
   knockoutOnlyReviewValue,
+  knockoutQualifierLabel,
   knockoutRoundName,
+  qualifiersConsequenceLine,
+  type KnockoutEntry,
   type KnockoutTree,
+  type PoolKnockoutTree,
 } from "~/lib/tournament-knockout";
-import { TOURNAMENT_TEAM_COUNTS } from "~/lib/tournament-sizing";
+import {
+  balancedPoolSizes,
+  clampQualifiersPerPool,
+  defaultQualifiersPerPool,
+  poolCountOptions,
+  qualifiersPerPoolRange,
+  resolveQualifiersPerPool,
+  TOURNAMENT_TEAM_COUNTS,
+  validateQualifiersPerPool,
+} from "~/lib/tournament-sizing";
 
 function treeFor(entrantCount: number): KnockoutTree {
   const tree = buildKnockoutTree({ entrantCount });
@@ -168,5 +183,201 @@ describe("knockoutOnlyReviewValue", () => {
     );
     assert.equal(knockoutOnlyReviewValue(treeFor(8)), "Quarter-finals onward");
     assert.equal(knockoutOnlyReviewValue(treeFor(4)), "Semi-finals onward");
+  });
+});
+
+function poolTreeFor(
+  poolCount: number,
+  qualifiersPerPool: number,
+): PoolKnockoutTree {
+  const tree = buildPoolKnockoutTree({ poolCount, qualifiersPerPool });
+  assert.ok(tree, `tree for ${poolCount} Pools, ${qualifiersPerPool} through`);
+  return tree;
+}
+
+function halfOf(tree: KnockoutTree, entry: KnockoutEntry) {
+  const positionsInRound = tree.size / 2 ** entry.round;
+  return entry.position <= positionsInRound / 2 ? 1 : 2;
+}
+
+describe("buildPoolKnockoutTree", () => {
+  for (const teamCount of TOURNAMENT_TEAM_COUNTS) {
+    for (const poolCount of poolCountOptions(teamCount)) {
+      const poolSizes = balancedPoolSizes(teamCount, poolCount);
+      const range = qualifiersPerPoolRange(poolSizes);
+      assert.ok(range, `${teamCount} teams in ${poolCount} Pools`);
+      for (let through = range.min; through <= range.max; through += 1) {
+        it(`${teamCount} teams, ${poolCount} Pools, ${through} through`, () => {
+          const tree = poolTreeFor(poolCount, through);
+          const entrantCount = poolCount * through;
+          assert.equal(tree.entrantCount, entrantCount);
+          assert.equal(tree.matchCount, entrantCount - 1);
+
+          const entrants = tree.entries.map((entry) => entry.entrant);
+          assert.deepEqual(
+            entrants,
+            Array.from({ length: entrantCount }, (_, index) => index + 1),
+          );
+          const places = new Set(
+            tree.entries.map(
+              (entry) => `${entry.round}:${entry.position}:${entry.slot}`,
+            ),
+          );
+          assert.equal(places.size, entrantCount);
+
+          const poolOf = (entrant: number) =>
+            tree.qualifiers[entrant - 1]?.pool;
+          if (poolCount >= 2) {
+            for (const place of tree.firstRound) {
+              if (place.kind === "match") {
+                assert.notEqual(
+                  poolOf(place.slot1Entrant),
+                  poolOf(place.slot2Entrant),
+                  `first-round position ${place.position}`,
+                );
+              }
+            }
+          }
+
+          const byes = tree.firstRound
+            .flatMap((place) => (place.kind === "bye" ? [place.entrant] : []))
+            .sort((left, right) => left - right);
+          assert.deepEqual(
+            byes,
+            Array.from({ length: tree.byeCount }, (_, index) => index + 1),
+          );
+
+          if (poolCount === 2 && through === 2) {
+            for (const pool of [0, 1]) {
+              const halves = tree.entries
+                .filter((entry) => poolOf(entry.entrant) === pool)
+                .map((entry) => halfOf(tree, entry));
+              assert.deepEqual([...halves].sort(), [1, 2]);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  it("orders entrants by Pool place, then by Pool", () => {
+    const tree = poolTreeFor(3, 2);
+    assert.deepEqual(
+      tree.qualifiers.map((qualifier) =>
+        knockoutQualifierLabel(qualifier.pool + 1, qualifier.position),
+      ),
+      ["A1", "B1", "C1", "A2", "B2", "C2"],
+    );
+  });
+
+  it("gives the Byes to Pool winners in Pool order", () => {
+    const tree = poolTreeFor(3, 2);
+    assert.equal(tree.byeCount, 2);
+    const byeQualifiers = tree.firstRound.flatMap((place) =>
+      place.kind === "bye" ? [tree.qualifiers[place.entrant - 1]] : [],
+    );
+    assert.deepEqual(
+      byeQualifiers
+        .map((qualifier) =>
+          qualifier
+            ? knockoutQualifierLabel(qualifier.pool + 1, qualifier.position)
+            : "",
+        )
+        .sort(),
+      ["A1", "B1"],
+    );
+  });
+
+  it("refuses a field with fewer than two qualifiers", () => {
+    assert.equal(
+      buildPoolKnockoutTree({ poolCount: 1, qualifiersPerPool: 1 }),
+      null,
+    );
+    assert.equal(
+      buildPoolKnockoutTree({ poolCount: 2, qualifiersPerPool: 0 }),
+      null,
+    );
+  });
+});
+
+describe("Qualifiers per Pool", () => {
+  it("ranges from 1 to one fewer than the smallest Pool", () => {
+    assert.deepEqual(qualifiersPerPoolRange([4, 4, 3]), { min: 1, max: 2 });
+    assert.deepEqual(qualifiersPerPoolRange([6, 6]), { min: 1, max: 5 });
+  });
+
+  it("starts a single Pool at 2", () => {
+    assert.deepEqual(qualifiersPerPoolRange([8]), { min: 2, max: 7 });
+  });
+
+  it("defaults to 2, or the highest allowed value", () => {
+    assert.equal(defaultQualifiersPerPool([4, 4, 4]), 2);
+    assert.equal(defaultQualifiersPerPool([2, 2]), 1);
+  });
+
+  it("re-clamps into the range", () => {
+    assert.equal(clampQualifiersPerPool([3, 3, 3, 3], 5), 2);
+    assert.equal(clampQualifiersPerPool([10], 1), 2);
+  });
+
+  it("validates the stored value against the planned Pools", () => {
+    assert.deepEqual(validateQualifiersPerPool([4, 4, 4], 3), {
+      ok: true,
+      qualifiersPerPool: 3,
+    });
+    assert.equal(validateQualifiersPerPool([4, 4, 4], 4).ok, false);
+    assert.equal(validateQualifiersPerPool([4, 4, 4], 0).ok, false);
+    assert.equal(validateQualifiersPerPool([12], 1).ok, false);
+    assert.deepEqual(validateQualifiersPerPool([12], null), {
+      ok: true,
+      qualifiersPerPool: 2,
+    });
+  });
+
+  it("caps the stored value at the drawn smallest Pool minus 1", () => {
+    assert.equal(resolveQualifiersPerPool([4, 3, 3], 3), 2);
+    assert.equal(resolveQualifiersPerPool([5, 5], 3), 3);
+    assert.equal(resolveQualifiersPerPool([5, 5], null), 2);
+    assert.equal(resolveQualifiersPerPool([], 2), null);
+  });
+});
+
+describe("Groups then knockout copy", () => {
+  it("states the teams into the knockout and the Byes", () => {
+    assert.equal(
+      qualifiersConsequenceLine(poolTreeFor(3, 2)),
+      "6 teams into the knockout, 2 byes.",
+    );
+    assert.equal(
+      qualifiersConsequenceLine(poolTreeFor(4, 2)),
+      "8 teams into the knockout.",
+    );
+  });
+
+  it("reads the review Knockout row", () => {
+    assert.equal(
+      groupsThenKnockoutReviewValue({
+        tree: poolTreeFor(3, 2),
+        poolCount: 3,
+        qualifiersPerPool: 2,
+      }),
+      "Top two in each group, quarters onward. 2 byes",
+    );
+    assert.equal(
+      groupsThenKnockoutReviewValue({
+        tree: poolTreeFor(1, 2),
+        poolCount: 1,
+        qualifiersPerPool: 2,
+      }),
+      "Top two, final",
+    );
+    assert.equal(
+      groupsThenKnockoutReviewValue({
+        tree: poolTreeFor(2, 2),
+        poolCount: 2,
+        qualifiersPerPool: 2,
+      }),
+      "Top two in each group, semis, then the final",
+    );
   });
 });

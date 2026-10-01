@@ -738,6 +738,7 @@ export async function gameById(
         id: match.id,
         status: match.status,
         roundNumber: match.roundNumber,
+        knockoutRound: match.knockoutRound,
         startTime: match.startTime,
         slot1GameTeamId: match.slot1GameTeamId,
         slot2GameTeamId: match.slot2GameTeamId,
@@ -773,6 +774,10 @@ export async function gameById(
         slot2GameTeamId: match.slot2GameTeamId,
         status: match.status,
         result: matchOutcome(match.sets).result,
+        slot1SourcePoolIndex: match.slot1SourcePoolIndex,
+        slot1SourcePoolPosition: match.slot1SourcePoolPosition,
+        slot2SourcePoolIndex: match.slot2SourcePoolIndex,
+        slot2SourcePoolPosition: match.slot2SourcePoolPosition,
       })),
     }),
   };

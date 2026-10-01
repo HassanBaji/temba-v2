@@ -66,6 +66,7 @@ export type PoolTableMatchInput = {
   id: string;
   status: string | null;
   roundNumber: number | null;
+  knockoutRound: number | null;
   startTime: Date | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
@@ -240,6 +241,10 @@ export function computePoolTables(args: {
 
   const matchesByPool = new Map<number, PoolTableMatchInput[]>();
   for (const match of args.matches) {
+    // A Knockout Match between two teams of one Pool is not that Pool's Match.
+    if (match.knockoutRound != null) {
+      continue;
+    }
     const slot1 = match.slot1GameTeamId
       ? teamsById.get(match.slot1GameTeamId)
       : undefined;

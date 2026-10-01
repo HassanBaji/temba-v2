@@ -28,6 +28,10 @@ export const matches = pgTable("matches", {
   roundNumber: integer("round_number"),
   knockoutRound: integer("knockout_round"),
   knockoutPosition: integer("knockout_position"),
+  slot1SourcePoolIndex: integer("slot_1_source_pool_index"),
+  slot1SourcePoolPosition: integer("slot_1_source_pool_position"),
+  slot2SourcePoolIndex: integer("slot_2_source_pool_index"),
+  slot2SourcePoolPosition: integer("slot_2_source_pool_position"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

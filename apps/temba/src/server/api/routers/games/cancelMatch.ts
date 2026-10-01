@@ -13,6 +13,7 @@ import {
   type GameRow,
 } from "~/server/games/access";
 import { cancelGameRecord } from "~/server/games/helpers/cancel-game-record";
+import { placeKnockoutQualifiers } from "~/server/games/knockout-advance";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -56,6 +57,7 @@ async function cancelMatchOnGame(database: Tx, game: GameRow, matchId: string) {
     .update(matches)
     .set({ status: MatchStatusEnum.CANCELLED, updatedAt: now })
     .where(eq(matches.id, match.id));
+  await placeKnockoutQualifiers(database, game, match);
   return { cancelledGame: false as const };
 }
 

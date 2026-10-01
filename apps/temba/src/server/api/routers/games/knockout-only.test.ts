@@ -841,7 +841,10 @@ describe("gameById on Knockout only", () => {
       const summary = rounds?.map((round) =>
         round.places.map((place) =>
           place.kind === "bye"
-            ? { code: place.code, bye: place.team.name }
+            ? {
+                code: place.code,
+                bye: place.side.kind === "team" ? place.side.team.name : null,
+              }
             : {
                 code: place.code,
                 court: place.courtName,
@@ -875,7 +878,11 @@ describe("gameById on Knockout only", () => {
         ],
       ]);
       const viewerBye = rounds?.[0]?.places[0];
-      expect(viewerBye?.kind === "bye" && viewerBye.team.isViewer).toBe(true);
+      expect(
+        viewerBye?.kind === "bye" &&
+          viewerBye.side.kind === "team" &&
+          viewerBye.side.team.isViewer,
+      ).toBe(true);
     } finally {
       await close();
     }

@@ -7,6 +7,7 @@ import { type GameRow } from "~/server/games/access";
 import {
   advanceKnockoutWinner,
   knockoutMatchIsLevel,
+  placeKnockoutQualifiers,
 } from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { applyRatedMatch } from "~/server/ratings/apply-rated-match";
@@ -67,5 +68,6 @@ export async function runMatchCompletionEffect(
 
     await applyRatedMatch(tx, game, locked, outcome.result);
     await advanceKnockoutWinner(tx, locked, outcome.result);
+    await placeKnockoutQualifiers(tx, game, locked);
   });
 }

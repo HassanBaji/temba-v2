@@ -4,13 +4,18 @@ import { z } from "zod";
 
 import { gameCourts, gameTeams, gameWaitlist, games, matches } from "@repo/db";
 
-import { buildKnockoutTree } from "~/lib/tournament-knockout";
-import { isDrawnTournament, isKnockoutOnly } from "~/lib/tournament-rounds";
 import {
-  schedulePoolMatches,
-  scheduleRoundSlots,
-} from "~/lib/tournament-schedule";
+  buildKnockoutTree,
+  buildPoolKnockoutTree,
+} from "~/lib/tournament-knockout";
 import {
+  hasKnockout,
+  isDrawnTournament,
+  isKnockoutOnly,
+} from "~/lib/tournament-rounds";
+import { poolRounds, scheduleRoundSlots } from "~/lib/tournament-schedule";
+import {
+  resolveQualifiersPerPool,
   resolveRoundCount,
   TOURNAMENT_TEAM_MIN,
 } from "~/lib/tournament-sizing";
@@ -39,16 +44,90 @@ function occupantName(team: {
   return "Game team";
 }
 
-type DrawnMatch = {
-  roundNumber: number;
+type DrawnSlots = {
   knockoutRound: number | null;
   knockoutPosition: number | null;
+  slot1GameTeamId: string | null;
+  slot2GameTeamId: string | null;
+  slot1SourcePoolIndex: number | null;
+  slot1SourcePoolPosition: number | null;
+  slot2SourcePoolIndex: number | null;
+  slot2SourcePoolPosition: number | null;
+};
+
+type DrawnMatch = DrawnSlots & {
+  roundNumber: number;
   startTime: Date;
   endTime: Date;
   courtId: string;
-  slot1GameTeamId: string | null;
-  slot2GameTeamId: string | null;
 };
+
+const NO_SOURCES = {
+  slot1SourcePoolIndex: null,
+  slot1SourcePoolPosition: null,
+  slot2SourcePoolIndex: null,
+  slot2SourcePoolPosition: null,
+} as const;
+
+type QualifierSource = { poolIndex: number; position: number };
+
+/**
+ * The empty tree a Groups then knockout post creates after the Pool Rounds.
+ * Each first-entry slot stores the Pool place that fills it, so a later
+ * withdrawal never reshapes a tree people have already seen.
+ */
+function qualifierKnockoutRounds(args: {
+  pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
+  poolRoundCount: number;
+  storedQualifiersPerPool: number | null;
+}): { roundNumber: number; items: DrawnSlots[] }[] {
+  const qualifiersPerPool = resolveQualifiersPerPool(
+    args.pools.map((pool) => pool.gameTeamIds.length),
+    args.storedQualifiersPerPool,
+  );
+  const tree =
+    qualifiersPerPool == null
+      ? null
+      : buildPoolKnockoutTree({
+          poolCount: args.pools.length,
+          qualifiersPerPool,
+        });
+  if (!tree) {
+    return [];
+  }
+
+  const sources = new Map<string, QualifierSource>();
+  for (const entry of tree.entries) {
+    const qualifier = tree.qualifiers[entry.entrant - 1];
+    const pool = qualifier ? args.pools[qualifier.pool] : undefined;
+    if (qualifier && pool) {
+      sources.set(`${entry.round}:${entry.position}:${entry.slot}`, {
+        poolIndex: pool.poolIndex,
+        position: qualifier.position,
+      });
+    }
+  }
+
+  return Array.from({ length: tree.roundCount }, (_, index) => ({
+    roundNumber: args.poolRoundCount + index + 1,
+    items: tree.matches
+      .filter((match) => match.round === index + 1)
+      .map(({ round, position }) => {
+        const slot1 = sources.get(`${round}:${position}:1`);
+        const slot2 = sources.get(`${round}:${position}:2`);
+        return {
+          knockoutRound: round,
+          knockoutPosition: position,
+          slot1GameTeamId: null,
+          slot2GameTeamId: null,
+          slot1SourcePoolIndex: slot1?.poolIndex ?? null,
+          slot1SourcePoolPosition: slot1?.position ?? null,
+          slot2SourcePoolIndex: slot2?.poolIndex ?? null,
+          slot2SourcePoolPosition: slot2?.position ?? null,
+        };
+      }),
+  }));
+}
 
 function sortBySide<T extends { id: string; sideIndex: number | null }>(
   teams: readonly T[],
@@ -70,6 +149,8 @@ function poolDrawMatches(args: {
     poolIndex: number | null;
   }[];
   storedRoundCount: number | null;
+  withKnockout: boolean;
+  storedQualifiersPerPool: number | null;
   courtIds: readonly string[];
   windowStart: Date;
   windowEnd: Date;
@@ -99,17 +180,39 @@ function poolDrawMatches(args: {
   if (roundCount == null) {
     return [];
   }
-  return schedulePoolMatches({
+  const rounds: { roundNumber: number; items: DrawnSlots[] }[] = poolRounds({
     pools,
     roundCount,
+  }).map((round) => ({
+    roundNumber: round.roundNumber,
+    items: round.items.map((pairing) => ({
+      ...pairing,
+      ...NO_SOURCES,
+      knockoutRound: null,
+      knockoutPosition: null,
+    })),
+  }));
+  if (args.withKnockout) {
+    rounds.push(
+      ...qualifierKnockoutRounds({
+        pools,
+        poolRoundCount: roundCount,
+        storedQualifiersPerPool: args.storedQualifiersPerPool,
+      }),
+    );
+  }
+  return scheduleRoundSlots({
+    rounds,
     courtIds: args.courtIds,
     windowStart: args.windowStart,
     windowEnd: args.windowEnd,
     matchMinutes: args.matchMinutes,
-  }).map((match) => ({
-    ...match,
-    knockoutRound: null,
-    knockoutPosition: null,
+  }).map((scheduled) => ({
+    ...scheduled.item,
+    roundNumber: scheduled.roundNumber,
+    startTime: scheduled.startTime,
+    endTime: scheduled.endTime,
+    courtId: scheduled.courtId,
   }));
 }
 
@@ -160,6 +263,7 @@ function knockoutDrawMatches(args: {
       courtId: scheduled.courtId,
       slot1GameTeamId: slots.get(`${round}:${position}:1`) ?? null,
       slot2GameTeamId: slots.get(`${round}:${position}:2`) ?? null,
+      ...NO_SOURCES,
     };
   });
 }
@@ -287,6 +391,8 @@ export async function postPoolDraw(
     : poolDrawMatches({
         teams: complete,
         storedRoundCount: game.roundCount,
+        withKnockout: hasKnockout(game.format, game.tournamentShape),
+        storedQualifiersPerPool: game.qualifiersPerPool,
         courtIds,
         windowStart: game.windowStart,
         windowEnd: game.windowEnd,
@@ -317,6 +423,10 @@ export async function postPoolDraw(
         roundNumber: match.roundNumber,
         knockoutRound: match.knockoutRound,
         knockoutPosition: match.knockoutPosition,
+        slot1SourcePoolIndex: match.slot1SourcePoolIndex,
+        slot1SourcePoolPosition: match.slot1SourcePoolPosition,
+        slot2SourcePoolIndex: match.slot2SourcePoolIndex,
+        slot2SourcePoolPosition: match.slot2SourcePoolPosition,
         ...values,
       });
     }

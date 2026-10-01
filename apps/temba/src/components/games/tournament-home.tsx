@@ -56,6 +56,7 @@ import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
   GROUP_ROW_LABEL,
+  GROUPS_THEN_KNOCKOUT_LEAD,
   INVITE_ACTION_LABEL,
   KNOCKOUT_ONLY_LEAD,
   LEAVE_THE_SEAT_LABEL,
@@ -82,9 +83,11 @@ import {
 import { tournamentShowsTakeSeat } from "~/lib/tournament-join";
 import {
   KNOCKOUT_HEADING,
+  KNOCKOUT_NOT_THROUGH_COPY,
   hasDraftKnockoutDraw,
   knockoutChampion,
   knockoutChampionLine,
+  viewerMissedKnockout,
 } from "~/lib/tournament-knockout-view";
 import {
   canOpenOrganizerDrawDrawer,
@@ -96,6 +99,7 @@ import {
   viewerTournamentTotalCents,
 } from "~/lib/tournament-price";
 import {
+  hasKnockout,
   isKnockoutOnly,
   isPartnerRequiredGame,
   roundsPlayedLabel,
@@ -284,6 +288,9 @@ export function TournamentHome({
           roundsPlayed={roundsPlayedLabel(data.poolTables, roundCount)}
           poolTables={data.poolTables}
           knockoutOnly={knockoutOnly}
+          groupsThenKnockout={
+            !knockoutOnly && hasKnockout(data.format, data.tournamentShape)
+          }
           knockout={data.knockout}
           backHref={backHref}
           showUndo={showUndo}
@@ -589,6 +596,7 @@ function TournamentStandingsTree({
   roundsPlayed,
   poolTables,
   knockoutOnly,
+  groupsThenKnockout,
   knockout,
   backHref,
   showUndo,
@@ -600,6 +608,7 @@ function TournamentStandingsTree({
   roundsPlayed: string | null;
   poolTables: GameDetail["poolTables"];
   knockoutOnly: boolean;
+  groupsThenKnockout: boolean;
   knockout: GameDetail["knockout"];
   backHref: string;
   showUndo: boolean;
@@ -608,17 +617,26 @@ function TournamentStandingsTree({
   onUndo: () => void | Promise<void>;
 }) {
   const champion = knockoutChampion(knockout);
+  const notThrough =
+    groupsThenKnockout &&
+    viewerMissedKnockout({
+      rounds: knockout,
+      poolStageFinished: Boolean(poolTables?.finished),
+      viewerHasTeam: poolTables?.viewerPoolIndex != null,
+    });
   return (
     <div className="space-y-6">
       <div>
         <TournamentStandingsHeader
           name={name}
           roundsPlayed={roundsPlayed}
-          finished={Boolean(poolTables?.finished)}
+          finished={!groupsThenKnockout && Boolean(poolTables?.finished)}
           backHref={backHref}
           {...(knockoutOnly
             ? { heading: KNOCKOUT_HEADING, lead: KNOCKOUT_ONLY_LEAD }
-            : {})}
+            : groupsThenKnockout
+              ? { lead: GROUPS_THEN_KNOCKOUT_LEAD }
+              : {})}
           championLine={champion ? knockoutChampionLine(champion) : null}
         />
         {knockoutOnly ? (
@@ -633,6 +651,24 @@ function TournamentStandingsTree({
           </div>
         ) : null}
       </div>
+      {groupsThenKnockout && knockout ? (
+        <section aria-labelledby="tournament-knockout-heading">
+          <h2
+            id="tournament-knockout-heading"
+            className="font-expanded text-h2 tracking-[-0.03em]"
+          >
+            {KNOCKOUT_HEADING}
+          </h2>
+          {notThrough ? (
+            <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
+              {KNOCKOUT_NOT_THROUGH_COPY}
+            </p>
+          ) : null}
+          <div className="pt-[18px]">
+            <TournamentKnockoutTree rounds={knockout} headingLevel="h3" />
+          </div>
+        </section>
+      ) : null}
       {showUndo ? (
         <TournamentUndoPoolDraw
           knockoutOnly={knockoutOnly}

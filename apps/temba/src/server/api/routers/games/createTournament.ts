@@ -19,6 +19,7 @@ import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
 import {
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
+  validateQualifiersPerPool,
   validateRoundCount,
   type TournamentSizingIssue,
 } from "~/lib/tournament-sizing";
@@ -41,6 +42,10 @@ function windowWithinOneDay(windowStart: Date, windowEnd: Date) {
 }
 
 type RoundCountIssue = { path: "roundCount"; message: string };
+type QualifiersIssue = { path: "qualifiersPerPool"; message: string };
+
+const QUALIFIERS_SHAPE_MESSAGE =
+  "Through from each group applies to Groups, then knockout only";
 
 type ShapeSizing =
   | {
@@ -50,15 +55,27 @@ type ShapeSizing =
       teamCount: number;
       poolCount: number | null;
       roundCount: number | null;
+      qualifiersPerPool: number | null;
     }
-  | { ok: false; issue: TournamentSizingIssue | RoundCountIssue };
+  | {
+      ok: false;
+      issue: TournamentSizingIssue | RoundCountIssue | QualifiersIssue;
+    };
 
 function sizeTournamentShape(value: {
-  tournamentShape?: "groups_only" | "knockout_only";
+  tournamentShape?: "groups_only" | "groups_then_knockout" | "knockout_only";
   teamCount: number;
   poolCount?: number;
   roundCount?: number | null;
+  qualifiersPerPool?: number | null;
 }): ShapeSizing {
+  const groupsThenKnockout = value.tournamentShape === "groups_then_knockout";
+  if (!groupsThenKnockout && value.qualifiersPerPool != null) {
+    return {
+      ok: false,
+      issue: { path: "qualifiersPerPool", message: QUALIFIERS_SHAPE_MESSAGE },
+    };
+  }
   if (value.tournamentShape === "knockout_only") {
     const issue = tournamentTeamCountIssue(value.teamCount);
     if (issue) {
@@ -71,6 +88,7 @@ function sizeTournamentShape(value: {
       teamCount: value.teamCount,
       poolCount: null,
       roundCount: null,
+      qualifiersPerPool: null,
     };
   }
   const sized = sizeFriendlyTournament(value.teamCount, value.poolCount ?? NaN);
@@ -81,13 +99,22 @@ function sizeTournamentShape(value: {
   if (!rounds.ok) {
     return rounds;
   }
+  const qualifiers = groupsThenKnockout
+    ? validateQualifiersPerPool(sized.sizing.poolSizes, value.qualifiersPerPool)
+    : null;
+  if (qualifiers && !qualifiers.ok) {
+    return qualifiers;
+  }
   return {
     ok: true,
-    tournamentShape: TournamentShapeEnum.GROUPS_ONLY,
+    tournamentShape: groupsThenKnockout
+      ? TournamentShapeEnum.GROUPS_THEN_KNOCKOUT
+      : TournamentShapeEnum.GROUPS_ONLY,
     playerCount: sized.sizing.playerCount,
     teamCount: sized.sizing.teamCount,
     poolCount: sized.sizing.poolCount,
     roundCount: rounds.roundCount,
+    qualifiersPerPool: qualifiers?.qualifiersPerPool ?? null,
   };
 }
 
@@ -112,10 +139,13 @@ export const createTournamentInputSchema = z
     isPublic: z.boolean(),
     registrationMode: z.literal("individual").optional(),
     allowSoloRegister: z.boolean().optional().default(true),
-    tournamentShape: z.enum(["groups_only", "knockout_only"]).optional(),
+    tournamentShape: z
+      .enum(["groups_only", "groups_then_knockout", "knockout_only"])
+      .optional(),
     teamCount: z.number().int(),
     poolCount: z.number().int().optional(),
     roundCount: z.number().int().nullable().optional(),
+    qualifiersPerPool: z.number().int().nullable().optional(),
     matchMinutes: z.number().int().min(10).max(120).multipleOf(5),
     windowStart: z.coerce.date(),
     windowEnd: z.coerce.date(),
@@ -241,6 +271,7 @@ export async function createTournament(
         tournamentShape: sized.tournamentShape,
         poolCount: sized.poolCount,
         roundCount: sized.roundCount,
+        qualifiersPerPool: sized.qualifiersPerPool,
         matchMinutes: input.matchMinutes,
         pricePerPlayerCents: input.pricePerPlayerCents ?? null,
         levelMinTenths: input.levelMinTenths ?? null,

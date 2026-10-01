@@ -4,6 +4,7 @@ import {
   knockoutFedBy,
   knockoutFeeds,
   knockoutMatchCode,
+  knockoutQualifierLabel,
   knockoutRoundName,
   knockoutWinnerOfLabel,
 } from "~/lib/tournament-knockout";
@@ -16,6 +17,7 @@ export type KnockoutViewTeam = {
 
 export type KnockoutViewSide =
   | { kind: "team"; team: KnockoutViewTeam }
+  | { kind: "qualifier"; label: string }
   | { kind: "winner_of"; label: string }
   | { kind: "open" };
 
@@ -36,7 +38,7 @@ export type KnockoutViewPlace =
       kind: "bye";
       position: number;
       code: string;
-      team: KnockoutViewTeam;
+      side: KnockoutViewSide;
     };
 
 export type KnockoutViewRound = {
@@ -62,6 +64,10 @@ export type KnockoutViewMatch = {
   slot2GameTeamId: string | null;
   status: string | null;
   result: "slot1" | "slot2" | "draw" | "none";
+  slot1SourcePoolIndex?: number | null;
+  slot1SourcePoolPosition?: number | null;
+  slot2SourcePoolIndex?: number | null;
+  slot2SourcePoolPosition?: number | null;
 };
 
 export const KNOCKOUT_BYE_LABEL = "Bye";
@@ -120,7 +126,12 @@ export function draftKnockoutFirstRound(args: {
     if (place.kind === "bye") {
       const team = entrant(place.entrant);
       if (team) {
-        places.push({ kind: "bye", position: place.position, code, team });
+        places.push({
+          kind: "bye",
+          position: place.position,
+          code,
+          side: { kind: "team", team },
+        });
       }
       continue;
     }
@@ -183,15 +194,32 @@ export function postedKnockoutRounds(args: {
     const team = gameTeamId ? teamsById.get(gameTeamId) : undefined;
     return team ? viewTeam(team, args.viewerUserId) : null;
   };
+  const sourceOf = (match: KnockoutViewMatch | undefined, slot: 1 | 2) => {
+    const poolIndex =
+      slot === 1 ? match?.slot1SourcePoolIndex : match?.slot2SourcePoolIndex;
+    const poolPosition =
+      slot === 1
+        ? match?.slot1SourcePoolPosition
+        : match?.slot2SourcePoolPosition;
+    return poolIndex != null && poolPosition != null
+      ? knockoutQualifierLabel(poolIndex, poolPosition)
+      : null;
+  };
   const sideFor = (
+    match: KnockoutViewMatch | undefined,
     round: number,
     position: number,
     slot: 1 | 2,
-    gameTeamId: string | null,
   ): KnockoutViewSide => {
-    const team = teamFor(gameTeamId);
+    const team = teamFor(
+      (slot === 1 ? match?.slot1GameTeamId : match?.slot2GameTeamId) ?? null,
+    );
     if (team) {
       return { kind: "team", team };
+    }
+    const source = sourceOf(match, slot);
+    if (source) {
+      return { kind: "qualifier", label: source };
     }
     const fedBy = knockoutFedBy(round, position, slot);
     if (fedBy && byPlace.has(`${fedBy.round}:${fedBy.position}`)) {
@@ -220,8 +248,8 @@ export function postedKnockoutRounds(args: {
           code,
           startTime: match.startTime,
           courtName: match.courtName,
-          slot1: sideFor(round, position, 1, match.slot1GameTeamId),
-          slot2: sideFor(round, position, 2, match.slot2GameTeamId),
+          slot1: sideFor(match, round, position, 1),
+          slot2: sideFor(match, round, position, 2),
           winner: knockoutWinnerSlot(match),
           needsDecidingSet:
             match.status !== "completed" &&
@@ -234,13 +262,14 @@ export function postedKnockoutRounds(args: {
         continue;
       }
       const fed = knockoutFeeds(round, position);
-      const next = byPlace.get(`${fed.round}:${fed.position}`);
-      const team = teamFor(
-        (fed.slot === 1 ? next?.slot1GameTeamId : next?.slot2GameTeamId) ??
-          null,
+      const side = sideFor(
+        byPlace.get(`${fed.round}:${fed.position}`),
+        fed.round,
+        fed.position,
+        fed.slot,
       );
-      if (team) {
-        places.push({ kind: "bye", position, code, team });
+      if (side.kind === "team" || side.kind === "qualifier") {
+        places.push({ kind: "bye", position, code, side });
       }
     }
     rounds.push({
@@ -276,6 +305,8 @@ export function knockoutSideLabel(side: KnockoutViewSide) {
   switch (side.kind) {
     case "team":
       return side.team.name;
+    case "qualifier":
+      return side.label;
     case "winner_of":
       return side.label;
     case "open":
@@ -311,4 +342,33 @@ export function knockoutRoundDayLine(round: KnockoutViewRound) {
     }
   }
   return earliest ? formatDayMonth(earliest, { weekday: "short" }) : null;
+}
+
+export const KNOCKOUT_NOT_THROUGH_COPY =
+  "Your team did not go through. The tournament is over for your team.";
+
+function placeSides(place: KnockoutViewPlace): KnockoutViewSide[] {
+  return place.kind === "match" ? [place.slot1, place.slot2] : [place.side];
+}
+
+/**
+ * The viewer's Game team finished the Pool stage but was not placed in the
+ * tree, once placement has put anyone in it.
+ */
+export function viewerMissedKnockout(args: {
+  rounds: readonly KnockoutViewRound[] | null;
+  poolStageFinished: boolean;
+  viewerHasTeam: boolean;
+}) {
+  if (!args.rounds || !args.poolStageFinished || !args.viewerHasTeam) {
+    return false;
+  }
+  const teams = args.rounds.flatMap((round) =>
+    round.places.flatMap((place) =>
+      placeSides(place).flatMap((side) =>
+        side.kind === "team" ? [side.team] : [],
+      ),
+    ),
+  );
+  return teams.length > 0 && !teams.some((team) => team.isViewer);
 }

@@ -537,11 +537,17 @@ describe("friendly tournament branch", () => {
     );
   });
 
-  it("offers Groups only first and Knockout only, and no Groups then knockout yet", () => {
+  it("offers Groups only first, then Knockout only and Groups then knockout", () => {
     assert.deepEqual(
       TOURNAMENT_SHAPE_OPTIONS.map((option) => option.id),
-      ["groups_only", "knockout_only"],
+      ["groups_only", "knockout_only", "groups_then_knockout"],
     );
+    assert.equal(TOURNAMENT_SHAPE_OPTIONS[2]?.title, "Groups, then knockout");
+    assert.equal(
+      TOURNAMENT_SHAPE_OPTIONS[2]?.description,
+      "The best in each group carry on",
+    );
+    assert.equal(createFlowStepForField("qualifiersPerPool"), 3);
     assert.equal(DEFAULT_TOURNAMENT_SHAPE, "groups_only");
     assert.equal(
       TOURNAMENT_SHAPE_OPTIONS[1]?.description,
@@ -600,6 +606,32 @@ describe("friendly tournament branch", () => {
         matchMinutes: 45,
         clock,
         knockoutOnly: true,
+      }).overruns,
+      true,
+    );
+    const groupsThenKnockout = friendlyTournamentSchedule({
+      start,
+      finish,
+      roundMatches: [2, 2],
+      courtCount: 2,
+      matchMinutes: 45,
+      clock,
+      knockoutRoundMatches: [1, 1],
+    });
+    assert.equal(
+      groupsThenKnockout.line,
+      "4 group Matches and 2 knockout Matches, last Match finishes at 12:00",
+    );
+    assert.equal(groupsThenKnockout.overruns, false);
+    assert.equal(
+      friendlyTournamentSchedule({
+        start,
+        finish,
+        roundMatches: [2, 2],
+        courtCount: 2,
+        matchMinutes: 45,
+        clock,
+        knockoutRoundMatches: [1, 1, 1],
       }).overruns,
       true,
     );

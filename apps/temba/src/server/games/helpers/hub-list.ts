@@ -13,6 +13,7 @@ import {
   isDrawnTournament,
   isPartnerRequiredGame,
   plannedTournamentRoundCount,
+  postedRoundCount,
 } from "~/lib/tournament-rounds";
 import {
   computePoolTables,
@@ -93,6 +94,7 @@ export const hubListWith = {
       slot1GameTeamId: true,
       slot2GameTeamId: true,
       roundNumber: true,
+      knockoutRound: true,
       courtId: true,
     },
     with: {
@@ -192,6 +194,7 @@ export type HubQueryRow = {
     slot1GameTeamId: string | null;
     slot2GameTeamId: string | null;
     roundNumber: number | null;
+    knockoutRound: number | null;
     courtId: string | null;
     court: { name: string } | null;
     sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
@@ -527,13 +530,7 @@ function sidesFromMatch(
 }
 
 function poolRoundCount(row: HubQueryRow) {
-  let max = 0;
-  for (const match of row.matches) {
-    if (match.roundNumber != null && match.roundNumber > max) {
-      max = match.roundNumber;
-    }
-  }
-  return max > 0 ? max : null;
+  return postedRoundCount(row.matches);
 }
 
 function viewerSitsOnMatch(
@@ -639,7 +636,9 @@ export function expandDrawnTournamentHubRows(
   }
   const mine = row.matches.filter(
     (match) =>
-      isOpenPoolMatch(match) && viewerSitsOnMatch(row, match, viewerUserId),
+      match.knockoutRound == null &&
+      isOpenPoolMatch(match) &&
+      viewerSitsOnMatch(row, match, viewerUserId),
   );
   if (mine.length === 0) {
     return [hubRow];

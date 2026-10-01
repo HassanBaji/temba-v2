@@ -267,18 +267,16 @@ export function scheduleRoundSlots<T>(input: {
   return scheduled;
 }
 
-export function schedulePoolMatches(input: {
+export type PoolRoundPairing = {
+  slot1GameTeamId: string;
+  slot2GameTeamId: string;
+};
+
+export function poolRounds(input: {
   pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
   roundCount: number;
-  courtIds: readonly string[];
-  windowStart: Date;
-  windowEnd: Date;
-  matchMinutes: number | null;
-}): ScheduledPoolMatch[] {
-  const byRound = new Map<
-    number,
-    { slot1GameTeamId: string; slot2GameTeamId: string }[]
-  >();
+}): { roundNumber: number; items: PoolRoundPairing[] }[] {
+  const byRound = new Map<number, PoolRoundPairing[]>();
   const pools = [...input.pools].sort(
     (left, right) => left.poolIndex - right.poolIndex,
   );
@@ -298,12 +296,22 @@ export function schedulePoolMatches(input: {
       byRound.set(pairing.roundNumber, list);
     }
   }
+  return [...byRound.entries()].map(([roundNumber, items]) => ({
+    roundNumber,
+    items,
+  }));
+}
 
+export function schedulePoolMatches(input: {
+  pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
+  roundCount: number;
+  courtIds: readonly string[];
+  windowStart: Date;
+  windowEnd: Date;
+  matchMinutes: number | null;
+}): ScheduledPoolMatch[] {
   return scheduleRoundSlots({
-    rounds: [...byRound.entries()].map(([roundNumber, items]) => ({
-      roundNumber,
-      items,
-    })),
+    rounds: poolRounds(input),
     courtIds: input.courtIds,
     windowStart: input.windowStart,
     windowEnd: input.windowEnd,

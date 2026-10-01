@@ -16,6 +16,7 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { isPoolDrawPosted } from "~/server/games/assert-pool-draw-not-posted";
+import { placeKnockoutQualifiers } from "~/server/games/knockout-advance";
 import { leaveRegisteredSeat } from "~/server/games/leave-registered-seat";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -111,6 +112,9 @@ export async function kick(
       userId,
       "That User is not registered on this Game",
     );
+    if (hasPools(game.format, game.poolCount) && isPoolDrawPosted(game)) {
+      await placeKnockoutQualifiers(tx, game, { knockoutRound: null });
+    }
   });
   return { ok: true as const };
 }

@@ -14,6 +14,7 @@ import {
   advanceKnockoutWinner,
   KNOCKOUT_LEVEL_MESSAGE,
   knockoutMatchIsLevel,
+  placeKnockoutQualifiers,
 } from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
@@ -126,6 +127,7 @@ export async function completeMatch(
 
     await applyRatedMatch(tx, game, locked, outcome.result);
     await advanceKnockoutWinner(tx, locked, outcome.result);
+    await placeKnockoutQualifiers(tx, game, locked);
   });
   return { ok: true as const };
 }

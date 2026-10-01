@@ -357,6 +357,7 @@ function baseTournament(args: {
       id: match.id,
       status: match.status,
       roundNumber: match.roundNumber,
+      knockoutRound: null,
       startTime: match.startTime,
       slot1GameTeamId: match.slot1GameTeamId,
       slot2GameTeamId: match.slot2GameTeamId,

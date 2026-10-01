@@ -88,7 +88,7 @@ function KnockoutPlaceCard({
           </>
         ) : (
           <>
-            <KnockoutSideRow side={{ kind: "team", team: place.team }} />
+            <KnockoutSideRow side={place.side} />
             <div className="text-muted-foreground text-body flex min-h-11 items-center py-2">
               {KNOCKOUT_BYE_LABEL}
             </div>
@@ -131,8 +131,10 @@ export function TournamentKnockoutRound({
 
 export function TournamentKnockoutTree({
   rounds,
+  headingLevel = "h2",
 }: {
   rounds: readonly KnockoutViewRound[];
+  headingLevel?: "h2" | "h3";
 }) {
   return (
     <div className="flex flex-col gap-[26px]">
@@ -140,7 +142,7 @@ export function TournamentKnockoutTree({
         <TournamentKnockoutRound
           key={round.round}
           round={round}
-          headingLevel="h2"
+          headingLevel={headingLevel}
           isFinal={index === rounds.length - 1}
         />
       ))}

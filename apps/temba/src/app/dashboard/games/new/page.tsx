@@ -26,6 +26,7 @@ import {
   DEFAULT_TOURNAMENT_SHAPE,
   createFlowLaterSteps,
   createFlowStepForField,
+  createShapeHasPools,
   createGameFlowHref,
   createVenueCopy,
   earliestCreateDay,
@@ -76,6 +77,8 @@ import { parseOptionalPricePerPlayerCents } from "~/lib/price-per-player";
 import { buildKnockoutTree } from "~/lib/tournament-knockout";
 import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import {
+  clampQualifiersPerPool,
+  DEFAULT_QUALIFIERS_PER_POOL,
   defaultPoolCount,
   poolCountOptions,
   resolveRoundCount,
@@ -130,6 +133,9 @@ function NewGameForm() {
     defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT),
   );
   const [roundCount, setRoundCount] = React.useState<number | null>(null);
+  const [qualifiersPerPool, setQualifiersPerPool] = React.useState(
+    DEFAULT_QUALIFIERS_PER_POOL,
+  );
   const [matchMinutesInput, setMatchMinutesInput] = React.useState(
     String(DEFAULT_MATCH_MINUTES),
   );
@@ -170,6 +176,7 @@ function NewGameForm() {
       setTournamentShape(restored.tournamentShape);
       setPoolCount(restored.poolCount);
       setRoundCount(restored.roundCount);
+      setQualifiersPerPool(restored.qualifiersPerPool);
       setMatchMinutesInput(restored.matchMinutes);
       setName(restored.name);
       setNameTouched(restored.nameTouched);
@@ -247,6 +254,7 @@ function NewGameForm() {
     tournamentShape,
     poolCount,
     roundCount,
+    qualifiersPerPool,
     matchMinutes: matchMinutesInput,
     name,
     nameTouched,
@@ -415,6 +423,7 @@ function NewGameForm() {
     setTournamentShape(DEFAULT_TOURNAMENT_SHAPE);
     setPoolCount(defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT));
     setRoundCount(null);
+    setQualifiersPerPool(DEFAULT_QUALIFIERS_PER_POOL);
     setMatchMinutesInput(String(DEFAULT_MATCH_MINUTES));
     setNameTouched(false);
     setName(friendlyTournamentDefaultName(day));
@@ -426,6 +435,7 @@ function NewGameForm() {
       courtIds: undefined,
       poolCount: undefined,
       roundCount: undefined,
+      qualifiersPerPool: undefined,
       matchMinutes: undefined,
       name: undefined,
     }));
@@ -466,12 +476,25 @@ function NewGameForm() {
     }
   }
 
+  function reclampQualifiersPerPool(nextTeamCount: number, nextPools: number) {
+    const sized = sizeFriendlyTournament(nextTeamCount, nextPools);
+    if (!sized.ok) {
+      return;
+    }
+    setQualifiersPerPool(
+      (current) =>
+        clampQualifiersPerPool(sized.sizing.poolSizes, current) ?? current,
+    );
+    clearField("qualifiersPerPool");
+  }
+
   function onTeamCountChange(nextCount: number) {
     setTeamCount(nextCount);
-    const allowed = poolCountOptions(nextCount);
-    setPoolCount((current) =>
-      allowed.includes(current) ? current : defaultPoolCount(nextCount),
-    );
+    const nextPoolCount = poolCountOptions(nextCount).includes(poolCount)
+      ? poolCount
+      : defaultPoolCount(nextCount);
+    setPoolCount(nextPoolCount);
+    reclampQualifiersPerPool(nextCount, nextPoolCount);
     setRoundCount(null);
     clearField("teamCount");
     clearField("roundCount");
@@ -499,7 +522,7 @@ function NewGameForm() {
       return false;
     }
     if (
-      tournamentShape === "groups_only" &&
+      createShapeHasPools(tournamentShape) &&
       !sizeFriendlyTournament(teamCount, poolCount).ok
     ) {
       setErrors((current) => ({
@@ -640,8 +663,11 @@ function NewGameForm() {
       allowSoloRegister,
       teamCount,
       tournamentShape,
-      ...(tournamentShape === "groups_only"
+      ...(createShapeHasPools(tournamentShape)
         ? { poolCount, ...(roundCount !== null ? { roundCount } : {}) }
+        : {}),
+      ...(tournamentShape === "groups_then_knockout"
+        ? { qualifiersPerPool }
         : {}),
       matchMinutes: minutes.minutes,
       windowStart: when.windowStart,
@@ -1024,6 +1050,7 @@ function NewGameForm() {
                 clearField("tournamentShape");
                 clearField("poolCount");
                 clearField("roundCount");
+                clearField("qualifiersPerPool");
               }}
               poolCount={poolCount}
               poolCountError={
@@ -1031,6 +1058,7 @@ function NewGameForm() {
               }
               onPoolCount={(next) => {
                 setPoolCount(next);
+                reclampQualifiersPerPool(teamCount, next);
                 setRoundCount(null);
                 clearField("poolCount");
                 clearField("roundCount");
@@ -1042,6 +1070,15 @@ function NewGameForm() {
               onRoundCount={(next) => {
                 setRoundCount(next);
                 clearField("roundCount");
+              }}
+              qualifiersPerPool={qualifiersPerPool}
+              qualifiersPerPoolError={
+                errors.qualifiersPerPool ??
+                fieldErrorMessage(formError, "qualifiersPerPool")
+              }
+              onQualifiersPerPool={(next) => {
+                setQualifiersPerPool(next);
+                clearField("qualifiersPerPool");
               }}
               day={day}
               dayError={

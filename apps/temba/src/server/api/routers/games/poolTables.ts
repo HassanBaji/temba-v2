@@ -75,6 +75,7 @@ export async function listPoolTables(
       id: match.id,
       status: match.status,
       roundNumber: match.roundNumber,
+      knockoutRound: match.knockoutRound,
       startTime: match.startTime,
       slot1GameTeamId: match.slot1GameTeamId,
       slot2GameTeamId: match.slot2GameTeamId,

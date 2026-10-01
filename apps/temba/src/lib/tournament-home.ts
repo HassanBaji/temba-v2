@@ -50,6 +50,8 @@ export const STANDINGS_HEADING = "Standings";
 export const TOURNAMENT_ENDS_COPY =
   "Each group has a winner. There is no overall champion.";
 export const KNOCKOUT_ONLY_LEAD = "Lose once and you are done for the day.";
+export const GROUPS_THEN_KNOCKOUT_LEAD =
+  "The best in each group carry on to the knockout.";
 export const POOLS_SEGMENT_LABEL = "groups";
 
 const TEAM_LIST_LEADING_FULL = 4;
@@ -320,7 +322,10 @@ export function tournamentRoundCount(game: {
   tournamentShape: string | null | undefined;
   roundCount: number | null | undefined;
   drawPostedAt: Date | string | null | undefined;
-  matches: readonly { roundNumber: number | null }[];
+  matches: readonly {
+    roundNumber: number | null;
+    knockoutRound: number | null;
+  }[];
 }): number | null {
   if (isTournamentStandingsView(game.drawPostedAt)) {
     return postedRoundCount(game.matches);

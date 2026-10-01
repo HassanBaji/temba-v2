@@ -225,11 +225,20 @@ function isSettledRoundMatch(match: RoundsPlayedMatch) {
   );
 }
 
+/**
+ * Pool Rounds only, so `round_count` keeps meaning Pool Rounds. A Knockout
+ * only tournament has no Pool Matches, so its Rounds are its Knockout rounds.
+ */
 export function postedRoundCount(
-  matches: readonly { roundNumber: number | null }[],
+  matches: readonly {
+    roundNumber: number | null;
+    knockoutRound: number | null;
+  }[],
 ): number | null {
+  const poolMatches = matches.filter((match) => match.knockoutRound == null);
+  const counted = poolMatches.length > 0 ? poolMatches : matches;
   let max = 0;
-  for (const match of matches) {
+  for (const match of counted) {
     if (match.roundNumber != null && match.roundNumber > max) {
       max = match.roundNumber;
     }

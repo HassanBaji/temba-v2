@@ -104,8 +104,34 @@ describe("create game draft", () => {
     );
     assert.equal(
       parseCreateGameDraft(
-        JSON.stringify({ ...stored, tournamentShape: "groups_then_knockout" }),
+        JSON.stringify({ ...stored, tournamentShape: "bracket" }),
       ),
+      null,
+    );
+  });
+
+  it("round-trips Through from each group and reads an older draft as 2", () => {
+    const draft = {
+      ...filledDraft(),
+      tournamentShape: "groups_then_knockout" as const,
+      qualifiersPerPool: 3,
+    };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    assert.equal(initialCreateGameDraft(now).qualifiersPerPool, 2);
+    const stored = JSON.parse(serializeCreateGameDraft(draft)) as Record<
+      string,
+      unknown
+    >;
+    delete stored.qualifiersPerPool;
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify(stored))?.qualifiersPerPool,
+      2,
+    );
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify({ ...stored, qualifiersPerPool: 0 })),
       null,
     );
   });
