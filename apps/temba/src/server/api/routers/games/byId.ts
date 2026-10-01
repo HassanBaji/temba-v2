@@ -56,6 +56,10 @@ import {
 } from "~/server/games/seats";
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
+import {
+  isKnockoutMatch,
+  knockoutMatchIsLevel,
+} from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { computePoolTables } from "~/server/games/pool-table";
 import { setWinsForGames } from "~/server/games/set-wins-for-games";
@@ -618,7 +622,10 @@ export async function gameById(
         const frozen =
           match.status === "completed" || match.status === "cancelled";
         const canWriteSets =
-          !frozen && game.format !== "americano" && (organizer || onSides);
+          !frozen &&
+          game.format !== "americano" &&
+          (organizer || onSides) &&
+          (!isKnockoutMatch(match) || bothSlotsFilled(match));
         const sidesComplete = await bothSlottedTeamsComplete(database, match);
         const outcome = matchOutcome(match.sets);
         return {
@@ -644,7 +651,8 @@ export async function gameById(
             (organizer || onSides) &&
             sidesComplete &&
             match.sets.length > 0 &&
-            outcome.result !== "none",
+            outcome.result !== "none" &&
+            !knockoutMatchIsLevel(match, outcome.result),
           outcome,
           sets: match.sets.map((set) => ({
             id: set.id,
@@ -763,6 +771,8 @@ export async function gameById(
         courtName: match.court?.name ?? null,
         slot1GameTeamId: match.slot1GameTeamId,
         slot2GameTeamId: match.slot2GameTeamId,
+        status: match.status,
+        result: matchOutcome(match.sets).result,
       })),
     }),
   };

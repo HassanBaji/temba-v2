@@ -83,6 +83,8 @@ import { tournamentShowsTakeSeat } from "~/lib/tournament-join";
 import {
   KNOCKOUT_HEADING,
   hasDraftKnockoutDraw,
+  knockoutChampion,
+  knockoutChampionLine,
 } from "~/lib/tournament-knockout-view";
 import {
   canOpenOrganizerDrawDrawer,
@@ -605,6 +607,7 @@ function TournamentStandingsTree({
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
 }) {
+  const champion = knockoutChampion(knockout);
   return (
     <div className="space-y-6">
       <div>
@@ -616,6 +619,7 @@ function TournamentStandingsTree({
           {...(knockoutOnly
             ? { heading: KNOCKOUT_HEADING, lead: KNOCKOUT_ONLY_LEAD }
             : {})}
+          championLine={champion ? knockoutChampionLine(champion) : null}
         />
         {knockoutOnly ? (
           knockout ? (

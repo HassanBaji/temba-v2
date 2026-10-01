@@ -1,5 +1,8 @@
 import {
   KNOCKOUT_BYE_LABEL,
+  KNOCKOUT_CHAMPION_TAG,
+  KNOCKOUT_DECIDING_SET_COPY,
+  KNOCKOUT_WON_TAG,
   knockoutPlaceMetaLine,
   knockoutRoundDayLine,
   knockoutSideLabel,
@@ -10,7 +13,13 @@ import {
 import { YOUR_TEAM_TAG } from "~/lib/tournament-home";
 import { cn } from "~/lib/utils";
 
-function KnockoutSideRow({ side }: { side: KnockoutViewSide }) {
+function KnockoutSideRow({
+  side,
+  resultTag = null,
+}: {
+  side: KnockoutViewSide;
+  resultTag?: string | null;
+}) {
   const isTeam = side.kind === "team";
   const isViewer = side.kind === "team" && side.team.isViewer;
   return (
@@ -29,15 +38,27 @@ function KnockoutSideRow({ side }: { side: KnockoutViewSide }) {
           {YOUR_TEAM_TAG}
         </span>
       ) : null}
+      {resultTag ? (
+        <span className="text-success text-meta shrink-0 font-semibold">
+          {resultTag}
+        </span>
+      ) : null}
     </div>
   );
 }
 
-function KnockoutPlaceCard({ place }: { place: KnockoutViewPlace }) {
+function KnockoutPlaceCard({
+  place,
+  isFinal,
+}: {
+  place: KnockoutViewPlace;
+  isFinal: boolean;
+}) {
   const meta =
     place.kind === "match"
       ? knockoutPlaceMetaLine(place.startTime, place.courtName)
       : null;
+  const winnerTag = isFinal ? KNOCKOUT_CHAMPION_TAG : KNOCKOUT_WON_TAG;
   return (
     <div className="border-rule rounded-card border px-4 pt-3">
       <div className="flex items-baseline justify-between gap-2.5">
@@ -51,8 +72,19 @@ function KnockoutPlaceCard({ place }: { place: KnockoutViewPlace }) {
       <div className="divide-rule divide-y">
         {place.kind === "match" ? (
           <>
-            <KnockoutSideRow side={place.slot1} />
-            <KnockoutSideRow side={place.slot2} />
+            <KnockoutSideRow
+              side={place.slot1}
+              resultTag={place.winner === 1 ? winnerTag : null}
+            />
+            <KnockoutSideRow
+              side={place.slot2}
+              resultTag={place.winner === 2 ? winnerTag : null}
+            />
+            {place.needsDecidingSet ? (
+              <p className="text-muted-foreground text-meta py-2">
+                {KNOCKOUT_DECIDING_SET_COPY}
+              </p>
+            ) : null}
           </>
         ) : (
           <>
@@ -70,9 +102,11 @@ function KnockoutPlaceCard({ place }: { place: KnockoutViewPlace }) {
 export function TournamentKnockoutRound({
   round,
   headingLevel = "h3",
+  isFinal = false,
 }: {
   round: KnockoutViewRound;
   headingLevel?: "h2" | "h3";
+  isFinal?: boolean;
 }) {
   const Heading = headingLevel;
   const day = knockoutRoundDayLine(round);
@@ -87,7 +121,7 @@ export function TournamentKnockoutRound({
       <ul className="flex flex-col gap-2.5">
         {round.places.map((place) => (
           <li key={`${place.kind}-${place.position}`}>
-            <KnockoutPlaceCard place={place} />
+            <KnockoutPlaceCard place={place} isFinal={isFinal} />
           </li>
         ))}
       </ul>
@@ -102,11 +136,12 @@ export function TournamentKnockoutTree({
 }) {
   return (
     <div className="flex flex-col gap-[26px]">
-      {rounds.map((round) => (
+      {rounds.map((round, index) => (
         <TournamentKnockoutRound
           key={round.round}
           round={round}
           headingLevel="h2"
+          isFinal={index === rounds.length - 1}
         />
       ))}
     </div>

@@ -4,6 +4,8 @@ import { describe, it } from "vitest";
 import {
   draftKnockoutFirstRound,
   hasDraftKnockoutDraw,
+  knockoutChampion,
+  knockoutChampionLine,
   knockoutPlaceMetaLine,
   knockoutSideLabel,
   postedKnockoutRounds,
@@ -77,6 +79,8 @@ describe("postedKnockoutRounds", () => {
             courtName: null,
             slot1GameTeamId: "a",
             slot2GameTeamId: "b",
+            status: "pending",
+            result: "none",
           },
         ],
         gameTeams: [team("a", null), team("b", null)],
@@ -97,6 +101,8 @@ describe("postedKnockoutRounds", () => {
           courtName: null,
           slot1GameTeamId: "a",
           slot2GameTeamId: "b",
+          status: "pending",
+          result: "none",
         },
         {
           id: "s2",
@@ -106,6 +112,8 @@ describe("postedKnockoutRounds", () => {
           courtName: null,
           slot1GameTeamId: "c",
           slot2GameTeamId: "d",
+          status: "pending",
+          result: "none",
         },
         {
           id: "f",
@@ -115,6 +123,8 @@ describe("postedKnockoutRounds", () => {
           courtName: null,
           slot1GameTeamId: null,
           slot2GameTeamId: null,
+          status: "pending",
+          result: "none",
         },
       ],
       gameTeams: [team("a", 1), team("b", 2), team("c", 3), team("d", 4)],
@@ -129,6 +139,83 @@ describe("postedKnockoutRounds", () => {
     assert.equal(final.code, "Final");
     assert.equal(knockoutSideLabel(final.slot1), "Winner of S1");
     assert.equal(knockoutSideLabel(final.slot2), "Winner of S2");
+  });
+});
+
+describe("knockout results in the posted tree", () => {
+  const twoRoundMatches = (overrides: {
+    s1: { status: string; result: "slot1" | "slot2" | "draw" | "none" };
+    final: {
+      status: string;
+      result: "slot1" | "slot2" | "draw" | "none";
+      slot1GameTeamId: string | null;
+    };
+  }) => [
+    {
+      id: "s1",
+      knockoutRound: 1,
+      knockoutPosition: 1,
+      startTime: null,
+      courtName: null,
+      slot1GameTeamId: "a",
+      slot2GameTeamId: "b",
+      ...overrides.s1,
+    },
+    {
+      id: "s2",
+      knockoutRound: 1,
+      knockoutPosition: 2,
+      startTime: null,
+      courtName: null,
+      slot1GameTeamId: "c",
+      slot2GameTeamId: "d",
+      status: "completed",
+      result: "slot2" as const,
+    },
+    {
+      id: "f",
+      knockoutRound: 2,
+      knockoutPosition: 1,
+      startTime: null,
+      courtName: null,
+      slot2GameTeamId: "d",
+      ...overrides.final,
+    },
+  ];
+  const gameTeams = [team("a", 1), team("b", 2), team("c", 3), team("d", 4)];
+
+  it("asks for a deciding Set on a level Knockout Match and names no Champion yet", () => {
+    const rounds = postedKnockoutRounds({
+      matches: twoRoundMatches({
+        s1: { status: "pending", result: "draw" },
+        final: { status: "pending", result: "none", slot1GameTeamId: null },
+      }),
+      gameTeams,
+      viewerUserId: "viewer",
+    });
+    const semi = rounds?.[0]?.places[0];
+    assert.equal(semi?.kind === "match" && semi.needsDecidingSet, true);
+    assert.equal(semi?.kind === "match" ? semi.winner : "bye", null);
+    const otherSemi = rounds?.[0]?.places[1];
+    assert.equal(otherSemi?.kind === "match" ? otherSemi.winner : null, 2);
+    assert.equal(knockoutChampion(rounds), null);
+  });
+
+  it("names the winner of a completed Final as Champion", () => {
+    const rounds = postedKnockoutRounds({
+      matches: twoRoundMatches({
+        s1: { status: "completed", result: "slot1" },
+        final: { status: "completed", result: "slot2", slot1GameTeamId: "a" },
+      }),
+      gameTeams,
+      viewerUserId: "viewer",
+    });
+    const champion = knockoutChampion(rounds);
+    assert.equal(champion?.gameTeamId, "d");
+    assert.equal(
+      champion ? knockoutChampionLine(champion) : null,
+      "Champion: d L / d R",
+    );
   });
 });
 

@@ -10,6 +10,11 @@ import { type db } from "~/server/db";
 import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
+import {
+  advanceKnockoutWinner,
+  KNOCKOUT_LEVEL_MESSAGE,
+  knockoutMatchIsLevel,
+} from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
 import { userIsOnMatchSlots } from "~/server/games/user-is-on-match-slots";
@@ -107,6 +112,12 @@ export async function completeMatch(
         message: "Score at least one Set before completing the Match",
       });
     }
+    if (knockoutMatchIsLevel(locked, outcome.result)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: KNOCKOUT_LEVEL_MESSAGE,
+      });
+    }
 
     await tx
       .update(matches)
@@ -114,6 +125,7 @@ export async function completeMatch(
       .where(eq(matches.id, locked.id));
 
     await applyRatedMatch(tx, game, locked, outcome.result);
+    await advanceKnockoutWinner(tx, locked, outcome.result);
   });
   return { ok: true as const };
 }

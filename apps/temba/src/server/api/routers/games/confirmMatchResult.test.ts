@@ -17,6 +17,7 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { addSet } from "~/server/api/routers/games/addSet";
 import { completeMatch } from "~/server/api/routers/games/completeMatch";
 import { confirmMatchResult } from "~/server/api/routers/games/confirmMatchResult";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
@@ -503,6 +504,60 @@ describe("Match result confirmation (ADR-0011)", () => {
         where: eq(ratingEvents.matchId, matchId),
       });
       expect(events).toHaveLength(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it("still completes a drawn Friendly game as a draw, by confirmation and by force-complete", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      for (const path of ["confirmation", "force-complete"] as const) {
+        const { game, matchId, sets, a, b, c, d } =
+          await setUpSeatedFriendlyMatch(db);
+        const firstSet = sets[0];
+        if (!firstSet) {
+          throw new Error("Expected a Set shell");
+        }
+        await scoreSet(db, {
+          gameId: game.id,
+          matchId,
+          setId: firstSet.id,
+          userId: a.id,
+          slot1GamesWon: 6,
+          slot2GamesWon: 4,
+        });
+        const secondSet = await addSet(db, {
+          gameId: game.id,
+          matchId,
+          userId: a.id,
+        });
+        await scoreSet(db, {
+          gameId: game.id,
+          matchId,
+          setId: secondSet.id,
+          userId: a.id,
+          slot1GamesWon: 4,
+          slot2GamesWon: 6,
+        });
+
+        if (path === "confirmation") {
+          for (const userId of [b.id, c.id, d.id]) {
+            await confirmMatchResult(db, { gameId: game.id, matchId, userId });
+          }
+        } else {
+          await completeMatch(db, { gameId: game.id, matchId, userId: a.id });
+        }
+
+        const match = await db.query.matches.findFirst({
+          where: eq(matches.id, matchId),
+        });
+        expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
+        const events = await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, matchId),
+        });
+        expect(events).toHaveLength(4);
+      }
     } finally {
       await close();
     }

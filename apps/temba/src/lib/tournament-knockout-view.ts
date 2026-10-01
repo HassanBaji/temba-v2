@@ -29,6 +29,8 @@ export type KnockoutViewPlace =
       courtName: string | null;
       slot1: KnockoutViewSide;
       slot2: KnockoutViewSide;
+      winner: 1 | 2 | null;
+      needsDecidingSet: boolean;
     }
   | {
       kind: "bye";
@@ -58,9 +60,14 @@ export type KnockoutViewMatch = {
   courtName: string | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
+  status: string | null;
+  result: "slot1" | "slot2" | "draw" | "none";
 };
 
 export const KNOCKOUT_BYE_LABEL = "Bye";
+export const KNOCKOUT_DECIDING_SET_COPY = "Add a deciding Set";
+export const KNOCKOUT_WON_TAG = "won";
+export const KNOCKOUT_CHAMPION_TAG = "Champion";
 
 function gameTeamName(team: KnockoutViewGameTeam) {
   if (team.members.length > 0) {
@@ -128,6 +135,8 @@ export function draftKnockoutFirstRound(args: {
       courtName: null,
       slot1: slot1 ? { kind: "team", team: slot1 } : { kind: "open" },
       slot2: slot2 ? { kind: "team", team: slot2 } : { kind: "open" },
+      winner: null,
+      needsDecidingSet: false,
     });
   }
   return {
@@ -135,6 +144,19 @@ export function draftKnockoutFirstRound(args: {
     name: knockoutRoundName(1, tree.roundCount),
     places,
   };
+}
+
+function knockoutWinnerSlot(match: KnockoutViewMatch): 1 | 2 | null {
+  if (match.status !== "completed") {
+    return null;
+  }
+  if (match.result === "slot1") {
+    return 1;
+  }
+  if (match.result === "slot2") {
+    return 2;
+  }
+  return null;
 }
 
 /** The posted tree, read from its Knockout Matches. Null without any. */
@@ -200,6 +222,11 @@ export function postedKnockoutRounds(args: {
           courtName: match.courtName,
           slot1: sideFor(round, position, 1, match.slot1GameTeamId),
           slot2: sideFor(round, position, 2, match.slot2GameTeamId),
+          winner: knockoutWinnerSlot(match),
+          needsDecidingSet:
+            match.status !== "completed" &&
+            match.status !== "cancelled" &&
+            match.result === "draw",
         });
         continue;
       }
@@ -223,6 +250,23 @@ export function postedKnockoutRounds(args: {
     });
   }
   return rounds;
+}
+
+/** The Game team that won the Final, once it is completed. */
+export function knockoutChampion(
+  rounds: readonly KnockoutViewRound[] | null,
+): KnockoutViewTeam | null {
+  const final = rounds?.at(-1)?.places[0];
+  if (final?.kind !== "match" || final.winner == null) {
+    return null;
+  }
+  const side = final.winner === 1 ? final.slot1 : final.slot2;
+  return side.kind === "team" ? side.team : null;
+}
+
+/** `Champion: Ana / Bea` */
+export function knockoutChampionLine(champion: KnockoutViewTeam) {
+  return `${KNOCKOUT_CHAMPION_TAG}: ${champion.name}`;
 }
 
 export const KNOCKOUT_OPEN_SIDE_LABEL = "To be decided";

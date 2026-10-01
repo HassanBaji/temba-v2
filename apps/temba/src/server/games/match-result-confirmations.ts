@@ -75,6 +75,19 @@ export async function clearMatchResultConfirmationsExceptUser(
     );
 }
 
+/**
+ * Clears every Match result confirmation for a Match — used when a Knockout
+ * Match's Sets become level, which is no result to confirm.
+ */
+export async function clearMatchResultConfirmations(
+  database: DbClient,
+  matchId: string,
+): Promise<void> {
+  await database
+    .delete(matchResultConfirmations)
+    .where(eq(matchResultConfirmations.matchId, matchId));
+}
+
 /** The seated User ids who have confirmed a Match's entered result so far. */
 export async function matchResultConfirmedUserIds(
   database: DbClient,
