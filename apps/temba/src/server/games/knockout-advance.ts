@@ -28,6 +28,9 @@ export const KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE =
   "The Match this result feeds has started, so this result can no longer be reversed";
 export const POOL_CORRECTION_REFUSED_MESSAGE =
   "A Knockout Match has started, so this group result can no longer be reversed";
+export const WALKOVER_TEAM_REQUIRED_MESSAGE = "Choose which team goes through";
+export const WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE =
+  "That team is not on this Match";
 
 export function isKnockoutMatch(match: Pick<MatchRow, "knockoutRound">) {
   return match.knockoutRound != null;
@@ -77,6 +80,25 @@ async function lockFedMatch(database: DbClient, match: MatchRow) {
   return row ? { row, slot: fed.slot } : null;
 }
 
+async function advanceKnockoutGameTeam(
+  database: DbClient,
+  match: MatchRow,
+  gameTeamId: string,
+) {
+  const fed = await lockFedMatch(database, match);
+  if (!fed) {
+    return;
+  }
+  await database
+    .update(matches)
+    .set(
+      fed.slot === 1
+        ? { slot1GameTeamId: gameTeamId, updatedAt: new Date() }
+        : { slot2GameTeamId: gameTeamId, updatedAt: new Date() },
+    )
+    .where(eq(matches.id, fed.row.id));
+}
+
 /**
  * Writes a completed Knockout Match's winner into the slot of the Match it
  * feeds. Runs inside the completion transaction, after the Match row lock,
@@ -92,18 +114,67 @@ export async function advanceKnockoutWinner(
   }
   const winnerGameTeamId =
     result === "slot1" ? match.slot1GameTeamId : match.slot2GameTeamId;
-  const fed = await lockFedMatch(database, match);
-  if (!fed || !winnerGameTeamId) {
+  if (!winnerGameTeamId) {
     return;
   }
+  await advanceKnockoutGameTeam(database, match, winnerGameTeamId);
+}
+
+/**
+ * The Game team a cancelled Knockout Match sends through: the Organizer's
+ * pick when both sides are present, the only side when one is, nobody when
+ * none is.
+ */
+function knockoutWalkoverGameTeamId(
+  match: Pick<MatchRow, "slot1GameTeamId" | "slot2GameTeamId">,
+  advancingGameTeamId: string | undefined,
+) {
+  const present = [match.slot1GameTeamId, match.slot2GameTeamId].filter(
+    (id): id is string => id != null,
+  );
+  if (present.length === 0) {
+    return null;
+  }
+  if (present.length === 2 && !advancingGameTeamId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: WALKOVER_TEAM_REQUIRED_MESSAGE,
+    });
+  }
+  const advancing = advancingGameTeamId ?? present[0];
+  if (!advancing || !present.includes(advancing)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE,
+    });
+  }
+  return advancing;
+}
+
+/**
+ * Cancels a Knockout Match as a Walkover: the awarded Game team goes through
+ * the same way a played winner does. No Sets are read and nothing is rated.
+ */
+export async function awardKnockoutWalkover(
+  database: DbClient,
+  match: MatchRow,
+  advancingGameTeamId: string | undefined,
+) {
+  const walkoverGameTeamId = knockoutWalkoverGameTeamId(
+    match,
+    advancingGameTeamId,
+  );
   await database
     .update(matches)
-    .set(
-      fed.slot === 1
-        ? { slot1GameTeamId: winnerGameTeamId, updatedAt: new Date() }
-        : { slot2GameTeamId: winnerGameTeamId, updatedAt: new Date() },
-    )
-    .where(eq(matches.id, fed.row.id));
+    .set({
+      status: MatchStatusEnum.CANCELLED,
+      walkoverGameTeamId,
+      updatedAt: new Date(),
+    })
+    .where(eq(matches.id, match.id));
+  if (walkoverGameTeamId) {
+    await advanceKnockoutGameTeam(database, match, walkoverGameTeamId);
+  }
 }
 
 /**
@@ -168,9 +239,11 @@ function isSettled(status: string | null) {
  * qualifier into the Knockout slot whose stored source names its Pool place.
  * Pool places are read from the Pool tables in their tie-break order, skipping
  * a Game team that left, so the next team goes through instead; a source with
- * no team stays empty. Fills only empty slots, so a repeat run changes
- * nothing. Runs inside the settling transaction, under the Game row lock, so
- * two last Pool Matches settling together still place once.
+ * no team stays empty. Runs once per settled Pool stage: once any Knockout
+ * slot holds a team nothing is placed, so a repeat run changes nothing and a
+ * slot vacated by a withdrawal stays empty for the Organizer to resolve. Runs
+ * inside the settling transaction, under the Game row lock, so two last Pool
+ * Matches settling together still place once.
  */
 export async function placeKnockoutQualifiers(
   database: DbClient,
@@ -198,7 +271,12 @@ export async function placeKnockoutQualifiers(
   const poolMatches = matchRows.filter((row) => !isKnockoutMatch(row));
   if (
     poolMatches.length === 0 ||
-    !poolMatches.every((row) => isSettled(row.status))
+    !poolMatches.every((row) => isSettled(row.status)) ||
+    matchRows.some(
+      (row) =>
+        isKnockoutMatch(row) &&
+        (row.slot1GameTeamId != null || row.slot2GameTeamId != null),
+    )
   ) {
     return;
   }
@@ -252,7 +330,7 @@ export async function placeKnockoutQualifiers(
 
   const now = new Date();
   for (const row of matchRows) {
-    if (!isKnockoutMatch(row)) {
+    if (!isKnockoutMatch(row) || isSettled(row.status)) {
       continue;
     }
     const slot1 = row.slot1GameTeamId
@@ -278,8 +356,8 @@ export async function placeKnockoutQualifiers(
 /**
  * A wrong-score reversal on a Pool Match: clears every placed qualifier slot
  * so placement runs again once the Pool stage settles again. Refused once any
- * Knockout Match has a Set, so the tree never changes under a Match that has
- * started.
+ * Knockout Match has a Set or a Walkover, so the tree never changes under a
+ * Match that has started or been awarded.
  */
 export async function takeBackKnockoutQualifiers(
   database: DbClient,
@@ -304,7 +382,7 @@ export async function takeBackKnockoutQualifiers(
     ),
     columns: { id: true },
   });
-  if (knockoutSet) {
+  if (knockoutSet || knockoutRows.some((row) => row.walkoverGameTeamId)) {
     throw new TRPCError({
       code: "CONFLICT",
       message: POOL_CORRECTION_REFUSED_MESSAGE,

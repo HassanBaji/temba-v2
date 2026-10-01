@@ -287,6 +287,7 @@ function detailMatches(
       courtName: "Court 1",
       slot1GameTeamId: match.slot1GameTeamId,
       slot2GameTeamId: match.slot2GameTeamId,
+      walkoverGameTeamId: null,
       bothSlotsFilled,
       bothSidesComplete: bothSlotsFilled,
       canAddSet: !frozen,

@@ -116,6 +116,7 @@ function matchFor(args: {
     courtName: "Court 1",
     slot1GameTeamId: "game-team-a",
     slot2GameTeamId: bothSlotsFilled ? "game-team-b" : null,
+    walkoverGameTeamId: null,
     bothSlotsFilled,
     bothSidesComplete: bothSlotsFilled,
     canAddSet: !frozen && bothSlotsFilled,

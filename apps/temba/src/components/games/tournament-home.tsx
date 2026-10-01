@@ -88,6 +88,7 @@ import {
   knockoutChampion,
   knockoutChampionLine,
   viewerMissedKnockout,
+  type KnockoutMatchPlace,
 } from "~/lib/tournament-knockout-view";
 import {
   canOpenOrganizerDrawDrawer,
@@ -152,6 +153,7 @@ export function TournamentHome({
   onDraw,
   onPost,
   onUndo,
+  onCancelKnockoutMatch,
 }: {
   data: GameDetail;
   sharePending: boolean;
@@ -193,6 +195,7 @@ export function TournamentHome({
   onDraw: () => void | Promise<void>;
   onPost: () => void | Promise<void>;
   onUndo: () => void | Promise<void>;
+  onCancelKnockoutMatch?: (place: KnockoutMatchPlace) => void;
 }) {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
@@ -297,6 +300,7 @@ export function TournamentHome({
           undoPending={undoPending}
           undoError={undoError}
           onUndo={onUndo}
+          onCancelMatch={isOrganizerActive ? onCancelKnockoutMatch : undefined}
         />
       ) : (
         <>
@@ -603,6 +607,7 @@ function TournamentStandingsTree({
   undoPending,
   undoError,
   onUndo,
+  onCancelMatch,
 }: {
   name: string;
   roundsPlayed: string | null;
@@ -615,6 +620,7 @@ function TournamentStandingsTree({
   undoPending: boolean;
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
+  onCancelMatch?: (place: KnockoutMatchPlace) => void;
 }) {
   const champion = knockoutChampion(knockout);
   const notThrough =
@@ -642,7 +648,10 @@ function TournamentStandingsTree({
         {knockoutOnly ? (
           knockout ? (
             <div className="pt-[18px]">
-              <TournamentKnockoutTree rounds={knockout} />
+              <TournamentKnockoutTree
+                rounds={knockout}
+                onCancelMatch={onCancelMatch}
+              />
             </div>
           ) : null
         ) : poolTables ? (
@@ -665,7 +674,11 @@ function TournamentStandingsTree({
             </p>
           ) : null}
           <div className="pt-[18px]">
-            <TournamentKnockoutTree rounds={knockout} headingLevel="h3" />
+            <TournamentKnockoutTree
+              rounds={knockout}
+              headingLevel="h3"
+              onCancelMatch={onCancelMatch}
+            />
           </div>
         </section>
       ) : null}

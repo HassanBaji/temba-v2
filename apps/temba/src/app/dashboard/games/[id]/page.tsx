@@ -30,6 +30,7 @@ import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-blo
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHome } from "~/components/games/tournament-home";
+import { TournamentKnockoutCancelDialog } from "~/components/games/tournament-knockout-cancel-dialog";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
@@ -88,6 +89,7 @@ import {
 } from "~/lib/game-home-tab";
 import { gameViewerStatus } from "~/lib/game-summary-cta";
 import { gameDetailsChrome } from "~/lib/tournament-home";
+import { type KnockoutMatchPlace } from "~/lib/tournament-knockout-view";
 import {
   tournamentInviteLandingOpensPartnerSheet,
   tournamentLeaveOrKickConfirmCopy,
@@ -214,6 +216,8 @@ export default function GameHomePage({
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
   const [cancelMatchId, setCancelMatchId] = React.useState<string | null>(null);
+  const [cancelKnockoutPlace, setCancelKnockoutPlace] =
+    React.useState<KnockoutMatchPlace | null>(null);
   const [joinPickerOpen, setJoinPickerOpen] = React.useState(false);
   const [joinPickerSeat, setJoinPickerSeat] =
     React.useState<FriendlyGameJoinSeat | null>(null);
@@ -1136,6 +1140,7 @@ export default function GameHomePage({
               onCancelGame={() => setCancelGameOpen(true)}
               onKick={(userId) => requestKick({ userId })}
               onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
+              onCancelKnockoutMatch={setCancelKnockoutPlace}
             />
           </>
         ) : usesFriendlyChrome ? (
@@ -1683,6 +1688,26 @@ export default function GameHomePage({
           await cancelMatch.mutateAsync({
             gameId: id,
             matchId: cancelMatchId,
+          });
+        }}
+      />
+
+      <TournamentKnockoutCancelDialog
+        place={cancelKnockoutPlace}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCancelKnockoutPlace(null);
+          }
+        }}
+        pending={cancelMatch.isPending}
+        onConfirm={async (advancingGameTeamId) => {
+          if (!cancelKnockoutPlace?.matchId) {
+            return;
+          }
+          await cancelMatch.mutateAsync({
+            gameId: id,
+            matchId: cancelKnockoutPlace.matchId,
+            advancingGameTeamId,
           });
         }}
       />

@@ -13,11 +13,25 @@ import {
   type GameRow,
 } from "~/server/games/access";
 import { cancelGameRecord } from "~/server/games/helpers/cancel-game-record";
-import { placeKnockoutQualifiers } from "~/server/games/knockout-advance";
+import {
+  awardKnockoutWalkover,
+  isKnockoutMatch,
+  placeKnockoutQualifiers,
+} from "~/server/games/knockout-advance";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-async function cancelMatchOnGame(database: Tx, game: GameRow, matchId: string) {
+export const POOL_MATCH_NOT_AWARDED_MESSAGE =
+  "A Pool Match is voided, not awarded, so no team goes through";
+export const KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE =
+  "This Knockout Match is already completed";
+
+async function cancelMatchOnGame(
+  database: Tx,
+  game: GameRow,
+  matchId: string,
+  advancingGameTeamId: string | undefined,
+) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -31,9 +45,11 @@ async function cancelMatchOnGame(database: Tx, game: GameRow, matchId: string) {
     });
   }
 
-  const match = await database.query.matches.findFirst({
-    where: eq(matches.id, matchId),
-  });
+  const [match] = await database
+    .select()
+    .from(matches)
+    .where(eq(matches.id, matchId))
+    .for("update");
   if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
@@ -52,6 +68,23 @@ async function cancelMatchOnGame(database: Tx, game: GameRow, matchId: string) {
     return { cancelledGame: true as const };
   }
 
+  if (isKnockoutMatch(match)) {
+    if (match.status === MatchStatusEnum.COMPLETED) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE,
+      });
+    }
+    await awardKnockoutWalkover(database, match, advancingGameTeamId);
+    return { cancelledGame: false as const };
+  }
+  if (advancingGameTeamId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: POOL_MATCH_NOT_AWARDED_MESSAGE,
+    });
+  }
+
   const now = new Date();
   await database
     .update(matches)
@@ -63,12 +96,17 @@ async function cancelMatchOnGame(database: Tx, game: GameRow, matchId: string) {
 
 export async function cancelMatch(
   database: typeof db,
-  args: { gameId: string; userId: string; matchId: string },
+  args: {
+    gameId: string;
+    userId: string;
+    matchId: string;
+    advancingGameTeamId?: string;
+  },
 ) {
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.userId);
   return database.transaction(async (tx) => {
-    return cancelMatchOnGame(tx, game, args.matchId);
+    return cancelMatchOnGame(tx, game, args.matchId, args.advancingGameTeamId);
   });
 }
 
@@ -77,6 +115,7 @@ export const cancelMatchProcedure = protectedProcedure
     z.object({
       gameId: z.string().uuid(),
       matchId: z.string().uuid(),
+      advancingGameTeamId: z.string().uuid().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -85,5 +124,6 @@ export const cancelMatchProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       matchId: input.matchId,
+      advancingGameTeamId: input.advancingGameTeamId,
     });
   });

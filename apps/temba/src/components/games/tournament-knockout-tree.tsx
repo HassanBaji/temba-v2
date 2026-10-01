@@ -1,11 +1,15 @@
+import { Button } from "~/components/ui/button";
+import { CANCEL_MATCH_ACTION } from "~/lib/game-copy";
 import {
   KNOCKOUT_BYE_LABEL,
   KNOCKOUT_CHAMPION_TAG,
   KNOCKOUT_DECIDING_SET_COPY,
+  KNOCKOUT_WALKOVER_TAG,
   KNOCKOUT_WON_TAG,
   knockoutPlaceMetaLine,
   knockoutRoundDayLine,
   knockoutSideLabel,
+  type KnockoutMatchPlace,
   type KnockoutViewPlace,
   type KnockoutViewRound,
   type KnockoutViewSide,
@@ -16,9 +20,11 @@ import { cn } from "~/lib/utils";
 function KnockoutSideRow({
   side,
   resultTag = null,
+  walkover = false,
 }: {
   side: KnockoutViewSide;
   resultTag?: string | null;
+  walkover?: boolean;
 }) {
   const isTeam = side.kind === "team";
   const isViewer = side.kind === "team" && side.team.isViewer;
@@ -38,6 +44,11 @@ function KnockoutSideRow({
           {YOUR_TEAM_TAG}
         </span>
       ) : null}
+      {walkover ? (
+        <span className="text-muted-foreground text-meta shrink-0 font-semibold">
+          {KNOCKOUT_WALKOVER_TAG}
+        </span>
+      ) : null}
       {resultTag ? (
         <span className="text-success text-meta shrink-0 font-semibold">
           {resultTag}
@@ -50,9 +61,11 @@ function KnockoutSideRow({
 function KnockoutPlaceCard({
   place,
   isFinal,
+  onCancelMatch,
 }: {
   place: KnockoutViewPlace;
   isFinal: boolean;
+  onCancelMatch?: (place: KnockoutMatchPlace) => void;
 }) {
   const meta =
     place.kind === "match"
@@ -74,16 +87,38 @@ function KnockoutPlaceCard({
           <>
             <KnockoutSideRow
               side={place.slot1}
-              resultTag={place.winner === 1 ? winnerTag : null}
+              walkover={place.walkover === 1}
+              resultTag={
+                place.winner === 1 || (isFinal && place.walkover === 1)
+                  ? winnerTag
+                  : null
+              }
             />
             <KnockoutSideRow
               side={place.slot2}
-              resultTag={place.winner === 2 ? winnerTag : null}
+              walkover={place.walkover === 2}
+              resultTag={
+                place.winner === 2 || (isFinal && place.walkover === 2)
+                  ? winnerTag
+                  : null
+              }
             />
             {place.needsDecidingSet ? (
               <p className="text-muted-foreground text-meta py-2">
                 {KNOCKOUT_DECIDING_SET_COPY}
               </p>
+            ) : null}
+            {onCancelMatch && place.matchId && !place.settled ? (
+              <div className="py-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 w-full"
+                  onClick={() => onCancelMatch(place)}
+                >
+                  {CANCEL_MATCH_ACTION}
+                </Button>
+              </div>
             ) : null}
           </>
         ) : (
@@ -103,10 +138,12 @@ export function TournamentKnockoutRound({
   round,
   headingLevel = "h3",
   isFinal = false,
+  onCancelMatch,
 }: {
   round: KnockoutViewRound;
   headingLevel?: "h2" | "h3";
   isFinal?: boolean;
+  onCancelMatch?: (place: KnockoutMatchPlace) => void;
 }) {
   const Heading = headingLevel;
   const day = knockoutRoundDayLine(round);
@@ -121,7 +158,11 @@ export function TournamentKnockoutRound({
       <ul className="flex flex-col gap-2.5">
         {round.places.map((place) => (
           <li key={`${place.kind}-${place.position}`}>
-            <KnockoutPlaceCard place={place} isFinal={isFinal} />
+            <KnockoutPlaceCard
+              place={place}
+              isFinal={isFinal}
+              onCancelMatch={onCancelMatch}
+            />
           </li>
         ))}
       </ul>
@@ -132,9 +173,11 @@ export function TournamentKnockoutRound({
 export function TournamentKnockoutTree({
   rounds,
   headingLevel = "h2",
+  onCancelMatch,
 }: {
   rounds: readonly KnockoutViewRound[];
   headingLevel?: "h2" | "h3";
+  onCancelMatch?: (place: KnockoutMatchPlace) => void;
 }) {
   return (
     <div className="flex flex-col gap-[26px]">
@@ -144,6 +187,7 @@ export function TournamentKnockoutTree({
           round={round}
           headingLevel={headingLevel}
           isFinal={index === rounds.length - 1}
+          onCancelMatch={onCancelMatch}
         />
       ))}
     </div>

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne, or } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -10,7 +10,7 @@ import {
   matches,
 } from "@repo/db";
 
-import { hasPools } from "~/lib/tournament-rounds";
+import { isDrawnTournament } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -51,12 +51,42 @@ async function cancelUnplayedPoolMatchesForGameTeam(
     .where(
       and(
         eq(matches.gameId, args.gameId),
+        isNull(matches.knockoutRound),
         ne(matches.status, MatchStatusEnum.COMPLETED),
         or(
           eq(matches.slot1GameTeamId, args.gameTeamId),
           eq(matches.slot2GameTeamId, args.gameTeamId),
         ),
       ),
+    );
+}
+
+/**
+ * Leaves the Game team's place in each unsettled Knockout Match empty; the
+ * Organizer resolves that Match by cancelling it as a Walkover.
+ */
+async function vacateUnplayedKnockoutSlotsForGameTeam(
+  database: DbClient,
+  args: { gameId: string; gameTeamId: string },
+) {
+  const now = new Date();
+  const unsettledKnockout = and(
+    eq(matches.gameId, args.gameId),
+    isNotNull(matches.knockoutRound),
+    ne(matches.status, MatchStatusEnum.COMPLETED),
+    ne(matches.status, MatchStatusEnum.CANCELLED),
+  );
+  await database
+    .update(matches)
+    .set({ slot1GameTeamId: null, updatedAt: now })
+    .where(
+      and(unsettledKnockout, eq(matches.slot1GameTeamId, args.gameTeamId)),
+    );
+  await database
+    .update(matches)
+    .set({ slot2GameTeamId: null, updatedAt: now })
+    .where(
+      and(unsettledKnockout, eq(matches.slot2GameTeamId, args.gameTeamId)),
     );
 }
 
@@ -96,11 +126,18 @@ export async function kick(
     });
   }
   const userId = args.userId;
+  const removesDrawnTeam =
+    isDrawnTournament(game.format, game.poolCount, game.tournamentShape) &&
+    isPoolDrawPosted(game);
   await database.transaction(async (tx) => {
-    if (hasPools(game.format, game.poolCount) && isPoolDrawPosted(game)) {
+    if (removesDrawnTeam) {
       const gameTeamId = await registeredGameTeamId(tx, game.id, userId);
       if (gameTeamId) {
         await cancelUnplayedPoolMatchesForGameTeam(tx, {
+          gameId: game.id,
+          gameTeamId,
+        });
+        await vacateUnplayedKnockoutSlotsForGameTeam(tx, {
           gameId: game.id,
           gameTeamId,
         });
@@ -112,7 +149,7 @@ export async function kick(
       userId,
       "That User is not registered on this Game",
     );
-    if (hasPools(game.format, game.poolCount) && isPoolDrawPosted(game)) {
+    if (removesDrawnTeam) {
       await placeKnockoutQualifiers(tx, game, { knockoutRound: null });
     }
   });

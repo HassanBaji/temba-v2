@@ -32,6 +32,8 @@ export type KnockoutViewPlace =
       slot1: KnockoutViewSide;
       slot2: KnockoutViewSide;
       winner: 1 | 2 | null;
+      walkover: 1 | 2 | null;
+      settled: boolean;
       needsDecidingSet: boolean;
     }
   | {
@@ -64,6 +66,7 @@ export type KnockoutViewMatch = {
   slot2GameTeamId: string | null;
   status: string | null;
   result: "slot1" | "slot2" | "draw" | "none";
+  walkoverGameTeamId?: string | null;
   slot1SourcePoolIndex?: number | null;
   slot1SourcePoolPosition?: number | null;
   slot2SourcePoolIndex?: number | null;
@@ -73,6 +76,7 @@ export type KnockoutViewMatch = {
 export const KNOCKOUT_BYE_LABEL = "Bye";
 export const KNOCKOUT_DECIDING_SET_COPY = "Add a deciding Set";
 export const KNOCKOUT_WON_TAG = "won";
+export const KNOCKOUT_WALKOVER_TAG = "Walkover";
 export const KNOCKOUT_CHAMPION_TAG = "Champion";
 
 function gameTeamName(team: KnockoutViewGameTeam) {
@@ -147,6 +151,8 @@ export function draftKnockoutFirstRound(args: {
       slot1: slot1 ? { kind: "team", team: slot1 } : { kind: "open" },
       slot2: slot2 ? { kind: "team", team: slot2 } : { kind: "open" },
       winner: null,
+      walkover: null,
+      settled: false,
       needsDecidingSet: false,
     });
   }
@@ -165,6 +171,19 @@ function knockoutWinnerSlot(match: KnockoutViewMatch): 1 | 2 | null {
     return 1;
   }
   if (match.result === "slot2") {
+    return 2;
+  }
+  return null;
+}
+
+function knockoutWalkoverSlot(match: KnockoutViewMatch): 1 | 2 | null {
+  if (match.status !== "cancelled" || !match.walkoverGameTeamId) {
+    return null;
+  }
+  if (match.walkoverGameTeamId === match.slot1GameTeamId) {
+    return 1;
+  }
+  if (match.walkoverGameTeamId === match.slot2GameTeamId) {
     return 2;
   }
   return null;
@@ -251,6 +270,8 @@ export function postedKnockoutRounds(args: {
           slot1: sideFor(match, round, position, 1),
           slot2: sideFor(match, round, position, 2),
           winner: knockoutWinnerSlot(match),
+          walkover: knockoutWalkoverSlot(match),
+          settled: match.status === "completed" || match.status === "cancelled",
           needsDecidingSet:
             match.status !== "completed" &&
             match.status !== "cancelled" &&
@@ -281,16 +302,61 @@ export function postedKnockoutRounds(args: {
   return rounds;
 }
 
-/** The Game team that won the Final, once it is completed. */
+/** The Game team that won the Final, or was awarded it as a Walkover. */
 export function knockoutChampion(
   rounds: readonly KnockoutViewRound[] | null,
 ): KnockoutViewTeam | null {
   const final = rounds?.at(-1)?.places[0];
-  if (final?.kind !== "match" || final.winner == null) {
+  if (final?.kind !== "match") {
     return null;
   }
-  const side = final.winner === 1 ? final.slot1 : final.slot2;
+  const through = final.winner ?? final.walkover;
+  if (through == null) {
+    return null;
+  }
+  const side = through === 1 ? final.slot1 : final.slot2;
   return side.kind === "team" ? side.team : null;
+}
+
+export type KnockoutMatchPlace = Extract<KnockoutViewPlace, { kind: "match" }>;
+
+export type KnockoutCancelPrompt =
+  | { kind: "choose"; teams: readonly [KnockoutViewTeam, KnockoutViewTeam] }
+  | { kind: "through"; team: KnockoutViewTeam }
+  | { kind: "nobody" };
+
+/**
+ * What cancelling a Knockout Match asks: which team goes through when both
+ * sides are present, nothing when one or none is.
+ */
+export function knockoutCancelPrompt(
+  place: Pick<KnockoutMatchPlace, "slot1" | "slot2">,
+): KnockoutCancelPrompt {
+  const teams = [place.slot1, place.slot2].flatMap((side) =>
+    side.kind === "team" ? [side.team] : [],
+  );
+  const [first, second] = teams;
+  if (first && second) {
+    return { kind: "choose", teams: [first, second] };
+  }
+  if (first) {
+    return { kind: "through", team: first };
+  }
+  return { kind: "nobody" };
+}
+
+const WALKOVER_UNRATED_COPY =
+  "The Match is shown as a Walkover and no Rating changes.";
+
+export function knockoutCancelDescription(prompt: KnockoutCancelPrompt) {
+  switch (prompt.kind) {
+    case "choose":
+      return `Choose which team goes through. ${WALKOVER_UNRATED_COPY}`;
+    case "through":
+      return `${prompt.team.name} goes through. ${WALKOVER_UNRATED_COPY}`;
+    case "nobody":
+      return "Nobody goes through. This cannot be undone.";
+  }
 }
 
 /** `Champion: Ana / Bea` */

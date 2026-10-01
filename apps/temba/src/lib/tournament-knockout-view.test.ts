@@ -4,6 +4,8 @@ import { describe, it } from "vitest";
 import {
   draftKnockoutFirstRound,
   hasDraftKnockoutDraw,
+  knockoutCancelDescription,
+  knockoutCancelPrompt,
   knockoutChampion,
   knockoutChampionLine,
   knockoutPlaceMetaLine,
@@ -220,6 +222,158 @@ describe("knockout results in the posted tree", () => {
     assert.equal(
       champion ? knockoutChampionLine(champion) : null,
       "Champion: d L / d R",
+    );
+  });
+});
+
+describe("Walkovers in the posted tree", () => {
+  const gameTeams = [team("a", 1), team("b", 2), team("c", 3), team("d", 4)];
+  const final = (overrides: {
+    slot1GameTeamId: string | null;
+    slot2GameTeamId: string | null;
+    status: string;
+    walkoverGameTeamId: string | null;
+  }) => ({
+    id: "f",
+    knockoutRound: 2,
+    knockoutPosition: 1,
+    startTime: null,
+    courtName: null,
+    result: "none" as const,
+    ...overrides,
+  });
+  const semis = [
+    {
+      id: "s1",
+      knockoutRound: 1,
+      knockoutPosition: 1,
+      startTime: null,
+      courtName: null,
+      slot1GameTeamId: "a",
+      slot2GameTeamId: "b",
+      status: "cancelled",
+      result: "none" as const,
+      walkoverGameTeamId: "b",
+    },
+    {
+      id: "s2",
+      knockoutRound: 1,
+      knockoutPosition: 2,
+      startTime: null,
+      courtName: null,
+      slot1GameTeamId: "c",
+      slot2GameTeamId: "d",
+      status: "completed",
+      result: "slot1" as const,
+    },
+  ];
+
+  it("marks the awarded side as a Walkover, never as a played win", () => {
+    const rounds = postedKnockoutRounds({
+      matches: [
+        ...semis,
+        final({
+          slot1GameTeamId: "b",
+          slot2GameTeamId: "c",
+          status: "pending",
+          walkoverGameTeamId: null,
+        }),
+      ],
+      gameTeams,
+      viewerUserId: "viewer",
+    });
+    const semi = rounds?.[0]?.places[0];
+    assert.equal(semi?.kind, "match");
+    if (semi?.kind !== "match") {
+      return;
+    }
+    assert.equal(semi.walkover, 2);
+    assert.equal(semi.winner, null);
+    assert.equal(semi.settled, true);
+    assert.equal(knockoutChampion(rounds), null);
+  });
+
+  it("names the team awarded the Final as Champion", () => {
+    const rounds = postedKnockoutRounds({
+      matches: [
+        ...semis,
+        final({
+          slot1GameTeamId: "b",
+          slot2GameTeamId: "c",
+          status: "cancelled",
+          walkoverGameTeamId: "c",
+        }),
+      ],
+      gameTeams,
+      viewerUserId: "viewer",
+    });
+    assert.equal(knockoutChampion(rounds)?.gameTeamId, "c");
+  });
+
+  it("names no Champion when the Final was cancelled with nobody through", () => {
+    const rounds = postedKnockoutRounds({
+      matches: [
+        ...semis,
+        final({
+          slot1GameTeamId: null,
+          slot2GameTeamId: null,
+          status: "cancelled",
+          walkoverGameTeamId: null,
+        }),
+      ],
+      gameTeams,
+      viewerUserId: "viewer",
+    });
+    assert.equal(knockoutChampion(rounds), null);
+  });
+});
+
+describe("knockoutCancelPrompt", () => {
+  const side = (gameTeamId: string) => ({
+    kind: "team" as const,
+    team: {
+      gameTeamId,
+      name: `${gameTeamId} L / ${gameTeamId} R`,
+      isViewer: false,
+    },
+  });
+
+  it("asks which team goes through only when both sides are present", () => {
+    const prompt = knockoutCancelPrompt({ slot1: side("a"), slot2: side("b") });
+    assert.equal(prompt.kind, "choose");
+    assert.deepEqual(
+      prompt.kind === "choose"
+        ? prompt.teams.map((team) => team.gameTeamId)
+        : [],
+      ["a", "b"],
+    );
+    assert.equal(
+      knockoutCancelDescription(prompt),
+      "Choose which team goes through. The Match is shown as a Walkover and no Rating changes.",
+    );
+  });
+
+  it("sends the only side through without a question", () => {
+    const prompt = knockoutCancelPrompt({
+      slot1: { kind: "winner_of", label: "Winner of Q1" },
+      slot2: side("b"),
+    });
+    assert.equal(prompt.kind, "through");
+    assert.equal(
+      knockoutCancelDescription(prompt),
+      "b L / b R goes through. The Match is shown as a Walkover and no Rating changes.",
+    );
+  });
+
+  it("sends nobody through with no side present", () => {
+    const prompt = knockoutCancelPrompt({
+      slot1: { kind: "qualifier", label: "A1" },
+      slot2: { kind: "open" },
+    });
+    assert.equal(prompt.kind, "nobody");
+    assert.equal(
+      knockoutCancelDescription(prompt),
+      "Nobody goes through. This cannot be undone.",
     );
   });
 });
