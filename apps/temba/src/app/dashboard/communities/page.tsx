@@ -1,42 +1,147 @@
 "use client";
 
-import { Building2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
-import { ListRow, RowList } from "~/components/common/row-list";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { PageCreateAction } from "~/components/layout/page-create-action";
-import { CommunityTypeBadge } from "~/components/temba/community-type-badge";
-import { GroupTypeBadge } from "~/components/temba/group-type-badge";
-import { RoleBadge } from "~/components/temba/role-badge";
-import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
-import { api } from "~/trpc/react";
+import {
+  clubGroupRowMetaLine,
+  communityListMetaLine,
+} from "~/lib/community-chrome";
+import { api, type RouterOutputs } from "~/trpc/react";
+
+type CommunityRow = RouterOutputs["communities"]["mine"][number];
+type ClubGroupRow = CommunityRow["groups"][number];
+
+const communityCard = "border-rule overflow-hidden rounded-[14px] border";
+const rowLink =
+  "focus-visible:ring-ring/50 hover:bg-muted/50 flex w-full min-w-0 items-center gap-3.5 outline-none focus-visible:ring-[3px] focus-visible:ring-inset";
 
 function CommunitiesListSkeleton() {
   return (
-    <div aria-busy="true" className="space-y-4">
+    <div aria-busy="true" className="flex flex-col gap-[26px]">
       {Array.from({ length: 2 }).map((_, index) => (
-        <div key={index} className="bg-surface-raised space-y-0 rounded-lg p-4">
-          <div className="flex items-center gap-3 pb-3">
+        <div key={index} className={communityCard}>
+          <div className="flex items-center gap-3.5 p-5">
             <Skeleton className="size-10 shrink-0 rounded-lg" />
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-5 w-40 max-w-full" />
-              <Skeleton className="h-3 w-32 max-w-full" />
+              <Skeleton className="h-4 w-48 max-w-full" />
             </div>
           </div>
-          <Skeleton className="h-16 w-full rounded-none" />
-          <Skeleton className="h-16 w-full rounded-none" />
+          {Array.from({ length: 2 }).map((__, rowIndex) => (
+            <div
+              key={rowIndex}
+              className="border-rule flex items-center gap-3.5 border-t px-5 py-[18px]"
+            >
+              <Skeleton className="size-10 shrink-0 rounded-lg" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-36 max-w-full" />
+                <Skeleton className="h-3 w-28 max-w-full" />
+              </div>
+            </div>
+          ))}
         </div>
       ))}
     </div>
+  );
+}
+
+function ClubGroupRowLink({ group }: { group: ClubGroupRow }) {
+  const name = group.name ?? "Untitled Group";
+  return (
+    <li className="border-rule border-t">
+      <Link
+        href={`/dashboard/groups/${group.id}`}
+        className={`${rowLink} px-5 py-[18px]`}
+      >
+        <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="text-body break-words">{name}</p>
+          <p className="text-meta text-muted-foreground">
+            {clubGroupRowMetaLine({
+              type: group.type,
+              memberCount: group.memberCount,
+            })}
+          </p>
+        </div>
+        {group.isMember ? (
+          <span className="text-eyebrow text-muted-foreground shrink-0">
+            Joined
+          </span>
+        ) : null}
+      </Link>
+    </li>
+  );
+}
+
+function CommunityCard({ community }: { community: CommunityRow }) {
+  return (
+    <li className={communityCard}>
+      <Link
+        href={`/dashboard/communities/${community.id}`}
+        className={`${rowLink} p-5`}
+      >
+        <EntityMonogram
+          name={community.name}
+          image={community.logoImageUrl}
+          size="lg"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-[18px] font-semibold leading-6">
+            {community.name}
+          </p>
+          <p className="text-meta text-muted-foreground mt-0.5">
+            {communityListMetaLine({
+              type: community.type,
+              memberCount: community.memberCount,
+              role: community.role,
+            })}
+          </p>
+          {community.archivedAt ? (
+            <Badge variant="outline" className="mt-2">
+              Soft-archived
+            </Badge>
+          ) : null}
+        </div>
+      </Link>
+      <ul>
+        {community.groups.length === 0 ? (
+          <li className="border-rule text-meta text-muted-foreground border-t px-5 py-[18px]">
+            No Groups yet
+          </li>
+        ) : (
+          community.groups.map((group) => (
+            <ClubGroupRowLink key={group.id} group={group} />
+          ))
+        )}
+      </ul>
+    </li>
+  );
+}
+
+function StartACommunityCard() {
+  return (
+    <section className="border-rule rounded-[14px] border p-5">
+      <h2 className="text-body font-semibold">Start a Community</h2>
+      <p className="text-meta text-muted-foreground mt-1.5">
+        Communities organise Club Groups around a Venue.
+      </p>
+      <Button
+        asChild
+        className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
+      >
+        <Link href="/dashboard/communities/new">Create Community</Link>
+      </Button>
+    </section>
   );
 }
 
@@ -74,7 +179,6 @@ export default function CommunitiesPage() {
   return (
     <DashboardShell
       title="Communities"
-      description="Communities you belong to, with every Club Group nested. Open a Community or Group to go to its home."
       action={
         <PageCreateAction
           href="/dashboard/communities/new"
@@ -82,85 +186,29 @@ export default function CommunitiesPage() {
         />
       }
     >
-      {mine.isLoading ? <CommunitiesListSkeleton /> : null}
+      <div className="flex flex-col gap-[26px]">
+        {mine.isLoading ? <CommunitiesListSkeleton /> : null}
 
-      {mine.error ? (
-        <ErrorState
-          title="Communities could not be loaded"
-          message={mine.error.message}
-          onRetry={() => {
-            void mine.refetch();
-          }}
-        />
-      ) : null}
+        {mine.error ? (
+          <ErrorState
+            title="Communities could not be loaded"
+            message={mine.error.message}
+            onRetry={() => {
+              void mine.refetch();
+            }}
+          />
+        ) : null}
 
-      {mine.data?.length === 0 ? (
-        <EmptyState
-          icon={Building2}
-          title="No Communities yet"
-          description="Communities organise Club Groups around a Venue."
-          action={
-            <Button asChild>
-              <Link href="/dashboard/communities/new">Create Community</Link>
-            </Button>
-          }
-        />
-      ) : null}
+        {mine.data && mine.data.length > 0 ? (
+          <ul className="flex flex-col gap-[26px]">
+            {mine.data.map((community) => (
+              <CommunityCard key={community.id} community={community} />
+            ))}
+          </ul>
+        ) : null}
 
-      {mine.data && mine.data.length > 0 ? (
-        <ul className="space-y-4">
-          {mine.data.map((community) => (
-            <li key={community.id}>
-              <Card variant="raised" className="p-0">
-                <Link
-                  href={`/dashboard/communities/${community.id}`}
-                  className="focus-visible:ring-ring/50 flex min-h-16 items-center gap-3 p-4 outline-none focus-visible:ring-[3px]"
-                >
-                  <EntityMonogram name={community.name} size="lg" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-lead truncate font-semibold">
-                      {community.name}
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <CommunityTypeBadge type={community.type} />
-                      <RoleBadge role={community.role} />
-                      {community.archivedAt ? (
-                        <Badge variant="outline">Soft-archived</Badge>
-                      ) : null}
-                    </div>
-                  </div>
-                </Link>
-                <RowList>
-                  {community.groups.length === 0 ? (
-                    <li className="text-muted-foreground text-meta min-h-16 px-4 py-3">
-                      No Groups yet
-                    </li>
-                  ) : (
-                    community.groups.map((group) => (
-                      <ListRow
-                        key={group.id}
-                        asChild
-                        title={group.name ?? "Untitled Group"}
-                        meta={group.isMember ? "Joined" : undefined}
-                        trailing={
-                          <div className="flex flex-wrap items-center gap-2">
-                            <GroupTypeBadge isLoose={false} type={group.type} />
-                            {group.sport ? (
-                              <SportBadge sport={group.sport} />
-                            ) : null}
-                          </div>
-                        }
-                      >
-                        <Link href={`/dashboard/groups/${group.id}`} />
-                      </ListRow>
-                    ))
-                  )}
-                </RowList>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+        {mine.data && !mine.error ? <StartACommunityCard /> : null}
+      </div>
     </DashboardShell>
   );
 }
