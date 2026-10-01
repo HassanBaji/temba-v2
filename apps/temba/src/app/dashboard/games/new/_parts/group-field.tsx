@@ -4,7 +4,7 @@ import { Check, Search } from "lucide-react";
 import * as React from "react";
 
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
-import { ChoiceChip } from "~/app/dashboard/games/new/choice-chip";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";

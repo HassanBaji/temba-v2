@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { ChoiceChip } from "~/app/dashboard/games/new/choice-chip";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Calendar } from "~/components/ui/calendar";
 import { FieldError } from "~/components/ui/field";
 import {

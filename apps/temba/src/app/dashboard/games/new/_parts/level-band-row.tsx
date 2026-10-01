@@ -1,4 +1,4 @@
-import { ChoiceChip } from "~/app/dashboard/games/new/choice-chip";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { isLevelBoundDisabled } from "~/lib/create-game-flow";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "~/lib/level-bands";

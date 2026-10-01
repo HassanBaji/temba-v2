@@ -6,24 +6,19 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldTitle,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -35,6 +30,11 @@ import { api, type RouterInputs } from "~/trpc/react";
 type CommunityType = RouterInputs["communities"]["create"]["type"];
 
 const FIELD_IDS = { name: "community-name", type: "community-type" };
+
+const TYPE_OPTIONS: { value: CommunityType; label: string }[] = [
+  { value: "public", label: "Public" },
+  { value: "private", label: "Private" },
+];
 
 export default function NewCommunityPage() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export default function NewCommunityPage() {
       title="Create Community"
       description="You become the Owner. Groups are optional."
     >
-      <Card variant="outlined" className="w-full">
+      <section className="border-rule rounded-[14px] border p-5">
         <form onSubmit={onSubmit} className="space-y-6">
           <FormErrorSummary
             ref={summaryRef}
@@ -98,22 +98,25 @@ export default function NewCommunityPage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="community-type">Type</FieldLabel>
-              <Select
-                value={type}
-                onValueChange={(value) => setType(value as CommunityType)}
+              <FieldTitle id="community-type-label">Type</FieldTitle>
+              <RovingRadioGroup
+                id="community-type"
+                aria-labelledby="community-type-label"
+                aria-describedby="community-type-description"
+                className="grid grid-cols-2 gap-2"
               >
-                <SelectTrigger id="community-type" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">
-                    Public (ask to join with the link)
-                  </SelectItem>
-                  <SelectItem value="private">Private (invite only)</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldDescription>
+                {TYPE_OPTIONS.map((option) => (
+                  <ChoiceChip
+                    key={option.value}
+                    role="radio"
+                    selected={type === option.value}
+                    onClick={() => setType(option.value)}
+                  >
+                    {option.label}
+                  </ChoiceChip>
+                ))}
+              </RovingRadioGroup>
+              <FieldDescription id="community-type-description">
                 {type === "private"
                   ? "Only people you invite can join."
                   : "People with the Community link ask to join. It isn't listed anywhere yet."}
@@ -121,16 +124,24 @@ export default function NewCommunityPage() {
             </Field>
           </FieldGroup>
 
-          <div className="flex items-center gap-3">
-            <Button type="submit" disabled={createCommunity.isPending}>
+          <div className="flex flex-col gap-3">
+            <Button
+              type="submit"
+              disabled={createCommunity.isPending}
+              className="bg-ink text-paper hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
+            >
               {createCommunity.isPending ? "Creating…" : "Create Community"}
             </Button>
-            <Button variant="outline" asChild>
+            <Button
+              variant="outline"
+              asChild
+              className="h-[46px] w-full rounded-[12px]"
+            >
               <Link href="/dashboard/communities">Cancel</Link>
             </Button>
           </div>
         </form>
-      </Card>
+      </section>
     </DashboardShell>
   );
 }

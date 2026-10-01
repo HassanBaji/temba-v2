@@ -14,7 +14,7 @@ import {
   VenueField,
   type CreateVenue,
 } from "~/app/dashboard/games/new/_parts/venue-field";
-import { ChoiceChip } from "~/app/dashboard/games/new/choice-chip";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import { FieldDescription, FieldError } from "~/components/ui/field";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
