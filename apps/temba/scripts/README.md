@@ -64,3 +64,9 @@ Options:
 Flows without credentials are skipped.
 
 A few flows click through (confirm a result, approve a join request), so re-seed before recording again.
+
+## `pnpm --filter temba record:knockout`
+
+Records the tournament Knockout flows (ADR-0020) to `apps/temba/recordings/knockout/` as H.264 mp4s, with screenshots next to them. Needs `ffmpeg`, the dev server, a fresh `db:seed` and the same `RECORD_USERNAME` / `RECORD_PASSWORD` as `record:flows`. It refuses a non-local `DATABASE_URL`.
+
+Organizer steps are clicked in the UI. A drawn tournament has no score entry yet, so registrations, Set scores and confirmations go through the router functions as the seated players. The caption on each step is tagged `UI`, `API` or `VIEW`. Flows run in order and build on each other (`ko-01` creates the tournament `ko-02` draws); a flow run alone creates what it needs. Re-seed before recording again. `RECORD_ONLY=ko-02,ko-03` records a subset.
