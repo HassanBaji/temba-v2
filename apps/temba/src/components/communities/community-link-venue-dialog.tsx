@@ -1,7 +1,7 @@
 "use client";
 
 import { ErrorState } from "~/components/common/error-state";
-import { ListRow, RowList } from "~/components/common/row-list";
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -75,27 +75,36 @@ export function CommunityLinkVenueDialog({
             </p>
           ) : null}
           {venues && venues.length > 0 ? (
-            <RowList>
+            <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">
               {venues.map((venue) => (
-                <ListRow
+                <li
                   key={venue.id}
-                  stackTrailing
-                  title={venue.name}
-                  meta={`${venue.city}, ${venue.country}`}
-                  trailing={
-                    <Button
-                      aria-label={`Request a link to ${venue.name}`}
-                      disabled={pendingVenueId !== null}
-                      pending={pendingVenueId === venue.id}
-                      pendingLabel="Requesting…"
-                      onClick={() => onRequest(venue.id)}
-                    >
-                      Request link
-                    </Button>
-                  }
-                />
+                  className="flex min-w-0 items-center gap-3.5 px-5 py-[18px]"
+                >
+                  <EntityMonogram name={venue.name} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-body break-words font-semibold">
+                      {venue.name}
+                    </p>
+                    <p className="text-meta text-muted-foreground break-words">
+                      {venue.city}, {venue.country}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-label={`Request a link to ${venue.name}`}
+                    disabled={pendingVenueId !== null}
+                    pending={pendingVenueId === venue.id}
+                    pendingLabel="Requesting…"
+                    onClick={() => onRequest(venue.id)}
+                    className="border-ink h-10 min-h-10 shrink-0 rounded-[10px] font-semibold"
+                  >
+                    Request link
+                  </Button>
+                </li>
               ))}
-            </RowList>
+            </ul>
           ) : null}
         </div>
       </ResponsiveDialogContent>

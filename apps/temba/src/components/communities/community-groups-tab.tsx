@@ -1,71 +1,93 @@
 import { Users } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
-import { ListRow, RowList } from "~/components/common/row-list";
-import { GroupTypeBadge } from "~/components/temba/group-type-badge";
-import { SportBadge } from "~/components/temba/sport-badge";
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Button } from "~/components/ui/button";
-import { Section } from "~/components/layout/section";
+import { clubGroupRowMetaLine } from "~/lib/community-chrome";
 import { type RouterOutputs } from "~/trpc/react";
 
 type ClubGroup = RouterOutputs["communities"]["byId"]["groups"][number];
 
+function ClubGroupRow({ group }: { group: ClubGroup }) {
+  const name = group.name ?? "Untitled Group";
+  return (
+    <li>
+      <Link
+        href={`/dashboard/groups/${group.id}`}
+        className="focus-visible:ring-ring/50 hover:bg-muted/50 flex w-full min-w-0 items-center gap-3.5 px-5 py-[18px] outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
+      >
+        <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-[18px] font-semibold leading-6">
+            {name}
+          </p>
+          <p className="text-meta text-muted-foreground mt-0.5">
+            {clubGroupRowMetaLine({
+              type: group.type,
+              memberCount: group.memberCount,
+            })}
+          </p>
+        </div>
+        {group.isMember ? (
+          <span className="text-eyebrow text-muted-foreground shrink-0">
+            Joined
+          </span>
+        ) : null}
+      </Link>
+    </li>
+  );
+}
+
+function StartAClubGroupCard({ onCreate }: { onCreate: () => void }) {
+  return (
+    <section className="border-rule rounded-[14px] border p-5">
+      <h2 className="text-body font-semibold">Start a Club Group</h2>
+      <p className="text-meta text-muted-foreground mt-1.5">
+        Club Groups stay inside this Community.
+      </p>
+      <Button
+        type="button"
+        className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
+        onClick={onCreate}
+      >
+        Create Club Group
+      </Button>
+    </section>
+  );
+}
+
 export function CommunityGroupsTab({
+  venue,
   groups,
   canCreateClubGroup,
   onCreate,
 }: {
+  venue?: ReactNode;
   groups: ClubGroup[];
   canCreateClubGroup: boolean;
   onCreate: () => void;
 }) {
   return (
-    <Section
-      title="Groups"
-      description="Club Groups stay inside this Community. Public Groups are open to Community members with no extra request."
-      action={
-        canCreateClubGroup ? (
-          <Button type="button" className="min-h-11" onClick={onCreate}>
-            Create Club Group
-          </Button>
-        ) : null
-      }
-    >
+    <div className="flex flex-col gap-[26px]">
+      {venue}
+
       {groups.length === 0 ? (
         <EmptyState
-          headingLevel={3}
           icon={Users}
           title="No Groups yet"
           description="This Community has no Groups yet."
-          action={
-            canCreateClubGroup ? (
-              <Button type="button" className="min-h-11" onClick={onCreate}>
-                Create Club Group
-              </Button>
-            ) : null
-          }
         />
       ) : (
-        <RowList>
+        <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">
           {groups.map((group) => (
-            <ListRow
-              key={group.id}
-              asChild
-              title={group.name ?? "Untitled Group"}
-              meta={group.isMember ? "Joined" : undefined}
-              trailing={
-                <div className="flex flex-wrap items-center gap-2">
-                  <GroupTypeBadge isLoose={false} type={group.type} />
-                  {group.sport ? <SportBadge sport={group.sport} /> : null}
-                </div>
-              }
-            >
-              <Link href={`/dashboard/groups/${group.id}`} />
-            </ListRow>
+            <ClubGroupRow key={group.id} group={group} />
           ))}
-        </RowList>
+        </ul>
       )}
-    </Section>
+
+      {canCreateClubGroup ? <StartAClubGroupCard onCreate={onCreate} /> : null}
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -22,6 +22,7 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asJoinStatus } from "~/server/communities/helpers/as-join-status";
 import { asRole } from "~/server/communities/helpers/as-role";
 import { asVenueLinkStatus } from "~/server/communities/helpers/as-venue-link-status";
+import { groupMemberCounts } from "~/server/communities/helpers/group-member-counts";
 import { requireMembership } from "~/server/communities/helpers/require-membership";
 import { type VenueLinkRequest } from "~/server/communities/utils";
 import { type db } from "~/server/db";
@@ -40,6 +41,15 @@ async function countOwners(database: DbClient, communityId: string) {
   });
 
   return owners.length;
+}
+
+async function countMembers(database: DbClient, communityId: string) {
+  const [row] = await database
+    .select({ memberCount: count() })
+    .from(communityMembers)
+    .where(eq(communityMembers.communityId, communityId));
+
+  return Number(row?.memberCount ?? 0);
 }
 
 async function loadMemberVenue(database: DbClient, venueId: string | null) {
@@ -225,6 +235,12 @@ export async function communityById(
     orderBy: (table, { asc }) => [asc(table.name)],
   });
 
+  const memberCount = await countMembers(database, community.id);
+  const clubGroupMemberCounts = await groupMemberCounts(
+    database,
+    clubGroups.map((group) => group.id),
+  );
+
   const linkedTeamRows = membership
     ? await database.query.teams.findMany({
         where: eq(teams.communityId, community.id),
@@ -281,6 +297,7 @@ export async function communityById(
     type: community.type,
     archivedAt: community.archivedAt,
     createdAt: community.createdAt,
+    memberCount,
     sports: community.sports.map(
       (sportRow) => sportRow.sport as GroupSportEnum,
     ),
@@ -316,6 +333,8 @@ export async function communityById(
       description: group.description,
       type: group.type,
       sport: group.sport as GroupSportEnum | null,
+      imageUrl: group.imageUrl ?? null,
+      memberCount: clubGroupMemberCounts.get(group.id) ?? 0,
       isMember: memberGroupIds.has(group.id),
     })),
     teams: linkedTeamRows.map((team) => ({

@@ -40,7 +40,7 @@ export type GroupCreateValues = {
 /** A Loose Group stands alone; a Club Group is created under a Community. */
 export type GroupCreateContext = "loose" | "club";
 
-const COPY = {
+export const GROUP_CREATE_COPY = {
   loose: {
     publicLabel: "Public (anyone with the link)",
     privateLabel: "Private (invite only)",
@@ -79,7 +79,7 @@ export function GroupCreateForm({
   secondaryAction?: React.ReactNode;
   onSubmit: (values: GroupCreateValues) => void;
 }) {
-  const copy = COPY[context];
+  const copy = GROUP_CREATE_COPY[context];
   const ids = {
     name: `${idPrefix}-name`,
     type: `${idPrefix}-type`,
