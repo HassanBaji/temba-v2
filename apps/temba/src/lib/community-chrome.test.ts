@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   clubGroupRowMetaLine,
+  communityHomeMetaLine,
   communityListMetaLine,
 } from "~/lib/community-chrome";
 
@@ -54,5 +55,62 @@ describe("clubGroupRowMetaLine", () => {
     expect(clubGroupRowMetaLine({ type: null, memberCount: 4 })).toBe(
       "4 members",
     );
+  });
+});
+
+describe("communityHomeMetaLine", () => {
+  it("reads visibility, sport, member count, and the viewer's role", () => {
+    expect(
+      communityHomeMetaLine({
+        type: "public",
+        sports: ["padel"],
+        memberCount: 24,
+        role: "admin",
+      }),
+    ).toBe("Public, Padel, 24 members, Admin");
+  });
+
+  it("joins two sports with and", () => {
+    expect(
+      communityHomeMetaLine({
+        type: "private",
+        sports: ["padel", "football"],
+        memberCount: 1,
+        role: "owner",
+      }),
+    ).toBe("Private, Padel and Football, 1 member, Owner");
+  });
+
+  it("drops the sport part when there are no sports", () => {
+    expect(
+      communityHomeMetaLine({
+        type: "public",
+        sports: [],
+        memberCount: 3,
+        role: "member",
+      }),
+    ).toBe("Public, 3 members, Member");
+  });
+
+  it("omits the role for a non-member", () => {
+    expect(
+      communityHomeMetaLine({
+        type: "public",
+        sports: ["padel"],
+        memberCount: 12,
+        role: null,
+      }),
+    ).toBe("Public, Padel, 12 members");
+  });
+
+  it("drops the member count when it is unknown", () => {
+    expect(
+      communityHomeMetaLine({
+        type: "private",
+        sports: [],
+        memberCount: null,
+        role: null,
+      }),
+    ).toBe("Private");
   });
 });
