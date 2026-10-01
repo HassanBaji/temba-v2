@@ -31,7 +31,11 @@ import {
   showsFriendlyRoster,
   showsGameCardPartnerFooter,
 } from "~/lib/game-summary-cta";
-import { isPoolTournament, poolRoundLabel } from "~/lib/tournament-rounds";
+import {
+  hasPools,
+  isDrawnTournament,
+  poolRoundLabel,
+} from "~/lib/tournament-rounds";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
@@ -137,7 +141,7 @@ function GamesHubTabPanel({
   return (
     <ul className="flex flex-col gap-3">
       {games.map((game) => {
-        if (isPoolTournament(game.format, game.poolCount) && game.matchId) {
+        if (hasPools(game.format, game.poolCount) && game.matchId) {
           return (
             <TournamentMatchCard
               key={game.matchId}
@@ -146,7 +150,9 @@ function GamesHubTabPanel({
             />
           );
         }
-        if (isPoolTournament(game.format, game.poolCount)) {
+        if (
+          isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
+        ) {
           return (
             <TournamentSummaryCard
               key={game.id}

@@ -47,14 +47,7 @@ export async function updateGameMatch(
     return;
   }
 
-  await updateTournamentMatch(database, game, matchId, {
-    startTime: input.startTime ?? null,
-    endTime: input.endTime ?? null,
-    durationInMinutes: input.durationInMinutes ?? null,
-    courtId: input.courtId ?? null,
-    slot1GameTeamId: input.slot1GameTeamId ?? null,
-    slot2GameTeamId: input.slot2GameTeamId ?? null,
-  });
+  await updateTournamentMatch(database, game, matchId, input);
 }
 
 export async function updateMatch(

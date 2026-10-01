@@ -4,7 +4,7 @@ import { describe, it } from "vitest";
 import { halfTeamsFromSides } from "~/lib/tournament-half-teams";
 import { isTournamentStandingsView } from "~/lib/tournament-home";
 import { hasDraftPoolDraw } from "~/lib/tournament-pool-draw";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { hasPools, isDrawnTournament } from "~/lib/tournament-rounds";
 
 import { createTournamentFixtures } from "./tournament";
 
@@ -57,7 +57,15 @@ describe("createTournamentFixtures", () => {
 
   it("stays on Pool tournament chrome for every fixture", () => {
     for (const fixture of Object.values(fixtures)) {
-      assert.equal(isPoolTournament(fixture.format, fixture.poolCount), true);
+      assert.equal(
+        isDrawnTournament(
+          fixture.format,
+          fixture.poolCount,
+          fixture.tournamentShape,
+        ),
+        true,
+      );
+      assert.equal(hasPools(fixture.format, fixture.poolCount), true);
       assert.equal(fixture.poolCount, 3);
     }
   });

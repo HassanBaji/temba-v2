@@ -21,10 +21,15 @@ import { StepperField } from "~/components/games/stepper-field";
 import { FieldDescription, FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
+import { SelectCard } from "~/components/ui/select-card";
 import {
   CREATE_FLOW_MATCH_MINUTE_CHIPS,
   CREATE_FLOW_PRICE_CHIPS,
   FRIENDLY_TOURNAMENT_UNEVEN_GROUPS,
+  KNOCKOUT_ONLY_FORMAT_LABEL,
+  KNOCKOUT_REVIEW_LABEL,
+  TOURNAMENT_FORMAT_LABEL,
+  TOURNAMENT_SHAPE_OPTIONS,
   applyLevelBoundChange,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
@@ -36,6 +41,7 @@ import {
   validateFriendlyGameWhen,
   priceChipIsSelected,
   visibleCreateCourts,
+  type CreateTournamentShape,
 } from "~/lib/create-game-flow";
 import { formatGameClock } from "~/lib/format-game-start";
 import {
@@ -52,6 +58,10 @@ import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
 } from "~/lib/tournament-home";
+import {
+  buildKnockoutTree,
+  knockoutOnlyReviewValue,
+} from "~/lib/tournament-knockout";
 import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import {
   ALONE_OR_WITH_A_PARTNER_LABEL,
@@ -96,6 +106,8 @@ export function FriendlyTournamentSteps({
   teamCount,
   teamCountError,
   onTeamCount,
+  tournamentShape,
+  onTournamentShape,
   poolCount,
   poolCountError,
   onPoolCount,
@@ -154,6 +166,8 @@ export function FriendlyTournamentSteps({
   teamCount: number;
   teamCountError?: string;
   onTeamCount: (teamCount: number) => void;
+  tournamentShape: CreateTournamentShape;
+  onTournamentShape: (tournamentShape: CreateTournamentShape) => void;
   poolCount: number;
   poolCountError?: string;
   onPoolCount: (poolCount: number) => void;
@@ -216,8 +230,12 @@ export function FriendlyTournamentSteps({
   const visibleCourts = courtsExpanded
     ? courts
     : visibleCreateCourts(courts, recentCourtIds, courtIds);
+  const knockoutOnly = tournamentShape === "knockout_only";
+  const knockoutTree = knockoutOnly
+    ? buildKnockoutTree({ entrantCount: teamCount })
+    : null;
   const sized = sizeFriendlyTournament(teamCount, poolCount);
-  const sizing = sized.ok ? sized.sizing : null;
+  const sizing = !knockoutOnly && sized.ok ? sized.sizing : null;
   const resolvedRoundCount = sizing
     ? resolveRoundCount(sizing.poolSizes, roundCount)
     : null;
@@ -231,15 +249,19 @@ export function FriendlyTournamentSteps({
   const parsedMinutes = parseCreateMatchMinutes(matchMinutes);
   const parsedWindow = parseRequiredGameWindow(day, startTime, finishTime);
   const whenOk = validateFriendlyGameWhen(day, startTime, finishTime, now).ok;
+  const roundMatches = knockoutTree
+    ? knockoutTree.matchesPerRound
+    : rounds?.roundMatches;
   const schedule =
-    whenOk && parsedMinutes.ok && parsedWindow && rounds
+    whenOk && parsedMinutes.ok && parsedWindow && roundMatches
       ? friendlyTournamentSchedule({
           start: parsedWindow.windowStart,
           finish: parsedWindow.windowEnd,
-          roundMatches: rounds.roundMatches,
+          roundMatches,
           courtCount: courtIds.length,
           matchMinutes: parsedMinutes.minutes,
           clock: formatGameClock,
+          knockoutOnly,
         })
       : null;
   const selectedCourtNames = courts
@@ -362,34 +384,64 @@ export function FriendlyTournamentSteps({
 
       {step === 3 ? (
         <>
-          <StepperField
-            id="tournament-pool-count"
-            label="Groups"
-            labelClassName={STEPPER_LABEL}
-            value={poolCount}
-            unit={poolCount === 1 ? "group" : "groups"}
-            min={poolMin}
-            max={poolMax}
-            step={1}
-            onChange={onPoolCount}
-            decreaseLabel="Fewer groups"
-            increaseLabel="More groups"
-            error={poolCountError}
-            description={
-              sizing ? (
-                <div className="flex flex-col gap-1">
-                  <p className="text-muted-foreground text-meta">
-                    {friendlyTournamentGroupsLine(sizing)}
-                  </p>
-                  {sizing.uneven ? (
+          <section className="flex flex-col gap-3">
+            <SectionHeading
+              id="tournament-shape-label"
+              title={TOURNAMENT_FORMAT_LABEL}
+            />
+            <RovingRadioGroup
+              id="tournament-shape"
+              aria-labelledby="tournament-shape-label"
+              tabIndex={-1}
+              className="border-rule rounded-card flex flex-col overflow-hidden border outline-none"
+            >
+              {TOURNAMENT_SHAPE_OPTIONS.map((option) => (
+                <SelectCard
+                  key={option.id}
+                  role="radio"
+                  layout="row"
+                  selected={tournamentShape === option.id}
+                  title={option.title}
+                  description={option.description}
+                  trailing="check"
+                  onClick={() => {
+                    onTournamentShape(option.id);
+                  }}
+                />
+              ))}
+            </RovingRadioGroup>
+          </section>
+
+          {knockoutOnly ? null : (
+            <StepperField
+              id="tournament-pool-count"
+              label="Groups"
+              labelClassName={STEPPER_LABEL}
+              value={poolCount}
+              unit={poolCount === 1 ? "group" : "groups"}
+              min={poolMin}
+              max={poolMax}
+              step={1}
+              onChange={onPoolCount}
+              decreaseLabel="Fewer groups"
+              increaseLabel="More groups"
+              error={poolCountError}
+              description={
+                sizing ? (
+                  <div className="flex flex-col gap-1">
                     <p className="text-muted-foreground text-meta">
-                      {FRIENDLY_TOURNAMENT_UNEVEN_GROUPS}
+                      {friendlyTournamentGroupsLine(sizing)}
                     </p>
-                  ) : null}
-                </div>
-              ) : null
-            }
-          />
+                    {sizing.uneven ? (
+                      <p className="text-muted-foreground text-meta">
+                        {FRIENDLY_TOURNAMENT_UNEVEN_GROUPS}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null
+              }
+            />
+          )}
 
           {sizing ? (
             <RoundCountField
@@ -808,13 +860,21 @@ export function FriendlyTournamentSteps({
             <ReviewRow label="Group" value={groupName} />
             <ReviewRow label="Venue" value={selectedVenue?.name ?? "Venue"} />
             <ReviewRow
-              label="Format"
+              label={TOURNAMENT_FORMAT_LABEL}
               value={
-                sizing
-                  ? friendlyTournamentFormatLabel(sizing.poolCount)
-                  : friendlyTournamentFormatLabel(poolCount)
+                knockoutOnly
+                  ? KNOCKOUT_ONLY_FORMAT_LABEL
+                  : sizing
+                    ? friendlyTournamentFormatLabel(sizing.poolCount)
+                    : friendlyTournamentFormatLabel(poolCount)
               }
             />
+            {knockoutTree ? (
+              <ReviewRow
+                label={KNOCKOUT_REVIEW_LABEL}
+                value={knockoutOnlyReviewValue(knockoutTree)}
+              />
+            ) : null}
             {sizing && rounds ? (
               <ReviewRow
                 label={ROUNDS_LABEL}

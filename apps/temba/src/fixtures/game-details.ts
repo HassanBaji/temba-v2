@@ -109,6 +109,8 @@ function matchFor(args: {
     endTime: null,
     durationInMinutes: 90,
     roundNumber: null,
+    knockoutRound: null,
+    knockoutPosition: null,
     status,
     courtId: "court-1",
     courtName: "Court 1",

@@ -132,6 +132,7 @@ function buildRow(args: {
     canWaitlist: args.canWaitlist ?? false,
     sides: [],
     poolCount: POOL_COUNT,
+    tournamentShape: null,
     tournament: {
       roundCount: 3,
       drawPosted,

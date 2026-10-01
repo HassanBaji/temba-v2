@@ -10,7 +10,7 @@ import {
   matches,
 } from "@repo/db";
 
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { hasPools } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -96,10 +96,7 @@ export async function kick(
   }
   const userId = args.userId;
   await database.transaction(async (tx) => {
-    if (
-      isPoolTournament(game.format, game.poolCount) &&
-      isPoolDrawPosted(game)
-    ) {
+    if (hasPools(game.format, game.poolCount) && isPoolDrawPosted(game)) {
       const gameTeamId = await registeredGameTeamId(tx, game.id, userId);
       if (gameTeamId) {
         await cancelUnplayedPoolMatchesForGameTeam(tx, {

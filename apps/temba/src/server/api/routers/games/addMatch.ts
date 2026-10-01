@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { matches } from "@repo/db";
 
+import { hasKnockout } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -16,6 +17,9 @@ import { matchTimes } from "~/server/games/helpers/match-times";
 import { type TournamentMatchInput } from "~/server/games/utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export const KNOCKOUT_MATCH_BY_HAND_MESSAGE =
+  "Knockout Matches come from the draw";
 
 export async function addTournamentMatch(
   database: Tx,
@@ -32,6 +36,12 @@ export async function addTournamentMatch(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Add Matches on a Friendly tournament",
+    });
+  }
+  if (hasKnockout(game.format, game.tournamentShape)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: KNOCKOUT_MATCH_BY_HAND_MESSAGE,
     });
   }
   await applyMatchSides(database, game.id, input);

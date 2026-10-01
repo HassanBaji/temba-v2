@@ -59,17 +59,30 @@ const kim = { name: "Kim H" };
 
 describe("isTournamentJoinSheet", () => {
   it("is the Pool tournament branch, not the two-sided Friendly game picker", () => {
-    assert.equal(isTournamentJoinSheet("friendly_game", null, 2), false);
-    assert.equal(isTournamentJoinSheet("friendly_game", 3, 2), false);
-    assert.equal(isTournamentJoinSheet("friendly_tournament", 3, 12), true);
+    assert.equal(isTournamentJoinSheet("friendly_game", null, null, 2), false);
+    assert.equal(isTournamentJoinSheet("friendly_game", 3, null, 2), false);
+    assert.equal(
+      isTournamentJoinSheet("friendly_tournament", 3, null, 12),
+      true,
+    );
   });
 
   it("does not take a legacy friendly_tournament with no Pool count and two sides", () => {
-    assert.equal(isTournamentJoinSheet("friendly_tournament", null, 2), false);
+    assert.equal(
+      isTournamentJoinSheet("friendly_tournament", null, null, 2),
+      false,
+    );
+    assert.equal(
+      isTournamentJoinSheet("friendly_tournament", null, "knockout_only", 2),
+      true,
+    );
   });
 
   it("keeps the existing many-sides tournament list when poolCount is omitted", () => {
-    assert.equal(isTournamentJoinSheet("friendly_tournament", null, 4), true);
+    assert.equal(
+      isTournamentJoinSheet("friendly_tournament", null, null, 4),
+      true,
+    );
   });
 });
 

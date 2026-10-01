@@ -3,10 +3,10 @@ import { describe, it } from "vitest";
 
 import { showsFriendlyRoster } from "./game-summary-cta";
 import {
-  isPoolTournament,
+  isDrawnTournament,
   poolRoundLabel,
   roundsPlayedLabel,
-  showsPoolTournamentSeats,
+  showsDrawnTournamentSeats,
 } from "./tournament-rounds";
 import { sizeFriendlyTournament } from "./tournament-sizing";
 import {
@@ -58,6 +58,7 @@ import {
   tournamentSizeLine,
   tournamentStartLine,
   tournamentStatusLine,
+  knockoutSizeLine,
   tournamentTeamRows,
   tournamentTeamsCountLine,
   tournamentViewerSide,
@@ -103,13 +104,18 @@ describe("gameDetailsChrome", () => {
 
     for (const [format, poolCount, registrationMode] of cases) {
       const friendly = showsFriendlyRoster(format, registrationMode);
-      const pool = isPoolTournament(format, poolCount);
+      const pool = isDrawnTournament(format, poolCount, null);
       assert.equal(friendly && pool, false);
-      const chrome = gameDetailsChrome(format, poolCount, registrationMode);
+      const chrome = gameDetailsChrome(
+        format,
+        poolCount,
+        null,
+        registrationMode,
+      );
       if (friendly) {
         assert.equal(chrome, "friendly_game");
       } else if (pool) {
-        assert.equal(chrome, "pool_tournament");
+        assert.equal(chrome, "drawn_tournament");
       } else {
         assert.equal(chrome, "tabs");
       }
@@ -118,29 +124,44 @@ describe("gameDetailsChrome", () => {
 
   it("does not take Pool chrome for a legacy tournament with a null poolCount", () => {
     assert.equal(
-      gameDetailsChrome("friendly_tournament", null, "individual"),
+      gameDetailsChrome("friendly_tournament", null, null, "individual"),
       "tabs",
     );
-    assert.equal(isPoolTournament("friendly_tournament", null), false);
+    assert.equal(isDrawnTournament("friendly_tournament", null, null), false);
+  });
+
+  it("takes drawn tournament chrome for a Knockout only tournament with no Pools", () => {
+    assert.equal(
+      gameDetailsChrome(
+        "friendly_tournament",
+        null,
+        "knockout_only",
+        "individual",
+      ),
+      "drawn_tournament",
+    );
   });
 
   it("leaves Americano, team_only, and individual Friendly games off Pool chrome", () => {
-    assert.equal(gameDetailsChrome("americano", 3, "individual"), "tabs");
-    assert.equal(gameDetailsChrome("friendly_game", null, "team_only"), "tabs");
+    assert.equal(gameDetailsChrome("americano", 3, null, "individual"), "tabs");
     assert.equal(
-      gameDetailsChrome("friendly_game", null, "individual"),
+      gameDetailsChrome("friendly_game", null, null, "team_only"),
+      "tabs",
+    );
+    assert.equal(
+      gameDetailsChrome("friendly_game", null, null, "individual"),
       "friendly_game",
     );
   });
 
   it("takes Pool chrome for a friendly_tournament with a Pool count", () => {
     assert.equal(
-      gameDetailsChrome("friendly_tournament", 3, "individual"),
-      "pool_tournament",
+      gameDetailsChrome("friendly_tournament", 3, null, "individual"),
+      "drawn_tournament",
     );
     assert.equal(
-      gameDetailsChrome("friendly_tournament", 3, "team_only"),
-      "pool_tournament",
+      gameDetailsChrome("friendly_tournament", 3, null, "team_only"),
+      "drawn_tournament",
     );
   });
 });
@@ -154,7 +175,7 @@ describe("tournamentHomeJoinKind", () => {
   it("does not offer a seat Join on a Complete Teams tournament", () => {
     assert.equal(tournamentHomeJoinKind("team_only", true), "register_team");
     assert.equal(
-      showsPoolTournamentSeats("friendly_tournament", 1, "team_only"),
+      showsDrawnTournamentSeats("friendly_tournament", 1, null, "team_only"),
       false,
     );
     assert.equal(tournamentHomeJoinKind("team_only", false), null);
@@ -461,6 +482,39 @@ describe("tournamentStatusLine", () => {
     assert.match(line, /random/u);
     assert.equal(/\bPool\b/u.test(line), false);
     assert.equal(/\bGroup\b/u.test(line), false);
+  });
+});
+
+describe("Knockout only copy", () => {
+  it("names the first Knockout round in the size line", () => {
+    assert.equal(
+      knockoutSizeLine(12),
+      "12 Game teams, knockout from the Round of 16",
+    );
+    assert.equal(
+      knockoutSizeLine(8),
+      "8 Game teams, knockout from the Quarter-finals",
+    );
+  });
+
+  it("says who draws the knockout instead of the groups", () => {
+    const unseated = tournamentStatusLine({
+      seated: false,
+      seatsLeft: 5,
+      teamCount: 12,
+      organizerName: "Jonas B",
+      knockoutOnly: true,
+    });
+    assert.match(unseated, /Jonas draws the knockout/u);
+    assert.equal(/groups?/iu.test(unseated), false);
+    const seatedFull = tournamentStatusLine({
+      seated: true,
+      seatsLeft: 0,
+      teamCount: 12,
+      organizerName: "Jonas B",
+      knockoutOnly: true,
+    });
+    assert.equal(/groups?/iu.test(seatedFull), false);
   });
 });
 

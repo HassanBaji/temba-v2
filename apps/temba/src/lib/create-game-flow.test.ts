@@ -36,6 +36,8 @@ import {
   venueMatchesQuery,
   visibleCreateCourts,
   visibleCreateGroups,
+  DEFAULT_TOURNAMENT_SHAPE,
+  TOURNAMENT_SHAPE_OPTIONS,
 } from "./create-game-flow";
 
 const NOW = new Date(2026, 8, 22, 12, 0, 0);
@@ -535,6 +537,19 @@ describe("friendly tournament branch", () => {
     );
   });
 
+  it("offers Groups only first and Knockout only, and no Groups then knockout yet", () => {
+    assert.deepEqual(
+      TOURNAMENT_SHAPE_OPTIONS.map((option) => option.id),
+      ["groups_only", "knockout_only"],
+    );
+    assert.equal(DEFAULT_TOURNAMENT_SHAPE, "groups_only");
+    assert.equal(
+      TOURNAMENT_SHAPE_OPTIONS[1]?.description,
+      "Lose once and you are done for the day",
+    );
+    assert.equal(createFlowStepForField("tournamentShape"), 3);
+  });
+
   it("feeds the schedule line from game length and warns on overrun", () => {
     const start = new Date(2026, 8, 25, 9, 0, 0);
     const finish = new Date(2026, 8, 25, 12, 0, 0);
@@ -562,6 +577,32 @@ describe("friendly tournament branch", () => {
       clock,
     });
     assert.equal(longGame.overruns, true);
+    const knockout = friendlyTournamentSchedule({
+      start,
+      finish,
+      roundMatches: [2, 2, 1],
+      courtCount: 2,
+      matchMinutes: 45,
+      clock,
+      knockoutOnly: true,
+    });
+    assert.equal(
+      knockout.line,
+      "5 knockout Matches, last Match finishes at 11:15",
+    );
+    assert.equal(knockout.overruns, false);
+    assert.equal(
+      friendlyTournamentSchedule({
+        start,
+        finish,
+        roundMatches: [2, 2, 1],
+        courtCount: 1,
+        matchMinutes: 45,
+        clock,
+        knockoutOnly: true,
+      }).overruns,
+      true,
+    );
     assert.equal(
       friendlyTournamentScheduleLine(18, "3:00 PM"),
       "18 group Matches, last Match finishes at 3:00 PM",

@@ -26,6 +26,8 @@ export const matches = pgTable("matches", {
     onDelete: "set null",
   }),
   roundNumber: integer("round_number"),
+  knockoutRound: integer("knockout_round"),
+  knockoutPosition: integer("knockout_position"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

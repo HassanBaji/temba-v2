@@ -1,7 +1,7 @@
 import { MatchStatusEnum } from "@repo/db";
 
 import { poolLabel } from "~/lib/tournament-pool-draw";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { hasPools } from "~/lib/tournament-rounds";
 import { matchOutcome } from "~/server/games/match-outcome";
 
 export type PoolRecordOrderInput = {
@@ -217,7 +217,7 @@ export function computePoolTables(args: {
   matches: readonly PoolTableMatchInput[];
   viewerUserId: string;
 }): ComputedPoolTables | null {
-  if (!isPoolTournament(args.format, args.poolCount)) {
+  if (!hasPools(args.format, args.poolCount)) {
     return null;
   }
 

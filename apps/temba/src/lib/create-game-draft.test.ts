@@ -84,6 +84,32 @@ describe("create game draft", () => {
     );
   });
 
+  it("round-trips the Tournament shape and reads an older draft as Groups only", () => {
+    const draft = {
+      ...filledDraft(),
+      tournamentShape: "knockout_only" as const,
+    };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    assert.equal(initialCreateGameDraft(now).tournamentShape, "groups_only");
+    const stored = JSON.parse(
+      serializeCreateGameDraft(filledDraft()),
+    ) as Record<string, unknown>;
+    delete stored.tournamentShape;
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify(stored))?.tournamentShape,
+      "groups_only",
+    );
+    assert.equal(
+      parseCreateGameDraft(
+        JSON.stringify({ ...stored, tournamentShape: "groups_then_knockout" }),
+      ),
+      null,
+    );
+  });
+
   it("keeps the calendar day across month and year boundaries", () => {
     for (const day of ["2026-12-31", "2027-01-01", "2028-02-29"]) {
       const draft = { ...filledDraft(), day };

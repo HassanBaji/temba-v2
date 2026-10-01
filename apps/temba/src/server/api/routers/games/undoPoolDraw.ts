@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { gameTeams, games, matches } from "@repo/db";
 
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -28,10 +28,7 @@ export async function undoPoolDraw(
       message: "Cannot undo the group draw on a cancelled Game",
     });
   }
-  if (
-    !isPoolTournament(game.format, game.poolCount) ||
-    game.poolCount == null
-  ) {
+  if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Undo the group draw on a Friendly tournament",
@@ -64,7 +61,7 @@ export async function undoPoolDraw(
     await tx.delete(matches).where(eq(matches.gameId, game.id));
     await tx
       .update(gameTeams)
-      .set({ poolIndex: null, updatedAt: now })
+      .set({ poolIndex: null, knockoutSeed: null, updatedAt: now })
       .where(eq(gameTeams.gameId, game.id));
     await tx
       .update(games)

@@ -3,22 +3,89 @@ import {
   fewWeeksRoundStarts,
   isOneDayTournamentWindow,
 } from "~/lib/tournament-schedule";
-import { tournamentMatchMinutes } from "~/lib/tournament-sizing";
+import { buildKnockoutTree } from "~/lib/tournament-knockout";
+import {
+  resolvePlannedRoundCount,
+  tournamentMatchMinutes,
+} from "~/lib/tournament-sizing";
 
-export function isPoolTournament(
+export type TournamentShape =
+  | "groups_only"
+  | "groups_then_knockout"
+  | "knockout_only";
+
+export const KNOCKOUT_ONLY_SHAPE = "knockout_only" satisfies TournamentShape;
+
+/**
+ * A Friendly tournament whose Matches come from the draw, in any Tournament
+ * shape. A legacy hand-built tournament has neither a Pool count nor a shape.
+ */
+export function isDrawnTournament(
   format: string,
   poolCount: number | null | undefined,
+  tournamentShape: string | null | undefined,
 ) {
+  return (
+    format === "friendly_tournament" &&
+    (poolCount != null || tournamentShape != null)
+  );
+}
+
+/** A drawn tournament with a Pool stage: Groups only, or Groups then knockout. */
+export function hasPools(format: string, poolCount: number | null | undefined) {
   return format === "friendly_tournament" && poolCount != null;
 }
 
-export function showsPoolTournamentSeats(
+export function isKnockoutOnly(
+  format: string,
+  tournamentShape: string | null | undefined,
+) {
+  return (
+    format === "friendly_tournament" && tournamentShape === KNOCKOUT_ONLY_SHAPE
+  );
+}
+
+export function hasKnockout(
+  format: string,
+  tournamentShape: string | null | undefined,
+) {
+  return (
+    format === "friendly_tournament" &&
+    (tournamentShape === KNOCKOUT_ONLY_SHAPE ||
+      tournamentShape === "groups_then_knockout")
+  );
+}
+
+/** Pool Rounds then Knockout rounds, before the draw is posted. */
+export function plannedTournamentRoundCount(game: {
+  format: string;
+  teamsAllowed: number | null | undefined;
+  poolCount: number | null | undefined;
+  roundCount: number | null | undefined;
+  tournamentShape: string | null | undefined;
+}): number | null {
+  if (isKnockoutOnly(game.format, game.tournamentShape)) {
+    return game.teamsAllowed == null
+      ? null
+      : (buildKnockoutTree({ entrantCount: game.teamsAllowed })?.roundCount ??
+          null);
+  }
+  return resolvePlannedRoundCount(
+    game.teamsAllowed,
+    game.poolCount,
+    game.roundCount,
+  );
+}
+
+export function showsDrawnTournamentSeats(
   format: string,
   poolCount: number | null | undefined,
+  tournamentShape: string | null | undefined,
   registrationMode: string,
 ) {
   return (
-    isPoolTournament(format, poolCount) && registrationMode === "individual"
+    isDrawnTournament(format, poolCount, tournamentShape) &&
+    registrationMode === "individual"
   );
 }
 
@@ -29,13 +96,15 @@ export const PARTNER_REQUIRED_FULL_MESSAGE = "This tournament is full";
 export function isPartnerRequiredGame(game: {
   format: string;
   poolCount: number | null | undefined;
+  tournamentShape: string | null | undefined;
   registrationMode: string;
   allowSoloRegister: boolean;
 }) {
   return (
-    showsPoolTournamentSeats(
+    showsDrawnTournamentSeats(
       game.format,
       game.poolCount,
+      game.tournamentShape,
       game.registrationMode,
     ) && game.allowSoloRegister === false
   );

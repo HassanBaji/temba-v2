@@ -4,7 +4,11 @@ import {
   gameSummaryPrimaryAction,
   type GameSummaryCtaInput,
 } from "~/lib/game-summary-cta";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import {
+  hasPools,
+  isDrawnTournament,
+  isKnockoutOnly,
+} from "~/lib/tournament-rounds";
 import { isOneDayTournamentWindow } from "~/lib/tournament-schedule";
 import { roundCountLabel } from "~/lib/tournament-sizing";
 
@@ -32,6 +36,7 @@ export type TournamentCardInput = GameSummaryCtaInput & {
   registeredTeamCount: number;
   teamsAllowed: number | null;
   poolCount: number | null;
+  tournamentShape: string | null;
   tournament: {
     drawPosted: boolean;
     teams: readonly TournamentCardTeam[];
@@ -99,6 +104,9 @@ export function tournamentTeamsLine(game: TournamentCardInput) {
   if (tournament?.drawPosted) {
     const drawn = tournament.teams.filter((team) => team.poolIndex != null);
     const teamCount = drawn.length > 0 ? drawn.length : tournament.teams.length;
+    if (isKnockoutOnly(game.format, game.tournamentShape)) {
+      return `${teamCount} ${teamCount === 1 ? "team" : "teams"}, knockout`;
+    }
     const groupCount =
       new Set(drawn.map((team) => team.poolIndex)).size ||
       (game.poolCount ?? 0);
@@ -389,16 +397,20 @@ export function isPoolMatchRow(row: {
   poolCount: number | null;
   matchId: string | null;
 }) {
-  return row.matchId != null && isPoolTournament(row.format, row.poolCount);
+  return row.matchId != null && hasPools(row.format, row.poolCount);
 }
 
 /** Before the draw, or drawn without the viewer on a Pool Match: one row for the whole tournament. */
-export function isPoolTournamentSummaryRow(row: {
+export function isDrawnTournamentSummaryRow(row: {
   format: string;
   poolCount: number | null;
+  tournamentShape: string | null;
   matchId: string | null;
 }) {
-  return row.matchId == null && isPoolTournament(row.format, row.poolCount);
+  return (
+    row.matchId == null &&
+    isDrawnTournament(row.format, row.poolCount, row.tournamentShape)
+  );
 }
 
 /** Without a Home phase (My Games), the card counts down to kickoff. */

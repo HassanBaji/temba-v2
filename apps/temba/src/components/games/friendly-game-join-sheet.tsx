@@ -44,6 +44,7 @@ import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import { tournamentFieldSummary } from "~/lib/tournament-home";
 import {
   isTournamentJoinSheet,
+  LEAVE_SEAT_UNTIL_KNOCKOUT_DRAW_COPY,
   LEAVE_SEAT_UNTIL_POOL_DRAW_COPY,
   TAKE_A_SEAT_TITLE,
   tournamentJoinDetailRows,
@@ -57,10 +58,11 @@ import {
   tournamentPartnerVacantSideRaceMessage,
 } from "~/lib/tournament-join";
 import {
+  isKnockoutOnly,
   isPartnerRequiredGame,
+  plannedTournamentRoundCount,
   tournamentRoundSchedule,
 } from "~/lib/tournament-rounds";
-import { resolvePlannedRoundCount } from "~/lib/tournament-sizing";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -353,8 +355,10 @@ function TournamentTakeASeat({
   onConfirm,
   onJoinWithPartner,
   error,
+  knockoutOnly,
 }: {
   title: string;
+  knockoutOnly: boolean;
   sides: readonly FriendlyGameJoinSheetSide[];
   format: string;
   picked: FriendlyGameJoinSeat | null;
@@ -492,7 +496,9 @@ function TournamentTakeASeat({
           </Button>
         ) : null}
         <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
-          {LEAVE_SEAT_UNTIL_POOL_DRAW_COPY}
+          {knockoutOnly
+            ? LEAVE_SEAT_UNTIL_KNOCKOUT_DRAW_COPY
+            : LEAVE_SEAT_UNTIL_POOL_DRAW_COPY}
         </p>
       </div>
     </div>
@@ -544,6 +550,7 @@ export function FriendlyGameJoinSheet({
   startAtPartner = false,
   initialSeat = null,
   poolCount,
+  tournamentShape,
   teamsAllowed,
   storedRoundCount,
   windowEnd,
@@ -574,6 +581,7 @@ export function FriendlyGameJoinSheet({
   startAtPartner?: boolean;
   initialSeat?: FriendlyGameJoinSeat | null;
   poolCount?: number | null;
+  tournamentShape?: string | null;
   teamsAllowed?: number | null;
   storedRoundCount?: number | null;
   windowEnd?: Date | string | null;
@@ -583,11 +591,13 @@ export function FriendlyGameJoinSheet({
   const isTournamentJoin = isTournamentJoinSheet(
     format,
     poolCount,
+    tournamentShape,
     sides.length,
   );
   const partnerRequired = isPartnerRequiredGame({
     format: format ?? "",
     poolCount,
+    tournamentShape,
     registrationMode: registrationMode ?? "",
     allowSoloRegister,
   });
@@ -671,6 +681,7 @@ export function FriendlyGameJoinSheet({
       const tournamentJoin = isTournamentJoinSheet(
         format,
         poolCount,
+        tournamentShape,
         sides.length,
       );
       const tournamentOpening = tournamentJoin
@@ -816,11 +827,13 @@ export function FriendlyGameJoinSheet({
     step !== "partner" &&
     step !== "partnerConfirm" &&
     !(isTournamentJoin && step === "seat");
-  const roundCount = resolvePlannedRoundCount(
+  const roundCount = plannedTournamentRoundCount({
+    format: format ?? "",
     teamsAllowed,
     poolCount,
-    storedRoundCount,
-  );
+    roundCount: storedRoundCount,
+    tournamentShape,
+  });
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -863,6 +876,7 @@ export function FriendlyGameJoinSheet({
 
         {step === "seat" && isTournamentJoin && !partnerRequired ? (
           <TournamentTakeASeat
+            knockoutOnly={isKnockoutOnly(format ?? "", tournamentShape)}
             title={title}
             sides={sides}
             format={format ?? "friendly_tournament"}

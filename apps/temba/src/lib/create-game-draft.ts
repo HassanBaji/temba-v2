@@ -1,8 +1,11 @@
 import {
   DEFAULT_MATCH_MINUTES,
+  DEFAULT_TOURNAMENT_SHAPE,
   earliestCreateDay,
   friendlyTournamentDefaultName,
+  parseCreateTournamentShape,
   type CreateGameTypeId,
+  type CreateTournamentShape,
 } from "~/lib/create-game-flow";
 import { parseDateInputValue } from "~/lib/game-window";
 import { isAssignableDisplayLevelBand, LEVEL_BANDS } from "~/lib/level-bands";
@@ -28,6 +31,7 @@ export type CreateGameDraft = {
   levelMax: LevelBandSelectValue;
   preferLevelRange: boolean;
   teamCount: number;
+  tournamentShape: CreateTournamentShape;
   poolCount: number;
   roundCount: number | null;
   matchMinutes: string;
@@ -61,6 +65,7 @@ export function initialCreateGameDraft(now: Date): CreateGameDraft {
     levelMax: LEVEL_BAND_SELECT_NONE,
     preferLevelRange: false,
     teamCount: TOURNAMENT_DEFAULT_TEAM_COUNT,
+    tournamentShape: DEFAULT_TOURNAMENT_SHAPE,
     poolCount: defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT),
     roundCount: null,
     matchMinutes: String(DEFAULT_MATCH_MINUTES),
@@ -90,6 +95,7 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     levelMax: draft.levelMax,
     preferLevelRange: draft.preferLevelRange,
     teamCount: draft.teamCount,
+    tournamentShape: draft.tournamentShape,
     poolCount: draft.poolCount,
     roundCount: draft.roundCount,
     matchMinutes: draft.matchMinutes,
@@ -129,6 +135,10 @@ export function parseCreateGameDraft(
     return null;
   }
   const record = value as Record<string, unknown>;
+  const tournamentShape =
+    record.tournamentShape === undefined
+      ? DEFAULT_TOURNAMENT_SHAPE
+      : parseCreateTournamentShape(record.tournamentShape);
   const strings = [
     "groupId",
     "venueId",
@@ -155,6 +165,7 @@ export function parseCreateGameDraft(
     !isLevelBandSelectValue(record.levelMin) ||
     !isLevelBandSelectValue(record.levelMax) ||
     !isCount(record.teamCount) ||
+    tournamentShape == null ||
     !isCount(record.poolCount) ||
     !(record.roundCount === null || isCount(record.roundCount)) ||
     parseDateInputValue(record.day as string) === undefined
@@ -174,6 +185,7 @@ export function parseCreateGameDraft(
     levelMax: record.levelMax,
     preferLevelRange: record.preferLevelRange as boolean,
     teamCount: record.teamCount,
+    tournamentShape,
     poolCount: record.poolCount,
     roundCount: record.roundCount,
     matchMinutes: record.matchMinutes as string,

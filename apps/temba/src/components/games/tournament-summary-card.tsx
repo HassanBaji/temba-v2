@@ -353,6 +353,7 @@ export function TournamentSummaryCard({
           levelMinTenths={game.levelMinTenths}
           levelMaxTenths={game.levelMaxTenths}
           poolCount={game.poolCount}
+          tournamentShape={game.tournamentShape}
           teamsAllowed={game.teamsAllowed}
           storedRoundCount={tournament.roundCount}
           allowSoloRegister={tournament.allowSoloRegister}

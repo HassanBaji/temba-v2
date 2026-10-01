@@ -6,7 +6,7 @@ import { gamePlayers, gameTeamPlayers, gameTeams } from "@repo/db";
 
 import {
   isPartnerRequiredGame,
-  isPoolTournament,
+  isDrawnTournament,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
 } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
@@ -92,7 +92,7 @@ export async function mergeHalfTeams(
       message: "Cannot merge Half teams on a cancelled Game",
     });
   }
-  if (!isPoolTournament(game.format, game.poolCount)) {
+  if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Merge Half teams on a Friendly tournament",

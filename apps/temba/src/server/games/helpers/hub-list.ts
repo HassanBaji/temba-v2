@@ -9,10 +9,11 @@ import {
 } from "@repo/db";
 
 import {
+  hasPools,
+  isDrawnTournament,
   isPartnerRequiredGame,
-  isPoolTournament,
+  plannedTournamentRoundCount,
 } from "~/lib/tournament-rounds";
-import { resolvePlannedRoundCount } from "~/lib/tournament-sizing";
 import {
   computePoolTables,
   type ViewerRoundResult,
@@ -55,6 +56,7 @@ export const hubListColumns = {
   playersAllowed: true,
   teamsAllowed: true,
   poolCount: true,
+  tournamentShape: true,
   roundCount: true,
   allowSoloRegister: true,
   drawPostedAt: true,
@@ -170,6 +172,7 @@ export type HubQueryRow = {
   playersAllowed: number | null;
   teamsAllowed: number | null;
   poolCount: number | null;
+  tournamentShape: string | null;
   roundCount: number | null;
   allowSoloRegister: boolean;
   drawPostedAt: Date | null;
@@ -322,18 +325,14 @@ function tournamentFromRow(
   row: HubQueryRow,
   viewerUserId: string,
 ): HubListTournament | null {
-  if (!isPoolTournament(row.format, row.poolCount)) {
+  if (!isDrawnTournament(row.format, row.poolCount, row.tournamentShape)) {
     return null;
   }
   const drawPosted = row.drawPostedAt != null;
   return {
     roundCount: drawPosted
       ? poolRoundCount(row)
-      : resolvePlannedRoundCount(
-          row.teamsAllowed,
-          row.poolCount,
-          row.roundCount,
-        ),
+      : plannedTournamentRoundCount(row),
     drawPosted,
     allowSoloRegister: row.allowSoloRegister,
     teams: tournamentTeamsFromRow(row, viewerUserId),
@@ -502,6 +501,7 @@ export function toHubListRow(
       !isWaitlisted,
     sides: sidesFromRow(row, viewer.userId),
     poolCount: row.poolCount,
+    tournamentShape: row.tournamentShape,
     tournament: tournamentFromRow(row, viewer.userId),
     matchId: null,
     roundNumber: null,
@@ -634,10 +634,7 @@ export function expandDrawnTournamentHubRows(
   hubRow: HubListRow,
   viewerUserId: string,
 ): HubListRow[] {
-  if (
-    !isPoolTournament(row.format, row.poolCount) ||
-    row.drawPostedAt == null
-  ) {
+  if (!hasPools(row.format, row.poolCount) || row.drawPostedAt == null) {
     return [hubRow];
   }
   const mine = row.matches.filter(

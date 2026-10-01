@@ -17,9 +17,10 @@ import {
 } from "@repo/db";
 
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
+import { postedKnockoutRounds } from "~/lib/tournament-knockout-view";
 import {
   isPartnerRequiredGame,
-  isPoolTournament,
+  isDrawnTournament,
 } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -341,7 +342,8 @@ export async function gameById(
       : [],
   );
   const sides =
-    isIndividualSeatGame(game) || isPoolTournament(game.format, game.poolCount)
+    isIndividualSeatGame(game) ||
+    isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
       ? await listGameSides(database, game)
       : [];
   const canPickSeat =
@@ -563,6 +565,7 @@ export async function gameById(
     playersAllowed: game.playersAllowed,
     teamsAllowed: game.teamsAllowed,
     poolCount: game.poolCount,
+    tournamentShape: game.tournamentShape,
     roundCount: game.roundCount,
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
@@ -624,6 +627,8 @@ export async function gameById(
           endTime: match.endTime,
           durationInMinutes: match.durationInMinutes,
           roundNumber: match.roundNumber,
+          knockoutRound: match.knockoutRound,
+          knockoutPosition: match.knockoutPosition,
           status: match.status,
           courtId: match.courtId,
           courtName: match.court?.name ?? null,
@@ -656,6 +661,7 @@ export async function gameById(
       name: row.name,
       sideIndex: row.sideIndex,
       poolIndex: row.poolIndex,
+      knockoutSeed: row.knockoutSeed,
       members: row.players.flatMap((link) =>
         link.gamePlayer.user
           ? [
@@ -731,6 +737,32 @@ export async function gameById(
           slot1GamesWon: set.slot1GamesWon,
           slot2GamesWon: set.slot2GamesWon,
         })),
+      })),
+    }),
+    knockout: postedKnockoutRounds({
+      viewerUserId: args.userId,
+      gameTeams: teamRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        members: row.players.flatMap((link) =>
+          link.gamePlayer.user
+            ? [
+                {
+                  id: link.gamePlayer.user.id,
+                  name: link.gamePlayer.user.name,
+                },
+              ]
+            : [],
+        ),
+      })),
+      matches: matchRows.map((match) => ({
+        id: match.id,
+        knockoutRound: match.knockoutRound,
+        knockoutPosition: match.knockoutPosition,
+        startTime: match.startTime,
+        courtName: match.court?.name ?? null,
+        slot1GameTeamId: match.slot1GameTeamId,
+        slot2GameTeamId: match.slot2GameTeamId,
       })),
     }),
   };

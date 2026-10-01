@@ -94,8 +94,8 @@ import {
 } from "~/lib/tournament-join";
 import {
   isPartnerRequiredGame,
-  isPoolTournament,
-  showsPoolTournamentSeats,
+  hasPools,
+  showsDrawnTournamentSeats,
 } from "~/lib/tournament-rounds";
 import {
   isOneDayTournamentWindow,
@@ -591,15 +591,21 @@ export default function GameHomePage({
     },
   );
   const chrome = data
-    ? gameDetailsChrome(data.format, data.poolCount, data.registrationMode)
-    : "tabs";
-  const usesFriendlyChrome = chrome === "friendly_game";
-  const usesPoolTournamentChrome = chrome === "pool_tournament";
-  const usesPoolTournamentSeats = Boolean(
-    data &&
-      showsPoolTournamentSeats(
+    ? gameDetailsChrome(
         data.format,
         data.poolCount,
+        data.tournamentShape,
+        data.registrationMode,
+      )
+    : "tabs";
+  const usesFriendlyChrome = chrome === "friendly_game";
+  const usesDrawnTournamentChrome = chrome === "drawn_tournament";
+  const usesDrawnTournamentSeats = Boolean(
+    data &&
+      showsDrawnTournamentSeats(
+        data.format,
+        data.poolCount,
+        data.tournamentShape,
         data.registrationMode,
       ),
   );
@@ -751,7 +757,7 @@ export default function GameHomePage({
     : "Game";
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const plannedSizing =
-    isPoolTournament(data.format, data.poolCount) &&
+    hasPools(data.format, data.poolCount) &&
     data.poolCount != null &&
     !data.drawPostedAt
       ? sizeFriendlyTournament(data.teamsAllowed ?? 0, data.poolCount)
@@ -839,8 +845,8 @@ export default function GameHomePage({
     canLeave: data.canLeave,
     isWaitlisted: data.isWaitlisted,
   });
-  const headerJoin = usesPoolTournamentSeats && data.canRegister;
-  const headerJoinWaitlist = usesPoolTournamentSeats && data.canWaitlist;
+  const headerJoin = usesDrawnTournamentSeats && data.canRegister;
+  const headerJoinWaitlist = usesDrawnTournamentSeats && data.canWaitlist;
   const headerActions =
     usesFriendlyChrome || !(headerJoin || headerJoinWaitlist) ? null : (
       <>
@@ -1022,7 +1028,7 @@ export default function GameHomePage({
     <DashboardShell
       title={shellTitle}
       hidePageHeader
-      hideMobileTopBar={usesPoolTournamentChrome}
+      hideMobileTopBar={usesDrawnTournamentChrome}
       action={mobileOverflow}
       isSubPage={true}
       hideNav={true}
@@ -1034,7 +1040,7 @@ export default function GameHomePage({
             : "space-y-6"
         }
       >
-        {(usesFriendlyChrome || usesPoolTournamentChrome) &&
+        {(usesFriendlyChrome || usesDrawnTournamentChrome) &&
         data.cancelledAt ? (
           <section
             role="status"
@@ -1053,7 +1059,7 @@ export default function GameHomePage({
           </section>
         ) : null}
 
-        {usesPoolTournamentChrome ? (
+        {usesDrawnTournamentChrome ? (
           <>
             {data.joinFrozen && !data.cancelledAt ? (
               <SoftArchiveBanner
@@ -1103,12 +1109,12 @@ export default function GameHomePage({
                 canManageGameInvites ? () => setInvitesOpen(true) : undefined
               }
               onJoin={
-                usesPoolTournamentSeats
+                usesDrawnTournamentSeats
                   ? (seat) => openJoinPicker(seat)
                   : undefined
               }
               onJoinWaitlist={
-                usesPoolTournamentSeats
+                usesDrawnTournamentSeats
                   ? () => registerSeat.mutate({ gameId: id })
                   : undefined
               }
@@ -1214,7 +1220,7 @@ export default function GameHomePage({
           </div>
         ) : null}
 
-        {data.joinFrozen && !data.cancelledAt && !usesPoolTournamentChrome ? (
+        {data.joinFrozen && !data.cancelledAt && !usesDrawnTournamentChrome ? (
           <SoftArchiveBanner
             headingLevel={2}
             heading="This Club Group's Community is Soft-archived"
@@ -1223,7 +1229,7 @@ export default function GameHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        {usesPoolTournamentChrome ? null : usesFriendlyChrome ? (
+        {usesDrawnTournamentChrome ? null : usesFriendlyChrome ? (
           // Hero + Line-up + Score + Rating impact + organiser actions
           // footer scope (game-details redesign,
           // TEM-179/TEM-180/TEM-181/TEM-182/TEM-184): the tab bar and
@@ -1463,7 +1469,7 @@ export default function GameHomePage({
         />
       ) : null}
 
-      {usesFriendlyChrome || usesPoolTournamentSeats ? (
+      {usesFriendlyChrome || usesDrawnTournamentSeats ? (
         <FriendlyGameJoinSheet
           open={joinPickerOpen}
           onOpenChange={(open) => {
@@ -1488,6 +1494,7 @@ export default function GameHomePage({
           levelMaxTenths={data.levelMaxTenths}
           initialSeat={joinPickerSeat}
           poolCount={data.poolCount}
+          tournamentShape={data.tournamentShape}
           teamsAllowed={data.teamsAllowed}
           storedRoundCount={data.roundCount}
           windowEnd={data.windowEnd}

@@ -16,7 +16,7 @@ import {
   showsGameCardPartnerFooter,
 } from "~/lib/game-summary-cta";
 import { cardFrame } from "~/lib/page-layout";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament } from "~/lib/tournament-rounds";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GroupHome = RouterOutputs["groups"]["byId"];
@@ -93,7 +93,13 @@ export function GroupGamesTab({
         ) : (
           <ul className="flex flex-col gap-3">
             {upcomingGames.map((game) => {
-              if (isPoolTournament(game.format, game.poolCount)) {
+              if (
+                isDrawnTournament(
+                  game.format,
+                  game.poolCount,
+                  game.tournamentShape,
+                )
+              ) {
                 return (
                   <TournamentSummaryCard
                     key={game.id}

@@ -184,31 +184,35 @@ export function validateRoundCount(
   };
 }
 
-export function sizeFriendlyTournament(
+export function tournamentTeamCountIssue(
   teamCount: number,
-  poolCount: number,
-): TournamentSizingResult {
+): TournamentSizingIssue | null {
   if (
     !Number.isInteger(teamCount) ||
     teamCount < TOURNAMENT_TEAM_MIN ||
     teamCount > TOURNAMENT_TEAM_MAX
   ) {
     return {
-      ok: false,
-      issue: {
-        path: "teamCount",
-        message: `Game team count must be between ${TOURNAMENT_TEAM_MIN} and ${TOURNAMENT_TEAM_MAX}`,
-      },
+      path: "teamCount",
+      message: `Game team count must be between ${TOURNAMENT_TEAM_MIN} and ${TOURNAMENT_TEAM_MAX}`,
     };
   }
   if (teamCount % TOURNAMENT_TEAM_STEP !== 0) {
     return {
-      ok: false,
-      issue: {
-        path: "teamCount",
-        message: "Game team count must be even",
-      },
+      path: "teamCount",
+      message: "Game team count must be even",
     };
+  }
+  return null;
+}
+
+export function sizeFriendlyTournament(
+  teamCount: number,
+  poolCount: number,
+): TournamentSizingResult {
+  const teamCountIssue = tournamentTeamCountIssue(teamCount);
+  if (teamCountIssue) {
+    return { ok: false, issue: teamCountIssue };
   }
 
   const maxPools = maxPoolCount(teamCount);

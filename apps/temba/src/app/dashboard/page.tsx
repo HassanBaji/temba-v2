@@ -19,7 +19,7 @@ import { homeComingUpRows } from "~/lib/home-coming-up";
 import { homeNextGameSeats } from "~/lib/home-seats";
 import {
   isPoolMatchRow,
-  isPoolTournamentSummaryRow,
+  isDrawnTournamentSummaryRow,
 } from "~/lib/tournament-card";
 import { poolRoundLabel } from "~/lib/tournament-rounds";
 import { api } from "~/trpc/react";
@@ -94,7 +94,7 @@ export default function HomePage() {
                 phase={nextGame.phase}
                 canAddResults={nextGame.canAddResults}
               />
-            ) : nextGame && isPoolTournamentSummaryRow(nextGame) ? (
+            ) : nextGame && isDrawnTournamentSummaryRow(nextGame) ? (
               <HomeTournamentCard game={nextGame} />
             ) : nextGame ? (
               <HomeNextGame

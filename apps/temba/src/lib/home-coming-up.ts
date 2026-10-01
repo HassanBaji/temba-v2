@@ -1,6 +1,6 @@
 import {
   isPoolMatchRow,
-  isPoolTournamentSummaryRow,
+  isDrawnTournamentSummaryRow,
   tournamentCardAction,
   tournamentCardActionLabel,
   tournamentMatchup,
@@ -83,7 +83,7 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
       opponentLine: opponent ? `vs ${opponent}` : null,
     };
   }
-  if (isPoolTournamentSummaryRow(game)) {
+  if (isDrawnTournamentSummaryRow(game)) {
     const action = tournamentCardAction(game);
     return {
       kind: "tournament",

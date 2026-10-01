@@ -164,6 +164,7 @@ function gameTeamsFromSides(
       name: null,
       sideIndex: side.sideIndex,
       poolIndex: poolIndexes ? poolIndexForSide(side.sideIndex) : null,
+      knockoutSeed: null,
       members,
     };
   });
@@ -279,6 +280,8 @@ function detailMatches(
       endTime: null,
       durationInMinutes: 45,
       roundNumber: match.roundNumber,
+      knockoutRound: null,
+      knockoutPosition: null,
       status: match.status,
       courtId: "court-1",
       courtName: "Court 1",
@@ -380,6 +383,7 @@ function baseTournament(args: {
     playersAllowed: TEAM_COUNT * 2,
     teamsAllowed: TEAM_COUNT,
     poolCount: POOL_COUNT,
+    tournamentShape: null,
     roundCount: null,
     matchMinutes: null,
     drawPostedAt: args.drawPostedAt,
@@ -433,6 +437,7 @@ function baseTournament(args: {
     canRequestLevelRange: false,
     pendingLevelRangeRequests: [],
     poolTables,
+    knockout: null,
   };
 }
 

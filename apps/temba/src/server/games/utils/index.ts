@@ -93,6 +93,7 @@ export type HubListRow = {
   canWaitlist: boolean;
   sides: HubListSide[];
   poolCount: number | null;
+  tournamentShape: string | null;
   /** Null unless the Game is a Pool tournament. */
   tournament: HubListTournament | null;
   /** Set when My Games / Home expand a posted Pool Match into its own row. */
