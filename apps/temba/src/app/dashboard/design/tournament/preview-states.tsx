@@ -121,6 +121,18 @@ export function TournamentPreviewStates({
           />
           <CardPreviewColumn title="Full" game={cardFixtures.full} />
           <CardPreviewColumn title="Drawn" game={cardFixtures.drawn} />
+          <CardPreviewColumn
+            title="Drawn, knockout only"
+            game={cardFixtures.drawnKnockoutOnly}
+          />
+          <CardPreviewColumn
+            title="Drawn, groups then knockout"
+            game={cardFixtures.drawnGroupsThenKnockout}
+          />
+          <CardPreviewColumn
+            title="Knockout only, Champion"
+            game={cardFixtures.knockoutChampion}
+          />
         </div>
       </section>
       <section className="space-y-4">
@@ -133,6 +145,14 @@ export function TournamentPreviewStates({
           <MatchCardPreviewColumn
             title="Won R1"
             game={cardFixtures.matchWonRoundOne}
+          />
+          <MatchCardPreviewColumn
+            title="Knockout only, Semi-final"
+            game={cardFixtures.knockoutSemiFinal}
+          />
+          <MatchCardPreviewColumn
+            title="Groups then knockout, Quarter-final"
+            game={cardFixtures.groupsThenKnockoutQuarterFinal}
           />
         </div>
       </section>
@@ -154,6 +174,16 @@ export function TournamentPreviewStates({
             game={cardFixtures.matchNeedsResults}
             phase="needs_results"
             canAddResults
+          />
+          <HomeMatchCardPreviewColumn
+            title="Knockout only, Semi-final"
+            game={cardFixtures.knockoutSemiFinal}
+            phase="upcoming"
+          />
+          <HomeMatchCardPreviewColumn
+            title="Groups then knockout, last group round"
+            game={cardFixtures.groupsThenKnockoutLastPoolRound}
+            phase="upcoming"
           />
         </div>
       </section>

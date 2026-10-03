@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { gameTeams } from "@repo/db";
 
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament, isKnockoutOnly } from "~/lib/tournament-rounds";
 import {
   balancedPoolSizes,
   poolCountForDrawnField,
@@ -86,10 +86,7 @@ export async function drawPools(
       message: "Cannot draw the groups on a cancelled Game",
     });
   }
-  if (
-    !isPoolTournament(game.format, game.poolCount) ||
-    game.poolCount == null
-  ) {
+  if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Draw the groups on a Friendly tournament",
@@ -156,12 +153,40 @@ export async function drawPools(
 
   const shuffle = args.shuffle ?? cryptoShuffle;
   const shuffled = shuffle(complete);
+  const now = new Date();
+
+  if (isKnockoutOnly(game.format, game.tournamentShape)) {
+    await database.transaction(async (tx) => {
+      for (let index = 0; index < shuffled.length; index += 1) {
+        const team = shuffled[index];
+        if (!team) {
+          continue;
+        }
+        await tx
+          .update(gameTeams)
+          .set({ knockoutSeed: index + 1, poolIndex: null, updatedAt: now })
+          .where(eq(gameTeams.id, team.id));
+      }
+    });
+    return {
+      ok: true as const,
+      poolCount: null,
+      pools: [],
+      knockoutOrder: shuffled.map((team) => team.id),
+    };
+  }
+  if (game.poolCount == null) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Draw the groups on a Friendly tournament",
+    });
+  }
+
   const poolCount = poolCountForDrawnField(shuffled.length, game.poolCount);
   const sizes = balancedPoolSizes(shuffled.length, poolCount);
 
   const pools: { poolIndex: number; gameTeamIds: string[] }[] = [];
   let offset = 0;
-  const now = new Date();
   await database.transaction(async (tx) => {
     for (let index = 0; index < sizes.length; index += 1) {
       const size = sizes[index] ?? 0;
@@ -181,7 +206,7 @@ export async function drawPools(
     }
   });
 
-  return { ok: true as const, poolCount, pools };
+  return { ok: true as const, poolCount, pools, knockoutOrder: [] };
 }
 
 export const drawPoolsInputSchema = z.object({

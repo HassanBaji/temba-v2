@@ -316,6 +316,27 @@
       "when": 1790589842512,
       "tag": "0044_game_round_count",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790852296350,
+      "tag": "0045_tournament_knockout",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790855969656,
+      "tag": "0046_knockout_qualifier_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790858128322,
+      "tag": "0047_knockout_walkover",
+      "breakpoints": true
     }
   ]
 }

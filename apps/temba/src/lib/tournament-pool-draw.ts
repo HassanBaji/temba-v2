@@ -1,3 +1,4 @@
+import { poolLetter } from "~/lib/tournament-knockout";
 import { tournamentRoundSummary } from "~/lib/tournament-rounds";
 import { resolveRoundCount } from "~/lib/tournament-sizing";
 
@@ -32,9 +33,23 @@ export const DRAW_EMPTY_DRAFT_COPY =
   "Draw the groups to see which Game teams land in which group.";
 export const POST_POOL_DRAW_FOOTER_COPY =
   "Posting creates every group Match and closes the seats.";
+export const KNOCKOUT_DRAW_RANDOM_COPY =
+  "The draw is random. Nobody is seeded.";
+export const DRAW_KNOCKOUT_ACTION = "Draw the knockout";
+export const POST_KNOCKOUT_DRAW_ACTION = "Post the draw";
+export const DRAW_KNOCKOUT_ENTRY_TITLE = "The knockout draw";
+export const DRAW_KNOCKOUT_ENTRY_DRAFTED_TITLE = "The knockout is drafted";
+export const DRAW_KNOCKOUT_EMPTY_DRAFT_COPY =
+  "Draw the knockout to see who plays whom in the first round.";
+export const POST_KNOCKOUT_DRAW_FOOTER_COPY =
+  "Posting creates every knockout Match and closes the seats.";
+export const UNDO_KNOCKOUT_DRAW_ACTION = "Undo the draw";
+export const UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE = "Undo the draw?";
+export const UNDO_KNOCKOUT_DRAW_CONFIRM_COPY =
+  "Every knockout Match is deleted and the draw is cleared.";
 
 export function poolLabel(poolIndex: number) {
-  return `group ${poolIndex}`;
+  return `group ${poolLetter(poolIndex)}`;
 }
 
 export function hasDraftPoolDraw(
@@ -55,11 +70,17 @@ export function canShowUndoPoolDraw(args: {
   isOrganizer: boolean;
   cancelled: boolean;
   drawPosted: boolean;
+  canUndo: boolean;
 }) {
-  return args.isOrganizer && !args.cancelled && args.drawPosted;
+  return args.isOrganizer && !args.cancelled && args.drawPosted && args.canUndo;
 }
 
-export function drawEntryTitle(hasDraft: boolean) {
+export function drawEntryTitle(hasDraft: boolean, knockoutOnly = false) {
+  if (knockoutOnly) {
+    return hasDraft
+      ? DRAW_KNOCKOUT_ENTRY_DRAFTED_TITLE
+      : DRAW_KNOCKOUT_ENTRY_TITLE;
+  }
   return hasDraft ? DRAW_ENTRY_DRAFTED_TITLE : DRAW_ENTRY_TITLE;
 }
 
@@ -75,6 +96,16 @@ export function drawDrawerLead(teamCount: number | null | undefined) {
   }
   const teamWord = teamCount === 1 ? "Game team" : "Game teams";
   return `${teamCount} ${teamWord}. ${POOL_DRAW_RANDOM_COPY}`;
+}
+
+/** The tree sizes itself to the complete Game teams, not the planned count. */
+export function knockoutDrawDrawerLead(completeTeams: number) {
+  if (completeTeams <= 0) {
+    return KNOCKOUT_DRAW_RANDOM_COPY;
+  }
+  const teamWord =
+    completeTeams === 1 ? "complete Game team goes" : "complete Game teams go";
+  return `${completeTeams} ${teamWord} into the draw. ${KNOCKOUT_DRAW_RANDOM_COPY}`;
 }
 
 export function draftPoolMetaLine(args: {

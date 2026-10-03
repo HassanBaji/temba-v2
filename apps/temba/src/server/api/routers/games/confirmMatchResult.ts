@@ -8,6 +8,10 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
+import {
+  KNOCKOUT_LEVEL_MESSAGE,
+  knockoutMatchIsLevel,
+} from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import {
   matchResultFullyConfirmed,
@@ -63,6 +67,12 @@ export async function confirmMatchResult(
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "This Match has no result yet to confirm",
+    });
+  }
+  if (knockoutMatchIsLevel(match, outcome.result)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: KNOCKOUT_LEVEL_MESSAGE,
     });
   }
 

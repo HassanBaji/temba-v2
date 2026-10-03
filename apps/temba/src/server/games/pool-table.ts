@@ -1,7 +1,8 @@
 import { MatchStatusEnum } from "@repo/db";
 
+import { scoredSetLabel } from "~/lib/tournament-knockout";
 import { poolLabel } from "~/lib/tournament-pool-draw";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { hasPools } from "~/lib/tournament-rounds";
 import { matchOutcome } from "~/server/games/match-outcome";
 
 export type PoolRecordOrderInput = {
@@ -66,6 +67,7 @@ export type PoolTableMatchInput = {
   id: string;
   status: string | null;
   roundNumber: number | null;
+  knockoutRound: number | null;
   startTime: Date | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
@@ -150,17 +152,6 @@ function poolOrderOf(team: PoolTableTeamInput) {
   return team.sideIndex ?? Number.MAX_SAFE_INTEGER;
 }
 
-function scoredSetLabel(sets: readonly PoolTableSetScore[]) {
-  const parts: string[] = [];
-  for (const set of sets) {
-    if (set.slot1GamesWon == null || set.slot2GamesWon == null) {
-      continue;
-    }
-    parts.push(`${set.slot1GamesWon}-${set.slot2GamesWon}`);
-  }
-  return parts.length > 0 ? parts.join(" ") : null;
-}
-
 function gamesDifferenceForSlot(
   sets: PoolTableMatchInput["sets"],
   slot: 1 | 2,
@@ -217,7 +208,7 @@ export function computePoolTables(args: {
   matches: readonly PoolTableMatchInput[];
   viewerUserId: string;
 }): ComputedPoolTables | null {
-  if (!isPoolTournament(args.format, args.poolCount)) {
+  if (!hasPools(args.format, args.poolCount)) {
     return null;
   }
 
@@ -240,6 +231,10 @@ export function computePoolTables(args: {
 
   const matchesByPool = new Map<number, PoolTableMatchInput[]>();
   for (const match of args.matches) {
+    // A Knockout Match between two teams of one Pool is not that Pool's Match.
+    if (match.knockoutRound != null) {
+      continue;
+    }
     const slot1 = match.slot1GameTeamId
       ? teamsById.get(match.slot1GameTeamId)
       : undefined;

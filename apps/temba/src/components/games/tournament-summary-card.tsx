@@ -28,6 +28,7 @@ import {
   tournamentCardActionLabel,
   tournamentCardBandMeta,
   tournamentCardDateLine,
+  tournamentCardKnockoutLine,
   tournamentCardPairs,
   homeTournamentMatchActionLabel,
   tournamentMatchAction,
@@ -37,6 +38,7 @@ import {
   tournamentMatchHeadline,
   tournamentMatchKickoffLine,
   tournamentMatchLastResultLine,
+  tournamentMatchRoundLabel,
   tournamentMatchRoundLine,
   tournamentMatchRoundsLeftLine,
   tournamentMatchStandingLine,
@@ -50,7 +52,7 @@ import {
   tournamentTeamsLine,
   type TournamentMatchPhase,
 } from "~/lib/tournament-card";
-import { poolRoundLabel } from "~/lib/tournament-rounds";
+import { hasKnockout } from "~/lib/tournament-rounds";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -246,6 +248,7 @@ export function TournamentSummaryCard({
   const action = tournamentCardAction(game);
   const actionLabel = tournamentCardActionLabel(action);
   const interactive = action === "join" || action === "join_waitlist";
+  const knockoutLine = tournamentCardKnockoutLine(game);
 
   return (
     <Element data-slot="tournament-summary-card">
@@ -258,7 +261,7 @@ export function TournamentSummaryCard({
       >
         <CardBand
           label={TOURNAMENT_CARD_BAND_LABEL}
-          meta={tournamentCardBandMeta(tournament?.roundCount)}
+          meta={tournamentCardBandMeta(tournament?.roundCount, game)}
         />
 
         <SummaryCardBody>
@@ -284,6 +287,11 @@ export function TournamentSummaryCard({
           {subLine ? (
             <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {subLine}
+            </p>
+          ) : null}
+          {knockoutLine ? (
+            <p className="text-body mt-2.5 truncate font-semibold">
+              {knockoutLine}
             </p>
           ) : null}
 
@@ -353,6 +361,7 @@ export function TournamentSummaryCard({
           levelMinTenths={game.levelMinTenths}
           levelMaxTenths={game.levelMaxTenths}
           poolCount={game.poolCount}
+          tournamentShape={game.tournamentShape}
           teamsAllowed={game.teamsAllowed}
           storedRoundCount={tournament.roundCount}
           allowSoloRegister={tournament.allowSoloRegister}
@@ -442,7 +451,11 @@ export function TournamentMatchCard({
   const day = formatRelativeDay(startsAt, { sameDayLabel: "Tonight" });
   const status = useMatchStatus(startsAt);
   const title = game.name ?? game.venue?.name ?? "Untitled Game";
-  const roundLine = tournamentMatchRoundLine(game.roundNumber, game.poolMatch);
+  const roundLine = tournamentMatchRoundLine(
+    game.roundNumber,
+    game.poolMatch,
+    game.knockoutMatch,
+  );
   const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
   const standingLine = tournamentMatchStandingLine(game.poolMatch);
   const lastResultLine = tournamentMatchLastResultLine(
@@ -465,7 +478,7 @@ export function TournamentMatchCard({
       >
         <CardBand
           label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
-          meta={poolRoundLabel(game.roundNumber, game.roundCount)}
+          meta={tournamentMatchRoundLabel(game)}
         />
 
         <SummaryCardBody>
@@ -551,6 +564,7 @@ export function HomeTournamentMatchCard({
   const headline = tournamentMatchHeadline(
     game.roundNumber,
     kickoff.relativeDay,
+    game.knockoutMatch,
   );
   const kickoffLine = tournamentMatchKickoffLine(kickoff, game.venue?.name);
   const groupLabel = tournamentMatchGroupLabel(game.poolMatch);
@@ -558,6 +572,10 @@ export function HomeTournamentMatchCard({
   const roundsLeftLine = tournamentMatchRoundsLeftLine(
     game.roundNumber,
     game.roundCount,
+    {
+      knockoutMatch: game.knockoutMatch,
+      thenKnockout: hasKnockout(game.format, game.tournamentShape),
+    },
   );
 
   return (
@@ -569,7 +587,7 @@ export function HomeTournamentMatchCard({
       >
         <CardBand
           label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
-          meta={poolRoundLabel(game.roundNumber, game.roundCount)}
+          meta={tournamentMatchRoundLabel(game)}
         />
 
         <SummaryCardBody>
@@ -623,7 +641,7 @@ export function HomeTournamentMatchCard({
               action !== "add_results" && "border-ink",
             )}
           >
-            {homeTournamentMatchActionLabel(action)}
+            {homeTournamentMatchActionLabel(action, game.knockoutMatch)}
           </span>
         </SummaryCardFooter>
       </SummaryCardShell>

@@ -3,10 +3,10 @@ import { describe, it } from "vitest";
 
 import { showsFriendlyRoster } from "./game-summary-cta";
 import {
-  isPoolTournament,
+  isDrawnTournament,
   poolRoundLabel,
   roundsPlayedLabel,
-  showsPoolTournamentSeats,
+  showsDrawnTournamentSeats,
 } from "./tournament-rounds";
 import { sizeFriendlyTournament } from "./tournament-sizing";
 import {
@@ -40,7 +40,9 @@ import {
   POOLS_SEGMENT_LABEL,
   STANDINGS_HEADING,
   TOURNAMENT_ENDS_COPY,
+  GROUPS_THEN_KNOCKOUT_LEAD,
   defaultStandingsPoolIndex,
+  drawnTournamentProgressLine,
   gameDetailsChrome,
   isTournamentStandingsView,
   tournamentHomeJoinKind,
@@ -58,11 +60,17 @@ import {
   tournamentSizeLine,
   tournamentStartLine,
   tournamentStatusLine,
+  knockoutSizeLine,
   tournamentTeamRows,
   tournamentTeamsCountLine,
   tournamentViewerSide,
   type TournamentHomeSide,
 } from "./tournament-home";
+import type {
+  KnockoutViewPlace,
+  KnockoutViewRound,
+  KnockoutViewSide,
+} from "./tournament-knockout-view";
 
 const FORBIDDEN = /quarter|knockout|champion|then quarters|message|notified/iu;
 
@@ -103,13 +111,18 @@ describe("gameDetailsChrome", () => {
 
     for (const [format, poolCount, registrationMode] of cases) {
       const friendly = showsFriendlyRoster(format, registrationMode);
-      const pool = isPoolTournament(format, poolCount);
+      const pool = isDrawnTournament(format, poolCount, null);
       assert.equal(friendly && pool, false);
-      const chrome = gameDetailsChrome(format, poolCount, registrationMode);
+      const chrome = gameDetailsChrome(
+        format,
+        poolCount,
+        null,
+        registrationMode,
+      );
       if (friendly) {
         assert.equal(chrome, "friendly_game");
       } else if (pool) {
-        assert.equal(chrome, "pool_tournament");
+        assert.equal(chrome, "drawn_tournament");
       } else {
         assert.equal(chrome, "tabs");
       }
@@ -118,29 +131,44 @@ describe("gameDetailsChrome", () => {
 
   it("does not take Pool chrome for a legacy tournament with a null poolCount", () => {
     assert.equal(
-      gameDetailsChrome("friendly_tournament", null, "individual"),
+      gameDetailsChrome("friendly_tournament", null, null, "individual"),
       "tabs",
     );
-    assert.equal(isPoolTournament("friendly_tournament", null), false);
+    assert.equal(isDrawnTournament("friendly_tournament", null, null), false);
+  });
+
+  it("takes drawn tournament chrome for a Knockout only tournament with no Pools", () => {
+    assert.equal(
+      gameDetailsChrome(
+        "friendly_tournament",
+        null,
+        "knockout_only",
+        "individual",
+      ),
+      "drawn_tournament",
+    );
   });
 
   it("leaves Americano, team_only, and individual Friendly games off Pool chrome", () => {
-    assert.equal(gameDetailsChrome("americano", 3, "individual"), "tabs");
-    assert.equal(gameDetailsChrome("friendly_game", null, "team_only"), "tabs");
+    assert.equal(gameDetailsChrome("americano", 3, null, "individual"), "tabs");
     assert.equal(
-      gameDetailsChrome("friendly_game", null, "individual"),
+      gameDetailsChrome("friendly_game", null, null, "team_only"),
+      "tabs",
+    );
+    assert.equal(
+      gameDetailsChrome("friendly_game", null, null, "individual"),
       "friendly_game",
     );
   });
 
   it("takes Pool chrome for a friendly_tournament with a Pool count", () => {
     assert.equal(
-      gameDetailsChrome("friendly_tournament", 3, "individual"),
-      "pool_tournament",
+      gameDetailsChrome("friendly_tournament", 3, null, "individual"),
+      "drawn_tournament",
     );
     assert.equal(
-      gameDetailsChrome("friendly_tournament", 3, "team_only"),
-      "pool_tournament",
+      gameDetailsChrome("friendly_tournament", 3, null, "team_only"),
+      "drawn_tournament",
     );
   });
 });
@@ -154,7 +182,7 @@ describe("tournamentHomeJoinKind", () => {
   it("does not offer a seat Join on a Complete Teams tournament", () => {
     assert.equal(tournamentHomeJoinKind("team_only", true), "register_team");
     assert.equal(
-      showsPoolTournamentSeats("friendly_tournament", 1, "team_only"),
+      showsDrawnTournamentSeats("friendly_tournament", 1, null, "team_only"),
       false,
     );
     assert.equal(tournamentHomeJoinKind("team_only", false), null);
@@ -464,7 +492,161 @@ describe("tournamentStatusLine", () => {
   });
 });
 
-describe("copy does not advertise a knockout or a message", () => {
+describe("Knockout only copy", () => {
+  it("names the first Knockout round in the size line", () => {
+    assert.equal(
+      knockoutSizeLine(12),
+      "12 Game teams, knockout from the Round of 16",
+    );
+    assert.equal(
+      knockoutSizeLine(8),
+      "8 Game teams, knockout from the Quarter-finals",
+    );
+  });
+
+  it("says who draws the knockout instead of the groups", () => {
+    const unseated = tournamentStatusLine({
+      seated: false,
+      seatsLeft: 5,
+      teamCount: 12,
+      organizerName: "Jonas B",
+      knockoutOnly: true,
+    });
+    assert.match(unseated, /Jonas draws the knockout/u);
+    assert.equal(/groups?/iu.test(unseated), false);
+    const seatedFull = tournamentStatusLine({
+      seated: true,
+      seatsLeft: 0,
+      teamCount: 12,
+      organizerName: "Jonas B",
+      knockoutOnly: true,
+    });
+    assert.equal(/groups?/iu.test(seatedFull), false);
+  });
+});
+
+describe("Groups then knockout copy", () => {
+  it("ends the size line with where the knockout starts", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      tournamentSizeLine(result.sizing, 3),
+      "12 Game teams, 3 groups of 4, then quarters",
+    );
+    assert.equal(
+      tournamentSizeLine(result.sizing, 2),
+      "12 Game teams, 3 groups of 4, then semis",
+    );
+    assert.equal(
+      tournamentSizeLine(result.sizing, null),
+      "12 Game teams, 3 groups of 4",
+    );
+  });
+
+  it("says the groups lead to a knockout in the status line", () => {
+    const base = {
+      seated: false,
+      seatsLeft: 5,
+      teamCount: 12,
+      organizerName: "Jonas B",
+    };
+    assert.equal(
+      tournamentStatusLine({ ...base, thenKnockout: true }),
+      `${tournamentStatusLine(base)} ${GROUPS_THEN_KNOCKOUT_LEAD}`,
+    );
+    assert.match(
+      tournamentStatusLine({ ...base, thenKnockout: true }),
+      /Jonas draws the groups.*knockout\.$/u,
+    );
+  });
+});
+
+describe("tournament home after the draw", () => {
+  const team = (name: string) => ({
+    kind: "team" as const,
+    team: { gameTeamId: name, name, isViewer: false },
+  });
+  function round(
+    roundNumber: number,
+    name: string,
+    places: KnockoutViewPlace[],
+  ): KnockoutViewRound {
+    return { round: roundNumber, name, places };
+  }
+  function match(
+    slot1: KnockoutViewSide,
+    slot2: KnockoutViewSide,
+    settled: boolean,
+  ): KnockoutViewPlace {
+    return {
+      kind: "match",
+      matchId: null,
+      position: 1,
+      code: "Q1",
+      startTime: null,
+      courtName: null,
+      slot1,
+      slot2,
+      winner: settled ? 1 : null,
+      walkover: null,
+      settled,
+      needsDecidingSet: false,
+    };
+  }
+  const placeholder = { kind: "qualifier" as const, label: "A1" };
+
+  it("keeps the Pool Rounds played while the knockout only holds placeholders", () => {
+    const rounds = [
+      round(1, "Semi-finals", [match(placeholder, placeholder, false)]),
+      round(2, "Final", [match({ kind: "open" }, { kind: "open" }, false)]),
+    ];
+    assert.equal(
+      drawnTournamentProgressLine({
+        roundsPlayed: "Round 2 of 3 played",
+        knockout: rounds,
+      }),
+      "Round 2 of 3 played",
+    );
+    assert.equal(
+      drawnTournamentProgressLine({
+        roundsPlayed: "Round 2 of 3 played",
+        knockout: null,
+      }),
+      "Round 2 of 3 played",
+    );
+  });
+
+  it("names the Knockout round now being played once a team is in it", () => {
+    const rounds = [
+      round(1, "Semi-finals", [
+        match(team("Ada / Sam"), team("Kim / Elin"), true),
+      ]),
+      round(2, "Final", [match(team("Ada / Sam"), placeholder, false)]),
+    ];
+    assert.equal(
+      drawnTournamentProgressLine({
+        roundsPlayed: "Round 3 of 3 played",
+        knockout: rounds,
+      }),
+      "Now at the Final",
+    );
+  });
+
+  it("drops the line on a Knockout only tournament once the Final is decided", () => {
+    const rounds = [
+      round(1, "Final", [match(team("Ada / Sam"), team("Kim / Elin"), true)]),
+    ];
+    assert.equal(
+      drawnTournamentProgressLine({ roundsPlayed: null, knockout: rounds }),
+      null,
+    );
+  });
+});
+
+describe("Groups only copy does not advertise a knockout or a message", () => {
   it("asserts size, status, and shipped strings have none of the forbidden words", () => {
     const even = sizeFriendlyTournament(12, 3);
     const uneven = sizeFriendlyTournament(10, 3);
@@ -530,6 +712,10 @@ describe("tournamentEyebrow", () => {
   it("ships Friendly tournament and the Round count", () => {
     assert.equal(tournamentEyebrow(3), "Friendly tournament, 3 Rounds");
     assert.equal(tournamentEyebrow(1), "Friendly tournament, 1 Round");
+  });
+
+  it("names the knockout instead of counting Rounds on Knockout only", () => {
+    assert.equal(tournamentEyebrow(4, true), "Friendly tournament, knockout");
   });
 });
 

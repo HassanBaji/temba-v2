@@ -9,6 +9,7 @@ import {
   DRAW_ENTRY_ACTION_LABEL,
   DRAW_ENTRY_DRAFTED_TITLE,
   DRAW_ENTRY_TITLE,
+  KNOCKOUT_DRAW_RANDOM_COPY,
   DRAW_POOLS_ACTION,
   POST_POOL_DRAW_ACTION,
   POST_POOL_DRAW_FOOTER_COPY,
@@ -21,6 +22,7 @@ import {
   draftPoolMetaLine,
   draftPoolsFromGameTeams,
   drawDrawerLead,
+  knockoutDrawDrawerLead,
   drawEntryStateLine,
   drawEntryTitle,
   hasDraftPoolDraw,
@@ -113,22 +115,16 @@ describe("organizer draw gates", () => {
   });
 
   it("keeps Undo after posting under the same organizer and live-Game conditions", () => {
-    assert.equal(canShowUndoPoolDraw({ ...open, drawPosted: true }), true);
-    assert.equal(canShowUndoPoolDraw(open), false);
+    const posted = { ...open, drawPosted: true, canUndo: true };
+    assert.equal(canShowUndoPoolDraw(posted), true);
+    assert.equal(canShowUndoPoolDraw({ ...open, canUndo: true }), false);
+    assert.equal(canShowUndoPoolDraw({ ...posted, isOrganizer: false }), false);
+    assert.equal(canShowUndoPoolDraw({ ...posted, cancelled: true }), false);
+  });
+
+  it("hides Undo once a Set has been played or a Match completed", () => {
     assert.equal(
-      canShowUndoPoolDraw({
-        isOrganizer: false,
-        cancelled: false,
-        drawPosted: true,
-      }),
-      false,
-    );
-    assert.equal(
-      canShowUndoPoolDraw({
-        isOrganizer: true,
-        cancelled: true,
-        drawPosted: true,
-      }),
+      canShowUndoPoolDraw({ ...open, drawPosted: true, canUndo: false }),
       false,
     );
   });
@@ -172,7 +168,7 @@ describe("draftPoolsFromGameTeams", () => {
     assert.deepEqual(pools, [
       {
         poolIndex: 1,
-        label: "group 1",
+        label: "group A",
         teams: [
           { id: "a", name: "Ada / Lin" },
           { id: "b", name: "Sofia / Jonas" },
@@ -182,13 +178,13 @@ describe("draftPoolsFromGameTeams", () => {
       },
       {
         poolIndex: 2,
-        label: "group 2",
+        label: "group B",
         teams: [{ id: "c", name: "Kai / Noor" }],
         dateLines: [formatAbsoluteDay(start)],
         courtNames: ["Court 1", "Court 2"],
       },
     ]);
-    assert.equal(poolLabel(3), "group 3");
+    assert.equal(poolLabel(3), "group C");
   });
 
   it("dates the draft against the Rounds posting would generate for the drafted groups", () => {
@@ -269,5 +265,20 @@ describe("draftPoolsFromGameTeams", () => {
       }),
       "Court 3",
     );
+  });
+});
+
+describe("knockoutDrawDrawerLead", () => {
+  it("counts the complete Game teams that go into the tree, not the planned field", () => {
+    assert.equal(
+      knockoutDrawDrawerLead(6),
+      `6 complete Game teams go into the draw. ${KNOCKOUT_DRAW_RANDOM_COPY}`,
+    );
+    assert.equal(
+      knockoutDrawDrawerLead(1),
+      `1 complete Game team goes into the draw. ${KNOCKOUT_DRAW_RANDOM_COPY}`,
+    );
+    assert.equal(knockoutDrawDrawerLead(0), KNOCKOUT_DRAW_RANDOM_COPY);
+    assert.equal(/group/i.test(knockoutDrawDrawerLead(6)), false);
   });
 });

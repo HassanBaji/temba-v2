@@ -1,13 +1,24 @@
 import { formatGameCardDay } from "~/lib/format-game-start";
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
 import type { LevelBand } from "~/lib/level-bands";
-import { isPoolTournament, postedRoundCount } from "~/lib/tournament-rounds";
 import {
-  resolvePlannedRoundCount,
-  type TournamentSizing,
-} from "~/lib/tournament-sizing";
+  buildKnockoutTree,
+  knockoutRoundName,
+  knockoutStartWord,
+} from "~/lib/tournament-knockout";
+import {
+  knockoutCurrentRound,
+  knockoutNowLine,
+  type KnockoutViewRound,
+} from "~/lib/tournament-knockout-view";
+import {
+  isDrawnTournament,
+  plannedTournamentRoundCount,
+  postedRoundCount,
+} from "~/lib/tournament-rounds";
+import { type TournamentSizing } from "~/lib/tournament-sizing";
 
-export type GameDetailsChrome = "friendly_game" | "pool_tournament" | "tabs";
+export type GameDetailsChrome = "friendly_game" | "drawn_tournament" | "tabs";
 
 export const TOURNAMENT_EYEBROW_PREFIX = "Friendly tournament";
 export const YOUR_TEAM_LABEL = "Your team";
@@ -20,6 +31,8 @@ export const TOURNAMENT_DRAW_WHEN_FULL_COPY =
   "The draw happens once they are full";
 export const TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY =
   "draws the groups once they are full";
+export const TOURNAMENT_DRAWS_KNOCKOUT_WHEN_FULL_COPY =
+  "draws the knockout once they are full";
 export const TOURNAMENT_CLOSING_LINE =
   "Every Round is an ordinary Match. Scores are entered the usual way and the other team confirms.";
 export const ORGANIZER_ROW_LABEL = "Organizer";
@@ -42,6 +55,9 @@ export const NOT_DRAWN_TRAILER = "Not drawn";
 export const STANDINGS_HEADING = "Standings";
 export const TOURNAMENT_ENDS_COPY =
   "Each group has a winner. There is no overall champion.";
+export const KNOCKOUT_ONLY_LEAD = "Lose once and you are done for the day.";
+export const GROUPS_THEN_KNOCKOUT_LEAD =
+  "The best in each group carry on to the knockout.";
 export const POOLS_SEGMENT_LABEL = "groups";
 
 const TEAM_LIST_LEADING_FULL = 4;
@@ -89,29 +105,37 @@ export type TournamentStatusLineInput = {
   seatsLeft: number;
   teamCount: number;
   organizerName: string | null;
+  knockoutOnly?: boolean;
+  /** Groups then knockout: the line says the groups lead to a knockout. */
+  thenKnockout?: boolean;
 };
 
 /**
- * One chrome per Game. Friendly-game roster and Pool tournament never overlap
- * (`showsFriendlyRoster` is `friendly_game`-only; Pool chrome is
- * `friendly_tournament` with a Pool count), so this is exclusive by
- * construction rather than by branch order on the page.
+ * One chrome per Game. Friendly-game roster and drawn tournament never overlap
+ * (`showsFriendlyRoster` is `friendly_game`-only; drawn tournament chrome is
+ * `friendly_tournament` with a Pool count or a Tournament shape), so this is
+ * exclusive by construction rather than by branch order on the page.
  */
 export function gameDetailsChrome(
   format: string,
   poolCount: number | null | undefined,
+  tournamentShape: string | null | undefined,
   registrationMode: string,
 ): GameDetailsChrome {
   const usesFriendlyChrome = showsFriendlyRoster(format, registrationMode);
-  const usesPoolTournamentChrome = isPoolTournament(format, poolCount);
-  if (usesFriendlyChrome && usesPoolTournamentChrome) {
+  const usesDrawnTournamentChrome = isDrawnTournament(
+    format,
+    poolCount,
+    tournamentShape,
+  );
+  if (usesFriendlyChrome && usesDrawnTournamentChrome) {
     return "friendly_game";
   }
   if (usesFriendlyChrome) {
     return "friendly_game";
   }
-  if (usesPoolTournamentChrome) {
-    return "pool_tournament";
+  if (usesDrawnTournamentChrome) {
+    return "drawn_tournament";
   }
   return "tabs";
 }
@@ -265,45 +289,93 @@ export function tournamentOpenPositionSubline(
   return `${positionSeatLabel(position)} open`;
 }
 
-export function tournamentSizeLine(sizing: TournamentSizing): string {
+/** `12 Game teams, 3 groups of 4`, then `, then quarters` with a Knockout. */
+export function tournamentSizeLine(
+  sizing: TournamentSizing,
+  knockoutRoundCount?: number | null,
+): string {
   const teamWord = sizing.teamCount === 1 ? "Game team" : "Game teams";
-  return `${sizing.teamCount} ${teamWord}, ${poolSizeClause(sizing)}`;
+  const line = `${sizing.teamCount} ${teamWord}, ${poolSizeClause(sizing)}`;
+  return knockoutRoundCount != null
+    ? `${line}, then ${knockoutStartWord(knockoutRoundCount)}`
+    : line;
+}
+
+/** `12 Game teams, knockout from the Round of 16` */
+export function knockoutSizeLine(teamCount: number): string | null {
+  const tree = buildKnockoutTree({ entrantCount: teamCount });
+  if (!tree) {
+    return null;
+  }
+  const teamWord = teamCount === 1 ? "Game team" : "Game teams";
+  return `${teamCount} ${teamWord}, knockout from the ${knockoutRoundName(1, tree.roundCount)}`;
 }
 
 export function tournamentStatusLine(input: TournamentStatusLineInput): string {
+  const line = drawStatusLine(input);
+  return input.thenKnockout && !input.knockoutOnly
+    ? `${line} ${GROUPS_THEN_KNOCKOUT_LEAD}`
+    : line;
+}
+
+function drawStatusLine(input: TournamentStatusLineInput): string {
   if (input.seated) {
     if (input.seatsLeft === 0) {
-      return `${TOURNAMENT_YOU_ARE_IN_COPY} The group draw is random.`;
+      return input.knockoutOnly
+        ? `${TOURNAMENT_YOU_ARE_IN_COPY} The draw is random.`
+        : `${TOURNAMENT_YOU_ARE_IN_COPY} The group draw is random.`;
     }
     const teamWord = input.teamCount === 1 ? "Game team" : "Game teams";
     return `${TOURNAMENT_YOU_ARE_IN_COPY} The draw happens once ${input.teamCount} ${teamWord} are full, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`;
   }
 
   const seats = seatsLeftSentence(input.seatsLeft);
-  const drawer = drawWhenFullClause(input.organizerName);
+  const drawer = drawWhenFullClause(
+    input.organizerName,
+    input.knockoutOnly === true,
+  );
   return `${seats} ${drawer}, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`;
 }
 
 export function tournamentRoundCount(game: {
+  format: string;
   teamsAllowed: number | null | undefined;
   poolCount: number | null | undefined;
+  tournamentShape: string | null | undefined;
   roundCount: number | null | undefined;
   drawPostedAt: Date | string | null | undefined;
-  matches: readonly { roundNumber: number | null }[];
+  matches: readonly {
+    roundNumber: number | null;
+    knockoutRound: number | null;
+  }[];
 }): number | null {
   if (isTournamentStandingsView(game.drawPostedAt)) {
     return postedRoundCount(game.matches);
   }
-  return resolvePlannedRoundCount(
-    game.teamsAllowed,
-    game.poolCount,
-    game.roundCount,
-  );
+  return plannedTournamentRoundCount(game);
 }
 
-export function tournamentEyebrow(roundCount: number): string {
+export function tournamentEyebrow(
+  roundCount: number,
+  knockoutOnly = false,
+): string {
+  if (knockoutOnly) {
+    return `${TOURNAMENT_EYEBROW_PREFIX}, knockout`;
+  }
   const rounds = roundCount === 1 ? "1 Round" : `${roundCount} Rounds`;
   return `${TOURNAMENT_EYEBROW_PREFIX}, ${rounds}`;
+}
+
+/**
+ * Standings header after the draw: the Knockout round now being played once
+ * a Game team is in it, else the Pool Rounds played.
+ */
+export function drawnTournamentProgressLine(args: {
+  roundsPlayed: string | null;
+  knockout: readonly KnockoutViewRound[] | null;
+}): string | null {
+  const current = knockoutCurrentRound(args.knockout);
+  return current ? knockoutNowLine(current.name) : args.roundsPlayed;
 }
 
 export function tournamentStartLine(
@@ -474,10 +546,17 @@ function seatsLeftSentence(seatsLeft: number): string {
   return `${seatsLeft} seats left.`;
 }
 
-function drawWhenFullClause(organizerName: string | null): string {
+function drawWhenFullClause(
+  organizerName: string | null,
+  knockoutOnly: boolean,
+): string {
   const first = firstName(organizerName);
   if (first) {
-    return `${first} ${TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY}`;
+    return `${first} ${
+      knockoutOnly
+        ? TOURNAMENT_DRAWS_KNOCKOUT_WHEN_FULL_COPY
+        : TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY
+    }`;
   }
   return TOURNAMENT_DRAW_WHEN_FULL_COPY;
 }

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { games } from "@repo/db";
 
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { hasPools } from "~/lib/tournament-rounds";
 import {
   sizeFriendlyTournament,
   validateRoundCount,
@@ -33,10 +33,7 @@ export async function updateGameRoundCount(
       message: "Cannot edit a cancelled Game",
     });
   }
-  if (
-    !isPoolTournament(game.format, game.poolCount) ||
-    game.poolCount == null
-  ) {
+  if (!hasPools(game.format, game.poolCount) || game.poolCount == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: ROUND_COUNT_NOT_POOL_TOURNAMENT_MESSAGE,

@@ -12,7 +12,7 @@ import {
   PRICE_ROW_LABEL,
   tournamentSeatsTakenSrLabel,
 } from "~/lib/tournament-home";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament } from "~/lib/tournament-rounds";
 
 export const TAKE_A_SEAT_TITLE = "Take a seat";
 export const SIT_WITH_SOMEONE_HEADING = "Sit with someone";
@@ -29,6 +29,8 @@ export const JOIN_SHEET_INTRO_SUFFIX =
   "Same as joining a game, you just pick who you play with.";
 export const LEAVE_SEAT_UNTIL_POOL_DRAW_COPY =
   "You can leave the seat up until the group draw.";
+export const LEAVE_SEAT_UNTIL_KNOCKOUT_DRAW_COPY =
+  "You can leave the seat up until the draw.";
 export const GAME_LEAVE_SPOT_CONFIRM_COPY =
   "Your spot can open for someone else.";
 export const PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY =
@@ -51,16 +53,19 @@ export type TournamentJoinSeatAvailability = {
 };
 
 /**
- * The Take-a-seat sheet is the Pool tournament branch of the shared join
+ * The Take-a-seat sheet is the drawn tournament branch of the shared join
  * drawer. Individual Friendly games stay on two sides; a side-count fallback
  * keeps the existing tournament list when `poolCount` is not passed in.
  */
 export function isTournamentJoinSheet(
   format: string | undefined,
   poolCount: number | null | undefined,
+  tournamentShape: string | null | undefined,
   sideCount: number,
 ) {
-  return isPoolTournament(format ?? "", poolCount) || sideCount > 2;
+  return (
+    isDrawnTournament(format ?? "", poolCount, tournamentShape) || sideCount > 2
+  );
 }
 
 export function tournamentJoinHeaderLine(args: {

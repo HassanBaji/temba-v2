@@ -10,8 +10,10 @@ import { type db } from "~/server/db";
 import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { assertMayWriteSets } from "~/server/games/assert-may-write-sets";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
+import { knockoutMatchIsLevel } from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import {
+  clearMatchResultConfirmations,
   clearMatchResultConfirmationsExceptUser,
   matchResultFullyConfirmed,
   recordMatchResultConfirmation,
@@ -80,7 +82,9 @@ export async function scoreSet(
     columns: { slot1GamesWon: true, slot2GamesWon: true },
   });
   const outcome = matchOutcome(allSets);
-  if (outcome.result !== "none") {
+  if (knockoutMatchIsLevel(match, outcome.result)) {
+    await clearMatchResultConfirmations(database, match.id);
+  } else if (outcome.result !== "none") {
     if (valuesChanged) {
       await clearMatchResultConfirmationsExceptUser(
         database,

@@ -4,6 +4,7 @@ import { MatchStatusEnum } from "@repo/db";
 
 import { type GameRow } from "~/server/games/access";
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
+import { assertKnockoutMatchHasBothSides } from "~/server/games/knockout-advance";
 import { userIsOnMatchSlots } from "~/server/games/user-is-on-match-slots";
 import { type MatchRow } from "~/server/games/utils";
 import { type db } from "~/server/db";
@@ -29,6 +30,7 @@ function assertMatchAllowsSets(game: GameRow, match: MatchRow) {
       message: "This Match is completed; Sets are frozen",
     });
   }
+  assertKnockoutMatchHasBothSides(match);
 }
 
 export async function assertMayWriteSets(

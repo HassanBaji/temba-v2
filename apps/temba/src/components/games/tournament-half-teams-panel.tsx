@@ -24,6 +24,7 @@ import {
   MERGE_SAME_POSITION_COPY,
   MERGE_SWAP_LABEL,
   MERGE_TAKES_EFFECT_COPY,
+  MERGE_TAKES_EFFECT_KNOCKOUT_COPY,
   defaultMergePositions,
   halfTeamsFromSides,
   mergeOccupantSubline,
@@ -83,8 +84,10 @@ export function TournamentHalfTeamsPanel({
   mergeError,
   onMerge,
   onDismiss,
+  knockoutOnly,
 }: {
   sides: Side[];
+  knockoutOnly: boolean;
   mergePending: boolean;
   mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
   onMerge: (input: {
@@ -250,7 +253,9 @@ export function TournamentHalfTeamsPanel({
           {MERGE_DISMISS_ACTION_LABEL}
         </Button>
         <p className="text-muted-foreground text-meta text-center leading-relaxed">
-          {MERGE_TAKES_EFFECT_COPY}
+          {knockoutOnly
+            ? MERGE_TAKES_EFFECT_KNOCKOUT_COPY
+            : MERGE_TAKES_EFFECT_COPY}
         </p>
       </div>
     </div>

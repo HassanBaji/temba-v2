@@ -4,6 +4,11 @@ import { MatchStatusEnum, matches, matchSets } from "@repo/db";
 
 import { type db } from "~/server/db";
 import { type GameRow } from "~/server/games/access";
+import {
+  advanceKnockoutWinner,
+  knockoutMatchIsLevel,
+  placeKnockoutQualifiers,
+} from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { applyRatedMatch } from "~/server/ratings/apply-rated-match";
 
@@ -19,8 +24,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  * not a call into that door.
  *
  * Idempotent: locks the Match row and no-ops if it is already
- * completed/cancelled or has no Match outcome yet, so a duplicate
- * confirmation cannot double-fire the rating effect.
+ * completed/cancelled or has no Match outcome yet (a level Knockout Match has
+ * none), so a duplicate confirmation cannot double-fire the rating effect or
+ * advance a Knockout winner twice.
  */
 export async function runMatchCompletionEffect(
   database: DbClient,
@@ -48,7 +54,10 @@ export async function runMatchCompletionEffect(
       columns: { slot1GamesWon: true, slot2GamesWon: true },
     });
     const outcome = matchOutcome(sets);
-    if (outcome.result === "none") {
+    if (
+      outcome.result === "none" ||
+      knockoutMatchIsLevel(locked, outcome.result)
+    ) {
       return;
     }
 
@@ -58,5 +67,7 @@ export async function runMatchCompletionEffect(
       .where(eq(matches.id, locked.id));
 
     await applyRatedMatch(tx, game, locked, outcome.result);
+    await advanceKnockoutWinner(tx, locked, outcome.result);
+    await placeKnockoutQualifiers(tx, game, locked);
   });
 }

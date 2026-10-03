@@ -164,6 +164,7 @@ function gameTeamsFromSides(
       name: null,
       sideIndex: side.sideIndex,
       poolIndex: poolIndexes ? poolIndexForSide(side.sideIndex) : null,
+      knockoutSeed: null,
       members,
     };
   });
@@ -279,11 +280,14 @@ function detailMatches(
       endTime: null,
       durationInMinutes: 45,
       roundNumber: match.roundNumber,
+      knockoutRound: null,
+      knockoutPosition: null,
       status: match.status,
       courtId: "court-1",
       courtName: "Court 1",
       slot1GameTeamId: match.slot1GameTeamId,
       slot2GameTeamId: match.slot2GameTeamId,
+      walkoverGameTeamId: null,
       bothSlotsFilled,
       bothSidesComplete: bothSlotsFilled,
       canAddSet: !frozen,
@@ -354,6 +358,7 @@ function baseTournament(args: {
       id: match.id,
       status: match.status,
       roundNumber: match.roundNumber,
+      knockoutRound: null,
       startTime: match.startTime,
       slot1GameTeamId: match.slot1GameTeamId,
       slot2GameTeamId: match.slot2GameTeamId,
@@ -380,9 +385,12 @@ function baseTournament(args: {
     playersAllowed: TEAM_COUNT * 2,
     teamsAllowed: TEAM_COUNT,
     poolCount: POOL_COUNT,
+    tournamentShape: null,
+    qualifiersPerPool: null,
     roundCount: null,
     matchMinutes: null,
     drawPostedAt: args.drawPostedAt,
+    canUndoDraw: args.drawPostedAt != null,
     sport: GameSportEnum.PADEL,
     cancelledAt: null,
     registrationClosedAt: args.drawPostedAt,
@@ -433,6 +441,7 @@ function baseTournament(args: {
     canRequestLevelRange: false,
     pendingLevelRangeRequests: [],
     poolTables,
+    knockout: null,
   };
 }
 

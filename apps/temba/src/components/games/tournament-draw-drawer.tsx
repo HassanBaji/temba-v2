@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { TournamentKnockoutDrawPanel } from "~/components/games/tournament-knockout-draw-panel";
 import { TournamentPoolDrawPanel } from "~/components/games/tournament-pool-draw-panel";
 import { Button } from "~/components/ui/button";
 import {
@@ -15,6 +16,7 @@ import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { CloseButton } from "~/components/ui/nav-icon-button";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { ORGANIZER_EYEBROW } from "~/lib/tournament-half-teams";
+import { type KnockoutViewGameTeam } from "~/lib/tournament-knockout-view";
 import {
   DRAW_DRAWER_TITLE,
   DRAW_ENTRY_ACTION_LABEL,
@@ -22,7 +24,11 @@ import {
   UNDO_POOL_DRAW_CONFIRM_COPY,
   UNDO_POOL_DRAW_CONFIRM_LABEL,
   UNDO_POOL_DRAW_CONFIRM_TITLE,
+  UNDO_KNOCKOUT_DRAW_ACTION,
+  UNDO_KNOCKOUT_DRAW_CONFIRM_COPY,
+  UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE,
   drawDrawerLead,
+  knockoutDrawDrawerLead,
   drawEntryStateLine,
   drawEntryTitle,
   type DraftPoolTeam,
@@ -32,11 +38,13 @@ export function TournamentDrawEntry({
   completeTeams,
   teamCount,
   hasDraft,
+  knockoutOnly,
   onOpen,
 }: {
   completeTeams: number;
   teamCount: number;
   hasDraft: boolean;
+  knockoutOnly: boolean;
   onOpen: () => void;
 }) {
   return (
@@ -44,7 +52,9 @@ export function TournamentDrawEntry({
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
         {ORGANIZER_EYEBROW}
       </p>
-      <p className="text-body mt-2 font-semibold">{drawEntryTitle(hasDraft)}</p>
+      <p className="text-body mt-2 font-semibold">
+        {drawEntryTitle(hasDraft, knockoutOnly)}
+      </p>
       <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {drawEntryStateLine(completeTeams, teamCount)}
       </p>
@@ -61,10 +71,12 @@ export function TournamentDrawEntry({
 }
 
 export function TournamentUndoPoolDraw({
+  knockoutOnly,
   undoPending,
   undoError,
   onUndo,
 }: {
+  knockoutOnly: boolean;
   undoPending: boolean;
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
@@ -84,13 +96,25 @@ export function TournamentUndoPoolDraw({
         aria-busy={undoPending}
         onClick={() => setConfirmOpen(true)}
       >
-        {undoPending ? "Undoing…" : UNDO_POOL_DRAW_ACTION}
+        {undoPending
+          ? "Undoing…"
+          : knockoutOnly
+            ? UNDO_KNOCKOUT_DRAW_ACTION
+            : UNDO_POOL_DRAW_ACTION}
       </Button>
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title={UNDO_POOL_DRAW_CONFIRM_TITLE}
-        description={UNDO_POOL_DRAW_CONFIRM_COPY}
+        title={
+          knockoutOnly
+            ? UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE
+            : UNDO_POOL_DRAW_CONFIRM_TITLE
+        }
+        description={
+          knockoutOnly
+            ? UNDO_KNOCKOUT_DRAW_CONFIRM_COPY
+            : UNDO_POOL_DRAW_CONFIRM_COPY
+        }
         confirmLabel={UNDO_POOL_DRAW_CONFIRM_LABEL}
         pending={undoPending}
         restoreFocusRef={undoButtonRef}
@@ -109,8 +133,11 @@ export function TournamentUndoPoolDraw({
 export function TournamentDrawDrawer({
   open,
   onOpenChange,
+  knockoutOnly,
+  viewerUserId,
   gameTeams,
   teamCount,
+  completeTeams,
   storedRoundCount,
   windowStart,
   windowEnd,
@@ -125,8 +152,11 @@ export function TournamentDrawDrawer({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  gameTeams: readonly DraftPoolTeam[];
+  knockoutOnly: boolean;
+  viewerUserId: string;
+  gameTeams: readonly (DraftPoolTeam & KnockoutViewGameTeam)[];
   teamCount: number | null | undefined;
+  completeTeams: number;
   storedRoundCount: number | null | undefined;
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
@@ -180,23 +210,38 @@ export function TournamentDrawDrawer({
               {DRAW_DRAWER_TITLE}
             </DrawerTitle>
             <DrawerDescription className="text-ink text-body mt-2.5 leading-relaxed">
-              {drawDrawerLead(teamCount)}
+              {knockoutOnly
+                ? knockoutDrawDrawerLead(completeTeams)
+                : drawDrawerLead(teamCount)}
             </DrawerDescription>
           </div>
-          <TournamentPoolDrawPanel
-            gameTeams={gameTeams}
-            storedRoundCount={storedRoundCount}
-            windowStart={windowStart}
-            windowEnd={windowEnd}
-            matchMinutes={matchMinutes}
-            courtNames={courtNames}
-            drawPending={drawPending}
-            drawError={drawError}
-            onDraw={onDraw}
-            postPending={postPending}
-            postError={postError}
-            onPost={confirmPost}
-          />
+          {knockoutOnly ? (
+            <TournamentKnockoutDrawPanel
+              gameTeams={gameTeams}
+              viewerUserId={viewerUserId}
+              drawPending={drawPending}
+              drawError={drawError}
+              onDraw={onDraw}
+              postPending={postPending}
+              postError={postError}
+              onPost={confirmPost}
+            />
+          ) : (
+            <TournamentPoolDrawPanel
+              gameTeams={gameTeams}
+              storedRoundCount={storedRoundCount}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              matchMinutes={matchMinutes}
+              courtNames={courtNames}
+              drawPending={drawPending}
+              drawError={drawError}
+              onDraw={onDraw}
+              postPending={postPending}
+              postError={postError}
+              onPost={confirmPost}
+            />
+          )}
         </div>
       </DrawerContent>
     </Drawer>

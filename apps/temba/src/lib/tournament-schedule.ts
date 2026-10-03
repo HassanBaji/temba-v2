@@ -198,24 +198,85 @@ function meetsState(meetingsPerPair: readonly number[]): RoundMeets {
   return "once";
 }
 
-export function schedulePoolMatches(input: {
-  pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
-  roundCount: number;
+export type ScheduledRoundItem<T> = {
+  item: T;
+  roundNumber: number;
+  startTime: Date;
+  endTime: Date;
+  courtId: string;
+};
+
+// One-day windows run Rounds back to back, a Round starting once the last has
+// cleared the Courts; longer windows spread the Round starts across the window.
+export function scheduleRoundSlots<T>(input: {
+  rounds: readonly { roundNumber: number; items: readonly T[] }[];
   courtIds: readonly string[];
   windowStart: Date;
   windowEnd: Date;
   matchMinutes: number | null;
-}): ScheduledPoolMatch[] {
+}): ScheduledRoundItem<T>[] {
   if (input.courtIds.length < 1) {
     return [];
   }
 
   const minutes = tournamentMatchMinutes(input.matchMinutes);
+  const rounds = [...input.rounds]
+    .filter((round) => round.items.length > 0)
+    .sort((left, right) => left.roundNumber - right.roundNumber);
+  const maxRound = rounds[rounds.length - 1]?.roundNumber ?? 0;
+  const oneDay = isOneDayTournamentWindow(input.windowStart, input.windowEnd);
+  const roundStarts = oneDay
+    ? []
+    : fewWeeksRoundStarts(
+        input.windowStart,
+        input.windowEnd,
+        maxRound,
+        input.matchMinutes,
+      );
 
-  const byRound = new Map<
-    number,
-    { slot1GameTeamId: string; slot2GameTeamId: string }[]
-  >();
+  const scheduled: ScheduledRoundItem<T>[] = [];
+  let cursor = input.windowStart;
+  for (const round of rounds) {
+    const roundStart = oneDay
+      ? cursor
+      : (roundStarts[round.roundNumber - 1] ?? cursor);
+    for (let index = 0; index < round.items.length; index += 1) {
+      const item = round.items[index];
+      if (item === undefined) {
+        continue;
+      }
+      const slot = Math.floor(index / input.courtIds.length);
+      const courtId = input.courtIds[index % input.courtIds.length];
+      if (!courtId) {
+        continue;
+      }
+      const startTime = addMinutes(roundStart, slot * minutes);
+      scheduled.push({
+        item,
+        roundNumber: round.roundNumber,
+        startTime,
+        endTime: addMinutes(startTime, minutes),
+        courtId,
+      });
+    }
+    if (oneDay) {
+      const slotsUsed = Math.ceil(round.items.length / input.courtIds.length);
+      cursor = addMinutes(roundStart, slotsUsed * minutes);
+    }
+  }
+  return scheduled;
+}
+
+export type PoolRoundPairing = {
+  slot1GameTeamId: string;
+  slot2GameTeamId: string;
+};
+
+export function poolRounds(input: {
+  pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
+  roundCount: number;
+}): { roundNumber: number; items: PoolRoundPairing[] }[] {
+  const byRound = new Map<number, PoolRoundPairing[]>();
   const pools = [...input.pools].sort(
     (left, right) => left.poolIndex - right.poolIndex,
   );
@@ -235,50 +296,32 @@ export function schedulePoolMatches(input: {
       byRound.set(pairing.roundNumber, list);
     }
   }
+  return [...byRound.entries()].map(([roundNumber, items]) => ({
+    roundNumber,
+    items,
+  }));
+}
 
-  const roundNumbers = [...byRound.keys()].sort((left, right) => left - right);
-  const maxRound = roundNumbers[roundNumbers.length - 1] ?? 0;
-  const oneDay = isOneDayTournamentWindow(input.windowStart, input.windowEnd);
-  const roundStarts = oneDay
-    ? []
-    : fewWeeksRoundStarts(
-        input.windowStart,
-        input.windowEnd,
-        maxRound,
-        input.matchMinutes,
-      );
-
-  const scheduled: ScheduledPoolMatch[] = [];
-  let cursor = input.windowStart;
-  for (const roundNumber of roundNumbers) {
-    const roundMatches = byRound.get(roundNumber) ?? [];
-    const roundStart = oneDay
-      ? cursor
-      : (roundStarts[roundNumber - 1] ?? cursor);
-    for (let index = 0; index < roundMatches.length; index += 1) {
-      const pairing = roundMatches[index];
-      if (!pairing) {
-        continue;
-      }
-      const slot = Math.floor(index / input.courtIds.length);
-      const courtId = input.courtIds[index % input.courtIds.length];
-      if (!courtId) {
-        continue;
-      }
-      const startTime = addMinutes(roundStart, slot * minutes);
-      scheduled.push({
-        roundNumber,
-        startTime,
-        endTime: addMinutes(startTime, minutes),
-        courtId,
-        slot1GameTeamId: pairing.slot1GameTeamId,
-        slot2GameTeamId: pairing.slot2GameTeamId,
-      });
-    }
-    if (oneDay && roundMatches.length > 0) {
-      const slotsUsed = Math.ceil(roundMatches.length / input.courtIds.length);
-      cursor = addMinutes(roundStart, slotsUsed * minutes);
-    }
-  }
-  return scheduled;
+export function schedulePoolMatches(input: {
+  pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
+  roundCount: number;
+  courtIds: readonly string[];
+  windowStart: Date;
+  windowEnd: Date;
+  matchMinutes: number | null;
+}): ScheduledPoolMatch[] {
+  return scheduleRoundSlots({
+    rounds: poolRounds(input),
+    courtIds: input.courtIds,
+    windowStart: input.windowStart,
+    windowEnd: input.windowEnd,
+    matchMinutes: input.matchMinutes,
+  }).map((scheduled) => ({
+    roundNumber: scheduled.roundNumber,
+    startTime: scheduled.startTime,
+    endTime: scheduled.endTime,
+    courtId: scheduled.courtId,
+    slot1GameTeamId: scheduled.item.slot1GameTeamId,
+    slot2GameTeamId: scheduled.item.slot2GameTeamId,
+  }));
 }

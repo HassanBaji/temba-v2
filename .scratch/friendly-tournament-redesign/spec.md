@@ -400,7 +400,8 @@ existing `lib/tournament-*.ts` family:
   seatTotal }`; `tournamentTeamRows(sides, viewerUserId)` → the numbered Teams list with the
   collapsible middle run resolved (`{ head, collapsedCount, tail }`); `tournamentStatusLine(...)` →
   the hero's one-sentence state; `tournamentSizeLine(sizing)` → "12 Game teams, 3 Pools of 4".
-  **`tournamentSizeLine` must never emit a knockout clause.**
+  **`tournamentSizeLine` must never emit a knockout clause.** (Amended by ADR-0020 / TEM-293:
+  this holds for a Groups only tournament; a tournament with a Knockout carries one.)
 - `lib/tournament-rounds.ts` (extend) — `tournamentRoundSchedule({ windowStart, windowEnd,
   roundCount })` → one entry per Round with its start, built on the shipped `fewWeeksRoundStarts`
   for a multi-day window and on `TOURNAMENT_SLOT_MINUTES` steps for a one-day window, selected by
@@ -533,7 +534,7 @@ Required cases, at minimum:
   (user story 14).
 - `tournamentSizeLine` and `tournamentStatusLine` never contain "quarter", "knockout", "champion",
   "final", "message" or "notified" — asserted directly, because user stories 72–73 are the kind of
-  promise that erodes silently.
+  promise that erodes silently. (Amended by ADR-0020 / TEM-293: Groups only tournaments only.)
 
 **Seam 2 — the chrome branch.** `isPoolTournament` / `showsPoolTournamentSeats` already exist and are
 already the branch. Add cases proving a legacy `friendly_tournament` with a null `poolCount` does

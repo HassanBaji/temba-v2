@@ -57,7 +57,8 @@ for several games.
    be false. The band's right-hand label shows the Round count instead (see below). Flag this to
    design.
 6. **No knockout copy.** "then quarters" and "top two go through" describe a bracket that does
-   not exist (CONTEXT: bracket is a later slice). Leave them out.
+   not exist (CONTEXT: bracket is a later slice). Leave them out. (Amended by ADR-0020 / TEM-293:
+   this now applies to Groups only tournaments; a tournament with a Knockout names it.)
 7. **No "X and Y are going" social line.** It is not in the agreed layout, and there is no
    friends concept to choose which names to show.
 

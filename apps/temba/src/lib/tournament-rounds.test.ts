@@ -3,12 +3,17 @@ import { describe, it } from "vitest";
 
 import { formatAbsoluteDay } from "./format-game-start";
 import {
-  isPoolTournament,
+  hasKnockout,
+  hasPools,
+  isDrawnTournament,
+  isKnockoutOnly,
   isPartnerRequiredGame,
+  plannedKnockoutRoundCount,
+  plannedTournamentRoundCount,
   poolRoundLabel,
   postedRoundCount,
   roundsPlayedLabel,
-  showsPoolTournamentSeats,
+  showsDrawnTournamentSeats,
   tournamentRoundSchedule,
   tournamentRoundSummary,
 } from "./tournament-rounds";
@@ -18,33 +23,150 @@ import {
   tournamentMatchMinutes,
 } from "./tournament-sizing";
 
-describe("isPoolTournament", () => {
+describe("hasPools", () => {
   it("is true only when Friendly tournament has a Pool count", () => {
-    assert.equal(isPoolTournament("friendly_tournament", 3), true);
-    assert.equal(isPoolTournament("friendly_tournament", null), false);
-    assert.equal(isPoolTournament("friendly_game", 3), false);
+    assert.equal(hasPools("friendly_tournament", 3), true);
+    assert.equal(hasPools("friendly_tournament", null), false);
+    assert.equal(hasPools("friendly_game", 3), false);
   });
 });
 
-describe("showsPoolTournamentSeats", () => {
+describe("isDrawnTournament", () => {
+  it("covers Groups only, a null-shape Pool row, and Knockout only", () => {
+    assert.equal(isDrawnTournament("friendly_tournament", 3, null), true);
+    assert.equal(
+      isDrawnTournament("friendly_tournament", 3, "groups_only"),
+      true,
+    );
+    assert.equal(
+      isDrawnTournament("friendly_tournament", null, "knockout_only"),
+      true,
+    );
+  });
+
+  it("leaves a legacy hand-built tournament and other formats out", () => {
+    assert.equal(isDrawnTournament("friendly_tournament", null, null), false);
+    assert.equal(isDrawnTournament("friendly_game", 3, null), false);
+    assert.equal(isDrawnTournament("americano", null, "knockout_only"), false);
+  });
+
+  it("gives a Knockout only tournament no Pools", () => {
+    assert.equal(hasPools("friendly_tournament", null), false);
+    assert.equal(isKnockoutOnly("friendly_tournament", "knockout_only"), true);
+    assert.equal(isKnockoutOnly("friendly_tournament", "groups_only"), false);
+    assert.equal(isKnockoutOnly("friendly_tournament", null), false);
+    assert.equal(hasKnockout("friendly_tournament", "knockout_only"), true);
+    assert.equal(hasKnockout("friendly_tournament", "groups_only"), false);
+    assert.equal(hasKnockout("friendly_tournament", null), false);
+  });
+});
+
+describe("plannedTournamentRoundCount", () => {
+  it("counts the Knockout rounds of the planned field on Knockout only", () => {
+    const knockout = {
+      format: "friendly_tournament",
+      poolCount: null,
+      roundCount: null,
+      tournamentShape: "knockout_only",
+    };
+    assert.equal(
+      plannedTournamentRoundCount({ ...knockout, teamsAllowed: 4 }),
+      2,
+    );
+    assert.equal(
+      plannedTournamentRoundCount({ ...knockout, teamsAllowed: 12 }),
+      4,
+    );
+    assert.equal(
+      plannedTournamentRoundCount({ ...knockout, teamsAllowed: 32 }),
+      5,
+    );
+  });
+
+  it("keeps the Pool Round count for Groups only and a null shape", () => {
+    for (const tournamentShape of [null, "groups_only"]) {
+      assert.equal(
+        plannedTournamentRoundCount({
+          format: "friendly_tournament",
+          teamsAllowed: 12,
+          poolCount: 3,
+          roundCount: null,
+          tournamentShape,
+        }),
+        resolvePlannedRoundCount(12, 3, null),
+      );
+    }
+  });
+});
+
+describe("plannedKnockoutRoundCount", () => {
+  const game = {
+    format: "friendly_tournament",
+    teamsAllowed: 12,
+    poolCount: 3,
+    qualifiersPerPool: null,
+  };
+
+  it("sizes the tree from the field on Knockout only", () => {
+    assert.equal(
+      plannedKnockoutRoundCount({
+        ...game,
+        poolCount: null,
+        tournamentShape: "knockout_only",
+      }),
+      4,
+    );
+  });
+
+  it("sizes the tree from the planned groups and Through from each group", () => {
+    const shape = { ...game, tournamentShape: "groups_then_knockout" };
+    assert.equal(plannedKnockoutRoundCount(shape), 3);
+    assert.equal(
+      plannedKnockoutRoundCount({ ...shape, qualifiersPerPool: 1 }),
+      2,
+    );
+    assert.equal(
+      plannedKnockoutRoundCount({ ...shape, qualifiersPerPool: 3 }),
+      4,
+    );
+  });
+
+  it("is null without a Knockout", () => {
+    assert.equal(
+      plannedKnockoutRoundCount({ ...game, tournamentShape: null }),
+      null,
+    );
+    assert.equal(
+      plannedKnockoutRoundCount({ ...game, tournamentShape: "groups_only" }),
+      null,
+    );
+  });
+});
+
+describe("showsDrawnTournamentSeats", () => {
   it("is true for an individual Pool tournament", () => {
     assert.equal(
-      showsPoolTournamentSeats("friendly_tournament", 3, "individual"),
+      showsDrawnTournamentSeats("friendly_tournament", 3, null, "individual"),
       true,
     );
   });
 
   it("is false for team-only, legacy, or other formats", () => {
     assert.equal(
-      showsPoolTournamentSeats("friendly_tournament", 3, "team_only"),
+      showsDrawnTournamentSeats("friendly_tournament", 3, null, "team_only"),
       false,
     );
     assert.equal(
-      showsPoolTournamentSeats("friendly_tournament", null, "individual"),
+      showsDrawnTournamentSeats(
+        "friendly_tournament",
+        null,
+        null,
+        "individual",
+      ),
       false,
     );
     assert.equal(
-      showsPoolTournamentSeats("friendly_game", 3, "individual"),
+      showsDrawnTournamentSeats("friendly_game", 3, null, "individual"),
       false,
     );
   });

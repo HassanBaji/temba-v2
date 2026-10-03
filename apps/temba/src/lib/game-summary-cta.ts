@@ -3,7 +3,7 @@ import {
   type FriendlyGamePartnerSides,
 } from "~/lib/friendly-game-partner";
 import { JOIN_GAME_ACTION } from "~/lib/game-copy";
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament } from "~/lib/tournament-rounds";
 
 export type GameSummaryCta = "join" | "join_waitlist" | "register" | "view";
 
@@ -18,6 +18,7 @@ export type GameSummaryCtaInput = {
   isWaitlisted: boolean;
   registrationStatus: string;
   poolCount?: number | null;
+  tournamentShape?: string | null;
   tournament?: { drawPosted: boolean } | null;
 };
 
@@ -41,7 +42,7 @@ export function gameSummaryPrimaryAction(
 
   if (game.format === "friendly_tournament") {
     if (
-      isPoolTournament(game.format, game.poolCount) &&
+      isDrawnTournament(game.format, game.poolCount, game.tournamentShape) &&
       game.canRegister &&
       game.tournament?.drawPosted !== true
     ) {

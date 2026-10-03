@@ -1,8 +1,11 @@
 import {
   DEFAULT_MATCH_MINUTES,
+  DEFAULT_TOURNAMENT_SHAPE,
   earliestCreateDay,
   friendlyTournamentDefaultName,
+  parseCreateTournamentShape,
   type CreateGameTypeId,
+  type CreateTournamentShape,
 } from "~/lib/create-game-flow";
 import { parseDateInputValue } from "~/lib/game-window";
 import { isAssignableDisplayLevelBand, LEVEL_BANDS } from "~/lib/level-bands";
@@ -11,6 +14,7 @@ import {
   type LevelBandSelectValue,
 } from "~/lib/level-range";
 import {
+  DEFAULT_QUALIFIERS_PER_POOL,
   defaultPoolCount,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "~/lib/tournament-sizing";
@@ -28,8 +32,10 @@ export type CreateGameDraft = {
   levelMax: LevelBandSelectValue;
   preferLevelRange: boolean;
   teamCount: number;
+  tournamentShape: CreateTournamentShape;
   poolCount: number;
   roundCount: number | null;
+  qualifiersPerPool: number;
   matchMinutes: string;
   name: string;
   nameTouched: boolean;
@@ -61,8 +67,10 @@ export function initialCreateGameDraft(now: Date): CreateGameDraft {
     levelMax: LEVEL_BAND_SELECT_NONE,
     preferLevelRange: false,
     teamCount: TOURNAMENT_DEFAULT_TEAM_COUNT,
+    tournamentShape: DEFAULT_TOURNAMENT_SHAPE,
     poolCount: defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT),
     roundCount: null,
+    qualifiersPerPool: DEFAULT_QUALIFIERS_PER_POOL,
     matchMinutes: String(DEFAULT_MATCH_MINUTES),
     name: friendlyTournamentDefaultName(day),
     nameTouched: false,
@@ -90,8 +98,10 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     levelMax: draft.levelMax,
     preferLevelRange: draft.preferLevelRange,
     teamCount: draft.teamCount,
+    tournamentShape: draft.tournamentShape,
     poolCount: draft.poolCount,
     roundCount: draft.roundCount,
+    qualifiersPerPool: draft.qualifiersPerPool,
     matchMinutes: draft.matchMinutes,
     name: draft.name,
     nameTouched: draft.nameTouched,
@@ -129,6 +139,14 @@ export function parseCreateGameDraft(
     return null;
   }
   const record = value as Record<string, unknown>;
+  const tournamentShape =
+    record.tournamentShape === undefined
+      ? DEFAULT_TOURNAMENT_SHAPE
+      : parseCreateTournamentShape(record.tournamentShape);
+  const qualifiersPerPool =
+    record.qualifiersPerPool === undefined
+      ? DEFAULT_QUALIFIERS_PER_POOL
+      : record.qualifiersPerPool;
   const strings = [
     "groupId",
     "venueId",
@@ -155,8 +173,10 @@ export function parseCreateGameDraft(
     !isLevelBandSelectValue(record.levelMin) ||
     !isLevelBandSelectValue(record.levelMax) ||
     !isCount(record.teamCount) ||
+    tournamentShape == null ||
     !isCount(record.poolCount) ||
     !(record.roundCount === null || isCount(record.roundCount)) ||
+    !isCount(qualifiersPerPool) ||
     parseDateInputValue(record.day as string) === undefined
   ) {
     return null;
@@ -174,8 +194,10 @@ export function parseCreateGameDraft(
     levelMax: record.levelMax,
     preferLevelRange: record.preferLevelRange as boolean,
     teamCount: record.teamCount,
+    tournamentShape,
     poolCount: record.poolCount,
     roundCount: record.roundCount,
+    qualifiersPerPool,
     matchMinutes: record.matchMinutes as string,
     name: record.name as string,
     nameTouched: record.nameTouched as boolean,

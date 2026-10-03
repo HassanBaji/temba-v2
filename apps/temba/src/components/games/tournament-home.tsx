@@ -17,6 +17,7 @@ import {
   TournamentUndoPoolDraw,
 } from "~/components/games/tournament-draw-drawer";
 import { TournamentHero } from "~/components/games/tournament-hero";
+import { TournamentKnockoutTree } from "~/components/games/tournament-knockout-tree";
 import {
   TournamentMergeBanner,
   TournamentMergeDrawer,
@@ -55,7 +56,9 @@ import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
   GROUP_ROW_LABEL,
+  GROUPS_THEN_KNOCKOUT_LEAD,
   INVITE_ACTION_LABEL,
+  KNOCKOUT_ONLY_LEAD,
   LEAVE_THE_SEAT_LABEL,
   ORGANIZER_ROW_LABEL,
   PRICE_PER_MATCH_SUFFIX,
@@ -64,7 +67,9 @@ import {
   TOURNAMENT_EYEBROW_PREFIX,
   YOU_OWE_AFTER_EACH_MATCH,
   YOU_OWE_ROW_LABEL,
+  drawnTournamentProgressLine,
   isTournamentStandingsView,
+  knockoutSizeLine,
   tournamentEyebrow,
   tournamentFieldSummary,
   tournamentOrganizerName,
@@ -78,6 +83,15 @@ import {
 } from "~/lib/tournament-home";
 import { tournamentShowsTakeSeat } from "~/lib/tournament-join";
 import {
+  KNOCKOUT_HEADING,
+  KNOCKOUT_NOT_THROUGH_COPY,
+  hasDraftKnockoutDraw,
+  knockoutChampion,
+  knockoutChampionLine,
+  viewerMissedKnockout,
+  type KnockoutMatchPlace,
+} from "~/lib/tournament-knockout-view";
+import {
   canOpenOrganizerDrawDrawer,
   canShowUndoPoolDraw,
   hasDraftPoolDraw,
@@ -87,7 +101,10 @@ import {
   viewerTournamentTotalCents,
 } from "~/lib/tournament-price";
 import {
+  hasKnockout,
+  isKnockoutOnly,
   isPartnerRequiredGame,
+  plannedKnockoutRoundCount,
   roundsPlayedLabel,
   tournamentRoundSchedule,
   type TournamentRoundScheduleEntry,
@@ -138,6 +155,7 @@ export function TournamentHome({
   onDraw,
   onPost,
   onUndo,
+  onCancelKnockoutMatch,
 }: {
   data: GameDetail;
   sharePending: boolean;
@@ -179,10 +197,14 @@ export function TournamentHome({
   onDraw: () => void | Promise<void>;
   onPost: () => void | Promise<void>;
   onUndo: () => void | Promise<void>;
+  onCancelKnockoutMatch?: (place: KnockoutMatchPlace) => void;
 }) {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
+  const knockoutOnly = isKnockoutOnly(data.format, data.tournamentShape);
+  const thenKnockout =
+    !knockoutOnly && hasKnockout(data.format, data.tournamentShape);
   const sizing =
     data.poolCount != null && data.teamsAllowed != null
       ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
@@ -206,6 +228,8 @@ export function TournamentHome({
       Math.max(field.seatTotal, data.playersAllowed ?? 0) - field.seatsTaken,
     teamCount: data.teamsAllowed ?? data.sides.length,
     organizerName,
+    knockoutOnly,
+    thenKnockout,
   });
   const matchesForViewer = viewerTournamentMatchCount(data);
   const totalCents =
@@ -239,7 +263,10 @@ export function TournamentHome({
     drawPosted: drawn,
   };
   const showDrawEntry = canOpenOrganizerDrawDrawer(drawGate);
-  const showUndo = canShowUndoPoolDraw(drawGate);
+  const showUndo = canShowUndoPoolDraw({
+    ...drawGate,
+    canUndo: data.canUndoDraw,
+  });
   const canLeaveGame =
     (data.isSeated || data.isRegistered) && data.canLeave && !data.isWaitlisted;
   const schedule =
@@ -269,13 +296,20 @@ export function TournamentHome({
       {drawn ? (
         <TournamentStandingsTree
           name={data.name ?? "Tournament"}
-          roundsPlayed={roundsPlayedLabel(data.poolTables, roundCount)}
+          roundsPlayed={drawnTournamentProgressLine({
+            roundsPlayed: roundsPlayedLabel(data.poolTables, roundCount),
+            knockout: data.knockout,
+          })}
           poolTables={data.poolTables}
+          knockoutOnly={knockoutOnly}
+          groupsThenKnockout={thenKnockout}
+          knockout={data.knockout}
           backHref={backHref}
           showUndo={showUndo}
           undoPending={undoPending}
           undoError={undoError}
           onUndo={onUndo}
+          onCancelMatch={isOrganizerActive ? onCancelKnockoutMatch : undefined}
         />
       ) : (
         <>
@@ -283,14 +317,23 @@ export function TournamentHome({
             name={data.name ?? "Tournament"}
             eyebrow={
               roundCount != null
-                ? tournamentEyebrow(roundCount)
+                ? tournamentEyebrow(roundCount, knockoutOnly)
                 : TOURNAMENT_EYEBROW_PREFIX
             }
             startLine={tournamentStartLine(
               data.windowStart,
               data.venue?.name ?? null,
             )}
-            sizeLine={sizing?.ok ? tournamentSizeLine(sizing.sizing) : null}
+            sizeLine={
+              knockoutOnly
+                ? knockoutSizeLine(data.teamsAllowed ?? data.sides.length)
+                : sizing?.ok
+                  ? tournamentSizeLine(
+                      sizing.sizing,
+                      plannedKnockoutRoundCount(data),
+                    )
+                  : null
+            }
             statusLine={statusLine}
             viewerUserId={data.viewerUserId}
             left={viewerSide?.left ?? null}
@@ -319,6 +362,7 @@ export function TournamentHome({
             windowEnd={data.windowEnd}
             matchMinutes={data.matchMinutes}
             courtNames={data.recordedCourts.map((court) => court.name)}
+            knockoutOnly={knockoutOnly}
             showMergeBanner={showMergeBanner}
             showMergeEntry={showMergeEntry}
             showDrawEntry={showDrawEntry}
@@ -422,6 +466,7 @@ function TournamentPredrawTree({
   windowEnd,
   matchMinutes,
   courtNames,
+  knockoutOnly,
   showMergeBanner,
   showMergeEntry,
   showDrawEntry,
@@ -457,6 +502,7 @@ function TournamentPredrawTree({
   windowEnd: Date | string | null;
   matchMinutes: number | null;
   courtNames: readonly string[];
+  knockoutOnly: boolean;
   showMergeBanner: boolean;
   showMergeEntry: boolean;
   showDrawEntry: boolean;
@@ -507,7 +553,12 @@ function TournamentPredrawTree({
         <TournamentDrawEntry
           completeTeams={completeTeams}
           teamCount={fieldSize}
-          hasDraft={hasDraftPoolDraw(gameTeams)}
+          hasDraft={
+            knockoutOnly
+              ? hasDraftKnockoutDraw(gameTeams)
+              : hasDraftPoolDraw(gameTeams)
+          }
+          knockoutOnly={knockoutOnly}
           onOpen={onOpenDraw}
         />
       ) : null}
@@ -519,12 +570,16 @@ function TournamentPredrawTree({
         mergePending={mergePending}
         mergeError={mergeError}
         onMerge={onMerge}
+        knockoutOnly={knockoutOnly}
       />
       <TournamentDrawDrawer
         open={drawOpen}
         onOpenChange={onDrawOpenChange}
+        knockoutOnly={knockoutOnly}
+        viewerUserId={viewerUserId}
         gameTeams={gameTeams}
         teamCount={fieldSize}
+        completeTeams={completeTeams}
         storedRoundCount={storedRoundCount}
         windowStart={windowStart}
         windowEnd={windowEnd}
@@ -557,38 +612,92 @@ function TournamentStandingsTree({
   name,
   roundsPlayed,
   poolTables,
+  knockoutOnly,
+  groupsThenKnockout,
+  knockout,
   backHref,
   showUndo,
   undoPending,
   undoError,
   onUndo,
+  onCancelMatch,
 }: {
   name: string;
   roundsPlayed: string | null;
   poolTables: GameDetail["poolTables"];
+  knockoutOnly: boolean;
+  groupsThenKnockout: boolean;
+  knockout: GameDetail["knockout"];
   backHref: string;
   showUndo: boolean;
   undoPending: boolean;
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
+  onCancelMatch?: (place: KnockoutMatchPlace) => void;
 }) {
+  const champion = knockoutChampion(knockout);
+  const notThrough =
+    groupsThenKnockout &&
+    viewerMissedKnockout({
+      rounds: knockout,
+      poolStageFinished: Boolean(poolTables?.finished),
+      viewerHasTeam: poolTables?.viewerPoolIndex != null,
+    });
   return (
     <div className="space-y-6">
       <div>
         <TournamentStandingsHeader
           name={name}
           roundsPlayed={roundsPlayed}
-          finished={Boolean(poolTables?.finished)}
+          finished={!groupsThenKnockout && Boolean(poolTables?.finished)}
           backHref={backHref}
+          {...(knockoutOnly
+            ? { heading: KNOCKOUT_HEADING, lead: KNOCKOUT_ONLY_LEAD }
+            : groupsThenKnockout
+              ? { lead: GROUPS_THEN_KNOCKOUT_LEAD }
+              : {})}
+          championLine={champion ? knockoutChampionLine(champion) : null}
         />
-        {poolTables ? (
+        {knockoutOnly ? (
+          knockout ? (
+            <div className="pt-[18px]">
+              <TournamentKnockoutTree
+                rounds={knockout}
+                onCancelMatch={onCancelMatch}
+              />
+            </div>
+          ) : null
+        ) : poolTables ? (
           <div className="pt-[18px]">
             <TournamentStandingsSection poolTables={poolTables} />
           </div>
         ) : null}
       </div>
+      {groupsThenKnockout && knockout ? (
+        <section aria-labelledby="tournament-knockout-heading">
+          <h2
+            id="tournament-knockout-heading"
+            className="font-expanded text-h2 tracking-[-0.03em]"
+          >
+            {KNOCKOUT_HEADING}
+          </h2>
+          {notThrough ? (
+            <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
+              {KNOCKOUT_NOT_THROUGH_COPY}
+            </p>
+          ) : null}
+          <div className="pt-[18px]">
+            <TournamentKnockoutTree
+              rounds={knockout}
+              headingLevel="h3"
+              onCancelMatch={onCancelMatch}
+            />
+          </div>
+        </section>
+      ) : null}
       {showUndo ? (
         <TournamentUndoPoolDraw
+          knockoutOnly={knockoutOnly}
           undoPending={undoPending}
           undoError={undoError}
           onUndo={onUndo}

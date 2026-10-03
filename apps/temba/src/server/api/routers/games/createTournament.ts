@@ -5,6 +5,7 @@ import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  TournamentShapeEnum,
   gameCourts,
   games,
 } from "@repo/db";
@@ -17,7 +18,10 @@ import {
 import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
 import {
   sizeFriendlyTournament,
+  tournamentTeamCountIssue,
+  validateQualifiersPerPool,
   validateRoundCount,
+  type TournamentSizingIssue,
 } from "~/lib/tournament-sizing";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -35,6 +39,83 @@ const ONE_DAY_WINDOW_MESSAGE =
 
 function windowWithinOneDay(windowStart: Date, windowEnd: Date) {
   return windowEnd.getTime() - windowStart.getTime() <= ONE_DAY_MS;
+}
+
+type RoundCountIssue = { path: "roundCount"; message: string };
+type QualifiersIssue = { path: "qualifiersPerPool"; message: string };
+
+const QUALIFIERS_SHAPE_MESSAGE =
+  "Through from each group applies to Groups, then knockout only";
+
+type ShapeSizing =
+  | {
+      ok: true;
+      tournamentShape: TournamentShapeEnum;
+      playerCount: number;
+      teamCount: number;
+      poolCount: number | null;
+      roundCount: number | null;
+      qualifiersPerPool: number | null;
+    }
+  | {
+      ok: false;
+      issue: TournamentSizingIssue | RoundCountIssue | QualifiersIssue;
+    };
+
+function sizeTournamentShape(value: {
+  tournamentShape?: "groups_only" | "groups_then_knockout" | "knockout_only";
+  teamCount: number;
+  poolCount?: number;
+  roundCount?: number | null;
+  qualifiersPerPool?: number | null;
+}): ShapeSizing {
+  const groupsThenKnockout = value.tournamentShape === "groups_then_knockout";
+  if (!groupsThenKnockout && value.qualifiersPerPool != null) {
+    return {
+      ok: false,
+      issue: { path: "qualifiersPerPool", message: QUALIFIERS_SHAPE_MESSAGE },
+    };
+  }
+  if (value.tournamentShape === "knockout_only") {
+    const issue = tournamentTeamCountIssue(value.teamCount);
+    if (issue) {
+      return { ok: false, issue };
+    }
+    return {
+      ok: true,
+      tournamentShape: TournamentShapeEnum.KNOCKOUT_ONLY,
+      playerCount: value.teamCount * 2,
+      teamCount: value.teamCount,
+      poolCount: null,
+      roundCount: null,
+      qualifiersPerPool: null,
+    };
+  }
+  const sized = sizeFriendlyTournament(value.teamCount, value.poolCount ?? NaN);
+  if (!sized.ok) {
+    return sized;
+  }
+  const rounds = validateRoundCount(sized.sizing.poolSizes, value.roundCount);
+  if (!rounds.ok) {
+    return rounds;
+  }
+  const qualifiers = groupsThenKnockout
+    ? validateQualifiersPerPool(sized.sizing.poolSizes, value.qualifiersPerPool)
+    : null;
+  if (qualifiers && !qualifiers.ok) {
+    return qualifiers;
+  }
+  return {
+    ok: true,
+    tournamentShape: groupsThenKnockout
+      ? TournamentShapeEnum.GROUPS_THEN_KNOCKOUT
+      : TournamentShapeEnum.GROUPS_ONLY,
+    playerCount: sized.sizing.playerCount,
+    teamCount: sized.sizing.teamCount,
+    poolCount: sized.sizing.poolCount,
+    roundCount: rounds.roundCount,
+    qualifiersPerPool: qualifiers?.qualifiersPerPool ?? null,
+  };
 }
 
 function assertMatchMinutes(matchMinutes: number) {
@@ -58,9 +139,13 @@ export const createTournamentInputSchema = z
     isPublic: z.boolean(),
     registrationMode: z.literal("individual").optional(),
     allowSoloRegister: z.boolean().optional().default(true),
+    tournamentShape: z
+      .enum(["groups_only", "groups_then_knockout", "knockout_only"])
+      .optional(),
     teamCount: z.number().int(),
-    poolCount: z.number().int(),
+    poolCount: z.number().int().optional(),
     roundCount: z.number().int().nullable().optional(),
+    qualifiersPerPool: z.number().int().nullable().optional(),
     matchMinutes: z.number().int().min(10).max(120).multipleOf(5),
     windowStart: z.coerce.date(),
     windowEnd: z.coerce.date(),
@@ -97,25 +182,13 @@ export const createTournamentInputSchema = z
     path: ["windowEnd"],
   })
   .superRefine((value, ctx) => {
-    const sized = sizeFriendlyTournament(value.teamCount, value.poolCount);
+    const sized = sizeTournamentShape(value);
     if (!sized.ok) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: sized.issue.message,
         path: [sized.issue.path],
       });
-    } else {
-      const rounds = validateRoundCount(
-        sized.sizing.poolSizes,
-        value.roundCount,
-      );
-      if (!rounds.ok) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: rounds.issue.message,
-          path: [rounds.issue.path],
-        });
-      }
     }
     if (
       value.courtIds != null &&
@@ -163,18 +236,11 @@ export async function createTournament(
     });
   }
 
-  const sized = sizeFriendlyTournament(input.teamCount, input.poolCount);
+  const sized = sizeTournamentShape(input);
   if (!sized.ok) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: sized.issue.message,
-    });
-  }
-  const rounds = validateRoundCount(sized.sizing.poolSizes, input.roundCount);
-  if (!rounds.ok) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: rounds.issue.message,
     });
   }
 
@@ -200,10 +266,12 @@ export async function createTournament(
         isPublic: input.isPublic,
         windowStart: input.windowStart,
         windowEnd: input.windowEnd,
-        playersAllowed: sized.sizing.playerCount,
-        teamsAllowed: sized.sizing.teamCount,
-        poolCount: sized.sizing.poolCount,
-        roundCount: rounds.roundCount,
+        playersAllowed: sized.playerCount,
+        teamsAllowed: sized.teamCount,
+        tournamentShape: sized.tournamentShape,
+        poolCount: sized.poolCount,
+        roundCount: sized.roundCount,
+        qualifiersPerPool: sized.qualifiersPerPool,
         matchMinutes: input.matchMinutes,
         pricePerPlayerCents: input.pricePerPlayerCents ?? null,
         levelMinTenths: input.levelMinTenths ?? null,

@@ -91,6 +91,57 @@ export const CREATE_FLOW_MATCH_MINUTE_CHIPS = [20, 30, 45] as const;
 
 export const DEFAULT_MATCH_MINUTES = 45;
 
+export type CreateTournamentShape =
+  | "groups_only"
+  | "groups_then_knockout"
+  | "knockout_only";
+
+export const DEFAULT_TOURNAMENT_SHAPE: CreateTournamentShape = "groups_only";
+
+export const TOURNAMENT_FORMAT_LABEL = "Format";
+
+export const KNOCKOUT_REVIEW_LABEL = "Knockout";
+
+export const KNOCKOUT_ONLY_FORMAT_LABEL = "Knockout only";
+
+export const GROUPS_THEN_KNOCKOUT_FORMAT_LABEL = "Groups, then knockout";
+
+export const TOURNAMENT_SHAPE_OPTIONS: readonly {
+  id: CreateTournamentShape;
+  title: string;
+  description: string;
+}[] = [
+  {
+    id: "groups_only",
+    title: "Groups only",
+    description: "Everyone plays the same number of games",
+  },
+  {
+    id: "knockout_only",
+    title: KNOCKOUT_ONLY_FORMAT_LABEL,
+    description: "Lose once and you are done for the day",
+  },
+  {
+    id: "groups_then_knockout",
+    title: GROUPS_THEN_KNOCKOUT_FORMAT_LABEL,
+    description: "The best in each group carry on",
+  },
+];
+
+export function parseCreateTournamentShape(
+  value: unknown,
+): CreateTournamentShape | null {
+  return value === "groups_only" ||
+    value === "groups_then_knockout" ||
+    value === "knockout_only"
+    ? value
+    : null;
+}
+
+export function createShapeHasPools(shape: CreateTournamentShape) {
+  return shape !== "knockout_only";
+}
+
 export const FRIENDLY_TOURNAMENT_UNEVEN_GROUPS =
   "Groups are uneven. Some Game teams play one more Match than others.";
 
@@ -116,8 +167,10 @@ export const CREATE_FLOW_FIELD_IDS: Record<string, string> = {
   windowStart: "game-window-start",
   windowEnd: "game-window-finish",
   teamCount: "tournament-team-count",
+  tournamentShape: "tournament-shape",
   poolCount: "tournament-pool-count",
   roundCount: "tournament-round-count",
+  qualifiersPerPool: "tournament-qualifiers-per-pool",
   matchMinutes: "tournament-match-minutes",
   name: "tournament-name",
 };
@@ -133,8 +186,10 @@ const STEP_TWO_FIELDS = new Set([
 const STEP_THREE_FIELDS = new Set([
   "windowStart",
   "windowEnd",
+  "tournamentShape",
   "poolCount",
   "roundCount",
+  "qualifiersPerPool",
   "matchMinutes",
 ]);
 
@@ -642,8 +697,16 @@ export function friendlyTournamentGroupsLine(sizing: TournamentSizing) {
   return formatPoolSizeLine(sizing);
 }
 
-export function friendlyTournamentFormatLabel(poolCount: number) {
-  return poolCount === 1 ? "1 group" : `${poolCount} groups`;
+export function friendlyTournamentFormatLabel(
+  poolCount: number,
+  thenKnockout = false,
+) {
+  const groups = poolCount === 1 ? "1 group" : `${poolCount} groups`;
+  return thenKnockout ? `${groups}, then knockout` : groups;
+}
+
+export function knockoutMatchCountLabel(matches: number) {
+  return matches === 1 ? "1 knockout Match" : `${matches} knockout Matches`;
 }
 
 export function friendlyTournamentMatchCountLabel(poolMatches: number) {
@@ -657,6 +720,14 @@ export function friendlyTournamentScheduleLine(
   return `${friendlyTournamentMatchCountLabel(poolMatches)}, last Match finishes at ${clock}`;
 }
 
+export function groupsThenKnockoutScheduleLine(
+  poolMatches: number,
+  knockoutMatches: number,
+  clock: string,
+) {
+  return `${friendlyTournamentMatchCountLabel(poolMatches)} and ${knockoutMatchCountLabel(knockoutMatches)}, last Match finishes at ${clock}`;
+}
+
 export function friendlyTournamentSchedule(input: {
   start: Date;
   finish: Date;
@@ -664,24 +735,37 @@ export function friendlyTournamentSchedule(input: {
   courtCount: number;
   matchMinutes: number;
   clock: (date: Date) => string;
+  knockoutOnly?: boolean;
+  /** Groups then knockout: the Knockout rounds after the Pool Rounds. */
+  knockoutRoundMatches?: readonly number[];
 }): { line: string | null; overruns: boolean } {
+  const knockoutRoundMatches = input.knockoutRoundMatches ?? [];
   const fit = oneDayFit({
     start: input.start,
     finish: input.finish,
-    roundMatches: input.roundMatches,
+    roundMatches: [...input.roundMatches, ...knockoutRoundMatches],
     courtCount: input.courtCount,
     matchMinutes: input.matchMinutes,
   });
-  const poolMatches = input.roundMatches.reduce(
-    (total, matches) => total + matches,
-    0,
-  );
-  return {
-    line: fit.lastFinish
-      ? friendlyTournamentScheduleLine(poolMatches, input.clock(fit.lastFinish))
-      : null,
-    overruns: fit.overruns,
-  };
+  const sum = (counts: readonly number[]) =>
+    counts.reduce((total, matches) => total + matches, 0);
+  const matchCount = sum(input.roundMatches);
+  const clock = fit.lastFinish ? input.clock(fit.lastFinish) : null;
+  let line: string | null = null;
+  if (clock != null) {
+    if (input.knockoutOnly) {
+      line = `${knockoutMatchCountLabel(matchCount)}, last Match finishes at ${clock}`;
+    } else if (knockoutRoundMatches.length > 0) {
+      line = groupsThenKnockoutScheduleLine(
+        matchCount,
+        sum(knockoutRoundMatches),
+        clock,
+      );
+    } else {
+      line = friendlyTournamentScheduleLine(matchCount, clock);
+    }
+  }
+  return { line, overruns: fit.overruns };
 }
 
 export function friendlyTournamentPreviewDetail(input: {

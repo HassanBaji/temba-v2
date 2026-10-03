@@ -1,14 +1,15 @@
 import {
-  isPoolMatchRow,
-  isPoolTournamentSummaryRow,
+  isTournamentMatchRow,
+  isDrawnTournamentSummaryRow,
   tournamentCardAction,
   tournamentCardActionLabel,
+  tournamentMatchRoundLabel,
   tournamentMatchup,
   tournamentMatchupName,
   tournamentTeamsLine,
   type TournamentCardInput,
+  type TournamentKnockoutMatch,
 } from "~/lib/tournament-card";
-import { poolRoundLabel } from "~/lib/tournament-rounds";
 
 type Occupant = { name: string; isViewer: boolean } | null;
 
@@ -25,6 +26,7 @@ export type HomeComingUpSource = TournamentCardInput & {
   sides: readonly { left: Occupant; right: Occupant }[];
   roundNumber: number | null;
   roundCount: number | null;
+  knockoutMatch?: TournamentKnockoutMatch | null;
 };
 
 export type HomeComingUpGameRow = {
@@ -69,7 +71,7 @@ function tournamentTitle(game: HomeComingUpSource) {
 
 function toRow(game: HomeComingUpSource): HomeComingUpRow {
   const startsAt = new Date(game.startTime);
-  if (game.matchId != null && isPoolMatchRow(game)) {
+  if (game.matchId != null && isTournamentMatchRow(game)) {
     const opponent = tournamentMatchupName(
       tournamentMatchup(game.sides).opponent,
     );
@@ -79,11 +81,11 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
       rowKey: game.matchId,
       title: tournamentTitle(game),
       startsAt,
-      roundTag: poolRoundLabel(game.roundNumber, game.roundCount),
+      roundTag: tournamentMatchRoundLabel(game),
       opponentLine: opponent ? `vs ${opponent}` : null,
     };
   }
-  if (isPoolTournamentSummaryRow(game)) {
+  if (isDrawnTournamentSummaryRow(game)) {
     const action = tournamentCardAction(game);
     return {
       kind: "tournament",
@@ -106,7 +108,7 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
   };
 }
 
-/** Pool tournaments behind the hero keep their tournament identity in Coming up. */
+/** Drawn tournaments behind the hero keep their tournament identity in Coming up. */
 export function homeComingUpRows(games: readonly HomeComingUpSource[]) {
   return games.map(toRow);
 }

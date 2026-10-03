@@ -14,6 +14,10 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
+import {
+  takeBackKnockoutQualifiers,
+  takeBackKnockoutWinner,
+} from "~/server/games/knockout-advance";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
 import { wrongScoreReversalEligibility } from "~/server/games/wrong-score-reversal";
 
@@ -87,6 +91,8 @@ export async function reportWrongScore(
         message: eligibility.reason,
       });
     }
+    await takeBackKnockoutWinner(tx, locked);
+    await takeBackKnockoutQualifiers(tx, game, locked);
 
     const matchEvents = await tx.query.ratingEvents.findMany({
       where: eq(ratingEvents.matchId, locked.id),

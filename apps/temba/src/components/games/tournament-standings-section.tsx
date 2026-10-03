@@ -143,11 +143,17 @@ export function TournamentStandingsHeader({
   roundsPlayed,
   finished,
   backHref,
+  heading = STANDINGS_HEADING,
+  lead = TOURNAMENT_ENDS_COPY,
+  championLine = null,
 }: {
   name: string;
   roundsPlayed: string | null;
   finished: boolean;
   backHref: string;
+  heading?: string;
+  lead?: string;
+  championLine?: string | null;
 }) {
   return (
     <header className={cn("border-rule border-b py-[22px]", pageBleed)}>
@@ -160,16 +166,19 @@ export function TournamentStandingsHeader({
         )}
       </div>
       <PageTitle variant="hero" className="mt-6">
-        {STANDINGS_HEADING}
+        {heading}
       </PageTitle>
       <p className="text-body mt-2">{name}</p>
       <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
-        {TOURNAMENT_ENDS_COPY}
+        {lead}
       </p>
       {finished ? (
         <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
           {TOURNAMENT_FINISHED_COPY}
         </p>
+      ) : null}
+      {championLine ? (
+        <p className="text-body mt-2 font-semibold">{championLine}</p>
       ) : null}
     </header>
   );

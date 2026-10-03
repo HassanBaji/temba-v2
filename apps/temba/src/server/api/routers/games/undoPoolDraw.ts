@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { gameTeams, games, matches } from "@repo/db";
 
-import { isPoolTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament, isKnockoutOnly } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -14,6 +14,14 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export const UNDO_AFTER_SET_MESSAGE =
   "Cannot undo the group draw after a Set has been played";
+export const UNDO_KNOCKOUT_AFTER_SET_MESSAGE =
+  "Cannot undo the draw after a Set has been played";
+
+function drawNoun(game: { format: string; tournamentShape: string | null }) {
+  return isKnockoutOnly(game.format, game.tournamentShape)
+    ? "draw"
+    : "group draw";
+}
 
 export async function undoPoolDraw(
   database: DbClient,
@@ -25,13 +33,10 @@ export async function undoPoolDraw(
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot undo the group draw on a cancelled Game",
+      message: `Cannot undo the ${drawNoun(game)} on a cancelled Game`,
     });
   }
-  if (
-    !isPoolTournament(game.format, game.poolCount) ||
-    game.poolCount == null
-  ) {
+  if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Undo the group draw on a Friendly tournament",
@@ -40,7 +45,7 @@ export async function undoPoolDraw(
   if (game.drawPostedAt == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "The group draw has not been posted",
+      message: `The ${drawNoun(game)} has not been posted`,
     });
   }
 
@@ -55,7 +60,9 @@ export async function undoPoolDraw(
   ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: UNDO_AFTER_SET_MESSAGE,
+      message: isKnockoutOnly(game.format, game.tournamentShape)
+        ? UNDO_KNOCKOUT_AFTER_SET_MESSAGE
+        : UNDO_AFTER_SET_MESSAGE,
     });
   }
 
@@ -64,7 +71,7 @@ export async function undoPoolDraw(
     await tx.delete(matches).where(eq(matches.gameId, game.id));
     await tx
       .update(gameTeams)
-      .set({ poolIndex: null, updatedAt: now })
+      .set({ poolIndex: null, knockoutSeed: null, updatedAt: now })
       .where(eq(gameTeams.gameId, game.id));
     await tx
       .update(games)

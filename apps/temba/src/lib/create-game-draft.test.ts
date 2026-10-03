@@ -84,6 +84,58 @@ describe("create game draft", () => {
     );
   });
 
+  it("round-trips the Tournament shape and reads an older draft as Groups only", () => {
+    const draft = {
+      ...filledDraft(),
+      tournamentShape: "knockout_only" as const,
+    };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    assert.equal(initialCreateGameDraft(now).tournamentShape, "groups_only");
+    const stored = JSON.parse(
+      serializeCreateGameDraft(filledDraft()),
+    ) as Record<string, unknown>;
+    delete stored.tournamentShape;
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify(stored))?.tournamentShape,
+      "groups_only",
+    );
+    assert.equal(
+      parseCreateGameDraft(
+        JSON.stringify({ ...stored, tournamentShape: "bracket" }),
+      ),
+      null,
+    );
+  });
+
+  it("round-trips Through from each group and reads an older draft as 2", () => {
+    const draft = {
+      ...filledDraft(),
+      tournamentShape: "groups_then_knockout" as const,
+      qualifiersPerPool: 3,
+    };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    assert.equal(initialCreateGameDraft(now).qualifiersPerPool, 2);
+    const stored = JSON.parse(serializeCreateGameDraft(draft)) as Record<
+      string,
+      unknown
+    >;
+    delete stored.qualifiersPerPool;
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify(stored))?.qualifiersPerPool,
+      2,
+    );
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify({ ...stored, qualifiersPerPool: 0 })),
+      null,
+    );
+  });
+
   it("keeps the calendar day across month and year boundaries", () => {
     for (const day of ["2026-12-31", "2027-01-01", "2028-02-29"]) {
       const draft = { ...filledDraft(), day };

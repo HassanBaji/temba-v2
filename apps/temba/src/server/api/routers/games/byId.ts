@@ -17,9 +17,10 @@ import {
 } from "@repo/db";
 
 import { showsFriendlyRoster } from "~/lib/game-summary-cta";
+import { postedKnockoutRounds } from "~/lib/tournament-knockout-view";
 import {
   isPartnerRequiredGame,
-  isPoolTournament,
+  isDrawnTournament,
 } from "~/lib/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -55,6 +56,10 @@ import {
 } from "~/server/games/seats";
 import { bothSlotsFilled } from "~/server/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
+import {
+  isKnockoutMatch,
+  knockoutMatchIsLevel,
+} from "~/server/games/knockout-advance";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { computePoolTables } from "~/server/games/pool-table";
 import { setWinsForGames } from "~/server/games/set-wins-for-games";
@@ -341,7 +346,8 @@ export async function gameById(
       : [],
   );
   const sides =
-    isIndividualSeatGame(game) || isPoolTournament(game.format, game.poolCount)
+    isIndividualSeatGame(game) ||
+    isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
       ? await listGameSides(database, game)
       : [];
   const canPickSeat =
@@ -563,9 +569,16 @@ export async function gameById(
     playersAllowed: game.playersAllowed,
     teamsAllowed: game.teamsAllowed,
     poolCount: game.poolCount,
+    tournamentShape: game.tournamentShape,
+    qualifiersPerPool: game.qualifiersPerPool,
     roundCount: game.roundCount,
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
+    canUndoDraw:
+      game.drawPostedAt != null &&
+      !matchRows.some(
+        (match) => match.sets.length > 0 || match.status === "completed",
+      ),
     sport: game.sport,
     cancelledAt: game.cancelledAt,
     registrationClosedAt: game.registrationClosedAt,
@@ -615,7 +628,10 @@ export async function gameById(
         const frozen =
           match.status === "completed" || match.status === "cancelled";
         const canWriteSets =
-          !frozen && game.format !== "americano" && (organizer || onSides);
+          !frozen &&
+          game.format !== "americano" &&
+          (organizer || onSides) &&
+          (!isKnockoutMatch(match) || bothSlotsFilled(match));
         const sidesComplete = await bothSlottedTeamsComplete(database, match);
         const outcome = matchOutcome(match.sets);
         return {
@@ -624,11 +640,14 @@ export async function gameById(
           endTime: match.endTime,
           durationInMinutes: match.durationInMinutes,
           roundNumber: match.roundNumber,
+          knockoutRound: match.knockoutRound,
+          knockoutPosition: match.knockoutPosition,
           status: match.status,
           courtId: match.courtId,
           courtName: match.court?.name ?? null,
           slot1GameTeamId: match.slot1GameTeamId,
           slot2GameTeamId: match.slot2GameTeamId,
+          walkoverGameTeamId: match.walkoverGameTeamId,
           bothSlotsFilled: bothSlotsFilled(match),
           bothSidesComplete: sidesComplete,
           canAddSet: canWriteSets && (organizer || onSides),
@@ -639,7 +658,8 @@ export async function gameById(
             (organizer || onSides) &&
             sidesComplete &&
             match.sets.length > 0 &&
-            outcome.result !== "none",
+            outcome.result !== "none" &&
+            !knockoutMatchIsLevel(match, outcome.result),
           outcome,
           sets: match.sets.map((set) => ({
             id: set.id,
@@ -656,6 +676,7 @@ export async function gameById(
       name: row.name,
       sideIndex: row.sideIndex,
       poolIndex: row.poolIndex,
+      knockoutSeed: row.knockoutSeed,
       members: row.players.flatMap((link) =>
         link.gamePlayer.user
           ? [
@@ -724,6 +745,7 @@ export async function gameById(
         id: match.id,
         status: match.status,
         roundNumber: match.roundNumber,
+        knockoutRound: match.knockoutRound,
         startTime: match.startTime,
         slot1GameTeamId: match.slot1GameTeamId,
         slot2GameTeamId: match.slot2GameTeamId,
@@ -731,6 +753,43 @@ export async function gameById(
           slot1GamesWon: set.slot1GamesWon,
           slot2GamesWon: set.slot2GamesWon,
         })),
+      })),
+    }),
+    knockout: postedKnockoutRounds({
+      viewerUserId: args.userId,
+      gameTeams: teamRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        members: row.players.flatMap((link) =>
+          link.gamePlayer.user
+            ? [
+                {
+                  id: link.gamePlayer.user.id,
+                  name: link.gamePlayer.user.name,
+                },
+              ]
+            : [],
+        ),
+      })),
+      matches: matchRows.map((match) => ({
+        id: match.id,
+        knockoutRound: match.knockoutRound,
+        knockoutPosition: match.knockoutPosition,
+        startTime: match.startTime,
+        courtName: match.court?.name ?? null,
+        slot1GameTeamId: match.slot1GameTeamId,
+        slot2GameTeamId: match.slot2GameTeamId,
+        status: match.status,
+        result: matchOutcome(match.sets).result,
+        sets: match.sets.map((set) => ({
+          slot1GamesWon: set.slot1GamesWon,
+          slot2GamesWon: set.slot2GamesWon,
+        })),
+        walkoverGameTeamId: match.walkoverGameTeamId,
+        slot1SourcePoolIndex: match.slot1SourcePoolIndex,
+        slot1SourcePoolPosition: match.slot1SourcePoolPosition,
+        slot2SourcePoolIndex: match.slot2SourcePoolIndex,
+        slot2SourcePoolPosition: match.slot2SourcePoolPosition,
       })),
     }),
   };
