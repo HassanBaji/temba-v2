@@ -14,6 +14,8 @@ import {
   sortStandingMembers,
   standingPosition,
 } from "~/server/standing/compare-standing";
+import { hasStandingResults } from "~/server/standing/group-standing";
+import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
 import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient = typeof db | TestDatabase;
@@ -41,9 +43,9 @@ function slotUserIds(team: SlotTeam): string[] {
  * viewer stands, when the Group next plays, and how the viewer has been going
  * (`.scratch/groups-redesign/spec.md` §1.1 and §6).
  *
- * Three reads, whatever the number of Groups: the caller's memberships, the
- * member rows of those Groups, and the Games of those Groups with their
- * Matches. The Games read is batched across every Group id — one read per
+ * Reads are constant whatever the number of Groups: the caller's memberships,
+ * the Standing members of those Groups, and the Games of those Groups with
+ * their Matches. The Games read is batched across every Group id — one read per
  * Group would make a hot list query N+1 (spec Risk 2).
  */
 export async function mine(
@@ -70,28 +72,7 @@ export async function mine(
   const groupIds = memberships.map((membership) => membership.groupId);
   const groupIdSet = new Set(groupIds);
 
-  const memberRows = await database.query.groupMembers.findMany({
-    where: inArray(groupMembers.groupId, groupIds),
-    columns: {
-      groupId: true,
-      userId: true,
-      totalSetsWon: true,
-      totalPointsWon: true,
-      totalGamesPlayed: true,
-    },
-    with: {
-      user: {
-        columns: { name: true },
-      },
-    },
-  });
-
-  const membersByGroup = new Map<string, typeof memberRows>();
-  for (const row of memberRows) {
-    const list = membersByGroup.get(row.groupId) ?? [];
-    list.push(row);
-    membersByGroup.set(row.groupId, list);
-  }
+  const membersByGroup = await loadGroupStandingMembers(database, groupIds);
 
   const gameRows = await database.query.games.findMany({
     where: inArray(games.groupId, groupIds),
@@ -173,20 +154,12 @@ export async function mine(
 
     // A member who has not played yet holds no standing position: they sort
     // by name below everyone with results, which is not a rank worth reading.
-    const viewerHasResults =
-      membership.totalSetsWon > 0 ||
-      membership.totalPointsWon > 0 ||
-      membership.totalGamesPlayed > 0;
+    const viewerRecord = members.find((row) => row.userId === args.userId);
+    const viewerHasResults = viewerRecord
+      ? hasStandingResults(viewerRecord)
+      : false;
 
-    const sortedStanding = sortStandingMembers(
-      members.map((row) => ({
-        userId: row.userId,
-        totalSetsWon: row.totalSetsWon,
-        totalPointsWon: row.totalPointsWon,
-        totalGamesPlayed: row.totalGamesPlayed,
-        name: row.user.name,
-      })),
-    );
+    const sortedStanding = sortStandingMembers(members);
 
     return {
       id: group.id,

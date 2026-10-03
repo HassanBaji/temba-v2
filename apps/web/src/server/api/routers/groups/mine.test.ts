@@ -18,7 +18,9 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { groupById } from "~/server/api/routers/groups/byId";
 import { mine } from "~/server/api/routers/groups/mine";
+import { loadHome } from "~/server/api/routers/users/home";
 import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
@@ -61,12 +63,7 @@ async function insertGroup(
   args: {
     name: string;
     createdBy: string;
-    members?: {
-      userId: string;
-      totalSetsWon?: number;
-      totalPointsWon?: number;
-      totalGamesPlayed?: number;
-    }[];
+    members?: { userId: string }[];
   },
 ) {
   const [row] = await database
@@ -80,9 +77,6 @@ async function insertGroup(
     await database.insert(groupMembers).values({
       groupId: row.id,
       userId: member.userId,
-      totalSetsWon: member.totalSetsWon ?? 0,
-      totalPointsWon: member.totalPointsWon ?? 0,
-      totalGamesPlayed: member.totalGamesPlayed ?? 0,
     });
   }
   return row;
@@ -200,9 +194,9 @@ describe("groups.mine list facts", () => {
         name: "Tuesday Crew",
         createdBy: viewer.id,
         members: [
-          { userId: viewer.id, totalSetsWon: 3, totalGamesPlayed: 2 },
-          { userId: leader.id, totalSetsWon: 9, totalGamesPlayed: 5 },
-          { userId: rival.id, totalSetsWon: 1, totalGamesPlayed: 1 },
+          { userId: viewer.id },
+          { userId: leader.id },
+          { userId: rival.id },
         ],
       });
 
@@ -233,7 +227,7 @@ describe("groups.mine list facts", () => {
         matchId: lost.matchId,
         slot1UserId: rival.id,
         slot2UserId: viewer.id,
-        sets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 1 }],
       });
 
       // Two upcoming Games: the row reads the soonest one.
@@ -277,10 +271,7 @@ describe("groups.mine list facts", () => {
       const group = await insertGroup(db, {
         name: "Office League",
         createdBy: other.id,
-        members: [
-          { userId: other.id, totalSetsWon: 4, totalGamesPlayed: 3 },
-          { userId: viewer.id },
-        ],
+        members: [{ userId: other.id }, { userId: viewer.id }],
       });
 
       const rows = await mine(db, { userId: viewer.id, now: NOW });
@@ -309,9 +300,7 @@ describe("groups.mine list facts", () => {
         const group = await insertGroup(db, {
           name,
           createdBy: viewer.id,
-          members: [
-            { userId: viewer.id, totalSetsWon: 2, totalGamesPlayed: 1 },
-          ],
+          members: [{ userId: viewer.id }],
         });
         const played = await insertGame(db, {
           createdBy: viewer.id,
@@ -358,7 +347,7 @@ describe("groups.mine list facts", () => {
 
       expect(oneGroup).toHaveLength(1);
       expect(threeGroups).toHaveLength(3);
-      expect(oneGroupQueries).toBe(3);
+      expect(oneGroupQueries).toBe(4);
       expect(threeGroupQueries).toBe(oneGroupQueries);
     } finally {
       await close();
@@ -382,8 +371,7 @@ describe("groups.mine list facts", () => {
       await db
         .update(groups)
         .set({
-          imageUrl:
-            "/api/media/group-images/mine/image?v=1",
+          imageUrl: "/api/media/group-images/mine/image?v=1",
         })
         .where(eq(groups.id, pictured.id));
 
@@ -393,6 +381,133 @@ describe("groups.mine list facts", () => {
         "/api/media/group-images/mine/image?v=1",
       );
       expect(byId.get(plain.id)?.imageUrl).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("Standing agrees across Group home, the Groups list and Home", () => {
+  it("ranks the winner first on all three, ignores a Match awaiting confirmation, and reverts with no write when the score is removed", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const abe = await insertUser(db, "abe@example.com");
+      const zed = await insertUser(db, "zed@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, {
+        name: "Pair",
+        createdBy: abe.id,
+        members: [{ userId: abe.id }, { userId: zed.id }],
+      });
+
+      async function positions() {
+        const result = [];
+        for (const viewer of [abe, zed]) {
+          const [listRow] = await mine(db, { userId: viewer.id, now: NOW });
+          const detail = await groupById(db, {
+            groupId: group.id,
+            userId: viewer.id,
+            now: NOW,
+          });
+          const home = await loadHome(db, { userId: viewer.id });
+          result.push({
+            list: listRow?.standingPosition ?? null,
+            groupHome: detail.membership?.standingPosition ?? null,
+            leaderboard:
+              detail.standing.leaderboard.find(
+                (entry) => entry.userId === viewer.id,
+              )?.position ?? null,
+            home: home.standing[0]?.position ?? null,
+          });
+        }
+        return result;
+      }
+
+      const before = await positions();
+      expect(before[0]).toMatchObject({
+        groupHome: 1,
+        leaderboard: 1,
+        home: 1,
+      });
+
+      const played = await insertGame(db, {
+        createdBy: abe.id,
+        venueId: venue.id,
+        groupId: group.id,
+        windowStart: PAST_START,
+        windowEnd: PAST_END,
+      });
+      await seatAndScore(db, {
+        gameId: played.gameId,
+        matchId: played.matchId,
+        slot1UserId: abe.id,
+        slot2UserId: zed.id,
+        sets: [{ slot1GamesWon: 2, slot2GamesWon: 6 }],
+      });
+
+      const scored = await positions();
+      expect(scored[0]).toEqual({
+        list: 2,
+        groupHome: 2,
+        leaderboard: 2,
+        home: 2,
+      });
+      expect(scored[1]).toEqual({
+        list: 1,
+        groupHome: 1,
+        leaderboard: 1,
+        home: 1,
+      });
+
+      const awaiting = await insertGame(db, {
+        createdBy: abe.id,
+        venueId: venue.id,
+        groupId: group.id,
+        windowStart: new Date(PAST_START.getTime() + 60 * 60 * 1000),
+        windowEnd: new Date(PAST_END.getTime() + 60 * 60 * 1000),
+      });
+      await seatAndScore(db, {
+        gameId: awaiting.gameId,
+        matchId: awaiting.matchId,
+        slot1UserId: abe.id,
+        slot2UserId: zed.id,
+        sets: [
+          { slot1GamesWon: 6, slot2GamesWon: 0 },
+          { slot1GamesWon: 6, slot2GamesWon: 0 },
+        ],
+        status: MatchStatusEnum.PENDING,
+      });
+      expect(await positions()).toEqual(scored);
+
+      const cancelled = await insertGame(db, {
+        createdBy: abe.id,
+        venueId: venue.id,
+        groupId: group.id,
+        windowStart: new Date(PAST_START.getTime() + 2 * 60 * 60 * 1000),
+        windowEnd: new Date(PAST_END.getTime() + 2 * 60 * 60 * 1000),
+      });
+      await seatAndScore(db, {
+        gameId: cancelled.gameId,
+        matchId: cancelled.matchId,
+        slot1UserId: abe.id,
+        slot2UserId: zed.id,
+        sets: [
+          { slot1GamesWon: 6, slot2GamesWon: 0 },
+          { slot1GamesWon: 6, slot2GamesWon: 0 },
+        ],
+      });
+      await db
+        .update(games)
+        .set({ cancelledAt: NOW })
+        .where(eq(games.id, cancelled.gameId));
+      expect(await positions()).toEqual(scored);
+
+      await db.delete(matchSets).where(eq(matchSets.matchId, played.matchId));
+      await db
+        .update(matches)
+        .set({ status: MatchStatusEnum.PENDING })
+        .where(eq(matches.id, played.matchId));
+      expect(await positions()).toEqual(before);
     } finally {
       await close();
     }

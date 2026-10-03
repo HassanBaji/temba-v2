@@ -1363,46 +1363,6 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
   };
 }
 
-/**
- * No App door writes `group_members.total_*` yet (Standing reads them), so
- * derive them from the seeded completed Matches: Matches played, Sets won and
- * games won per Group member.
- */
-async function backfillGroupStanding() {
-  await db.execute(sql`
-    with seat as (
-      select g.group_id, gp.user_id, m.id as match_id,
-             case when gt.id = m.slot_1_game_team_id then 1 else 2 end as slot
-      from matches m
-      join games g on g.id = m.game_id
-      join game_teams gt on gt.id in (m.slot_1_game_team_id, m.slot_2_game_team_id)
-      join game_team_players gtp on gtp.game_team_id = gt.id
-      join game_players gp on gp.id = gtp.game_player_id
-      where m.status = 'completed' and g.group_id is not null
-    ),
-    totals as (
-      select seat.group_id, seat.user_id,
-             count(distinct seat.match_id)::int as played,
-             coalesce(sum(case
-               when seat.slot = 1 and s.slot_1_games_won > s.slot_2_games_won then 1
-               when seat.slot = 2 and s.slot_2_games_won > s.slot_1_games_won then 1
-               else 0 end), 0)::int as sets_won,
-             coalesce(sum(case when seat.slot = 1 then s.slot_1_games_won
-                               else s.slot_2_games_won end), 0)::int as points_won
-      from seat
-      left join match_sets s on s.match_id = seat.match_id
-        and s.slot_1_games_won is not null and s.slot_2_games_won is not null
-      group by seat.group_id, seat.user_id
-    )
-    update group_members gm
-    set total_games_played = totals.played,
-        total_sets_won = totals.sets_won,
-        total_points_won = totals.points_won
-    from totals
-    where gm.group_id = totals.group_id and gm.user_id = totals.user_id
-  `);
-}
-
 // ---------------------------------------------------------------------------
 
 async function main() {
@@ -1416,7 +1376,6 @@ async function main() {
   const g = await step("groups", () => seedGroups(u, c));
   await step("teams", () => seedTeams(u, c));
   await step("games", () => seedGames(u, g, v));
-  await step("group standing", backfillGroupStanding);
 
   const counts = await db.execute<{ table: string; rows: number }>(sql`
     select 'users' as table, count(*)::int as rows from ${user}

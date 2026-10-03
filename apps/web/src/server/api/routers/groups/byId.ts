@@ -61,6 +61,7 @@ import {
   sortStandingMembers,
   standingPosition,
 } from "~/server/standing/compare-standing";
+import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
 
 type DbClient = typeof db;
 
@@ -315,12 +316,18 @@ export async function groupById(
 
   const memberUserIds = memberRows.map((row) => row.userId);
 
+  const standingMembers =
+    (await loadGroupStandingMembers(database, [group.id])).get(group.id) ?? [];
+  const standingByUserId = new Map(
+    standingMembers.map((member) => [member.userId, member]),
+  );
+
   const sortedStanding = sortStandingMembers(
     memberRows.map((row) => ({
       userId: row.userId,
-      totalSetsWon: row.totalSetsWon,
-      totalPointsWon: row.totalPointsWon,
-      totalGamesPlayed: row.totalGamesPlayed,
+      totalSetsWon: standingByUserId.get(row.userId)?.totalSetsWon ?? 0,
+      totalPointsWon: standingByUserId.get(row.userId)?.totalPointsWon ?? 0,
+      totalGamesPlayed: standingByUserId.get(row.userId)?.totalGamesPlayed ?? 0,
       name: row.user.name,
       image: row.user.image,
       joinedAt: row.createdAt,
@@ -515,6 +522,7 @@ export async function groupById(
       (match) => match.status === MatchStatusEnum.COMPLETED,
     );
   }).length;
+  const viewerStanding = standingByUserId.get(args.userId);
   const leaderboard = sortedStanding.map((entry, index) => {
     const record = winLossByUserId.get(entry.userId) ?? { wins: 0, losses: 0 };
     const rating = ratingByUserId.get(entry.userId) ?? null;
@@ -524,7 +532,7 @@ export async function groupById(
       image: entry.image,
       totalSetsWon: entry.totalSetsWon,
       totalPointsWon: entry.totalPointsWon,
-      totalGamesPlayed: totalGamesPlayed,
+      totalGamesPlayed: entry.totalGamesPlayed,
       position: index + 1,
       isViewer: entry.userId === args.userId,
       wins: record.wins,
@@ -586,9 +594,9 @@ export async function groupById(
     membership: membership
       ? {
           id: membership.id,
-          totalGamesPlayed: membership.totalGamesPlayed,
-          totalSetsWon: membership.totalSetsWon,
-          totalPointsWon: membership.totalPointsWon,
+          totalGamesPlayed: viewerStanding?.totalGamesPlayed ?? 0,
+          totalSetsWon: viewerStanding?.totalSetsWon ?? 0,
+          totalPointsWon: viewerStanding?.totalPointsWon ?? 0,
           standingPosition: viewerStandingPosition,
         }
       : null,

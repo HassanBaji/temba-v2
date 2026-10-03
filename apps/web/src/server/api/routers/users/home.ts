@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { communityMembers, groupMembers, type GroupSportEnum } from "@repo/db";
 
@@ -17,6 +17,7 @@ import {
   sortStandingMembers,
   standingPosition,
 } from "~/server/standing/compare-standing";
+import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
 import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient = typeof db | TestDatabase;
@@ -56,40 +57,12 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
 
   const groupIds = myGroupMemberships.map((row) => row.groupId);
 
-  const peerRows =
-    groupIds.length === 0
-      ? []
-      : await database.query.groupMembers.findMany({
-          where: inArray(groupMembers.groupId, groupIds),
-          with: {
-            user: {
-              columns: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        });
-
-  const peersByGroup = new Map<string, typeof peerRows>();
-  for (const row of peerRows) {
-    const list = peersByGroup.get(row.groupId) ?? [];
-    list.push(row);
-    peersByGroup.set(row.groupId, list);
-  }
+  const peersByGroup = await loadGroupStandingMembers(database, groupIds);
 
   const standing = myGroupMemberships
     .map((membership) => {
       const peers = peersByGroup.get(membership.groupId) ?? [];
-      const sorted = sortStandingMembers(
-        peers.map((peer) => ({
-          userId: peer.userId,
-          totalSetsWon: peer.totalSetsWon,
-          totalPointsWon: peer.totalPointsWon,
-          totalGamesPlayed: peer.totalGamesPlayed,
-          name: peer.user.name,
-        })),
-      );
+      const sorted = sortStandingMembers(peers);
       const position = standingPosition(sorted, args.userId);
 
       return {
