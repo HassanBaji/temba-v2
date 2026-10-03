@@ -62,9 +62,9 @@ export async function createTeam(
     communityId: created.communityId,
     createdBy: created.createdBy,
     createdAt: created.createdAt,
-    gamesPlayed: created.gamesPlayed,
-    wins: created.wins,
-    losses: created.losses,
+    gamesPlayed: 0,
+    wins: 0,
+    losses: 0,
   };
 }
 

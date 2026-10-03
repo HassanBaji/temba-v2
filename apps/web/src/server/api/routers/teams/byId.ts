@@ -18,6 +18,7 @@ import { consult } from "~/server/soft-archive";
 import { listTeamMembers } from "~/server/teams/helpers/list-team-members";
 import { requireTeam } from "~/server/teams/helpers/require-team";
 import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
+import { loadTeamRecord } from "~/server/teams/team-record";
 import { unusedInviteForTeam } from "~/server/teams/helpers/unused-invite-for-team";
 
 type DbClient = typeof db;
@@ -94,6 +95,8 @@ export async function teamById(
       })
     : null;
 
+  const record = await loadTeamRecord(database, team.id);
+
   const canRequestLink =
     isMember && !incomplete && !team.communityId && !pendingLinkRequest;
   const canUnlink = isMember && Boolean(team.communityId);
@@ -106,9 +109,9 @@ export async function teamById(
     communityId: team.communityId,
     isLoose: !team.communityId,
     linkState: team.communityId ? ("linked" as const) : ("unattached" as const),
-    gamesPlayed: team.gamesPlayed,
-    wins: team.wins,
-    losses: team.losses,
+    gamesPlayed: record.gamesPlayed,
+    wins: record.wins,
+    losses: record.losses,
     incomplete,
     waitingForPartner: incomplete,
     community: community
