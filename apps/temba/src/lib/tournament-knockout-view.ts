@@ -7,6 +7,7 @@ import {
   knockoutQualifierLabel,
   knockoutRoundName,
   knockoutWinnerOfLabel,
+  scoredSetLabel,
 } from "~/lib/tournament-knockout";
 
 export type KnockoutViewTeam = {
@@ -35,6 +36,7 @@ export type KnockoutViewPlace =
       walkover: 1 | 2 | null;
       settled: boolean;
       needsDecidingSet: boolean;
+      scoreLabel: string | null;
     }
   | {
       kind: "bye";
@@ -66,6 +68,10 @@ export type KnockoutViewMatch = {
   slot2GameTeamId: string | null;
   status: string | null;
   result: "slot1" | "slot2" | "draw" | "none";
+  sets?: readonly {
+    slot1GamesWon: number | null;
+    slot2GamesWon: number | null;
+  }[];
   walkoverGameTeamId?: string | null;
   slot1SourcePoolIndex?: number | null;
   slot1SourcePoolPosition?: number | null;
@@ -154,6 +160,7 @@ export function draftKnockoutFirstRound(args: {
       walkover: null,
       settled: false,
       needsDecidingSet: false,
+      scoreLabel: null,
     });
   }
   return {
@@ -276,6 +283,10 @@ export function postedKnockoutRounds(args: {
             match.status !== "completed" &&
             match.status !== "cancelled" &&
             match.result === "draw",
+          scoreLabel:
+            match.status === "completed"
+              ? scoredSetLabel(match.sets ?? [])
+              : null,
         });
         continue;
       }
@@ -461,4 +472,14 @@ export function viewerMissedKnockout(args: {
     ),
   );
   return teams.length > 0 && !teams.some((team) => team.isViewer);
+}
+
+/** A Knockout Match with nobody in it has nothing to award, so it offers no cancel. */
+export function canCancelKnockoutPlace(place: KnockoutViewPlace) {
+  return (
+    place.kind === "match" &&
+    place.matchId != null &&
+    !place.settled &&
+    (place.slot1.kind === "team" || place.slot2.kind === "team")
+  );
 }

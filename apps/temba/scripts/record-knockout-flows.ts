@@ -520,20 +520,23 @@ async function reload(page: Page) {
   await holdFrame(page);
   await page.reload();
   await settle(page);
-  await page.evaluate((top) => window.scrollTo({ top }), y).catch(() => {});
+  await page
+    .evaluate((top) => window.scrollTo({ top }), y)
+    .catch(() => undefined);
   await page.waitForTimeout(400);
   await releaseFrame(page);
 }
 
 async function scrollTo(page: Page, target: Locator, block = "center") {
   await target.first().waitFor({ state: "attached", timeout: 15_000 });
-  await target
-    .first()
-    .evaluate(
-      (el, b) =>
-        el.scrollIntoView({ behavior: "smooth", block: b as ScrollLogicalPosition }),
-      block,
-    );
+  await target.first().evaluate(
+    (el, b) =>
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: b as ScrollLogicalPosition,
+      }),
+    block,
+  );
   await page.waitForTimeout(900);
 }
 
@@ -548,7 +551,10 @@ async function tour(page: Page, step = 320, ms = 650) {
   let y = await page.evaluate(() => window.scrollY);
   while (y + VIEWPORT.height < height) {
     y += step;
-    await page.evaluate((top) => window.scrollTo({ top, behavior: "smooth" }), y);
+    await page.evaluate(
+      (top) => window.scrollTo({ top, behavior: "smooth" }),
+      y,
+    );
     await page.waitForTimeout(ms);
   }
   await page.waitForTimeout(600);
@@ -580,11 +586,15 @@ async function shot(page: Page, name: string, fullPage = true) {
   const path = join(OUT_DIR, `${name}.png`);
   const caption = page.locator("#ko-caption");
   if (fullPage) {
-    await caption.evaluate((el) => (el.style.visibility = "hidden")).catch(() => {});
+    await caption
+      .evaluate((el) => (el.style.visibility = "hidden"))
+      .catch(() => undefined);
   }
   await page.screenshot({ path, fullPage });
   if (fullPage) {
-    await caption.evaluate((el) => (el.style.visibility = "visible")).catch(() => {});
+    await caption
+      .evaluate((el) => (el.style.visibility = "visible"))
+      .catch(() => undefined);
   }
   shots.push(path);
   console.log(`    screenshot ${path}`);
@@ -658,14 +668,15 @@ function radio(page: Page, name: string | RegExp) {
   return page.getByRole("radio", { name });
 }
 
-async function pickTimeChip(
-  page: Page,
-  sectionId: string,
-  label: RegExp,
-) {
+async function pickTimeChip(page: Page, sectionId: string, label: RegExp) {
   const section = page.locator(`#${sectionId}`);
   const chip = section.getByRole("radio", { name: label });
-  if (!(await chip.first().isVisible().catch(() => false))) {
+  if (
+    !(await chip
+      .first()
+      .isVisible()
+      .catch(() => false))
+  ) {
     await click(page, section.getByRole("button", { name: /^more$/i }));
   }
   await click(page, chip);
@@ -674,7 +685,11 @@ async function pickTimeChip(
 /** Steps 1 and 2 of the create flow, in the Knockout Club Group. */
 async function createStepsOneTwo(page: Page) {
   await goto(page, "/dashboard/games/new");
-  await say(page, "UI", "Organizer (Sam) opens Create and picks Friendly tournament");
+  await say(
+    page,
+    "UI",
+    "Organizer (Sam) opens Create and picks Friendly tournament",
+  );
   await click(page, radio(page, /friendly tournament/i));
   await settle(page);
   if (/step=1|new$/.test(page.url())) {
@@ -684,15 +699,30 @@ async function createStepsOneTwo(page: Page) {
 
   await say(page, "UI", `Picks the Group "${GROUP_NAME}" and Padel Central`);
   const groupChip = radio(page, new RegExp(GROUP_NAME));
-  if (!(await groupChip.first().isVisible().catch(() => false))) {
+  if (
+    !(await groupChip
+      .first()
+      .isVisible()
+      .catch(() => false))
+  ) {
     await click(page, page.getByText(/^All \d+ groups$/));
-    await click(page, page.getByRole("dialog").getByRole("radio", { name: new RegExp(GROUP_NAME) }));
+    await click(
+      page,
+      page
+        .getByRole("dialog")
+        .getByRole("radio", { name: new RegExp(GROUP_NAME) }),
+    );
   } else {
     await click(page, groupChip);
   }
   await click(page, radio(page, /padel central/i));
   const allCourts = page.getByRole("button", { name: /^All \d+ courts$/ });
-  if (await allCourts.first().isVisible().catch(() => false)) {
+  if (
+    await allCourts
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
     await click(page, allCourts);
   }
   const unpicked = page
@@ -713,14 +743,19 @@ async function setStepper(
   more: string,
 ) {
   const value = async () => {
-    const text = await page.locator(`#${id}`).innerText().catch(() => "");
+    const text = await page
+      .locator(`#${id}`)
+      .innerText()
+      .catch(() => "");
     const match = /(\d+)/.exec(text);
     return match ? Number(match[1]) : NaN;
   };
   for (let i = 0; i < 20; i += 1) {
     const now = await value();
     if (Number.isNaN(now) || now === target) return now;
-    const button = page.getByRole("button", { name: now < target ? more : fewer });
+    const button = page.getByRole("button", {
+      name: now < target ? more : fewer,
+    });
     if (!(await button.isEnabled().catch(() => false))) return now;
     await click(page, button);
   }
@@ -747,12 +782,6 @@ type Flow = {
   run: (page: Page, ctx: Context) => Promise<void>;
 };
 
-async function tournamentPath(name: string) {
-  const game = await latestGame(name);
-  if (!game) throw new Error(`${name} not found`);
-  return `/dashboard/games/${game.id}`;
-}
-
 const flowCreateKnockoutOnly: Flow = {
   name: "ko-01-create-knockout-only",
   run: async (page) => {
@@ -770,7 +799,11 @@ const flowCreateKnockoutOnly: Flow = {
     await click(page, page.getByRole("button", { name: /^continue/i }));
     await settle(page);
 
-    await say(page, "VIEW", "Step 3: the Format picker. Groups only is preselected");
+    await say(
+      page,
+      "VIEW",
+      "Step 3: the Format picker. Groups only is preselected",
+    );
     const groupsOnly = radio(page, /groups only/i);
     expectValue(
       "Groups only preselected",
@@ -790,11 +823,27 @@ const flowCreateKnockoutOnly: Flow = {
     await scrollTo(page, page.locator("#tournament-shape"), "start");
     await say(page, "UI", "Organizer picks Knockout only");
     await click(page, radio(page, /knockout only/i));
-    const poolHidden = !(await page.locator("#tournament-pool-count").isVisible());
-    const roundsHidden = !(await page.locator("#tournament-round-count").isVisible());
-    expectValue("Knockout only hides the Groups stepper", poolHidden, "Groups stepper still visible");
-    expectValue("Knockout only hides the Rounds stepper", roundsHidden, "Rounds stepper still visible");
-    await say(page, "VIEW", "Groups and Rounds steppers are gone; the tree is sized from the teams");
+    const poolHidden = !(await page
+      .locator("#tournament-pool-count")
+      .isVisible());
+    const roundsHidden = !(await page
+      .locator("#tournament-round-count")
+      .isVisible());
+    expectValue(
+      "Knockout only hides the Groups stepper",
+      poolHidden,
+      "Groups stepper still visible",
+    );
+    expectValue(
+      "Knockout only hides the Rounds stepper",
+      roundsHidden,
+      "Rounds stepper still visible",
+    );
+    await say(
+      page,
+      "VIEW",
+      "Groups and Rounds steppers are gone; the tree is sized from the teams",
+    );
     await shot(page, "ko-01-format-knockout-only", false);
 
     await say(page, "UI", "Picks a day, 9:00 to 2:00 PM, 30 min games");
@@ -809,10 +858,23 @@ const flowCreateKnockoutOnly: Flow = {
     await page.locator("#tournament-name").fill(KO_NAME);
     await page.waitForTimeout(800);
     await scrollTo(page, page.getByText(/^Knockout$/), "center");
-    await expectText(page, "Review shows Format: Knockout only", "Knockout only");
-    await expectText(page, "Review Knockout row: Quarter-finals onward (8 teams, no byes)", "Quarter-finals onward");
+    await expectText(
+      page,
+      "Review shows Format: Knockout only",
+      "Knockout only",
+    );
+    await expectText(
+      page,
+      "Review Knockout row: Quarter-finals onward (8 teams, no byes)",
+      "Quarter-finals onward",
+    );
     await highlight(page, page.getByText(/onward/));
-    await say(page, "VIEW", "Review: Format Knockout only, Knockout row (8 teams: quarter-finals onward, no byes)", 2500);
+    await say(
+      page,
+      "VIEW",
+      "Review: Format Knockout only, Knockout row (8 teams: quarter-finals onward, no byes)",
+      2500,
+    );
     await shot(page, "ko-01-review-knockout-only", false);
 
     await say(page, "UI", "Back to step 3 to compare: Groups, then knockout");
@@ -821,10 +883,26 @@ const flowCreateKnockoutOnly: Flow = {
     await scrollTo(page, page.locator("#tournament-shape"), "start");
     await click(page, radio(page, /groups, then knockout/i));
     await scrollTo(page, page.locator("#tournament-qualifiers-per-pool"));
-    await expectText(page, "Through from each group stepper shown", "Through from each group");
-    await expectText(page, "Consequence line under the stepper", /into the knockout/);
-    await highlight(page, page.locator("#tournament-qualifiers-per-pool").locator(".."));
-    await say(page, "VIEW", "Groups, then knockout adds 'Through from each group' and its consequence line", 2500);
+    await expectText(
+      page,
+      "Through from each group stepper shown",
+      "Through from each group",
+    );
+    await expectText(
+      page,
+      "Consequence line under the stepper",
+      /into the knockout/,
+    );
+    await highlight(
+      page,
+      page.locator("#tournament-qualifiers-per-pool").locator(".."),
+    );
+    await say(
+      page,
+      "VIEW",
+      "Groups, then knockout adds 'Through from each group' and its consequence line",
+      2500,
+    );
     await shot(page, "ko-01-format-groups-then-knockout", false);
 
     await scrollTo(page, page.locator("#tournament-shape"), "start");
@@ -835,8 +913,13 @@ const flowCreateKnockoutOnly: Flow = {
     await scrollTo(page, page.getByText(/onward/), "center");
     await say(page, "VIEW", "Review again before creating");
     await say(page, "UI", "Organizer clicks Create tournament");
-    await click(page, page.getByRole("button", { name: /^create tournament$/i }));
-    await page.waitForURL(/\/dashboard\/games\/[0-9a-f-]{36}/, { timeout: 30_000 });
+    await click(
+      page,
+      page.getByRole("button", { name: /^create tournament$/i }),
+    );
+    await page.waitForURL(/\/dashboard\/games\/[0-9a-f-]{36}/, {
+      timeout: 30_000,
+    });
     await settle(page);
     await say(page, "VIEW", "Tournament home before the draw");
     await expectText(page, "Created tournament home shows its name", KO_NAME);
@@ -854,13 +937,31 @@ const flowCreateKnockoutOnly: Flow = {
 const flowKnockoutDrawAndPost: Flow = {
   name: "ko-02-knockout-draw-and-post",
   run: async (page, ctx) => {
-    const game = await ensureTournament(KO_NAME, "knockout_only", ctx.groupId, ctx.users);
+    const game = await ensureTournament(
+      KO_NAME,
+      "knockout_only",
+      ctx.groupId,
+      ctx.users,
+    );
     await goto(page, `/dashboard/games/${game.id}`);
-    await say(page, "VIEW", `${KO_NAME}: planned for 8 Game teams, nobody registered yet`);
-    await say(page, "API", "6 pairs register as complete Game teams (Sam + Omar among them)", 1200);
+    await say(
+      page,
+      "VIEW",
+      `${KO_NAME}: planned for 8 Game teams, nobody registered yet`,
+    );
+    await say(
+      page,
+      "API",
+      "6 pairs register as complete Game teams (Sam + Omar among them)",
+      1200,
+    );
     await registerPairs(game.id, ctx.users, KO_PAIRS);
     await reload(page);
-    await say(page, "VIEW", "6 complete Game teams registered: the tree will size to 6, with 2 Byes");
+    await say(
+      page,
+      "VIEW",
+      "6 complete Game teams registered: the tree will size to 6, with 2 Byes",
+    );
     await tour(page);
     await scrollTop(page);
 
@@ -870,22 +971,44 @@ const flowKnockoutDrawAndPost: Flow = {
     await click(page, entry);
     await say(page, "VIEW", "The draw drawer: random, nobody is seeded");
     await say(page, "UI", "Organizer clicks Draw the knockout");
-    await click(page, page.getByRole("button", { name: /^draw the knockout$/i }));
+    await click(
+      page,
+      page.getByRole("button", { name: /^draw the knockout$/i }),
+    );
     await page.waitForTimeout(1500);
-    await expectText(page, "Draft shows the first round (Quarter-finals)", /Quarter-finals/);
+    await expectText(
+      page,
+      "Draft shows the first round (Quarter-finals)",
+      /Quarter-finals/,
+    );
     await expectText(page, "Draft shows Byes", /^Bye$/);
-    await say(page, "VIEW", "Draft: first-round pairings and which teams have a Bye", 2500);
+    await say(
+      page,
+      "VIEW",
+      "Draft: first-round pairings and which teams have a Bye",
+      2500,
+    );
     await shot(page, "ko-02-draft-1", false);
     const drawer = page.getByRole("dialog");
     const draftText1 = await drawer.innerText();
-    await drawer.locator(".overflow-y-auto").first().evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })).catch(() => {});
+    await drawer
+      .locator(".overflow-y-auto")
+      .first()
+      .evaluate((el) =>
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }),
+      )
+      .catch(() => undefined);
     await page.waitForTimeout(1500);
 
     await say(page, "UI", "Organizer clicks Draw again (re-roll)");
     await click(page, page.getByRole("button", { name: /^draw again$/i }));
     await page.waitForTimeout(1500);
     const draftText2 = await drawer.innerText();
-    expectValue("Re-roll changed the draft", draftText1 !== draftText2, "draft text identical after re-roll (can happen by chance)");
+    expectValue(
+      "Re-roll changed the draft",
+      draftText1 !== draftText2,
+      "draft text identical after re-roll (can happen by chance)",
+    );
     await say(page, "VIEW", "A new random draft", 2500);
     await shot(page, "ko-02-draft-2", false);
 
@@ -894,11 +1017,19 @@ const flowKnockoutDrawAndPost: Flow = {
     await page.waitForTimeout(2000);
     await settle(page);
     await expectText(page, "Posted tree heading Knockout", /^Knockout$/);
-    await say(page, "VIEW", "Posted: the tree with Quarter-finals, Semi-finals and Final");
+    await say(
+      page,
+      "VIEW",
+      "Posted: the tree with Quarter-finals, Semi-finals and Final",
+    );
     await expectText(page, "Tree shows Quarter-finals", /^Quarter-finals$/);
     await expectText(page, "Tree shows Semi-finals", /^Semi-finals$/);
     await expectText(page, "Tree shows Final", /^Final$/);
-    await expectText(page, "Tree shows Winner of placeholders", /^Winner of Q\d$/);
+    await expectText(
+      page,
+      "Tree shows Winner of placeholders",
+      /^Winner of Q\d$/,
+    );
     await expectText(page, "Tree shows Byes", /^Bye$/);
     await expectText(page, "Tree shows Final code", /^Final$/);
     await shot(page, "ko-02-tree-posted");
@@ -907,36 +1038,59 @@ const flowKnockoutDrawAndPost: Flow = {
     const undo = page.getByRole("button", { name: /^undo the draw$/i });
     if (await undo.isVisible().catch(() => false)) {
       await scrollTo(page, undo);
-      await say(page, "UI", "Undo the draw is offered until a Set is played: Organizer clicks it");
+      await say(
+        page,
+        "UI",
+        "Undo the draw is offered until a Set is played: Organizer clicks it",
+      );
       await click(page, undo);
-      await say(page, "VIEW", "Confirm dialog: every knockout Match is deleted");
+      await say(
+        page,
+        "VIEW",
+        "Confirm dialog: every knockout Match is deleted",
+      );
       await click(page, page.getByRole("button", { name: /^undo draw$/i }));
       await page.waitForTimeout(2000);
       await settle(page);
       await scrollTop(page);
-      await expectText(page, "Undo returns to the pre-draw home", /open the draw/i);
+      await expectText(
+        page,
+        "Undo returns to the pre-draw home",
+        /open the draw/i,
+      );
       await say(page, "VIEW", "Back before the draw");
       const reopen = page.getByRole("button", { name: /^open the draw$/i });
       await scrollTo(page, reopen);
       await say(page, "UI", "Organizer opens the draw, draws and posts again");
       await click(page, reopen);
-      const drawAgain = page.getByRole("button", { name: /^(draw the knockout|draw again)$/i });
+      const drawAgain = page.getByRole("button", {
+        name: /^(draw the knockout|draw again)$/i,
+      });
       await click(page, drawAgain);
       await page.waitForTimeout(1500);
       await click(page, page.getByRole("button", { name: /^post the draw$/i }));
       await page.waitForTimeout(2000);
       await settle(page);
     } else {
-      expectValue("Undo the draw offered after posting", false, "no Undo the draw button");
+      expectValue(
+        "Undo the draw offered after posting",
+        false,
+        "no Undo the draw button",
+      );
     }
     await scrollTop(page);
-    await say(page, "VIEW", "The posted tree: codes Q1–Q4 / S1, S2 / Final, 'Winner of' places and Byes");
+    await say(
+      page,
+      "VIEW",
+      "The posted tree: codes Q1–Q4 / S1, S2 / Final, 'Winner of' places and Byes",
+    );
     await tour(page, 280, 900);
     await shot(page, "ko-02-tree-final");
     const rows = await knockoutMatches(game.id);
     expectValue(
       "5 Knockout Matches rows (6 entrants - 1), 2 in round 1",
-      rows.length === 5 && rows.filter((r) => r.knockoutRound === 1).length === 2,
+      rows.length === 5 &&
+        rows.filter((r) => r.knockoutRound === 1).length === 2,
       `rows ${rows.length}, round 1 ${rows.filter((r) => r.knockoutRound === 1).length}`,
     );
   },
@@ -953,7 +1107,12 @@ const flowKnockoutPlay: Flow = {
   name: "ko-03-knockout-play-to-champion",
   run: async (page, ctx) => {
     const sam = need(ctx.users, "samrivera");
-    const game = await ensureTournament(KO_NAME, "knockout_only", ctx.groupId, ctx.users);
+    const game = await ensureTournament(
+      KO_NAME,
+      "knockout_only",
+      ctx.groupId,
+      ctx.users,
+    );
     await registerPairs(game.id, ctx.users, KO_PAIRS);
     await ensurePosted(game.id, sam.id);
     const samTeam = await teamIdOf(game.id, sam.id);
@@ -963,12 +1122,14 @@ const flowKnockoutPlay: Flow = {
     await tour(page, 300, 700);
     await scrollTop(page);
 
-    const firstRound = (await knockoutMatches(game.id)).filter((m) => m.knockoutRound === 1);
+    const firstRound = (await knockoutMatches(game.id)).filter(
+      (m) => m.knockoutRound === 1,
+    );
     const [qa, qb] = firstRound;
     if (!qa || !qb) throw new Error("Expected two first-round Matches");
     // Sam's team wins its Quarter-final if it plays one; the other one is the level Match.
-    const samInA = qa.slot1GameTeamId === samTeam || qa.slot2GameTeamId === samTeam;
-    const samInB = qb.slot1GameTeamId === samTeam || qb.slot2GameTeamId === samTeam;
+    const samInB =
+      qb.slot1GameTeamId === samTeam || qb.slot2GameTeamId === samTeam;
     const normal = samInB ? qb : qa;
     const level = samInB ? qa : qb;
     const winnerSlot = (m: KnockoutRow): 1 | 2 =>
@@ -984,47 +1145,104 @@ const flowKnockoutPlay: Flow = {
     );
     await scoreMatch(game.id, normal.id, normalSets);
     await reload(page);
-    const normalCard = page.locator("li").filter({ hasText: new RegExp(`^${normalCode}`) });
+    const normalCard = page
+      .locator("li")
+      .filter({ hasText: new RegExp(`^${normalCode}`) });
     await scrollTo(page, normalCard);
     await highlight(page, normalCard);
     await expectText(page, `${normalCode} shows a winner tag`, /^won$/);
-    await say(page, "VIEW", `${normalCode} is won and the winner moves into its Semi-final`, 2500);
-    const advanced = (await knockoutMatches(game.id)).filter((m) => m.knockoutRound === 2);
-    const winnerTeam = winnerSlot(normal) === 1 ? normal.slot1GameTeamId : normal.slot2GameTeamId;
+    await say(
+      page,
+      "VIEW",
+      `${normalCode} is won and the winner moves into its Semi-final`,
+      2500,
+    );
+    const advanced = (await knockoutMatches(game.id)).filter(
+      (m) => m.knockoutRound === 2,
+    );
+    const winnerTeam =
+      winnerSlot(normal) === 1
+        ? normal.slot1GameTeamId
+        : normal.slot2GameTeamId;
     expectValue(
       `${normalCode} winner written into round 2`,
-      advanced.some((m) => m.slot1GameTeamId === winnerTeam || m.slot2GameTeamId === winnerTeam),
+      advanced.some(
+        (m) =>
+          m.slot1GameTeamId === winnerTeam || m.slot2GameTeamId === winnerTeam,
+      ),
       "winner not found in round 2",
     );
-    const semiOfWinner = advanced.find((m) => m.slot1GameTeamId === winnerTeam || m.slot2GameTeamId === winnerTeam);
+    const semiOfWinner = advanced.find(
+      (m) =>
+        m.slot1GameTeamId === winnerTeam || m.slot2GameTeamId === winnerTeam,
+    );
     if (semiOfWinner) {
       const code = await codeOf(semiOfWinner);
-      const card = page.locator("li").filter({ hasText: new RegExp(`^${code}`) });
+      const card = page
+        .locator("li")
+        .filter({ hasText: new RegExp(`^${code}`) });
       await scrollTo(page, card);
       await highlight(page, card);
       const both = semiOfWinner.slot1GameTeamId && semiOfWinner.slot2GameTeamId;
-      await say(page, "VIEW", both ? `${code}: the Bye team now meets the ${normalCode} winner` : `${code}: winner placed, waiting on the other side`, 2500);
+      await say(
+        page,
+        "VIEW",
+        both
+          ? `${code}: the Bye team now meets the ${normalCode} winner`
+          : `${code}: winner placed, waiting on the other side`,
+        2500,
+      );
       await shot(page, "ko-03-winner-advanced");
     }
 
     const levelCode = await codeOf(level);
-    await say(page, "API", `${levelCode}: players enter 6-3 then 3-6, one Set each: a level Knockout Match`, 1500);
-    await scoreMatch(game.id, level.id, [
-      [6, 3],
-      [3, 6],
-    ], false);
+    await say(
+      page,
+      "API",
+      `${levelCode}: players enter 6-3 then 3-6, one Set each: a level Knockout Match`,
+      1500,
+    );
+    await scoreMatch(
+      game.id,
+      level.id,
+      [
+        [6, 3],
+        [3, 6],
+      ],
+      false,
+    );
     await reload(page);
-    const levelCard = page.locator("li").filter({ hasText: new RegExp(`^${levelCode}`) });
+    const levelCard = page
+      .locator("li")
+      .filter({ hasText: new RegExp(`^${levelCode}`) });
     await scrollTo(page, levelCard);
     await highlight(page, levelCard);
-    await expectText(page, `${levelCode} shows "Add a deciding Set"`, "Add a deciding Set");
+    await expectText(
+      page,
+      `${levelCode} shows "Add a deciding Set"`,
+      "Add a deciding Set",
+    );
     const levelRow = await matchById(level.id);
-    expectValue(`${levelCode} level Match not completed`, levelRow.status !== "completed", `status ${levelRow.status}`);
-    await say(page, "VIEW", `${levelCode} is level: "Add a deciding Set". Nobody advances`, 3000);
+    expectValue(
+      `${levelCode} level Match not completed`,
+      levelRow.status !== "completed",
+      `status ${levelRow.status}`,
+    );
+    await say(
+      page,
+      "VIEW",
+      `${levelCode} is level: "Add a deciding Set". Nobody advances`,
+      3000,
+    );
     await shot(page, "ko-03-level-match");
 
     const levelSlot1Wins: [number, number][] = [[6, 4]];
-    await say(page, "API", `${levelCode}: players add a deciding Set 6-4 and confirm`, 1500);
+    await say(
+      page,
+      "API",
+      `${levelCode}: players add a deciding Set 6-4 and confirm`,
+      1500,
+    );
     const deciding = await addSet(db, {
       gameId: game.id,
       matchId: level.id,
@@ -1044,9 +1262,23 @@ const flowKnockoutPlay: Flow = {
     await highlight(page, levelCard);
     await expectText(page, `${levelCode} now has a winner`, /^won$/);
     const levelAfter = await matchById(level.id);
-    expectValue(`${levelCode} completes after the deciding Set (3 Sets)`, levelAfter.status === "completed" && (await matchSetCount(level.id)) === 3, `status ${levelAfter.status}`);
-    await say(page, "VIEW", `${levelCode} completes and its winner advances`, 2500);
-    await scrollTo(page, page.getByRole("heading", { name: /^Semi-finals$/ }), "start");
+    expectValue(
+      `${levelCode} completes after the deciding Set (3 Sets)`,
+      levelAfter.status === "completed" &&
+        (await matchSetCount(level.id)) === 3,
+      `status ${levelAfter.status}`,
+    );
+    await say(
+      page,
+      "VIEW",
+      `${levelCode} completes and its winner advances`,
+      2500,
+    );
+    await scrollTo(
+      page,
+      page.getByRole("heading", { name: /^Semi-finals$/ }),
+      "start",
+    );
     await say(page, "VIEW", "Both Semi-finals are now set");
     await shot(page, "ko-03-semis-set");
 
@@ -1054,72 +1286,165 @@ const flowKnockoutPlay: Flow = {
     await say(page, "UI", "Sam goes to Home");
     await goto(page, "/dashboard");
     const homeRow = page.getByText(/Semi-final/).first();
-    const homeOk = await expectText(page, "Home lists Sam's Knockout Match labelled Semi-final", /Semi-final/, 15_000);
+    const homeOk = await expectText(
+      page,
+      "Home lists Sam's Knockout Match labelled Semi-final",
+      /Semi-final/,
+      15_000,
+    );
     if (homeOk) {
       await scrollTo(page, homeRow);
-      await highlight(page, homeRow.locator("xpath=ancestor::*[self::a or self::li][1]"));
+      await highlight(
+        page,
+        homeRow.locator("xpath=ancestor::*[self::a or self::li][1]"),
+      );
     }
-    await say(page, "VIEW", "Home: Sam's next Knockout Match, labelled with the Knockout round", 3000);
+    await say(
+      page,
+      "VIEW",
+      "Home: Sam's next Knockout Match, labelled with the Knockout round",
+      3000,
+    );
     await shot(page, "ko-03-home-semi-final", false);
     await say(page, "UI", "Sam opens My Games");
     await goto(page, "/dashboard/games");
-    const gamesOk = await expectText(page, "My Games lists the Semi-final row", /Semi-final/, 15_000);
+    const gamesOk = await expectText(
+      page,
+      "My Games lists the Semi-final row",
+      /Semi-final/,
+      15_000,
+    );
     if (gamesOk) {
       const row = page.getByText(/Semi-final/).first();
       await scrollTo(page, row);
-      await highlight(page, row.locator("xpath=ancestor::*[self::a or self::li][1]"));
+      await highlight(
+        page,
+        row.locator("xpath=ancestor::*[self::a or self::li][1]"),
+      );
     }
     await say(page, "VIEW", "My Games: the Semi-final row", 3000);
     await shot(page, "ko-03-my-games-semi-final", false);
 
     await goto(page, path);
-    const semis = (await knockoutMatches(game.id)).filter((m) => m.knockoutRound === 2);
-    const samSemi = semis.find((m) => m.slot1GameTeamId === samTeam || m.slot2GameTeamId === samTeam)!;
+    const semis = (await knockoutMatches(game.id)).filter(
+      (m) => m.knockoutRound === 2,
+    );
+    const samSemi = semis.find(
+      (m) => m.slot1GameTeamId === samTeam || m.slot2GameTeamId === samTeam,
+    )!;
     const otherSemi = semis.find((m) => m.id !== samSemi.id)!;
     const otherCode = await codeOf(otherSemi);
-    const otherCard = page.locator("li").filter({ hasText: new RegExp(`^${otherCode}`) });
+    const otherCard = page
+      .locator("li")
+      .filter({ hasText: new RegExp(`^${otherCode}`) });
     await scrollTo(page, otherCard);
     await highlight(page, otherCard);
-    await say(page, "VIEW", `${otherCode} cannot be played: the Organizer cancels it`);
+    await say(
+      page,
+      "VIEW",
+      `${otherCode} cannot be played: the Organizer cancels it`,
+    );
     await say(page, "UI", `Organizer clicks Cancel Match on ${otherCode}`);
-    await click(page, otherCard.getByRole("button", { name: /^cancel match$/i }));
-    await expectText(page, "Walkover dialog asks who goes through", "Goes through");
-    await say(page, "VIEW", "The dialog asks which team goes through; no Rating changes", 2500);
+    await click(
+      page,
+      otherCard.getByRole("button", { name: /^cancel match$/i }),
+    );
+    await expectText(
+      page,
+      "Walkover dialog asks who goes through",
+      "Goes through",
+    );
+    await say(
+      page,
+      "VIEW",
+      "The dialog asks which team goes through; no Rating changes",
+      2500,
+    );
     const throughName = await teamName(otherSemi.slot2GameTeamId);
     await say(page, "UI", `Organizer picks ${throughName} and confirms`);
-    await click(page, page.getByRole("dialog").getByRole("radio", { name: throughName }));
+    await click(
+      page,
+      page.getByRole("dialog").getByRole("radio", { name: throughName }),
+    );
     await shot(page, "ko-03-walkover-dialog", false);
-    await click(page, page.getByRole("dialog").getByRole("button", { name: /^cancel match$/i }));
+    await click(
+      page,
+      page.getByRole("dialog").getByRole("button", { name: /^cancel match$/i }),
+    );
     await page.waitForTimeout(2000);
     await settle(page);
     await scrollTo(page, otherCard);
     await highlight(page, otherCard);
     await expectText(page, "Tree shows Walkover tag", /^Walkover$/);
     const woRow = await matchById(otherSemi.id);
-    expectValue("Walkover stored on the cancelled Match", woRow.status === "cancelled" && woRow.walkoverGameTeamId === otherSemi.slot2GameTeamId, `status ${woRow.status} walkover ${woRow.walkoverGameTeamId}`);
-    await say(page, "VIEW", `${otherCode} shows Walkover and ${throughName} goes to the Final`, 3000);
+    expectValue(
+      "Walkover stored on the cancelled Match",
+      woRow.status === "cancelled" &&
+        woRow.walkoverGameTeamId === otherSemi.slot2GameTeamId,
+      `status ${woRow.status} walkover ${woRow.walkoverGameTeamId}`,
+    );
+    await say(
+      page,
+      "VIEW",
+      `${otherCode} shows Walkover and ${throughName} goes to the Final`,
+      3000,
+    );
     await shot(page, "ko-03-walkover");
 
     const samSemiCode = await codeOf(samSemi);
     const samSemiSets = straightSets(winnerSlot(samSemi));
-    await say(page, "API", `${samSemiCode}: Sam's team wins ${setsLine(samSemiSets)}, everyone confirms`, 1500);
+    await say(
+      page,
+      "API",
+      `${samSemiCode}: Sam's team wins ${setsLine(samSemiSets)}, everyone confirms`,
+      1500,
+    );
     await scoreMatch(game.id, samSemi.id, samSemiSets);
     await reload(page);
-    await scrollTo(page, page.getByRole("heading", { name: /^Final$/ }), "start");
+    await scrollTo(
+      page,
+      page.getByRole("heading", { name: /^Final$/ }),
+      "start",
+    );
     await say(page, "VIEW", "The Final is set");
-    const final = (await knockoutMatches(game.id)).find((m) => m.knockoutRound === 3)!;
+    const final = (await knockoutMatches(game.id)).find(
+      (m) => m.knockoutRound === 3,
+    )!;
     const finalSets = straightSets(winnerSlot(final));
-    await say(page, "API", `Final: ${await teamName(winnerSlot(final) === 1 ? final.slot1GameTeamId : final.slot2GameTeamId)} win ${setsLine(finalSets)}; players submit and confirm`, 1500);
+    await say(
+      page,
+      "API",
+      `Final: ${await teamName(winnerSlot(final) === 1 ? final.slot1GameTeamId : final.slot2GameTeamId)} win ${setsLine(finalSets)}; players submit and confirm`,
+      1500,
+    );
     await scoreMatch(game.id, final.id, finalSets);
     await reload(page);
-    await scrollTo(page, page.getByRole("heading", { name: /^Final$/ }), "start");
+    await scrollTo(
+      page,
+      page.getByRole("heading", { name: /^Final$/ }),
+      "start",
+    );
     await expectText(page, "Final shows the Champion tag", /^Champion$/);
-    await say(page, "VIEW", "The Final's winner is tagged Champion in the tree", 2500);
+    await say(
+      page,
+      "VIEW",
+      "The Final's winner is tagged Champion in the tree",
+      2500,
+    );
     await shot(page, "ko-03-champion-tree");
     await scrollTop(page);
-    await expectText(page, "Tournament home shows Champion line", /^Champion: /);
+    await expectText(
+      page,
+      "Tournament home shows Champion line",
+      /^Champion: /,
+    );
     await highlight(page, page.getByText(/^Champion: /));
-    await say(page, "VIEW", "Tournament home: Champion: Sam Rivera / Omar Aziz", 3000);
+    await say(
+      page,
+      "VIEW",
+      "Tournament home: Champion: Sam Rivera / Omar Aziz",
+      3000,
+    );
     await shot(page, "ko-03-champion-home", false);
     await tour(page, 300, 700);
 
@@ -1127,19 +1452,43 @@ const flowKnockoutPlay: Flow = {
     if (await undo.isVisible().catch(() => false)) {
       await scrollTo(page, undo);
       await highlight(page, undo);
-      await say(page, "VIEW", "'Undo the draw' is still offered after the Final was played");
+      await say(
+        page,
+        "VIEW",
+        "'Undo the draw' is still offered after the Final was played",
+      );
       await say(page, "UI", "Organizer tries it");
       await click(page, undo);
       await click(page, page.getByRole("button", { name: /^undo draw$/i }));
       await page.waitForTimeout(2000);
       const refused = page.getByText(/cannot undo/i);
-      await expectText(page, "Undo after play is refused with a message", /cannot undo/i);
+      await expectText(
+        page,
+        "Undo after play is refused with a message",
+        /cannot undo/i,
+      );
       await scrollTo(page, refused);
       await highlight(page, refused);
-      await say(page, "VIEW", `Refused: "${(await refused.first().innerText().catch(() => "")).trim()}"`, 3000);
+      await say(
+        page,
+        "VIEW",
+        `Refused: "${(
+          await refused
+            .first()
+            .innerText()
+            .catch(() => "")
+        ).trim()}"`,
+        3000,
+      );
       await shot(page, "ko-03-undo-after-play-refused", false);
-      const still = await db.query.games.findFirst({ where: eq(games.id, game.id) });
-      expectValue("Tree kept after refused undo", Boolean(still?.drawPostedAt), "draw was undone");
+      const still = await db.query.games.findFirst({
+        where: eq(games.id, game.id),
+      });
+      expectValue(
+        "Tree kept after refused undo",
+        Boolean(still?.drawPostedAt),
+        "draw was undone",
+      );
     }
   },
 };
@@ -1150,7 +1499,13 @@ const flowCreateGroupsThenKnockout: Flow = {
     await createStepsOneTwo(page);
     await scrollTo(page, page.locator("#tournament-team-count"));
     await say(page, "UI", "Plans 12 Game teams");
-    const teams = await setStepper(page, "tournament-team-count", 12, "Fewer Game teams", "More Game teams");
+    const teams = await setStepper(
+      page,
+      "tournament-team-count",
+      12,
+      "Fewer Game teams",
+      "More Game teams",
+    );
     expectValue("Game teams stepper set to 12", teams === 12, `got ${teams}`);
     await click(page, page.getByRole("button", { name: /^continue/i }));
     await settle(page);
@@ -1159,13 +1514,29 @@ const flowCreateGroupsThenKnockout: Flow = {
     await click(page, radio(page, /groups, then knockout/i));
     await scrollTo(page, page.locator("#tournament-pool-count"));
     await say(page, "UI", "Sets 3 groups");
-    const pools = await setStepper(page, "tournament-pool-count", 3, "Fewer groups", "More groups");
+    const pools = await setStepper(
+      page,
+      "tournament-pool-count",
+      3,
+      "Fewer groups",
+      "More groups",
+    );
     expectValue("Groups stepper set to 3", pools === 3, `got ${pools}`);
     await scrollTo(page, page.locator("#tournament-qualifiers-per-pool"));
     await say(page, "UI", "Through from each group: 2");
-    const through = await setStepper(page, "tournament-qualifiers-per-pool", 2, "Fewer teams through", "More teams through");
+    const through = await setStepper(
+      page,
+      "tournament-qualifiers-per-pool",
+      2,
+      "Fewer teams through",
+      "More teams through",
+    );
     expectValue("Through from each group = 2", through === 2, `got ${through}`);
-    await expectText(page, "Consequence line: 6 teams into the knockout, 2 byes", /6 teams into the knockout, 2 byes/);
+    await expectText(
+      page,
+      "Consequence line: 6 teams into the knockout, 2 byes",
+      /6 teams into the knockout, 2 byes/,
+    );
     await highlight(page, page.getByText(/into the knockout/));
     await say(page, "VIEW", "6 teams into the knockout, 2 byes", 2500);
     await shot(page, "ko-04-through-from-each-group", false);
@@ -1173,7 +1544,11 @@ const flowCreateGroupsThenKnockout: Flow = {
     await say(page, "UI", "Picks a day, 9:00 to 3:00 PM, 30 min games");
     await pickDayAndTime(page, /^3:00/);
     await tour(page);
-    await say(page, "VIEW", "Day-fit includes the Pool Rounds and the Knockout rounds");
+    await say(
+      page,
+      "VIEW",
+      "Day-fit includes the Pool Rounds and the Knockout rounds",
+    );
     await shot(page, "ko-04-step3-schedule", false);
     await click(page, page.getByRole("button", { name: /^continue/i }));
     await settle(page);
@@ -1181,30 +1556,55 @@ const flowCreateGroupsThenKnockout: Flow = {
     await page.locator("#tournament-name").fill(GK_NAME);
     await page.waitForTimeout(600);
     await scrollTo(page, page.getByText(/onward/), "center");
-    await expectText(page, "Review Knockout row mentions top two and byes", /onward/);
+    await expectText(
+      page,
+      "Review Knockout row mentions top two and byes",
+      /onward/,
+    );
     await highlight(page, page.getByText(/onward/));
-    await say(page, "VIEW", "Review: Knockout row for Groups, then knockout", 2500);
+    await say(
+      page,
+      "VIEW",
+      "Review: Knockout row for Groups, then knockout",
+      2500,
+    );
     await shot(page, "ko-04-review", false);
     await say(page, "UI", "Organizer clicks Create tournament");
-    await click(page, page.getByRole("button", { name: /^create tournament$/i }));
-    await page.waitForURL(/\/dashboard\/games\/[0-9a-f-]{36}/, { timeout: 30_000 });
+    await click(
+      page,
+      page.getByRole("button", { name: /^create tournament$/i }),
+    );
+    await page.waitForURL(/\/dashboard\/games\/[0-9a-f-]{36}/, {
+      timeout: 30_000,
+    });
     await settle(page);
     const game = await latestGame(GK_NAME);
     expectValue(
       "Stored shape groups_then_knockout, 3 pools, 2 through",
-      game?.tournamentShape === "groups_then_knockout" && game.poolCount === 3 && game.qualifiersPerPool === 2,
+      game?.tournamentShape === "groups_then_knockout" &&
+        game.poolCount === 3 &&
+        game.qualifiersPerPool === 2,
       `shape ${game?.tournamentShape} pools ${game?.poolCount} q ${game?.qualifiersPerPool}`,
     );
     if (!game) throw new Error("Not created");
 
-    await say(page, "API", "12 pairs register as complete Game teams (Sam + Omar among them)", 1200);
+    await say(
+      page,
+      "API",
+      "12 pairs register as complete Game teams (Sam + Omar among them)",
+      1200,
+    );
     await registerPairs(game.id, ctx.users, GK_PAIRS);
     await reload(page);
     await say(page, "VIEW", "12 complete Game teams");
     await tour(page, 400, 500);
     const entry = page.getByRole("button", { name: /^open the draw$/i });
     await scrollTo(page, entry);
-    await say(page, "UI", "Organizer opens the draw and clicks Draw the groups");
+    await say(
+      page,
+      "UI",
+      "Organizer opens the draw and clicks Draw the groups",
+    );
     await click(page, entry);
     await click(page, page.getByRole("button", { name: /^draw the groups$/i }));
     await page.waitForTimeout(1500);
@@ -1215,11 +1615,18 @@ const flowCreateGroupsThenKnockout: Flow = {
     await page.waitForTimeout(1500);
     await say(page, "VIEW", "A new draft", 2000);
     await say(page, "UI", "Organizer clicks Post the group draw");
-    await click(page, page.getByRole("button", { name: /^post the group draw$/i }));
+    await click(
+      page,
+      page.getByRole("button", { name: /^post the group draw$/i }),
+    );
     await page.waitForTimeout(2500);
     await settle(page);
     await scrollTop(page);
-    await say(page, "VIEW", "Posted: three Pool tables, then the Knockout with placeholders");
+    await say(
+      page,
+      "VIEW",
+      "Posted: three Pool tables, then the Knockout with placeholders",
+    );
     await expectText(page, "Knockout section heading", /^Knockout$/);
     await expectText(page, "Qualifier placeholder like A1", /^[ABC][12]$/);
     await expectText(page, "Winner of placeholder", /^Winner of Q\d$/);
@@ -1227,16 +1634,25 @@ const flowCreateGroupsThenKnockout: Flow = {
     await tour(page, 300, 800);
     const knockout = page.locator("#tournament-knockout-heading");
     await scrollTo(page, knockout, "start");
-    await say(page, "VIEW", "Knockout tree: A1/B1 Byes, cross-group Quarter-finals, 'Winner of' places", 3000);
+    await say(
+      page,
+      "VIEW",
+      "Knockout tree: A1/B1 Byes, cross-group Quarter-finals, 'Winner of' places",
+      3000,
+    );
     await shot(page, "ko-04-posted-placeholders");
     const rows = await knockoutMatches(game.id);
-    expectValue("5 Knockout Matches created at post", rows.length === 5, `rows ${rows.length}`);
+    expectValue(
+      "5 Knockout Matches created at post",
+      rows.length === 5,
+      `rows ${rows.length}`,
+    );
   },
 };
 
 /** Click through every Pool table tab so the video shows all groups. */
 async function showPoolTabs(page: Page, ms = 1300) {
-  const tabs = page.getByRole("tab", { name: /^group \d+$/i });
+  const tabs = page.getByRole("tab", { name: /^group [a-z]$/i });
   const count = await tabs.count();
   if (count === 0) return;
   await scrollTo(page, tabs.first(), "start");
@@ -1250,7 +1666,12 @@ const flowGroupsThenKnockoutPlay: Flow = {
   name: "ko-05-groups-then-knockout-play",
   run: async (page, ctx) => {
     const sam = need(ctx.users, "samrivera");
-    const game = await ensureTournament(GK_NAME, "groups_then_knockout", ctx.groupId, ctx.users);
+    const game = await ensureTournament(
+      GK_NAME,
+      "groups_then_knockout",
+      ctx.groupId,
+      ctx.users,
+    );
     await registerPairs(game.id, ctx.users, GK_PAIRS);
     await ensurePosted(game.id, sam.id);
     const samTeam = await teamIdOf(game.id, sam.id);
@@ -1258,7 +1679,9 @@ const flowGroupsThenKnockoutPlay: Flow = {
     await goto(page, path);
     await say(page, "VIEW", `${GK_NAME}: groups posted, nothing played`);
 
-    const teams = await db.query.gameTeams.findMany({ where: eq(gameTeams.gameId, game.id) });
+    const teams = await db.query.gameTeams.findMany({
+      where: eq(gameTeams.gameId, game.id),
+    });
     // Strength decides every Pool Match. Sam's team is made third in its group so it misses the knockout.
     const strength = new Map<string, number>();
     const byPool = new Map<number, typeof teams>();
@@ -1267,7 +1690,9 @@ const flowGroupsThenKnockoutPlay: Flow = {
       byPool.set(pool, [...(byPool.get(pool) ?? []), team]);
     }
     for (const poolTeams of byPool.values()) {
-      const ordered = [...poolTeams].sort((a, b) => (a.sideIndex ?? 0) - (b.sideIndex ?? 0));
+      const ordered = [...poolTeams].sort(
+        (a, b) => (a.sideIndex ?? 0) - (b.sideIndex ?? 0),
+      );
       const samIndex = ordered.findIndex((team) => team.id === samTeam);
       if (samIndex >= 0) {
         const [samRow] = ordered.splice(samIndex, 1);
@@ -1276,14 +1701,27 @@ const flowGroupsThenKnockoutPlay: Flow = {
       ordered.forEach((team, index) => strength.set(team.id, 10 - index));
     }
     const pool = await poolMatches(game.id);
-    const rounds = [...new Set(pool.map((m) => m.roundNumber))].sort((a, b) => (a ?? 0) - (b ?? 0));
+    const rounds = [...new Set(pool.map((m) => m.roundNumber))].sort(
+      (a, b) => (a ?? 0) - (b ?? 0),
+    );
     const lastPool = pool.at(-1)!;
     for (const round of rounds) {
-      const inRound = pool.filter((m) => m.roundNumber === round && m.id !== lastPool.id);
+      const inRound = pool.filter(
+        (m) => m.roundNumber === round && m.id !== lastPool.id,
+      );
       if (inRound.length === 0) continue;
-      await say(page, "API", `Pool Round ${round}: ${inRound.length} Matches scored and confirmed by their players`, 1200);
+      await say(
+        page,
+        "API",
+        `Pool Round ${round}: ${inRound.length} Matches scored and confirmed by their players`,
+        1200,
+      );
       for (const match of inRound) {
-        const winner = (strength.get(match.slot1GameTeamId ?? "") ?? 0) > (strength.get(match.slot2GameTeamId ?? "") ?? 0) ? 1 : 2;
+        const winner =
+          (strength.get(match.slot1GameTeamId ?? "") ?? 0) >
+          (strength.get(match.slot2GameTeamId ?? "") ?? 0)
+            ? 1
+            : 2;
         await scoreMatch(game.id, match.id, straightSets(winner));
       }
       await reload(page);
@@ -1295,25 +1733,53 @@ const flowGroupsThenKnockoutPlay: Flow = {
     const knockoutBefore = await knockoutMatches(game.id);
     expectValue(
       "No qualifier placed before the last Pool Match settles",
-      knockoutBefore.every((m) => m.knockoutRound !== 1 || (m.slot1GameTeamId == null && m.slot2GameTeamId == null)),
+      knockoutBefore.every(
+        (m) =>
+          m.knockoutRound !== 1 ||
+          (m.slot1GameTeamId == null && m.slot2GameTeamId == null),
+      ),
       "a first-round slot was filled early",
     );
     const knockout = page.locator("#tournament-knockout-heading");
     await scrollTo(page, knockout, "start");
-    await say(page, "VIEW", "One Pool Match left: the tree still shows A1 / B2 placeholders", 2500);
+    await say(
+      page,
+      "VIEW",
+      "One Pool Match left: the tree still shows A1 / B2 placeholders",
+      2500,
+    );
     await shot(page, "ko-05-before-last-pool-match");
 
-    const lastWinner = (strength.get(lastPool.slot1GameTeamId ?? "") ?? 0) > (strength.get(lastPool.slot2GameTeamId ?? "") ?? 0) ? 1 : 2;
+    const lastWinner =
+      (strength.get(lastPool.slot1GameTeamId ?? "") ?? 0) >
+      (strength.get(lastPool.slot2GameTeamId ?? "") ?? 0)
+        ? 1
+        : 2;
     await say(page, "API", "The last Pool Match is scored and confirmed", 1500);
     await scoreMatch(game.id, lastPool.id, straightSets(lastWinner));
     await reload(page);
     await scrollTo(page, knockout, "start");
     const after = await knockoutMatches(game.id);
-    const placed = after.filter((m) => m.slot1GameTeamId || m.slot2GameTeamId).length;
-    expectValue("Qualifiers placed automatically after the last Pool Match", placed >= 3, `matches with a team: ${placed}`);
-    await expectText(page, "Did-not-go-through line for Sam's team", "Your team did not go through. The tournament is over for your team.");
+    const placed = after.filter(
+      (m) => m.slot1GameTeamId ?? m.slot2GameTeamId,
+    ).length;
+    expectValue(
+      "Qualifiers placed automatically after the last Pool Match",
+      placed >= 3,
+      `matches with a team: ${placed}`,
+    );
+    await expectText(
+      page,
+      "Did-not-go-through line for Sam's team",
+      "Your team did not go through. The tournament is over for your team.",
+    );
     await highlight(page, page.getByText(/did not go through/));
-    await say(page, "VIEW", "Qualifiers dropped in automatically; Byes to group winners. Sam's team (3rd) did not go through", 3500);
+    await say(
+      page,
+      "VIEW",
+      "Qualifiers dropped in automatically; Byes to group winners. Sam's team (3rd) did not go through",
+      3500,
+    );
     await shot(page, "ko-05-qualifiers-placed");
     const byeSlots = after
       .filter((m) => m.knockoutRound === 2)
@@ -1324,33 +1790,60 @@ const flowGroupsThenKnockoutPlay: Flow = {
       .filter((slot) => slot.pool != null);
     expectValue(
       "Byes go to Pool winners (second-round sources are position 1)",
-      byeSlots.length === 2 && byeSlots.every((slot) => slot.pool === 1 && slot.team != null),
+      byeSlots.length === 2 &&
+        byeSlots.every((slot) => slot.pool === 1 && slot.team != null),
       JSON.stringify(byeSlots),
     );
     const firstRound = after.filter((m) => m.knockoutRound === 1);
     expectValue(
       "No first-round Match pairs two teams from the same Pool",
-      firstRound.every((m) => m.slot1SourcePoolIndex !== m.slot2SourcePoolIndex),
-      JSON.stringify(firstRound.map((m) => [m.slot1SourcePoolIndex, m.slot2SourcePoolIndex])),
+      firstRound.every(
+        (m) => m.slot1SourcePoolIndex !== m.slot2SourcePoolIndex,
+      ),
+      JSON.stringify(
+        firstRound.map((m) => [m.slot1SourcePoolIndex, m.slot2SourcePoolIndex]),
+      ),
     );
     await scrollTop(page);
-    await say(page, "VIEW", "Final Pool tables: top two in each group went through", 800);
+    await say(
+      page,
+      "VIEW",
+      "Final Pool tables: top two in each group went through",
+      800,
+    );
     await showPoolTabs(page, 1600);
     await scrollTo(page, knockout, "start");
     await tour(page, 280, 900);
 
     const roundCount = await knockoutRoundCount(game.id);
     for (let round = 1; round <= roundCount; round += 1) {
-      const inRound = (await knockoutMatches(game.id)).filter((m) => m.knockoutRound === round && m.status !== "completed" && m.status !== "cancelled");
-      const name = round === roundCount ? "Final" : round === roundCount - 1 ? "Semi-finals" : "Quarter-finals";
+      const inRound = (await knockoutMatches(game.id)).filter(
+        (m) =>
+          m.knockoutRound === round &&
+          m.status !== "completed" &&
+          m.status !== "cancelled",
+      );
+      const name =
+        round === roundCount
+          ? "Final"
+          : round === roundCount - 1
+            ? "Semi-finals"
+            : "Quarter-finals";
       for (const match of inRound) {
         const code = await codeOf(match);
         const sets = straightSets(round % 2 === 1 ? 1 : 2);
-        await say(page, "API", `${code}: players submit ${setsLine(sets)} and confirm`, 1000);
+        await say(
+          page,
+          "API",
+          `${code}: players submit ${setsLine(sets)} and confirm`,
+          1000,
+        );
         await scoreMatch(game.id, match.id, sets);
       }
       await reload(page);
-      const heading = page.getByRole("heading", { name: new RegExp(`^${name}$`) });
+      const heading = page.getByRole("heading", {
+        name: new RegExp(`^${name}$`),
+      });
       await scrollTo(page, heading, "start");
       await say(page, "VIEW", `${name} played; winners advance`, 2500);
     }
@@ -1379,7 +1872,9 @@ async function authState(browser: Browser) {
   const username = process.env.RECORD_USERNAME;
   const password = process.env.RECORD_PASSWORD;
   if (!username || !password) {
-    throw new Error("Set RECORD_USERNAME and RECORD_PASSWORD for the `me` persona.");
+    throw new Error(
+      "Set RECORD_USERNAME and RECORD_PASSWORD for the `me` persona.",
+    );
   }
   const context = await browser.newContext({ viewport: VIEWPORT });
   const page = await context.newPage();
@@ -1417,9 +1912,14 @@ const FREEZE_INIT_SCRIPT = `
 
 /** Compile the routes once off camera so the videos show no dev skeletons. */
 async function warmUp(browser: Browser, storageState: string) {
-  const context = await browser.newContext({ viewport: VIEWPORT, storageState });
+  const context = await browser.newContext({
+    viewport: VIEWPORT,
+    storageState,
+  });
   const page = await context.newPage();
-  const someGame = await db.query.games.findFirst({ where: eq(games.name, "Friday Cup") });
+  const someGame = await db.query.games.findFirst({
+    where: eq(games.name, "Friday Cup"),
+  });
   for (const path of [
     "/dashboard",
     "/dashboard/games",
@@ -1469,7 +1969,8 @@ async function main() {
     headless: process.env.RECORD_HEADED !== "1",
   });
   const storageState = await authState(browser);
-  if (process.env.RECORD_SKIP_WARMUP !== "1") await warmUp(browser, storageState);
+  if (process.env.RECORD_SKIP_WARMUP !== "1")
+    await warmUp(browser, storageState);
 
   for (const flow of FLOWS) {
     if (only && !only.some((o) => flow.name.startsWith(o) || flow.name === o)) {
@@ -1497,7 +1998,12 @@ async function main() {
       await say(page, "VIEW", "End of flow", 1200);
     } catch (error) {
       const message = (error as Error).message.split("\n")[0] ?? "";
-      checks.push({ flow: flow.name, step: "flow ran to the end", ok: false, note: message });
+      checks.push({
+        flow: flow.name,
+        step: "flow ran to the end",
+        ok: false,
+        note: message,
+      });
       console.error(`    failed: ${(error as Error).message}`);
       await shot(page, `FAIL-${flow.name}-crash`).catch(() => undefined);
     }
@@ -1517,7 +2023,9 @@ async function main() {
   await browser.close();
   console.log("\nChecks:");
   for (const check of checks) {
-    console.log(`  ${check.ok ? "PASS" : "FAIL"}  ${check.flow}  ${check.step}${check.note ? `  (${check.note})` : ""}`);
+    console.log(
+      `  ${check.ok ? "PASS" : "FAIL"}  ${check.flow}  ${check.step}${check.note ? `  (${check.note})` : ""}`,
+    );
   }
   console.log(`\nVideos and screenshots in ${OUT_DIR}`);
 }

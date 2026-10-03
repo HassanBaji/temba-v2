@@ -913,9 +913,10 @@ export function FriendlyTournamentSteps({
               value={
                 knockoutOnly
                   ? KNOCKOUT_ONLY_FORMAT_LABEL
-                  : sizing
-                    ? friendlyTournamentFormatLabel(sizing.poolCount)
-                    : friendlyTournamentFormatLabel(poolCount)
+                  : friendlyTournamentFormatLabel(
+                      sizing?.poolCount ?? poolCount,
+                      poolKnockoutTree != null,
+                    )
               }
             />
             {knockoutTree ? (

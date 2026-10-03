@@ -28,6 +28,7 @@ import {
   UNDO_KNOCKOUT_DRAW_CONFIRM_COPY,
   UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE,
   drawDrawerLead,
+  knockoutDrawDrawerLead,
   drawEntryStateLine,
   drawEntryTitle,
   type DraftPoolTeam,
@@ -136,6 +137,7 @@ export function TournamentDrawDrawer({
   viewerUserId,
   gameTeams,
   teamCount,
+  completeTeams,
   storedRoundCount,
   windowStart,
   windowEnd,
@@ -154,6 +156,7 @@ export function TournamentDrawDrawer({
   viewerUserId: string;
   gameTeams: readonly (DraftPoolTeam & KnockoutViewGameTeam)[];
   teamCount: number | null | undefined;
+  completeTeams: number;
   storedRoundCount: number | null | undefined;
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
@@ -207,7 +210,9 @@ export function TournamentDrawDrawer({
               {DRAW_DRAWER_TITLE}
             </DrawerTitle>
             <DrawerDescription className="text-ink text-body mt-2.5 leading-relaxed">
-              {drawDrawerLead(teamCount, knockoutOnly)}
+              {knockoutOnly
+                ? knockoutDrawDrawerLead(completeTeams)
+                : drawDrawerLead(teamCount)}
             </DrawerDescription>
           </div>
           {knockoutOnly ? (

@@ -38,6 +38,7 @@ import {
   visibleCreateGroups,
   DEFAULT_TOURNAMENT_SHAPE,
   TOURNAMENT_SHAPE_OPTIONS,
+  friendlyTournamentFormatLabel,
 } from "./create-game-flow";
 
 const NOW = new Date(2026, 8, 22, 12, 0, 0);
@@ -704,5 +705,20 @@ describe("level and price", () => {
     }
     assert.equal(priceChipIsSelected("3.50", "3.5"), true);
     assert.equal(priceChipIsSelected("0", ""), false);
+  });
+});
+
+describe("friendlyTournamentFormatLabel", () => {
+  it("names the groups, and the knockout after them when the shape has one", () => {
+    assert.equal(friendlyTournamentFormatLabel(1), "1 group");
+    assert.equal(friendlyTournamentFormatLabel(3), "3 groups");
+    assert.equal(
+      friendlyTournamentFormatLabel(3, true),
+      "3 groups, then knockout",
+    );
+    assert.equal(
+      friendlyTournamentFormatLabel(1, true),
+      "1 group, then knockout",
+    );
   });
 });

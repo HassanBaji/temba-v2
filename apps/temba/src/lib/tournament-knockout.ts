@@ -393,10 +393,31 @@ export function groupsThenKnockoutReviewValue(args: {
     : `${value}. ${knockoutByeCountLabel(args.tree.byeCount)}`;
 }
 
+/** Pools are lettered in drawn order so `A1` in the tree matches group A's table. */
+export function poolLetter(poolIndex: number) {
+  return String.fromCharCode(64 + poolIndex);
+}
+
 /** `A1`: Pool letter in drawn order, then the place in that Pool's table. */
 export function knockoutQualifierLabel(
   poolIndex: number,
   poolPosition: number,
 ) {
-  return `${String.fromCharCode(64 + poolIndex)}${poolPosition}`;
+  return `${poolLetter(poolIndex)}${poolPosition}`;
+}
+
+export function scoredSetLabel(
+  sets: readonly {
+    slot1GamesWon: number | null;
+    slot2GamesWon: number | null;
+  }[],
+) {
+  const parts: string[] = [];
+  for (const set of sets) {
+    if (set.slot1GamesWon == null || set.slot2GamesWon == null) {
+      continue;
+    }
+    parts.push(`${set.slot1GamesWon}-${set.slot2GamesWon}`);
+  }
+  return parts.length > 0 ? parts.join(" ") : null;
 }

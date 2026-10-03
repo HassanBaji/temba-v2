@@ -263,7 +263,10 @@ export function TournamentHome({
     drawPosted: drawn,
   };
   const showDrawEntry = canOpenOrganizerDrawDrawer(drawGate);
-  const showUndo = canShowUndoPoolDraw(drawGate);
+  const showUndo = canShowUndoPoolDraw({
+    ...drawGate,
+    canUndo: data.canUndoDraw,
+  });
   const canLeaveGame =
     (data.isSeated || data.isRegistered) && data.canLeave && !data.isWaitlisted;
   const schedule =
@@ -576,6 +579,7 @@ function TournamentPredrawTree({
         viewerUserId={viewerUserId}
         gameTeams={gameTeams}
         teamCount={fieldSize}
+        completeTeams={completeTeams}
         storedRoundCount={storedRoundCount}
         windowStart={windowStart}
         windowEnd={windowEnd}

@@ -574,6 +574,11 @@ export async function gameById(
     roundCount: game.roundCount,
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
+    canUndoDraw:
+      game.drawPostedAt != null &&
+      !matchRows.some(
+        (match) => match.sets.length > 0 || match.status === "completed",
+      ),
     sport: game.sport,
     cancelledAt: game.cancelledAt,
     registrationClosedAt: game.registrationClosedAt,
@@ -776,6 +781,10 @@ export async function gameById(
         slot2GameTeamId: match.slot2GameTeamId,
         status: match.status,
         result: matchOutcome(match.sets).result,
+        sets: match.sets.map((set) => ({
+          slot1GamesWon: set.slot1GamesWon,
+          slot2GamesWon: set.slot2GamesWon,
+        })),
         walkoverGameTeamId: match.walkoverGameTeamId,
         slot1SourcePoolIndex: match.slot1SourcePoolIndex,
         slot1SourcePoolPosition: match.slot1SourcePoolPosition,

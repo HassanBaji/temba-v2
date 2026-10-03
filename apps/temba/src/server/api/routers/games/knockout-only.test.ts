@@ -24,7 +24,7 @@ import { drawPools } from "~/server/api/routers/games/drawPools";
 import { postPoolDraw } from "~/server/api/routers/games/postPoolDraw";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import {
-  UNDO_AFTER_SET_MESSAGE,
+  UNDO_KNOCKOUT_AFTER_SET_MESSAGE,
   undoPoolDraw,
 } from "~/server/api/routers/games/undoPoolDraw";
 import { updateMatch } from "~/server/api/routers/games/updateMatch";
@@ -696,8 +696,13 @@ describe("undoPoolDraw on Knockout only", () => {
             organizerUserId: seeded.owner.id,
           }),
         "FORBIDDEN",
-        UNDO_AFTER_SET_MESSAGE,
+        UNDO_KNOCKOUT_AFTER_SET_MESSAGE,
       );
+      const detail = await gameById(db, {
+        gameId: seeded.gameId,
+        userId: seeded.owner.id,
+      });
+      expect(detail.canUndoDraw).toBe(false);
     } finally {
       await close();
     }
@@ -830,6 +835,7 @@ describe("gameById on Knockout only", () => {
         userId: viewer.id,
       });
       expect(posted.poolTables).toBeNull();
+      expect(posted.canUndoDraw).toBe(true);
       const rounds = posted.knockout;
       expect(rounds?.map((round) => round.name)).toEqual([
         "Quarter-finals",

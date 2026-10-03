@@ -1,3 +1,4 @@
+import { poolLetter } from "~/lib/tournament-knockout";
 import { tournamentRoundSummary } from "~/lib/tournament-rounds";
 import { resolveRoundCount } from "~/lib/tournament-sizing";
 
@@ -48,7 +49,7 @@ export const UNDO_KNOCKOUT_DRAW_CONFIRM_COPY =
   "Every knockout Match is deleted and the draw is cleared.";
 
 export function poolLabel(poolIndex: number) {
-  return `group ${poolIndex}`;
+  return `group ${poolLetter(poolIndex)}`;
 }
 
 export function hasDraftPoolDraw(
@@ -69,8 +70,9 @@ export function canShowUndoPoolDraw(args: {
   isOrganizer: boolean;
   cancelled: boolean;
   drawPosted: boolean;
+  canUndo: boolean;
 }) {
-  return args.isOrganizer && !args.cancelled && args.drawPosted;
+  return args.isOrganizer && !args.cancelled && args.drawPosted && args.canUndo;
 }
 
 export function drawEntryTitle(hasDraft: boolean, knockoutOnly = false) {
@@ -88,18 +90,22 @@ export function drawEntryStateLine(completeTeams: number, teamCount: number) {
   return `${completeTeams} of ${teamCount} ${teamWord} ${verb} complete.`;
 }
 
-export function drawDrawerLead(
-  teamCount: number | null | undefined,
-  knockoutOnly = false,
-) {
-  const random = knockoutOnly
-    ? KNOCKOUT_DRAW_RANDOM_COPY
-    : POOL_DRAW_RANDOM_COPY;
+export function drawDrawerLead(teamCount: number | null | undefined) {
   if (teamCount == null || teamCount <= 0) {
-    return random;
+    return POOL_DRAW_RANDOM_COPY;
   }
   const teamWord = teamCount === 1 ? "Game team" : "Game teams";
-  return `${teamCount} ${teamWord}. ${random}`;
+  return `${teamCount} ${teamWord}. ${POOL_DRAW_RANDOM_COPY}`;
+}
+
+/** The tree sizes itself to the complete Game teams, not the planned count. */
+export function knockoutDrawDrawerLead(completeTeams: number) {
+  if (completeTeams <= 0) {
+    return KNOCKOUT_DRAW_RANDOM_COPY;
+  }
+  const teamWord =
+    completeTeams === 1 ? "complete Game team goes" : "complete Game teams go";
+  return `${completeTeams} ${teamWord} into the draw. ${KNOCKOUT_DRAW_RANDOM_COPY}`;
 }
 
 export function draftPoolMetaLine(args: {

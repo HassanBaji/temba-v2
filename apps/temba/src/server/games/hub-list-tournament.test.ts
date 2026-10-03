@@ -463,7 +463,7 @@ describe("hub row poolMatch field", { timeout: 30_000 }, () => {
       expect(matchRows).toHaveLength(3);
       for (const row of matchRows) {
         expect(row.poolMatch).toEqual({
-          poolLabel: "1",
+          poolLabel: "A",
           poolSize: 4,
           viewerPosition: null,
           lastResult: null,
@@ -511,7 +511,7 @@ describe("hub row poolMatch field", { timeout: 30_000 }, () => {
       expect(viewerRows.map((row) => row.roundNumber)).toEqual([2, 3]);
       for (const row of viewerRows) {
         expect(row.poolMatch).toEqual({
-          poolLabel: "1",
+          poolLabel: "A",
           poolSize: 4,
           viewerPosition: 1,
           lastResult: { roundNumber: 1, outcome: "won", viewerSets },
@@ -558,7 +558,7 @@ describe("hub row poolMatch field", { timeout: 30_000 }, () => {
       );
       expect(row?.roundNumber).toBe(2);
       expect(row?.poolMatch).toEqual({
-        poolLabel: "1",
+        poolLabel: "A",
         poolSize: 4,
         viewerPosition: null,
         lastResult: { roundNumber: 1, outcome: "cancelled", viewerSets: [] },
@@ -588,7 +588,7 @@ describe("Home carousel Pool Match rows", { timeout: 30_000 }, () => {
         canAddResults: false,
         tournament: { roundCount: 3, drawPosted: true },
         poolMatch: {
-          poolLabel: "1",
+          poolLabel: "A",
           poolSize: 4,
           viewerPosition: null,
           lastResult: null,

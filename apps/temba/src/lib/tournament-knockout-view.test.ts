@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  canCancelKnockoutPlace,
   draftKnockoutFirstRound,
   hasDraftKnockoutDraw,
   knockoutCancelDescription,
@@ -190,6 +191,60 @@ describe("knockout results in the posted tree", () => {
     },
   ];
   const gameTeams = [team("a", 1), team("b", 2), team("c", 3), team("d", 4)];
+
+  it("shows the Set scores of a completed Match and nothing on an open one", () => {
+    const [s1, s2, final] = twoRoundMatches({
+      s1: { status: "pending", result: "none" },
+      final: { status: "pending", result: "none", slot1GameTeamId: null },
+    });
+    const rounds = postedKnockoutRounds({
+      matches: [
+        { ...s1!, sets: [{ slot1GamesWon: 6, slot2GamesWon: 3 }] },
+        {
+          ...s2!,
+          sets: [
+            { slot1GamesWon: 3, slot2GamesWon: 6 },
+            { slot1GamesWon: 4, slot2GamesWon: 6 },
+          ],
+        },
+        final!,
+      ],
+      gameTeams,
+      viewerUserId: "viewer",
+    });
+    const places = rounds?.[0]?.places ?? [];
+    const first = places[0];
+    const second = places[1];
+    assert.equal(first?.kind === "match" ? first.scoreLabel : "?", null);
+    assert.equal(second?.kind === "match" ? second.scoreLabel : "?", "3-6 4-6");
+  });
+
+  it("offers Cancel Match only while a team is in the Match and it is unsettled", () => {
+    const rounds = postedKnockoutRounds({
+      matches: twoRoundMatches({
+        s1: { status: "pending", result: "none" },
+        final: { status: "pending", result: "none", slot1GameTeamId: null },
+      }),
+      gameTeams,
+      viewerUserId: "viewer",
+    });
+    const [s1, s2] = rounds?.[0]?.places ?? [];
+    const final = rounds?.[1]?.places[0];
+    assert.equal(s1 && canCancelKnockoutPlace(s1), true);
+    assert.equal(s2 && canCancelKnockoutPlace(s2), false);
+    assert.equal(final && canCancelKnockoutPlace(final), true);
+    const emptyFinal = postedKnockoutRounds({
+      matches: twoRoundMatches({
+        s1: { status: "pending", result: "none" },
+        final: { status: "pending", result: "none", slot1GameTeamId: null },
+      }).map((match) =>
+        match.id === "f" ? { ...match, slot2GameTeamId: null } : match,
+      ),
+      gameTeams,
+      viewerUserId: "viewer",
+    })?.[1]?.places[0];
+    assert.equal(emptyFinal && canCancelKnockoutPlace(emptyFinal), false);
+  });
 
   it("asks for a deciding Set on a level Knockout Match and names no Champion yet", () => {
     const rounds = postedKnockoutRounds({

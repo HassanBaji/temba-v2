@@ -334,7 +334,7 @@ export function createTournamentCardFixtures(now = new Date()) {
       startTime: tonight > now ? tonight : atHalfPast(now, 1, 19),
       roundNumber: 3,
       poolMatch: {
-        poolLabel: "1",
+        poolLabel: "A",
         poolSize: 4,
         viewerPosition: 1,
         lastResult: {
@@ -353,7 +353,7 @@ export function createTournamentCardFixtures(now = new Date()) {
       startTime: tonight > now ? tonight : atHalfPast(now, 1, 19),
       roundNumber: 1,
       poolMatch: {
-        poolLabel: "1",
+        poolLabel: "A",
         poolSize: 4,
         viewerPosition: null,
         lastResult: null,
@@ -365,7 +365,7 @@ export function createTournamentCardFixtures(now = new Date()) {
       startTime: atHalfPast(now, 7, 19),
       roundNumber: 2,
       poolMatch: {
-        poolLabel: "1",
+        poolLabel: "A",
         poolSize: 4,
         viewerPosition: 2,
         lastResult: {
@@ -384,7 +384,7 @@ export function createTournamentCardFixtures(now = new Date()) {
       startTime: new Date(now.getTime() - 2 * 60 * 60 * 1000),
       roundNumber: 2,
       poolMatch: {
-        poolLabel: "1",
+        poolLabel: "A",
         poolSize: 4,
         viewerPosition: 2,
         lastResult: {

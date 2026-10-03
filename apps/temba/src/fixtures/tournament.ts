@@ -390,6 +390,7 @@ function baseTournament(args: {
     roundCount: null,
     matchMinutes: null,
     drawPostedAt: args.drawPostedAt,
+    canUndoDraw: args.drawPostedAt != null,
     sport: GameSportEnum.PADEL,
     cancelledAt: null,
     registrationClosedAt: args.drawPostedAt,

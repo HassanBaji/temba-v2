@@ -97,6 +97,7 @@ import {
 import {
   isPartnerRequiredGame,
   hasPools,
+  isKnockoutOnly,
   showsDrawnTournamentSeats,
 } from "~/lib/tournament-rounds";
 import {
@@ -301,9 +302,15 @@ export default function GameHomePage({
     },
   });
 
+  const knockoutOnlyDraw = () =>
+    game.data != null &&
+    isKnockoutOnly(game.data.format, game.data.tournamentShape);
+
   const drawPools = api.games.drawPools.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.poolsDrawn);
+      toast.success(
+        knockoutOnlyDraw() ? GAME_TOAST.knockoutDrawn : GAME_TOAST.poolsDrawn,
+      );
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -315,7 +322,11 @@ export default function GameHomePage({
 
   const postPoolDraw = api.games.postPoolDraw.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.poolDrawPosted);
+      toast.success(
+        knockoutOnlyDraw()
+          ? GAME_TOAST.knockoutDrawPosted
+          : GAME_TOAST.poolDrawPosted,
+      );
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -327,7 +338,11 @@ export default function GameHomePage({
 
   const undoPoolDraw = api.games.undoPoolDraw.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.poolDrawUndone);
+      toast.success(
+        knockoutOnlyDraw()
+          ? GAME_TOAST.knockoutDrawUndone
+          : GAME_TOAST.poolDrawUndone,
+      );
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();

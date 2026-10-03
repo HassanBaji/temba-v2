@@ -6,6 +6,7 @@ import {
   KNOCKOUT_DECIDING_SET_COPY,
   KNOCKOUT_WALKOVER_TAG,
   KNOCKOUT_WON_TAG,
+  canCancelKnockoutPlace,
   knockoutPlaceMetaLine,
   knockoutRoundDayLine,
   knockoutSideLabel,
@@ -103,12 +104,17 @@ function KnockoutPlaceCard({
                   : null
               }
             />
+            {place.scoreLabel ? (
+              <p className="text-muted-foreground text-meta py-2 tabular-nums">
+                {place.scoreLabel}
+              </p>
+            ) : null}
             {place.needsDecidingSet ? (
               <p className="text-muted-foreground text-meta py-2">
                 {KNOCKOUT_DECIDING_SET_COPY}
               </p>
             ) : null}
-            {onCancelMatch && place.matchId && !place.settled ? (
+            {onCancelMatch && canCancelKnockoutPlace(place) ? (
               <div className="py-2">
                 <Button
                   type="button"

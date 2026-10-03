@@ -697,8 +697,12 @@ export function friendlyTournamentGroupsLine(sizing: TournamentSizing) {
   return formatPoolSizeLine(sizing);
 }
 
-export function friendlyTournamentFormatLabel(poolCount: number) {
-  return poolCount === 1 ? "1 group" : `${poolCount} groups`;
+export function friendlyTournamentFormatLabel(
+  poolCount: number,
+  thenKnockout = false,
+) {
+  const groups = poolCount === 1 ? "1 group" : `${poolCount} groups`;
+  return thenKnockout ? `${groups}, then knockout` : groups;
 }
 
 export function knockoutMatchCountLabel(matches: number) {

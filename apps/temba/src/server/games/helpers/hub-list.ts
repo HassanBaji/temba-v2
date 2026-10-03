@@ -8,6 +8,7 @@ import {
   teamMembers,
 } from "@repo/db";
 
+import { poolLetter } from "~/lib/tournament-knockout";
 import {
   knockoutChampion,
   knockoutCurrentRound,
@@ -644,7 +645,7 @@ function viewerPoolMatch(
   }
   const viewerRow = pool.rows.find((item) => item.isViewer);
   return {
-    poolLabel: String(pool.poolIndex),
+    poolLabel: poolLetter(pool.poolIndex),
     poolSize: pool.rows.length,
     viewerPosition: viewerRow?.played != null ? viewerRow.position : null,
     lastResult: lastSettledRound(pool.viewerRounds),

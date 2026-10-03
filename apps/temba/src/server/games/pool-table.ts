@@ -1,5 +1,6 @@
 import { MatchStatusEnum } from "@repo/db";
 
+import { scoredSetLabel } from "~/lib/tournament-knockout";
 import { poolLabel } from "~/lib/tournament-pool-draw";
 import { hasPools } from "~/lib/tournament-rounds";
 import { matchOutcome } from "~/server/games/match-outcome";
@@ -149,17 +150,6 @@ function gameTeamName(team: PoolTableTeamInput) {
 
 function poolOrderOf(team: PoolTableTeamInput) {
   return team.sideIndex ?? Number.MAX_SAFE_INTEGER;
-}
-
-function scoredSetLabel(sets: readonly PoolTableSetScore[]) {
-  const parts: string[] = [];
-  for (const set of sets) {
-    if (set.slot1GamesWon == null || set.slot2GamesWon == null) {
-      continue;
-    }
-    parts.push(`${set.slot1GamesWon}-${set.slot2GamesWon}`);
-  }
-  return parts.length > 0 ? parts.join(" ") : null;
 }
 
 function gamesDifferenceForSlot(
