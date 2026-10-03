@@ -1,6 +1,6 @@
 /**
  * Record the tournament Knockout flows (ADR-0020) in Chromium and save one
- * H.264 mp4 per flow to `apps/temba/recordings/knockout/`, with key
+ * H.264 mp4 per flow to `apps/web/recordings/knockout/`, with key
  * screenshots next to them. Run after `db:seed` with the dev server up.
  *
  * Organizer steps (create, Draw, Re-roll, Post, Undo, Cancel Match) are
@@ -9,7 +9,7 @@
  * router functions the tRPC doors call, as the seated players. A caption on
  * every step says which is which.
  *
- *   RECORD_USERNAME=... RECORD_PASSWORD=... pnpm --filter temba record:knockout
+ *   RECORD_USERNAME=... RECORD_PASSWORD=... pnpm --filter web record:knockout
  *   RECORD_ONLY=ko-02,ko-03   # optional subset
  */
 import { execFileSync } from "node:child_process";

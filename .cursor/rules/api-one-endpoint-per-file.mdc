@@ -11,7 +11,7 @@ When planning, implementing, or reviewing API work, **do not** recreate a parall
 
 ## Required shape
 
-Each tRPC procedure lives in its own file under `apps/temba/src/server/api/routers/<domain>/`. That file holds the door’s validation, authorization, business rules, database work, and response. `index.ts` only composes procedures.
+Each tRPC procedure lives in its own file under `apps/web/src/server/api/routers/<domain>/`. That file holds the door’s validation, authorization, business rules, database work, and response. `index.ts` only composes procedures.
 
 ```text
 api/routers/

@@ -4,9 +4,9 @@
   "start": "bash .cursor/start.sh",
   "terminals": [
     {
-      "name": "temba dev",
-      "command": "pnpm --filter temba dev"
+      "name": "web dev",
+      "command": "pnpm --filter web dev"
     }
   ],
-  "ports": [{ "name": "temba dev", "port": 3000 }]
+  "ports": [{ "name": "web dev", "port": 3000 }]
 }

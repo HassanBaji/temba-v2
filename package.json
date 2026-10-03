@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:dashboard": "turbo run dev --filter=temba",
-    "build:dashboard": "turbo run build --filter=temba",
-    "start:dashboard": "turbo run start --filter=temba"
+    "dev:web": "turbo run dev --filter=web",
+    "build:web": "turbo run build --filter=web",
+    "start:web": "turbo run start --filter=web"
   },
   "dependencies": {
     "turbo": "^2.10.11"

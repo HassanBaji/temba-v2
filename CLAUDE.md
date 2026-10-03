@@ -12,7 +12,7 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 
 | Phase | What it delivers | Status |
 | --- | --- | --- |
-| 0 | `apps/temba` renamed to `apps/web` | Not started |
+| 0 | `apps/temba` renamed to `apps/web` | Done |
 | Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Not started |
 | 1 | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting | Not started |
 | 2 | `@repo/api` Package and the `apps/api` Hono host | Not started |
@@ -31,7 +31,7 @@ Settled decisions: the API runs on Railway, Clerk stays and gains Sign in with A
 Today:
 
 ```text
-apps/temba                   Next.js 15 App: UI, tRPC API (src/server), route handlers
+apps/web                     Next.js 15 App: UI, tRPC API (src/server), route handlers
 packages/db                  @repo/db: Drizzle schema, client, migrations
 packages/eslint-config       @repo/eslint-config
 packages/typescript-config   @repo/typescript-config
@@ -51,22 +51,22 @@ packages/design-tokens  @repo/design-tokens  colors, spacing, radii, type scale,
 
 ## Commands
 
-Run from Root. The App filter is `temba` until Phase 0 renames it to `web`.
+Run from Root. The Web App filter is `web`.
 
 ```bash
 pnpm install
 ./start-database.sh                          # local Postgres in Docker
-pnpm exec turbo run dev --filter temba       # web on :3000
+pnpm exec turbo run dev --filter web         # web on :3000
 pnpm exec turbo run typecheck lint test      # the gate for every pull request
-pnpm exec turbo run build --filter temba
-pnpm --filter temba format:write
-pnpm --filter temba db:seed                  # wipes and seeds a local database
+pnpm exec turbo run build --filter web
+pnpm --filter web format:write
+pnpm --filter web db:seed                    # wipes and seeds a local database
 pnpm exec turbo run db:generate              # new migration from schema changes
 pnpm exec turbo run db:migrate
 ```
 
 - Tests run on PGlite and need no Postgres, but `DATABASE_URL` must be set to any value until Phase 1 makes the client lazy.
-- A single test: `pnpm --filter temba exec vitest run path/to/file.test.ts`.
+- A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`.
 - After Phase 2 the API runs on port 4000. After Phase 5 `pnpm dev` runs web, API and mobile together.
 
 ## Package boundaries

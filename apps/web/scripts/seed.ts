@@ -9,7 +9,7 @@
  * and time shifts (a Game is created in the future, then moved into the past
  * so it reads as played) are written directly.
  *
- * Run: pnpm --filter temba db:seed
+ * Run: pnpm --filter web db:seed
  * See scripts/README.md for how to sign in as a seeded User.
  */
 import { eq, inArray, sql } from "drizzle-orm";

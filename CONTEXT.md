@@ -11,8 +11,20 @@ This git repository as a pnpm + Turborepo workspace.
 _Avoid_: monorepo, project, repo (when you mean the Workspace), “the app”
 
 **App**:
-A deployable Next.js application under `apps/`. Temba has one App, named `temba`.
+A deployable application under `apps/`. Temba has three planned Apps: the Web App, the API App and the Mobile App.
 _Avoid_: package, site, frontend, service
+
+**Web App**:
+The Next.js App in `apps/web`, package name `web`. It serves the browser UI and, until the API App ships, the tRPC API.
+_Avoid_: temba (its old name), dashboard, frontend, site
+
+**API App**:
+The planned Hono host in `apps/api`. It verifies the session, builds the context and mounts the tRPC routers from `@repo/api`. It holds no business logic.
+_Avoid_: backend, server (when you mean this App), service
+
+**Mobile App**:
+The planned Expo App in `apps/mobile` for iOS and Android. It calls the API App over HTTP and never imports server code.
+_Avoid_: native app, iOS app (it targets both platforms), client (when you mean this App)
 
 **Package**:
 A shared library under `packages/`, consumed with `workspace:*`.
@@ -27,7 +39,7 @@ The Workspace root. It owns the workspace definition, Turborepo, and the shared 
 _Avoid_: calling Root “the app” or putting App scripts there
 
 **Route `/public`**:
-A stub path in the Temba App that redirects to login.
+A stub path in the Web App that redirects to login.
 _Avoid_: Public (EWA Connect’s second App), public app, public package, Community Public (that is a product type)
 
 ### Product

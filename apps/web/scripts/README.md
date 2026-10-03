@@ -1,6 +1,6 @@
 # Demo data and flow recordings
 
-## `pnpm --filter temba db:seed`
+## `pnpm --filter web db:seed`
 
 Wipes the database at `DATABASE_URL` and fills it with demo data that covers every App flow. It refuses any host other than `localhost` unless `SEED_ALLOW_REMOTE=1` is set.
 
@@ -16,7 +16,7 @@ Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local
 1. Create a User with username + password on your Clerk **development** instance. With Clerk test mode on, sign up at `/signup` using a test number `+1 555 555 01xx` (US) and code `424242`. Numbers already used on the instance are refused, so pick an unused one. Copy the User's id (`user_…`) from the dashboard, or from `window.Clerk.user.id` in the browser.
 2. Seed with that id on the `me` persona:
    ```bash
-   SEED_CLERK_ID_ME=user_xxx pnpm --filter temba db:seed
+   SEED_CLERK_ID_ME=user_xxx pnpm --filter web db:seed
    ```
    Any persona can be linked the same way with `SEED_CLERK_ID_<KEY>`, for example `SEED_CLERK_ID_NEWBIE` for the onboarding flow or `SEED_CLERK_ID_MARCO`.
 3. For Operator screens and create doors, set this on that Clerk User's **public metadata**:
@@ -41,9 +41,9 @@ Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local
 
 `newbie` (Nora Newman) has not done the onboarding questionnaire.
 
-## `pnpm --filter temba record:flows`
+## `pnpm --filter web record:flows`
 
-Plays each flow in Chromium and saves one video per flow to `apps/temba/recordings/` (gitignored). Needs the dev server running and a browser that can reach Clerk: in development every page load does a Clerk handshake. Behind a TLS-inspecting proxy, Chromium must trust the proxy CA in its NSS store (`~/.pki/nssdb`).
+Plays each flow in Chromium and saves one video per flow to `apps/web/recordings/` (gitignored). Needs the dev server running and a browser that can reach Clerk: in development every page load does a Clerk handshake. Behind a TLS-inspecting proxy, Chromium must trust the proxy CA in its NSS store (`~/.pki/nssdb`).
 
 Clerk's new-device check (`/login/factor-two`) is answered with `424242`, the test-mode code. Set `RECORD_OTP` to use a different one.
 
@@ -52,7 +52,7 @@ Record twice for clean videos. The first run compiles each route on the dev serv
 ```bash
 RECORD_USERNAME=sam RECORD_PASSWORD=... \
 RECORD_NEWBIE_USERNAME=nora RECORD_NEWBIE_PASSWORD=... \
-pnpm --filter temba record:flows
+pnpm --filter web record:flows
 ```
 
 Options:
@@ -65,8 +65,8 @@ Flows without credentials are skipped.
 
 A few flows click through (confirm a result, approve a join request), so re-seed before recording again.
 
-## `pnpm --filter temba record:knockout`
+## `pnpm --filter web record:knockout`
 
-Records the tournament Knockout flows (ADR-0020) to `apps/temba/recordings/knockout/` as H.264 mp4s, with screenshots next to them. Needs `ffmpeg`, the dev server, a fresh `db:seed` and the same `RECORD_USERNAME` / `RECORD_PASSWORD` as `record:flows`. It refuses a non-local `DATABASE_URL`.
+Records the tournament Knockout flows (ADR-0020) to `apps/web/recordings/knockout/` as H.264 mp4s, with screenshots next to them. Needs `ffmpeg`, the dev server, a fresh `db:seed` and the same `RECORD_USERNAME` / `RECORD_PASSWORD` as `record:flows`. It refuses a non-local `DATABASE_URL`.
 
 Organizer steps are clicked in the UI. A drawn tournament has no score entry yet, so registrations, Set scores and confirmations go through the router functions as the seated players. The caption on each step is tagged `UI`, `API` or `VIEW`. Flows run in order and build on each other (`ko-01` creates the tournament `ko-02` draws); a flow run alone creates what it needs. Re-seed before recording again. `RECORD_ONLY=ko-02,ko-03` records a subset.

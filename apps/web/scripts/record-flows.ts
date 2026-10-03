@@ -1,13 +1,13 @@
 /**
  * Walk the seeded App flows in Chromium and save one video per flow to
- * `apps/temba/recordings/`. Run after `db:seed` with the dev server up.
+ * `apps/web/recordings/`. Run after `db:seed` with the dev server up.
  *
  * Needs a browser that can reach Clerk (every page load does a Clerk
  * handshake in development). Sign-in uses the real /login form, so the
  * `me` persona must be linked to a Clerk dev User (SEED_CLERK_ID_ME) whose
  * username/password you pass here. See scripts/README.md.
  *
- *   RECORD_USERNAME=... RECORD_PASSWORD=... pnpm --filter temba record:flows
+ *   RECORD_USERNAME=... RECORD_PASSWORD=... pnpm --filter web record:flows
  *   RECORD_ONLY=home,games-hub   # optional subset
  */
 import { mkdir, rename, rm } from "node:fs/promises";
