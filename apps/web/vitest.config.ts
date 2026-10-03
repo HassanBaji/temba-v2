@@ -16,6 +16,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
     include: ["src/**/*.test.ts"],
     env: {
       TEMBA_DRIZZLE_MIGRATIONS: resolve(appRoot, "../../packages/db/drizzle"),

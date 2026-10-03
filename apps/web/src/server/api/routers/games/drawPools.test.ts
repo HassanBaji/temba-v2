@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   courts,
@@ -195,6 +195,15 @@ async function expectRefused(
 }
 
 describe("drawPools", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("assigns an even split from a deterministic shuffle", async () => {
     const { db, close } = await createPgliteDb();
     try {

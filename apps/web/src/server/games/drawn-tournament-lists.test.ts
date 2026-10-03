@@ -203,6 +203,15 @@ async function seedFewWeeksTournament(
 }
 
 describe("drawn tournament hub lists", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("keeps a tournament without a posted Pool draw as one row with open seats", async () => {
     const { db, close } = await createPgliteDb();
     try {
