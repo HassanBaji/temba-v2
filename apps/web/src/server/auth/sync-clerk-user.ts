@@ -1,6 +1,6 @@
 import type { DbClient, DbTx } from "@repo/db";
 import { and, eq, ne } from "drizzle-orm";
-import type { UserWebhookEvent } from "@clerk/nextjs/webhooks";
+import type { UserWebhookEvent } from "@clerk/backend/webhooks";
 
 import { user } from "@repo/db";
 

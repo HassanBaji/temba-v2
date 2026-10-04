@@ -1,4 +1,4 @@
-import type { UserWebhookEvent } from "@clerk/nextjs/webhooks";
+import type { UserWebhookEvent } from "@clerk/backend/webhooks";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 

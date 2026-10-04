@@ -23,6 +23,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.8.0
         version: 1.8.0(@date-fns/tz@1.5.0)(@types/react@19.2.7)(date-fns@4.4.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@clerk/backend':
+        specifier: ^3.7.0
+        version: 3.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@clerk/nextjs':
         specifier: ^7.5.2
         version: 7.5.2(next@15.5.24(@babel/core@7.29.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
