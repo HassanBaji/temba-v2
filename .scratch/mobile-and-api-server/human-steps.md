@@ -174,3 +174,13 @@ Steps for a person:
 - [ ] **TEM-325.** Android: with an emulator running, `pnpm --filter mobile exec expo run:android` (needs Android Studio, the SDK and a JDK), or press `a` in the Expo dev server. Check the App builds and launches. Both platforms only bundled with `expo export` in the container. Unverified until done.
 - [ ] **TEM-325.** The Expo dev server tried to install React Native DevTools in the root container and failed (Electron refuses to run as root). That is a container effect, not a scaffold fault; confirm `pnpm dev` is clean on a normal user account.
 - [ ] **TEM-325.** After the checks above, write NativeWind and Expo versions, the font result and the `node-linker` answer into the `## Comments` section of `spec.md` (they answer TEM-323 questions 1, 2, 4 and 5).
+
+## TEM-326 mobile primitives gallery
+
+Open the gallery on a phone with `pnpm --filter mobile dev` (Expo dev server on port 8081), then open the `/gallery` route (the Home placeholder links to it in development only). In a release build the route redirects to `/`. Compare it with `/dashboard/design/home` in the web App (`pnpm --filter web dev`, development only).
+
+- [ ] **TEM-326.** Compare the gallery's hatch swatches, result marks, form slots and type samples with the `HatchSwatches` panel, the recent-form row and the type scale on `/dashboard/design/home`, side by side, on both the paper and the ink Surface. The pattern angle, 1 px line and 5 px period must look the same. Unverified until done (only the bundle, typecheck, lint and unit tests ran in the container).
+- [ ] **TEM-326.** With VoiceOver on, swipe through the gallery and check the Hatch swatches are skipped, the result marks and form slots read Won, Lost, Draw or Not played, and the buttons read their labels. Unverified until done.
+- [ ] **TEM-326.** Turn on Settings, Accessibility, Motion, Reduce Motion, reopen `/gallery` and check the progress fill and the Level line render complete with no animation; turn it off and check both animate once on mount and the skeleton pulses. Unverified until done.
+- [ ] **TEM-326.** In the gallery's Ink section, confirm the buttons are at least 44 points tall (small buttons extend their touch area by hit slop; use the Accessibility Inspector or tap just above and below the small button). To see the one-ink warning, temporarily add a second `Surface tone="ink"` under the `Screen` in `apps/mobile/app/gallery.tsx` and check the Metro log warns; remove it afterwards.
+- [ ] **TEM-326.** Open the sheet from the paper section and trigger a toast from a button, and check the sheet shows a scrim and a hairline (no shadow) and the toast reads aloud under VoiceOver.

@@ -4,6 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { env } from "./env";
 import { useQueryEnvironment } from "./lib/query-environment";
+import { ToastProvider } from "./primitives/toast";
 import { TRPCReactProvider } from "./trpc/react";
 
 function requirePublishableKey() {
@@ -24,7 +25,9 @@ export function Providers(props: { children: React.ReactNode }) {
         publishableKey={requirePublishableKey()}
         tokenCache={tokenCache}
       >
-        <TRPCReactProvider>{props.children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <ToastProvider>{props.children}</ToastProvider>
+        </TRPCReactProvider>
       </ClerkProvider>
     </SafeAreaProvider>
   );
