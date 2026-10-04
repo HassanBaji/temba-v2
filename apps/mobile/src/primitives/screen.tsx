@@ -34,7 +34,13 @@ export function Screen({ children, scroll = true }: ScreenProps) {
     <InkRegistryContext.Provider value={registry}>
       <View style={{ flex: 1, backgroundColor: colors.paper }}>
         {scroll ? (
-          <ScrollView contentContainerStyle={content}>{children}</ScrollView>
+          <ScrollView
+            contentContainerStyle={content}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
+          >
+            {children}
+          </ScrollView>
         ) : (
           <View style={[{ flex: 1 }, content]}>{children}</View>
         )}

@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SuperJSON from "superjson";
 
 import { type AppRouter } from "@repo/api/types";
@@ -21,7 +21,14 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
         defaultOptions: { queries: { staleTime: 30 * 1000 } },
       }),
   );
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
+  const lastUserId = useRef(userId);
+  useEffect(() => {
+    if (lastUserId.current !== userId) {
+      lastUserId.current = userId;
+      queryClient.clear();
+    }
+  }, [queryClient, userId]);
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
 

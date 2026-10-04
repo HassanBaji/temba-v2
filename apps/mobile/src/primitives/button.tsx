@@ -19,6 +19,7 @@ export type ButtonProps = {
   size?: ButtonSize;
   pending?: boolean;
   disabled?: boolean;
+  selected?: boolean;
   icon?: React.ReactNode;
 };
 
@@ -47,6 +48,7 @@ export function Button({
   size = "default",
   pending = false,
   disabled = false,
+  selected,
   icon,
 }: ButtonProps) {
   const tone = useSurfaceTone();
@@ -59,7 +61,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: inactive, busy: pending }}
+      accessibilityState={{ disabled: inactive, busy: pending, selected }}
       disabled={inactive}
       hitSlop={hitSlop}
       onPress={onPress}

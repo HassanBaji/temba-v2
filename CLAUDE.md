@@ -18,7 +18,7 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 | 2 | `@repo/api` Package and the `apps/api` Hono host | Done in code, human steps pending |
 | 3 | Web App calls the API over HTTP and drops its database access | Done in code, human steps pending |
 | 4 | Bearer-only session check in the API context | Not started |
-| 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | In progress: design tokens, the Expo scaffold with providers, and the primitives with the dev gallery landed, sign-in and tab shell pending |
+| 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | In progress: design tokens, the Expo scaffold with providers, the primitives with the dev gallery, and sign-in with the Onboarding gate landed, tab shell pending |
 | 6 | Mobile screens and flows: everything except Venue administration | Not started |
 | 7 | Push, universal links, App Store build (iOS first) | Not started |
 

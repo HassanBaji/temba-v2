@@ -94,7 +94,7 @@ export default [
     },
   }),
   ...tseslint.config({
-    files: ["src/primitives/text.tsx"],
+    files: ["src/primitives/text.tsx", "src/primitives/text-field.tsx"],
     rules: {
       "no-restricted-syntax": restrict(noShadow, noRawColor, noMountProps),
     },
