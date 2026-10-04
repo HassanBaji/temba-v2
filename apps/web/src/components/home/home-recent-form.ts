@@ -1,3 +1,4 @@
+import { winRatePercent } from "~/lib/win-rate";
 import type { RouterOutputs } from "~/trpc/react";
 
 export type RecentFormHistoryRow = Pick<
@@ -36,14 +37,6 @@ const OUTCOME_LABEL: Record<RecentFormHistoryRow["outcome"], "W" | "L" | "D"> =
     lost: "L",
     draw: "D",
   };
-
-function winRatePercent(rows: readonly RecentFormHistoryRow[]): number {
-  if (rows.length === 0) {
-    return 0;
-  }
-  const wins = rows.filter((row) => row.outcome === "won").length;
-  return Math.round((100 * wins) / rows.length);
-}
 
 export function streakFromNewestFirst(
   rows: readonly RecentFormHistoryRow[],
@@ -99,7 +92,11 @@ export function deriveRecentForm(
     draws: current.filter((row) => row.outcome === "draw").length,
     bars: [...played, ...empty],
     streak: streakFromNewestFirst(current),
-    winRatePercent: winRatePercent(current),
+    winRatePercent:
+      winRatePercent(
+        current.filter((row) => row.outcome === "won").length,
+        current.length,
+      ) ?? 0,
     playedCount: current.length,
   };
 }

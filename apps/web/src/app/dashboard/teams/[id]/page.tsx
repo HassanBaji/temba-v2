@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { isNotFoundError } from "~/lib/is-not-found-error";
+import { formatWinRate } from "~/lib/win-rate";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
@@ -63,13 +64,6 @@ function isForbiddenError(error: unknown) {
     return false;
   }
   return data.code === "FORBIDDEN";
-}
-
-function winRate(gamesPlayed: number, wins: number) {
-  if (gamesPlayed === 0) {
-    return "—";
-  }
-  return `${Math.round((wins / gamesPlayed) * 100)}%`;
 }
 
 export default function TeamHomePage({
@@ -341,7 +335,7 @@ export default function TeamHomePage({
             { label: "Losses", value: data.losses },
             {
               label: "Win rate",
-              value: winRate(data.gamesPlayed, data.wins),
+              value: formatWinRate(data.wins, data.gamesPlayed),
             },
           ]}
         />

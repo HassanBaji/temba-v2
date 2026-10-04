@@ -4,6 +4,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { Skeleton } from "~/components/ui/skeleton";
 import { shortPlayerName } from "~/lib/player-name";
+import { winRatePercent } from "~/lib/win-rate";
 import { api } from "~/trpc/react";
 
 function yearFromMatchAt(value: Date | string | null | undefined) {
@@ -12,14 +13,6 @@ function yearFromMatchAt(value: Date | string | null | undefined) {
   }
   const year = new Date(value).getFullYear();
   return Number.isFinite(year) ? year : null;
-}
-
-function wonPercent(won: number, lost: number) {
-  const decided = won + lost;
-  if (decided === 0) {
-    return null;
-  }
-  return Math.round((won / decided) * 100);
 }
 
 function streakLabel(streak: number) {
@@ -49,7 +42,7 @@ export function ProfileAllTimeCard({
   firstMatchAt: Date | string | null;
 }) {
   const sinceYear = yearFromMatchAt(firstMatchAt);
-  const pct = wonPercent(matchesWon, matchesLost);
+  const pct = winRatePercent(matchesWon, matchesPlayed);
   const hasMatches = matchesPlayed > 0;
 
   return (
