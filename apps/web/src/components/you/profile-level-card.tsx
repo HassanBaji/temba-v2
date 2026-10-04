@@ -6,16 +6,8 @@ import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { Skeleton } from "~/components/ui/skeleton";
-import {
-  displayLabelFromStoredBand,
-  nextDistinctDisplayRung,
-  type LevelBand,
-} from "@repo/domain/level-bands";
-import {
-  confirmationFraction,
-  confirmationProgressCaption,
-  lastMatchMovement,
-} from "@repo/domain/profile-level";
+import type { LevelBand } from "@repo/domain/level-bands";
+import { profileLevelView } from "@repo/domain/profile-level";
 import { api } from "~/trpc/react";
 
 export function ProfileLevelCard({
@@ -40,23 +32,15 @@ export function ProfileLevelCard({
     setDrawn(true);
   }, []);
 
-  const displayBand = displayLabelFromStoredBand(band);
-  const displayNext = nextDistinctDisplayRung(band);
-  const movement = lastMatchMovement(history);
-  const atTopBand = !provisional && displayNext == null;
-  const fillPercent = provisional
-    ? Math.min(
-        100,
-        Math.max(
-          0,
-          confirmationFraction(ratedMatchCount, ratedMatchesRemaining) * 100,
-        ),
-      )
-    : Math.min(100, Math.max(0, progressPercent ?? 0));
-  const progressCaption =
-    displayNext == null
-      ? "Top Level band"
-      : `${Math.round(fillPercent)}% of the way to ${displayNext}`;
+  const view = profileLevelView({
+    band,
+    level,
+    provisional,
+    ratedMatchCount,
+    ratedMatchesRemaining,
+    progressPercent,
+    history,
+  });
 
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
@@ -70,29 +54,29 @@ export function ProfileLevelCard({
               aria-hidden="true"
               className="font-expanded text-[60px] leading-[0.94]"
             >
-              {displayBand}
+              {view.displayBand}
             </p>
             <span className="sr-only">
-              {displayBand}, Level {level}
+              {view.displayBand}, Level {view.level}
             </span>
           </div>
-          {movement ? (
+          {view.movement ? (
             <div className="text-right">
-              <p className="font-expanded text-[20px]">{movement}</p>
+              <p className="font-expanded text-[20px]">{view.movement}</p>
               <p className="text-eyebrow text-muted-foreground">last match</p>
             </div>
           ) : null}
         </div>
-        {atTopBand ? (
+        {view.atTopBand ? (
           <p className="text-eyebrow text-muted-foreground mt-[18px]">
-            {progressCaption}
+            {view.caption}
           </p>
         ) : (
           <>
             <div
               aria-hidden="true"
               className={
-                provisional
+                view.provisional
                   ? "hatch rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
                   : "bg-wash rounded-xs mt-[18px] h-2.5 w-full overflow-hidden"
               }
@@ -100,18 +84,13 @@ export function ProfileLevelCard({
               <div
                 className="bg-ink h-full motion-reduce:transition-none"
                 style={{
-                  width: drawn ? `${fillPercent}%` : "0%",
+                  width: drawn ? `${view.fillPercent}%` : "0%",
                   transition: "width 900ms cubic-bezier(0.2, 0.7, 0.2, 1)",
                 }}
               />
             </div>
             <p className="text-eyebrow text-muted-foreground mt-2">
-              {provisional
-                ? confirmationProgressCaption(
-                    ratedMatchCount,
-                    ratedMatchesRemaining,
-                  )
-                : progressCaption}
+              {view.caption}
             </p>
           </>
         )}

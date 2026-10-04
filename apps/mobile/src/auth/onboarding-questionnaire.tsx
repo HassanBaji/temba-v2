@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { ChoiceRow } from "../lib/choice-row";
 import { splitTrpcFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
 import { Skeleton } from "../primitives/skeleton";
@@ -36,34 +37,6 @@ const LEVEL_CHOICES: { value: LevelChoice; label: string }[] = [
   })),
   { value: "unknown", label: "I don’t know" },
 ];
-
-function ChoiceRow<T extends string>(props: {
-  label: string;
-  choices: { value: T; label: string }[];
-  value: T | "";
-  onSelect: (value: T) => void;
-  disabled: boolean;
-}) {
-  return (
-    <View
-      accessibilityRole="radiogroup"
-      accessibilityLabel={props.label}
-      style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
-    >
-      {props.choices.map((choice) => (
-        <View key={choice.value} style={{ minWidth: "30%", flexGrow: 1 }}>
-          <Button
-            label={choice.label}
-            variant={props.value === choice.value ? "default" : "outline"}
-            selected={props.value === choice.value}
-            disabled={props.disabled}
-            onPress={() => props.onSelect(choice.value)}
-          />
-        </View>
-      ))}
-    </View>
-  );
-}
 
 export function OnboardingQuestionnaire() {
   const { signOut } = useAuth();

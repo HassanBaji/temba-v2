@@ -6,6 +6,7 @@ import { Camera } from "lucide-react";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { AvatarBadge } from "~/components/ui/avatar";
 import { Skeleton } from "~/components/ui/skeleton";
+import { playingSinceLine } from "@repo/domain/profile-all-time";
 import { preferredPositionProfileLine } from "@repo/domain/preferred-position";
 import { api } from "~/trpc/react";
 
@@ -69,12 +70,7 @@ export function ProfileIdentity({
   const positionLine = preferredPositionProfileLine(
     state.data?.preferredPosition,
   );
-  const sinceYear =
-    stats.data?.firstMatchAt != null
-      ? new Date(stats.data.firstMatchAt).getFullYear()
-      : null;
-  const playingSince =
-    sinceYear != null && Number.isFinite(sinceYear) ? sinceYear : null;
+  const playingSince = playingSinceLine(stats.data?.firstMatchAt ?? null);
 
   if (!ready) {
     return (
@@ -108,7 +104,7 @@ export function ProfileIdentity({
             {positionLine}
           </p>
         ) : null}
-        {playingSince != null ? (
+        {playingSince ? (
           <p
             className={
               positionLine
@@ -116,7 +112,7 @@ export function ProfileIdentity({
                 : "text-meta text-muted-foreground mt-1 truncate"
             }
           >
-            Playing padel since {playingSince}
+            {playingSince}
           </p>
         ) : null}
       </div>

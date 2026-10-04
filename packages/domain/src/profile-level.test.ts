@@ -5,6 +5,7 @@ import {
   confirmationFraction,
   confirmationProgressCaption,
   lastMatchMovement,
+  profileLevelView,
 } from "./profile-level";
 
 describe("confirmationFraction", () => {
@@ -62,5 +63,54 @@ describe("confirmationProgressCaption", () => {
       confirmationProgressCaption(0, 1),
       "0 of about 1 rated game to confirm",
     );
+  });
+});
+
+describe("profileLevelView", () => {
+  const base = {
+    band: "C2",
+    level: "3.4",
+    provisional: false,
+    ratedMatchCount: 12,
+    ratedMatchesRemaining: 0,
+    progressPercent: 16.4,
+    history: ["3.1", "3.4"],
+  } as const;
+
+  it("fills a confirmed bar from the progress towards the next band", () => {
+    const view = profileLevelView(base);
+    assert.equal(view.fillPercent, 16.4);
+    assert.equal(view.caption, "16% of the way to C+");
+    assert.equal(view.movement, "up");
+    assert.equal(view.atTopBand, false);
+  });
+
+  it("fills a provisional bar from the confirmation fraction", () => {
+    const view = profileLevelView({
+      ...base,
+      provisional: true,
+      ratedMatchCount: 3,
+      ratedMatchesRemaining: 2,
+    });
+    assert.equal(view.fillPercent, 60);
+    assert.equal(view.caption, "3 of about 5 rated games to confirm");
+  });
+
+  it("clamps the fill into 0 to 100", () => {
+    assert.equal(
+      profileLevelView({ ...base, progressPercent: 140 }).fillPercent,
+      100,
+    );
+    assert.equal(
+      profileLevelView({ ...base, progressPercent: null }).fillPercent,
+      0,
+    );
+  });
+
+  it("marks a confirmed top band with no next rung", () => {
+    const view = profileLevelView({ ...base, band: "A", history: [] });
+    assert.equal(view.atTopBand, true);
+    assert.equal(view.caption, "Top Level band");
+    assert.equal(view.movement, null);
   });
 });

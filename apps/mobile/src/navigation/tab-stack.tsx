@@ -3,7 +3,13 @@ import { Stack } from "expo-router";
 
 import { Text } from "../primitives/text";
 
-export function TabStack({ title }: { title: string }) {
+export function TabStack({
+  title,
+  children,
+}: {
+  title: string;
+  children?: React.ReactNode;
+}) {
   return (
     <Stack
       screenOptions={{
@@ -20,6 +26,7 @@ export function TabStack({ title }: { title: string }) {
           headerTitle: () => <Text weight="semibold">{title}</Text>,
         }}
       />
+      {children}
     </Stack>
   );
 }

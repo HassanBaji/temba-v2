@@ -1,82 +1,17 @@
-import { spacing } from "@repo/design-tokens";
 import { View } from "react-native";
 
-import { Button } from "../primitives/button";
-import { Skeleton } from "../primitives/skeleton";
-import { Text } from "../primitives/text";
 import { AllTimeCard } from "./all-time-card";
-import { Card } from "./card";
 import { ComingUp } from "./coming-up";
 import { HomeHeader } from "./home-header";
-import type { HomeModel, Slot } from "./home-model";
+import type { HomeModel } from "./home-model";
 import type { HomeNavTarget } from "./home-target";
 import { LevelCard } from "./level-card";
 import { NextGame, NoGames } from "./next-game";
 import { RecentFormCard } from "./recent-form-card";
+import { Block } from "./slot-block";
 import { StandingCard } from "./standing-card";
 
 const SECTION_GAP = 26;
-
-function Failure({
-  title,
-  message,
-  onRetry,
-}: {
-  title: string;
-  message: string;
-  onRetry: () => void;
-}) {
-  return (
-    <Card>
-      <View
-        style={{ padding: spacing.surface, gap: 8 }}
-        accessibilityRole="alert"
-      >
-        <Text size="lead" weight="semibold">
-          {title}
-        </Text>
-        <Text size="meta" tone="muted">
-          {message}
-        </Text>
-        <View style={{ flexDirection: "row", marginTop: 4 }}>
-          <Button label="Try again" variant="outline" onPress={onRetry} />
-        </View>
-      </View>
-    </Card>
-  );
-}
-
-function CardSkeleton({ height }: { height: number }) {
-  return <Skeleton height={height} radius={16} />;
-}
-
-function Block<T>({
-  slot,
-  title,
-  skeletonHeight,
-  onRetry,
-  children,
-}: {
-  slot: Slot<T>;
-  title: string;
-  skeletonHeight: number;
-  onRetry: () => void;
-  children: (value: T) => React.ReactNode;
-}) {
-  if (slot.status === "loading") {
-    return <CardSkeleton height={skeletonHeight} />;
-  }
-  if (slot.status === "error") {
-    return (
-      <Failure
-        title={`${title} could not be loaded`}
-        message={slot.message}
-        onRetry={onRetry}
-      />
-    );
-  }
-  return <>{children(slot.value)}</>;
-}
 
 export function HomeView({
   model,

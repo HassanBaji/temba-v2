@@ -1,3 +1,9 @@
+import {
+  displayLabelFromStoredBand,
+  nextDistinctDisplayRung,
+  type LevelBand,
+} from "./level-bands";
+
 export function confirmationFraction(
   ratedMatchCount: number,
   ratedMatchesRemaining: number,
@@ -40,4 +46,59 @@ export function lastMatchMovement(
     return "down";
   }
   return "held";
+}
+
+export type ProfileLevelInput = {
+  band: LevelBand;
+  level: string;
+  provisional: boolean;
+  ratedMatchCount: number;
+  ratedMatchesRemaining: number;
+  progressPercent: number | null;
+  history: readonly string[];
+};
+
+export type ProfileLevelView = {
+  displayBand: string;
+  level: string;
+  provisional: boolean;
+  movement: LastMatchMovement | null;
+  atTopBand: boolean;
+  fillPercent: number;
+  caption: string;
+};
+
+export function profileLevelView(input: ProfileLevelInput): ProfileLevelView {
+  const displayNext = nextDistinctDisplayRung(input.band);
+  const fillPercent = clampPercent(
+    input.provisional
+      ? confirmationFraction(
+          input.ratedMatchCount,
+          input.ratedMatchesRemaining,
+        ) * 100
+      : (input.progressPercent ?? 0),
+  );
+  const progressCaption =
+    displayNext == null
+      ? "Top Level band"
+      : `${Math.round(fillPercent)}% of the way to ${displayNext}`;
+
+  return {
+    displayBand: displayLabelFromStoredBand(input.band),
+    level: input.level,
+    provisional: input.provisional,
+    movement: lastMatchMovement(input.history),
+    atTopBand: !input.provisional && displayNext == null,
+    fillPercent,
+    caption: input.provisional
+      ? confirmationProgressCaption(
+          input.ratedMatchCount,
+          input.ratedMatchesRemaining,
+        )
+      : progressCaption,
+  };
+}
+
+function clampPercent(value: number) {
+  return Math.min(100, Math.max(0, value));
 }

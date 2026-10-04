@@ -20,6 +20,12 @@
       "expo-secure-store",
       "expo-apple-authentication",
       "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Temba uses your photo library so you can choose a profile photo."
+        }
+      ],
       "@clerk/expo",
       [
         "expo-font",

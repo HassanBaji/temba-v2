@@ -6,7 +6,7 @@ import { initialsFor } from "./initials";
 import { useTonePalette } from "./surface-context";
 import { Text } from "./text";
 
-const SIZES = { sm: 24, default: 32, lg: 40 } as const;
+const SIZES = { sm: 24, default: 32, lg: 40, xl: 72 } as const;
 
 export type AvatarProps = {
   name: string;
@@ -44,7 +44,7 @@ export function Avatar({ name, uri, size = "default" }: AvatarProps) {
         />
       ) : (
         <Text
-          size="eyebrow"
+          size={size === "xl" ? "title" : "eyebrow"}
           weight="semibold"
           accessibilityElementsHidden
           importantForAccessibility="no"
