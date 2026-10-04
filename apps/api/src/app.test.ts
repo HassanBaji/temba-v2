@@ -1,3 +1,4 @@
+import { groupMembers, groups, user } from "@repo/db/schema";
 import { createPgliteDb } from "@repo/db/testing";
 import {
   afterAll,
@@ -9,12 +10,28 @@ import {
   vi,
 } from "vitest";
 
-const { getS3Object } = vi.hoisted(() => ({ getS3Object: vi.fn() }));
+const { getS3Object, testDbRef } = vi.hoisted(() => ({
+  getS3Object: vi.fn(),
+  testDbRef: {
+    current: undefined as
+      | Awaited<ReturnType<typeof import("@repo/db/testing").createPgliteDb>>
+      | undefined,
+  },
+}));
 
 vi.mock("@repo/api/storage/s3", () => ({
   getS3Object,
   putS3Object: vi.fn(),
   deleteS3Object: vi.fn(),
+}));
+
+vi.mock("@repo/api/auth/resolve-app-user", () => ({
+  resolveAppUser: async (clerkId: string) => {
+    const rows = (await testDbRef.current?.db.query.user.findMany()) ?? [];
+    const row = rows.find((candidate) => candidate.clerkId === clerkId);
+    if (!row) throw new Error("User not found");
+    return row;
+  },
 }));
 
 import { createApp } from "./app";
@@ -27,6 +44,7 @@ let testDb: Awaited<ReturnType<typeof createPgliteDb>>;
 
 beforeAll(async () => {
   testDb = await createPgliteDb();
+  testDbRef.current = testDb;
 });
 
 afterAll(async () => {
@@ -106,6 +124,39 @@ describe("tRPC route", () => {
       body: JSON.stringify({ json: { image: base64Image } }),
     });
     expect(upload.status).not.toBe(413);
+  });
+});
+
+describe("Invite links", () => {
+  it("builds a new Group Invite link on the web origin", async () => {
+    const [creator] = await testDb.db
+      .insert(user)
+      .values({ name: "Host", email: "host@example.com", clerkId: "user_host" })
+      .returning({ id: user.id });
+    const [group] = await testDb.db
+      .insert(groups)
+      .values({ name: "Friday Night", createdBy: creator!.id })
+      .returning({ id: groups.id });
+    await testDb.db
+      .insert(groupMembers)
+      .values({ groupId: group!.id, userId: creator!.id });
+
+    const response = await appFor("user_host").request(
+      "/api/trpc/groups.createInviteLink",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ json: { groupId: group!.id } }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      result: { data: { json: { inviteUrl: string } } };
+    };
+    expect(body.result.data.json.inviteUrl).toMatch(
+      /^http:\/\/localhost:3000\//,
+    );
   });
 });
 

@@ -58,6 +58,14 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-315.** As a User, create a Team, invite the second seat (open the invite link as another User), and dissolve the Team. Unverified until done.
 - [ ] **TEM-315.** Rollback check: remove `"venues"` and `"teams"` from `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts` and confirm those calls return to `/api/trpc`.
 
+## TEM-316 communities and groups cutover
+
+- [ ] **TEM-316.** With real signed-in Clerk users, `API_ORIGIN` set at web build and run time, and `pnpm --filter api dev` plus `pnpm --filter web dev` running, open a Community page and a Group page and check the browser network panel: `communities.*` and `groups.*` calls go to `/api/remote/trpc/...` with an `authorization: Bearer` header and return 200, while other routers (for example `users.home`) still go to `/api/trpc/...`.
+- [ ] **TEM-316.** As real Users, check a Community: create, join, request to join, approve the request, invite (open the link as another User), Soft-archive, and leave. Unverified until done.
+- [ ] **TEM-316.** As real Users, check a Group: create, join, send a Group join request, check Standing, upload a Group image (needs real `AWS_*` bucket keys in `apps/api/.env`, and the image must display through `/api/media/group-images/...`), and leave. Unverified until done.
+- [ ] **TEM-316.** Create a new Community Invite link and a new Group Invite link in the web App and check each URL starts with `WEB_ORIGIN` of the API (not the API origin). The Group link is covered by a host test with a stubbed authenticator; the Community link and the signed-in path are unverified.
+- [ ] **TEM-316.** Rollback check: remove `"communities"` and `"groups"` from `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts` and confirm those calls return to `/api/trpc`.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.

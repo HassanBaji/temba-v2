@@ -3,20 +3,21 @@ import { describe, expect, it } from "vitest";
 import { isRemoteProcedure, REMOTE_ROUTERS } from "./remote-routers";
 
 describe("isRemoteProcedure", () => {
-  it("sends only venues and teams to the API", () => {
-    expect(REMOTE_ROUTERS).toEqual(["venues", "teams"]);
+  it("sends venues, teams, communities and groups to the API", () => {
+    expect(REMOTE_ROUTERS).toEqual([
+      "venues",
+      "teams",
+      "communities",
+      "groups",
+    ]);
     expect(isRemoteProcedure("venues.list")).toBe(true);
     expect(isRemoteProcedure("teams.list")).toBe(true);
+    expect(isRemoteProcedure("communities.list")).toBe(true);
+    expect(isRemoteProcedure("groups.mine")).toBe(true);
   });
 
   it("keeps every other router in-process", () => {
-    for (const path of [
-      "users.home",
-      "games.listMyGames",
-      "groups.mine",
-      "ratings.me",
-      "communities.list",
-    ]) {
+    for (const path of ["users.home", "games.listMyGames", "ratings.me"]) {
       expect(isRemoteProcedure(path)).toBe(false);
     }
   });
