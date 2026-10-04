@@ -46,6 +46,11 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-313.** With a real signed-in Clerk user, check against the web App wired to a running API: a new User opening `/dashboard` is redirected to `/onboarding?redirect_url=...` with the return path preserved, and a User whose `user` row does not exist yet sees the waiting state, not an error. Unverified until done (needs Clerk users and a session token forwarded as `Authorization: Bearer`).
 - [ ] **TEM-313.** Against the deployed API, `curl` a signed-out `$WEB/g/<code>` and `$WEB/gr/<code>` with a real short code and check the HTML has the Open Graph title and description. Verified locally only.
 
+## TEM-314 web proxy and router switch
+
+- [ ] **TEM-314.** With a real signed-in Clerk user, run `pnpm --filter api dev` and `pnpm --filter web dev`, add one router (for example `"venues"`) to `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts`, open a page that calls it, and check the browser network panel: that router's calls go to `/api/remote/trpc/...` with an `authorization: Bearer` header and return 200, and other routers still go to `/api/trpc/...`. Open a page whose single batch mixes a listed and an unlisted router and check both resolve. Remove the router from the list and check calls return to `/api/trpc`. Revert the list to empty afterwards. Signed-in behaviour is unverified until done (only the unauthenticated rewrite was checked with curl).
+- [ ] **TEM-314.** `API_ORIGIN` must be set at web build time as well as run time: the `/api/remote/:path*` rewrite in `apps/web/next.config.js` is baked into the build. Confirm it is set in the build environment of staging and production.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.

@@ -2,7 +2,7 @@
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
  * for Docker builds.
  */
-import "./src/env.js";
+import { env } from "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
@@ -14,6 +14,15 @@ const config = {
   ],
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  async rewrites() {
+    if (!env.API_ORIGIN) return [];
+    return [
+      {
+        source: "/api/remote/:path*",
+        destination: `${env.API_ORIGIN}/api/:path*`,
+      },
+    ];
   },
   async redirects() {
     return [

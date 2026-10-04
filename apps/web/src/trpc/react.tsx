@@ -1,14 +1,16 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { httpBatchStreamLink, loggerLink } from "@trpc/client";
+import { httpBatchStreamLink, loggerLink, splitLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import SuperJSON from "superjson";
 
 import { type AppRouter } from "@repo/api/types";
 import { createQueryClient } from "./query-client";
+import { isRemoteProcedure } from "./remote-routers";
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
 const getQueryClient = () => {
@@ -40,6 +42,9 @@ export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
+  const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
 
   const [trpcClient] = useState(() =>
     api.createClient({
@@ -49,14 +54,28 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             process.env.NODE_ENV === "development" ||
             (op.direction === "down" && op.result instanceof Error),
         }),
-        httpBatchStreamLink({
-          transformer: SuperJSON,
-          url: getBaseUrl() + "/api/trpc",
-          headers: () => {
-            const headers = new Headers();
-            headers.set("x-trpc-source", "nextjs-react");
-            return headers;
-          },
+        splitLink({
+          condition: (op) => isRemoteProcedure(op.path),
+          true: httpBatchStreamLink({
+            transformer: SuperJSON,
+            url: getBaseUrl() + "/api/remote/trpc",
+            headers: async () => {
+              const headers = new Headers();
+              headers.set("x-trpc-source", "nextjs-react");
+              const token = await getTokenRef.current();
+              if (token) headers.set("authorization", `Bearer ${token}`);
+              return headers;
+            },
+          }),
+          false: httpBatchStreamLink({
+            transformer: SuperJSON,
+            url: getBaseUrl() + "/api/trpc",
+            headers: () => {
+              const headers = new Headers();
+              headers.set("x-trpc-source", "nextjs-react");
+              return headers;
+            },
+          }),
         }),
       ],
     }),
