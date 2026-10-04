@@ -10,7 +10,12 @@ import {
   createKnockoutTournamentFixtures,
   createTournamentFixtures,
 } from "./tournament-details-fixtures";
-import { knockoutChampion } from "./tournament-knockout-view";
+import {
+  canCancelKnockoutPlace,
+  hasDraftKnockoutDraw,
+  knockoutChampion,
+} from "./tournament-knockout-view";
+import { tournamentOrganizerView } from "./tournament-organizer";
 
 describe("createTournamentFixtures", () => {
   const now = new Date("2026-09-20T12:00:00.000Z");
@@ -122,5 +127,28 @@ describe("createKnockoutTournamentFixtures", () => {
       fixtures.groupsThenKnockoutNotThrough.poolTables?.viewerPoolIndex,
       1,
     );
+  });
+
+  it("gives the Organizer a drafted Knockout, a posted Knockout and a posted Pool", () => {
+    const draft = fixtures.organizerKnockoutDraft;
+    assert.equal(draft.isOrganizer, true);
+    assert.equal(draft.drawPostedAt, null);
+    assert.equal(hasDraftKnockoutDraw(draft.gameTeams), true);
+    assert.equal(
+      tournamentOrganizerView(draft, {
+        drawn: false,
+        partnerRequired: false,
+      }).showDrawEntry,
+      true,
+    );
+
+    const posted = fixtures.organizerKnockoutPosted;
+    assert.equal(posted.canUndoDraw, true);
+    const cancellable = (posted.knockout ?? [])
+      .flatMap((round) => round.places)
+      .filter(canCancelKnockoutPlace);
+    assert.equal(cancellable.length > 0, true);
+
+    assert.equal(fixtures.organizerGroupsThenKnockout.isOrganizer, true);
   });
 });

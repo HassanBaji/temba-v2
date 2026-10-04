@@ -1,19 +1,23 @@
 import { sizes } from "@repo/design-tokens";
 import { knockoutPlaceSideTags } from "@repo/domain/tournament-details";
 import { YOUR_TEAM_TAG } from "@repo/domain/tournament-home";
+import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
 import {
   KNOCKOUT_BYE_LABEL,
   KNOCKOUT_DECIDING_SET_COPY,
   KNOCKOUT_WALKOVER_TAG,
+  canCancelKnockoutPlace,
   knockoutPlaceMetaLine,
   knockoutRoundDayLine,
   knockoutSideLabel,
+  type KnockoutMatchPlace,
   type KnockoutViewPlace,
   type KnockoutViewRound,
   type KnockoutViewSide,
 } from "@repo/domain/tournament-knockout-view";
 import { View } from "react-native";
 
+import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
@@ -79,12 +83,16 @@ function SideRow({
   );
 }
 
+type CancelMatch = (place: KnockoutMatchPlace) => void;
+
 function PlaceCard({
   place,
   isFinal,
+  onCancelMatch,
 }: {
   place: KnockoutViewPlace;
   isFinal: boolean;
+  onCancelMatch?: CancelMatch;
 }) {
   const meta =
     place.kind === "match"
@@ -130,6 +138,17 @@ function PlaceCard({
               {KNOCKOUT_DECIDING_SET_COPY}
             </Text>
           ) : null}
+          {onCancelMatch && canCancelKnockoutPlace(place) ? (
+            <View style={{ flexDirection: "row", paddingTop: 8 }}>
+              <Button
+                label={CANCEL_MATCH_ACTION}
+                accessibilityLabel={`${CANCEL_MATCH_ACTION} ${place.code}`}
+                size="sm"
+                variant="outline"
+                onPress={() => onCancelMatch(place)}
+              />
+            </View>
+          ) : null}
         </View>
       ) : (
         <View>
@@ -164,9 +183,11 @@ function PlaceCard({
 function Round({
   round,
   isFinal,
+  onCancelMatch,
 }: {
   round: KnockoutViewRound;
   isFinal: boolean;
+  onCancelMatch?: CancelMatch;
 }) {
   const day = knockoutRoundDayLine(round);
   return (
@@ -186,6 +207,7 @@ function Round({
           key={`${place.kind}-${place.position}`}
           place={place}
           isFinal={isFinal}
+          onCancelMatch={onCancelMatch}
         />
       ))}
     </View>
@@ -194,8 +216,10 @@ function Round({
 
 export function KnockoutTree({
   rounds,
+  onCancelMatch,
 }: {
   rounds: readonly KnockoutViewRound[];
+  onCancelMatch?: CancelMatch;
 }) {
   return (
     <View style={{ gap: 24 }}>
@@ -204,6 +228,7 @@ export function KnockoutTree({
           key={round.round}
           round={round}
           isFinal={index === rounds.length - 1}
+          onCancelMatch={onCancelMatch}
         />
       ))}
     </View>

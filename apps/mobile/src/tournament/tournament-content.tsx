@@ -3,10 +3,13 @@ import {
   tournamentStandingsView,
   type TournamentDetails,
 } from "@repo/domain/tournament-details";
+import { tournamentOrganizerView } from "@repo/domain/tournament-organizer";
+import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import { View } from "react-native";
 
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { OrganizerCard, type OrganizerCardHandlers } from "./organizer-card";
 import {
   PreDrawView,
   TournamentTail,
@@ -24,15 +27,23 @@ export type TournamentHandlers = PreDrawHandlers &
     onLeave: () => void;
   };
 
+export type TournamentOrganizerHandlers = {
+  card: OrganizerCardHandlers;
+  onCancelMatch: (place: KnockoutMatchPlace) => void;
+};
+
 export function TournamentContent({
   game,
   handlers,
+  organizer,
 }: {
   game: TournamentDetails;
   handlers: TournamentHandlers;
+  organizer?: TournamentOrganizerHandlers;
 }) {
   const view = tournamentHomeView(game);
   const matches = scorableMatches(game);
+  const organizerView = organizer ? tournamentOrganizerView(game, view) : null;
 
   return (
     <View style={{ gap: SECTION_GAP }}>
@@ -54,10 +65,24 @@ export function TournamentContent({
         </Surface>
       ) : null}
       {view.drawn ? (
-        <StandingsView game={game} standings={tournamentStandingsView(game)} />
+        <StandingsView
+          game={game}
+          standings={tournamentStandingsView(game)}
+          onCancelMatch={
+            organizerView?.active ? organizer?.onCancelMatch : undefined
+          }
+        />
       ) : (
         <PreDrawView game={game} view={view} handlers={handlers} />
       )}
+      {organizer && organizerView ? (
+        <OrganizerCard
+          game={game}
+          home={view}
+          organizer={organizerView}
+          handlers={organizer.card}
+        />
+      ) : null}
       <ScoreMatchesCard matches={matches} handlers={handlers} />
       <TournamentTail
         view={view}

@@ -3,6 +3,7 @@ import {
   createTournamentFixtures,
   type TournamentFixture,
 } from "@repo/domain/tournament-details-fixtures";
+import { isKnockoutOnly } from "@repo/domain/tournament-rounds";
 import { Redirect } from "expo-router";
 import { useMemo, useState } from "react";
 import { View } from "react-native";
@@ -11,15 +12,25 @@ import { Button } from "../src/primitives/button";
 import { Screen } from "../src/primitives/screen";
 import { Text } from "../src/primitives/text";
 import { TournamentBar } from "../src/tournament/tournament-bar";
+import { OrganizerSheets } from "../src/tournament/organizer-sheets";
 import {
   TournamentContent,
   type TournamentHandlers,
 } from "../src/tournament/tournament-content";
+import type { TournamentSheet } from "../src/tournament/use-tournament-organizer";
 
 const STATES = [
   { key: "preDrawWithoutSeat", label: "Before the draw" },
   { key: "preDrawSeatedHalfOpen", label: "Half team" },
-  { key: "organizerDraftedDraw", label: "Drafted" },
+  { key: "organizerTwoHalfTeams", label: "Organizer: merge" },
+  { key: "organizerDraftedDraw", label: "Organizer: drafted" },
+  { key: "organizerPosted", label: "Organizer: posted" },
+  { key: "organizerKnockoutDraft", label: "Organizer: Knockout draft" },
+  { key: "organizerKnockoutPosted", label: "Organizer: Knockout posted" },
+  {
+    key: "organizerGroupsThenKnockout",
+    label: "Organizer: groups then knockout",
+  },
   { key: "postedMid", label: "Posted" },
   { key: "finished", label: "Finished" },
   { key: "knockoutOnlyMid", label: "Knockout" },
@@ -52,6 +63,8 @@ const handlers: TournamentHandlers = {
 
 export default function GalleryTournament() {
   const [key, setKey] = useState<StateKey>("preDrawWithoutSeat");
+  const [sheet, setSheet] = useState<TournamentSheet>(null);
+  const [roundCount, setRoundCount] = useState<number | null>(null);
   const fixtures = useMemo<Record<StateKey, TournamentFixture>>(() => {
     const now = new Date();
     return {
@@ -79,11 +92,52 @@ export default function GalleryTournament() {
             size="sm"
             variant={entry.key === key ? "default" : "outline"}
             selected={entry.key === key}
-            onPress={() => setKey(entry.key)}
+            onPress={() => {
+              setKey(entry.key);
+              setSheet(null);
+            }}
           />
         ))}
       </View>
-      <TournamentContent game={game} handlers={handlers} />
+      <TournamentContent
+        game={game}
+        handlers={handlers}
+        organizer={{
+          card: {
+            knockoutOnly: isKnockoutOnly(game.format, game.tournamentShape),
+            undoPending: false,
+            kickPending: false,
+            onOpenMerge: () => setSheet("merge"),
+            onOpenDraw: () => setSheet("draw"),
+            onOpenRounds: () => setSheet("rounds"),
+            onUndo: noop,
+            onKickPlayer: noop,
+            onKickWaitlist: noop,
+          },
+          onCancelMatch: (place) => setSheet({ walkover: place }),
+        }}
+      />
+      <OrganizerSheets
+        game={game}
+        knockoutOnly={isKnockoutOnly(game.format, game.tournamentShape)}
+        sheet={sheet}
+        onClose={() => setSheet(null)}
+        roundCount={roundCount}
+        onRoundCountChange={setRoundCount}
+        pending={{
+          merge: false,
+          draw: false,
+          post: false,
+          rounds: false,
+          walkover: false,
+        }}
+        errors={{ merge: null, draw: null, rounds: null, walkover: null }}
+        onMerge={noop}
+        onDraw={noop}
+        onPost={noop}
+        onSaveRounds={noop}
+        onWalkover={noop}
+      />
       <TournamentBar
         game={game}
         inset={false}

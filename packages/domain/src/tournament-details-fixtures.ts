@@ -457,6 +457,7 @@ export function createTournamentFixtures(now = new Date()): {
   preDrawSeatedHalfOpen: TournamentFixture;
   organizerTwoHalfTeams: TournamentFixture;
   organizerDraftedDraw: TournamentFixture;
+  organizerPosted: TournamentFixture;
   postedMid: TournamentFixture;
   finished: TournamentFixture;
 } {
@@ -518,6 +519,17 @@ export function createTournamentFixtures(now = new Date()): {
     completeThroughRound: null,
   });
 
+  const organizerPosted = baseTournament({
+    id: "tournament-organizer-posted",
+    now,
+    occupancy: fullField(),
+    viewerUserId: ORGANIZER_ID,
+    isOrganizer: true,
+    drawPostedAt: now,
+    poolIndexes: true,
+    completeThroughRound: 1,
+  });
+
   const postedMid = baseTournament({
     id: "tournament-posted-mid",
     now,
@@ -545,6 +557,7 @@ export function createTournamentFixtures(now = new Date()): {
     preDrawSeatedHalfOpen,
     organizerTwoHalfTeams,
     organizerDraftedDraw,
+    organizerPosted,
     postedMid,
     finished,
   };
@@ -657,6 +670,7 @@ function knockoutTournament(args: {
   script: KnockoutScript;
   groupsThenKnockout: boolean;
   poolsFinished: boolean;
+  organizer?: boolean;
 }): TournamentFixture {
   const occupancy = fullField().slice(0, args.teamCount);
   occupancy[args.viewerSideIndex - 1] = pair(VIEWER, PARTNER);
@@ -664,8 +678,8 @@ function knockoutTournament(args: {
     id: args.id,
     now: args.now,
     occupancy,
-    viewerUserId: VIEWER_ID,
-    isOrganizer: false,
+    viewerUserId: args.organizer ? ORGANIZER_ID : VIEWER_ID,
+    isOrganizer: args.organizer === true,
     drawPostedAt: args.now,
     poolIndexes: args.groupsThenKnockout,
     completeThroughRound: args.groupsThenKnockout
@@ -802,6 +816,9 @@ export function createKnockoutTournamentFixtures(now = new Date()): {
   knockoutOnlyChampion: TournamentFixture;
   groupsThenKnockout: TournamentFixture;
   groupsThenKnockoutNotThrough: TournamentFixture;
+  organizerKnockoutDraft: TournamentFixture;
+  organizerKnockoutPosted: TournamentFixture;
+  organizerGroupsThenKnockout: TournamentFixture;
 } {
   const tree = buildKnockoutTree({ entrantCount: 6 });
   if (!tree) {
@@ -865,10 +882,48 @@ export function createKnockoutTournamentFixtures(now = new Date()): {
     poolsFinished: true,
   });
 
+  const organizerKnockoutPosted = knockoutTournament({
+    id: "tournament-organizer-knockout-posted",
+    now,
+    tree,
+    teamCount: 6,
+    viewerSideIndex: 1,
+    script: { "1:2": "slot1" },
+    groupsThenKnockout: false,
+    poolsFinished: true,
+    organizer: true,
+  });
+
+  const organizerKnockoutDraft: TournamentFixture = {
+    ...organizerKnockoutPosted,
+    id: "tournament-organizer-knockout-draft",
+    drawPostedAt: null,
+    canUndoDraw: false,
+    registrationClosedAt: null,
+    registrationStatus: "open",
+    matches: [],
+    knockout: null,
+  };
+
+  const organizerGroupsThenKnockout = knockoutTournament({
+    id: "tournament-organizer-groups-then-knockout",
+    now,
+    tree: poolTree,
+    teamCount: 12,
+    viewerSideIndex: 1,
+    script: {},
+    groupsThenKnockout: true,
+    poolsFinished: true,
+    organizer: true,
+  });
+
   return {
     knockoutOnlyMid,
     knockoutOnlyChampion,
     groupsThenKnockout,
     groupsThenKnockoutNotThrough,
+    organizerKnockoutDraft,
+    organizerKnockoutPosted,
+    organizerGroupsThenKnockout,
   };
 }

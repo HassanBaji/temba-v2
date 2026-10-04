@@ -40,7 +40,9 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { COMPLETE_FAILED_FALLBACK } from "../tournament/tournament-model";
 import { TournamentBar } from "../tournament/tournament-bar";
+import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
 import { TournamentContent } from "../tournament/tournament-content";
+import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
 import { api } from "../trpc/react";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import {
@@ -245,6 +247,13 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     setConfirm,
   });
 
+  const tournamentOrganizer = useTournamentOrganizer({
+    gameId,
+    game: tournament ? data : null,
+    refresh,
+    setConfirm,
+  });
+
   const saveSets = useCallback(
     async (
       payloads: {
@@ -440,7 +449,8 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
           leaveGame.isPending ||
           leaveWaitlist.isPending ||
           completeMatch.isPending ||
-          organizer.confirmPending
+          organizer.confirmPending ||
+          tournamentOrganizer.confirmPending
         }
         onClose={() => setConfirm(null)}
       />
@@ -490,6 +500,10 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
           {header}
           <TournamentContent
             game={details}
+            organizer={{
+              card: tournamentOrganizer.handlers,
+              onCancelMatch: tournamentOrganizer.openWalkover,
+            }}
             handlers={{
               levelRequestPending: requestLevel.isPending,
               registerTeamPending: registerTeam.isPending,
@@ -521,6 +535,10 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
           }}
         />
         {sheets}
+        <TournamentOrganizerSheets
+          {...tournamentOrganizer.sheets}
+          game={details}
+        />
       </View>
     );
   }

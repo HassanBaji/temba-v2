@@ -98,21 +98,12 @@ import {
   tournamentInviteLandingOpensPartnerSheet,
   tournamentLeaveOrKickConfirmCopy,
 } from "@repo/domain/tournament-join";
+import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
 import {
   isPartnerRequiredGame,
-  hasPools,
   isKnockoutOnly,
   showsDrawnTournamentSeats,
 } from "@repo/domain/tournament-rounds";
-import {
-  isOneDayTournamentWindow,
-  sizeTournamentRounds,
-} from "@repo/domain/tournament-schedule";
-import {
-  oneDayFit,
-  resolveRoundCount,
-  sizeFriendlyTournament,
-} from "@repo/domain/tournament-sizing";
 import { splitGameWindow } from "@repo/domain/game-window";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { shareLinkWithFeedback } from "~/lib/share-link";
@@ -769,34 +760,7 @@ export default function GameHomePage({
     ? friendlyGameHomeTitle(data.groupId, data.groupName)
     : "Game";
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
-  const plannedSizing =
-    hasPools(data.format, data.poolCount) &&
-    data.poolCount != null &&
-    !data.drawPostedAt
-      ? sizeFriendlyTournament(data.teamsAllowed ?? 0, data.poolCount)
-      : null;
-  const editRoundsPoolSizes = plannedSizing?.ok
-    ? plannedSizing.sizing.poolSizes
-    : null;
-  const editRoundCount =
-    editRoundsPoolSizes != null
-      ? resolveRoundCount(editRoundsPoolSizes, roundCount)
-      : null;
-  const editRoundsOverrun =
-    editRoundsPoolSizes != null &&
-    editRoundCount != null &&
-    data.windowStart != null &&
-    data.windowEnd != null &&
-    data.recordedCourts.length > 0 &&
-    isOneDayTournamentWindow(data.windowStart, data.windowEnd) &&
-    oneDayFit({
-      start: data.windowStart,
-      finish: data.windowEnd,
-      roundMatches: sizeTournamentRounds(editRoundsPoolSizes, editRoundCount)
-        .roundMatches,
-      courtCount: data.recordedCourts.length,
-      matchMinutes: data.matchMinutes,
-    }).overruns;
+  const roundsPlan = tournamentRoundsPlan(data, roundCount);
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
@@ -1382,12 +1346,12 @@ export default function GameHomePage({
           levelPending={updateLevelRange.isPending}
           onSaveLevelRange={saveLevelRange}
           rounds={
-            editRoundsPoolSizes
+            roundsPlan
               ? {
-                  poolSizes: editRoundsPoolSizes,
+                  poolSizes: roundsPlan.poolSizes,
                   roundCount,
                   onRoundCountChange: setRoundCount,
-                  overruns: editRoundsOverrun,
+                  overruns: roundsPlan.overruns,
                   error: updateRoundCount.error,
                   summaryRef: roundsSummaryRef,
                   pending: updateRoundCount.isPending,

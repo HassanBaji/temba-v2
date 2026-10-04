@@ -45,7 +45,6 @@ import {
   EDIT_GAME_ACTION,
   REGISTER_TEAM_ACTION,
 } from "@repo/domain/game-copy";
-import { friendlyGameCanKickPlayer } from "@repo/domain/friendly-game-players";
 import {
   tournamentHomeView,
   tournamentStandingsView,
@@ -53,10 +52,9 @@ import {
   type TournamentStandingsView,
 } from "@repo/domain/tournament-details";
 import {
-  canOpenOrganizerMergeDrawer,
-  halfTeamsFromSides,
-  showOrganizerMergeBanner,
-} from "@repo/domain/tournament-half-teams";
+  kickableTournamentOccupants,
+  tournamentOrganizerView,
+} from "@repo/domain/tournament-organizer";
 import {
   INVITE_ACTION_LABEL,
   LEAVE_THE_SEAT_LABEL,
@@ -68,11 +66,7 @@ import {
   hasDraftKnockoutDraw,
   type KnockoutMatchPlace,
 } from "@repo/domain/tournament-knockout-view";
-import {
-  canOpenOrganizerDrawDrawer,
-  canShowUndoPoolDraw,
-  hasDraftPoolDraw,
-} from "@repo/domain/tournament-pool-draw";
+import { hasDraftPoolDraw } from "@repo/domain/tournament-pool-draw";
 import { type TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
 import { cn } from "~/lib/utils";
 
@@ -164,27 +158,15 @@ export function TournamentHome({
   const view = tournamentHomeView(data);
   const { partnerRequired, joinKind, drawn, schedule } = view;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
-  const halfTeams = halfTeamsFromSides(data.sides);
-  const mergeGate = {
-    isOrganizer: data.isOrganizer,
-    cancelled: Boolean(data.cancelledAt),
-    drawPosted: drawn,
-    halfTeamCount: halfTeams.length,
+  const organizer = tournamentOrganizerView(data, {
+    drawn,
     partnerRequired,
-  };
-  const showMergeBanner = showOrganizerMergeBanner(mergeGate);
-  const showMergeEntry =
-    canOpenOrganizerMergeDrawer(mergeGate) && !showMergeBanner;
-  const drawGate = {
-    isOrganizer: data.isOrganizer,
-    cancelled: Boolean(data.cancelledAt),
-    drawPosted: drawn,
-  };
-  const showDrawEntry = canOpenOrganizerDrawDrawer(drawGate);
-  const showUndo = canShowUndoPoolDraw({
-    ...drawGate,
-    canUndo: data.canUndoDraw,
   });
+  const { halfTeams } = organizer;
+  const showMergeBanner = organizer.merge === "banner";
+  const showMergeEntry = organizer.merge === "entry";
+  const showDrawEntry = organizer.showDrawEntry;
+  const showUndo = organizer.showUndo;
 
   const canJoin = view.canJoin && Boolean(onJoin);
   const canJoinWaitlist = view.canWaitlist && Boolean(onJoinWaitlist);
@@ -302,7 +284,7 @@ export function TournamentHome({
         closePending={closePending}
         reopenPending={reopenPending}
         kickPending={kickPending}
-        kickableOccupants={kickableOccupants(data)}
+        kickableOccupants={kickableTournamentOccupants(data)}
         waitlist={data.waitlist}
         eligibleTeams={data.eligibleTeams}
         teamId={teamId}
@@ -811,30 +793,4 @@ function TournamentHomeActions({
       ) : null}
     </div>
   );
-}
-
-function kickableOccupants(
-  data: GameDetail,
-): { userId: string; name: string }[] {
-  const seen = new Set<string>();
-  const occupants: { userId: string; name: string }[] = [];
-  for (const row of data.sides) {
-    for (const occupant of [row.left, row.right]) {
-      if (!occupant || seen.has(occupant.userId)) {
-        continue;
-      }
-      if (
-        !friendlyGameCanKickPlayer({
-          isOrganizer: data.isOrganizer,
-          cancelled: Boolean(data.cancelledAt),
-          isViewer: occupant.userId === data.viewerUserId,
-        })
-      ) {
-        continue;
-      }
-      seen.add(occupant.userId);
-      occupants.push({ userId: occupant.userId, name: occupant.name });
-    }
-  }
-  return occupants;
 }

@@ -25,17 +25,15 @@ import {
   MERGE_SWAP_LABEL,
   MERGE_TAKES_EFFECT_COPY,
   MERGE_TAKES_EFFECT_KNOCKOUT_COPY,
-  defaultMergePositions,
   halfTeamsFromSides,
   mergeOccupantSubline,
   mergeOpenPositionLabel,
   mergeSwapHint,
   mergeTeamEyebrow,
-  samePositionMerge,
-  swapMergePositions,
   type HalfTeam,
   type MergePositionAssignment,
 } from "@repo/domain/tournament-half-teams";
+import { mergeSelection } from "@repo/domain/tournament-organizer";
 import {
   LEFT_SEAT_LABEL,
   RIGHT_SEAT_LABEL,
@@ -57,24 +55,6 @@ type Side = {
     levelBand?: HalfTeam["occupant"]["levelBand"];
   } | null;
 };
-
-function halfTeamById(halfTeams: HalfTeam[], gameTeamId: string | null) {
-  if (!gameTeamId) {
-    return null;
-  }
-  return halfTeams.find((team) => team.gameTeamId === gameTeamId) ?? null;
-}
-
-function assignmentFor(
-  first: HalfTeam | null,
-  swapped: boolean,
-): MergePositionAssignment | null {
-  if (!first) {
-    return null;
-  }
-  const defaults = defaultMergePositions(first);
-  return swapped ? swapMergePositions(defaults) : defaults;
-}
 
 function occupantLevelLabel(team: HalfTeam) {
   const band = team.occupant.levelBand;
@@ -106,18 +86,12 @@ export function TournamentHalfTeamsPanel({
   const [secondId, setSecondId] = React.useState("");
   const [swapped, setSwapped] = React.useState(false);
 
-  const first =
-    halfTeamById(halfTeams, firstId) ??
-    (halfTeams.length >= 1 ? (halfTeams[0] ?? null) : null);
-  const selectedSecond = halfTeamById(halfTeams, secondId);
-  const second =
-    selectedSecond && selectedSecond.gameTeamId !== first?.gameTeamId
-      ? selectedSecond
-      : (halfTeams.find((team) => team.gameTeamId !== first?.gameTeamId) ??
-        null);
-  const assignment = assignmentFor(first, swapped);
-  const invalidPair = assignment ? samePositionMerge(assignment) : false;
-  const canMerge = Boolean(first && second && assignment && !invalidPair);
+  const { first, second, assignment, invalidPair, canMerge } = mergeSelection({
+    halfTeams,
+    firstId,
+    secondId,
+    swapped,
+  });
 
   async function confirmMerge() {
     if (!first || !second || !assignment || mergePending || invalidPair) {

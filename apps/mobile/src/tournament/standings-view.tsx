@@ -21,7 +21,7 @@ import {
   YOUR_ROUNDS_HEADING,
   poolRecordDisplay,
 } from "@repo/domain/tournament-pool-table";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
@@ -389,16 +389,18 @@ export function StandingsHeader({
 export function StandingsView({
   game,
   standings,
+  onCancelMatch,
 }: {
   game: TournamentDetails;
   standings: TournamentStandingsView;
+  onCancelMatch?: ComponentProps<typeof KnockoutTree>["onCancelMatch"];
 }) {
   const { poolTables, knockout } = game;
   return (
     <View style={{ gap: 24 }}>
       <StandingsHeader standings={standings} />
       {standings.showKnockoutTree && knockout ? (
-        <KnockoutTree rounds={knockout} />
+        <KnockoutTree rounds={knockout} onCancelMatch={onCancelMatch} />
       ) : null}
       {standings.showPoolTables && poolTables ? (
         <PoolTablesSection poolTables={poolTables} />
@@ -418,7 +420,7 @@ export function StandingsView({
               {KNOCKOUT_NOT_THROUGH_COPY}
             </Text>
           ) : null}
-          <KnockoutTree rounds={knockout} />
+          <KnockoutTree rounds={knockout} onCancelMatch={onCancelMatch} />
         </View>
       ) : null}
     </View>
