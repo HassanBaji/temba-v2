@@ -3,6 +3,7 @@
  * for Docker builds.
  */
 import { env } from "./src/env.js";
+import { remotePathRewrites } from "./src/trpc/remote-paths.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
@@ -17,12 +18,16 @@ const config = {
   },
   async rewrites() {
     if (!env.API_ORIGIN) return [];
-    return [
-      {
-        source: "/api/remote/:path*",
-        destination: `${env.API_ORIGIN}/api/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: remotePathRewrites(env.API_ORIGIN),
+      afterFiles: [
+        {
+          source: "/api/remote/:path*",
+          destination: `${env.API_ORIGIN}/api/:path*`,
+        },
+      ],
+      fallback: [],
+    };
   },
   async redirects() {
     return [

@@ -75,6 +75,14 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-317.** Run both Playwright flow recordings (`pnpm --filter web record:flows`, `pnpm --filter web record:knockout`) against the proxied setup (API and web running, database seeded with `pnpm --filter @repo/api db:seed`, `RECORD_USERNAME` and `RECORD_PASSWORD` for Clerk test users). Unverified until done.
 - [ ] **TEM-317.** Rollback check: remove `"ratings"`, `"users"` and `"games"` from `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts` and confirm those calls return to `/api/trpc`.
 
+## TEM-318 media and webhook cutover
+
+- [ ] **TEM-318.** `/api/media/:path*` and `/api/webhooks` are rewritten to `API_ORIGIN` by `beforeFiles` rewrites in `apps/web/next.config.js` (paths listed in `REMOTE_PATHS` in `apps/web/src/trpc/remote-paths.js`). `API_ORIGIN` must be set at web build time and run time (the rewrites are baked into the build). With the API deployed, set `API_ORIGIN` to its public origin in the web App's build and runtime environment.
+- [ ] **TEM-318.** Clerk dashboard, Webhooks: keep the endpoint at `<web origin>/api/webhooks` (the web App now forwards it to the API), or point it straight at `<api origin>/api/webhooks`. Either way the API needs the endpoint's signing secret as `CLERK_WEBHOOK_SIGNING_SECRET` in its environment. Send a test `user.created` event and confirm a 200.
+- [ ] **TEM-318.** With real `AWS_*` bucket keys in the API environment, open a Group and a Venue that already have an image or logo and confirm they render from `/api/media/group-images/...` and `/api/media/venue-logos/...` with no data change. Upload a new Group image and a new Venue logo and confirm each replaces the old one. Unverified until done (checked locally only: an invalid id returns 404 and an unreachable bucket returns 502, both from the API).
+- [ ] **TEM-318.** Sign up as a new User and confirm a Temba User row appears through the webhook and the Onboarding questionnaire opens. Unverified until done.
+- [ ] **TEM-318.** Rollback check: set `REMOTE_PATHS` in `apps/web/src/trpc/remote-paths.js` to `[]`, rebuild, and confirm media and the webhook are answered by the web route handlers again. The handlers stay until TEM-319.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.
