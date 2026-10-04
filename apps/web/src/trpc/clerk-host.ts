@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { env } from "~/env";
-import { type TRPCContextHost } from "~/server/api/trpc";
+import { type TRPCContextHost } from "@repo/api/trpc";
 
 export async function clerkContextHost(
   headers: Headers,

@@ -1,0 +1,72 @@
+import type { DbClient } from "@repo/db";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
+
+import { games } from "@repo/db";
+
+import {
+  participantGameIdsForViewer,
+  queryHubGames,
+  toHubListRow,
+  applyViewerLevelRangeToHubRows,
+  expandDrawnTournamentHubRows,
+  sortExpandedHubListRows,
+  viewerHubContext,
+  viewerIsParticipantOnRow,
+  type HubQueryRow,
+} from "#src/games/helpers/hub-list";
+import type { HubListRow } from "#src/games/utils";
+import { filterAndSortMyGamesHubGames } from "#src/home/upcoming-games";
+
+export async function listMyGamesHubRows(
+  database: DbClient,
+  userId: string,
+  now: Date = new Date(),
+): Promise<HubListRow[]> {
+  const viewer = await viewerHubContext(database, userId);
+  const participantGameIds = await participantGameIdsForViewer(
+    database,
+    userId,
+    viewer.myTeamIds,
+  );
+  const scope = [and(eq(games.isPublic, false), eq(games.createdBy, userId))!];
+  if (viewer.memberGroupIds.size > 0) {
+    scope.push(inArray(games.groupId, [...viewer.memberGroupIds]));
+  }
+  if (participantGameIds.size > 0) {
+    scope.push(
+      and(
+        eq(games.isPublic, false),
+        inArray(games.id, [...participantGameIds]),
+      )!,
+    );
+  }
+  const rows = await queryHubGames(
+    database,
+    and(isNull(games.cancelledAt), or(...scope)),
+  );
+  const filtered = filterAndSortMyGamesHubGames(
+    (rows as HubQueryRow[]).map((row) => ({
+      ...row,
+      viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
+    })),
+    viewer.memberGroupIds,
+    viewer.userId,
+    now,
+  );
+  const hubRows = await applyViewerLevelRangeToHubRows(
+    database,
+    filtered.map((row) => toHubListRow(row, viewer, now)),
+    filtered,
+    userId,
+  );
+  const byId = new Map(filtered.map((row) => [row.id, row]));
+  return sortExpandedHubListRows(
+    hubRows.flatMap((row) => {
+      const source = byId.get(row.id);
+      if (!source) {
+        return [row];
+      }
+      return expandDrawnTournamentHubRows(source, row, userId);
+    }),
+  );
+}

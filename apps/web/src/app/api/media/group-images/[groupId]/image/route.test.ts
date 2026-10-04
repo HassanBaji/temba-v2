@@ -5,7 +5,7 @@ const { getS3Object } = vi.hoisted(() => ({
   getS3Object: vi.fn(),
 }));
 
-vi.mock("~/server/storage/s3", () => ({
+vi.mock("@repo/api/storage/s3", () => ({
   getS3Object,
   putS3Object: vi.fn(),
   deleteS3Object: vi.fn(),

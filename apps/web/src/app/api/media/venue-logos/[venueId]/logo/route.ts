@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getVenueLogoObject } from "~/server/storage/venue-logos";
+import { getVenueLogoObject } from "@repo/api/storage/venue-logos";
 
 export const runtime = "nodejs";
 

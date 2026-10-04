@@ -7,7 +7,7 @@ import { cache } from "react";
 import { user } from "@repo/db";
 
 import { type DashboardOnboardingState } from "~/lib/dashboard-onboarding-gate";
-import { db } from "~/server/db";
+import { db } from "@repo/db";
 
 /**
  * The caller's onboarding completion, for the dashboard gate.

@@ -11,7 +11,7 @@ import {
 } from "@repo/domain/level-bands";
 
 // Self-contained rather than derived from `RouterOutputs["games"]["byId"]`:
-// this grid also renders invite-preview sides (`~/server/games/utils`'s
+// this grid also renders invite-preview sides (`@repo/api/games/utils`'s
 // plain `GameSide`), which don't carry `byId`'s additive per-seat fields
 // (e.g. `levelBand`, TEM-177) that this component doesn't read anyway.
 type SeatOccupant = {

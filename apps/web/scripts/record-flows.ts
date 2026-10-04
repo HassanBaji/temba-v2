@@ -18,7 +18,7 @@ import { chromium, type Browser, type Page } from "playwright";
 
 import { communities, games, groups, teams } from "@repo/db";
 
-import { db } from "~/server/db";
+import { db } from "@repo/db";
 
 const BASE_URL = process.env.RECORD_BASE_URL ?? "http://localhost:3000";
 const OUT_DIR = join(process.cwd(), "recordings");

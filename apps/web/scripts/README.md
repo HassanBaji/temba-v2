@@ -1,6 +1,6 @@
 # Demo data and flow recordings
 
-## `pnpm --filter web db:seed`
+## `pnpm --filter @repo/api db:seed`
 
 Wipes the database at `DATABASE_URL` and fills it with demo data that covers every App flow. It refuses any host other than `localhost` unless `SEED_ALLOW_REMOTE=1` is set.
 
@@ -16,7 +16,7 @@ Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local
 1. Create a User with username + password on your Clerk **development** instance. With Clerk test mode on, sign up at `/signup` using a test number `+1 555 555 01xx` (US) and code `424242`. Numbers already used on the instance are refused, so pick an unused one. Copy the User's id (`user_…`) from the dashboard, or from `window.Clerk.user.id` in the browser.
 2. Seed with that id on the `me` persona:
    ```bash
-   SEED_CLERK_ID_ME=user_xxx pnpm --filter web db:seed
+   SEED_CLERK_ID_ME=user_xxx pnpm --filter @repo/api db:seed
    ```
    Any persona can be linked the same way with `SEED_CLERK_ID_<KEY>`, for example `SEED_CLERK_ID_NEWBIE` for the onboarding flow or `SEED_CLERK_ID_MARCO`.
 3. For Operator screens and create doors, set this on that Clerk User's **public metadata**:

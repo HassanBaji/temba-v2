@@ -29,20 +29,20 @@ import {
   user,
 } from "@repo/db";
 
-import { db } from "~/server/db";
+import { db } from "@repo/db";
 
-import { addSet } from "~/server/api/routers/games/addSet";
-import { confirmMatchResult } from "~/server/api/routers/games/confirmMatchResult";
-import { createTournament } from "~/server/api/routers/games/createTournament";
-import { drawPools } from "~/server/api/routers/games/drawPools";
-import { postPoolDraw } from "~/server/api/routers/games/postPoolDraw";
-import { registerWithPartner } from "~/server/api/routers/games/registerWithPartner";
-import { scoreSet } from "~/server/api/routers/games/scoreSet";
-import { createLoosePublic } from "~/server/api/routers/groups/createLoosePublic";
-import { joinLoosePublic } from "~/server/api/routers/groups/joinLoosePublic";
-import { selfDeclareRating } from "~/server/api/routers/ratings/selfDeclare";
-import { markOnboardingComplete } from "~/server/api/routers/users/completeOnboarding";
-import { writePreferredPosition } from "~/server/api/routers/users/setPreferredPosition";
+import { addSet } from "@repo/api/routers/games/addSet";
+import { confirmMatchResult } from "@repo/api/routers/games/confirmMatchResult";
+import { createTournament } from "@repo/api/routers/games/createTournament";
+import { drawPools } from "@repo/api/routers/games/drawPools";
+import { postPoolDraw } from "@repo/api/routers/games/postPoolDraw";
+import { registerWithPartner } from "@repo/api/routers/games/registerWithPartner";
+import { scoreSet } from "@repo/api/routers/games/scoreSet";
+import { createLoosePublic } from "@repo/api/routers/groups/createLoosePublic";
+import { joinLoosePublic } from "@repo/api/routers/groups/joinLoosePublic";
+import { selfDeclareRating } from "@repo/api/routers/ratings/selfDeclare";
+import { markOnboardingComplete } from "@repo/api/routers/users/completeOnboarding";
+import { writePreferredPosition } from "@repo/api/routers/users/setPreferredPosition";
 import { knockoutMatchCode } from "@repo/domain/tournament-knockout";
 
 const BASE_URL = process.env.RECORD_BASE_URL ?? "http://localhost:3000";

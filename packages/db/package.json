@@ -4,11 +4,21 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts",
-    "./testing": "./src/testing.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "default": "./src/schema/index.ts"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./src/testing.ts"
+    }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",

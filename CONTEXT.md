@@ -32,7 +32,7 @@ _Avoid_: app, module, library (when you mean a Workspace Package)
 
 **DB Package**:
 The Package named `@repo/db`. It owns the Drizzle schema, the database client singleton, kit config, and migrations.
-_Avoid_: database (the Postgres instance), schema folder, `~/server/db` (that is the App’s re-export)
+_Avoid_: database (the Postgres instance), schema folder, `@repo/api/db` (that is the API Package’s re-export)
 
 **Root**:
 The Workspace root. It owns the workspace definition, Turborepo, and the shared Prettier config. It is not an App.

@@ -31,8 +31,11 @@ Settled decisions: the API runs on Railway, Clerk stays and gains Sign in with A
 Today:
 
 ```text
-apps/web                     Next.js 15 App: UI, tRPC API (src/server), route handlers
-packages/db                  @repo/db: Drizzle schema, client, migrations
+apps/web                     Next.js 15 App: UI, route handlers that serve the API in-process
+packages/api                 @repo/api: tRPC routers, procedures, shared server modules
+packages/db                  @repo/db: Drizzle schema, client, migrations, PGlite harness
+packages/domain              @repo/domain: pure rules and calculations
+packages/validators          @repo/validators: Zod schemas with two or more callers
 packages/eslint-config       @repo/eslint-config
 packages/typescript-config   @repo/typescript-config
 ```
@@ -60,13 +63,13 @@ pnpm exec turbo run dev --filter web         # web on :3000
 pnpm exec turbo run typecheck lint test      # the gate for every pull request
 pnpm exec turbo run build --filter web
 pnpm --filter web format:write
-pnpm --filter web db:seed                    # wipes and seeds a local database
+pnpm --filter @repo/api db:seed              # wipes and seeds a local database
 pnpm exec turbo run db:generate              # new migration from schema changes
 pnpm exec turbo run db:migrate
 ```
 
 - Tests run on PGlite and need neither Postgres nor `DATABASE_URL`: `@repo/db` connects on first use. The harness is `@repo/db/testing`.
-- A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`.
+- A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`, or `pnpm --filter @repo/api exec vitest run path/to/file.test.ts` for the server tree.
 - After Phase 2 the API runs on port 4000. After Phase 5 `pnpm dev` runs web, API and mobile together.
 
 ## Package boundaries
@@ -86,7 +89,7 @@ apps/api               ──► @repo/api, @repo/db
 - **`@repo/validators` is for shared schemas only.** A schema used by one procedure stays inline in that procedure file.
 - **`@repo/api` is host-neutral.** No `next/*`, `@clerk/nextjs`, `react` or `server-only`. Auth, role metadata and the web origin arrive through the context.
 - **`apps/api` holds no business logic.** It verifies the session, builds the context and mounts routes.
-- **No `~/` alias inside Packages.** It is a web App alias. `@repo/api` uses `#/...` subpath imports. Other Packages use relative imports.
+- **No `~/` alias inside Packages.** It is a web App alias. `@repo/api` uses `#src/...` subpath imports (webpack rejects `#/`). Other Packages use relative imports.
 - **No barrel files** in `@repo/domain`. Import `@repo/domain/<module>`.
 
 ## Conventions

@@ -58,7 +58,7 @@ function teamNamesLabel(side: GameScoreSectionSide) {
 }
 
 /** `sides[]` sideIndex 1 always backs Match slot 1, sideIndex 2 slot 2 —
- * `setFriendlyMatchSlotForSide` (`~/server/games/seats.ts`) assigns them
+ * `setFriendlyMatchSlotForSide` (`@repo/api/games/seats.ts`) assigns them
  * that way at seat-pick time, so this mapping holds even before either
  * side's Game team exists yet (a `null` `gameTeamId` on an open seat). */
 function gamesWonForSide(

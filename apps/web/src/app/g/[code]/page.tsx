@@ -5,9 +5,9 @@ import { AcceptGameInviteLink } from "~/components/invites/accept-game-invite-li
 import { InviteShell } from "~/components/invites/invite-shell";
 import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
 import { gameInviteShortPath } from "@repo/domain/invite-paths";
-import { db } from "~/server/db";
-import { findGameInviteLinkByShortCode } from "~/server/invites/doors";
-import { loadGameInviteOpenGraph } from "~/server/invites/game-invite-open-graph";
+import { db } from "@repo/db";
+import { findGameInviteLinkByShortCode } from "@repo/api/invites/doors";
+import { loadGameInviteOpenGraph } from "@repo/api/invites/game-invite-open-graph";
 
 export async function generateMetadata({
   params,

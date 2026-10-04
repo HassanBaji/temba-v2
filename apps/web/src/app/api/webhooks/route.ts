@@ -2,8 +2,8 @@ import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { type NextRequest } from "next/server";
 
 import { env } from "~/env";
-import { upsertUserFromClerk } from "~/server/auth/sync-clerk-user";
-import { db } from "~/server/db";
+import { upsertUserFromClerk } from "@repo/api/auth/sync-clerk-user";
+import { db } from "@repo/db";
 
 export async function POST(req: NextRequest) {
   let evt;

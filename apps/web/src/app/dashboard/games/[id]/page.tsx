@@ -32,7 +32,7 @@ import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHome } from "~/components/games/tournament-home";
 import { TournamentKnockoutCancelDialog } from "~/components/games/tournament-knockout-cancel-dialog";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
-import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
+import type { LookupUserSearchRow } from "@repo/api/invites/search-lookup-users";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";

@@ -1,0 +1,9 @@
+{
+  "extends": "@repo/typescript-config/library.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "customConditions": ["temba-source"]
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}

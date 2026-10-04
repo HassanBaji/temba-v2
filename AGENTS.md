@@ -18,9 +18,9 @@ Project subagents live in `.cursor/agents/`: `planner`, `implementer`, `reviewer
 
 ### App tRPC
 
-One procedure per file under `apps/web/src/server/api/routers/<domain>/`, with that door’s logic in the same file. Binding rule: `.cursor/rules/api-one-endpoint-per-file.mdc`. Spec: `.scratch/one-endpoint-per-file-routers/spec.md`.
+One procedure per file under `packages/api/src/routers/<domain>/`, with that door’s logic in the same file. Binding rule: `.cursor/rules/api-one-endpoint-per-file.mdc`. Spec: `.scratch/one-endpoint-per-file-routers/spec.md`.
 
-Do not plan or implement thin tRPC assemblers that only forward to `server/<domain>/<verb>.ts` twins. Do not add service/repository/use-case layers for API doors. Shared glossary modules (Soft-archive, Game admit, Community membership, Invite doors, Friendly Game create, ratings) stay shared.
+Do not plan or implement thin tRPC assemblers that only forward to `packages/api/src/<domain>/<verb>.ts` twins. Do not add service/repository/use-case layers for API doors. Shared glossary modules (Soft-archive, Game admit, Community membership, Invite doors, Friendly Game create, ratings) stay shared.
 
 ## Code comments
 

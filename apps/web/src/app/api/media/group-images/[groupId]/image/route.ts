@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getGroupImageObject } from "~/server/storage/group-images";
+import { getGroupImageObject } from "@repo/api/storage/group-images";
 
 export const runtime = "nodejs";
 

@@ -15,7 +15,6 @@
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:seed": "tsx scripts/seed.ts",
     "record:flows": "tsx scripts/record-flows.ts",
     "record:knockout": "tsx scripts/record-knockout-flows.ts"
   },
@@ -28,6 +27,7 @@
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@repo/api": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/domain": "workspace:*",
     "@repo/validators": "workspace:*",

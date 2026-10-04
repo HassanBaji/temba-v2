@@ -1,0 +1,140 @@
+{
+  "name": "@repo/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#src/*": {
+      "temba-source": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "default": "./src/*.ts"
+    },
+    "#src/communities/utils": {
+      "temba-source": "./src/communities/utils/index.ts",
+      "types": "./dist/communities/utils/index.d.ts",
+      "default": "./src/communities/utils/index.ts"
+    },
+    "#src/community-membership": {
+      "temba-source": "./src/community-membership/index.ts",
+      "types": "./dist/community-membership/index.d.ts",
+      "default": "./src/community-membership/index.ts"
+    },
+    "#src/community-membership/utils": {
+      "temba-source": "./src/community-membership/utils/index.ts",
+      "types": "./dist/community-membership/utils/index.d.ts",
+      "default": "./src/community-membership/utils/index.ts"
+    },
+    "#src/db": {
+      "temba-source": "./src/db/index.ts",
+      "types": "./dist/db/index.d.ts",
+      "default": "./src/db/index.ts"
+    },
+    "#src/games/utils": {
+      "temba-source": "./src/games/utils/index.ts",
+      "types": "./dist/games/utils/index.d.ts",
+      "default": "./src/games/utils/index.ts"
+    },
+    "#src/invites/doors": {
+      "temba-source": "./src/invites/doors/index.ts",
+      "types": "./dist/invites/doors/index.d.ts",
+      "default": "./src/invites/doors/index.ts"
+    },
+    "#src/invites/doors/utils": {
+      "temba-source": "./src/invites/doors/utils/index.ts",
+      "types": "./dist/invites/doors/utils/index.d.ts",
+      "default": "./src/invites/doors/utils/index.ts"
+    },
+    "#src/routers/communities": {
+      "temba-source": "./src/routers/communities/index.ts",
+      "types": "./dist/routers/communities/index.d.ts",
+      "default": "./src/routers/communities/index.ts"
+    },
+    "#src/routers/games": {
+      "temba-source": "./src/routers/games/index.ts",
+      "types": "./dist/routers/games/index.d.ts",
+      "default": "./src/routers/games/index.ts"
+    },
+    "#src/routers/groups": {
+      "temba-source": "./src/routers/groups/index.ts",
+      "types": "./dist/routers/groups/index.d.ts",
+      "default": "./src/routers/groups/index.ts"
+    },
+    "#src/routers/ratings": {
+      "temba-source": "./src/routers/ratings/index.ts",
+      "types": "./dist/routers/ratings/index.d.ts",
+      "default": "./src/routers/ratings/index.ts"
+    },
+    "#src/routers/teams": {
+      "temba-source": "./src/routers/teams/index.ts",
+      "types": "./dist/routers/teams/index.d.ts",
+      "default": "./src/routers/teams/index.ts"
+    },
+    "#src/routers/users": {
+      "temba-source": "./src/routers/users/index.ts",
+      "types": "./dist/routers/users/index.d.ts",
+      "default": "./src/routers/users/index.ts"
+    },
+    "#src/routers/venues": {
+      "temba-source": "./src/routers/venues/index.ts",
+      "types": "./dist/routers/venues/index.d.ts",
+      "default": "./src/routers/venues/index.ts"
+    },
+    "#src/soft-archive": {
+      "temba-source": "./src/soft-archive/index.ts",
+      "types": "./dist/soft-archive/index.d.ts",
+      "default": "./src/soft-archive/index.ts"
+    },
+    "#src/soft-archive/utils": {
+      "temba-source": "./src/soft-archive/utils/index.ts",
+      "types": "./dist/soft-archive/utils/index.d.ts",
+      "default": "./src/soft-archive/utils/index.ts"
+    }
+  },
+  "exports": {
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./src/types.ts"
+    },
+    "./invites/doors": {
+      "types": "./dist/invites/doors/index.d.ts",
+      "default": "./src/invites/doors/index.ts"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:seed": "tsx scripts/seed.ts",
+    "format:check": "prettier --check \"**/*.{ts,js}\" --cache",
+    "format:write": "prettier --write \"**/*.{ts,js}\" --cache"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1136.0",
+    "@clerk/backend": "^3.7.0",
+    "@repo/db": "workspace:*",
+    "@repo/domain": "workspace:*",
+    "@repo/validators": "workspace:*",
+    "@t3-oss/env-core": "^0.12.0",
+    "@trpc/server": "^11.0.0",
+    "drizzle-orm": "^0.41.0",
+    "superjson": "^2.2.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^20.14.10",
+    "eslint": "^9.23.0",
+    "prettier": "^3.5.3",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^4.1.11"
+  }
+}

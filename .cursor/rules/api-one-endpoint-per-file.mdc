@@ -5,16 +5,16 @@ alwaysApply: true
 
 # App tRPC: one endpoint per file
 
-This is a **binding** convention. It overrides copying today’s fat `api/routers/*.ts` assemblers and `server/<domain>/<verb>.ts` twins. That layout is superseded (see `.scratch/one-endpoint-per-file-routers/spec.md`; not TEM-106…TEM-118).
+This is a **binding** convention. It overrides copying today’s fat `routers/*.ts` assemblers and `packages/api/src/<domain>/<verb>.ts` twins. That layout is superseded (see `.scratch/one-endpoint-per-file-routers/spec.md`; not TEM-106…TEM-118).
 
 When planning, implementing, or reviewing API work, **do not** recreate a parallel domain-verb tree with tRPC as a thin transport shell.
 
 ## Required shape
 
-Each tRPC procedure lives in its own file under `apps/web/src/server/api/routers/<domain>/`. That file holds the door’s validation, authorization, business rules, database work, and response. `index.ts` only composes procedures.
+Each tRPC procedure lives in its own file under `packages/api/src/routers/<domain>/`. That file holds the door’s validation, authorization, business rules, database work, and response. `index.ts` only composes procedures.
 
 ```text
-api/routers/
+packages/api/src/routers/
   games/
     index.ts              # compose only
     listMyGames.ts
@@ -45,7 +45,7 @@ validate input
 ## Locality over abstraction
 
 - Do **not** group multiple procedures in one large router file.
-- Do **not** extract endpoint logic into a twin `server/<domain>/<verb>.ts` that the procedure only forwards to.
+- Do **not** extract endpoint logic into a twin `packages/api/src/<domain>/<verb>.ts` that the procedure only forwards to.
 - Do **not** add service / repository / use-case / manager layers for API doors.
 - Do **not** create helpers, utilities, or folders to make a procedure file smaller.
 - A helper used by **only one** endpoint stays inline in that file.
@@ -56,7 +56,7 @@ validate input
 
 Keep and call existing shared modules when the rule is reused: Soft-archive, Game admit, Community membership, Invite doors, Friendly Game create, ratings/Glicko-2, Invite search-lookup, Venue logo storage, `resolveAppUser` / `requireOperator`, Game `access` / `seats` / Waitlist internals used by more than one door.
 
-Do not clone those modules under `api/routers/`. Do not reimplement occupancy, freeze, membership admit/leave, or token lifecycle inside a procedure file.
+Do not clone those modules under `packages/api/src/routers/`. Do not reimplement occupancy, freeze, membership admit/leave, or token lifecycle inside a procedure file.
 
 ## Tests and UI types
 

@@ -3,7 +3,7 @@ import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 /**
  * The phases the sticky bottom bar (and the rest of the redesigned game
  * details page) cares about (game-details redesign, TEM-183). Mirrors
- * `GameDetailsPhase` (`~/server/api/routers/games/byId.ts`) and the same
+ * `GameDetailsPhase` (`@repo/api/routers/games/byId.ts`) and the same
  * local duplication convention already used by
  * `FriendlyGameDetailsHeroPhase` (`friendly-game-details-hero.tsx`) and
  * `GameScoreSectionPhase` (`game-score-section.tsx`) rather than importing a

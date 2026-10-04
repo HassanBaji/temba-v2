@@ -17,7 +17,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "start": {
       "dependsOn": ["^start"],
@@ -27,8 +27,12 @@
       "cache": false,
       "persistent": true
     },
-    "typecheck": {},
-    "lint": {},
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
     "test": {},
     "db:generate": {},
     "db:migrate": {},
