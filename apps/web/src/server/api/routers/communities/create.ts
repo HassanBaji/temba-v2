@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { communities, communitySports, CommunityRoleEnum } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -13,7 +14,6 @@ import { type db } from "~/server/db";
 
 type DbClient = typeof db;
 
-const sportSchema = z.enum(["padel", "football"]);
 const communityTypeSchema = z.enum(["public", "private"]);
 
 export async function createCommunity(

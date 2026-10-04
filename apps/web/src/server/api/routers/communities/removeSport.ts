@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { communitySports, groups, teams } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -11,8 +12,6 @@ import { requireStaff } from "~/server/communities/helpers/require-staff";
 import { type db } from "~/server/db";
 
 type DbClient = typeof db;
-
-const sportSchema = z.enum(["padel", "football"]);
 
 export async function removeSport(
   database: DbClient,

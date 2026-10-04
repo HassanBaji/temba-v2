@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { teamMembers, teams, type GroupSportEnum } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -9,8 +10,6 @@ import { type db } from "~/server/db";
 import { teamDisplayName } from "~/server/teams/helpers/team-display-name";
 
 type DbClient = typeof db;
-
-const sportSchema = z.enum(["padel", "football"]);
 
 function optionalTeamName(name: string | undefined) {
   if (!name || name.length === 0) {

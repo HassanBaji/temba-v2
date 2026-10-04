@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { GroupTypeEnum } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -8,8 +9,6 @@ import { type db } from "~/server/db";
 import { createClubGroup } from "~/server/groups/helpers/create-club-group";
 
 type DbClient = typeof db;
-
-const sportSchema = z.enum(["padel", "football"]);
 
 export async function createClubPrivate(
   database: DbClient,

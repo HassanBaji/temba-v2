@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { ratings } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
@@ -17,10 +18,9 @@ import {
   type YouRatingView,
 } from "@repo/domain/level";
 
-const sportSchema = z.enum(["padel", "football"]);
-const selfDeclareChoiceSchema = z.enum(SELF_DECLARE_CHOICES);
-
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+const selfDeclareChoiceSchema = z.enum(SELF_DECLARE_CHOICES);
 
 export async function selfDeclareRating(
   database: DbClient,

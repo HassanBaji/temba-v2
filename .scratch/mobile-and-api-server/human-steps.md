@@ -13,5 +13,5 @@ Agents skipped these while implementing `spec.md`. Each entry says what to do an
 
 ## Verification agents could not run
 
-- [ ] **TEM-294 to TEM-304.** Run both Playwright flow recordings (`record:flows`, `record:knockout`) against a seeded database with Clerk test users.
+- [ ] **TEM-294 to TEM-308.** Run both Playwright flow recordings (`record:flows`, `record:knockout`) against a seeded database with Clerk test users.
 - [ ] **TEM-300, TEM-301, TEM-302.** Check the changed pages in a browser: win rate, Game times in `Asia/Bahrain`, and prices in fils.
