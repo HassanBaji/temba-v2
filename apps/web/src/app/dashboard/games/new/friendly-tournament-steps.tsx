@@ -34,19 +34,18 @@ import {
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
   friendlyTournamentGroupsLine,
-  friendlyTournamentSchedule,
   gameTeamOfTwoCopy,
   parseCreateMatchMinutes,
   previewStartSlots,
-  validateFriendlyGameWhen,
   priceChipIsSelected,
+  reconcileWindowForDay,
+  selectStartSlot,
   visibleCreateCourts,
   type CreateTournamentShape,
-} from "~/lib/create-game-flow";
+} from "@repo/domain/create-game-flow";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   formatTimeSlotLabel,
-  parseRequiredGameWindow,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
 import {
@@ -59,15 +58,16 @@ import {
   COUNTS_FOR_RATING_YES,
 } from "@repo/domain/tournament-home";
 import {
-  buildKnockoutTree,
-  buildPoolKnockoutTree,
   groupsThenKnockoutReviewValue,
   knockoutOnlyReviewValue,
   qualifierUnit,
   qualifiersConsequenceLine,
   THROUGH_FROM_EACH_GROUP_LABEL,
 } from "@repo/domain/tournament-knockout";
-import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
+import {
+  friendlyTournamentPlan,
+  friendlyTournamentScheduleFor,
+} from "@repo/domain/create-game-submit";
 import {
   ALONE_OR_WITH_A_PARTNER_LABEL,
   ANYONE_WITH_THE_LINK_LABEL,
@@ -75,11 +75,8 @@ import {
   ONE_DAY_OVERRUN_MESSAGE,
   playersInPairsLine,
   poolCountOptions,
-  qualifiersPerPoolRange,
-  resolveRoundCount,
   reviewRoundsValue,
   ROUNDS_LABEL,
-  sizeFriendlyTournament,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
@@ -242,53 +239,35 @@ export function FriendlyTournamentSteps({
   const visibleCourts = courtsExpanded
     ? courts
     : visibleCreateCourts(courts, recentCourtIds, courtIds);
-  const knockoutOnly = tournamentShape === "knockout_only";
-  const knockoutTree = knockoutOnly
-    ? buildKnockoutTree({ entrantCount: teamCount })
-    : null;
-  const sized = sizeFriendlyTournament(teamCount, poolCount);
-  const sizing = !knockoutOnly && sized.ok ? sized.sizing : null;
-  const resolvedRoundCount = sizing
-    ? resolveRoundCount(sizing.poolSizes, roundCount)
-    : null;
-  const rounds =
-    sizing && resolvedRoundCount != null
-      ? sizeTournamentRounds(sizing.poolSizes, resolvedRoundCount)
-      : null;
-  const groupsThenKnockout = tournamentShape === "groups_then_knockout";
-  const qualifiersRange =
-    groupsThenKnockout && sizing
-      ? qualifiersPerPoolRange(sizing.poolSizes)
-      : null;
-  const poolKnockoutTree =
-    qualifiersRange && sizing
-      ? buildPoolKnockoutTree({
-          poolCount: sizing.poolCount,
-          qualifiersPerPool,
-        })
-      : null;
+  const plan = friendlyTournamentPlan({
+    teamCount,
+    poolCount,
+    roundCount,
+    qualifiersPerPool,
+    tournamentShape,
+  });
+  const {
+    knockoutOnly,
+    knockoutTree,
+    sizing,
+    rounds,
+    qualifiersRange,
+    poolKnockoutTree,
+  } = plan;
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
   const parsedMinutes = parseCreateMatchMinutes(matchMinutes);
-  const parsedWindow = parseRequiredGameWindow(day, startTime, finishTime);
-  const whenOk = validateFriendlyGameWhen(day, startTime, finishTime, now).ok;
-  const roundMatches = knockoutTree
-    ? knockoutTree.matchesPerRound
-    : rounds?.roundMatches;
-  const schedule =
-    whenOk && parsedMinutes.ok && parsedWindow && roundMatches
-      ? friendlyTournamentSchedule({
-          start: parsedWindow.windowStart,
-          finish: parsedWindow.windowEnd,
-          roundMatches,
-          courtCount: courtIds.length,
-          matchMinutes: parsedMinutes.minutes,
-          clock: formatGameClock,
-          knockoutOnly,
-          knockoutRoundMatches: poolKnockoutTree?.matchesPerRound,
-        })
-      : null;
+  const schedule = friendlyTournamentScheduleFor({
+    plan,
+    day,
+    startTime,
+    finishTime,
+    matchMinutes,
+    courtCount: courtIds.length,
+    now,
+    clock: formatGameClock,
+  });
   const selectedCourtNames = courts
     .filter((court) => courtIds.includes(court.id))
     .map((court) => court.name);
@@ -296,17 +275,19 @@ export function FriendlyTournamentSteps({
 
   function selectDay(next: string) {
     onDay(next);
-    const slots = upcomingGameWindowTimeSlots(next, now);
-    if (startTime && !slots.includes(startTime)) {
-      onStartTime("");
-      onFinishTime("");
+    const reconciled = reconcileWindowForDay(
+      { startTime, finishTime },
+      next,
+      now,
+      "blocked",
+    );
+    if (reconciled.startTime !== startTime) {
+      onStartTime(reconciled.startTime);
+      onFinishTime(reconciled.finishTime);
       return;
     }
-    if (
-      finishTime &&
-      (!slots.includes(finishTime) || (startTime && finishTime <= startTime))
-    ) {
-      onFinishTime("");
+    if (reconciled.finishTime !== finishTime) {
+      onFinishTime(reconciled.finishTime);
     }
   }
 
@@ -533,9 +514,14 @@ export function FriendlyTournamentSteps({
                       selected={startTime === slot}
                       className="px-1"
                       onClick={() => {
-                        onStartTime(slot);
-                        if (finishTime && finishTime <= slot) {
-                          onFinishTime("");
+                        const next = selectStartSlot(
+                          { startTime, finishTime },
+                          slot,
+                          false,
+                        );
+                        onStartTime(next.startTime);
+                        if (next.finishTime !== finishTime) {
+                          onFinishTime(next.finishTime);
                         }
                       }}
                     >

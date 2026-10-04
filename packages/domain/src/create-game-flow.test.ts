@@ -11,14 +11,14 @@ import {
   applyLevelBoundChange,
   createFlowLaterSteps,
   createFlowStepForField,
-  createGameFlowHref,
+  createGameFlowTarget,
   createVenueCopy,
   finishSlotForDuration,
   firstIncompleteFriendlyGameStep,
   firstIncompleteFriendlyTournamentStep,
   friendlyGameKickoff,
   friendlyGamePreviewLine,
-  friendlyTournamentCreateHref,
+  friendlyTournamentCreateTarget,
   friendlyTournamentDefaultName,
   friendlyTournamentGroupsLine,
   friendlyTournamentSchedule,
@@ -41,7 +41,16 @@ import {
   DEFAULT_TOURNAMENT_SHAPE,
   TOURNAMENT_SHAPE_OPTIONS,
   friendlyTournamentFormatLabel,
+  changeCreateDay,
+  changeCreateGroup,
+  changeCreateVenue,
+  toggleCreateCourt,
+  reconcileWindowForDay,
+  resetCreateBranch,
+  selectDurationFinish,
+  selectStartSlot,
 } from "./create-game-flow";
+import { initialCreateGameDraft } from "./create-game-draft";
 
 const NOW = bahrainDate(2026, 8, 22, 12, 0, 0);
 
@@ -216,24 +225,30 @@ describe("create flow query", () => {
     assert.equal(parseCreateFlowStep("5"), null);
   });
 
-  it("builds the create and tournament hrefs", () => {
-    assert.equal(createGameFlowHref({}), "/dashboard/games/new");
-    assert.equal(
-      createGameFlowHref({
+  it("builds the create and tournament targets", () => {
+    assert.deepEqual(createGameFlowTarget({}), {
+      groupId: null,
+      type: null,
+      step: null,
+    });
+    assert.deepEqual(
+      createGameFlowTarget({
         groupId: "group-1",
         type: "friendly_game",
         step: 3,
       }),
-      "/dashboard/games/new?groupId=group-1&type=friendly_game&step=3",
+      { groupId: "group-1", type: "friendly_game", step: 3 },
     );
-    assert.equal(
-      friendlyTournamentCreateHref("group 1"),
-      "/dashboard/games/new?groupId=group+1&type=friendly_tournament",
-    );
-    assert.equal(
-      friendlyTournamentCreateHref(),
-      "/dashboard/games/new?type=friendly_tournament",
-    );
+    assert.deepEqual(friendlyTournamentCreateTarget("group 1"), {
+      groupId: "group 1",
+      type: "friendly_tournament",
+      step: null,
+    });
+    assert.deepEqual(friendlyTournamentCreateTarget(), {
+      groupId: null,
+      type: "friendly_tournament",
+      step: null,
+    });
   });
 });
 
@@ -722,5 +737,125 @@ describe("friendlyTournamentFormatLabel", () => {
       friendlyTournamentFormatLabel(1, true),
       "1 group, then knockout",
     );
+  });
+});
+
+describe("window reconciliation", () => {
+  it("clears both times when the start is no longer offered on the new day", () => {
+    assert.deepEqual(
+      reconcileWindowForDay(
+        { startTime: "00:00", finishTime: "01:00" },
+        "2026-08-22",
+        NOW,
+        "allowed",
+      ),
+      { startTime: "", finishTime: "" },
+    );
+  });
+
+  it("clears only a finish before the start, or at it when blocked", () => {
+    const current = { startTime: "20:00", finishTime: "20:00" };
+    assert.deepEqual(
+      reconcileWindowForDay(current, "2026-09-23", NOW, "allowed"),
+      current,
+    );
+    assert.deepEqual(
+      reconcileWindowForDay(current, "2026-09-23", NOW, "blocked"),
+      { startTime: "20:00", finishTime: "" },
+    );
+  });
+
+  it("keeps the duration preset when the start moves", () => {
+    assert.deepEqual(
+      selectStartSlot(
+        { startTime: "20:00", finishTime: "21:30" },
+        "19:00",
+        true,
+      ),
+      { startTime: "19:00", finishTime: "20:30" },
+    );
+    assert.deepEqual(
+      selectStartSlot(
+        { startTime: "20:00", finishTime: "21:30" },
+        "22:00",
+        false,
+      ),
+      { startTime: "22:00", finishTime: "" },
+    );
+    assert.equal(selectDurationFinish("20:00", 90), "21:30");
+    assert.equal(selectDurationFinish("20:00", 7), "");
+  });
+});
+
+describe("draft helpers", () => {
+  it("resets the tournament fields when switching to a Friendly game", () => {
+    const draft = {
+      ...initialCreateGameDraft(NOW),
+      courtIds: ["court-1"],
+      teamCount: 8,
+      isPublic: true,
+      allowSoloRegister: false,
+      nameTouched: true,
+      name: "Mine",
+    };
+    const reset = resetCreateBranch(draft, "friendly_game");
+    assert.deepEqual(reset.courtIds, []);
+    assert.equal(reset.isPublic, false);
+    assert.equal(reset.allowSoloRegister, true);
+    assert.equal(reset.nameTouched, false);
+    assert.equal(reset.name, friendlyTournamentDefaultName(draft.day));
+  });
+
+  it("clears the Court when switching to a tournament", () => {
+    const draft = { ...initialCreateGameDraft(NOW), courtId: "court-1" };
+    assert.equal(
+      resetCreateBranch(draft, "friendly_tournament").courtId,
+      "none",
+    );
+  });
+
+  it("renames to the day only until the name is touched", () => {
+    const base = initialCreateGameDraft(NOW);
+    assert.equal(
+      changeCreateDay(base, "2026-09-24").name,
+      friendlyTournamentDefaultName("2026-09-24"),
+    );
+    assert.equal(
+      changeCreateDay(
+        { ...base, nameTouched: true, name: "Mine" },
+        "2026-09-24",
+      ).name,
+      "Mine",
+    );
+  });
+});
+
+describe("where helpers", () => {
+  const picked = {
+    ...initialCreateGameDraft(NOW),
+    groupId: "g1",
+    venueId: "v1",
+    courtId: "c1",
+    courtIds: ["c1", "c2"],
+  };
+
+  it("clears the Venue and Courts when the Group changes", () => {
+    const next = changeCreateGroup(picked, "g2");
+    assert.equal(next.groupId, "g2");
+    assert.equal(next.venueId, "");
+    assert.equal(next.courtId, "none");
+    assert.deepEqual(next.courtIds, []);
+  });
+
+  it("clears the Courts only when the Venue actually changes", () => {
+    assert.equal(changeCreateVenue(picked, "v1"), picked);
+    const next = changeCreateVenue(picked, "v2");
+    assert.equal(next.venueId, "v2");
+    assert.deepEqual(next.courtIds, []);
+  });
+
+  it("toggles a Court", () => {
+    assert.deepEqual(toggleCreateCourt(["a"], "b"), ["a", "b"]);
+    assert.deepEqual(toggleCreateCourt(["a", "b"], "a"), ["b"]);
   });
 });

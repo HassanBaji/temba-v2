@@ -1,6 +1,6 @@
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { isLevelBoundDisabled } from "~/lib/create-game-flow";
+import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,

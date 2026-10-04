@@ -15,11 +15,13 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { createFlowDayOptions, dayChipValue } from "~/lib/create-game-flow";
-import { formatWeekday } from "@repo/domain/format-game-start";
+import {
+  createDayChipLabel,
+  createFlowDayOptions,
+  dayChipValue,
+} from "@repo/domain/create-game-flow";
 import {
   earliestGameWindowDay,
-  formatDateInputValue,
   formatDayLabel,
   parseDateInputValue,
 } from "@repo/domain/game-window";
@@ -103,8 +105,7 @@ export function DayField({
       >
         {dayOptions.map((option) => {
           const value = dayChipValue(option);
-          const today = dayChipValue(option) === formatDateInputValue(now);
-          const label = today ? "Today" : formatWeekday(option, "short");
+          const label = createDayChipLabel(option, now);
           return (
             <ChoiceChip
               key={value}

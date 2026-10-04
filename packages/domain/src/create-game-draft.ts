@@ -6,21 +6,18 @@ import {
   parseCreateTournamentShape,
   type CreateGameTypeId,
   type CreateTournamentShape,
-} from "~/lib/create-game-flow";
-import { parseDateInputValue } from "@repo/domain/game-window";
-import {
-  isAssignableDisplayLevelBand,
-  LEVEL_BANDS,
-} from "@repo/domain/level-bands";
+} from "./create-game-flow";
+import { parseDateInputValue } from "./game-window";
+import { isAssignableDisplayLevelBand, LEVEL_BANDS } from "./level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
-} from "@repo/domain/level-range";
+} from "./level-range";
 import {
   DEFAULT_QUALIFIERS_PER_POOL,
   defaultPoolCount,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
-} from "@repo/domain/tournament-sizing";
+} from "./tournament-sizing";
 
 export type CreateGameDraft = {
   groupId: string;
@@ -46,7 +43,11 @@ export type CreateGameDraft = {
   allowSoloRegister: boolean;
 };
 
-type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+type DraftStorage = {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+};
 
 const DRAFT_VERSION = 1;
 
@@ -214,15 +215,6 @@ export function isCreateGameDraftDirty(
   initial: CreateGameDraft,
 ) {
   return serializeCreateGameDraft(draft) !== serializeCreateGameDraft(initial);
-}
-
-/** Private mode or blocked site data can make even reading the property throw. */
-export function browserSessionStorage(): DraftStorage | null {
-  try {
-    return typeof window === "undefined" ? null : window.sessionStorage;
-  } catch {
-    return null;
-  }
 }
 
 export function readCreateGameDraft(

@@ -17,7 +17,7 @@ import {
 import {
   visibleCreateGroups,
   VISIBLE_GROUP_CHIP_COUNT,
-} from "~/lib/create-game-flow";
+} from "@repo/domain/create-game-flow";
 
 export type CreateGroup = {
   id: string;

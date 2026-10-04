@@ -1,14 +1,14 @@
-import { formatDayMonth } from "@repo/domain/format-game-start";
-import { addProductDays } from "@repo/domain/product-timezone";
+import { formatDayMonth, formatWeekday } from "./format-game-start";
+import { addProductDays } from "./product-timezone";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   isAssignableDisplayLevelBand,
   type AssignableDisplayLevelBand,
-} from "@repo/domain/level-bands";
+} from "./level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
-} from "@repo/domain/level-range";
+} from "./level-range";
 import {
   earliestGameWindowDay,
   formatDayLabel,
@@ -18,20 +18,21 @@ import {
   parseDateInputValue,
   parseRequiredGameWindow,
   upcomingGameWindowTimeSlots,
-} from "@repo/domain/game-window";
-import {
-  formatHeroKickoffTrailer,
-  formatHomeKickoff,
-} from "@repo/domain/home-countdown";
+} from "./game-window";
+import { formatHeroKickoffTrailer, formatHomeKickoff } from "./home-countdown";
 import {
   formatPricePerPlayerFils,
   parseOptionalPricePerPlayerFils,
-} from "@repo/domain/price-per-player";
+} from "./price-per-player";
 import {
+  DEFAULT_QUALIFIERS_PER_POOL,
+  defaultPoolCount,
   formatPoolSizeLine,
   oneDayFit,
+  TOURNAMENT_DEFAULT_TEAM_COUNT,
   type TournamentSizing,
-} from "@repo/domain/tournament-sizing";
+} from "./tournament-sizing";
+import type { CreateGameDraft } from "./create-game-draft";
 
 export const CREATE_FLOW_STEP_COUNT = 4;
 
@@ -404,32 +405,26 @@ export function parseCreateFlowStep(
   return null;
 }
 
-export function createGameFlowHref(input: {
-  groupId?: string;
-  type?: CreateGameTypeId | null;
-  step?: CreateFlowStep | null;
-}) {
-  const params = new URLSearchParams();
-  if (input.groupId) {
-    params.set("groupId", input.groupId);
-  }
-  if (input.type) {
-    params.set("type", input.type);
-  }
-  if (input.step) {
-    params.set("step", String(input.step));
-  }
-  const query = params.toString();
-  return query.length > 0
-    ? `/dashboard/games/new?${query}`
-    : "/dashboard/games/new";
+export type CreateGameFlowTarget = {
+  groupId: string | null;
+  type: CreateGameTypeId | null;
+  step: CreateFlowStep | null;
+};
+
+export function createGameFlowTarget(
+  input: Partial<CreateGameFlowTarget>,
+): CreateGameFlowTarget {
+  return {
+    groupId: input.groupId === "" ? null : (input.groupId ?? null),
+    type: input.type ?? null,
+    step: input.step ?? null,
+  };
 }
 
-export function friendlyTournamentCreateHref(groupId?: string) {
-  return createGameFlowHref({
-    groupId,
-    type: "friendly_tournament",
-  });
+export function friendlyTournamentCreateTarget(
+  groupId?: string | null,
+): CreateGameFlowTarget {
+  return createGameFlowTarget({ groupId, type: "friendly_tournament" });
 }
 
 export function createVenueCopy(
@@ -800,3 +795,143 @@ export function gameTeamOfTwoCopy(price: string) {
   }
   return `${formatted} a Game team of two`;
 }
+
+export type CreateWindowTimes = { startTime: string; finishTime: string };
+
+export function reconcileWindowForDay(
+  current: CreateWindowTimes,
+  day: string,
+  now: Date,
+  finishAtStart: "allowed" | "blocked",
+): CreateWindowTimes {
+  const slots = upcomingGameWindowTimeSlots(day, now);
+  if (current.startTime && !slots.includes(current.startTime)) {
+    return { startTime: "", finishTime: "" };
+  }
+  const finishTooEarly =
+    finishAtStart === "allowed"
+      ? current.finishTime < current.startTime
+      : current.finishTime <= current.startTime;
+  if (
+    current.finishTime &&
+    (!slots.includes(current.finishTime) ||
+      (current.startTime && finishTooEarly))
+  ) {
+    return { startTime: current.startTime, finishTime: "" };
+  }
+  return current;
+}
+
+export function selectStartSlot(
+  current: CreateWindowTimes,
+  slot: string,
+  keepDuration: boolean,
+): CreateWindowTimes {
+  const preset = keepDuration
+    ? matchingDurationPreset(current.startTime, current.finishTime)
+    : null;
+  if (preset) {
+    return {
+      startTime: slot,
+      finishTime: finishSlotForDuration(slot, preset) ?? "",
+    };
+  }
+  return {
+    startTime: slot,
+    finishTime:
+      current.finishTime && current.finishTime <= slot
+        ? ""
+        : current.finishTime,
+  };
+}
+
+export function selectDurationFinish(
+  startTime: string,
+  minutes: number,
+): string {
+  return finishSlotForDuration(startTime, minutes) ?? "";
+}
+
+export function resetCreateBranch(
+  draft: CreateGameDraft,
+  type: CreateGameTypeId,
+): CreateGameDraft {
+  if (type === "friendly_game") {
+    return {
+      ...draft,
+      courtIds: [],
+      teamCount: TOURNAMENT_DEFAULT_TEAM_COUNT,
+      tournamentShape: DEFAULT_TOURNAMENT_SHAPE,
+      poolCount: defaultPoolCount(TOURNAMENT_DEFAULT_TEAM_COUNT),
+      roundCount: null,
+      qualifiersPerPool: DEFAULT_QUALIFIERS_PER_POOL,
+      matchMinutes: String(DEFAULT_MATCH_MINUTES),
+      nameTouched: false,
+      name: friendlyTournamentDefaultName(draft.day),
+      isPublic: false,
+      allowSoloRegister: true,
+    };
+  }
+  return { ...draft, courtId: "none" };
+}
+
+export function changeCreateDay<
+  T extends { day: string; name: string; nameTouched: boolean },
+>(draft: T, day: string): T {
+  return {
+    ...draft,
+    day,
+    name: draft.nameTouched ? draft.name : friendlyTournamentDefaultName(day),
+  };
+}
+
+export function changeCreateGroup(
+  draft: CreateGameDraft,
+  groupId: string,
+): CreateGameDraft {
+  return { ...draft, groupId, venueId: "", courtId: "none", courtIds: [] };
+}
+
+export function changeCreateVenue(
+  draft: CreateGameDraft,
+  venueId: string,
+): CreateGameDraft {
+  if (venueId === draft.venueId) {
+    return draft;
+  }
+  return { ...draft, venueId, courtId: "none", courtIds: [] };
+}
+
+export function toggleCreateCourt(
+  courtIds: readonly string[],
+  courtId: string,
+): string[] {
+  return courtIds.includes(courtId)
+    ? courtIds.filter((id) => id !== courtId)
+    : [...courtIds, courtId];
+}
+
+export function createDayChipLabel(option: Date, now: Date): string {
+  return dayChipValue(option) === formatDateInputValue(now)
+    ? "Today"
+    : formatWeekday(option, "short");
+}
+
+export type CreateGroupOption = {
+  id: string;
+  name: string | null;
+  communityName: string | null;
+};
+
+export type CreateVenuePicker = {
+  locked: boolean;
+  groupKind: "club" | "loose" | "none";
+  venues: {
+    id: string;
+    name: string;
+    city: string;
+    archivedAt: Date | string | null;
+    courts: { id: string; name: string }[];
+  }[];
+  recentCourtIds: readonly string[];
+};

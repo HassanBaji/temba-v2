@@ -5,7 +5,7 @@ import { SelectCard, SelectCardNote } from "~/components/ui/select-card";
 import {
   CREATE_GAME_TYPE_CARDS,
   type CreateGameTypeId,
-} from "~/lib/create-game-flow";
+} from "@repo/domain/create-game-flow";
 
 const ICONS = {
   friendly_game: Shuffle,

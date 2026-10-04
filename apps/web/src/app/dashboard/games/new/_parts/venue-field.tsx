@@ -21,7 +21,7 @@ import {
   venueMatchesQuery,
   visibleCreateGroups,
   VISIBLE_GROUP_CHIP_COUNT,
-} from "~/lib/create-game-flow";
+} from "@repo/domain/create-game-flow";
 
 export type CreateCourt = { id: string; name: string };
 

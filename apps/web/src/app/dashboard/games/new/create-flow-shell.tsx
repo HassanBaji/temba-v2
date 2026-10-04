@@ -9,7 +9,7 @@ import { cn } from "~/lib/utils";
 import {
   CREATE_FLOW_STEP_COUNT,
   type CreateFlowStep,
-} from "~/lib/create-game-flow";
+} from "@repo/domain/create-game-flow";
 
 const BLEED = `${pageBleed} md:-mt-6`;
 

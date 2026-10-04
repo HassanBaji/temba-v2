@@ -29,12 +29,15 @@ import {
   CREATE_FLOW_PRICE_CHIPS,
   applyLevelBoundChange,
   finishSlotForDuration,
+  reconcileWindowForDay,
+  selectDurationFinish,
+  selectStartSlot,
   matchingDurationPreset,
   openLevelRange,
   previewStartSlots,
   priceChipIsSelected,
   visibleCreateCourts,
-} from "~/lib/create-game-flow";
+} from "@repo/domain/create-game-flow";
 import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
@@ -150,29 +153,28 @@ export function FriendlyGameSteps({
 
   function selectDay(next: string) {
     onDay(next);
-    const slots = upcomingGameWindowTimeSlots(next, now);
-    if (startTime && !slots.includes(startTime)) {
-      onStartTime("");
-      onFinishTime("");
+    const reconciled = reconcileWindowForDay(
+      { startTime, finishTime },
+      next,
+      now,
+      "allowed",
+    );
+    if (reconciled.startTime !== startTime) {
+      onStartTime(reconciled.startTime);
+      onFinishTime(reconciled.finishTime);
       setCustomFinishOpen(false);
       return;
     }
-    if (
-      finishTime &&
-      (!slots.includes(finishTime) || (startTime && finishTime < startTime))
-    ) {
-      onFinishTime("");
+    if (reconciled.finishTime !== finishTime) {
+      onFinishTime(reconciled.finishTime);
     }
   }
 
   function selectStart(slot: string) {
-    onStartTime(slot);
-    if (durationPreset) {
-      onFinishTime(finishSlotForDuration(slot, durationPreset) ?? "");
-      return;
-    }
-    if (finishTime && finishTime <= slot) {
-      onFinishTime("");
+    const next = selectStartSlot({ startTime, finishTime }, slot, true);
+    onStartTime(next.startTime);
+    if (next.finishTime !== finishTime) {
+      onFinishTime(next.finishTime);
     }
   }
 
@@ -182,7 +184,7 @@ export function FriendlyGameSteps({
       document.getElementById("game-window-start")?.focus();
       return;
     }
-    onFinishTime(finishSlotForDuration(startTime, minutes) ?? "");
+    onFinishTime(selectDurationFinish(startTime, minutes));
   }
 
   return (

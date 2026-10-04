@@ -112,6 +112,11 @@ export function GamesScreen() {
               Open the Friendly tournament states gallery
             </Text>
           </Link>
+          <Link href="/gallery-create">
+            <Text size="meta" weight="medium">
+              Open the Create Game states gallery
+            </Text>
+          </Link>
         </>
       ) : null}
     </Screen>
