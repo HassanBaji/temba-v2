@@ -6,6 +6,7 @@ import { requireOperator } from "#src/auth/require-operator";
 
 function contextFor(metadata: Record<string, unknown> | undefined) {
   return createTRPCContext({
+    db: {} as Parameters<typeof createTRPCContext>[0]["db"],
     userId: "user_clerk",
     getPublicMetadata: async () => metadata,
     headers: new Headers(),

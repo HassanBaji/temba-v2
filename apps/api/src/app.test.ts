@@ -1,4 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createPgliteDb } from "@repo/db/testing";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const { getS3Object } = vi.hoisted(() => ({ getS3Object: vi.fn() }));
 
@@ -14,8 +23,19 @@ import { TRPC_BODY_LIMIT_BYTES } from "./routes/trpc";
 const GROUP_ID = "22222222-2222-4222-8222-222222222222";
 const VENUE_ID = "33333333-3333-4333-8333-333333333333";
 
+let testDb: Awaited<ReturnType<typeof createPgliteDb>>;
+
+beforeAll(async () => {
+  testDb = await createPgliteDb();
+});
+
+afterAll(async () => {
+  await testDb.close();
+});
+
 function appFor(userId: string | null) {
   return createApp({
+    db: testDb.db as unknown as Parameters<typeof createApp>[0]["db"],
     authenticate: async () => ({
       userId,
       getPublicMetadata: async () => undefined,
@@ -45,6 +65,20 @@ describe("tRPC route", () => {
       result: { data: { json: { greeting: string } } };
     };
     expect(body.result.data.json.greeting).toBe("Hello there");
+  });
+
+  it("answers a public procedure that reads the database without a session", async () => {
+    const input = encodeURIComponent(
+      JSON.stringify({ json: { token: "unknown-token" } }),
+    );
+    const response = await appFor(null).request(
+      `/api/trpc/games.previewInviteLink?input=${input}`,
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      result: { data: { json: { status: string } } };
+    };
+    expect(body.result.data.json.status).toBe("invalid");
   });
 
   it("returns UNAUTHORIZED from a protected procedure without a session", async () => {

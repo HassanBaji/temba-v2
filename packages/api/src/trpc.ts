@@ -12,7 +12,7 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { requireOperator } from "#src/auth/require-operator";
-import { db } from "#src/db";
+import { type db } from "#src/db";
 
 export type PublicMetadata = Record<string, unknown>;
 
@@ -29,16 +29,14 @@ export type PublicMetadata = Record<string, unknown>;
  * @see https://trpc.io/docs/server/context
  */
 export type TRPCContextHost = {
+  db: typeof db;
   userId: string | null;
   getPublicMetadata: () => Promise<PublicMetadata | undefined>;
   headers: Headers;
   webOrigin: string;
 };
 
-export const createTRPCContext = (host: TRPCContextHost) => ({
-  db,
-  ...host,
-});
+export const createTRPCContext = (host: TRPCContextHost) => ({ ...host });
 
 /**
  * 2. INITIALIZATION

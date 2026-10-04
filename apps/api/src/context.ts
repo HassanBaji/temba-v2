@@ -1,6 +1,8 @@
 import { createClerkClient } from "@clerk/backend";
 import { createTRPCContext, type TRPCContextHost } from "@repo/api/trpc";
 
+type Db = TRPCContextHost["db"];
+
 export type Authenticate = (request: Request) => Promise<{
   userId: string | null;
   getPublicMetadata: TRPCContextHost["getPublicMetadata"];
@@ -25,6 +27,7 @@ export function clerkAuthenticator(config: {
 }
 
 export function contextFor(options: {
+  db: Db;
   authenticate: Authenticate;
   webOrigin: string;
 }) {
@@ -32,6 +35,7 @@ export function contextFor(options: {
     const session = await options.authenticate(request);
     return createTRPCContext({
       ...session,
+      db: options.db,
       headers: request.headers,
       webOrigin: options.webOrigin,
     });
