@@ -147,3 +147,8 @@ Not done: the spike needs a real iPhone, an Android emulator and a reachable API
 ## TEM-321 shared phone and auth-error helpers
 
 - [ ] **TEM-321** In a browser with real Clerk users, run the web sign-in and sign-up forms (`/login`, `/signup`, including the continue step): confirm the phone field, and that a wrong identifier, wrong code and too-many-attempts error show the same messages as before. Until then, form behaviour is verified only by unit tests.
+
+## TEM-324 design tokens feed the web theme
+
+- [ ] **TEM-324** Compare screenshots of `/dashboard/design/home`, `/dashboard/design/game-details` and `/dashboard/design/tournament` on the commit before and the commit after, signed in with a real Clerk user (Playwright browsers and seeded Clerk users were not available to the agent). Until done, "no visual change" is proven only by the emitted CSS: the built stylesheet differs from the previous build in declaration order, and in `--muted`, `--secondary`, `--accent` and `--input`, which moved from `oklch(0.97 0 0)` / `oklch(0.64 0 0)` to `#f5f5f5` / `#8c8c8c` (under 0.1/255 apart).
+- [ ] **TEM-324** No NativeWind output is generated yet. When TEM-323's result is known, confirm NativeWind v5 (the spec's first option, which consumes `packages/design-tokens/theme.css`) or switch to a v4 preset generated from `packages/design-tokens/src/tokens.ts`. Mobile work stays blocked on this choice.

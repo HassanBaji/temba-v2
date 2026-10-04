@@ -36,6 +36,7 @@ apps/api                     Hono host: verifies the session, builds the context
 packages/api                 @repo/api: tRPC routers, procedures, shared server modules
 packages/db                  @repo/db: Drizzle schema, client, migrations, PGlite harness
 packages/domain              @repo/domain: pure rules and calculations
+packages/design-tokens       @repo/design-tokens: tokens as data, generates the web theme stylesheet
 packages/validators          @repo/validators: Zod schemas with two or more callers
 packages/eslint-config       @repo/eslint-config
 packages/typescript-config   @repo/typescript-config

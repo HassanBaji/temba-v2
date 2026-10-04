@@ -26,6 +26,7 @@
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@repo/design-tokens": "workspace:*",
     "@repo/domain": "workspace:*",
     "@repo/validators": "workspace:*",
     "@t3-oss/env-core": "^0.12.0",
