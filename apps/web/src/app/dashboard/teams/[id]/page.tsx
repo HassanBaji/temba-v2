@@ -43,7 +43,27 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { formatWinRate } from "@repo/domain/win-rate";
+import { isForbiddenError } from "@repo/domain/is-forbidden-error";
+import {
+  TEAM_DISSOLVED_TOAST,
+  TEAM_DISSOLVE_LABEL,
+  TEAM_ERROR_TITLE,
+  TEAM_FORBIDDEN_COPY,
+  TEAM_INVITE_DESCRIPTION,
+  TEAM_INVITE_PARTNER_LABEL,
+  TEAM_LINK_REQUESTED_TOAST,
+  TEAM_LOOKUP_NOTE,
+  TEAM_NO_MEMBERS_COPY,
+  TEAM_REQUEST_LINK_DESCRIPTION,
+  TEAM_REQUEST_LINK_LABEL,
+  TEAM_REQUEST_LINK_SUBMIT_LABEL,
+  TEAM_UNLINKED_TOAST,
+  TEAM_UNLINK_LABEL,
+  TEAM_WAITING_COPY,
+  teamDissolveConfirm,
+  teamHomeView,
+  teamUnlinkConfirm,
+} from "@repo/domain/teams";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
@@ -54,17 +74,6 @@ import {
   teamLinkCommunityPicker,
 } from "@repo/domain/team-link-community-picker";
 import { api } from "~/trpc/react";
-
-function isForbiddenError(error: unknown) {
-  if (!error || typeof error !== "object" || !("data" in error)) {
-    return false;
-  }
-  const data = error.data;
-  if (!data || typeof data !== "object" || !("code" in data)) {
-    return false;
-  }
-  return data.code === "FORBIDDEN";
-}
 
 export default function TeamHomePage({
   params,
@@ -130,7 +139,7 @@ export default function TeamHomePage({
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
-      toast.success("Team dissolved");
+      toast.success(TEAM_DISSOLVED_TOAST);
       await utils.teams.mine.invalidate();
       router.push("/dashboard/teams");
     },
@@ -148,7 +157,7 @@ export default function TeamHomePage({
 
   const requestLink = api.teams.requestLink.useMutation({
     onSuccess: async () => {
-      toast.success("Link request sent");
+      toast.success(TEAM_LINK_REQUESTED_TOAST);
       await utils.teams.byId.invalidate({ id });
       setLinkOpen(false);
     },
@@ -159,7 +168,7 @@ export default function TeamHomePage({
 
   const unlink = api.teams.unlink.useMutation({
     onSuccess: async (result) => {
-      toast.success("Team unlinked");
+      toast.success(TEAM_UNLINKED_TOAST);
       await utils.teams.byId.invalidate({ id });
       await utils.teams.mine.invalidate();
       if (result.communityId) {
@@ -186,8 +195,8 @@ export default function TeamHomePage({
       <DashboardShell title="Team" isSubPage>
         <EmptyState
           icon={Lock}
-          title="You cannot open this Team"
-          description="Only Team members, members of a linked Community, or a pending invitee can open a Team home."
+          title={TEAM_FORBIDDEN_COPY.title}
+          description={TEAM_FORBIDDEN_COPY.description}
           action={
             <Button asChild>
               <Link href="/dashboard/teams">Back to Teams</Link>
@@ -202,7 +211,7 @@ export default function TeamHomePage({
     return (
       <DashboardShell title="Team" isSubPage>
         <ErrorState
-          title="Team could not be loaded"
+          title={TEAM_ERROR_TITLE}
           message={team.error.message}
           onRetry={() => {
             void team.refetch();
@@ -216,7 +225,7 @@ export default function TeamHomePage({
     return (
       <DashboardShell title="Team" isSubPage>
         <ErrorState
-          title="Team could not be loaded"
+          title={TEAM_ERROR_TITLE}
           onRetry={() => {
             void team.refetch();
           }}
@@ -226,11 +235,8 @@ export default function TeamHomePage({
   }
 
   const data = team.data;
-  const displayName = data.displayName ?? "Team";
-  const people = data.members.map((member) => ({
-    name: member.name ?? "Member",
-    image: member.image,
-  }));
+  const view = teamHomeView(data);
+  const displayName = view.title;
 
   return (
     <DashboardShell title="Team" hidePageHeader isSubPage>
@@ -238,8 +244,8 @@ export default function TeamHomePage({
         <EntityHomeHeader
           leading={
             <AvatarStack
-              people={people}
-              openSeats={data.waitingForPartner ? 1 : 0}
+              people={view.people}
+              openSeats={view.openSeats}
               size="lg"
             />
           }
@@ -247,14 +253,11 @@ export default function TeamHomePage({
           badges={
             <>
               <SportBadge sport={data.sport} />
-              {data.isLoose ? (
-                <Badge variant="outline">Not linked to a Community</Badge>
-              ) : (
-                <Badge variant="outline">Club Team</Badge>
-              )}
-              {data.waitingForPartner ? (
-                <Badge variant="outline">Incomplete</Badge>
-              ) : null}
+              {view.badges.slice(1).map((badge) => (
+                <Badge key={badge} variant="outline">
+                  {badge}
+                </Badge>
+              ))}
             </>
           }
           meta={
@@ -271,9 +274,9 @@ export default function TeamHomePage({
             ) : undefined
           }
           primaryAction={
-            data.waitingForPartner && data.canInvite ? (
+            view.primaryInvite ? (
               <Button onClick={() => setInviteOpen(true)}>
-                Invite your partner
+                {TEAM_INVITE_PARTNER_LABEL}
               </Button>
             ) : undefined
           }
@@ -289,7 +292,7 @@ export default function TeamHomePage({
               ) : null}
               {data.canRequestLink ? (
                 <ActionMenuItem onSelect={() => setLinkOpen(true)}>
-                  Request Community link
+                  {TEAM_REQUEST_LINK_LABEL}
                 </ActionMenuItem>
               ) : null}
               {data.canUnlink || data.canDissolve ? (
@@ -300,7 +303,7 @@ export default function TeamHomePage({
                   variant="destructive"
                   onSelect={() => setUnlinkOpen(true)}
                 >
-                  Unlink from Community
+                  {TEAM_UNLINK_LABEL}
                 </ActionMenuItem>
               ) : null}
               {data.canDissolve ? (
@@ -308,57 +311,44 @@ export default function TeamHomePage({
                   variant="destructive"
                   onSelect={() => setDissolveOpen(true)}
                 >
-                  Dissolve Team
+                  {TEAM_DISSOLVE_LABEL}
                 </ActionMenuItem>
               ) : null}
             </ActionMenu>
           }
         />
 
-        {data.waitingForPartner && !data.canInvite ? (
+        {view.waitingNote ? (
+          <p className="text-body text-muted-foreground">{TEAM_WAITING_COPY}</p>
+        ) : null}
+
+        {view.pendingLinkNote ? (
           <p className="text-body text-muted-foreground">
-            Waiting for a partner. This Team is incomplete until a second member
-            joins.
+            {view.pendingLinkNote}
           </p>
         ) : null}
 
-        {data.pendingLinkRequest ? (
-          <p className="text-body text-muted-foreground">
-            Pending request to {data.pendingLinkRequest.community.name}.
-          </p>
-        ) : null}
-
-        <StatStrip
-          items={[
-            { label: "Games played", value: data.gamesPlayed },
-            { label: "Wins", value: data.wins },
-            { label: "Losses", value: data.losses },
-            {
-              label: "Win rate",
-              value: formatWinRate(data.wins, data.gamesPlayed),
-            },
-          ]}
-        />
+        <StatStrip items={view.stats} />
 
         <Section title="Members">
           {data.members.length === 0 ? (
             <EmptyState
               headingLevel={3}
               icon={Users}
-              title="No members"
-              description="People on this Team will show up here."
+              title={TEAM_NO_MEMBERS_COPY.title}
+              description={TEAM_NO_MEMBERS_COPY.description}
             />
           ) : (
             <RowList>
-              {data.members.map((member) => (
+              {view.members.map((member) => (
                 <MemberRow
                   key={member.id}
-                  name={member.name ?? "Member"}
+                  name={member.name}
                   image={member.image}
                   isViewer={member.isViewer}
                   badge={
-                    member.isCreator ? (
-                      <Badge variant="outline">Creator</Badge>
+                    member.creatorLabel ? (
+                      <Badge variant="outline">{member.creatorLabel}</Badge>
                     ) : undefined
                   }
                 />
@@ -371,9 +361,7 @@ export default function TeamHomePage({
       <ConfirmDialog
         open={dissolveOpen}
         onOpenChange={setDissolveOpen}
-        title={`Dissolve ${displayName}?`}
-        description="This cannot be undone."
-        confirmLabel="Dissolve Team"
+        {...teamDissolveConfirm(displayName)}
         pending={dissolve.isPending}
         restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
@@ -384,9 +372,7 @@ export default function TeamHomePage({
       <ConfirmDialog
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
-        title={`Unlink ${displayName}?`}
-        description="This Team will no longer be linked to its Community."
-        confirmLabel="Unlink from Community"
+        {...teamUnlinkConfirm(displayName)}
         pending={unlink.isPending}
         restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
@@ -405,9 +391,9 @@ export default function TeamHomePage({
             }
           }}
           restoreFocusRef={menuTriggerRef}
-          description="Invite a partner for the open seat, or copy a link to share."
+          description={TEAM_INVITE_DESCRIPTION}
           lookup={{
-            note: "Pick one person. Invites don't expire.",
+            note: TEAM_LOOKUP_NOTE,
             lookupInvites: data.unusedInvite ? [data.unusedInvite] : [],
             sendPending: inviteInApp.isPending,
             revokePendingId: revokeInvite.isPending
@@ -442,11 +428,10 @@ export default function TeamHomePage({
           <ResponsiveDialogContent restoreFocusRef={menuTriggerRef}>
             <ResponsiveDialogHeader>
               <ResponsiveDialogTitle>
-                Request Community link
+                {TEAM_REQUEST_LINK_LABEL}
               </ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
-                Full Teams can request a link to a Community. Owner or Admin
-                approve; missing members are auto-admitted.
+                {TEAM_REQUEST_LINK_DESCRIPTION}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <form
@@ -555,7 +540,9 @@ export default function TeamHomePage({
                       requestLink.isPending || linkPicker.status === "loading"
                     }
                   >
-                    {requestLink.isPending ? "Requesting…" : "Request link"}
+                    {requestLink.isPending
+                      ? "Requesting…"
+                      : TEAM_REQUEST_LINK_SUBMIT_LABEL}
                   </Button>
                 </>
               )}

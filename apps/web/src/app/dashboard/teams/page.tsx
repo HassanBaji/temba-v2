@@ -16,7 +16,15 @@ import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { entityListIsEmpty } from "@repo/domain/entity-list-empty";
-import { teamAvatarPeople } from "@repo/domain/team-avatar-people";
+import {
+  TEAMS_DESCRIPTION,
+  TEAMS_EMPTY_COPY,
+  TEAMS_ERROR_TITLE,
+  TEAMS_TITLE,
+  TEAM_CREATE_LABEL,
+  TEAM_JOINED_TOAST,
+  teamListRowView,
+} from "@repo/domain/teams";
 import { api } from "~/trpc/react";
 
 export default function TeamsIndexPage() {
@@ -25,7 +33,7 @@ export default function TeamsIndexPage() {
   const pending = api.teams.pendingInvites.useQuery();
   const acceptTeam = api.teams.acceptInAppInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Team");
+      toast.success(TEAM_JOINED_TOAST);
       await utils.teams.pendingInvites.invalidate();
       await utils.teams.mine.invalidate();
     },
@@ -48,17 +56,20 @@ export default function TeamsIndexPage() {
 
   return (
     <DashboardShell
-      title="Teams"
-      description="Partnerships you play as"
+      title={TEAMS_TITLE}
+      description={TEAMS_DESCRIPTION}
       action={
-        <PageCreateAction href="/dashboard/teams/new" label="Create Team" />
+        <PageCreateAction
+          href="/dashboard/teams/new"
+          label={TEAM_CREATE_LABEL}
+        />
       }
     >
       {teams.isLoading ? <ListPageSkeleton rows={4} /> : null}
 
       {teams.error ? (
         <ErrorState
-          title="Teams could not be loaded"
+          title={TEAMS_ERROR_TITLE}
           message={teams.error.message}
           onRetry={() => {
             void teams.refetch();
@@ -91,11 +102,11 @@ export default function TeamsIndexPage() {
         {isEmpty ? (
           <EmptyState
             icon={Users}
-            title="No Teams yet"
-            description="A Team is a lasting partnership with one other player."
+            title={TEAMS_EMPTY_COPY.title}
+            description={TEAMS_EMPTY_COPY.description}
             action={
               <Button asChild>
-                <Link href="/dashboard/teams/new">Create Team</Link>
+                <Link href="/dashboard/teams/new">{TEAM_CREATE_LABEL}</Link>
               </Button>
             }
           />
@@ -104,27 +115,23 @@ export default function TeamsIndexPage() {
         {teams.data && teams.data.length > 0 ? (
           <RowList>
             {teams.data.map((team) => {
-              const people = teamAvatarPeople(team.members);
+              const row = teamListRowView(team);
               return (
                 <ListRow
                   key={team.id}
                   asChild
                   leading={
                     <AvatarStack
-                      people={people}
-                      openSeats={team.incomplete ? 1 : 0}
+                      people={row.people}
+                      openSeats={row.openSeats}
                       size="lg"
                     />
                   }
-                  title={team.displayName}
-                  meta={
-                    team.community
-                      ? `Club Team · ${team.community.name}`
-                      : "Not linked to a Community"
-                  }
+                  title={row.title}
+                  meta={row.meta}
                   trailing={
-                    team.incomplete ? (
-                      <Badge variant="outline">Incomplete</Badge>
+                    row.incompleteLabel ? (
+                      <Badge variant="outline">{row.incompleteLabel}</Badge>
                     ) : undefined
                   }
                 >

@@ -4,6 +4,7 @@ import {
   LOOKUP_INVITE_REVOKED_TOAST,
   lookupInviteSentToast,
 } from "@repo/domain/invites";
+import { TEAM_LOOKUP_NOTE } from "@repo/domain/teams";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 import { Share } from "react-native";
@@ -18,7 +19,11 @@ import {
   type GameShareContext,
   type LookupResultRow,
 } from "./invites-model";
-import { InviteSheetView, type LookupSectionProps } from "./invite-sheet-view";
+import {
+  InviteSheetView,
+  type LookupSectionProps,
+  type PendingLookupRow,
+} from "./invite-sheet-view";
 import type { Slot } from "../home/home-model";
 
 export type InviteDoor =
@@ -37,9 +42,17 @@ export type InviteDoor =
       share: GameShareContext;
       canLookup: boolean;
       canLink: boolean;
+    }
+  | {
+      kind: "team";
+      teamId: string;
+      unusedInvite: PendingLookupRow | null;
+      canLookup: boolean;
+      canLink: boolean;
     };
 
 type LinkResult = { shortUrl: string | null; inviteUrl: string };
+type LinkResultLike = { shortUrl?: string | null; inviteUrl: string };
 
 function slotOf<T>(query: {
   data: T | undefined;
@@ -66,8 +79,10 @@ export function InviteDoorSheet({
   const toast = useToast();
   const utils = api.useUtils();
   const isGroup = door.kind === "group";
+  const isTeam = door.kind === "team";
   const groupId = door.kind === "group" ? door.groupId : "";
   const gameId = door.kind === "game" ? door.gameId : "";
+  const teamId = door.kind === "team" ? door.teamId : "";
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<LookupResultRow[]>([]);
   const [refused, setRefused] = useState<
@@ -85,7 +100,14 @@ export function InviteDoorSheet({
   );
   const gameSearch = api.games.searchLookupUsers.useQuery(
     { gameId, query: query.trim() },
-    { enabled: lookupOn && !isGroup, placeholderData: keepPrevious },
+    {
+      enabled: lookupOn && door.kind === "game",
+      placeholderData: keepPrevious,
+    },
+  );
+  const teamSearch = api.teams.searchLookupUsers.useQuery(
+    { teamId, query: query.trim() },
+    { enabled: lookupOn && isTeam, placeholderData: keepPrevious },
   );
   const groupPending = api.groups.listLookupInvites.useQuery(
     { groupId },
@@ -93,7 +115,7 @@ export function InviteDoorSheet({
   );
   const gamePending = api.games.listLookupInvites.useQuery(
     { gameId },
-    { enabled: lookupOn && !isGroup },
+    { enabled: lookupOn && door.kind === "game" },
   );
   const groupLink = api.groups.getInviteLink.useQuery(
     { groupId },
@@ -101,12 +123,24 @@ export function InviteDoorSheet({
   );
   const gameLink = api.games.getInviteLink.useQuery(
     { gameId },
-    { enabled: linkOn && !isGroup },
+    { enabled: linkOn && door.kind === "game" },
+  );
+  const teamLink = api.teams.getInviteLink.useQuery(
+    { teamId },
+    { enabled: linkOn && isTeam },
   );
 
-  const search = isGroup ? groupSearch : gameSearch;
-  const pendingInvites = isGroup ? groupPending : gamePending;
-  const currentLink = (isGroup ? groupLink : gameLink).data;
+  const search = isGroup ? groupSearch : isTeam ? teamSearch : gameSearch;
+  const currentLink: LinkResultLike | null | undefined = (
+    isGroup ? groupLink : isTeam ? teamLink : gameLink
+  ).data;
+  const pendingInvites: Slot<PendingLookupRow[]> =
+    door.kind === "team"
+      ? {
+          status: "ready",
+          value: door.unusedInvite ? [door.unusedInvite] : [],
+        }
+      : slotOf(isGroup ? groupPending : gamePending);
 
   function afterSend(result: {
     sent: unknown[];
@@ -121,6 +155,9 @@ export function InviteDoorSheet({
     if (isGroup) {
       void utils.groups.listLookupInvites.invalidate({ groupId });
       void utils.groups.searchLookupUsers.invalidate({ groupId });
+    } else if (isTeam) {
+      void utils.teams.byId.invalidate({ id: teamId });
+      void utils.teams.searchLookupUsers.invalidate({ teamId });
     } else {
       void utils.games.listLookupInvites.invalidate({ gameId });
       void utils.games.searchLookupUsers.invalidate({ gameId });
@@ -145,6 +182,18 @@ export function InviteDoorSheet({
     onSuccess: afterSend,
     onError: onSendError,
   });
+  const sendTeam = api.teams.inviteInApp.useMutation({
+    onSuccess: () => afterSend({ sent: [null], refused: [] }),
+    onError: onSendError,
+  });
+  const revokeTeam = api.teams.revokeInAppInvite.useMutation({
+    onSuccess: () => {
+      toast.show(LOOKUP_INVITE_REVOKED_TOAST);
+      void utils.teams.byId.invalidate({ id: teamId });
+      void utils.teams.searchLookupUsers.invalidate({ teamId });
+    },
+    onError: (error) => toast.show(error.message),
+  });
   const revokeGroup = api.groups.revokeLookupInvite.useMutation({
     onSuccess: () => {
       toast.show(LOOKUP_INVITE_REVOKED_TOAST);
@@ -168,7 +217,15 @@ export function InviteDoorSheet({
     onError: (error) => toast.show(error.message),
   });
 
+  const createTeamLink = api.teams.createInviteLink.useMutation({
+    onSuccess: () => void utils.teams.getInviteLink.invalidate({ teamId }),
+    onError: (error) => toast.show(error.message),
+  });
+
   function messageFor(link: LinkResult) {
+    if (door.kind === "team") {
+      return link.shortUrl ?? link.inviteUrl;
+    }
     return door.kind === "group"
       ? groupShareMessage({ name: door.name, sport: door.sport, link })
       : gameShareMessage(door.share, link);
@@ -176,6 +233,10 @@ export function InviteDoorSheet({
 
   async function mintLink(): Promise<LinkResult | null> {
     try {
+      if (door.kind === "team") {
+        const link = await createTeamLink.mutateAsync({ teamId });
+        return { shortUrl: null, inviteUrl: link.inviteUrl };
+      }
       return door.kind === "group"
         ? await createGroupLink.mutateAsync({ groupId })
         : await createGameLink.mutateAsync({ gameId });
@@ -217,7 +278,12 @@ export function InviteDoorSheet({
     const userIds = selected.map((row) => row.id);
     setRefused(null);
     setFormError(null);
-    if (door.kind === "group") {
+    if (door.kind === "team") {
+      const userId = userIds[0];
+      if (userId) {
+        sendTeam.mutate({ teamId: door.teamId, userId });
+      }
+    } else if (door.kind === "group") {
       sendGroup.mutate({ groupId: door.groupId, userIds });
     } else {
       sendGame.mutate({ gameId: door.gameId, userIds });
@@ -235,27 +301,41 @@ export function InviteDoorSheet({
   const revokePendingId =
     (revokeGroup.isPending ? revokeGroup.variables?.inviteId : null) ??
     (revokeGame.isPending ? revokeGame.variables?.inviteId : null) ??
+    (revokeTeam.isPending ? revokeTeam.variables?.inviteId : null) ??
     null;
 
   const lookup: LookupSectionProps | null = door.canLookup
     ? {
-        note: door.kind === "group" ? door.note : null,
+        note:
+          door.kind === "group"
+            ? door.note
+            : door.kind === "team"
+              ? TEAM_LOOKUP_NOTE
+              : null,
         query,
         onQueryChange: setQuery,
         results: slotOf(search),
         selected,
         onToggle: (row) =>
-          setSelected((current) => toggleSelection(current, row, "multiple")),
-        sendPending: sendGroup.isPending || sendGame.isPending,
+          setSelected((current) =>
+            toggleSelection(current, row, isTeam ? "single" : "multiple"),
+          ),
+        sendPending:
+          sendGroup.isPending || sendGame.isPending || sendTeam.isPending,
         onSend: send,
         refused,
         formError,
-        pendingInvites: slotOf(pendingInvites),
+        pendingInvites,
         revokePendingId,
-        onRevoke: (inviteId) =>
-          door.kind === "group"
-            ? revokeGroup.mutate({ inviteId })
-            : revokeGame.mutate({ inviteId }),
+        onRevoke: (inviteId) => {
+          if (door.kind === "team") {
+            revokeTeam.mutate({ inviteId });
+          } else if (door.kind === "group") {
+            revokeGroup.mutate({ inviteId });
+          } else {
+            revokeGame.mutate({ inviteId });
+          }
+        },
       }
     : null;
 
@@ -268,9 +348,14 @@ export function InviteDoorSheet({
         door.canLink
           ? {
               currentUrl: currentLink
-                ? (currentLink.shortUrl ?? currentLink.inviteUrl)
+                ? "shortUrl" in currentLink
+                  ? (currentLink.shortUrl ?? currentLink.inviteUrl)
+                  : currentLink.inviteUrl
                 : null,
-              pending: createGroupLink.isPending || createGameLink.isPending,
+              pending:
+                createGroupLink.isPending ||
+                createGameLink.isPending ||
+                createTeamLink.isPending,
               onShare: () => void shareLink(),
               onCopy: () => void copyLink(),
             }

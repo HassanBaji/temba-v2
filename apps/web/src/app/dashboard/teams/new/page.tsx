@@ -23,6 +23,14 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import {
+  TEAM_CREATED_TOAST,
+  TEAM_CREATE_DESCRIPTION,
+  TEAM_CREATE_LABEL,
+  TEAM_NAME_HINT,
+  TEAM_NAME_LABEL,
+  teamNameInput,
+} from "@repo/domain/teams";
 import { api } from "~/trpc/react";
 
 const FIELD_IDS = { name: "team-name" };
@@ -35,7 +43,7 @@ export default function NewTeamPage() {
 
   const createTeam = api.teams.create.useMutation({
     onSuccess: async (team) => {
-      toast.success("Team created");
+      toast.success(TEAM_CREATED_TOAST);
       await utils.teams.mine.invalidate();
       router.push(`/dashboard/teams/${team.id}`);
     },
@@ -53,15 +61,15 @@ export default function NewTeamPage() {
       return;
     }
     createTeam.mutate({
-      name: name.trim().length > 0 ? name.trim() : undefined,
+      name: teamNameInput(name),
       sport: "padel",
     });
   }
 
   return (
     <DashboardShell
-      title="Create Team"
-      description="Start an unattached padel partnership. You become the first member and can invite a partner later."
+      title={TEAM_CREATE_LABEL}
+      description={TEAM_CREATE_DESCRIPTION}
     >
       <Card variant="outlined" className="w-full">
         <form onSubmit={onSubmit} className="space-y-6">
@@ -71,7 +79,7 @@ export default function NewTeamPage() {
           />
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="team-name">Name (optional)</FieldLabel>
+              <FieldLabel htmlFor="team-name">{TEAM_NAME_LABEL}</FieldLabel>
               <Input
                 id="team-name"
                 value={name}
@@ -80,16 +88,14 @@ export default function NewTeamPage() {
                 aria-invalid={nameError ? true : undefined}
                 aria-describedby={nameError ? "team-name-error" : undefined}
               />
-              <FieldDescription>
-                If you leave this blank, the Team home uses member names.
-              </FieldDescription>
+              <FieldDescription>{TEAM_NAME_HINT}</FieldDescription>
               <FieldError id="team-name-error">{nameError}</FieldError>
             </Field>
           </FieldGroup>
 
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={createTeam.isPending}>
-              {createTeam.isPending ? "Creating…" : "Create Team"}
+              {createTeam.isPending ? "Creating…" : TEAM_CREATE_LABEL}
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard/teams">Cancel</Link>

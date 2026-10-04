@@ -20,7 +20,7 @@ export function inviteLandingPath(kind: InviteKind, id: string) {
     case "group":
       return `/groups/${id}`;
     case "team":
-      return "/profile/teams";
+      return `/profile/teams/${id}`;
     case "community":
       return "/communities";
   }
