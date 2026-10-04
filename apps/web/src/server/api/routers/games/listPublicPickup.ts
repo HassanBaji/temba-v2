@@ -1,11 +1,10 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { games } from "@repo/db";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { type db } from "~/server/db";
 import {
   applyViewerLevelRangeToHubRows,
   queryHubGames,
@@ -15,8 +14,6 @@ import {
 } from "~/server/games/helpers/hub-list";
 import type { HubListRow } from "~/server/games/utils";
 import { filterAndSortPublicHubGames } from "~/server/home/upcoming-games";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 export async function listPublicHubRows(
   database: DbClient,

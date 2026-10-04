@@ -2,10 +2,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
+import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 
-import type { EmbeddedDatabase } from "./index";
 import * as schema from "./schema";
 
 const migrationsFolder = join(
@@ -13,7 +12,7 @@ const migrationsFolder = join(
   "../drizzle",
 );
 
-export type TestDatabase = EmbeddedDatabase;
+export type TestDatabase = PgliteDatabase<typeof schema>;
 
 export async function createPgliteDb(): Promise<{
   db: TestDatabase;

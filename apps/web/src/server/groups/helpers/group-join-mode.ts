@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 import { and, eq } from "drizzle-orm";
 
 import {
@@ -10,14 +10,10 @@ import {
   type groups,
 } from "@repo/db";
 
-import { type db } from "~/server/db";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { consult } from "~/server/soft-archive";
 
-type DbClient =
-  | typeof db
-  | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | EmbeddedDatabase;
+type DbOrTx = DbClient | DbTx;
 
 export type GroupJoinMode =
   | "member"
@@ -27,7 +23,7 @@ export type GroupJoinMode =
   | "none";
 
 export async function groupJoinMode(
-  database: DbClient,
+  database: DbOrTx,
   group: typeof groups.$inferSelect,
   userId: string,
 ): Promise<GroupJoinMode> {

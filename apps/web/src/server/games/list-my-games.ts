@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { games } from "@repo/db";
@@ -16,9 +16,6 @@ import {
 } from "~/server/games/helpers/hub-list";
 import type { HubListRow } from "~/server/games/utils";
 import { filterAndSortMyGamesHubGames } from "~/server/home/upcoming-games";
-import { type db } from "~/server/db";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 export async function listMyGamesHubRows(
   database: DbClient,

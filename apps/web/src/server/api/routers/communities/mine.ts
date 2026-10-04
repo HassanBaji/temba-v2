@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { and, count, eq, inArray } from "drizzle-orm";
 
 import {
@@ -13,9 +13,6 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { asRole } from "~/server/communities/helpers/as-role";
 import { groupMemberCounts } from "~/server/communities/helpers/group-member-counts";
-import { type db } from "~/server/db";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 async function communityMemberCounts(
   database: DbClient,

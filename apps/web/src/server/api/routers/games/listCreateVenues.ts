@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { Db, DbClient, DbTx } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { z } from "zod";
@@ -7,7 +7,6 @@ import { gamePlayers, games, venues } from "@repo/db";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { type db } from "~/server/db";
 import { assertMayCreateGameOnGroup } from "~/server/games/access";
 import { loadGameCreateVenueContext } from "~/server/games/helpers/load-game-create-venue-context";
 import { requireGroup } from "~/server/games/helpers/require-group";
@@ -18,14 +17,14 @@ import type {
 import { consult } from "~/server/soft-archive";
 import { liveVenuesWhere } from "~/server/soft-archive/adapter";
 
-type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+type DbOrTx = Db | DbTx;
 
-type RecentCourtDb = DbClient | EmbeddedDatabase;
+type RecentCourtDb = DbClient | DbTx;
 
 const RECENT_BOOKING_LIMIT = 40;
 
 async function listVenuesForGameCreate(
-  database: DbClient,
+  database: DbOrTx,
   groupId: string | undefined,
 ): Promise<{
   locked: boolean;
@@ -170,7 +169,7 @@ export async function listRecentCourtIds(
 }
 
 async function listCreateVenuesForUser(
-  database: DbClient,
+  database: DbOrTx,
   args: { userId: string; groupId?: string },
 ) {
   if (args.groupId) {

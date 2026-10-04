@@ -1,12 +1,7 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 import type { CommunityRoleEnum } from "@repo/db";
 
-import { type db } from "~/server/db";
-
-type AppDb = typeof db;
-type AppTx = Parameters<Parameters<AppDb["transaction"]>[0]>[0];
-
-export type MembershipDb = AppDb | AppTx | EmbeddedDatabase;
+export type MembershipDb = DbClient | DbTx;
 
 export type MembershipRole = `${CommunityRoleEnum}`;
 

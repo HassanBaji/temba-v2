@@ -1,16 +1,13 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { inArray } from "drizzle-orm";
 
 import { games, groupMembers } from "@repo/db";
 
-import { type db } from "~/server/db";
 import {
   groupMemberStandingRecords,
   type GroupStandingMatch,
   type MemberStandingRecord,
 } from "~/server/standing/group-standing";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 type SlotTeam = {
   players: readonly {

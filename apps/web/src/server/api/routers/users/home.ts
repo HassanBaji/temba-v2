@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { eq } from "drizzle-orm";
 
 import { communityMembers, groupMembers, type GroupSportEnum } from "@repo/db";
@@ -8,7 +8,6 @@ import { pendingLookupInvites as pendingGroupInvites } from "~/server/api/router
 import { pendingInvites as pendingTeamInvites } from "~/server/api/routers/teams/pendingInvites";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { type db } from "~/server/db";
 import { listHomeCarouselGames } from "~/server/home/carousel-games";
 import {
   loadCompletedMatchesForUser,
@@ -19,8 +18,6 @@ import {
   standingPosition,
 } from "~/server/standing/compare-standing";
 import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 /**
  * Home metrics, carousel Games, and per-Group standing for the signed-in User.

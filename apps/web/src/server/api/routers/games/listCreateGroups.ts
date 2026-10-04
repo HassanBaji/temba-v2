@@ -1,17 +1,13 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { communityMembers, CommunityRoleEnum, groups } from "@repo/db";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { type db } from "~/server/db";
 import { mayCreateGameOnGroup } from "~/server/games/access";
 
-type DbClient =
-  | typeof db
-  | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | EmbeddedDatabase;
+type DbOrTx = DbClient | DbTx;
 
 export type CreateGroupOption = {
   id: string;
@@ -20,7 +16,7 @@ export type CreateGroupOption = {
 };
 
 export async function listCreateGroups(
-  database: DbClient,
+  database: DbOrTx,
   args: { userId: string },
 ): Promise<CreateGroupOption[]> {
   const createdRows = await database.query.groups.findMany({

@@ -1,15 +1,12 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { type db } from "~/server/db";
 import { matchOutcome } from "~/server/games/match-outcome";
 import {
   loadCompletedMatchesForUser,
   summarizeCompletedMatchStats,
   type CompletedMatchForStats,
 } from "~/server/stats/completed-matches";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 function byChronology(
   left: CompletedMatchForStats,

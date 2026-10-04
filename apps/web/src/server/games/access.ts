@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 
@@ -14,16 +14,12 @@ import {
   teamMembers,
 } from "@repo/db";
 
-import { type db } from "~/server/db";
 import { consult } from "~/server/soft-archive";
 import type { RegistrationStatus } from "~/server/games/utils";
 
 export type { RegistrationStatus };
 
-type DbClient =
-  | typeof db
-  | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | EmbeddedDatabase;
+type DbOrTx = DbClient | DbTx;
 
 export const FRIENDLY_PLAYERS_ALLOWED = 4;
 export const FRIENDLY_TEAMS_ALLOWED = 2;
@@ -34,7 +30,7 @@ export function isStaffRole(role: string | null | undefined) {
   return role === CommunityRoleEnum.OWNER || role === CommunityRoleEnum.ADMIN;
 }
 
-export async function requireGame(database: DbClient, gameId: string) {
+export async function requireGame(database: DbOrTx, gameId: string) {
   const game = await database.query.games.findFirst({
     where: eq(games.id, gameId),
   });
@@ -48,7 +44,7 @@ export async function requireGame(database: DbClient, gameId: string) {
 }
 
 export async function isGroupMember(
-  database: DbClient,
+  database: DbOrTx,
   groupId: string,
   userId: string,
 ) {
@@ -68,7 +64,7 @@ type GroupForOrganize = {
 };
 
 async function isCommunityStaff(
-  database: DbClient,
+  database: DbOrTx,
   communityId: string,
   userId: string,
 ) {
@@ -82,17 +78,14 @@ async function isCommunityStaff(
   return isStaffRole(membership?.role);
 }
 
-async function clubCommunityIsArchived(
-  database: DbClient,
-  communityId: string,
-) {
+async function clubCommunityIsArchived(database: DbOrTx, communityId: string) {
   const view = await consult(database, { communityId });
   return view.ok && view.freeze("host");
 }
 
 /** Group creator, or Community Owner/Admin on a Club Group. */
 async function mayOrganizeGroupGames(
-  database: DbClient,
+  database: DbOrTx,
   group: GroupForOrganize,
   userId: string,
 ) {
@@ -106,7 +99,7 @@ async function mayOrganizeGroupGames(
 }
 
 export async function mayCreateGameOnGroup(
-  database: DbClient,
+  database: DbOrTx,
   group: typeof groups.$inferSelect,
   userId: string,
 ) {
@@ -121,7 +114,7 @@ export async function mayCreateGameOnGroup(
 }
 
 export async function assertMayCreateGameOnGroup(
-  database: DbClient,
+  database: DbOrTx,
   group: typeof groups.$inferSelect,
   userId: string,
 ) {
@@ -149,7 +142,7 @@ export async function assertMayCreateGameOnGroup(
 }
 
 export async function isGameOrganizer(
-  database: DbClient,
+  database: DbOrTx,
   game: Pick<GameRow, "createdBy" | "groupId">,
   userId: string,
 ) {
@@ -168,7 +161,7 @@ export async function isGameOrganizer(
 }
 
 export async function assertGameOrganizer(
-  database: DbClient,
+  database: DbOrTx,
   game: GameRow,
   userId: string,
 ) {
@@ -182,7 +175,7 @@ export async function assertGameOrganizer(
 }
 
 export async function userPassesJoinGate(
-  database: DbClient,
+  database: DbOrTx,
   game: GameRow,
   userId: string,
 ) {
@@ -196,7 +189,7 @@ export async function userPassesJoinGate(
 }
 
 export async function assertUserPassesJoinGate(
-  database: DbClient,
+  database: DbOrTx,
   game: GameRow,
   userId: string,
 ) {
@@ -212,7 +205,7 @@ export async function assertUserPassesJoinGate(
 }
 
 export async function canViewGame(
-  database: DbClient,
+  database: DbOrTx,
   game: GameRow,
   userId: string,
 ) {
@@ -289,7 +282,7 @@ export function isRegistrationOpen(game: GameRow, now: Date) {
 }
 
 export async function isClubGroupGameJoinFrozen(
-  database: DbClient,
+  database: DbOrTx,
   game: GameRow,
 ) {
   const view = await consult(database, {
@@ -299,7 +292,7 @@ export async function isClubGroupGameJoinFrozen(
 }
 
 export async function assertRegistrationOpen(
-  database: DbClient,
+  database: DbOrTx,
   game: GameRow,
   now: Date,
 ) {
@@ -362,7 +355,7 @@ export function registrationStatusFromState(
 }
 
 export async function getRegistrationStatus(
-  database: DbClient,
+  database: DbOrTx,
   game: GameRow,
   now: Date,
 ): Promise<RegistrationStatus> {
@@ -384,7 +377,7 @@ export async function getRegistrationStatus(
   );
 }
 
-export async function registeredUserCount(database: DbClient, gameId: string) {
+export async function registeredUserCount(database: DbOrTx, gameId: string) {
   const rows = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.gameId, gameId),
     columns: { id: true },
@@ -393,7 +386,7 @@ export async function registeredUserCount(database: DbClient, gameId: string) {
 }
 
 export async function registeredGameTeamCount(
-  database: DbClient,
+  database: DbOrTx,
   gameId: string,
 ) {
   const rows = await database.query.gameTeams.findMany({

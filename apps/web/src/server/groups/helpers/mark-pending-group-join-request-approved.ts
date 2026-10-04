@@ -1,17 +1,12 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 import { and, eq } from "drizzle-orm";
 
 import { groupJoinRequests, GroupJoinRequestStatusEnum } from "@repo/db";
 
-import { type db } from "~/server/db";
-
-type DbClient =
-  | typeof db
-  | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | EmbeddedDatabase;
+type DbOrTx = DbClient | DbTx;
 
 export async function markPendingGroupJoinRequestApproved(
-  database: DbClient,
+  database: DbOrTx,
   args: { groupId: string; userId: string; decidedBy: string },
 ) {
   const existing = await database.query.groupJoinRequests.findFirst({

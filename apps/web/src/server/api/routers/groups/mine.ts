@@ -1,11 +1,10 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { eq, inArray } from "drizzle-orm";
 
 import { games, groupMembers, type GroupSportEnum } from "@repo/db";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { type db } from "~/server/db";
 import {
   groupFormMarks,
   type GroupFormMatch,
@@ -17,8 +16,6 @@ import {
 } from "~/server/standing/compare-standing";
 import { hasStandingResults } from "~/server/standing/group-standing";
 import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 type SlotTeam = {
   players: readonly {

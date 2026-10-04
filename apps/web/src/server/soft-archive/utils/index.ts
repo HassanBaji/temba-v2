@@ -1,8 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
-import type { db } from "~/server/db";
-
-type AppDb = typeof db;
-type AppTx = Parameters<Parameters<AppDb["transaction"]>[0]>[0];
+import type { DbClient, DbTx } from "@repo/db";
 
 export type FreezeKind = "join" | "catalog" | "host";
 
@@ -43,4 +39,4 @@ export type CommitResult =
       reason: "not_found" | "already_archived" | "already_live";
     };
 
-export type SoftArchiveDb = AppDb | AppTx | EmbeddedDatabase;
+export type SoftArchiveDb = DbClient | DbTx;

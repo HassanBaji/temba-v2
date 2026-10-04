@@ -6,11 +6,9 @@ import * as schema from "./schema";
 
 export * from "./schema";
 
-export type Database = PostgresJsDatabase<typeof schema>;
-export type EmbeddedDatabase = PgliteDatabase<typeof schema>;
-export type DatabaseTransaction = Parameters<
-  Parameters<Database["transaction"]>[0]
->[0];
+export type Db = PostgresJsDatabase<typeof schema>;
+export type DbTx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+export type DbClient = Db | PgliteDatabase<typeof schema>;
 
 /**
  * Cache the database connection in development. This avoids creating a new connection on every HMR
@@ -20,9 +18,9 @@ const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
 };
 
-let instance: Database | undefined;
+let instance: Db | undefined;
 
-function connect(): Database {
+function connect(): Db {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error("DATABASE_URL is not set");
@@ -32,7 +30,7 @@ function connect(): Database {
   return drizzle(conn, { schema });
 }
 
-export const db: Database = new Proxy({} as Database, {
+export const db: Db = new Proxy({} as Db, {
   get(_target, property) {
     instance ??= connect();
     const value: unknown = Reflect.get(instance, property, instance);

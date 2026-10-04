@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 import { and, eq, ne } from "drizzle-orm";
 import type { UserWebhookEvent } from "@clerk/nextjs/webhooks";
 
@@ -6,8 +6,7 @@ import { user } from "@repo/db";
 
 import { type db } from "~/server/db";
 
-type AppTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-export type ClerkUserSyncDb = typeof db | AppTx | EmbeddedDatabase;
+export type ClerkUserSyncDb = DbClient | DbTx;
 
 type ClerkUserPayload = Extract<
   UserWebhookEvent,

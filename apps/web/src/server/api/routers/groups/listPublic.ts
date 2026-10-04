@@ -1,18 +1,15 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 
 import { GroupSportEnum, GroupTypeEnum, groupMembers, groups } from "@repo/db";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { type db } from "~/server/db";
 import {
   groupJoinMode,
   type GroupJoinMode,
 } from "~/server/groups/helpers/group-join-mode";
 import { consult } from "~/server/soft-archive";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 export type PublicGroupJoinMode = Exclude<GroupJoinMode, "member" | "none">;
 

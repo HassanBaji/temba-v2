@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 import type {
   GameFormatEnum,
   GameRegistrationModeEnum,
@@ -7,10 +7,6 @@ import type {
 // Value import required for `typeof games.$inferSelect` / `typeof matches.$inferSelect` (type-only import fails TS2749).
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
-
-import { type db } from "~/server/db";
-
-type AppTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
 
@@ -140,7 +136,7 @@ export type GameCreateVenueOption = {
   courts: { id: string; name: string }[];
 };
 
-export type CreateFriendlyDb = typeof db | AppTx | EmbeddedDatabase;
+export type CreateFriendlyDb = DbClient | DbTx;
 
 export type CreateFriendlyGameInput = {
   createdBy: string;
@@ -201,7 +197,7 @@ export type VacatedSeat = {
   position: SeatPosition;
 };
 
-export type AdmitDb = typeof db | AppTx | EmbeddedDatabase;
+export type AdmitDb = DbClient | DbTx;
 
 export type AdmitDoor = "register" | "promote";
 

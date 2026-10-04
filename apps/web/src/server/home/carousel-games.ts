@@ -1,4 +1,4 @@
-import type { EmbeddedDatabase } from "@repo/db";
+import type { DbClient } from "@repo/db";
 /**
  * Home hero carousel list: Games the signed-in User has Game admit on or
  * organizes. Live Games stay for the whole window. After the window, at-cap
@@ -24,14 +24,11 @@ import {
   type HubQueryRow,
 } from "~/server/games/helpers/hub-list";
 import type { HubListRow } from "~/server/games/utils";
-import { type db } from "~/server/db";
 import {
   gameListTime,
   isGameLive,
   type GameListCandidate,
 } from "~/server/home/upcoming-games";
-
-type DbClient = typeof db | EmbeddedDatabase;
 
 export type HomeCarouselPhase = "upcoming" | "ongoing" | "needs_results";
 
