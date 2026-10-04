@@ -13,7 +13,7 @@ import { SettingsSection } from "~/components/settings/settings-section";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
-import { activeVenueCountLabel } from "~/lib/active-venue-count";
+import { activeVenueCountLabel } from "@repo/domain/active-venue-count";
 import { api } from "~/trpc/react";
 
 const settingsPageClassName =

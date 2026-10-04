@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 
 import { PageTitle } from "~/components/layout/page-title";
-import { profileSettingsAriaLabel } from "~/lib/profile-chrome";
+import { profileSettingsAriaLabel } from "@repo/domain/profile-chrome";
 
 export function ProfileHeader({
   pendingInviteCount,

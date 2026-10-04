@@ -15,7 +15,7 @@ import {
   confirmationFraction,
   confirmationProgressCaption,
   lastMatchMovement,
-} from "~/lib/profile-level";
+} from "@repo/domain/profile-level";
 import { api } from "~/trpc/react";
 
 export function ProfileLevelCard({

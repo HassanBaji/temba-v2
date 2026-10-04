@@ -2,8 +2,8 @@
  * Groups list presentation helpers (`.scratch/groups-redesign/spec.md` §1.1).
  */
 
-import { formatWeekday } from "@repo/domain/format-game-start";
-import { memberCountLabel } from "~/lib/member-count-label";
+import { formatWeekday } from "./format-game-start";
+import { memberCountLabel } from "./member-count-label";
 
 /**
  * A Group row's meta line: `"{n} members, you are rank {r}"`, or just the

@@ -42,8 +42,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { isNotFoundError } from "~/lib/is-not-found-error";
-import { formatWinRate } from "~/lib/win-rate";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import { formatWinRate } from "@repo/domain/win-rate";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
@@ -52,7 +52,7 @@ import {
 import {
   NO_LINKABLE_COMMUNITY_COPY,
   teamLinkCommunityPicker,
-} from "~/lib/team-link-community-picker";
+} from "@repo/domain/team-link-community-picker";
 import { api } from "~/trpc/react";
 
 function isForbiddenError(error: unknown) {

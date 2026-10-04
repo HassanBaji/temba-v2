@@ -14,7 +14,7 @@ import { Card } from "~/components/ui/card";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
   entityImageUploadInput,
-} from "~/lib/entity-image-file";
+} from "@repo/domain/entity-image-file";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 

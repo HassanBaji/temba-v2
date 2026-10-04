@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { entityImageFileError } from "~/lib/entity-image-file";
+import { entityImageFileError } from "@repo/domain/entity-image-file";
 import {
   fieldErrorMessage,
   focusFormFailure,

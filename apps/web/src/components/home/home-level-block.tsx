@@ -15,7 +15,7 @@ import {
   levelChangeView,
   parseLevelHistory,
   plottedFraction,
-} from "~/lib/home-level-chart";
+} from "@repo/domain/home-level-chart";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   displayLabelFromStoredBand,

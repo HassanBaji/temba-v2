@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { schedulePoolMatches } from "@repo/domain/tournament-schedule";
-import { sizeFriendlyTournament } from "@repo/domain/tournament-sizing";
+import { schedulePoolMatches } from "./tournament-schedule";
+import { sizeFriendlyTournament } from "./tournament-sizing";
 import {
   viewerTournamentMatchCount,
   viewerTournamentTotalFils,

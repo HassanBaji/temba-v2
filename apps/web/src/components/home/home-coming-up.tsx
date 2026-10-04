@@ -8,7 +8,7 @@ import {
   type HomeComingUpRow,
   type HomeComingUpTournamentMatchRow,
   type HomeComingUpTournamentRow,
-} from "~/lib/home-coming-up";
+} from "@repo/domain/home-coming-up";
 import { zonedParts } from "@repo/domain/product-timezone";
 import { cn } from "~/lib/utils";
 

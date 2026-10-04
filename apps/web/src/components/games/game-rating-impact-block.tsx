@@ -6,7 +6,7 @@ import {
   ratingImpactChangeDirection,
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
-} from "~/lib/game-rating-impact";
+} from "@repo/domain/game-rating-impact";
 import { type RouterOutputs } from "~/trpc/react";
 
 export type GameRatingImpactBlockValue = NonNullable<
@@ -49,8 +49,7 @@ export function GameRatingImpactBlock({
   const sentence = ratingImpactStandingSentence({
     newLevelBand: ratingImpact.newLevelBand,
     isProvisional: ratingImpact.isProvisional,
-    ratedMatchesRemainingToConfirm:
-      ratingImpact.ratedMatchesRemainingToConfirm,
+    ratedMatchesRemainingToConfirm: ratingImpact.ratedMatchesRemainingToConfirm,
   });
   const directionSrText =
     direction === "up"

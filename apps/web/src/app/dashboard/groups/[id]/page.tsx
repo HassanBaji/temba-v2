@@ -27,15 +27,18 @@ import {
   groupHomeCtaFamily,
   groupHomeNextJoinableGame,
   groupHomeOverflowItems,
-} from "~/lib/group-home-cta";
-import { groupHomeTabFromQuery, groupHomeTabQuery } from "~/lib/group-home-tab";
+} from "@repo/domain/group-home-cta";
+import {
+  groupHomeTabFromQuery,
+  groupHomeTabQuery,
+} from "@repo/domain/group-home-tab";
 import {
   ENTITY_IMAGE_ACCEPT,
   entityImageFileError,
   entityImageUploadInput,
-} from "~/lib/entity-image-file";
+} from "@repo/domain/entity-image-file";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
-import { isNotFoundError } from "~/lib/is-not-found-error";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 const GROUP_LOOSE_LOOKUP_NOTE =

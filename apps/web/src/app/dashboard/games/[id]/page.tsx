@@ -43,7 +43,7 @@ import {
 import {
   gameEditSectionsToReseed,
   type GameEditSection,
-} from "~/lib/game-edit-sections";
+} from "@repo/domain/game-edit-sections";
 import {
   CANCEL_GAME_ACTION,
   CANCEL_MATCH_ACTION,
@@ -65,13 +65,13 @@ import {
   kickedToast,
 } from "@repo/domain/game-copy";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
-import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
+import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import {
   gameKickConfirmCopy,
   gameKickTarget,
   type GameKickRequest,
   type GameKickTarget,
-} from "~/lib/game-kick-confirm";
+} from "@repo/domain/game-kick-confirm";
 import {
   friendlyGameCanMintInvite,
   friendlyGameCtaFamily,
@@ -80,7 +80,7 @@ import {
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
-import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
+import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
 import { viewerSidePartnerName } from "@repo/domain/friendly-game-partner";
 import {
   gameHomeIntentFromQuery,
@@ -114,7 +114,7 @@ import {
   parseRequiredGameWindow,
   splitGameWindow,
 } from "@repo/domain/game-window";
-import { isNotFoundError } from "~/lib/is-not-found-error";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import {
   LEVEL_BAND_SELECT_NONE,

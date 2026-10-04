@@ -19,7 +19,10 @@ import {
   formatGameCardDay,
   formatRelativeDay,
 } from "@repo/domain/format-game-start";
-import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
+import {
+  formatHomeCountdown,
+  formatHomeKickoff,
+} from "@repo/domain/home-countdown";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {

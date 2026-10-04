@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { entityListIsEmpty } from "~/lib/entity-list-empty";
+import { entityListIsEmpty } from "./entity-list-empty";
 
 const loaded = { isLoading: false, error: null, count: 0 };
 const noInvites = { isLoading: false, count: 0 };

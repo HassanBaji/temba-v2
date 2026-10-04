@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { initials } from "~/lib/initials";
+import { initials } from "@repo/domain/initials";
 
 export function UserAvatar({
   name,

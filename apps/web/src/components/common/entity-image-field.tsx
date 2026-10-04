@@ -17,7 +17,7 @@ import {
   ENTITY_IMAGE_HELP,
   entityImageFileError,
   type EntityImageNoun,
-} from "~/lib/entity-image-file";
+} from "@repo/domain/entity-image-file";
 
 /**
  * One image or logo picker. With `file` it holds a pick until the form

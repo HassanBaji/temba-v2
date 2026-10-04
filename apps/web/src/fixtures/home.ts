@@ -4,7 +4,7 @@ import type {
   HomeComingUpGameRow,
   HomeComingUpTournamentMatchRow,
   HomeComingUpTournamentRow,
-} from "~/lib/home-coming-up";
+} from "@repo/domain/home-coming-up";
 import type { LevelBand } from "@repo/domain/level-bands";
 
 export type HomeSeat = {

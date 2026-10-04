@@ -18,9 +18,9 @@ import {
   formatGameCardDay,
   formatWindowDuration,
 } from "@repo/domain/format-game-start";
-import { friendlyGameVacantSeatLabel } from "~/lib/friendly-game-players";
-import { nextJoinPosition } from "~/lib/game-card-side-join";
-import { gameOccupancy, spotsOpenLabel } from "~/lib/game-occupancy";
+import { friendlyGameVacantSeatLabel } from "@repo/domain/friendly-game-players";
+import { nextJoinPosition } from "@repo/domain/game-card-side-join";
+import { gameOccupancy, spotsOpenLabel } from "@repo/domain/game-occupancy";
 import {
   gameCardActionLabel,
   gameCardActionSolid,
@@ -28,7 +28,10 @@ import {
   type GameSummaryCta,
   type GameViewerStatus,
 } from "@repo/domain/game-summary-cta";
-import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
+import {
+  formatHomeCountdown,
+  formatHomeKickoff,
+} from "@repo/domain/home-countdown";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { cn } from "~/lib/utils";

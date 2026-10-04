@@ -10,7 +10,7 @@ import {
   groupHomeBackTarget,
   groupHomeMetaLine,
 } from "~/lib/group-home-chrome";
-import type { GroupHomeTab } from "~/lib/group-home-tab";
+import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import { cn } from "~/lib/utils";
 
 /** Full-bleed to the page gutters so the hairline reaches both edges. */

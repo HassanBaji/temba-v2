@@ -5,7 +5,7 @@ import {
   POOL_WINNER_LABEL,
   TOURNAMENT_FINISHED_COPY,
   poolRecordDisplay,
-} from "~/lib/tournament-pool-table";
+} from "@repo/domain/tournament-pool-table";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
 

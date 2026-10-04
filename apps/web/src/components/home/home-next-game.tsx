@@ -6,13 +6,16 @@ import { useEffect, useState } from "react";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { HomeSeatRow } from "~/components/home/home-seat-row";
 import { Button } from "~/components/ui/button";
-import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
+import {
+  formatHomeCountdown,
+  formatHomeKickoff,
+} from "@repo/domain/home-countdown";
 import {
   homeNextGameActions,
   type HomeNextGamePhase,
 } from "~/lib/home-next-game";
 import { homeNoGamesCreateAction } from "~/lib/home-no-games";
-import type { HomeSeatView } from "~/lib/home-seats";
+import type { HomeSeatView } from "@repo/domain/home-seats";
 import { api } from "~/trpc/react";
 
 export function HomeNextGame({

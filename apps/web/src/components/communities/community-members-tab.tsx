@@ -25,7 +25,7 @@ import {
   isCommunityRole,
   roleChangeConfirmCopy,
   roleChangeNeedsConfirmation,
-} from "~/lib/community-role-change";
+} from "@repo/domain/community-role-change";
 import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,

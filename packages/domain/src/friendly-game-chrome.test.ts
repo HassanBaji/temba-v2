@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { formatAbsoluteDay } from "@repo/domain/format-game-start";
+import { formatAbsoluteDay } from "./format-game-start";
 import {
   friendlyGameDateDurationLine,
   friendlyGameDirectionsUrl,
@@ -10,7 +10,7 @@ import {
   friendlyGamePriceRow,
   friendlyGameViewerLine,
 } from "./friendly-game-chrome";
-import { showsFriendlyRoster } from "@repo/domain/game-summary-cta";
+import { showsFriendlyRoster } from "./game-summary-cta";
 
 describe("friendly Game home chrome gate", () => {
   it("is only true for an individual Friendly game", () => {

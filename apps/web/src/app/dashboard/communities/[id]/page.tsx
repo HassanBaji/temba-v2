@@ -32,13 +32,13 @@ import {
   communityHomeTabFromQuery,
   communityHomeTabQuery,
   type CommunityHomeTab,
-} from "~/lib/community-home-tab";
-import { isNotFoundError } from "~/lib/is-not-found-error";
+} from "@repo/domain/community-home-tab";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
   entityImageUploadInput,
-} from "~/lib/entity-image-file";
+} from "@repo/domain/entity-image-file";
 import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({

@@ -1,4 +1,4 @@
-import type { LevelBand } from "@repo/domain/level-bands";
+import type { LevelBand } from "./level-bands";
 
 export type SeatPosition = "left" | "right";
 

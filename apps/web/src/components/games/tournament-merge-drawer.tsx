@@ -21,7 +21,7 @@ import {
   mergeDrawerLead,
   mergeManyHalfTeamsCopy,
   mergePairCopy,
-} from "~/lib/tournament-half-teams";
+} from "@repo/domain/tournament-half-teams";
 
 type MergeSide = {
   sideIndex: number;

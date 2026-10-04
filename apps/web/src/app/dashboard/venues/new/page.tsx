@@ -23,7 +23,7 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import { parseOptionalCoord } from "~/lib/parse-optional-coord";
+import { parseOptionalCoord } from "@repo/domain/parse-optional-coord";
 import { api } from "~/trpc/react";
 
 const FIELD_IDS = {

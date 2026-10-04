@@ -16,7 +16,7 @@ import {
   MERGE_SWAP_LABEL,
   MERGE_TAKES_EFFECT_COPY,
   ORGANIZER_EYEBROW,
-} from "~/lib/tournament-half-teams";
+} from "./tournament-half-teams";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
@@ -52,7 +52,7 @@ import {
   roundResultsHeading,
   tournamentSizeLine,
   tournamentStatusLine,
-} from "@repo/domain/tournament-home";
+} from "./tournament-home";
 import {
   DRAW_RANDOM_VALUE,
   DRAW_ROW_LABEL,
@@ -69,7 +69,7 @@ import {
   TAKE_A_SEAT_TITLE,
   TAKEN_SEAT_LABEL,
   YOUR_SEAT_HEADING,
-} from "@repo/domain/tournament-join";
+} from "./tournament-join";
 import {
   DRAW_AGAIN_ACTION,
   DRAW_DRAWER_TITLE,
@@ -84,7 +84,7 @@ import {
   POST_POOL_DRAW_ACTION,
   POST_POOL_DRAW_FOOTER_COPY,
   UNDO_POOL_DRAW_ACTION,
-} from "@repo/domain/tournament-pool-draw";
+} from "./tournament-pool-draw";
 import {
   POOL_RESULTS_HEADING,
   POOL_TABLE_HEADING,
@@ -92,7 +92,7 @@ import {
   TOURNAMENT_FINISHED_COPY,
   UNPLAYED_RECORD_DISPLAY,
   YOUR_ROUNDS_HEADING,
-} from "~/lib/tournament-pool-table";
+} from "./tournament-pool-table";
 import {
   ALONE_OR_WITH_A_PARTNER_LABEL,
   ANYONE_WITH_THE_LINK_LABEL,
@@ -120,7 +120,7 @@ import {
   lastMatchFinishCopy,
   playersInPairsLine,
   sizeFriendlyTournament,
-} from "@repo/domain/tournament-sizing";
+} from "./tournament-sizing";
 
 const ALLOWED_CHAMPION = "There is no overall champion.";
 const ALLOWED_SEEDED = "Nobody is seeded.";

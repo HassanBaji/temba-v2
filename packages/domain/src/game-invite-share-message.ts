@@ -1,8 +1,5 @@
-import {
-  formatGameTimeWindow,
-  formatRelativeDay,
-} from "@repo/domain/format-game-start";
-import { showsFriendlyRoster } from "@repo/domain/game-summary-cta";
+import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
+import { showsFriendlyRoster } from "./game-summary-cta";
 
 export type GameInviteShareOccupant = {
   name: string;

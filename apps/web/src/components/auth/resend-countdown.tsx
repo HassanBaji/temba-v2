@@ -8,7 +8,7 @@ import {
   isResendAvailable,
   remainingSeconds,
   resendAccessibleName,
-} from "~/lib/resend-countdown";
+} from "@repo/domain/resend-countdown";
 import { cn } from "~/lib/utils";
 
 export function ResendCountdown({

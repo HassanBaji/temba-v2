@@ -13,7 +13,7 @@ import {
   formatHeroCountdown,
   formatHeroKickoffTrailer,
   formatHomeKickoff,
-} from "~/lib/home-countdown";
+} from "@repo/domain/home-countdown";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 
 /**

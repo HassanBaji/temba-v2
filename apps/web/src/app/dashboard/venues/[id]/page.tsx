@@ -33,10 +33,13 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import { entityImageUploadInput } from "~/lib/entity-image-file";
-import { courtRenameIsDirty } from "~/lib/court-rename";
-import { isNotFoundError } from "~/lib/is-not-found-error";
-import { coordToInput, parseOptionalCoord } from "~/lib/parse-optional-coord";
+import { entityImageUploadInput } from "@repo/domain/entity-image-file";
+import { courtRenameIsDirty } from "@repo/domain/court-rename";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import {
+  coordToInput,
+  parseOptionalCoord,
+} from "@repo/domain/parse-optional-coord";
 import { api } from "~/trpc/react";
 
 export default function VenueHomePage({

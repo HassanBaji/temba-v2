@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { courtRenameIsDirty } from "~/lib/court-rename";
+import { courtRenameIsDirty } from "./court-rename";
 
 describe("courtRenameIsDirty", () => {
   it("is clean while the draft matches the saved name", () => {

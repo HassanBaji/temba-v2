@@ -15,8 +15,8 @@ import { PendingInvitesSection } from "~/components/invites/pending-invites-sect
 import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { entityListIsEmpty } from "~/lib/entity-list-empty";
-import { teamAvatarPeople } from "~/lib/team-avatar-people";
+import { entityListIsEmpty } from "@repo/domain/entity-list-empty";
+import { teamAvatarPeople } from "@repo/domain/team-avatar-people";
 import { api } from "~/trpc/react";
 
 export default function TeamsIndexPage() {

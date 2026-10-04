@@ -8,7 +8,7 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
-import type { GroupHomeOverflowItem } from "~/lib/group-home-cta";
+import type { GroupHomeOverflowItem } from "@repo/domain/group-home-cta";
 
 export function GroupHomeOverflowMenu({
   items,

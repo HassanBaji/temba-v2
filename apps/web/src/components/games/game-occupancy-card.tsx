@@ -8,7 +8,7 @@ import {
   gameOccupancy,
   seatsLeftLabel,
   type GameOccupancyTone,
-} from "~/lib/game-occupancy";
+} from "@repo/domain/game-occupancy";
 import { cn } from "~/lib/utils";
 
 const BAR_TONE: Record<GameOccupancyTone, string> = {

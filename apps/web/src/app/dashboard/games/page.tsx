@@ -24,7 +24,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { offersPartnerJoin } from "@repo/domain/friendly-game-partner";
 import { gameJoinToast } from "@repo/domain/game-copy";
-import { gamesHubTabFromQuery, gamesHubTabQuery } from "~/lib/games-hub-tab";
+import {
+  gamesHubTabFromQuery,
+  gamesHubTabQuery,
+} from "@repo/domain/games-hub-tab";
 import {
   gameSummaryPrimaryAction,
   gameViewerStatus,

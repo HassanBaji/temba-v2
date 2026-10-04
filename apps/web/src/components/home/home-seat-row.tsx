@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 
-import { initials } from "~/lib/initials";
-import { homeSpotsOpenLabel, type HomeSeatView } from "~/lib/home-seats";
+import { initials } from "@repo/domain/initials";
+import { homeSpotsOpenLabel, type HomeSeatView } from "@repo/domain/home-seats";
 import { cn } from "~/lib/utils";
 import { UserAvatar } from "../common/user-avatar";
 

@@ -21,10 +21,13 @@ import { FormStrip } from "~/components/temba/form-strip";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { entityListIsEmpty } from "~/lib/entity-list-empty";
-import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
-import { groupsTabFromQuery, groupsTabQuery } from "~/lib/groups-tab";
-import { memberCountLabel } from "~/lib/member-count-label";
+import { entityListIsEmpty } from "@repo/domain/entity-list-empty";
+import {
+  groupNextGameWeekday,
+  groupRowMetaLine,
+} from "@repo/domain/groups-list";
+import { groupsTabFromQuery, groupsTabQuery } from "@repo/domain/groups-tab";
+import { memberCountLabel } from "@repo/domain/member-count-label";
 import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
 

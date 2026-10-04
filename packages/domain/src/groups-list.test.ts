@@ -1,7 +1,7 @@
-import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
+import { bahrainDate } from "./bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
-import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
+import { groupNextGameWeekday, groupRowMetaLine } from "./groups-list";
 
 describe("groupRowMetaLine", () => {
   it("names the viewer's rank when they hold a standing position", () => {

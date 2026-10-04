@@ -1,5 +1,5 @@
 import { groupHomeSportLabel } from "~/lib/group-home-chrome";
-import { memberCountLabel } from "~/lib/member-count-label";
+import { memberCountLabel } from "@repo/domain/member-count-label";
 
 export type CommunityVisibility = "public" | "private";
 export type CommunityRoleName = "owner" | "admin" | "member";

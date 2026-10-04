@@ -22,7 +22,7 @@ import {
 import {
   formatHeroKickoffTrailer,
   formatHomeKickoff,
-} from "~/lib/home-countdown";
+} from "@repo/domain/home-countdown";
 import {
   formatPricePerPlayerFils,
   parseOptionalPricePerPlayerFils,

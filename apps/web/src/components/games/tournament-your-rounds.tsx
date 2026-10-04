@@ -6,12 +6,12 @@ import {
   formatGameCardDay,
   formatGameStart,
 } from "@repo/domain/format-game-start";
-import { resultMarkVariant } from "~/lib/result-mark";
+import { resultMarkVariant } from "@repo/domain/result-mark";
 import {
   NOT_DRAWN_TRAILER,
   YOUR_ROUNDS_PREDRAW_CAPTION,
 } from "@repo/domain/tournament-home";
-import { YOUR_ROUNDS_HEADING } from "~/lib/tournament-pool-table";
+import { YOUR_ROUNDS_HEADING } from "@repo/domain/tournament-pool-table";
 import type { TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
 
 export type TournamentYourRoundsResult = {

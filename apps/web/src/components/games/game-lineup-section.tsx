@@ -10,7 +10,7 @@ import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
 import {
   friendlyGameLineupVacantAction,
   friendlyGameVacantSeatLabel,
-} from "~/lib/friendly-game-players";
+} from "@repo/domain/friendly-game-players";
 import {
   displayLabelFromStoredBand,
   type LevelBand,

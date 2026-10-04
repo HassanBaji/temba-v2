@@ -15,7 +15,7 @@ import {
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { CloseButton } from "~/components/ui/nav-icon-button";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
-import { ORGANIZER_EYEBROW } from "~/lib/tournament-half-teams";
+import { ORGANIZER_EYEBROW } from "@repo/domain/tournament-half-teams";
 import { type KnockoutViewGameTeam } from "@repo/domain/tournament-knockout-view";
 import {
   DRAW_DRAWER_TITLE,

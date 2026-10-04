@@ -15,8 +15,8 @@ import { HomeStanding } from "~/components/home/home-standing";
 import { HomeTournamentCard } from "~/components/home/home-tournament-card";
 import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
-import { homeComingUpRows } from "~/lib/home-coming-up";
-import { homeNextGameSeats } from "~/lib/home-seats";
+import { homeComingUpRows } from "@repo/domain/home-coming-up";
+import { homeNextGameSeats } from "@repo/domain/home-seats";
 import {
   isTournamentMatchRow,
   isDrawnTournamentSummaryRow,

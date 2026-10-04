@@ -8,8 +8,8 @@ import {
 import { ResultMark } from "~/components/temba/result-mark";
 import { formatRelativeDay } from "@repo/domain/format-game-start";
 import { setLabel, setShortLabel } from "@repo/domain/game-copy";
-import { RESULT_MARK_LABEL } from "~/lib/result-mark";
-import { shortPlayerName } from "~/lib/player-name";
+import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { shortPlayerName } from "@repo/domain/player-name";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 

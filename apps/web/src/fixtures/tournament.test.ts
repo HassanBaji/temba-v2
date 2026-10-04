@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { halfTeamsFromSides } from "~/lib/tournament-half-teams";
+import { halfTeamsFromSides } from "@repo/domain/tournament-half-teams";
 import { isTournamentStandingsView } from "@repo/domain/tournament-home";
 import { hasDraftPoolDraw } from "@repo/domain/tournament-pool-draw";
 import { hasPools, isDrawnTournament } from "@repo/domain/tournament-rounds";

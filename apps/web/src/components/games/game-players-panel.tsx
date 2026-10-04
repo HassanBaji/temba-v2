@@ -40,7 +40,7 @@ import {
 import {
   friendlyGameCanKickPlayer,
   friendlyGamePlayersCancelledNote,
-} from "~/lib/friendly-game-players";
+} from "@repo/domain/friendly-game-players";
 import { showsFriendlyRoster } from "@repo/domain/game-summary-cta";
 import { type RouterOutputs } from "~/trpc/react";
 

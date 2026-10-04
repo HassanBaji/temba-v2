@@ -9,7 +9,7 @@ import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { formatGameCardDay } from "@repo/domain/format-game-start";
 import { seedPartnerCallerPosition } from "@repo/domain/friendly-game-partner";
-import { formatHomeKickoff } from "~/lib/home-countdown";
+import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import {
   displayLabelFromStoredBand,
   type LevelBand,

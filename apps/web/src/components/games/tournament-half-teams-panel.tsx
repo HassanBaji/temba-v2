@@ -35,7 +35,7 @@ import {
   swapMergePositions,
   type HalfTeam,
   type MergePositionAssignment,
-} from "~/lib/tournament-half-teams";
+} from "@repo/domain/tournament-half-teams";
 import {
   LEFT_SEAT_LABEL,
   RIGHT_SEAT_LABEL,

@@ -1,7 +1,10 @@
-import { RESULT_MARK_LABEL, type ResultMarkVariant } from "~/lib/result-mark";
+import {
+  RESULT_MARK_LABEL,
+  type ResultMarkVariant,
+} from "@repo/domain/result-mark";
 import { cn } from "~/lib/utils";
 
-export type { ResultMarkVariant } from "~/lib/result-mark";
+export type { ResultMarkVariant } from "@repo/domain/result-mark";
 
 /**
  * The Temba result mark, drawn as `#tembaWon` / `#tembaLost` /

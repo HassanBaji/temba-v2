@@ -45,13 +45,13 @@ import {
   EDIT_GAME_ACTION,
   REGISTER_TEAM_ACTION,
 } from "@repo/domain/game-copy";
-import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
+import { friendlyGameCanKickPlayer } from "@repo/domain/friendly-game-players";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
   canOpenOrganizerMergeDrawer,
   halfTeamsFromSides,
   showOrganizerMergeBanner,
-} from "~/lib/tournament-half-teams";
+} from "@repo/domain/tournament-half-teams";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
@@ -99,7 +99,7 @@ import {
 import {
   viewerTournamentMatchCount,
   viewerTournamentTotalFils,
-} from "~/lib/tournament-price";
+} from "@repo/domain/tournament-price";
 import {
   hasKnockout,
   isKnockoutOnly,

@@ -9,7 +9,7 @@ import {
   venueMatchingQuery,
   venueOptionLabel,
   type VenueSelectOption,
-} from "~/lib/game-venue-select";
+} from "@repo/domain/game-venue-select";
 import { cn } from "~/lib/utils";
 
 export function GameVenueSelect({

@@ -1,14 +1,11 @@
-import { bahrainDayFromToday } from "@repo/domain/bahrain-date.test-support";
+import { bahrainDayFromToday } from "./bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
-import {
-  formatGameTimeWindow,
-  formatRelativeDay,
-} from "@repo/domain/format-game-start";
+import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
 import {
   formatGameInviteShareMessage,
   gameInviteClipboardText,
-} from "~/lib/game-invite-share-message";
+} from "./game-invite-share-message";
 
 const shortUrl = "https://app.example/g/A3F8K2PQ";
 

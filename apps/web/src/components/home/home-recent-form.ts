@@ -1,4 +1,4 @@
-import { winRatePercent } from "~/lib/win-rate";
+import { winRatePercent } from "@repo/domain/win-rate";
 import type { RouterOutputs } from "~/trpc/react";
 
 export type RecentFormHistoryRow = Pick<

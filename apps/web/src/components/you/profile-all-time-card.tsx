@@ -3,8 +3,8 @@
 import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { Skeleton } from "~/components/ui/skeleton";
-import { shortPlayerName } from "~/lib/player-name";
-import { winRatePercent } from "~/lib/win-rate";
+import { shortPlayerName } from "@repo/domain/player-name";
+import { winRatePercent } from "@repo/domain/win-rate";
 import { api } from "~/trpc/react";
 
 function yearFromMatchAt(value: Date | string | null | undefined) {

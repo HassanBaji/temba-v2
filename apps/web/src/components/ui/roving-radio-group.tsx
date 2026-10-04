@@ -2,7 +2,10 @@
 
 import * as React from "react";
 
-import { rovingRadioIndex, rovingTabStopIndex } from "~/lib/roving-radio";
+import {
+  rovingRadioIndex,
+  rovingTabStopIndex,
+} from "@repo/domain/roving-radio";
 
 function ownRadios(group: HTMLElement) {
   return Array.from(

@@ -8,7 +8,7 @@ import {
   friendlyGameSideFill,
   friendlyGameVacantSeatAction,
   friendlyGameVacantSeatLabel,
-} from "~/lib/friendly-game-players";
+} from "@repo/domain/friendly-game-players";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameSide = RouterOutputs["games"]["byId"]["sides"][number];

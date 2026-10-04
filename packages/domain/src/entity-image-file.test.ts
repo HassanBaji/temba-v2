@@ -5,7 +5,7 @@ import {
   ENTITY_IMAGE_MAX_BYTES,
   entityImageFileError,
   entityImageUploadInput,
-} from "~/lib/entity-image-file";
+} from "./entity-image-file";
 
 function fakeFile(args: { type: string; size: number }): File {
   const bytes = new Uint8Array(Math.min(args.size, 16));

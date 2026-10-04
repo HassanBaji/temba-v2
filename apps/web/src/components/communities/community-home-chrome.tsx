@@ -15,7 +15,7 @@ import {
   type CommunityRoleName,
   type CommunityVisibility,
 } from "~/lib/community-chrome";
-import type { CommunityHomeTab } from "~/lib/community-home-tab";
+import type { CommunityHomeTab } from "@repo/domain/community-home-tab";
 import { cn } from "~/lib/utils";
 
 const TAB_LABELS: Record<CommunityHomeTab, string> = {

@@ -28,7 +28,7 @@ import {
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { entityImageFileError } from "~/lib/entity-image-file";
+import { entityImageFileError } from "@repo/domain/entity-image-file";
 import {
   fieldErrorMessage,
   focusFormFailure,

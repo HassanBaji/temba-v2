@@ -1,6 +1,6 @@
 import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
-import { memberCountLabel } from "~/lib/member-count-label";
-import { shortPlayerName } from "~/lib/player-name";
+import { memberCountLabel } from "@repo/domain/member-count-label";
+import { shortPlayerName } from "@repo/domain/player-name";
 
 const SPORT_LABELS: Record<string, string> = {
   padel: "Padel",

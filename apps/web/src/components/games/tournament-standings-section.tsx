@@ -16,7 +16,7 @@ import {
   otherPoolsPlayedSummary,
   roundResultsHeading,
 } from "@repo/domain/tournament-home";
-import { TOURNAMENT_FINISHED_COPY } from "~/lib/tournament-pool-table";
+import { TOURNAMENT_FINISHED_COPY } from "@repo/domain/tournament-pool-table";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";

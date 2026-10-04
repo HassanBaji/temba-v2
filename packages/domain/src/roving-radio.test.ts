@@ -4,7 +4,7 @@ import {
   rovingRadioIndex,
   rovingTabStopIndex,
   type RovingRadioState,
-} from "~/lib/roving-radio";
+} from "./roving-radio";
 
 describe("rovingRadioIndex", () => {
   it("moves forward with ArrowRight and ArrowDown, wrapping at the end", () => {

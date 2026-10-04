@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { memberCountLabel } from "~/lib/member-count-label";
+import { memberCountLabel } from "./member-count-label";
 
 describe("memberCountLabel", () => {
   it("pluralises member", () => {
