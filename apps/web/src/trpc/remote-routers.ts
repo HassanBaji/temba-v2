@@ -1,4 +1,4 @@
-export const REMOTE_ROUTERS: readonly string[] = [];
+export const REMOTE_ROUTERS: readonly string[] = ["venues", "teams"];
 
 export function isRemoteProcedure(
   path: string,

@@ -3,9 +3,22 @@ import { describe, expect, it } from "vitest";
 import { isRemoteProcedure, REMOTE_ROUTERS } from "./remote-routers";
 
 describe("isRemoteProcedure", () => {
-  it("ships with an empty list so every call stays in-process", () => {
-    expect(REMOTE_ROUTERS).toEqual([]);
-    expect(isRemoteProcedure("venues.list")).toBe(false);
+  it("sends only venues and teams to the API", () => {
+    expect(REMOTE_ROUTERS).toEqual(["venues", "teams"]);
+    expect(isRemoteProcedure("venues.list")).toBe(true);
+    expect(isRemoteProcedure("teams.list")).toBe(true);
+  });
+
+  it("keeps every other router in-process", () => {
+    for (const path of [
+      "users.home",
+      "games.listMyGames",
+      "groups.mine",
+      "ratings.me",
+      "communities.list",
+    ]) {
+      expect(isRemoteProcedure(path)).toBe(false);
+    }
   });
 
   it("sends every procedure of a listed router to the API", () => {

@@ -51,6 +51,13 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-314.** With a real signed-in Clerk user, run `pnpm --filter api dev` and `pnpm --filter web dev`, add one router (for example `"venues"`) to `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts`, open a page that calls it, and check the browser network panel: that router's calls go to `/api/remote/trpc/...` with an `authorization: Bearer` header and return 200, and other routers still go to `/api/trpc/...`. Open a page whose single batch mixes a listed and an unlisted router and check both resolve. Remove the router from the list and check calls return to `/api/trpc`. Revert the list to empty afterwards. Signed-in behaviour is unverified until done (only the unauthenticated rewrite was checked with curl).
 - [ ] **TEM-314.** `API_ORIGIN` must be set at web build time as well as run time: the `/api/remote/:path*` rewrite in `apps/web/next.config.js` is baked into the build. Confirm it is set in the build environment of staging and production.
 
+## TEM-315 venues and teams cutover
+
+- [ ] **TEM-315.** With real signed-in Clerk users, `API_ORIGIN` set at web build and run time, and `pnpm --filter api dev` plus `pnpm --filter web dev` running, open `/venues` (or any page that loads Venues or Teams) and check the browser network panel: `venues.*` and `teams.*` calls go to `/api/remote/trpc/...` with an `authorization: Bearer` header and return 200, while other routers (for example `users.home`) still go to `/api/trpc/...`.
+- [ ] **TEM-315.** As an Operator, open the Venues pages in the web App and list, create, edit and archive a Venue, then add, edit and remove Courts on it. Unverified until done.
+- [ ] **TEM-315.** As a User, create a Team, invite the second seat (open the invite link as another User), and dissolve the Team. Unverified until done.
+- [ ] **TEM-315.** Rollback check: remove `"venues"` and `"teams"` from `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts` and confirm those calls return to `/api/trpc`.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.
