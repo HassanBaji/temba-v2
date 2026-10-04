@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { communityMembers, CommunityRoleEnum, groups } from "@repo/db";
@@ -6,12 +7,11 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { mayCreateGameOnGroup } from "~/server/games/access";
-import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient =
   | typeof db
   | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | TestDatabase;
+  | EmbeddedDatabase;
 
 export type CreateGroupOption = {
   id: string;

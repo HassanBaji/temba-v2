@@ -32,7 +32,7 @@ import { sendLookupInvite } from "~/server/api/routers/games/sendLookupInvite";
 import { undoPoolDraw } from "~/server/api/routers/games/undoPoolDraw";
 import { POOL_DRAW_POSTED_MESSAGE } from "~/server/games/assert-pool-draw-not-posted";
 import { mintLink } from "~/server/invites/doors";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

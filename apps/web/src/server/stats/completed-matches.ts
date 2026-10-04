@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, eq, inArray, or } from "drizzle-orm";
 
 import { MatchStatusEnum, gamePlayers, matches } from "@repo/db";
@@ -10,9 +11,8 @@ import {
   type MatchSlotTeam,
 } from "~/server/games/match-slots";
 import { gameListTime } from "~/server/home/upcoming-games";
-import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db | TestDatabase;
+type DbClient = typeof db | EmbeddedDatabase;
 
 export type MatchSetScore = {
   slot1GamesWon: number | null;

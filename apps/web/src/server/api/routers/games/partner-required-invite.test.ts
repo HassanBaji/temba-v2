@@ -11,7 +11,7 @@ import { gameById } from "~/server/api/routers/games/byId";
 import { previewInviteLink } from "~/server/api/routers/games/previewInviteLink";
 import { registerWithPartner } from "~/server/api/routers/games/registerWithPartner";
 import { mintLink } from "~/server/invites/doors";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

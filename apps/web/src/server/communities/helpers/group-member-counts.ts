@@ -1,11 +1,11 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { count, inArray } from "drizzle-orm";
 
 import { groupMembers } from "@repo/db";
 
 import { type db } from "~/server/db";
-import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db | TestDatabase;
+type DbClient = typeof db | EmbeddedDatabase;
 
 export async function groupMemberCounts(
   database: DbClient,

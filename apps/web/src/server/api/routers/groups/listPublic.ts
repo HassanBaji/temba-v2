@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 
 import { GroupSportEnum, GroupTypeEnum, groupMembers, groups } from "@repo/db";
@@ -10,9 +11,8 @@ import {
   type GroupJoinMode,
 } from "~/server/groups/helpers/group-join-mode";
 import { consult } from "~/server/soft-archive";
-import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db | TestDatabase;
+type DbClient = typeof db | EmbeddedDatabase;
 
 export type PublicGroupJoinMode = Exclude<GroupJoinMode, "member" | "none">;
 

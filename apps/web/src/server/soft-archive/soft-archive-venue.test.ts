@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { commit, consult } from "~/server/soft-archive";
 import { liveVenuesWhere } from "~/server/soft-archive/adapter";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertVenue(
   database: TestDatabase,

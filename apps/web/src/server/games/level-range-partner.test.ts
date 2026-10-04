@@ -22,7 +22,7 @@ import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { registerTeam } from "~/server/api/routers/games/registerTeam";
 import { registerWithPartner } from "~/server/api/routers/games/registerWithPartner";
 import type { GameRow } from "~/server/games/access";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
 import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,

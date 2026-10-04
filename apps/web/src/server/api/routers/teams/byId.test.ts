@@ -16,7 +16,7 @@ import {
 } from "@repo/db/schema";
 
 import { teamById } from "~/server/api/routers/teams/byId";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const START = new Date("2026-09-01T18:00:00.000Z");
 const END = new Date("2026-09-01T20:00:00.000Z");

@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 
 import { communities, type groups } from "@repo/db";
@@ -7,12 +8,11 @@ import { type db } from "~/server/db";
 import { isStaffRole } from "~/server/games/access";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { consult } from "~/server/soft-archive";
-import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient =
   | typeof db
   | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | TestDatabase;
+  | EmbeddedDatabase;
 
 export async function isGroupApprover(
   database: DbClient,

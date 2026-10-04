@@ -11,7 +11,7 @@ import {
 } from "@repo/db/schema";
 
 import { communityById } from "~/server/api/routers/communities/byId";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

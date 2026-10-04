@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { z } from "zod";
@@ -16,11 +17,10 @@ import type {
 } from "~/server/games/utils";
 import { consult } from "~/server/soft-archive";
 import { liveVenuesWhere } from "~/server/soft-archive/adapter";
-import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-type RecentCourtDb = DbClient | TestDatabase;
+type RecentCourtDb = DbClient | EmbeddedDatabase;
 
 const RECENT_BOOKING_LIMIT = 40;
 

@@ -30,7 +30,7 @@ import { groupById } from "~/server/api/routers/groups/byId";
 import { createClubPublic } from "~/server/api/routers/groups/createClubPublic";
 import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
 import { commit } from "~/server/soft-archive";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

@@ -65,7 +65,7 @@ pnpm exec turbo run db:generate              # new migration from schema changes
 pnpm exec turbo run db:migrate
 ```
 
-- Tests run on PGlite and need no Postgres, but `DATABASE_URL` must be set to any value until Phase 1 makes the client lazy.
+- Tests run on PGlite and need neither Postgres nor `DATABASE_URL`: `@repo/db` connects on first use. The harness is `@repo/db/testing`.
 - A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`.
 - After Phase 2 the API runs on port 4000. After Phase 5 `pnpm dev` runs web, API and mobile together.
 

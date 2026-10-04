@@ -22,7 +22,7 @@ import { listPartnerSuggestions } from "~/server/api/routers/games/listPartnerSu
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { createFriendlyGame } from "~/server/games/create-friendly";
 import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

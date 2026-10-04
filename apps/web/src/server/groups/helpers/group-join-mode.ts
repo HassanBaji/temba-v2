@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, eq } from "drizzle-orm";
 
 import {
@@ -12,12 +13,11 @@ import {
 import { type db } from "~/server/db";
 import { requireCommunityMembership } from "~/server/groups/helpers/require-community-membership";
 import { consult } from "~/server/soft-archive";
-import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient =
   | typeof db
   | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | TestDatabase;
+  | EmbeddedDatabase;
 
 export type GroupJoinMode =
   | "member"

@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { groupMemberInvites } from "@repo/db";
@@ -5,9 +6,8 @@ import { groupMemberInvites } from "@repo/db";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
-import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db | TestDatabase;
+type DbClient = typeof db | EmbeddedDatabase;
 
 export async function pendingLookupInvites(
   database: DbClient,

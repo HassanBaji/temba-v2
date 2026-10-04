@@ -20,7 +20,7 @@ import { joinLoosePublic } from "~/server/api/routers/groups/joinLoosePublic";
 import { listPublic } from "~/server/api/routers/groups/listPublic";
 import { requestJoin } from "~/server/api/routers/groups/requestJoin";
 import { commit } from "~/server/soft-archive";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

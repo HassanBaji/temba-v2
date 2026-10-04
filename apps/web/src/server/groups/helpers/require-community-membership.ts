@@ -1,14 +1,14 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, eq } from "drizzle-orm";
 
 import { communityMembers } from "@repo/db";
 
 import { type db } from "~/server/db";
-import type { TestDatabase } from "~/server/test/pglite";
 
 type DbClient =
   | typeof db
   | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | TestDatabase;
+  | EmbeddedDatabase;
 
 export async function requireCommunityMembership(
   database: DbClient,

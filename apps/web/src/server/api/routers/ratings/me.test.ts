@@ -17,7 +17,7 @@ import {
   INITIAL_SIGMA,
   muFromLevel,
 } from "~/server/ratings/level";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

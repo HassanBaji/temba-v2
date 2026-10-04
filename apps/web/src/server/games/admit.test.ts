@@ -19,7 +19,7 @@ import { describe, expect, it } from "vitest";
 import { admit } from "~/server/games/admit";
 import type { GameRow } from "~/server/games/access";
 import { commit } from "~/server/soft-archive";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

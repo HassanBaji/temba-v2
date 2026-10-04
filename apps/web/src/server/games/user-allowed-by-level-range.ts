@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
@@ -12,11 +13,10 @@ import {
 import { formatLevel, levelFromMu } from "~/server/ratings/level";
 import { isGameOrganizer } from "~/server/games/access";
 import { type db } from "~/server/db";
-import type { TestDatabase } from "~/server/test/pglite";
 import type { AdmitParty } from "~/server/games/utils";
 
 type AppTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-type LevelRangeDb = typeof db | TestDatabase | AppTx;
+type LevelRangeDb = typeof db | EmbeddedDatabase | AppTx;
 
 export type LevelRangeGame = {
   id: string;

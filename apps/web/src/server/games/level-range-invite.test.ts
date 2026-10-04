@@ -31,7 +31,7 @@ import { updateGameLevelRange } from "~/server/api/routers/games/updateLevelRang
 import type { GameRow } from "~/server/games/access";
 import { mintLink } from "~/server/invites/doors";
 import { loadGameInviteOpenGraph } from "~/server/invites/game-invite-open-graph";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
 

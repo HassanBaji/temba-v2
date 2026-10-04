@@ -36,7 +36,7 @@ import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { reportWrongScore } from "~/server/api/routers/games/reportWrongScore";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { POOL_CORRECTION_REFUSED_MESSAGE } from "~/server/games/knockout-advance";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 beforeAll(() => {
   vi.useFakeTimers({ toFake: ["Date"] });

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { user } from "@repo/db/schema";
 
 import { upsertUserFromClerk } from "~/server/auth/sync-clerk-user";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 type ClerkUserPayload = Extract<
   UserWebhookEvent,

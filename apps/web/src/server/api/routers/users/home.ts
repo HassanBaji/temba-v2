@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { eq } from "drizzle-orm";
 
 import { communityMembers, groupMembers, type GroupSportEnum } from "@repo/db";
@@ -18,9 +19,8 @@ import {
   standingPosition,
 } from "~/server/standing/compare-standing";
 import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
-import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db | TestDatabase;
+type DbClient = typeof db | EmbeddedDatabase;
 
 /**
  * Home metrics, carousel Games, and per-Group standing for the signed-in User.

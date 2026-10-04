@@ -16,7 +16,7 @@ import {
 
 import { listMyGamesHubRows } from "~/server/games/list-my-games";
 import { admit } from "~/server/games/admit";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const NOW = new Date("2026-08-31T16:00:00.000Z");
 const WINDOW_START = new Date("2026-09-01T18:00:00.000Z");

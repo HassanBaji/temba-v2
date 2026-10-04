@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 
@@ -16,14 +17,13 @@ import {
 import { type db } from "~/server/db";
 import { consult } from "~/server/soft-archive";
 import type { RegistrationStatus } from "~/server/games/utils";
-import type { TestDatabase } from "~/server/test/pglite";
 
 export type { RegistrationStatus };
 
 type DbClient =
   | typeof db
   | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | TestDatabase;
+  | EmbeddedDatabase;
 
 export const FRIENDLY_PLAYERS_ALLOWED = 4;
 export const FRIENDLY_TEAMS_ALLOWED = 2;

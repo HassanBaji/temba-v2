@@ -19,7 +19,7 @@ import { createLoosePrivate } from "~/server/api/routers/groups/createLoosePriva
 import { createLoosePublic } from "~/server/api/routers/groups/createLoosePublic";
 import { uploadImage } from "~/server/api/routers/groups/uploadImage";
 import { commit } from "~/server/soft-archive";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const uploadGroupImageObject = vi.fn();
 

@@ -41,7 +41,7 @@ import {
   WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE,
   WALKOVER_TEAM_REQUIRED_MESSAGE,
 } from "~/server/games/knockout-advance";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const AFTER_THE_DAY = new Date("2026-09-21T12:00:00");
 

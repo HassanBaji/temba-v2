@@ -22,7 +22,7 @@ import { postPoolDraw } from "~/server/api/routers/games/postPoolDraw";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { updateMatch } from "~/server/api/routers/games/updateMatch";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const NOW = new Date("2026-09-20T16:00:00.000Z");
 

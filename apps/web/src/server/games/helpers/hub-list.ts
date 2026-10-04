@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import {
@@ -32,7 +33,6 @@ import { registrationStatusFromState } from "~/server/games/access";
 import { type db } from "~/server/db";
 import { gameListTime } from "~/server/home/upcoming-games";
 import { consult } from "~/server/soft-archive";
-import type { TestDatabase } from "~/server/test/pglite";
 import type {
   HubListPoolMatch,
   HubListRow,
@@ -44,7 +44,7 @@ import type {
 } from "~/server/games/utils";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 
-export type HubListDb = typeof db | TestDatabase;
+export type HubListDb = typeof db | EmbeddedDatabase;
 
 export const hubListColumns = {
   id: true,

@@ -15,7 +15,7 @@ import {
 
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { createFriendlyGame } from "~/server/games/create-friendly";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

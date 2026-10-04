@@ -29,7 +29,7 @@ import {
 } from "~/server/invites/doors";
 import { GAME_INVITE_SHORT_CODE_ALPHABET } from "~/server/invites/tokens";
 import { commit } from "~/server/soft-archive";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

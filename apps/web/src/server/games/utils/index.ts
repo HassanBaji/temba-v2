@@ -1,3 +1,4 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import type {
   GameFormatEnum,
   GameRegistrationModeEnum,
@@ -8,7 +9,6 @@ import type {
 import { games, matches } from "@repo/db";
 
 import { type db } from "~/server/db";
-import type { TestDatabase } from "~/server/test/pglite";
 
 type AppTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -140,7 +140,7 @@ export type GameCreateVenueOption = {
   courts: { id: string; name: string }[];
 };
 
-export type CreateFriendlyDb = typeof db | AppTx | TestDatabase;
+export type CreateFriendlyDb = typeof db | AppTx | EmbeddedDatabase;
 
 export type CreateFriendlyGameInput = {
   createdBy: string;
@@ -201,7 +201,7 @@ export type VacatedSeat = {
   position: SeatPosition;
 };
 
-export type AdmitDb = typeof db | AppTx | TestDatabase;
+export type AdmitDb = typeof db | AppTx | EmbeddedDatabase;
 
 export type AdmitDoor = "register" | "promote";
 

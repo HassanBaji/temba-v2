@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { communities, user } from "@repo/db/schema";
 
-import { createPgliteDb } from "~/server/test/pglite";
+import { createPgliteDb } from "@repo/db/testing";
 
 describe("PGLite Workspace harness", () => {
   it("applies DB Package migrations and answers a Drizzle query", async () => {

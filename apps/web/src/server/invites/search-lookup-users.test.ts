@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { user } from "@repo/db/schema";
 
 import { searchLookupUsers } from "~/server/invites/search-lookup-users";
-import { createPgliteDb } from "~/server/test/pglite";
+import { createPgliteDb } from "@repo/db/testing";
 
 describe("Lookup invite search with email-less Users", () => {
   it("finds an email-less User by username and by phone, not by email", async () => {

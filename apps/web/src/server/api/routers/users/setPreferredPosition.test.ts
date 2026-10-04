@@ -6,7 +6,7 @@ import {
   preferredPositionSchema,
   writePreferredPosition,
 } from "~/server/api/routers/users/setPreferredPosition";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, clerkId: string) {
   const [row] = await database

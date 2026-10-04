@@ -11,7 +11,7 @@ import { admit as admitCommunityMember } from "~/server/community-membership";
 import { loadHome } from "~/server/api/routers/users/home";
 import { summarizeCompletedMatchStats } from "~/server/stats/completed-matches";
 import { acceptLookup, mintLookup } from "~/server/invites/doors";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { GENERIC_TEMBA_OPEN_GRAPH } from "~/lib/game-invite-open-graph";
 import { mintLink } from "~/server/invites/doors";
 import { loadGroupInviteOpenGraph } from "~/server/invites/group-invite-open-graph";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

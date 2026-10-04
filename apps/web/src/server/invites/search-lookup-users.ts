@@ -1,12 +1,12 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import { and, ilike, inArray, notInArray, or, sql } from "drizzle-orm";
 
 import { user } from "@repo/db";
 
 import { type db } from "~/server/db";
 import type { LookupUserSearchRow } from "~/server/invites/doors/utils";
-import type { TestDatabase } from "~/server/test/pglite";
 
-type DbClient = typeof db | TestDatabase;
+type DbClient = typeof db | EmbeddedDatabase;
 
 export const LOOKUP_USER_SEARCH_LIMIT = 20;
 

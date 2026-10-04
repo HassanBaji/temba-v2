@@ -6,7 +6,7 @@ import { groups, user } from "@repo/db/schema";
 
 import { createLoosePublic } from "~/server/api/routers/groups/createLoosePublic";
 import { deleteGroup } from "~/server/api/routers/groups/delete";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const removeGroupImageObject = vi.fn();
 

@@ -30,7 +30,7 @@ import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { groupById } from "~/server/api/routers/groups/byId";
 import { listMyGamesHubRows } from "~/server/games/list-my-games";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { listHomeCarouselGames } from "~/server/home/carousel-games";
 import { admit } from "~/server/games/admit";
 import { createFriendlyGame } from "~/server/games/create-friendly";

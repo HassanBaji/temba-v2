@@ -26,7 +26,7 @@ import { groupById } from "~/server/api/routers/groups/byId";
 import { createFriendlyGame } from "~/server/games/create-friendly";
 import { listMyGamesHubRows } from "~/server/games/list-my-games";
 import { listHomeCarouselGames } from "~/server/home/carousel-games";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 // Seat doors read the wall clock, so the window sits in the real future.
 const NOW = new Date();

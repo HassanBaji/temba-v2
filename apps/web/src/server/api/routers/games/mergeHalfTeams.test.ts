@@ -16,7 +16,7 @@ import { createTournament } from "~/server/api/routers/games/createTournament";
 import { leaveGame } from "~/server/api/routers/games/leave";
 import { mergeHalfTeams } from "~/server/api/routers/games/mergeHalfTeams";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

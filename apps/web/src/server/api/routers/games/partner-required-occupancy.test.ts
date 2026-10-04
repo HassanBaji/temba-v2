@@ -27,7 +27,7 @@ import { registerWithPartner } from "~/server/api/routers/games/registerWithPart
 import { sendLookupInvite } from "~/server/api/routers/games/sendLookupInvite";
 import { requireGame } from "~/server/games/access";
 import { occupySeat } from "~/server/games/seats";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

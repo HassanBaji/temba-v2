@@ -21,7 +21,7 @@ import {
 
 import { listMyMatchHistoryRows } from "~/server/api/routers/games/listMyMatchHistory";
 import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const NOW = new Date("2026-08-31T16:00:00.000Z");
 const PAST_START = new Date("2026-08-01T18:00:00.000Z");

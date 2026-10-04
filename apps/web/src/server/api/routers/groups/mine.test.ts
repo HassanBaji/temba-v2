@@ -22,7 +22,7 @@ import { groupById } from "~/server/api/routers/groups/byId";
 import { mine } from "~/server/api/routers/groups/mine";
 import { loadHome } from "~/server/api/routers/users/home";
 import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const NOW = new Date("2026-09-15T12:00:00.000Z");
 const PAST_START = new Date("2026-09-01T18:00:00.000Z");

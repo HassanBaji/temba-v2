@@ -30,7 +30,7 @@ import {
 import { updateMatch } from "~/server/api/routers/games/updateMatch";
 import { KNOCKOUT_MATCH_SIDES_MESSAGE } from "~/server/games/update-tournament-match";
 import { fewWeeksRoundStarts } from "~/lib/tournament-schedule";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

@@ -15,7 +15,7 @@ import { gameById } from "~/server/api/routers/games/byId";
 import { leaveGame } from "~/server/api/routers/games/leave";
 import { registerWithPartner } from "~/server/api/routers/games/registerWithPartner";
 import { createFriendlyGame } from "~/server/games/create-friendly";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
   database: TestDatabase,

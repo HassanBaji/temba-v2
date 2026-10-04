@@ -22,7 +22,7 @@ import { listMyGamesHubRows } from "~/server/games/list-my-games";
 import { admit } from "~/server/games/admit";
 import { loadHome } from "~/server/api/routers/users/home";
 import { commit } from "~/server/soft-archive";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import {
   filterAndSortHomeCarouselGames,
   homeCarouselPhase,

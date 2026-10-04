@@ -19,7 +19,7 @@ import {
 import { loadHome } from "~/server/api/routers/users/home";
 import { loadProfileStats } from "~/server/api/routers/users/profileStats";
 import { nextMatchSetNumber } from "~/server/games/next-match-set-number";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const T0 = new Date("2023-03-15T12:00:00.000Z");
 const T1 = new Date("2024-01-10T12:00:00.000Z");

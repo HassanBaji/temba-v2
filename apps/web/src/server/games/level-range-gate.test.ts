@@ -20,7 +20,7 @@ import { rejectLevelRangeRequest } from "~/server/api/routers/games/rejectLevelR
 import { requestLevelRange } from "~/server/api/routers/games/requestLevelRange";
 import { admit } from "~/server/games/admit";
 import type { GameRow } from "~/server/games/access";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import {
   INITIAL_PHI,
   INITIAL_SIGMA,

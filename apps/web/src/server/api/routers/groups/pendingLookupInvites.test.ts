@@ -6,7 +6,7 @@ import { groups, user } from "@repo/db/schema";
 import { createLoosePublic } from "~/server/api/routers/groups/createLoosePublic";
 import { pendingLookupInvites } from "~/server/api/routers/groups/pendingLookupInvites";
 import { sendLookupInvite } from "~/server/api/routers/groups/sendLookupInvite";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const STORED_URL =
   "/api/media/group-images/invite/image?v=1";

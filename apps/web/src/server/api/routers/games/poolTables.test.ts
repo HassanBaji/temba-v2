@@ -24,7 +24,7 @@ import { listPoolTables } from "~/server/api/routers/games/poolTables";
 import { postPoolDraw } from "~/server/api/routers/games/postPoolDraw";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
-import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 // Fixture windows sit on fixed dates, so registration must still read as open.
 beforeAll(() => {

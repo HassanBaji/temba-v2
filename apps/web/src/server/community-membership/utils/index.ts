@@ -1,12 +1,12 @@
+import type { EmbeddedDatabase } from "@repo/db";
 import type { CommunityRoleEnum } from "@repo/db";
 
 import { type db } from "~/server/db";
-import type { TestDatabase } from "~/server/test/pglite";
 
 type AppDb = typeof db;
 type AppTx = Parameters<Parameters<AppDb["transaction"]>[0]>[0];
 
-export type MembershipDb = AppDb | AppTx | TestDatabase;
+export type MembershipDb = AppDb | AppTx | EmbeddedDatabase;
 
 export type MembershipRole = `${CommunityRoleEnum}`;
 
