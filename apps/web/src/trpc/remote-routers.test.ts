@@ -1,25 +1,38 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { isRemoteProcedure, REMOTE_ROUTERS } from "./remote-routers";
 
 describe("isRemoteProcedure", () => {
-  it("sends venues, teams, communities and groups to the API", () => {
+  it("sends every router to the API", () => {
     expect(REMOTE_ROUTERS).toEqual([
       "venues",
       "teams",
       "communities",
       "groups",
+      "ratings",
+      "users",
+      "games",
     ]);
     expect(isRemoteProcedure("venues.list")).toBe(true);
     expect(isRemoteProcedure("teams.list")).toBe(true);
     expect(isRemoteProcedure("communities.list")).toBe(true);
     expect(isRemoteProcedure("groups.mine")).toBe(true);
+    expect(isRemoteProcedure("users.home")).toBe(true);
+    expect(isRemoteProcedure("games.listMyGames")).toBe(true);
+    expect(isRemoteProcedure("ratings.me")).toBe(true);
   });
 
-  it("keeps every other router in-process", () => {
-    for (const path of ["users.home", "games.listMyGames", "ratings.me"]) {
-      expect(isRemoteProcedure(path)).toBe(false);
-    }
+  it("lists every router of the root router", () => {
+    const root = readFileSync(
+      new URL("../../../../packages/api/src/root.ts", import.meta.url),
+      "utf8",
+    );
+    const body = /createTRPCRouter\(\{([^}]*)\}\)/.exec(root)?.[1] ?? "";
+    const names = [...body.matchAll(/^\s*(\w+):/gm)].map((m) => m[1]);
+    expect(names.length).toBeGreaterThan(0);
+    expect([...REMOTE_ROUTERS].sort()).toEqual([...names].sort());
   });
 
   it("sends every procedure of a listed router to the API", () => {

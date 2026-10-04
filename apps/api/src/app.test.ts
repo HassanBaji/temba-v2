@@ -127,6 +127,22 @@ describe("tRPC route", () => {
   });
 });
 
+describe("users router", () => {
+  it("answers users.home for a seeded User", async () => {
+    await testDb.db
+      .insert(user)
+      .values({
+        name: "Home",
+        email: "home@example.com",
+        clerkId: "user_home",
+      });
+
+    const response = await appFor("user_home").request("/api/trpc/users.home");
+
+    expect(response.status).toBe(200);
+  });
+});
+
 describe("Invite links", () => {
   it("builds a new Group Invite link on the web origin", async () => {
     const [creator] = await testDb.db

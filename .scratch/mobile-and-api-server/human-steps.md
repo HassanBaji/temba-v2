@@ -66,6 +66,15 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-316.** Create a new Community Invite link and a new Group Invite link in the web App and check each URL starts with `WEB_ORIGIN` of the API (not the API origin). The Group link is covered by a host test with a stubbed authenticator; the Community link and the signed-in path are unverified.
 - [ ] **TEM-316.** Rollback check: remove `"communities"` and `"groups"` from `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts` and confirm those calls return to `/api/trpc`.
 
+## TEM-317 ratings, users and games cutover
+
+- [ ] **TEM-317.** With real signed-in Clerk users, `API_ORIGIN` set at web build and run time, and `pnpm --filter api dev` plus `pnpm --filter web dev` running, browse Home, a Game and a Profile and check the browser network panel: no tRPC call goes to `/api/trpc/...`; every `ratings.*`, `users.*` and `games.*` call goes to `/api/remote/trpc/...` with an `authorization: Bearer` header and returns 200. Unverified until done.
+- [ ] **TEM-317.** As real Users, create a Game, register, score, confirm, and see the Rating move. Unverified until done.
+- [ ] **TEM-317.** As real Users, draw a Friendly tournament, post it, play it and finish it. Unverified until done.
+- [ ] **TEM-317.** Open Home and Profile, and complete the Onboarding questionnaire as a new User. Unverified until done.
+- [ ] **TEM-317.** Run both Playwright flow recordings (`pnpm --filter web record:flows`, `pnpm --filter web record:knockout`) against the proxied setup (API and web running, database seeded with `pnpm --filter @repo/api db:seed`, `RECORD_USERNAME` and `RECORD_PASSWORD` for Clerk test users). Unverified until done.
+- [ ] **TEM-317.** Rollback check: remove `"ratings"`, `"users"` and `"games"` from `REMOTE_ROUTERS` in `apps/web/src/trpc/remote-routers.ts` and confirm those calls return to `/api/trpc`.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.

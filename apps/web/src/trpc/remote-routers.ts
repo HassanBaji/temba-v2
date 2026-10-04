@@ -3,6 +3,9 @@ export const REMOTE_ROUTERS: readonly string[] = [
   "teams",
   "communities",
   "groups",
+  "ratings",
+  "users",
+  "games",
 ];
 
 export function isRemoteProcedure(
