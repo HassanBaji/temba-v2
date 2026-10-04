@@ -18,7 +18,7 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 | 2 | `@repo/api` Package and the `apps/api` Hono host | Done in code, human steps pending |
 | 3 | Web App calls the API over HTTP and drops its database access | Done in code, human steps pending |
 | 4 | Bearer-only session check in the API context | Not started |
-| 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | Not started |
+| 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | In progress: design tokens and the Expo scaffold with providers landed, primitives and shell pending |
 | 6 | Mobile screens and flows: everything except Venue administration | Not started |
 | 7 | Push, universal links, App Store build (iOS first) | Not started |
 
@@ -32,6 +32,7 @@ Today:
 
 ```text
 apps/web                     Next.js 15 App: UI only, `/api/*` is rewritten to the API App
+apps/mobile                  Expo App (SDK 57): Expo Router, NativeWind v5, Clerk, tRPC; scaffold and placeholder screen only
 apps/api                     Hono host: verifies the session, builds the context, mounts routes
 packages/api                 @repo/api: tRPC routers, procedures, shared server modules
 packages/db                  @repo/db: Drizzle schema, client, migrations, PGlite harness
@@ -72,7 +73,7 @@ pnpm exec turbo run db:migrate
 
 - Tests run on PGlite and need neither Postgres nor `DATABASE_URL`: `@repo/db` connects on first use. The harness is `@repo/db/testing`.
 - A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`, or `pnpm --filter @repo/api exec vitest run path/to/file.test.ts` for the server tree.
-- The API runs on port 4000. After Phase 5 `pnpm dev` runs web, API and mobile together.
+- The API runs on port 4000. `pnpm dev` runs web, API and mobile together; the Expo dev server is on port 8081 and needs `apps/mobile/.env` (copy `.env.example`).
 
 ## Package boundaries
 

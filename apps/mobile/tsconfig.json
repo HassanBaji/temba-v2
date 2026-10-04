@@ -1,0 +1,14 @@
+{
+  "extends": "@repo/typescript-config/expo.json",
+  "compilerOptions": {
+    "rootDir": "."
+  },
+  "include": [
+    "app",
+    "src",
+    "*.d.ts",
+    "vitest.config.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
