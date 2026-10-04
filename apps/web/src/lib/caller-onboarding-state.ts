@@ -1,24 +1,21 @@
 import "server-only";
 
 import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
 import { cache } from "react";
 
-import { user } from "@repo/db";
-
 import { type DashboardOnboardingState } from "~/lib/dashboard-onboarding-gate";
-import { db } from "@repo/db";
+import { createApiClient } from "~/trpc/api-client";
 
 /**
  * The caller's onboarding completion, for the dashboard gate.
  *
- * One indexed read on `user.clerkId` per hard dashboard load, wrapped in React
- * `cache` so sibling RSCs on the same request share it. Deliberately does not
- * go through `resolveAppUser`: a missing `user` row is the Clerk `user.created`
- * webhook race, and the gate answers that with the questionnaire rather than
- * `UNAUTHORIZED`. A signed-out caller reads as provisioning without touching
- * the database — `middleware.ts` has already turned real signed-out traffic
- * away, so that only happens on the development design preview.
+ * Read through `users.onboardingState` on the API, wrapped in React `cache` so
+ * sibling RSCs on the same request share it. A missing `user` row is the Clerk
+ * `user.created` webhook race: the API answers it as `provisioning`, and the
+ * gate answers that with the questionnaire rather than `UNAUTHORIZED`. A
+ * signed-out caller reads as provisioning without calling the API —
+ * `middleware.ts` has already turned real signed-out traffic away, so that
+ * only happens on the development design preview.
  */
 export const loadCallerOnboardingState = cache(
   async (): Promise<DashboardOnboardingState> => {
@@ -28,18 +25,14 @@ export const loadCallerOnboardingState = cache(
       return { provisioning: true, onboardingCompletedAt: null };
     }
 
-    const appUser = await db.query.user.findFirst({
-      where: eq(user.clerkId, userId),
-      columns: { onboardingCompletedAt: true },
-    });
+    const api = await createApiClient({ signedIn: true });
+    const state = await api.users.onboardingState.query();
 
-    if (!appUser) {
-      return { provisioning: true, onboardingCompletedAt: null };
-    }
-
-    return {
-      provisioning: false,
-      onboardingCompletedAt: appUser.onboardingCompletedAt,
-    };
+    return state.provisioning
+      ? { provisioning: true, onboardingCompletedAt: null }
+      : {
+          provisioning: false,
+          onboardingCompletedAt: state.onboardingCompletedAt,
+        };
   },
 );

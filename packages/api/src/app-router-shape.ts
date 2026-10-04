@@ -107,6 +107,7 @@ type ExpectedGames =
   | "acceptLookupInvite"
   | "getInviteLink"
   | "createInviteLink"
+  | "inviteLinkByShortCode"
   | "previewInviteLink"
   | "acceptInviteLink"
   | "getSecretMessage";
@@ -137,6 +138,7 @@ type ExpectedGroups =
   | "acceptLookupInvite"
   | "getInviteLink"
   | "createInviteLink"
+  | "inviteLinkByShortCode"
   | "previewInviteLink"
   | "acceptInviteLink"
   | "uploadImage"

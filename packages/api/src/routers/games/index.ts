@@ -35,6 +35,7 @@ import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
+import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { registerProcedure as register } from "./register";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
@@ -113,6 +114,7 @@ export const gamesRouter = createTRPCRouter({
   acceptLookupInvite,
   getInviteLink,
   createInviteLink,
+  inviteLinkByShortCode,
   previewInviteLink,
   acceptInviteLink,
   getSecretMessage,

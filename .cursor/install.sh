@@ -89,6 +89,11 @@ if [ -n "${WEB_ORIGIN:-}" ]; then
 elif env_value_empty apps/web/.env WEB_ORIGIN; then
   set_env_kv apps/web/.env WEB_ORIGIN "http://localhost:3000"
 fi
+if [ -n "${API_ORIGIN:-}" ]; then
+  set_env_kv apps/web/.env API_ORIGIN "$API_ORIGIN"
+elif env_value_empty apps/web/.env API_ORIGIN; then
+  set_env_kv apps/web/.env API_ORIGIN "http://localhost:4000"
+fi
 
 # Railway Bucket (Venue logos and Group images). Sync when Cloud secrets are
 # present so env validation can require endpoint, keys, bucket, and region.

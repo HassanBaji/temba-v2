@@ -3,6 +3,7 @@
   "globalEnv": [
     "DATABASE_URL",
     "WEB_ORIGIN",
+    "API_ORIGIN",
     "CLERK_SECRET_KEY",
     "CLERK_PUBLISHABLE_KEY",
     "PORT",

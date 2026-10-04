@@ -14,6 +14,7 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
     WEB_ORIGIN: z.string().url(),
+    API_ORIGIN: z.string().url(),
     AWS_ENDPOINT_URL: z.string().url(),
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
@@ -42,6 +43,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     WEB_ORIGIN: process.env.WEB_ORIGIN,
+    API_ORIGIN: process.env.API_ORIGIN,
     AWS_ENDPOINT_URL: process.env.AWS_ENDPOINT_URL,
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,

@@ -38,7 +38,13 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
   - Bad webhook: `curl -s -o /dev/null -w "%{http_code}" -X POST -d '{}' "$API/api/webhooks"` returns 400.
   - Same payload as the web App for five read procedures, for one signed-in User. Get a token in the web App's browser console with `await window.Clerk.session.getToken()`, then for each of `users.home`, `ratings.me`, `games.listMyGames`, `groups.mine` and `users.profileStats` compare `curl -s -H "Authorization: Bearer $TOKEN" "$API/api/trpc/<procedure>"` with `curl -s -H "Cookie: __session=$TOKEN" "$WEB/api/trpc/<procedure>"`. The tokens last about 60 seconds, so fetch a fresh one per pair. The JSON bodies must match.
   - Restart the service from the Railway dashboard and confirm `/healthz` answers 200 again with no crash loop in the logs.
-- [ ] **TEM-312.** Record the staging and production API origins in the web App's environment notes; TEM-314 needs them as the proxy target (`API_ORIGIN` or whatever variable TEM-314 names).
+- [ ] **TEM-312.** Record the staging and production API origins in the web App's environment notes and set `API_ORIGIN` on the deployed web App in each environment (no trailing slash; the web App fails env validation without it since TEM-313). TEM-314 may reuse it as the proxy target.
+
+## TEM-313 web reads through the API
+
+- [ ] **TEM-313.** Set `API_ORIGIN` (server-only, validated in `apps/web/src/env.js`) on the web App in staging and production to the API origin from TEM-312, and redeploy the web App. Until it is set the Game and Group short-link pages and the dashboard fail env validation. Cloud agents get `http://localhost:4000` from `.cursor/install.sh`, but `pnpm --filter web dev` needs `apps/api` running too (`pnpm --filter api dev`).
+- [ ] **TEM-313.** With a real signed-in Clerk user, check against the web App wired to a running API: a new User opening `/dashboard` is redirected to `/onboarding?redirect_url=...` with the return path preserved, and a User whose `user` row does not exist yet sees the waiting state, not an error. Unverified until done (needs Clerk users and a session token forwarded as `Authorization: Bearer`).
+- [ ] **TEM-313.** Against the deployed API, `curl` a signed-out `$WEB/g/<code>` and `$WEB/gr/<code>` with a real short code and check the HTML has the Open Graph title and description. Verified locally only.
 
 ## Deploys and migrations
 
