@@ -4,6 +4,10 @@ import { z } from "zod";
 
 import { matchSets } from "@repo/db";
 
+import {
+  FRIENDLY_SET_GAMES_MAX,
+  FRIENDLY_SET_GAMES_MIN,
+} from "~/lib/friendly-game-results";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
@@ -34,6 +38,17 @@ export async function scoreSet(
     slot2GamesWon: number;
   },
 ) {
+  for (const gamesWon of [args.slot1GamesWon, args.slot2GamesWon]) {
+    if (
+      gamesWon < FRIENDLY_SET_GAMES_MIN ||
+      gamesWon > FRIENDLY_SET_GAMES_MAX
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `Games won in a Set must be between ${FRIENDLY_SET_GAMES_MIN} and ${FRIENDLY_SET_GAMES_MAX}`,
+      });
+    }
+  }
   const game = await requireGame(database, args.gameId);
   const match = await requireMatchOnGame(database, game.id, args.matchId);
   const organizer = await isGameOrganizer(database, game, args.userId);
@@ -107,8 +122,16 @@ export const scoreSetProcedure = protectedProcedure
       gameId: z.string().uuid(),
       matchId: z.string().uuid(),
       setId: z.string().uuid(),
-      slot1GamesWon: z.number().int().nonnegative(),
-      slot2GamesWon: z.number().int().nonnegative(),
+      slot1GamesWon: z
+        .number()
+        .int()
+        .min(FRIENDLY_SET_GAMES_MIN)
+        .max(FRIENDLY_SET_GAMES_MAX),
+      slot2GamesWon: z
+        .number()
+        .int()
+        .min(FRIENDLY_SET_GAMES_MIN)
+        .max(FRIENDLY_SET_GAMES_MAX),
     }),
   )
   .mutation(async ({ ctx, input }) => {
