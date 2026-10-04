@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { DashboardShell } from "~/components/dashboard-shell";
-import { createTournamentFixtures } from "~/fixtures/tournament";
+import { createTournamentFixtures } from "@repo/domain/tournament-details-fixtures";
 import { createTournamentCardFixtures } from "@repo/domain/tournament-card-fixtures";
 
 import { TournamentPreviewStates } from "./preview-states";

@@ -7,6 +7,7 @@ import { RowList } from "~/components/common/row-list";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { SeatTile } from "~/components/temba/seat";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+import { tournamentSeatLabel } from "@repo/domain/tournament-details";
 import {
   TEAMS_HEADING,
   YOUR_TEAM_TAG,
@@ -139,11 +140,7 @@ function TeamSeat({
       <SeatTile
         occupant={null}
         caption={positionName}
-        label={
-          canJoin
-            ? `Take the ${positionName.toLowerCase()} seat on ${teamLabel}`
-            : `Open ${positionName.toLowerCase()} seat on ${teamLabel}`
-        }
+        label={tournamentSeatLabel({ position, teamLabel, joinable: canJoin })}
         onSelect={canJoin ? onJoin : undefined}
       />
     );

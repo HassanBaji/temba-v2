@@ -1,23 +1,32 @@
 import type { FriendlyGameDetails } from "@repo/domain/friendly-game-details";
 import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
 import {
-  PARTNER_VACANT_SIDE_RACE_MESSAGE,
   isPartnerVacantSideRace,
   offersPartnerJoin,
   partnerVacantSideRaceRecovery,
 } from "@repo/domain/friendly-game-partner";
 import {
+  COMPLETE_MATCH_ACTION,
+  COMPLETE_MATCH_CONSEQUENCE,
   GAME_TOAST,
   LEAVE_GAME_ACTION,
   LEAVE_WAITLIST_ACTION,
   LEAVE_WAITLIST_CONSEQUENCE,
   gameJoinToast,
+  teamRegisterToast,
 } from "@repo/domain/game-copy";
 import { SCORE_INCOMPLETE_MESSAGE } from "@repo/domain/friendly-game-score";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { LEVEL_RANGE_REQUEST_SENT_TOAST } from "@repo/domain/level-range-request";
+import {
+  isDrawnTournamentDetails,
+  type TournamentDetails,
+} from "@repo/domain/tournament-details";
+import {
+  tournamentLeaveOrKickConfirmCopy,
+  tournamentPartnerVacantSideRaceMessage,
+} from "@repo/domain/tournament-join";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
-import { tournamentLeaveOrKickConfirmCopy } from "@repo/domain/tournament-join";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
@@ -29,6 +38,9 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { COMPLETE_FAILED_FALLBACK } from "../tournament/tournament-model";
+import { TournamentBar } from "../tournament/tournament-bar";
+import { TournamentContent } from "../tournament/tournament-content";
 import { api } from "../trpc/react";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import {
@@ -92,10 +104,16 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [partnerQuery, setPartnerQuery] = useState("");
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+  const [initialSeat, setInitialSeat] = useState<{
+    sideIndex: number;
+    position: "left" | "right";
+  } | null>(null);
+  const [teamId, setTeamId] = useState("");
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
   const data = game.data;
   const friendly = data != null && isFriendlyGameDetails(data);
+  const tournament = data != null && isDrawnTournamentDetails(data);
   const offersPartner = Boolean(
     data &&
       offersPartnerJoin({
@@ -156,10 +174,13 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
         setJoinError(error.message);
         return;
       }
-      setJoinError(PARTNER_VACANT_SIDE_RACE_MESSAGE);
+      const raceMessage = tournamentPartnerVacantSideRaceMessage(
+        data != null && isPartnerRequiredGame(data),
+      );
+      setJoinError(raceMessage);
       const fresh = await utils.games.byId.fetch({ id: gameId });
       if (partnerVacantSideRaceRecovery(fresh.sides) === "game_home") {
-        toast.show(PARTNER_VACANT_SIDE_RACE_MESSAGE);
+        toast.show(raceMessage);
         setJoinOpen(false);
       }
     },
@@ -200,6 +221,17 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     onError: failure,
     onSettled: refresh,
   });
+
+  const registerTeam = api.games.registerTeam.useMutation({
+    onSuccess: (result) => toast.show(teamRegisterToast(result.waitlisted)),
+    onError: failure,
+    onSettled: refresh,
+  });
+  const addSet = api.games.addSet.useMutation({
+    onError: failure,
+    onSettled: refresh,
+  });
+  const completeMatch = api.games.completeMatch.useMutation();
 
   const firstMatchId = data?.matches[0]?.id;
 
@@ -245,7 +277,8 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     }
   }, [game]);
 
-  function openJoin() {
+  function openJoin(seat?: { sideIndex: number; position: "left" | "right" }) {
+    setInitialSeat(seat ?? null);
     registerSeat.reset();
     registerWithPartner.reset();
     setJoinError(null);
@@ -277,6 +310,64 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     });
   }
 
+  async function saveTournamentSets(
+    matchId: string,
+    payloads: {
+      setId: string;
+      slot1GamesWon: number;
+      slot2GamesWon: number;
+    }[],
+  ) {
+    for (const payload of payloads) {
+      await scoreSet.mutateAsync({ gameId, matchId, ...payload });
+    }
+  }
+
+  async function saveScore(
+    matchId: string,
+    payloads: Parameters<typeof saveTournamentSets>[1],
+  ) {
+    if (payloads.length === 0) {
+      toast.show(SCORE_INCOMPLETE_MESSAGE);
+      return;
+    }
+    try {
+      await saveTournamentSets(matchId, payloads);
+      toast.show("Set saved");
+    } catch (error) {
+      toast.show(error instanceof Error ? error.message : "Could not save");
+    } finally {
+      await refresh();
+    }
+  }
+
+  function askCompleteMatch(
+    matchId: string,
+    payloads: Parameters<typeof saveTournamentSets>[1],
+  ) {
+    async function run() {
+      try {
+        await saveTournamentSets(matchId, payloads);
+        await completeMatch.mutateAsync({ gameId, matchId });
+        toast.show("Match completed");
+      } catch (error) {
+        toast.show(
+          error instanceof Error ? error.message : COMPLETE_FAILED_FALLBACK,
+        );
+      } finally {
+        setConfirm(null);
+        await refresh();
+        await utils.ratings.me.invalidate();
+      }
+    }
+    setConfirm({
+      title: "Complete Match and update ratings?",
+      description: COMPLETE_MATCH_CONSEQUENCE,
+      confirmLabel: COMPLETE_MATCH_ACTION,
+      onConfirm: () => void run(),
+    });
+  }
+
   const title = data
     ? friendlyGameHomeTitle(data.groupId, data.groupName)
     : "Game";
@@ -288,6 +379,62 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
       }}
     />
   );
+
+  const sheets = data ? (
+    <>
+      <JoinSheet
+        visible={joinOpen}
+        initialSeat={initialSeat}
+        onClose={() => setJoinOpen(false)}
+        game={{
+          title: gameTitle(data.name),
+          sides: data.sides,
+          pricePerPlayerFils: data.pricePerPlayerFils,
+          windowStart: data.windowStart,
+          venueName: data.venue?.name ?? null,
+          isOrganizer: data.isOrganizer,
+          levelMinTenths: data.levelMinTenths,
+          levelMaxTenths: data.levelMaxTenths,
+          offersPartner,
+          partnerRequired: isPartnerRequiredGame(data),
+        }}
+        preferredPosition={onboarding.data?.preferredPosition ?? null}
+        seatPending={registerSeat.isPending}
+        partnerPending={registerWithPartner.isPending}
+        error={joinError}
+        suggestions={slotOf(suggestions)}
+        searchResults={slotOf(search)}
+        query={partnerQuery}
+        onQueryChange={setPartnerQuery}
+        onJoinSeat={(seat) => {
+          setJoinError(null);
+          registerSeat.mutate({
+            gameId,
+            sideIndex: seat.sideIndex,
+            position: seat.position,
+          });
+        }}
+        onRegisterWithPartner={({ partner, sideIndex, position }) => {
+          setJoinError(null);
+          registerWithPartner.mutate({
+            gameId,
+            partnerUserId: partner.id,
+            sideIndex,
+            position,
+          });
+        }}
+      />
+      <ConfirmSheet
+        request={confirm}
+        pending={
+          leaveGame.isPending ||
+          leaveWaitlist.isPending ||
+          completeMatch.isPending
+        }
+        onClose={() => setConfirm(null)}
+      />
+    </>
+  ) : null;
 
   if (isNotFoundError(game.error)) {
     return (
@@ -320,6 +467,50 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
         {header}
         <LoadingSkeleton />
       </Screen>
+    );
+  }
+
+  if (tournament) {
+    const details: TournamentDetails = data;
+    const firstTeamId = details.eligibleTeams[0]?.id ?? "";
+    return (
+      <View style={{ flex: 1 }}>
+        <Screen refreshing={refreshing} onRefresh={onRefresh}>
+          {header}
+          <TournamentContent
+            game={details}
+            handlers={{
+              levelRequestPending: requestLevel.isPending,
+              registerTeamPending: registerTeam.isPending,
+              leavePending: leaveGame.isPending,
+              teamId: teamId || firstTeamId,
+              onTeamIdChange: setTeamId,
+              onTakeSeat: (seat) => openJoin(seat),
+              onRegisterTeam: (id) =>
+                registerTeam.mutate({ gameId, teamId: id }),
+              onRequestLevel: () => requestLevel.mutate({ gameId }),
+              onLeave: askLeaveGame,
+              scorePending: scoreSet.isPending,
+              addSetPending: addSet.isPending,
+              completePending: completeMatch.isPending,
+              onSave: (matchId, payloads) => void saveScore(matchId, payloads),
+              onAddSet: (matchId) => addSet.mutate({ gameId, matchId }),
+              onComplete: askCompleteMatch,
+            }}
+          />
+        </Screen>
+        <TournamentBar
+          game={details}
+          handlers={{
+            joinPending: registerSeat.isPending && !joinOpen,
+            leaveWaitlistPending: leaveWaitlist.isPending,
+            onJoin: () => openJoin(),
+            onJoinWaitlist: () => registerSeat.mutate({ gameId }),
+            onLeaveWaitlist: askLeaveWaitlist,
+          }}
+        />
+        {sheets}
+      </View>
     );
   }
 
@@ -366,57 +557,13 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
         handlers={{
           joinPending: registerSeat.isPending && !joinOpen,
           leaveWaitlistPending: leaveWaitlist.isPending,
-          onJoin: openJoin,
+          onJoin: () => openJoin(),
           onJoinWaitlist: () => registerSeat.mutate({ gameId }),
           onLeaveWaitlist: askLeaveWaitlist,
           onBrowse: () => router.push("/games"),
         }}
       />
-      <JoinSheet
-        visible={joinOpen}
-        onClose={() => setJoinOpen(false)}
-        game={{
-          title: gameTitle(data.name),
-          sides: data.sides,
-          pricePerPlayerFils: data.pricePerPlayerFils,
-          windowStart: data.windowStart,
-          venueName: data.venue?.name ?? null,
-          isOrganizer: data.isOrganizer,
-          levelMinTenths: data.levelMinTenths,
-          levelMaxTenths: data.levelMaxTenths,
-          offersPartner,
-        }}
-        preferredPosition={onboarding.data?.preferredPosition ?? null}
-        seatPending={registerSeat.isPending}
-        partnerPending={registerWithPartner.isPending}
-        error={joinError}
-        suggestions={slotOf(suggestions)}
-        searchResults={slotOf(search)}
-        query={partnerQuery}
-        onQueryChange={setPartnerQuery}
-        onJoinSeat={(seat) => {
-          setJoinError(null);
-          registerSeat.mutate({
-            gameId,
-            sideIndex: seat.sideIndex,
-            position: seat.position,
-          });
-        }}
-        onRegisterWithPartner={({ partner, sideIndex, position }) => {
-          setJoinError(null);
-          registerWithPartner.mutate({
-            gameId,
-            partnerUserId: partner.id,
-            sideIndex,
-            position,
-          });
-        }}
-      />
-      <ConfirmSheet
-        request={confirm}
-        pending={leaveGame.isPending || leaveWaitlist.isPending}
-        onClose={() => setConfirm(null)}
-      />
+      {sheets}
     </View>
   );
 }

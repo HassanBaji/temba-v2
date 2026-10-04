@@ -1,7 +1,4 @@
-export type TournamentDetailRow = {
-  label: string;
-  value: string;
-};
+import type { TournamentDetailRow } from "@repo/domain/tournament-details";
 
 export function TournamentDetailRows({
   rows,

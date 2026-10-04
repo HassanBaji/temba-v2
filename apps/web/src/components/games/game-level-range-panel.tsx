@@ -16,9 +16,10 @@ import {
 } from "@repo/domain/level-range-request";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { requestRowMeta } from "@repo/domain/request-meta";
-import { api, type RouterOutputs } from "~/trpc/react";
+import { api } from "~/trpc/react";
+import type { TournamentDetails } from "@repo/domain/tournament-details";
 
-type GameDetail = RouterOutputs["games"]["byId"];
+type GameDetail = TournamentDetails;
 
 function requestMeta(request: {
   levelTenths: number | null;

@@ -16,6 +16,11 @@ import {
   otherPoolsPlayedSummary,
   roundResultsHeading,
 } from "@repo/domain/tournament-home";
+import {
+  matchTrailing,
+  poolRoundGroups,
+  type MatchTrailing,
+} from "@repo/domain/tournament-details";
 import { TOURNAMENT_FINISHED_COPY } from "@repo/domain/tournament-pool-table";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
@@ -27,17 +32,6 @@ type PoolMatch = PoolTable["matches"][number];
 
 const CARD = "border-rule overflow-hidden rounded-card border";
 
-function matchesByRound(matches: PoolMatch[]) {
-  const groups = new Map<number, PoolMatch[]>();
-  for (const match of matches) {
-    const round = match.roundNumber ?? 0;
-    const list = groups.get(round) ?? [];
-    list.push(match);
-    groups.set(round, list);
-  }
-  return [...groups.entries()].sort(([left], [right]) => left - right);
-}
-
 function PoolRoundResults({
   matches,
   otherPools,
@@ -47,14 +41,14 @@ function PoolRoundResults({
   otherPools: ReturnType<typeof otherPoolsPlayedSummary>;
   onSelectPool: (poolIndex: number) => void;
 }) {
-  const groups = matchesByRound(matches);
+  const groups = poolRoundGroups(matches);
   if (groups.length === 0 && !otherPools) {
     return null;
   }
 
   return (
     <div className="space-y-6">
-      {groups.map(([roundNumber, roundMatches], index) => {
+      {groups.map(({ roundNumber, matches: roundMatches }, index) => {
         const isLast = index === groups.length - 1;
         return (
           <section key={roundNumber}>
@@ -74,17 +68,12 @@ function PoolRoundResults({
                     <span className="min-w-0 flex-1 truncate">
                       {match.slot1Name}
                     </span>
-                    {match.cancelled ? (
-                      <span className="text-muted-foreground text-meta">
-                        Not played
-                      </span>
-                    ) : match.scoreLabel ? (
-                      <span className="font-expanded text-[16px] tabular-nums">
-                        {match.scoreLabel}
-                      </span>
-                    ) : (
-                      <span className="text-body font-semibold">Open</span>
-                    )}
+                    <PoolMatchTrailing
+                      trailing={matchTrailing({
+                        cancelled: match.cancelled,
+                        scoreLabel: match.scoreLabel,
+                      })}
+                    />
                     <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">
                       {match.slot2Name}
                     </span>
@@ -109,6 +98,22 @@ function PoolRoundResults({
       ) : null}
     </div>
   );
+}
+
+function PoolMatchTrailing({ trailing }: { trailing: MatchTrailing }) {
+  if (trailing.kind === "not_played") {
+    return (
+      <span className="text-muted-foreground text-meta">{trailing.label}</span>
+    );
+  }
+  if (trailing.kind === "score") {
+    return (
+      <span className="font-expanded text-[16px] tabular-nums">
+        {trailing.label}
+      </span>
+    );
+  }
+  return <span className="text-body font-semibold">{trailing.label}</span>;
 }
 
 function OtherPoolsRow({

@@ -2,11 +2,12 @@
 
 import { ListRow, RowList } from "~/components/common/row-list";
 import { ResultMark } from "~/components/temba/result-mark";
-import {
-  formatGameCardDay,
-  formatGameStart,
-} from "@repo/domain/format-game-start";
+import { formatGameStart } from "@repo/domain/format-game-start";
 import { resultMarkVariant } from "@repo/domain/result-mark";
+import {
+  matchTrailing,
+  viewerRoundSubtitle,
+} from "@repo/domain/tournament-details";
 import {
   NOT_DRAWN_TRAILER,
   YOUR_ROUNDS_PREDRAW_CAPTION,
@@ -89,7 +90,10 @@ export function TournamentYourRounds(
                   />
                 }
                 title={round.opponentName}
-                subtitle={roundSubtitle(round.roundNumber, round.startTime)}
+                subtitle={viewerRoundSubtitle(
+                  round.roundNumber,
+                  round.startTime,
+                )}
                 trailing={roundTrailing(round)}
               />
             ))}
@@ -99,29 +103,22 @@ export function TournamentYourRounds(
 }
 
 function roundTrailing(round: TournamentYourRoundsResult) {
-  if (round.cancelled) {
-    return <span className="text-muted-foreground text-meta">Not played</span>;
+  const trailing = matchTrailing({
+    cancelled: round.cancelled,
+    scoreLabel: round.scoreLabel,
+    viewerOutcome: round.viewerOutcome,
+  });
+  if (trailing.kind === "not_played") {
+    return (
+      <span className="text-muted-foreground text-meta">{trailing.label}</span>
+    );
   }
-  if (round.scoreLabel) {
+  if (trailing.kind === "score" || trailing.kind === "draw") {
     return (
       <span className="font-expanded text-[16px] tabular-nums">
-        {round.scoreLabel}
+        {trailing.label}
       </span>
     );
   }
-  if (round.viewerOutcome === "draw") {
-    return <span className="font-expanded text-[16px] tabular-nums">Draw</span>;
-  }
-  return <span className="text-body font-semibold">Open</span>;
-}
-
-function roundSubtitle(
-  roundNumber: number | null,
-  startTime: Date | string | null,
-) {
-  const round = roundNumber != null ? `Round ${roundNumber}` : "Round";
-  if (!startTime) {
-    return round;
-  }
-  return `${round}, ${formatGameCardDay(startTime)}`;
+  return <span className="text-body font-semibold">{trailing.label}</span>;
 }

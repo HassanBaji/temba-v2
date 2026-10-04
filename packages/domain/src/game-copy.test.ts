@@ -13,6 +13,7 @@ import {
   REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
   cancelGameConsequence,
   gameJoinToast,
+  teamRegisterToast,
   kickedToast,
   setLabel,
   setShortLabel,
@@ -76,6 +77,8 @@ describe("Game action copy", () => {
   it("uses one toast for joining a Game however the seat was taken", () => {
     assert.equal(gameJoinToast(false), "Joined Game");
     assert.equal(gameJoinToast(true), "Joined waitlist");
+    assert.equal(teamRegisterToast(false), "Team registered");
+    assert.equal(teamRegisterToast(true), "Team joined waitlist");
   });
 
   it("names who was kicked, matching the Kick confirm", () => {

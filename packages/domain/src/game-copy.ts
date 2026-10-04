@@ -74,6 +74,10 @@ export function gameJoinToast(waitlisted: boolean) {
   return waitlisted ? GAME_TOAST.joinedWaitlist : GAME_TOAST.joined;
 }
 
+export function teamRegisterToast(waitlisted: boolean) {
+  return waitlisted ? GAME_TOAST.teamJoinedWaitlist : GAME_TOAST.teamRegistered;
+}
+
 export function kickedToast(name: string) {
   return `Kicked ${name}`;
 }

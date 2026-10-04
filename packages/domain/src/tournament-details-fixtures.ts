@@ -1,15 +1,16 @@
-import type { LevelBand } from "@repo/domain/level-bands";
-import { matchOutcome } from "@repo/domain/match-outcome";
-import { computePoolTables } from "@repo/domain/pool-table";
-import { setWinsForGames } from "@repo/domain/set-wins-for-games";
-import type { RouterOutputs } from "~/trpc/react";
+import type { LevelBand } from "./level-bands";
+import { matchOutcome } from "./match-outcome";
+import { computePoolTables } from "./pool-table";
+import { setWinsForGames } from "./set-wins-for-games";
+import {
+  buildKnockoutTree,
+  buildPoolKnockoutTree,
+} from "./tournament-knockout";
+import { postedKnockoutRounds } from "./tournament-knockout-view";
+import { KNOCKOUT_ONLY_SHAPE } from "./tournament-rounds";
+import type { TournamentDetails } from "./tournament-details";
 
-/**
- * The real `games.byId` door output. Picking the door type — rather than a
- * parallel fixture type — keeps the preview locked to the live payload:
- * a field renamed on `byId.ts` fails this file to compile.
- */
-export type TournamentFixture = RouterOutputs["games"]["byId"];
+export type TournamentFixture = TournamentDetails;
 
 type Occupant = NonNullable<TournamentFixture["sides"][number]["left"]>;
 type Occupancy = readonly (Occupant | null)[];
@@ -546,5 +547,328 @@ export function createTournamentFixtures(now = new Date()): {
     organizerDraftedDraw,
     postedMid,
     finished,
+  };
+}
+
+type KnockoutPlay = "slot1" | "slot2" | "walkover1" | "walkover2" | "level";
+type KnockoutScript = Readonly<Record<string, KnockoutPlay>>;
+type KnockoutTreeShape = NonNullable<ReturnType<typeof buildKnockoutTree>> & {
+  qualifiers?: { pool: number; position: number }[];
+};
+
+type KnockoutMatchRow = {
+  round: number;
+  position: number;
+  slot1: string | null;
+  slot2: string | null;
+  play: KnockoutPlay | null;
+  slot1Source: { pool: number; position: number } | null;
+  slot2Source: { pool: number; position: number } | null;
+};
+
+function knockoutMatchRows(
+  tree: KnockoutTreeShape,
+  teamIdForEntrant: (entrant: number) => string,
+  script: KnockoutScript,
+  placeQualifiers: boolean,
+): KnockoutMatchRow[] {
+  const rows = new Map<string, KnockoutMatchRow>();
+  for (const place of tree.matches) {
+    rows.set(`${place.round}:${place.position}`, {
+      round: place.round,
+      position: place.position,
+      slot1: null,
+      slot2: null,
+      play: script[`${place.round}:${place.position}`] ?? null,
+      slot1Source: null,
+      slot2Source: null,
+    });
+  }
+  for (const entry of tree.entries) {
+    const row = rows.get(`${entry.round}:${entry.position}`);
+    if (!row) {
+      continue;
+    }
+    const source = tree.qualifiers?.[entry.entrant - 1] ?? null;
+    if (entry.slot === 1) {
+      row.slot1 =
+        placeQualifiers || !source ? teamIdForEntrant(entry.entrant) : null;
+      row.slot1Source = source;
+    } else {
+      row.slot2 =
+        placeQualifiers || !source ? teamIdForEntrant(entry.entrant) : null;
+      row.slot2Source = source;
+    }
+  }
+  const ordered = [...rows.values()].sort(
+    (left, right) => left.round - right.round || left.position - right.position,
+  );
+  for (const row of ordered) {
+    const winner =
+      row.play === "slot1" || row.play === "walkover1"
+        ? row.slot1
+        : row.play === "slot2" || row.play === "walkover2"
+          ? row.slot2
+          : null;
+    if (!winner) {
+      continue;
+    }
+    const next = rows.get(`${row.round + 1}:${Math.ceil(row.position / 2)}`);
+    if (!next) {
+      continue;
+    }
+    if (row.position % 2 === 1) {
+      next.slot1 = winner;
+    } else {
+      next.slot2 = winner;
+    }
+  }
+  return ordered;
+}
+
+function knockoutSets(play: KnockoutPlay | null) {
+  switch (play) {
+    case "slot1":
+      return [
+        { slot1GamesWon: 6, slot2GamesWon: 3 },
+        { slot1GamesWon: 6, slot2GamesWon: 4 },
+      ];
+    case "slot2":
+      return [
+        { slot1GamesWon: 3, slot2GamesWon: 6 },
+        { slot1GamesWon: 4, slot2GamesWon: 6 },
+      ];
+    case "level":
+      return [
+        { slot1GamesWon: 6, slot2GamesWon: 4 },
+        { slot1GamesWon: 4, slot2GamesWon: 6 },
+      ];
+    default:
+      return [];
+  }
+}
+
+function knockoutTournament(args: {
+  id: string;
+  now: Date;
+  tree: KnockoutTreeShape;
+  teamCount: number;
+  viewerSideIndex: number;
+  script: KnockoutScript;
+  groupsThenKnockout: boolean;
+  poolsFinished: boolean;
+}): TournamentFixture {
+  const occupancy = fullField().slice(0, args.teamCount);
+  occupancy[args.viewerSideIndex - 1] = pair(VIEWER, PARTNER);
+  const base = baseTournament({
+    id: args.id,
+    now: args.now,
+    occupancy,
+    viewerUserId: VIEWER_ID,
+    isOrganizer: false,
+    drawPostedAt: args.now,
+    poolIndexes: args.groupsThenKnockout,
+    completeThroughRound: args.groupsThenKnockout
+      ? args.poolsFinished
+        ? 3
+        : 1
+      : null,
+  });
+  const teamIdForEntrant = (entrant: number) => gameTeamId(entrant);
+  const rows = knockoutMatchRows(
+    args.tree,
+    teamIdForEntrant,
+    args.script,
+    !args.groupsThenKnockout || args.poolsFinished,
+  );
+  const knockoutRows = rows.map((row, index) => {
+    const frozen = row.play != null && row.play !== "level";
+    const walkover = row.play === "walkover1" || row.play === "walkover2";
+    const sets = walkover ? [] : knockoutSets(row.play);
+    const scoredSets = sets.map((set, setIndex) => ({
+      id: `ko-${row.round}-${row.position}-set-${setIndex + 1}`,
+      slot1GamesWon: set.slot1GamesWon,
+      slot2GamesWon: set.slot2GamesWon,
+      wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
+    }));
+    const bothSlotsFilled = row.slot1 != null && row.slot2 != null;
+    const viewerTeam = gameTeamId(args.viewerSideIndex);
+    const onSides = row.slot1 === viewerTeam || row.slot2 === viewerTeam;
+    const outcome = matchOutcome(scoredSets);
+    const start = new Date(args.now);
+    start.setDate(start.getDate() + 21 + row.round);
+    start.setHours(18, 0, 0, 0);
+    const status = walkover ? "cancelled" : frozen ? "completed" : "pending";
+    const winnerTeam =
+      row.play === "walkover1"
+        ? row.slot1
+        : row.play === "walkover2"
+          ? row.slot2
+          : null;
+    return {
+      id: `ko-${row.round}-${row.position}`,
+      startTime: start,
+      endTime: null,
+      durationInMinutes: 45,
+      roundNumber: null,
+      knockoutRound: row.round,
+      knockoutPosition: row.position,
+      status,
+      courtId: "court-1",
+      courtName: `Court ${(index % 2) + 1}`,
+      slot1GameTeamId: row.slot1,
+      slot2GameTeamId: row.slot2,
+      walkoverGameTeamId: winnerTeam,
+      bothSlotsFilled,
+      bothSidesComplete: bothSlotsFilled,
+      canAddSet: !frozen && bothSlotsFilled && onSides,
+      canScoreSets: !frozen && bothSlotsFilled && onSides,
+      canComplete:
+        !frozen &&
+        bothSlotsFilled &&
+        onSides &&
+        outcome.result !== "none" &&
+        outcome.result !== "draw",
+      outcome,
+      sets: scoredSets,
+      source: row,
+    };
+  });
+  const matches = knockoutRows.map(({ source: _source, ...match }) => match);
+  const knockout = postedKnockoutRounds({
+    viewerUserId: VIEWER_ID,
+    gameTeams: base.gameTeams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      members: team.members.map((member) => ({
+        id: member.id,
+        name: member.name,
+      })),
+    })),
+    matches: knockoutRows.map((row) => ({
+      id: row.id,
+      knockoutRound: row.knockoutRound,
+      knockoutPosition: row.knockoutPosition,
+      startTime: row.startTime,
+      courtName: row.courtName,
+      slot1GameTeamId: row.slot1GameTeamId,
+      slot2GameTeamId: row.slot2GameTeamId,
+      status: row.status,
+      result: row.outcome.result,
+      sets: row.sets,
+      walkoverGameTeamId: row.walkoverGameTeamId,
+      slot1SourcePoolIndex:
+        row.source.slot1Source != null ? row.source.slot1Source.pool + 1 : null,
+      slot1SourcePoolPosition: row.source.slot1Source?.position ?? null,
+      slot2SourcePoolIndex:
+        row.source.slot2Source != null ? row.source.slot2Source.pool + 1 : null,
+      slot2SourcePoolPosition: row.source.slot2Source?.position ?? null,
+    })),
+  });
+  const gameTeams = base.gameTeams.map((team, index) => ({
+    ...team,
+    knockoutSeed: args.groupsThenKnockout ? null : index + 1,
+  }));
+  return {
+    ...base,
+    id: args.id,
+    name: args.groupsThenKnockout
+      ? "Bromma Autumn Friendly"
+      : "Bromma Knockout Day",
+    gameTeams,
+    matches: [...base.matches, ...matches],
+    knockout,
+    ...(args.groupsThenKnockout
+      ? {
+          tournamentShape: "groups_then_knockout",
+          qualifiersPerPool: 1,
+        }
+      : {
+          tournamentShape: KNOCKOUT_ONLY_SHAPE,
+          poolCount: null,
+          teamsAllowed: args.teamCount,
+          playersAllowed: args.teamCount * 2,
+          poolTables: null,
+        }),
+  };
+}
+
+/**
+ * Posted Knockout states for the player view: round names, Byes, Walkovers,
+ * a level Match that needs a deciding Set, and the Champion.
+ */
+export function createKnockoutTournamentFixtures(now = new Date()): {
+  knockoutOnlyMid: TournamentFixture;
+  knockoutOnlyChampion: TournamentFixture;
+  groupsThenKnockout: TournamentFixture;
+  groupsThenKnockoutNotThrough: TournamentFixture;
+} {
+  const tree = buildKnockoutTree({ entrantCount: 6 });
+  if (!tree) {
+    throw new Error("Knockout fixture needs a tree");
+  }
+  const poolTree = buildPoolKnockoutTree({
+    poolCount: 3,
+    qualifiersPerPool: 1,
+  });
+  if (!poolTree) {
+    throw new Error("Knockout fixture needs a Pool tree");
+  }
+
+  const knockoutOnlyMid = knockoutTournament({
+    id: "tournament-knockout-mid",
+    now,
+    tree,
+    teamCount: 6,
+    viewerSideIndex: 1,
+    script: { "1:2": "slot1", "1:4": "walkover2", "2:1": "level" },
+    groupsThenKnockout: false,
+    poolsFinished: true,
+  });
+
+  const knockoutOnlyChampion = knockoutTournament({
+    id: "tournament-knockout-champion",
+    now,
+    tree,
+    teamCount: 6,
+    viewerSideIndex: 1,
+    script: {
+      "1:2": "slot1",
+      "1:4": "walkover2",
+      "2:1": "slot1",
+      "2:2": "slot2",
+      "3:1": "slot1",
+    },
+    groupsThenKnockout: false,
+    poolsFinished: true,
+  });
+
+  const groupsThenKnockout = knockoutTournament({
+    id: "tournament-groups-then-knockout",
+    now,
+    tree: poolTree,
+    teamCount: 12,
+    viewerSideIndex: 1,
+    script: {},
+    groupsThenKnockout: true,
+    poolsFinished: true,
+  });
+
+  const groupsThenKnockoutNotThrough = knockoutTournament({
+    id: "tournament-groups-then-knockout-out",
+    now,
+    tree: poolTree,
+    teamCount: 12,
+    viewerSideIndex: 4,
+    script: {},
+    groupsThenKnockout: true,
+    poolsFinished: true,
+  });
+
+  return {
+    knockoutOnlyMid,
+    knockoutOnlyChampion,
+    groupsThenKnockout,
+    groupsThenKnockoutNotThrough,
   };
 }

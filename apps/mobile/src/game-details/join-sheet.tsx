@@ -84,12 +84,14 @@ export type JoinSheetGame = {
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
   offersPartner: boolean;
+  partnerRequired?: boolean;
 };
 
 type Step = "chooser" | "seat" | "partner" | "review";
 
 export type JoinSheetProps = {
   visible: boolean;
+  initialSeat?: FriendlyGameJoinSeat | null;
   onClose: () => void;
   game: JoinSheetGame;
   preferredPosition: string | null;
@@ -622,13 +624,19 @@ export function JoinSheet(props: JoinSheetProps) {
 
   useEffect(() => {
     if (visible) {
-      setSelection(UNTOUCHED_SELECTION);
+      setSelection(
+        props.initialSeat
+          ? { touched: true, seat: props.initialSeat }
+          : UNTOUCHED_SELECTION,
+      );
       setPartner(null);
       setStep(
-        friendlyGameJoinOpeningStep({
-          offersPartner: game.offersPartner,
-          hasInitialSeat: false,
-        }),
+        game.partnerRequired
+          ? "partner"
+          : friendlyGameJoinOpeningStep({
+              offersPartner: game.offersPartner,
+              hasInitialSeat: Boolean(props.initialSeat),
+            }),
       );
     }
     // Reset only when the sheet opens; the Game may change while it is open.

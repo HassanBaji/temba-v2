@@ -2,10 +2,8 @@ import { Button } from "~/components/ui/button";
 import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
 import {
   KNOCKOUT_BYE_LABEL,
-  KNOCKOUT_CHAMPION_TAG,
   KNOCKOUT_DECIDING_SET_COPY,
   KNOCKOUT_WALKOVER_TAG,
-  KNOCKOUT_WON_TAG,
   canCancelKnockoutPlace,
   knockoutPlaceMetaLine,
   knockoutRoundDayLine,
@@ -15,6 +13,7 @@ import {
   type KnockoutViewRound,
   type KnockoutViewSide,
 } from "@repo/domain/tournament-knockout-view";
+import { knockoutPlaceSideTags } from "@repo/domain/tournament-details";
 import { YOUR_TEAM_TAG } from "@repo/domain/tournament-home";
 import { cn } from "~/lib/utils";
 
@@ -72,7 +71,6 @@ function KnockoutPlaceCard({
     place.kind === "match"
       ? knockoutPlaceMetaLine(place.startTime, place.courtName)
       : null;
-  const winnerTag = isFinal ? KNOCKOUT_CHAMPION_TAG : KNOCKOUT_WON_TAG;
   return (
     <div className="border-rule rounded-card border px-4 pt-3">
       <div className="flex items-baseline justify-between gap-2.5">
@@ -88,21 +86,11 @@ function KnockoutPlaceCard({
           <>
             <KnockoutSideRow
               side={place.slot1}
-              walkover={place.walkover === 1}
-              resultTag={
-                place.winner === 1 || (isFinal && place.walkover === 1)
-                  ? winnerTag
-                  : null
-              }
+              {...knockoutPlaceSideTags(place, 1, isFinal)}
             />
             <KnockoutSideRow
               side={place.slot2}
-              walkover={place.walkover === 2}
-              resultTag={
-                place.winner === 2 || (isFinal && place.walkover === 2)
-                  ? winnerTag
-                  : null
-              }
+              {...knockoutPlaceSideTags(place, 2, isFinal)}
             />
             {place.scoreLabel ? (
               <p className="text-muted-foreground text-meta py-2 tabular-nums">

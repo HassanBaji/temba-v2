@@ -62,6 +62,7 @@ import {
   REPORT_WRONG_SCORE_CONSEQUENCE,
   cancelGameConsequence,
   gameJoinToast,
+  teamRegisterToast,
   kickedToast,
 } from "@repo/domain/game-copy";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
@@ -273,11 +274,7 @@ export default function GameHomePage({
 
   const registerTeam = api.games.registerTeam.useMutation({
     onSuccess: async (result) => {
-      toast.success(
-        result.waitlisted
-          ? GAME_TOAST.teamJoinedWaitlist
-          : GAME_TOAST.teamRegistered,
-      );
+      toast.success(teamRegisterToast(result.waitlisted));
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();

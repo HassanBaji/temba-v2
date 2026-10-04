@@ -46,49 +46,26 @@ import {
   REGISTER_TEAM_ACTION,
 } from "@repo/domain/game-copy";
 import { friendlyGameCanKickPlayer } from "@repo/domain/friendly-game-players";
-import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import {
+  tournamentHomeView,
+  tournamentStandingsView,
+  type TournamentDetails,
+  type TournamentStandingsView,
+} from "@repo/domain/tournament-details";
 import {
   canOpenOrganizerMergeDrawer,
   halfTeamsFromSides,
   showOrganizerMergeBanner,
 } from "@repo/domain/tournament-half-teams";
 import {
-  COUNTS_FOR_RATING_LABEL,
-  COUNTS_FOR_RATING_YES,
-  GROUP_ROW_LABEL,
-  GROUPS_THEN_KNOCKOUT_LEAD,
   INVITE_ACTION_LABEL,
-  KNOCKOUT_ONLY_LEAD,
   LEAVE_THE_SEAT_LABEL,
-  ORGANIZER_ROW_LABEL,
-  PRICE_PER_MATCH_SUFFIX,
-  PRICE_ROW_LABEL,
   TOURNAMENT_CLOSING_LINE,
-  TOURNAMENT_EYEBROW_PREFIX,
-  YOU_OWE_AFTER_EACH_MATCH,
-  YOU_OWE_ROW_LABEL,
-  drawnTournamentProgressLine,
-  isTournamentStandingsView,
-  knockoutSizeLine,
-  tournamentEyebrow,
-  tournamentFieldSummary,
-  tournamentOrganizerName,
-  tournamentRoundCount,
-  tournamentSizeLine,
-  tournamentStartLine,
-  tournamentStatusLine,
-  tournamentViewerSide,
-  tournamentHomeJoinKind,
   type TournamentHomeJoinKind,
 } from "@repo/domain/tournament-home";
-import { tournamentShowsTakeSeat } from "@repo/domain/tournament-join";
 import {
-  KNOCKOUT_HEADING,
   KNOCKOUT_NOT_THROUGH_COPY,
   hasDraftKnockoutDraw,
-  knockoutChampion,
-  knockoutChampionLine,
-  viewerMissedKnockout,
   type KnockoutMatchPlace,
 } from "@repo/domain/tournament-knockout-view";
 import {
@@ -96,28 +73,10 @@ import {
   canShowUndoPoolDraw,
   hasDraftPoolDraw,
 } from "@repo/domain/tournament-pool-draw";
-import {
-  viewerTournamentMatchCount,
-  viewerTournamentTotalFils,
-} from "@repo/domain/tournament-price";
-import {
-  hasKnockout,
-  isKnockoutOnly,
-  isPartnerRequiredGame,
-  plannedKnockoutRoundCount,
-  roundsPlayedLabel,
-  tournamentRoundSchedule,
-  type TournamentRoundScheduleEntry,
-} from "@repo/domain/tournament-rounds";
-import {
-  EACH_MATCH_ROW_LABEL,
-  sizeFriendlyTournament,
-  tournamentMatchMinutes,
-} from "@repo/domain/tournament-sizing";
+import { type TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
 import { cn } from "~/lib/utils";
-import { type RouterOutputs } from "~/trpc/react";
 
-type GameDetail = RouterOutputs["games"]["byId"];
+type GameDetail = TournamentDetails;
 
 export function TournamentHome({
   data,
@@ -202,49 +161,8 @@ export function TournamentHome({
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
-  const knockoutOnly = isKnockoutOnly(data.format, data.tournamentShape);
-  const thenKnockout =
-    !knockoutOnly && hasKnockout(data.format, data.tournamentShape);
-  const sizing =
-    data.poolCount != null && data.teamsAllowed != null
-      ? sizeFriendlyTournament(data.teamsAllowed, data.poolCount)
-      : null;
-  const roundCount = tournamentRoundCount(data);
-  const field = tournamentFieldSummary(data.sides);
-  const viewerSide = tournamentViewerSide(data.sides, data.viewerUserId);
-  const seated = Boolean(viewerSide);
-  const partnerRequired = isPartnerRequiredGame(data);
-  const joinKind = tournamentHomeJoinKind(
-    data.registrationMode,
-    data.canRegister,
-  );
-  const organizerName = tournamentOrganizerName({
-    createdBy: data.createdBy,
-    people: peopleFromGame(data),
-  });
-  const statusLine = tournamentStatusLine({
-    seated,
-    seatsLeft:
-      Math.max(field.seatTotal, data.playersAllowed ?? 0) - field.seatsTaken,
-    teamCount: data.teamsAllowed ?? data.sides.length,
-    organizerName,
-    knockoutOnly,
-    thenKnockout,
-  });
-  const matchesForViewer = viewerTournamentMatchCount(data);
-  const totalFils =
-    seated && matchesForViewer != null
-      ? viewerTournamentTotalFils(data.pricePerPlayerFils, matchesForViewer)
-      : null;
-  const detailRows = homeDetailRows({
-    organizerName,
-    groupName: data.groupName,
-    matchMinutes: data.matchMinutes,
-    pricePerPlayerFils: data.pricePerPlayerFils,
-    seated,
-    totalFils,
-  });
-  const drawn = isTournamentStandingsView(data.drawPostedAt);
+  const view = tournamentHomeView(data);
+  const { partnerRequired, joinKind, drawn, schedule } = view;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const halfTeams = halfTeamsFromSides(data.sides);
   const mergeGate = {
@@ -267,22 +185,9 @@ export function TournamentHome({
     ...drawGate,
     canUndo: data.canUndoDraw,
   });
-  const canLeaveGame =
-    (data.isSeated || data.isRegistered) && data.canLeave && !data.isWaitlisted;
-  const schedule =
-    roundCount != null && data.windowStart && data.windowEnd
-      ? tournamentRoundSchedule({
-          windowStart: data.windowStart,
-          windowEnd: data.windowEnd,
-          roundCount,
-          matchMinutes: data.matchMinutes,
-        })
-      : [];
 
-  const canJoin = joinKind === "join" && Boolean(onJoin);
-  const canWaitlist =
-    data.canWaitlist && joinKind === "join" && !partnerRequired;
-  const canJoinWaitlist = canWaitlist && Boolean(onJoinWaitlist);
+  const canJoin = view.canJoin && Boolean(onJoin);
+  const canJoinWaitlist = view.canWaitlist && Boolean(onJoinWaitlist);
   const showJoinBar = canJoin || canJoinWaitlist;
 
   return (
@@ -295,14 +200,8 @@ export function TournamentHome({
     >
       {drawn ? (
         <TournamentStandingsTree
-          name={data.name ?? "Tournament"}
-          roundsPlayed={drawnTournamentProgressLine({
-            roundsPlayed: roundsPlayedLabel(data.poolTables, roundCount),
-            knockout: data.knockout,
-          })}
+          standings={tournamentStandingsView(data)}
           poolTables={data.poolTables}
-          knockoutOnly={knockoutOnly}
-          groupsThenKnockout={thenKnockout}
           knockout={data.knockout}
           backHref={backHref}
           showUndo={showUndo}
@@ -314,31 +213,15 @@ export function TournamentHome({
       ) : (
         <>
           <TournamentHero
-            name={data.name ?? "Tournament"}
-            eyebrow={
-              roundCount != null
-                ? tournamentEyebrow(roundCount, knockoutOnly)
-                : TOURNAMENT_EYEBROW_PREFIX
-            }
-            startLine={tournamentStartLine(
-              data.windowStart,
-              data.venue?.name ?? null,
-            )}
-            sizeLine={
-              knockoutOnly
-                ? knockoutSizeLine(data.teamsAllowed ?? data.sides.length)
-                : sizing?.ok
-                  ? tournamentSizeLine(
-                      sizing.sizing,
-                      plannedKnockoutRoundCount(data),
-                    )
-                  : null
-            }
-            statusLine={statusLine}
+            name={view.hero.name}
+            eyebrow={view.hero.eyebrow}
+            startLine={view.hero.startLine}
+            sizeLine={view.hero.sizeLine}
+            statusLine={view.hero.statusLine}
             viewerUserId={data.viewerUserId}
-            left={viewerSide?.left ?? null}
-            right={viewerSide?.right ?? null}
-            showYourTeam={seated}
+            left={view.viewerSide?.left ?? null}
+            right={view.viewerSide?.right ?? null}
+            showYourTeam={view.seated}
             backHref={backHref}
             onShare={onShare}
             sharePending={sharePending}
@@ -347,22 +230,18 @@ export function TournamentHome({
           <TournamentPredrawTree
             sides={data.sides}
             viewerUserId={data.viewerUserId}
-            canTakeSeat={tournamentShowsTakeSeat({
-              canJoin: joinKind === "join",
-              seated,
-              partnerRequired,
-            })}
+            canTakeSeat={view.canTakeSeat}
             venueName={data.venue?.name ?? null}
             schedule={schedule}
             teamCount={data.teamsAllowed}
-            completeTeams={field.full}
+            completeTeams={view.field.full}
             gameTeams={data.gameTeams}
             storedRoundCount={data.roundCount}
             windowStart={data.windowStart}
             windowEnd={data.windowEnd}
             matchMinutes={data.matchMinutes}
             courtNames={data.recordedCourts.map((court) => court.name)}
-            knockoutOnly={knockoutOnly}
+            knockoutOnly={view.knockoutOnly}
             showMergeBanner={showMergeBanner}
             showMergeEntry={showMergeEntry}
             showDrawEntry={showDrawEntry}
@@ -394,8 +273,8 @@ export function TournamentHome({
         </>
       )}
 
-      <TournamentDetailRows rows={detailRows} />
-      {canLeaveGame && onLeaveGame ? (
+      <TournamentDetailRows rows={view.detailRows} />
+      {view.canLeaveGame && onLeaveGame ? (
         <Button
           type="button"
           variant="outline"
@@ -609,11 +488,8 @@ function TournamentPredrawTree({
 }
 
 function TournamentStandingsTree({
-  name,
-  roundsPlayed,
+  standings,
   poolTables,
-  knockoutOnly,
-  groupsThenKnockout,
   knockout,
   backHref,
   showUndo,
@@ -622,11 +498,8 @@ function TournamentStandingsTree({
   onUndo,
   onCancelMatch,
 }: {
-  name: string;
-  roundsPlayed: string | null;
+  standings: TournamentStandingsView;
   poolTables: GameDetail["poolTables"];
-  knockoutOnly: boolean;
-  groupsThenKnockout: boolean;
   knockout: GameDetail["knockout"];
   backHref: string;
   showUndo: boolean;
@@ -635,53 +508,41 @@ function TournamentStandingsTree({
   onUndo: () => void | Promise<void>;
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
 }) {
-  const champion = knockoutChampion(knockout);
-  const notThrough =
-    groupsThenKnockout &&
-    viewerMissedKnockout({
-      rounds: knockout,
-      poolStageFinished: Boolean(poolTables?.finished),
-      viewerHasTeam: poolTables?.viewerPoolIndex != null,
-    });
   return (
     <div className="space-y-6">
       <div>
         <TournamentStandingsHeader
-          name={name}
-          roundsPlayed={roundsPlayed}
-          finished={!groupsThenKnockout && Boolean(poolTables?.finished)}
+          name={standings.name}
+          roundsPlayed={standings.roundsPlayed}
+          finished={standings.finished}
           backHref={backHref}
-          {...(knockoutOnly
-            ? { heading: KNOCKOUT_HEADING, lead: KNOCKOUT_ONLY_LEAD }
-            : groupsThenKnockout
-              ? { lead: GROUPS_THEN_KNOCKOUT_LEAD }
-              : {})}
-          championLine={champion ? knockoutChampionLine(champion) : null}
+          heading={standings.heading}
+          lead={standings.lead}
+          championLine={standings.championLine}
         />
-        {knockoutOnly ? (
-          knockout ? (
-            <div className="pt-[18px]">
-              <TournamentKnockoutTree
-                rounds={knockout}
-                onCancelMatch={onCancelMatch}
-              />
-            </div>
-          ) : null
-        ) : poolTables ? (
+        {standings.showKnockoutTree && knockout ? (
+          <div className="pt-[18px]">
+            <TournamentKnockoutTree
+              rounds={knockout}
+              onCancelMatch={onCancelMatch}
+            />
+          </div>
+        ) : null}
+        {standings.showPoolTables && poolTables ? (
           <div className="pt-[18px]">
             <TournamentStandingsSection poolTables={poolTables} />
           </div>
         ) : null}
       </div>
-      {groupsThenKnockout && knockout ? (
+      {standings.knockoutSectionTitle && knockout ? (
         <section aria-labelledby="tournament-knockout-heading">
           <h2
             id="tournament-knockout-heading"
             className="font-expanded text-h2 tracking-[-0.03em]"
           >
-            {KNOCKOUT_HEADING}
+            {standings.knockoutSectionTitle}
           </h2>
-          {notThrough ? (
+          {standings.notThrough ? (
             <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
               {KNOCKOUT_NOT_THROUGH_COPY}
             </p>
@@ -697,7 +558,7 @@ function TournamentStandingsTree({
       ) : null}
       {showUndo ? (
         <TournamentUndoPoolDraw
-          knockoutOnly={knockoutOnly}
+          knockoutOnly={standings.knockoutOnly}
           undoPending={undoPending}
           undoError={undoError}
           onUndo={onUndo}
@@ -952,30 +813,6 @@ function TournamentHomeActions({
   );
 }
 
-function peopleFromGame(data: GameDetail): { userId: string; name: string }[] {
-  const people: { userId: string; name: string }[] = [];
-  for (const row of data.sides) {
-    if (row.left) {
-      people.push({ userId: row.left.userId, name: row.left.name });
-    }
-    if (row.right) {
-      people.push({ userId: row.right.userId, name: row.right.name });
-    }
-  }
-  for (const player of data.registeredPlayers) {
-    people.push({ userId: player.id, name: player.name });
-  }
-  for (const player of data.unseatedPlayers) {
-    people.push({ userId: player.id, name: player.name });
-  }
-  for (const team of data.gameTeams) {
-    for (const member of team.members) {
-      people.push({ userId: member.id, name: member.name });
-    }
-  }
-  return people;
-}
-
 function kickableOccupants(
   data: GameDetail,
 ): { userId: string; name: string }[] {
@@ -1000,49 +837,4 @@ function kickableOccupants(
     }
   }
   return occupants;
-}
-
-function homeDetailRows(args: {
-  organizerName: string | null;
-  groupName: string | null;
-  matchMinutes: number | null;
-  pricePerPlayerFils: number | null;
-  seated: boolean;
-  totalFils: number | null;
-}) {
-  const rows = [
-    {
-      label: ORGANIZER_ROW_LABEL,
-      value: args.organizerName ?? "Organizer",
-    },
-    {
-      label: GROUP_ROW_LABEL,
-      value: args.groupName?.trim() ? args.groupName : "—",
-    },
-    {
-      label: EACH_MATCH_ROW_LABEL,
-      value: `${tournamentMatchMinutes(args.matchMinutes)} min`,
-    },
-  ];
-  const price = formatPricePerPlayerFils(args.pricePerPlayerFils);
-  if (price) {
-    rows.push({
-      label: PRICE_ROW_LABEL,
-      value: `${price} ${PRICE_PER_MATCH_SUFFIX}`,
-    });
-  }
-  rows.push({
-    label: COUNTS_FOR_RATING_LABEL,
-    value: COUNTS_FOR_RATING_YES,
-  });
-  if (args.seated && args.totalFils != null) {
-    const amount = formatPricePerPlayerFils(args.totalFils);
-    if (amount) {
-      rows.push({
-        label: YOU_OWE_ROW_LABEL,
-        value: `${amount}, ${YOU_OWE_AFTER_EACH_MATCH}`,
-      });
-    }
-  }
-  return rows;
 }

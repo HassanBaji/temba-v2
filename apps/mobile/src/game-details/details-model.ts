@@ -23,7 +23,7 @@ export function isFriendlyGameDetails(game: {
 export const UNSUPPORTED_FORMAT_COPY = {
   title: "Not on mobile yet",
   description:
-    "This kind of Game opens on the web for now. Friendly tournaments come to the app next.",
+    "This kind of Game opens on the web for now.",
 } as const;
 
 export function gameTitle(name: string | null) {

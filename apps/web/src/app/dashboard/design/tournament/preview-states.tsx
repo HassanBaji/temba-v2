@@ -13,7 +13,7 @@ import {
 import { buttonVariants } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import type { TournamentFixture } from "~/fixtures/tournament";
+import type { TournamentFixture } from "@repo/domain/tournament-details-fixtures";
 import type {
   TournamentCardFixture,
   TournamentCardFixtures,
