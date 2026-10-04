@@ -1,7 +1,7 @@
 "use client";
 
 import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
-import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import {
   friendlyGameCanKickPlayer,

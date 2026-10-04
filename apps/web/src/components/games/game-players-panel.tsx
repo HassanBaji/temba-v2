@@ -11,7 +11,7 @@ import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import {
   formatGameSideLabel,
   gameTeamDisplayName,
-} from "~/components/games/game-side-label";
+} from "@repo/domain/game-side-label";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { REGISTER_TEAM_ACTION } from "@repo/domain/game-copy";
 import type { LookupUserSearchRow } from "@repo/api/types";

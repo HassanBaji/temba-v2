@@ -4,7 +4,7 @@ import { Fragment } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
-import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { formatAbsoluteDay } from "@repo/domain/format-game-start";

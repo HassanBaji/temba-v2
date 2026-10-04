@@ -9,7 +9,7 @@ import {
   formatMatchSlotLabel,
   gameTeamDisplayName,
   matchSlotOccupantLabel,
-} from "~/components/games/game-side-label";
+} from "@repo/domain/game-side-label";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { ResultTag } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";

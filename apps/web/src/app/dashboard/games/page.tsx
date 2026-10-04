@@ -22,18 +22,21 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { offersPartnerJoin } from "@repo/domain/friendly-game-partner";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import {
   gamesHubTabFromQuery,
   gamesHubTabQuery,
 } from "@repo/domain/games-hub-tab";
 import {
-  gameSummaryPrimaryAction,
-  gameViewerStatus,
-  showsFriendlyRoster,
-  showsGameCardPartnerFooter,
-} from "@repo/domain/game-summary-cta";
+  hubGameCardPlan,
+  hubRegisterToast,
+  hubWaitlistJoinCall,
+} from "@repo/domain/game-card";
+import { gameViewerStatus } from "@repo/domain/game-summary-cta";
+import {
+  HISTORY_PAGE_SIZE,
+  nextHistoryCursor,
+} from "@repo/domain/match-history-card";
 import { isTournamentMatchRow } from "@repo/domain/tournament-card";
 import {
   isDrawnTournament,
@@ -171,20 +174,8 @@ function GamesHubTabPanel({
             />
           );
         }
-        const primaryAction = gameSummaryPrimaryAction(game);
-        const rosterSides =
-          showsFriendlyRoster(game.format, game.registrationMode) ||
-          game.matchId
-            ? game.sides
-            : undefined;
-        const showPartnerJoin =
-          showsGameCardPartnerFooter(primaryAction, rosterSides) &&
-          offersPartnerJoin({
-            canRegister: game.canRegister,
-            format: game.format,
-            registrationMode: game.registrationMode,
-            sides: game.sides,
-          });
+        const { primaryAction, rosterSides, showPartnerJoin } =
+          hubGameCardPlan(game);
         return (
           <GameSummaryCard
             key={game.matchId ?? game.id}
@@ -351,8 +342,6 @@ function LoadMoreSentinel({
   );
 }
 
-const HISTORY_PAGE_SIZE = 20;
-
 function TabCount({ count }: { count: number | undefined }) {
   if (!count) {
     return null;
@@ -390,13 +379,7 @@ export default function GamesHubPage({
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
     { limit: HISTORY_PAGE_SIZE },
     {
-      getNextPageParam: (lastPage) => {
-        const last = lastPage.at(-1);
-        if (!last || lastPage.length < HISTORY_PAGE_SIZE) {
-          return undefined;
-        }
-        return { displayTime: last.displayTime, matchId: last.matchId };
-      },
+      getNextPageParam: nextHistoryCursor,
     },
   );
   const historyRows = React.useMemo(
@@ -428,7 +411,7 @@ export default function GamesHubPage({
 
   const register = api.games.register.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      toast.success(hubRegisterToast(result.waitlisted));
       await refreshLists();
     },
     onError: async (error) => {
@@ -451,7 +434,7 @@ export default function GamesHubPage({
   }
 
   function onJoinWaitlist(game: HubGame) {
-    if (game.format === "americano") {
+    if (hubWaitlistJoinCall(game.format) === "register") {
       register.mutate({ gameId: game.id });
       return;
     }

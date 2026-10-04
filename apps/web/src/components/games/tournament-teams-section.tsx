@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 import { RowList } from "~/components/common/row-list";
-import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { SeatTile } from "~/components/temba/seat";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {

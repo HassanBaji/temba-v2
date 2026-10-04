@@ -3,7 +3,7 @@
 import { Button } from "~/components/ui/button";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { formatSeatSideHeading } from "~/components/games/game-side-label";
+import { formatSeatSideHeading } from "@repo/domain/game-side-label";
 import { OpenSeat } from "~/components/temba/seat";
 import {
   displayLabelFromStoredBand,

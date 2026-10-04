@@ -6,62 +6,17 @@ import {
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
 import { ResultMark } from "~/components/temba/result-mark";
-import { formatRelativeDay } from "@repo/domain/format-game-start";
 import { setLabel, setShortLabel } from "@repo/domain/game-copy";
+import {
+  matchHistoryCardModel,
+  PENDING_SET_COLUMNS,
+} from "@repo/domain/match-history-card";
 import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
-import { shortPlayerName } from "@repo/domain/player-name";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
 type MatchHistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
 type MatchHistoryMember = MatchHistoryRow["slot1Members"][number];
-
-/** Score columns drawn when a Match carries no scored sets. */
-const PENDING_SET_COLUMNS = 3;
-
-/** Set scores read as us-vs-them off the slot the viewer actually sat on. */
-function viewerSets(row: MatchHistoryRow) {
-  return row.scoredSets.map((set) =>
-    row.viewerSlot === 1
-      ? { us: set.slot1GamesWon, them: set.slot2GamesWon }
-      : { us: set.slot2GamesWon, them: set.slot1GamesWon },
-  );
-}
-
-function setTally(sets: { us: number; them: number }[]) {
-  let won = 0;
-  let lost = 0;
-  for (const set of sets) {
-    if (set.us > set.them) {
-      won += 1;
-    } else if (set.us < set.them) {
-      lost += 1;
-    }
-  }
-  return { won, lost };
-}
-
-/** The viewer reads as "You", and leads their own team's seats and label. */
-function viewerFirst(members: MatchHistoryMember[]) {
-  const index = members.findIndex((member) => member.isViewer);
-  if (index <= 0) {
-    return members;
-  }
-  return [members[index]!, ...members.filter((_, at) => at !== index)];
-}
-
-function teamLabel(members: MatchHistoryMember[]) {
-  const names = members.map((member) =>
-    member.isViewer ? "You" : shortPlayerName(member.name),
-  );
-  if (names.length === 0) {
-    return "Open seats";
-  }
-  if (names.length === 1) {
-    return names[0]!;
-  }
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]!}`;
-}
 
 function SeatTile({
   member,
@@ -201,62 +156,9 @@ function TeamRow({
 }
 
 export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
-  const sets = viewerSets(row);
-  const scored = sets.length > 0;
-  const tally = setTally(sets);
+  const { scored, tally, setColumns, meta, groupName, teams } =
+    matchHistoryCardModel(row);
   const won = row.outcome === "won";
-  const lost = row.outcome === "lost";
-
-  const myMembers = viewerFirst(
-    row.viewerSlot === 1 ? row.slot1Members : row.slot2Members,
-  );
-  const opponents = row.viewerSlot === 1 ? row.slot2Members : row.slot1Members;
-  const seats = Math.max(myMembers.length, opponents.length, 1);
-
-  const dayLabel = formatRelativeDay(row.displayTime, {
-    sameDayLabel: "Today",
-  });
-  const venueName = row.venue.name.trim();
-  const gameName = row.name?.trim();
-  const meta =
-    gameName && gameName !== venueName
-      ? `${dayLabel}, ${venueName} · ${gameName}`
-      : `${dayLabel}, ${venueName}`;
-  const groupName = row.groupName?.trim();
-
-  const mine = (
-    <TeamRow
-      key="mine"
-      members={myMembers}
-      seats={seats}
-      label={teamLabel(myMembers)}
-      note={won ? "Your team, winners" : lost ? "Your team, lost" : "Your team"}
-      scores={
-        scored
-          ? sets.map((set) => ({ games: set.us, wonSet: set.us > set.them }))
-          : null
-      }
-      filled={won}
-      outlined={!won}
-    />
-  );
-
-  const theirs = (
-    <TeamRow
-      key="theirs"
-      members={opponents}
-      seats={seats}
-      label={teamLabel(opponents)}
-      note={won ? "Lost" : lost ? "Winners" : "Other team"}
-      scores={
-        scored
-          ? sets.map((set) => ({ games: set.them, wonSet: set.them > set.us }))
-          : null
-      }
-      filled={lost}
-      outlined={false}
-    />
-  );
 
   return (
     <li data-slot="match-history-card">
@@ -305,8 +207,10 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
         </SummaryCardBody>
 
         <SummaryCardBody className="pt-0">
-          {scored ? <SetHeader columns={sets.length} /> : null}
-          {lost ? [theirs, mine] : [mine, theirs]}
+          {scored ? <SetHeader columns={setColumns} /> : null}
+          {teams.map((team) => (
+            <TeamRow key={team.side} {...team} />
+          ))}
         </SummaryCardBody>
       </SummaryCardShell>
     </li>

@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../../../src/navigation/placeholder-screen";
+import { GamesScreen } from "../../../src/games/games-screen";
 
 export default function Games() {
-  return <PlaceholderScreen title="Games" />;
+  return <GamesScreen />;
 }

@@ -17,7 +17,7 @@ import type { TournamentFixture } from "~/fixtures/tournament";
 import type {
   TournamentCardFixture,
   TournamentCardFixtures,
-} from "~/fixtures/tournament-card";
+} from "@repo/domain/tournament-card-fixtures";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";

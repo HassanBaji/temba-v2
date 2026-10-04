@@ -4,6 +4,7 @@ import { RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { createInkRegistry } from "./ink-registry";
+import { isNearEnd } from "./scroll-end";
 import { InkRegistryContext } from "./surface-context";
 
 export type ScreenProps = {
@@ -11,6 +12,7 @@ export type ScreenProps = {
   scroll?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
+  onNearEnd?: () => void;
 };
 
 export function Screen({
@@ -18,6 +20,7 @@ export function Screen({
   scroll = true,
   refreshing = false,
   onRefresh,
+  onNearEnd,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const registry = useMemo(
@@ -45,6 +48,22 @@ export function Screen({
             contentContainerStyle={content}
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustKeyboardInsets
+            scrollEventThrottle={onNearEnd ? 100 : undefined}
+            onScroll={
+              onNearEnd
+                ? ({ nativeEvent }) => {
+                    if (
+                      isNearEnd({
+                        contentOffsetY: nativeEvent.contentOffset.y,
+                        layoutHeight: nativeEvent.layoutMeasurement.height,
+                        contentHeight: nativeEvent.contentSize.height,
+                      })
+                    ) {
+                      onNearEnd();
+                    }
+                  }
+                : undefined
+            }
             refreshControl={
               onRefresh ? (
                 <RefreshControl

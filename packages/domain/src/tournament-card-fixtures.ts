@@ -1,8 +1,6 @@
-import type { RouterOutputs } from "~/trpc/react";
+import type { HubGameRow } from "./hub-game-row";
 
-/** The live hub row, so a renamed `HubListRow` field fails this file. */
-export type TournamentCardFixture =
-  RouterOutputs["games"]["listMyGames"][number];
+export type TournamentCardFixture = HubGameRow;
 
 type Team = NonNullable<TournamentCardFixture["tournament"]>["teams"][number];
 type Occupant = NonNullable<Team["left"]>;

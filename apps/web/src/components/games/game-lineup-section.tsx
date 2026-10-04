@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 
-import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
 import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";

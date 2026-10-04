@@ -16,7 +16,7 @@ import {
   type FriendlyGamePartnerPick,
 } from "~/components/games/friendly-game-partner-picker";
 import { FriendlyGamePartnerReview } from "~/components/games/friendly-game-partner-review";
-import { formatGameSideLabel } from "~/components/games/game-side-label";
+import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { SeatTile } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";

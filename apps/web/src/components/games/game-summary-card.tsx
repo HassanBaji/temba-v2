@@ -3,7 +3,6 @@
 import * as React from "react";
 
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
-import { formatGameSideLabel } from "~/components/games/game-side-label";
 import {
   SUMMARY_CARD_ACTION_CLASS,
   SummaryCardBody,
@@ -12,15 +11,21 @@ import {
 } from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag, OpenSeat } from "~/components/temba/seat";
-import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Button, buttonVariants } from "~/components/ui/button";
 import {
   formatGameCardDay,
   formatWindowDuration,
 } from "@repo/domain/format-game-start";
-import { friendlyGameVacantSeatLabel } from "@repo/domain/friendly-game-players";
 import { nextJoinPosition } from "@repo/domain/game-card-side-join";
-import { gameOccupancy, spotsOpenLabel } from "@repo/domain/game-occupancy";
+import { spotsOpenLabel } from "@repo/domain/game-occupancy";
+import {
+  firstName,
+  gameCardFormatCell,
+  gameCardOpenSpots,
+  gameCardSubtitle,
+  sideJoinAccessibleName,
+} from "@repo/domain/game-card";
+import { gameFormatLabel } from "@repo/domain/game-format-label";
 import {
   gameCardActionLabel,
   gameCardActionSolid,
@@ -41,55 +46,6 @@ import { UserAvatar } from "../common/user-avatar";
 type HubListSide =
   RouterOutputs["games"]["listMyGames"][number]["sides"][number];
 type HubListSideOccupant = NonNullable<HubListSide["left"]>;
-
-function gameFormatLabel(format: string | null | undefined): string | null {
-  if (!format) {
-    return null;
-  }
-  if (format in GAME_FORMAT_LABELS) {
-    return GAME_FORMAT_LABELS[format as keyof typeof GAME_FORMAT_LABELS];
-  }
-  return format.replaceAll("_", " ");
-}
-
-function vacantSeats(sides: HubListSide[]) {
-  const vacant: { sideIndex: number; position: "left" | "right" }[] = [];
-  for (const side of sides) {
-    if (side.left == null) {
-      vacant.push({ sideIndex: side.sideIndex, position: "left" });
-    }
-    if (side.right == null) {
-      vacant.push({ sideIndex: side.sideIndex, position: "right" });
-    }
-  }
-  return vacant;
-}
-
-function firstName(name: string) {
-  return name.trim().split(/\s+/)[0] ?? name;
-}
-
-function venueSubtitle(
-  venueName: string | null | undefined,
-  location: string | null | undefined,
-  gameName: string | null | undefined,
-  courtName?: string | null,
-) {
-  const parts: string[] = [];
-  const name = gameName?.trim();
-  if (name) {
-    parts.push(name);
-  }
-  const court = courtName?.trim();
-  if (court) {
-    parts.push(court);
-  }
-  const city = location?.trim();
-  if (city && city !== venueName) {
-    parts.push(city);
-  }
-  return parts.length > 0 ? parts.join(" — ") : null;
-}
 
 function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
   if (occupant) {
@@ -126,20 +82,6 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
       </small>
     </div>
   );
-}
-
-function sideJoinAccessibleName(
-  sideIndex: number,
-  position: "left" | "right",
-  partnerName: string | null,
-) {
-  const teamLabel = formatGameSideLabel("friendly_game", sideIndex);
-  const positionLabel = position === "left" ? "Left" : "Right";
-  const base = friendlyGameVacantSeatLabel("join", teamLabel, positionLabel);
-  if (base == null) {
-    return "Join";
-  }
-  return partnerName ? `${base} with ${partnerName}` : base;
 }
 
 function SideJoinButton({
@@ -397,22 +339,21 @@ export function GameSummaryCard({
   }, []);
 
   const title = venueName ?? name ?? "Untitled Game";
-  const subtitle = venueSubtitle(
+  const subtitle = gameCardSubtitle(
     venueName,
     location,
     venueName ? name : null,
     courtName,
   );
-  const formatMeta = roundLabel ?? gameFormatLabel(format);
+  const formatMeta = roundLabel ?? (format ? gameFormatLabel(format) : null);
   const durationMeta = formatWindowDuration(windowStart, windowEnd);
   const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
   const priceAmount = formatPricePerPlayerFils(pricePerPlayerFils);
-  const occupancy = gameOccupancy(registeredUserCount ?? 0, playersAllowed);
-  const showRoster = Boolean(sides && sides.length > 0);
-  const openSpots = showRoster
-    ? vacantSeats(sides ?? []).length
-    : (occupancy?.seatsLeft ?? 0);
-  const hasOpenCount = showRoster || occupancy != null;
+  const { showRoster, openSpots, hasOpenCount } = gameCardOpenSpots({
+    sides,
+    registeredUserCount,
+    playersAllowed,
+  });
   const dayLabel = formatGameCardDay(startTime);
   const kickoff = formatHomeKickoff(startDate);
   const countdown = formatHomeCountdown(startDate, now);
@@ -503,8 +444,11 @@ export function GameSummaryCard({
   );
 
   const showPrice = priceAmount != null;
-  const showFormat =
-    formatMeta != null || durationMeta != null || levelMeta != null;
+  const formatCell = gameCardFormatCell({
+    formatMeta,
+    durationMeta,
+    levelMeta,
+  });
 
   return (
     <li data-slot="game-summary-card">
@@ -543,7 +487,7 @@ export function GameSummaryCard({
             </p>
           ) : null}
 
-          {showPrice || showFormat ? (
+          {showPrice || formatCell ? (
             <div className="border-rule mt-4 flex gap-4 border-t pt-4">
               {levelMeta ? (
                 <MetaCell value={levelMeta ?? ""} note={"Level"} />
@@ -557,16 +501,10 @@ export function GameSummaryCard({
                 />
               ) : null}
 
-              {showFormat ? (
+              {formatCell ? (
                 <MetaCell
-                  value={formatMeta ?? durationMeta ?? levelMeta ?? ""}
-                  note={
-                    formatMeta
-                      ? (durationMeta ?? levelMeta)
-                      : durationMeta
-                        ? levelMeta
-                        : null
-                  }
+                  value={formatCell.value}
+                  note={formatCell.note}
                   ruled={levelMeta != null || showPrice}
                 />
               ) : null}
