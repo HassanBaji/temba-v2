@@ -1,10 +1,13 @@
-import { winRatePercent } from "@repo/domain/win-rate";
-import type { RouterOutputs } from "~/trpc/react";
+import type { MatchOutcome } from "./result-mark";
+import { winRatePercent } from "./win-rate";
 
-export type RecentFormHistoryRow = Pick<
-  RouterOutputs["games"]["listMyMatchHistory"][number],
-  "outcome" | "scoredSets"
->;
+export type RecentFormHistoryRow = {
+  outcome: MatchOutcome;
+  scoredSets?: readonly {
+    slot1GamesWon: number | null;
+    slot2GamesWon: number | null;
+  }[];
+};
 
 export type RecentFormBar =
   | {

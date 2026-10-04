@@ -13,7 +13,7 @@ import {
   recentFormWinRateCopy,
   type RecentFormBar,
   type RecentFormView,
-} from "./home-recent-form";
+} from "@repo/domain/home-recent-form";
 
 function slotLabel(bar: RecentFormBar): string {
   if (bar.kind === "empty") {

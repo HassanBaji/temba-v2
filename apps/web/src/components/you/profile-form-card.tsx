@@ -6,7 +6,7 @@ import {
   deriveRecentForm,
   RECENT_FORM_MATCH_COUNT,
   type RecentFormBar,
-} from "~/components/home/home-recent-form";
+} from "@repo/domain/home-recent-form";
 import { FormSlot } from "~/components/home/home-recent-form-row";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";

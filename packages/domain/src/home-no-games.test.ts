@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { homeNoGamesCreateAction } from "./home-no-games";
+import { homeNoGamesCopy, homeNoGamesCreateAction } from "./home-no-games";
 
 describe("homeNoGamesCreateAction", () => {
   it("hides create when the viewer cannot create Groups", () => {
@@ -22,7 +22,7 @@ describe("homeNoGamesCreateAction", () => {
       }),
       {
         kind: "group",
-        href: "/dashboard/groups/new",
+        target: { kind: "create-group" },
         label: "Create Group",
       },
     );
@@ -36,9 +36,26 @@ describe("homeNoGamesCreateAction", () => {
       }),
       {
         kind: "game",
-        href: "/dashboard/games/new",
+        target: { kind: "create-game" },
         label: "Create",
       },
     );
+  });
+});
+
+describe("homeNoGamesCopy", () => {
+  it("asks for a Group first when the viewer has none", () => {
+    assert.equal(
+      homeNoGamesCopy({
+        kind: "group",
+        target: { kind: "create-group" },
+        label: "Create Group",
+      }),
+      "Create a Group first, then you can create a Game.",
+    );
+  });
+
+  it("points everyone else at browsing", () => {
+    assert.equal(homeNoGamesCopy(null), "Browse available games.");
   });
 });

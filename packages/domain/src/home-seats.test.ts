@@ -4,7 +4,11 @@ import { describe, it } from "vitest";
 import {
   flattenSidesToHomeSeats,
   homeNextGameSeats,
+  homeSeatCaption,
+  homeSeatRowSummary,
+  homeSeatsBySide,
   homeSpotsOpenLabel,
+  type HomeSeatView,
 } from "./home-seats";
 
 describe("flattenSidesToHomeSeats", () => {
@@ -48,5 +52,62 @@ describe("flattenSidesToHomeSeats", () => {
       ),
       null,
     );
+  });
+});
+
+describe("homeSeatCaption", () => {
+  const filled: HomeSeatView = { id: "s", name: "Alex Rivera", filled: true };
+
+  it("uses the first name, or initials on a crowded row", () => {
+    assert.equal(homeSeatCaption(filled, false), "Alex");
+    assert.equal(homeSeatCaption(filled, true), "AR");
+  });
+
+  it("has no caption for an open or unnamed seat", () => {
+    assert.equal(
+      homeSeatCaption({ id: "s", name: null, filled: false }, false),
+      null,
+    );
+    assert.equal(
+      homeSeatCaption({ id: "s", name: null, filled: true }, false),
+      null,
+    );
+  });
+});
+
+describe("homeSeatsBySide", () => {
+  it("groups seats by side label in first-seen order", () => {
+    const seat = (id: string, sideLabel?: string): HomeSeatView => ({
+      id,
+      name: null,
+      filled: false,
+      sideLabel,
+    });
+    const groups = homeSeatsBySide([
+      seat("a1", "A"),
+      seat("b1", "B"),
+      seat("a2", "A"),
+    ]);
+    assert.deepEqual(
+      groups.map((group) => group.map((item) => item.id)),
+      [["a1", "a2"], ["b1"]],
+    );
+  });
+});
+
+describe("homeSeatRowSummary", () => {
+  it("counts filled seats and switches to initials above six", () => {
+    const seats: HomeSeatView[] = Array.from({ length: 8 }, (_, index) => ({
+      id: String(index),
+      name: null,
+      filled: index < 5,
+    }));
+    assert.deepEqual(homeSeatRowSummary(seats), {
+      filled: 5,
+      total: 8,
+      useInitials: true,
+      spotsLabel: "3 spots open",
+    });
+    assert.equal(homeSeatRowSummary(seats.slice(0, 4)).useInitials, false);
   });
 });

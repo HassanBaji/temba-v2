@@ -7,12 +7,15 @@ import { HomeComingUp } from "~/components/home/home-coming-up";
 import { HomeHeader } from "~/components/home/home-header";
 import { HomeLevelBlock } from "~/components/home/home-level-block";
 import { HomeNoGames, HomeNextGame } from "~/components/home/home-next-game";
-import { deriveRecentForm } from "~/components/home/home-recent-form";
+import { deriveRecentForm } from "@repo/domain/home-recent-form";
 import { HomeRecentFormBlock } from "~/components/home/home-recent-form-row";
 import { HomeStanding } from "~/components/home/home-standing";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { createHomeFixtures, type HomeFixture } from "~/fixtures/home";
+import {
+  createHomeFixtures,
+  type HomeFixture,
+} from "@repo/domain/home-fixtures";
 
 function HatchSwatches() {
   return (
@@ -166,7 +169,7 @@ export default function HomeDesignPreviewPage() {
     notFound();
   }
 
-  const { provisional, confirmed, empty } = createHomeFixtures();
+  const { provisional, confirmed, noGames } = createHomeFixtures();
 
   return (
     <DashboardShell title="Home preview" width="wide">
@@ -176,7 +179,7 @@ export default function HomeDesignPreviewPage() {
           <HomeColumn title="Provisional" fixture={provisional} />
           <HomeColumn title="Confirmed" fixture={confirmed} />
         </div>
-        <EmptyScaffolds fixture={empty} />
+        <EmptyScaffolds fixture={noGames} />
       </div>
     </DashboardShell>
   );

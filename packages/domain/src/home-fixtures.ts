@@ -1,11 +1,11 @@
-import type { Sport } from "@repo/domain/sport";
+import type { Sport } from "./sport";
 
 import type {
   HomeComingUpGameRow,
   HomeComingUpTournamentMatchRow,
   HomeComingUpTournamentRow,
-} from "@repo/domain/home-coming-up";
-import type { LevelBand } from "@repo/domain/level-bands";
+} from "./home-coming-up";
+import type { LevelBand } from "./level-bands";
 
 export type HomeSeat = {
   id: string;
@@ -66,6 +66,8 @@ export type HomeFixture = {
   gamesWon: number;
   gamesLost: number;
   standing: HomeStandingRow[];
+  hasCreateAccess: boolean;
+  createGroupCount: number;
 };
 
 function isoMinutesFrom(now: Date, minutes: number) {
@@ -87,13 +89,15 @@ function fourSeats(openLast: boolean): HomeSeat[] {
 }
 
 /**
- * Dev-only Home preview data. This file is the only place in the Home
- * redesign that holds fixture records — pages and components render props.
+ * Preview data for the Home states, shared by the web design page and the
+ * mobile gallery. Pages and components render props.
  */
 export function createHomeFixtures(now = new Date()): {
   provisional: HomeFixture;
   confirmed: HomeFixture;
-  empty: HomeFixture;
+  needsResults: HomeFixture;
+  noGames: HomeFixture;
+  noGroup: HomeFixture;
 } {
   const nextStart = isoMinutesFrom(now, 5 * 60 + 42);
   const laterStart = isoMinutesFrom(now, 26 * 60);
@@ -181,6 +185,8 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 3,
     gamesLost: 2,
     standing,
+    hasCreateAccess: false,
+    createGroupCount: 1,
   };
 
   const confirmed: HomeFixture = {
@@ -220,9 +226,16 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 11,
     gamesLost: 6,
     standing,
+    hasCreateAccess: true,
+    createGroupCount: 1,
   };
 
-  const empty: HomeFixture = {
+  const needsResults: HomeFixture = {
+    ...confirmed,
+    nextGame: { ...nextGame, phase: "needs_results", seats: fourSeats(false) },
+  };
+
+  const noGames: HomeFixture = {
     userName: "Alex Rivera",
     pendingInviteCount: 0,
     bookedGameCount: 0,
@@ -244,7 +257,11 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 0,
     gamesLost: 0,
     standing: [],
+    hasCreateAccess: true,
+    createGroupCount: 1,
   };
 
-  return { provisional, confirmed, empty };
+  const noGroup: HomeFixture = { ...noGames, createGroupCount: 0 };
+
+  return { provisional, confirmed, needsResults, noGames, noGroup };
 }

@@ -4,7 +4,7 @@ import { BellIcon } from "lucide-react";
 import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
-import { homeStateLine } from "~/components/home/home-state-line";
+import { homeStateLine } from "@repo/domain/home-state-line";
 import { Skeleton } from "~/components/ui/skeleton";
 
 export function HomeHeader({

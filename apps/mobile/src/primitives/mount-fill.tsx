@@ -9,15 +9,21 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { Hatch } from "./hatch";
 import { mountMotion } from "./mount-motion";
 import { useTonePalette } from "./surface-context";
 
 export type MountFillProps = {
   percent: number;
   height?: number;
+  hatched?: boolean;
 };
 
-export function MountFill({ percent, height = 8 }: MountFillProps) {
+export function MountFill({
+  percent,
+  height = 8,
+  hatched = false,
+}: MountFillProps) {
   const palette = useTonePalette();
   const reducedMotion = useReducedMotion();
   const plan = mountMotion({ reducedMotion, durationMs: motion.levelDrawMs });
@@ -43,9 +49,10 @@ export function MountFill({ percent, height = 8 }: MountFillProps) {
         height,
         borderRadius: radii.sm,
         overflow: "hidden",
-        backgroundColor: palette.wash,
+        backgroundColor: hatched ? undefined : palette.wash,
       }}
     >
+      {hatched ? <Hatch radius={radii.sm} bordered={false} /> : null}
       <Animated.View
         style={[{ height, backgroundColor: palette.foreground }, fillStyle]}
       />

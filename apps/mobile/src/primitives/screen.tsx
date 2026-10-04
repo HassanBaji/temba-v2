@@ -1,6 +1,6 @@
 import { colors, spacing } from "@repo/design-tokens";
 import { useMemo } from "react";
-import { ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { createInkRegistry } from "./ink-registry";
@@ -9,9 +9,16 @@ import { InkRegistryContext } from "./surface-context";
 export type ScreenProps = {
   children: React.ReactNode;
   scroll?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 };
 
-export function Screen({ children, scroll = true }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = true,
+  refreshing = false,
+  onRefresh,
+}: ScreenProps) {
   const insets = useSafeAreaInsets();
   const registry = useMemo(
     () =>
@@ -38,6 +45,15 @@ export function Screen({ children, scroll = true }: ScreenProps) {
             contentContainerStyle={content}
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustKeyboardInsets
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={colors.muted}
+                />
+              ) : undefined
+            }
           >
             {children}
           </ScrollView>

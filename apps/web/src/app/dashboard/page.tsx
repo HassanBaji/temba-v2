@@ -13,8 +13,8 @@ import { HomeLevel } from "~/components/home/home-level-block";
 import { HomeRecentForm } from "~/components/home/home-recent-form-row";
 import { HomeStanding } from "~/components/home/home-standing";
 import { HomeTournamentCard } from "~/components/home/home-tournament-card";
-import { GAME_FORMAT_LABELS } from "~/components/temba/typed-labels";
 import { Skeleton } from "~/components/ui/skeleton";
+import { gameFormatLabel } from "@repo/domain/game-format-label";
 import { homeComingUpRows } from "@repo/domain/home-coming-up";
 import { homeNextGameSeats } from "@repo/domain/home-seats";
 import {
@@ -23,13 +23,6 @@ import {
 } from "@repo/domain/tournament-card";
 import { poolRoundLabel } from "@repo/domain/tournament-rounds";
 import { api } from "~/trpc/react";
-
-function formatLabel(format: string) {
-  if (format in GAME_FORMAT_LABELS) {
-    return GAME_FORMAT_LABELS[format as keyof typeof GAME_FORMAT_LABELS];
-  }
-  return format.replaceAll("_", " ");
-}
 
 function HomeSkeleton() {
   return (
@@ -104,7 +97,7 @@ export default function HomePage() {
                 courtLabel={nextGame.courtName}
                 formatLabel={
                   poolRoundLabel(nextGame.roundNumber, nextGame.roundCount) ??
-                  formatLabel(String(nextGame.format))
+                  gameFormatLabel(String(nextGame.format))
                 }
                 startsAt={new Date(nextGame.startTime)}
                 seats={homeNextGameSeats(

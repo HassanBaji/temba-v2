@@ -4,13 +4,14 @@ import { describe, it } from "vitest";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
-} from "@repo/domain/level-bands";
+} from "./level-bands";
 
-import { createHomeFixtures } from "./home";
+import { createHomeFixtures } from "./home-fixtures";
 
 describe("createHomeFixtures", () => {
   const now = new Date("2026-09-07T12:00:00.000Z");
-  const { provisional, confirmed, empty } = createHomeFixtures(now);
+  const { provisional, confirmed, needsResults, noGames, noGroup } =
+    createHomeFixtures(now);
 
   it("puts Provisional and confirmed Level states in separate records", () => {
     assert.equal(provisional.level.provisional, true);
@@ -19,13 +20,21 @@ describe("createHomeFixtures", () => {
     assert.ok(confirmed.level.band);
   });
 
-  it("gives the empty record no games, no Rating, and unplayed form", () => {
-    assert.equal(empty.nextGame, null);
-    assert.equal(empty.comingUp.length, 0);
-    assert.equal(empty.level.band, null);
-    assert.equal(empty.level.canSelfDeclare, true);
-    assert.equal(empty.recentForm.length, 0);
-    assert.equal(empty.gamesPlayed, 0);
+  it("gives the no-games record no games, no Rating, and unplayed form", () => {
+    assert.equal(noGames.nextGame, null);
+    assert.equal(noGames.comingUp.length, 0);
+    assert.equal(noGames.level.band, null);
+    assert.equal(noGames.level.canSelfDeclare, true);
+    assert.equal(noGames.recentForm.length, 0);
+    assert.equal(noGames.gamesPlayed, 0);
+  });
+
+  it("covers the playing-now, add-results and no-Group states", () => {
+    assert.equal(confirmed.nextGame?.phase, "ongoing");
+    assert.equal(needsResults.nextGame?.phase, "needs_results");
+    assert.equal(noGames.createGroupCount, 1);
+    assert.equal(noGroup.createGroupCount, 0);
+    assert.equal(noGroup.nextGame, null);
   });
 
   it("does not render stored C1 / B3 as the visible Home letter", () => {

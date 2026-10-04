@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { formatGameClock, formatWeekday } from "@repo/domain/format-game-start";
 import {
+  homeComingUpSeatBars,
   type HomeComingUpGameRow,
   type HomeComingUpRow,
   type HomeComingUpTournamentMatchRow,
@@ -33,11 +34,7 @@ function DayBox({ startsAt }: { startsAt: Date }) {
 }
 
 function GameRow({ game }: { game: HomeComingUpGameRow }) {
-  const open = Math.max(0, game.seatsTotal - game.seatsTaken);
-  const bars = [
-    ...Array.from({ length: game.seatsTaken }, () => "taken" as const),
-    ...Array.from({ length: open }, () => "open" as const),
-  ];
+  const { bars, spokenLabel } = homeComingUpSeatBars(game);
   return (
     <Link href={`/dashboard/games/${game.id}`} className={ROW_CLASS}>
       <DayBox startsAt={game.startsAt} />
@@ -59,13 +56,7 @@ function GameRow({ game }: { game: HomeComingUpGameRow }) {
           />
         ))}
       </div>
-      <span className="sr-only">
-        {open === 0
-          ? "All seats filled"
-          : open === 1
-            ? "Open seat"
-            : `${open} open seats`}
-      </span>
+      <span className="sr-only">{spokenLabel}</span>
     </Link>
   );
 }

@@ -8,18 +8,9 @@ import { SurfaceLabel } from "~/components/common/surface-label";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { DeclareLevelDialog } from "~/components/you/declare-level-dialog";
-import {
-  chartPointGeometry,
-  HOME_CHART_HEIGHT,
-  HOME_CHART_WIDTH,
-  levelChangeView,
-  parseLevelHistory,
-  plottedFraction,
-} from "@repo/domain/home-level-chart";
+import { homeLevelView } from "@repo/domain/home-level";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
-  displayLabelFromStoredBand,
-  nextDistinctDisplayRung,
   type LevelBand,
   type SelfDeclareChoice,
 } from "@repo/domain/level-bands";
@@ -32,10 +23,6 @@ const CHANGE_ICONS = {
   down: ArrowDownRight,
   none: ArrowRight,
 } as const;
-
-function polyline(points: { x: number; y: number }[]) {
-  return points.map((point) => `${point.x},${point.y}`).join(" ");
-}
 
 export function HomeLevelBlock({
   band,
@@ -57,60 +44,41 @@ export function HomeLevelBlock({
     setDrawn(true);
   }, []);
 
-  const parsed = parseLevelHistory(history);
-  const played = parsed?.matchCount ?? 0;
-  const fraction = provisional
-    ? plottedFraction(played, ratedMatchesRemaining)
-    : 1;
-  const splitX = HOME_CHART_WIDTH * fraction;
-  const values = parsed?.values ?? [];
-  const points = chartPointGeometry(
-    values,
-    provisional ? splitX : HOME_CHART_WIDTH,
-    HOME_CHART_HEIGHT,
-  );
-  const last = points[points.length - 1];
-  const line = polyline(points);
-  const windowLabel =
-    parsed && parsed.matchCount > 0
-      ? parsed.matchCount === 1
-        ? "last 1 match"
-        : `last ${parsed.matchCount} matches`
-      : null;
-  const change = levelChangeView(parsed?.delta ?? 0);
-  const ChangeIcon = CHANGE_ICONS[change.direction];
-  const chartLabel = provisional
-    ? `Level over ${played} rated matches; not yet confirmed`
-    : `Level over ${played} rated matches`;
-  const displayBand = displayLabelFromStoredBand(band);
-  const displayNext = nextDistinctDisplayRung(band);
-
-  const atTopBand = displayNext == null;
-  const fillPercent = Math.min(100, Math.max(0, progressPercent ?? 0));
+  const view = homeLevelView({
+    band,
+    level,
+    provisional,
+    ratedMatchesRemaining,
+    history,
+    progressPercent,
+  });
+  const ChangeIcon = view.change ? CHANGE_ICONS[view.change.direction] : null;
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
       <SurfaceLabel meta="Padel">Level</SurfaceLabel>
       <div className="flex items-stretch gap-4 px-[22px] pb-[22px] pt-1">
-        <p className="font-expanded text-[88px] leading-none">{displayBand}</p>
+        <p className="font-expanded text-[88px] leading-none">
+          {view.displayBand}
+        </p>
         <div className="bg-rule w-px self-stretch" />
         <div className="flex min-w-0 flex-col justify-center gap-1">
           <div className="flex items-center gap-2">
             <p className="font-expanded text-2xl tabular-nums leading-none">
-              {level}{" "}
+              {view.level}{" "}
             </p>
             <span className="text-muted-foreground text-meta mt-1">Level</span>
           </div>
-          {windowLabel ? (
+          {view.change && ChangeIcon ? (
             <div className="flex items-center gap-1">
               <ChangeIcon aria-hidden="true" className="size-6 shrink-0" />
               <div className="flex items-center gap-2">
                 <p className="font-expanded text-2xl">
-                  <span className="sr-only">{change.spoken} </span>
-                  {change.amount}
+                  <span className="sr-only">{view.change.spoken} </span>
+                  {view.change.amount}
                 </p>
                 <p className="text-muted-foreground text-meta mt-1">
-                  {windowLabel}
+                  {view.change.windowLabel}
                 </p>
               </div>
             </div>
@@ -118,82 +86,14 @@ export function HomeLevelBlock({
         </div>
       </div>
 
-      {/* <div className="border-rule border-t p-[22px]">
-        <svg
-          viewBox={`0 0 ${HOME_CHART_WIDTH} ${HOME_CHART_HEIGHT}`}
-          className="h-[58px] w-full"
-          role="img"
-          aria-label={chartLabel}
-        >
-          {provisional ? (
-            <foreignObject
-              x={splitX}
-              y={0}
-              width={HOME_CHART_WIDTH - splitX}
-              height={HOME_CHART_HEIGHT}
-              aria-hidden="true"
-            >
-              <div aria-hidden="true" className="hatch h-full w-full" />
-            </foreignObject>
-          ) : null}
-          {line ? (
-            <polyline
-              points={line}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              pathLength={1}
-              style={{
-                strokeDashoffset: drawn ? 0 : 1,
-                strokeDasharray: 1,
-                transition: "stroke-dashoffset 800ms ease-out",
-              }}
-            />
-          ) : null}
-          {provisional && last ? (
-            <line
-              x1={last.x}
-              y1={last.y}
-              x2={HOME_CHART_WIDTH}
-              y2={last.y}
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeDasharray="4 4"
-              opacity="0.55"
-              aria-hidden="true"
-            />
-          ) : null}
-          {!provisional && last ? (
-            <circle cx={last.x} cy={last.y} r="2.2" fill="currentColor" />
-          ) : null}
-          {provisional &&
-            points.map((point) => (
-              <circle
-                key={`${point.x}-${point.y}`}
-                cx={point.x}
-                cy={point.y}
-                r="1.8"
-                fill="currentColor"
-              />
-            ))}
-        </svg>
-        {provisional ? (
-          <p className="text-muted-foreground text-meta mt-2">
-            Not yet confirmed
-          </p>
-        ) : null}
-      </div> */}
-
-      {atTopBand ? (
+      {!view.progress ? (
         <p className="border-rule text-meta border-t px-[22px] py-3">
           Top Level band
         </p>
       ) : (
         <div className="border-rule space-y-2 border-t p-[22px]">
           <p className="text-muted-foreground text-meta">
-            {fillPercent}% of the way to {displayNext}
+            {view.progress.label}
           </p>
           <div
             aria-hidden="true"
@@ -206,7 +106,7 @@ export function HomeLevelBlock({
             <div
               className="bg-ink h-full"
               style={{
-                width: drawn ? `${fillPercent}%` : "0%",
+                width: drawn ? `${view.progress.percent}%` : "0%",
                 transition: "width 700ms ease-out",
               }}
             />
@@ -221,19 +121,10 @@ export function HomeLevelBlock({
             provisional ? "hatch size-3 shrink-0" : "bg-ink size-3 shrink-0"
           }
         />
-        {provisional ? (
-          <p>
-            <span className="font-semibold">Provisional Level.</span> Hatched
-            means unconfirmed — play about {ratedMatchesRemaining} more rated{" "}
-            {ratedMatchesRemaining === 1 ? "game" : "games"} and your Level
-            confirms.
-          </p>
-        ) : (
-          <p>
-            <span className="font-semibold">Level confirmed.</span> Your Level
-            now moves with every rated game you play.
-          </p>
-        )}
+        <p>
+          <span className="font-semibold">{view.legend.lead}</span>
+          {view.legend.rest}
+        </p>
       </div>
     </section>
   );

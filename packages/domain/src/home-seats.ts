@@ -1,3 +1,5 @@
+import { initials } from "./initials";
+
 export type HomeSeatView = {
   id: string;
   name: string | null;
@@ -85,5 +87,52 @@ function occupantToSeat(
     image: occupant.image,
     filled: true,
     sideLabel,
+  };
+}
+
+export function homeSeatCaption(
+  seat: HomeSeatView,
+  useInitials: boolean,
+): string | null {
+  if (!seat.filled || !seat.name) {
+    return null;
+  }
+  if (useInitials) {
+    return initials(seat.name);
+  }
+  const first = seat.name.trim().split(/\s+/)[0];
+  return first ?? seat.name;
+}
+
+export function homeSeatsBySide(seats: HomeSeatView[]): HomeSeatView[][] {
+  const groups: HomeSeatView[][] = [];
+  const indexByLabel = new Map<string, number>();
+
+  for (const seat of seats) {
+    const label = seat.sideLabel ?? "";
+    const existing = indexByLabel.get(label);
+    if (existing === undefined) {
+      indexByLabel.set(label, groups.length);
+      groups.push([seat]);
+      continue;
+    }
+    groups[existing]?.push(seat);
+  }
+
+  return groups;
+}
+
+export function homeSeatRowSummary(seats: HomeSeatView[]): {
+  filled: number;
+  total: number;
+  useInitials: boolean;
+  spotsLabel: string | null;
+} {
+  const filled = seats.filter((seat) => seat.filled).length;
+  return {
+    filled,
+    total: seats.length,
+    useInitials: seats.length > 6,
+    spotsLabel: homeSpotsOpenLabel(seats.length - filled, seats.length),
   };
 }

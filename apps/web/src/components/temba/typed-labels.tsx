@@ -1,11 +1,8 @@
+import { GAME_FORMAT_LABELS } from "@repo/domain/game-format-label";
 import { Badge } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 
-export const GAME_FORMAT_LABELS = {
-  friendly_game: "Friendly game",
-  americano: "Americano",
-  friendly_tournament: "Friendly tournament",
-} as const;
+export { GAME_FORMAT_LABELS };
 
 export const GAME_REGISTRATION_MODE_LABELS = {
   individual: "Individual",

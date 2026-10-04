@@ -112,3 +112,21 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
 export function homeComingUpRows(games: readonly HomeComingUpSource[]) {
   return games.map(toRow);
 }
+
+export function homeComingUpSeatBars(
+  game: Pick<HomeComingUpGameRow, "seatsTaken" | "seatsTotal">,
+): { bars: ("taken" | "open")[]; spokenLabel: string } {
+  const open = Math.max(0, game.seatsTotal - game.seatsTaken);
+  return {
+    bars: [
+      ...Array.from({ length: game.seatsTaken }, () => "taken" as const),
+      ...Array.from({ length: open }, () => "open" as const),
+    ],
+    spokenLabel:
+      open === 0
+        ? "All seats filled"
+        : open === 1
+          ? "Open seat"
+          : `${open} open seats`,
+  };
+}

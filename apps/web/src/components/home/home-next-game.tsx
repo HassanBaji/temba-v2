@@ -6,18 +6,28 @@ import { useEffect, useState } from "react";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { HomeSeatRow } from "~/components/home/home-seat-row";
 import { Button } from "~/components/ui/button";
-import {
-  formatHomeCountdown,
-  formatHomeKickoff,
-} from "@repo/domain/home-countdown";
+import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import {
   homeNextGameActions,
+  homeNextGameSecondaryLine,
+  homeNextGameStatus,
   type HomeNextGamePhase,
-} from "~/lib/home-next-game";
-import { homeNoGamesCreateAction } from "~/lib/home-no-games";
+  type HomeTarget,
+} from "@repo/domain/home-next-game";
+import {
+  homeNoGamesCopy,
+  homeNoGamesCreateAction,
+} from "@repo/domain/home-no-games";
+import { gameHomeIntentHref } from "~/lib/game-home-tab";
 import type { HomeSeatView } from "@repo/domain/home-seats";
 import { api } from "~/trpc/react";
 import { Surface } from "~/components/ui/surface";
+
+function gameTargetHref(target: HomeTarget) {
+  return target.intent
+    ? gameHomeIntentHref(target.gameId, target.intent)
+    : `/dashboard/games/${target.gameId}`;
+}
 
 export function HomeNextGame({
   id,
@@ -46,20 +56,13 @@ export function HomeNextGame({
   }, []);
 
   const kickoff = formatHomeKickoff(startsAt);
-  const countdown =
-    phase === "upcoming" ? formatHomeCountdown(startsAt, now) : null;
-  const status =
-    phase === "ongoing"
-      ? "Playing now"
-      : phase === "needs_results"
-        ? "Add results"
-        : countdown;
-  const { primary, detailsHref } = homeNextGameActions({
+  const status = homeNextGameStatus(phase, startsAt, now);
+  const { primary, details } = homeNextGameActions({
     gameId: id,
     phase,
     hasOpenSeat: seats.some((seat) => !seat.filled),
   });
-  const secondaryLine = [courtLabel, formatLabel].filter(Boolean).join(" · ");
+  const secondaryLine = homeNextGameSecondaryLine(courtLabel, formatLabel);
 
   return (
     <Surface as="article" tone="ink" radius="surface" className="p-[22px]">
@@ -87,11 +90,11 @@ export function HomeNextGame({
       </div>
       <div className="mt-4 flex gap-2">
         <Button asChild variant="inverse" className="flex-1">
-          <Link href={primary.href}>{primary.label}</Link>
+          <Link href={gameTargetHref(primary.target)}>{primary.label}</Link>
         </Button>
-        {detailsHref ? (
+        {details ? (
           <Button asChild variant="outline-inverse" className="flex-1">
-            <Link href={detailsHref}>Details</Link>
+            <Link href={gameTargetHref(details)}>Details</Link>
           </Button>
         ) : null}
       </div>
@@ -113,14 +116,20 @@ export function HomeNoGames() {
     <div className="border-rule bg-paper rounded-xl border p-[22px]">
       <p className="text-lead font-semibold">No games booked</p>
       <p className="text-muted-foreground text-meta mt-1">
-        {createAction?.kind === "group"
-          ? "Create a Group first, then you can create a Game."
-          : "Browse available games."}
+        {homeNoGamesCopy(createAction)}
       </p>
       <div className="mt-4 flex gap-2">
         {createAction ? (
           <Button asChild className="flex-1">
-            <Link href={createAction.href}>{createAction.label}</Link>
+            <Link
+              href={
+                createAction.kind === "group"
+                  ? "/dashboard/groups/new"
+                  : "/dashboard/games/new"
+              }
+            >
+              {createAction.label}
+            </Link>
           </Button>
         ) : null}
         <Button asChild variant="outline" className="flex-1">

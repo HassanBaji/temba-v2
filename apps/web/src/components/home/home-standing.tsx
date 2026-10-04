@@ -1,22 +1,10 @@
 import Link from "next/link";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
-import { SPORT_LABELS, type SportValue } from "~/components/temba/sport-badge";
-
-export type HomeStandingRow = {
-  groupId: string;
-  groupName: string | null;
-  sport: string | null;
-  position: number;
-  memberCount: number;
-};
-
-function sportLabel(sport: string | null): string | null {
-  if (sport == null || sport.trim() === "") {
-    return null;
-  }
-  return sport in SPORT_LABELS ? SPORT_LABELS[sport as SportValue] : sport;
-}
+import {
+  homeStandingRowView,
+  type HomeStandingRow,
+} from "@repo/domain/home-standing";
 
 export function HomeStanding({ rows }: { rows: readonly HomeStandingRow[] }) {
   if (rows.length === 0) {
@@ -27,8 +15,7 @@ export function HomeStanding({ rows }: { rows: readonly HomeStandingRow[] }) {
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
       <SurfaceLabel>Standing</SurfaceLabel>
       <ul className="divide-rule divide-y">
-        {rows.map((row) => {
-          const sport = sportLabel(row.sport);
+        {rows.map(homeStandingRowView).map((row) => {
           return (
             <li key={row.groupId}>
               <Link
@@ -36,20 +23,20 @@ export function HomeStanding({ rows }: { rows: readonly HomeStandingRow[] }) {
                 className="focus-visible:ring-ring/50 flex items-center gap-3 px-[22px] py-3 outline-none focus-visible:ring-[3px]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
-                    {row.groupName ?? "Group"}
-                  </p>
-                  {sport ? (
-                    <p className="text-muted-foreground text-meta">{sport}</p>
+                  <p className="truncate font-medium">{row.groupName}</p>
+                  {row.sportLabel ? (
+                    <p className="text-muted-foreground text-meta">
+                      {row.sportLabel}
+                    </p>
                   ) : null}
                 </div>
                 <p className="shrink-0 tabular-nums">
                   <span className="font-expanded text-title leading-none">
-                    #{row.position}
+                    {row.rank}
                   </span>
                   <span className="text-muted-foreground text-meta">
                     {" "}
-                    of {row.memberCount}
+                    {row.ofCount}
                   </span>
                 </p>
               </Link>

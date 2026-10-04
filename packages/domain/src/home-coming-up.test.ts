@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { homeComingUpRows, type HomeComingUpSource } from "./home-coming-up";
+import {
+  homeComingUpRows,
+  homeComingUpSeatBars,
+  type HomeComingUpSource,
+} from "./home-coming-up";
 
 const STARTS = new Date("2026-09-29T17:30:00.000Z");
 
@@ -184,6 +188,23 @@ describe("homeComingUpRows", () => {
     assert.equal(
       row?.kind === "tournament" ? row.actionLabel : null,
       "Invite a partner",
+    );
+  });
+});
+
+describe("homeComingUpSeatBars", () => {
+  it("lists taken seats then open seats and says how many are open", () => {
+    assert.deepEqual(homeComingUpSeatBars({ seatsTaken: 3, seatsTotal: 4 }), {
+      bars: ["taken", "taken", "taken", "open"],
+      spokenLabel: "Open seat",
+    });
+    assert.equal(
+      homeComingUpSeatBars({ seatsTaken: 1, seatsTotal: 4 }).spokenLabel,
+      "3 open seats",
+    );
+    assert.equal(
+      homeComingUpSeatBars({ seatsTaken: 4, seatsTotal: 4 }).spokenLabel,
+      "All seats filled",
     );
   });
 });

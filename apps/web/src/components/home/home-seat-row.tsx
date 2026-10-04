@@ -1,38 +1,13 @@
 import { Fragment } from "react";
 
-import { initials } from "@repo/domain/initials";
-import { homeSpotsOpenLabel, type HomeSeatView } from "@repo/domain/home-seats";
+import {
+  homeSeatCaption,
+  homeSeatRowSummary,
+  homeSeatsBySide,
+  type HomeSeatView,
+} from "@repo/domain/home-seats";
 import { cn } from "~/lib/utils";
 import { UserAvatar } from "../common/user-avatar";
-
-function seatCaption(seat: HomeSeatView, useInitials: boolean): string | null {
-  if (!seat.filled || !seat.name) {
-    return null;
-  }
-  if (useInitials) {
-    return initials(seat.name);
-  }
-  const first = seat.name.trim().split(/\s+/)[0];
-  return first ?? seat.name;
-}
-
-function seatsBySide(seats: HomeSeatView[]): HomeSeatView[][] {
-  const groups: HomeSeatView[][] = [];
-  const indexByLabel = new Map<string, number>();
-
-  for (const seat of seats) {
-    const label = seat.sideLabel ?? "";
-    const existing = indexByLabel.get(label);
-    if (existing === undefined) {
-      indexByLabel.set(label, groups.length);
-      groups.push([seat]);
-      continue;
-    }
-    groups[existing]?.push(seat);
-  }
-
-  return groups;
-}
 
 function HomeSeat({
   seat,
@@ -41,7 +16,7 @@ function HomeSeat({
   seat: HomeSeatView;
   useInitials: boolean;
 }) {
-  const caption = seatCaption(seat, useInitials);
+  const caption = homeSeatCaption(seat, useInitials);
 
   return (
     <div
@@ -82,17 +57,14 @@ function HomeSeat({
 }
 
 export function HomeSeatRow({ seats }: { seats: HomeSeatView[] }) {
-  const filled = seats.filter((seat) => seat.filled).length;
-  const open = seats.length - filled;
-  const useInitials = seats.length > 6;
-  const sides = seatsBySide(seats);
-  const spotsLabel = homeSpotsOpenLabel(open, seats.length);
+  const { filled, total, useInitials, spotsLabel } = homeSeatRowSummary(seats);
+  const sides = homeSeatsBySide(seats);
 
   return (
     <div className="space-y-2">
       <div className="text-dim text-meta flex items-center justify-between gap-2">
         <p>
-          {filled} of {seats.length} players in
+          {filled} of {total} players in
         </p>
         {spotsLabel ? <p>{spotsLabel}</p> : null}
       </div>
