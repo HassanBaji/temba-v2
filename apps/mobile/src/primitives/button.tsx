@@ -14,6 +14,7 @@ export type ButtonVariant =
 
 export type ButtonProps = {
   label: string;
+  accessibilityLabel?: string;
   onPress?: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -43,6 +44,7 @@ const VARIANTS: Record<
 
 export function Button({
   label,
+  accessibilityLabel,
   onPress,
   variant,
   size = "default",
@@ -60,7 +62,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: inactive, busy: pending, selected }}
       disabled={inactive}
       hitSlop={hitSlop}

@@ -10,12 +10,14 @@ import type {
   FriendlyGameDetailsSide,
 } from "@repo/domain/friendly-game-details";
 import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
+import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
 import { Avatar } from "../primitives/avatar";
+import { Button } from "../primitives/button";
 import { FormSlot } from "../primitives/form-slot";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
@@ -116,10 +118,12 @@ function SeatRow({
   seat,
   position,
   isViewer,
+  onKick,
 }: {
   seat: FriendlyGameDetailsSeat;
   position: Position;
   isViewer: boolean;
+  onKick: (() => void) | null;
 }) {
   return (
     <View
@@ -140,6 +144,15 @@ function SeatRow({
           {friendlyGameSeatSubline(position, seat.levelBand)}
         </Text>
       </View>
+      {onKick ? (
+        <Button
+          label={KICK_ACTION}
+          accessibilityLabel={`${KICK_ACTION} ${seat.name}`}
+          variant="outline"
+          size="sm"
+          onPress={onKick}
+        />
+      ) : null}
     </View>
   );
 }
@@ -153,6 +166,8 @@ function SideColumn({
   canMove,
   moving,
   onMove,
+  kickableUserIds,
+  onKick,
 }: {
   side: FriendlyGameDetailsSide;
   viewerUserId: string;
@@ -162,6 +177,8 @@ function SideColumn({
   canMove: boolean;
   moving: boolean;
   onMove: (position: Position) => void;
+  kickableUserIds: readonly string[];
+  onKick: ((userId: string) => void) | undefined;
 }) {
   const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
   return (
@@ -184,6 +201,11 @@ function SideColumn({
             seat={seat}
             position={position}
             isViewer={seat.userId === viewerUserId}
+            onKick={
+              onKick && kickableUserIds.includes(seat.userId)
+                ? () => onKick(seat.userId)
+                : null
+            }
           />
         ) : (
           <VacantRow
@@ -208,6 +230,8 @@ export function LineupCard({
   canMove,
   moving,
   onMove,
+  kickableUserIds = [],
+  onKick,
 }: {
   sides: FriendlyGameDetailsSide[];
   viewerUserId: string;
@@ -216,6 +240,8 @@ export function LineupCard({
   canMove: boolean;
   moving: boolean;
   onMove: (sideIndex: number, position: Position) => void;
+  kickableUserIds?: readonly string[];
+  onKick?: (userId: string) => void;
 }) {
   const vacant = vacantJoinSeats(sides);
   const isVacant = (sideIndex: number, position: Position) =>
@@ -256,6 +282,8 @@ export function LineupCard({
               canMove={canMove}
               moving={moving}
               onMove={(position) => onMove(side.sideIndex, position)}
+              kickableUserIds={kickableUserIds}
+              onKick={onKick}
             />
           </Fragment>
         ))}

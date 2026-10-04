@@ -1,4 +1,3 @@
-import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { friendlyGameResultsSaveSets } from "@repo/domain/friendly-game-results";
 import { defaultJoinSeat } from "@repo/domain/preferred-seat";
@@ -22,8 +21,7 @@ export function isFriendlyGameDetails(game: {
 
 export const UNSUPPORTED_FORMAT_COPY = {
   title: "Not on mobile yet",
-  description:
-    "This kind of Game opens on the web for now.",
+  description: "This kind of Game opens on the web for now.",
 } as const;
 
 export function gameTitle(name: string | null) {
@@ -121,16 +119,4 @@ export function withDraftChange(
       slot2: sideIndex === 2 ? value : current.slot2,
     },
   };
-}
-
-export function playerFooterActions(input: {
-  phase: "upcoming" | "ongoing" | "needs_results" | "final";
-  canLeaveGame: boolean;
-  playerCount: number;
-}) {
-  return friendlyGameFooterActions({
-    ...input,
-    isOrganizer: false,
-    canReportWrongScore: null,
-  });
 }

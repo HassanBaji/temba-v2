@@ -1,4 +1,5 @@
-import { formatLevelRangeGateCopy } from "./level-range";
+import { formatLevelRangeGateCopy, formatLevelTenths } from "./level-range";
+import { requestRowMeta } from "./request-meta";
 
 export type LevelRangeRequestInput = {
   levelMinTenths: number | null;
@@ -46,4 +47,33 @@ export function levelRangeRequestCard(
         : LEVEL_RANGE_REQUEST_TITLE,
     actionEnabled: game.canRequestLevelRange,
   };
+}
+
+export function levelRangeQueueVisible(game: {
+  isOrganizer: boolean;
+  levelMinTenths: number | null;
+  levelMaxTenths: number | null;
+}) {
+  return (
+    game.isOrganizer &&
+    (game.levelMinTenths != null || game.levelMaxTenths != null)
+  );
+}
+
+export function levelRangeRequestRowMeta(
+  request: {
+    levelTenths: number | null;
+    provisional: boolean;
+    createdAt: Date | string;
+  },
+  now?: Date,
+) {
+  return requestRowMeta(
+    request.createdAt,
+    [
+      formatLevelTenths(request.levelTenths) ?? "No Level",
+      request.provisional ? "Provisional" : null,
+    ],
+    now,
+  );
 }

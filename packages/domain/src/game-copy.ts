@@ -15,6 +15,8 @@ export const COMPLETE_MATCH_ACTION = "Complete Match";
 export const MARK_AS_NOT_PLAYED_ACTION = "Mark as not played";
 export const REPORT_WRONG_SCORE_ACTION = "Report a wrong score";
 export const KICK_ACTION = "Kick";
+export const CLOSE_REGISTRATION_ACTION = "Close registration";
+export const REOPEN_REGISTRATION_ACTION = "Reopen registration";
 
 export const CANNOT_BE_UNDONE_COPY = "This cannot be undone.";
 export const LEAVE_GAME_CONSEQUENCE = "Your spot can open for someone else.";

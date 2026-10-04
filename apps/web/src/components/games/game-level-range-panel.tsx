@@ -9,28 +9,17 @@ import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { formatLevelTenths } from "@repo/domain/level-range";
 import {
   LEVEL_RANGE_REQUEST_SENT_TOAST,
+  levelRangeQueueVisible,
   levelRangeRequestCard,
+  levelRangeRequestRowMeta,
 } from "@repo/domain/level-range-request";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { requestRowMeta } from "@repo/domain/request-meta";
 import { api } from "~/trpc/react";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
 
 type GameDetail = TournamentDetails;
-
-function requestMeta(request: {
-  levelTenths: number | null;
-  provisional: boolean;
-  createdAt: Date | string;
-}) {
-  return requestRowMeta(request.createdAt, [
-    formatLevelTenths(request.levelTenths) ?? "No Level",
-    request.provisional ? "Provisional" : null,
-  ]);
-}
 
 export function GameLevelRangePanel({ game }: { game: GameDetail }) {
   const utils = api.useUtils();
@@ -62,10 +51,8 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
     },
   });
 
-  const gameHasRange =
-    game.levelMinTenths != null || game.levelMaxTenths != null;
   const requestCard = levelRangeRequestCard(game);
-  const showOrganizerQueue = game.isOrganizer && gameHasRange;
+  const showOrganizerQueue = levelRangeQueueVisible(game);
 
   if (!requestCard && !showOrganizerQueue) {
     return null;
@@ -125,7 +112,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
                       />
                     }
                     title={name}
-                    meta={requestMeta(request)}
+                    meta={levelRangeRequestRowMeta(request)}
                     approvePending={
                       approve.isPending &&
                       approve.variables?.requestId === request.id

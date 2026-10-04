@@ -48,6 +48,7 @@ import {
   CANCEL_GAME_ACTION,
   CANCEL_MATCH_ACTION,
   CANNOT_BE_UNDONE_COPY,
+  CLOSE_REGISTRATION_ACTION,
   COMPLETE_MATCH_ACTION,
   COMPLETE_MATCH_CONSEQUENCE,
   EDIT_GAME_ACTION,
@@ -58,6 +59,7 @@ import {
   LEAVE_WAITLIST_CONSEQUENCE,
   MARK_AS_NOT_PLAYED_ACTION,
   MARK_AS_NOT_PLAYED_CONSEQUENCE,
+  REOPEN_REGISTRATION_ACTION,
   REPORT_WRONG_SCORE_ACTION,
   REPORT_WRONG_SCORE_CONSEQUENCE,
   cancelGameConsequence,
@@ -65,6 +67,10 @@ import {
   teamRegisterToast,
   kickedToast,
 } from "@repo/domain/game-copy";
+import {
+  gameLevelRangeSaveInput,
+  gameWindowSaveInput,
+} from "@repo/domain/game-edit-save";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import {
@@ -107,17 +113,11 @@ import {
   resolveRoundCount,
   sizeFriendlyTournament,
 } from "@repo/domain/tournament-sizing";
-import {
-  formatGameWindowName,
-  parseRequiredGameWindow,
-  splitGameWindow,
-} from "@repo/domain/game-window";
+import { splitGameWindow } from "@repo/domain/game-window";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import {
   LEVEL_BAND_SELECT_NONE,
-  LEVEL_RANGE_INVERTED_MESSAGE,
-  parseLevelBandSelectTenths,
   tenthsToLevelBandSelectValue,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
@@ -865,14 +865,14 @@ export default function GameHomePage({
               disabled={data.joinFrozen || reopenRegistration.isPending}
               onSelect={() => reopenRegistration.mutate({ gameId: id })}
             >
-              Reopen registration
+              {REOPEN_REGISTRATION_ACTION}
             </ActionMenuItem>
           ) : (
             <ActionMenuItem
               disabled={closeRegistration.isPending}
               onSelect={() => closeRegistration.mutate({ gameId: id })}
             >
-              Close registration
+              {CLOSE_REGISTRATION_ACTION}
             </ActionMenuItem>
           )}
           {canManageGameInvites ? (
@@ -907,20 +907,15 @@ export default function GameHomePage({
   ) : null;
 
   function saveWindow() {
-    const gameWindow = parseRequiredGameWindow(
+    const input = gameWindowSaveInput(
       windowDay,
       windowStartTime,
       windowFinishTime,
     );
-    if (!gameWindow) {
+    if (!input) {
       return;
     }
-    updateWindow.mutate({
-      gameId: id,
-      name: formatGameWindowName(windowDay, windowStartTime, windowFinishTime),
-      windowStart: gameWindow.windowStart,
-      windowEnd: gameWindow.windowEnd,
-    });
+    updateWindow.mutate({ gameId: id, ...input });
   }
 
   function savePrice() {
@@ -946,18 +941,13 @@ export default function GameHomePage({
     }
     setLevelMinError(undefined);
     setLevelMaxError(undefined);
-    const parsedMin = parseLevelBandSelectTenths(levelMin, "min");
-    const parsedMax = parseLevelBandSelectTenths(levelMax, "max");
-    if (parsedMin != null && parsedMax != null && parsedMin > parsedMax) {
-      setLevelMinError(LEVEL_RANGE_INVERTED_MESSAGE);
+    const save = gameLevelRangeSaveInput(levelMin, levelMax);
+    if (!save.ok) {
+      setLevelMinError(save.message);
       document.getElementById("edit-level-min")?.focus();
       return;
     }
-    updateLevelRange.mutate({
-      gameId: id,
-      levelMinTenths: parsedMin,
-      levelMaxTenths: parsedMax,
-    });
+    updateLevelRange.mutate({ gameId: id, ...save.input });
   }
 
   function saveRounds() {

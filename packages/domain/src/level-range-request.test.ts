@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { levelRangeRequestCard } from "./level-range-request";
+import {
+  levelRangeQueueVisible,
+  levelRangeRequestCard,
+  levelRangeRequestRowMeta,
+} from "./level-range-request";
 
 const base = {
   levelMinTenths: 30,
@@ -57,5 +61,47 @@ describe("levelRangeRequestCard", () => {
   it("asks a viewer with no Level to declare one", () => {
     const card = levelRangeRequestCard({ ...base, viewerLevelTenths: null });
     assert.match(card?.copy ?? "", /don't have a Level yet/);
+  });
+});
+
+describe("levelRangeQueueVisible", () => {
+  it("shows the Organizer queue only for a Game with a range", () => {
+    assert.equal(levelRangeQueueVisible({ isOrganizer: true, ...base }), true);
+    assert.equal(
+      levelRangeQueueVisible({
+        isOrganizer: true,
+        levelMinTenths: null,
+        levelMaxTenths: null,
+      }),
+      false,
+    );
+    assert.equal(
+      levelRangeQueueVisible({ isOrganizer: false, ...base }),
+      false,
+    );
+  });
+});
+
+describe("levelRangeRequestRowMeta", () => {
+  const now = new Date("2030-01-15T12:00:00Z");
+
+  it("joins the Level, Provisional and when it was requested", () => {
+    assert.equal(
+      levelRangeRequestRowMeta(
+        { levelTenths: 52, provisional: true, createdAt: now },
+        now,
+      ),
+      "5.2 · Provisional · Requested today",
+    );
+  });
+
+  it("says No Level for a User without a Rating", () => {
+    assert.equal(
+      levelRangeRequestRowMeta(
+        { levelTenths: null, provisional: false, createdAt: now },
+        now,
+      ),
+      "No Level · Requested today",
+    );
   });
 });

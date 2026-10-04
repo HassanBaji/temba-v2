@@ -2,7 +2,11 @@ import {
   friendlyGameDetailsPlan,
   type FriendlyGameDetails,
 } from "@repo/domain/friendly-game-details";
-import type { FriendlyGameFooterAction } from "@repo/domain/friendly-game-actions";
+import {
+  friendlyGameFooterActions,
+  type FriendlyGameFooterAction,
+} from "@repo/domain/friendly-game-actions";
+import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
@@ -13,10 +17,11 @@ import { Text } from "../primitives/text";
 import { useNow } from "../games/use-now";
 import { ActionsFooter } from "./actions-footer";
 import { BottomBar, type BottomBarHandlers } from "./bottom-bar";
-import { playerFooterActions, type setsToSave } from "./details-model";
+import type { setsToSave } from "./details-model";
 import { HeroCard } from "./hero-card";
 import { LevelRequestCard } from "./level-request-card";
 import { LineupCard } from "./lineup-card";
+import { OrganizerCard, type OrganizerHandlers } from "./organizer-card";
 import { RatingImpactCard } from "./rating-impact-card";
 import { ScoreCard } from "./score-card";
 
@@ -35,12 +40,19 @@ export type DetailsHandlers = {
   onFooterAction: (kind: FriendlyGameFooterAction["kind"]) => void;
 };
 
+export type DetailsOrganizer = {
+  plan: FriendlyGameOrganizerPlan;
+  handlers: OrganizerHandlers;
+};
+
 export function GameDetailsContent({
   game,
   handlers,
+  organizer = null,
 }: {
   game: FriendlyGameDetails;
   handlers: DetailsHandlers;
+  organizer?: DetailsOrganizer | null;
 }) {
   const now = useNow();
   const plan = friendlyGameDetailsPlan(game);
@@ -85,6 +97,8 @@ export function GameDetailsContent({
         canMove={game.canMove}
         moving={handlers.movePending}
         onMove={handlers.onMove}
+        kickableUserIds={organizer?.plan.kickableUserIds}
+        onKick={organizer?.handlers.onKickPlayer}
       />
       {live && firstMatch ? (
         <ScoreCard
@@ -103,11 +117,16 @@ export function GameDetailsContent({
       {phase === "final" && game.ratingImpact ? (
         <RatingImpactCard ratingImpact={game.ratingImpact} />
       ) : null}
+      {organizer ? (
+        <OrganizerCard plan={organizer.plan} handlers={organizer.handlers} />
+      ) : null}
       {live && firstMatch ? (
         <ActionsFooter
-          actions={playerFooterActions({
+          actions={friendlyGameFooterActions({
             phase: live,
+            isOrganizer: game.isOrganizer,
             canLeaveGame: plan.canLeaveGame,
+            canReportWrongScore: game.canReportWrongScore,
             playerCount: occupiedFriendlyPositions(game.sides),
           })}
           pendingKind={handlers.footerPendingKind}

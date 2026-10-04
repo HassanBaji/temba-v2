@@ -236,3 +236,28 @@ export function splitGameWindow(
     finishTime: toTimeInputValue(end),
   };
 }
+
+export function gameEditWindowChoices(
+  current: { day: string; startTime: string; finishTime: string },
+  now: Date = new Date(),
+  dayCount = 14,
+) {
+  const first = earliestGameWindowDay(now);
+  const days = Array.from({ length: dayCount }, (_, index) =>
+    formatDateInputValue(addProductDays(first, index)),
+  );
+  if (current.day && !days.includes(current.day)) {
+    days.unshift(current.day);
+  }
+  const withCurrent = (slots: readonly string[], keep: string) =>
+    keep && !slots.includes(keep) ? [...slots, keep].sort() : [...slots];
+  const startSlots = withCurrent(
+    upcomingGameWindowTimeSlots(current.day, now),
+    current.startTime,
+  );
+  const finishSlots = withCurrent(
+    startSlots.filter((slot) => slot > current.startTime),
+    current.finishTime,
+  );
+  return { days, startSlots, finishSlots };
+}

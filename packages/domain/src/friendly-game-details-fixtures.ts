@@ -2,6 +2,7 @@ import type {
   FriendlyGameDetails,
   FriendlyGameDetailsSide,
 } from "./friendly-game-details";
+import type { FriendlyGameOrganizerInput } from "./friendly-game-organizer";
 import type { PartnerSuggestion } from "./friendly-game-partner";
 import { createGameDetailsFixtures } from "./game-details-fixtures";
 
@@ -229,3 +230,108 @@ export const PARTNER_SUGGESTION_FIXTURES: {
     },
   ],
 };
+
+export type FriendlyGameOrganizerFixtureKey =
+  | "upcoming"
+  | "registrationClosed"
+  | "ongoing"
+  | "needsScore"
+  | "final"
+  | "finalLocked"
+  | "softArchived"
+  | "cancelled";
+
+export const FRIENDLY_GAME_ORGANIZER_FIXTURE_LABELS: Record<
+  FriendlyGameOrganizerFixtureKey,
+  string
+> = {
+  upcoming: "Upcoming",
+  registrationClosed: "Registration closed",
+  ongoing: "Ongoing",
+  needsScore: "Needs results",
+  final: "Final",
+  finalLocked: "Final, locked",
+  softArchived: "Soft-archived",
+  cancelled: "Cancelled",
+};
+
+export function createFriendlyGameOrganizerFixtures(
+  now = new Date(),
+): Record<FriendlyGameOrganizerFixtureKey, FriendlyGameOrganizerInput> {
+  const players = createFriendlyGameDetailsFixtures(now);
+
+  function organizer(
+    source: FriendlyGameDetails,
+    overrides: Partial<FriendlyGameOrganizerInput> = {},
+  ): FriendlyGameOrganizerInput {
+    return {
+      ...source,
+      isOrganizer: true,
+      isRegistered: true,
+      levelMinTenths: 30,
+      levelMaxTenths: 45,
+      registeredPlayers: source.sides.flatMap((side) =>
+        [side.left, side.right].flatMap((seatRow) =>
+          seatRow
+            ? [{ id: seatRow.userId, name: seatRow.name, image: null }]
+            : [],
+        ),
+      ),
+      unseatedPlayers: [],
+      waitlist: [
+        {
+          id: "waitlist-1",
+          userId: "user-waiting",
+          teamId: null,
+          name: "Noor Haddad",
+          image: null,
+        },
+      ],
+      pendingLevelRangeRequests: [
+        {
+          id: "level-request-1",
+          levelTenths: 52,
+          provisional: false,
+          createdAt: new Date(now.getTime() - 26 * 60 * 60 * 1000),
+          user: { id: "user-tariq", name: "Tariq Aziz", image: null },
+        },
+      ],
+      matches: source.matches.map((match) => ({
+        ...match,
+        courtId: match.courtName ? "court-1" : null,
+        canComplete:
+          match.status !== "completed" &&
+          match.status !== "cancelled" &&
+          match.sets.some((set) => set.slot1GamesWon != null),
+      })),
+      ...overrides,
+    };
+  }
+
+  const upcoming = organizer(players.registered, {
+    registrationStatus: "open",
+  });
+  const needsScore = organizer(players.needsScorePartial, { canLeave: false });
+  const final = organizer(players.final, {
+    canReportWrongScore: { eligible: true },
+  });
+
+  return {
+    upcoming,
+    registrationClosed: organizer(players.registered, {
+      registrationClosedAt: new Date(now.getTime() - 60 * 60 * 1000),
+      registrationStatus: "closed",
+    }),
+    ongoing: organizer(players.ongoing),
+    needsScore,
+    final,
+    finalLocked: organizer(players.final, {
+      canReportWrongScore: {
+        eligible: false,
+        reason: "A later rated Game exists",
+      },
+    }),
+    softArchived: organizer(players.registered, { joinFrozen: true }),
+    cancelled: organizer(players.cancelled),
+  };
+}

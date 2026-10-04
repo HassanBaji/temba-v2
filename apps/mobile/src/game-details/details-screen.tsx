@@ -48,6 +48,8 @@ import {
   GameDetailsContent,
   type DetailsHandlers,
 } from "./details-content";
+import { OrganizerSheets } from "./organizer-sheets";
+import { useOrganizerActions } from "./use-organizer-actions";
 import {
   UNSUPPORTED_FORMAT_COPY,
   gameTitle,
@@ -234,6 +236,14 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
   const completeMatch = api.games.completeMatch.useMutation();
 
   const firstMatchId = data?.matches[0]?.id;
+
+  const organizer = useOrganizerActions({
+    gameId,
+    game: friendly ? data : null,
+    partnerRequired: data != null && isPartnerRequiredGame(data),
+    refresh,
+    setConfirm,
+  });
 
   const saveSets = useCallback(
     async (
@@ -429,7 +439,8 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
         pending={
           leaveGame.isPending ||
           leaveWaitlist.isPending ||
-          completeMatch.isPending
+          completeMatch.isPending ||
+          organizer.confirmPending
         }
         onClose={() => setConfirm(null)}
       />
@@ -532,7 +543,9 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     scorePending: scoreSet.isPending,
     confirmPending: confirmResult.isPending,
     levelRequestPending: requestLevel.isPending,
-    footerPendingKind: leaveGame.isPending ? "leave_game" : null,
+    footerPendingKind: leaveGame.isPending
+      ? "leave_game"
+      : organizer.footerPendingKind,
     onMove: (sideIndex, position) =>
       moveSeat.mutate({ gameId, sideIndex, position }),
     onSaveSets: (payloads) => void saveSets(payloads),
@@ -542,7 +555,9 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     onFooterAction: (kind) => {
       if (kind === "leave_game") {
         askLeaveGame();
+        return;
       }
+      organizer.onFooterAction(kind);
     },
   };
 
@@ -550,7 +565,15 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     <View style={{ flex: 1 }}>
       <Screen refreshing={refreshing} onRefresh={onRefresh}>
         {header}
-        <GameDetailsContent game={details} handlers={handlers} />
+        <GameDetailsContent
+          game={details}
+          handlers={handlers}
+          organizer={
+            organizer.plan
+              ? { plan: organizer.plan, handlers: organizer.handlers }
+              : null
+          }
+        />
       </Screen>
       <GameDetailsBar
         game={details}
@@ -564,6 +587,9 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
         }}
       />
       {sheets}
+      {organizer.plan ? (
+        <OrganizerSheets {...organizer.sheets} game={details} />
+      ) : null}
     </View>
   );
 }

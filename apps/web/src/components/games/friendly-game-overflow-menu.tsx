@@ -7,6 +7,10 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
+import {
+  CLOSE_REGISTRATION_ACTION,
+  REOPEN_REGISTRATION_ACTION,
+} from "@repo/domain/game-copy";
 import type { FriendlyGameOverflowItem } from "@repo/domain/friendly-game-cta";
 
 /**
@@ -56,7 +60,7 @@ export function FriendlyGameOverflowMenu({
                 disabled={closePending}
                 onSelect={onCloseRegistration}
               >
-                Close registration
+                {CLOSE_REGISTRATION_ACTION}
               </ActionMenuItem>
             ) : null}
             {item === "reopen_registration" ? (
@@ -64,7 +68,7 @@ export function FriendlyGameOverflowMenu({
                 disabled={reopenPending}
                 onSelect={onReopenRegistration}
               >
-                Reopen registration
+                {REOPEN_REGISTRATION_ACTION}
               </ActionMenuItem>
             ) : null}
             {item === "invite" ? (
