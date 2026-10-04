@@ -25,6 +25,12 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
+import {
+  COMMUNITY_CREATED_TOAST,
+  COMMUNITY_CREATE_COPY,
+  COMMUNITY_TYPE_LABELS,
+  communityTypeHelp,
+} from "@repo/domain/community";
 import { api, type RouterInputs } from "~/trpc/react";
 
 type CommunityType = RouterInputs["communities"]["create"]["type"];
@@ -32,8 +38,8 @@ type CommunityType = RouterInputs["communities"]["create"]["type"];
 const FIELD_IDS = { name: "community-name", type: "community-type" };
 
 const TYPE_OPTIONS: { value: CommunityType; label: string }[] = [
-  { value: "public", label: "Public" },
-  { value: "private", label: "Private" },
+  { value: "public", label: COMMUNITY_TYPE_LABELS.public },
+  { value: "private", label: COMMUNITY_TYPE_LABELS.private },
 ];
 
 export default function NewCommunityPage() {
@@ -45,7 +51,7 @@ export default function NewCommunityPage() {
 
   const createCommunity = api.communities.create.useMutation({
     onSuccess: async (community) => {
-      toast.success("Community created");
+      toast.success(COMMUNITY_CREATED_TOAST);
       await utils.communities.mine.invalidate();
       router.push(`/dashboard/communities/${community.id}`);
     },
@@ -71,8 +77,8 @@ export default function NewCommunityPage() {
 
   return (
     <DashboardShell
-      title="Create Community"
-      description="You become the Owner. Groups are optional."
+      title={COMMUNITY_CREATE_COPY.title}
+      description={COMMUNITY_CREATE_COPY.description}
     >
       <section className="border-rule rounded-[14px] border p-5">
         <form onSubmit={onSubmit} className="space-y-6">
@@ -117,9 +123,7 @@ export default function NewCommunityPage() {
                 ))}
               </RovingRadioGroup>
               <FieldDescription id="community-type-description">
-                {type === "private"
-                  ? "Only people you invite can join."
-                  : "People with the Community link ask to join. It isn't listed anywhere yet."}
+                {communityTypeHelp(type)}
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -130,7 +134,9 @@ export default function NewCommunityPage() {
               disabled={createCommunity.isPending}
               className="bg-ink text-paper hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
             >
-              {createCommunity.isPending ? "Creating…" : "Create Community"}
+              {createCommunity.isPending
+                ? "Creating…"
+                : COMMUNITY_CREATE_COPY.submit}
             </Button>
             <Button
               variant="outline"

@@ -7,7 +7,6 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { ROLE_LABELS } from "~/components/temba/role-badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
@@ -19,17 +18,21 @@ import {
 } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
+  COMMUNITY_INVITE_BLOCK_COPY,
+  COMMUNITY_MEMBERS_ERROR_TITLE,
+  COMMUNITY_MEMBERS_NO_MATCH_COPY,
+  COMMUNITY_NO_MEMBERS_EMPTY,
+  COMMUNITY_ROLE_LABELS,
+  communityMemberList,
+  communityRoleChangeAction,
+} from "@repo/domain/community";
+import {
   COMMUNITY_ROLES,
   type CommunityRoleChange,
   type CommunityRoleValue,
   isCommunityRole,
   roleChangeConfirmCopy,
-  roleChangeNeedsConfirmation,
 } from "@repo/domain/community-role-change";
-import {
-  filterGroupMembersByName,
-  groupHomeShowsMemberSearch,
-} from "@repo/domain/group-home-chrome";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -54,16 +57,18 @@ const OTHER_TILE =
 function InviteBlock({ onInvite }: { onInvite: () => void }) {
   return (
     <section className="border-rule rounded-[14px] border p-5">
-      <h2 className="text-body font-semibold">Invite players</h2>
+      <h2 className="text-body font-semibold">
+        {COMMUNITY_INVITE_BLOCK_COPY.title}
+      </h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        Invite players to this Community and its Club Groups.
+        {COMMUNITY_INVITE_BLOCK_COPY.description}
       </p>
       <Button
         type="button"
         onClick={onInvite}
         className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
       >
-        Share invite link
+        {COMMUNITY_INVITE_BLOCK_COPY.action}
       </Button>
     </section>
   );
@@ -97,8 +102,7 @@ export function CommunityMembersTab({
   canManageRoles,
   rolePending,
   onRoleChange,
-  linkedTeamBlocksLeave,
-  isLastOwnerBlockedLeave,
+  leaveNotices,
   canInvite,
   onInvite,
 }: {
@@ -110,8 +114,7 @@ export function CommunityMembersTab({
   canManageRoles: boolean;
   rolePending: boolean;
   onRoleChange: (userId: string, role: CommunityRoleValue) => void;
-  linkedTeamBlocksLeave: boolean;
-  isLastOwnerBlockedLeave: boolean;
+  leaveNotices: string[];
   canInvite: boolean;
   onInvite: () => void;
 }) {
@@ -126,10 +129,11 @@ export function CommunityMembersTab({
     change: CommunityRoleChange & { userId: string },
     triggerId: string,
   ) {
-    if (change.from === change.to) {
+    const action = communityRoleChangeAction(change);
+    if (action === "none") {
       return;
     }
-    if (!roleChangeNeedsConfirmation(change)) {
+    if (action === "apply") {
       onRoleChange(change.userId, change.to);
       return;
     }
@@ -145,7 +149,7 @@ export function CommunityMembersTab({
   if (errorMessage) {
     return (
       <ErrorState
-        title="Members could not be loaded"
+        title={COMMUNITY_MEMBERS_ERROR_TITLE}
         message={errorMessage}
         onRetry={onRetry}
       />
@@ -153,36 +157,23 @@ export function CommunityMembersTab({
   }
 
   if (!members || members.length === 0) {
-    return (
-      <EmptyState
-        icon={Users}
-        title="No members yet"
-        description="People who join this Community will show up here."
-      />
-    );
+    return <EmptyState icon={Users} {...COMMUNITY_NO_MEMBERS_EMPTY} />;
   }
 
-  const named = members.map((member) => ({
-    member,
-    name: member.user.name ?? "Member",
-  }));
-  const showSearch = groupHomeShowsMemberSearch(named.length);
-  const visible = showSearch ? filterGroupMembersByName(named, query) : named;
+  const { showSearch, rows } = communityMemberList(
+    members,
+    viewerUserId,
+    query,
+  );
+  const memberById = new Map(members.map((member) => [member.id, member]));
 
   return (
     <div className="flex flex-col gap-[26px]">
-      {linkedTeamBlocksLeave ? (
-        <p className="text-body text-muted-foreground">
-          Leave is refused while you sit on a Team linked to this Community.
-          Unlink or dissolve the Team first.
+      {leaveNotices.map((notice) => (
+        <p key={notice} className="text-body text-muted-foreground">
+          {notice}
         </p>
-      ) : null}
-      {isLastOwnerBlockedLeave ? (
-        <p className="text-body text-muted-foreground">
-          You are the last Owner. Promote someone else before leaving or
-          demoting yourself. Leaving does not Soft-archive this Community.
-        </p>
-      ) : null}
+      ))}
       {showSearch ? (
         <Input
           type="search"
@@ -192,15 +183,16 @@ export function CommunityMembersTab({
           aria-label="Search members"
         />
       ) : null}
-      {visible.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-body text-muted-foreground py-6 text-center">
-          No members match that name.
+          {COMMUNITY_MEMBERS_NO_MATCH_COPY}
         </p>
       ) : (
         <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">
-          {visible.map(({ member, name }) => {
-            const isSelf = member.user.id === viewerUserId;
-            const selectId = `member-role-${member.id}`;
+          {rows.map((row) => {
+            const { name, isSelf } = row;
+            const selectId = `member-role-${row.id}`;
+            const member = memberById.get(row.id)!;
             return (
               <li
                 key={member.id}
@@ -219,7 +211,7 @@ export function CommunityMembersTab({
                       isSelf && "font-semibold",
                     )}
                   >
-                    {isSelf ? "You" : name}
+                    {row.displayName}
                   </p>
                   {member.user.email ? (
                     <p className="text-eyebrow text-muted-foreground break-words">
@@ -258,14 +250,14 @@ export function CommunityMembersTab({
                     <SelectContent>
                       {COMMUNITY_ROLES.map((role) => (
                         <SelectItem key={role} value={role}>
-                          {ROLE_LABELS[role]}
+                          {COMMUNITY_ROLE_LABELS[role]}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
                   <span className="text-meta text-muted-foreground shrink-0">
-                    {ROLE_LABELS[member.role]}
+                    {row.roleLabel}
                   </span>
                 )}
               </li>

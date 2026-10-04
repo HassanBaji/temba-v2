@@ -5,32 +5,32 @@ import type { ReactNode } from "react";
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Button } from "~/components/ui/button";
-import { clubGroupRowMetaLine } from "~/lib/community-chrome";
+import {
+  COMMUNITY_CREATE_CLUB_GROUP_LABEL,
+  COMMUNITY_NO_GROUPS_EMPTY,
+  COMMUNITY_START_CLUB_GROUP_COPY,
+  communityClubGroupRow,
+} from "@repo/domain/community";
 import { type RouterOutputs } from "~/trpc/react";
 
 type ClubGroup = RouterOutputs["communities"]["byId"]["groups"][number];
 
 function ClubGroupRow({ group }: { group: ClubGroup }) {
-  const name = group.name ?? "Untitled Group";
+  const row = communityClubGroupRow(group);
   return (
     <li>
       <Link
-        href={`/dashboard/groups/${group.id}`}
+        href={`/dashboard/groups/${row.id}`}
         className="focus-visible:ring-ring/50 hover:bg-muted/50 flex w-full min-w-0 items-center gap-3.5 px-5 py-[18px] outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
       >
-        <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+        <EntityMonogram name={row.name} image={row.imageUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <p className="break-words text-[18px] font-semibold leading-6">
-            {name}
+            {row.name}
           </p>
-          <p className="text-meta text-muted-foreground mt-0.5">
-            {clubGroupRowMetaLine({
-              type: group.type,
-              memberCount: group.memberCount,
-            })}
-          </p>
+          <p className="text-meta text-muted-foreground mt-0.5">{row.meta}</p>
         </div>
-        {group.isMember ? (
+        {row.joined ? (
           <span className="text-eyebrow text-muted-foreground shrink-0">
             Joined
           </span>
@@ -43,16 +43,18 @@ function ClubGroupRow({ group }: { group: ClubGroup }) {
 function StartAClubGroupCard({ onCreate }: { onCreate: () => void }) {
   return (
     <section className="border-rule rounded-[14px] border p-5">
-      <h2 className="text-body font-semibold">Start a Club Group</h2>
+      <h2 className="text-body font-semibold">
+        {COMMUNITY_START_CLUB_GROUP_COPY.title}
+      </h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        Club Groups stay inside this Community.
+        {COMMUNITY_START_CLUB_GROUP_COPY.description}
       </p>
       <Button
         type="button"
         className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
         onClick={onCreate}
       >
-        Create Club Group
+        {COMMUNITY_CREATE_CLUB_GROUP_LABEL}
       </Button>
     </section>
   );
@@ -74,11 +76,7 @@ export function CommunityGroupsTab({
       {venue}
 
       {groups.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="No Groups yet"
-          description="This Community has no Groups yet."
-        />
+        <EmptyState icon={Users} {...COMMUNITY_NO_GROUPS_EMPTY} />
       ) : (
         <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">
           {groups.map((group) => (

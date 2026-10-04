@@ -12,10 +12,13 @@ import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { communityListMetaLine } from "@repo/domain/community-chrome";
 import {
-  clubGroupRowMetaLine,
-  communityListMetaLine,
-} from "~/lib/community-chrome";
+  COMMUNITIES_ERROR_TITLE,
+  COMMUNITY_NO_GROUPS_COPY,
+  COMMUNITY_START_COPY,
+  communityClubGroupRow,
+} from "@repo/domain/community";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type CommunityRow = RouterOutputs["communities"]["mine"][number];
@@ -56,24 +59,19 @@ function CommunitiesListSkeleton() {
 }
 
 function ClubGroupRowLink({ group }: { group: ClubGroupRow }) {
-  const name = group.name ?? "Untitled Group";
+  const row = communityClubGroupRow(group);
   return (
     <li className="border-rule border-t">
       <Link
-        href={`/dashboard/groups/${group.id}`}
+        href={`/dashboard/groups/${row.id}`}
         className={`${rowLink} px-5 py-[18px]`}
       >
-        <EntityMonogram name={name} image={group.imageUrl} size="lg" />
+        <EntityMonogram name={row.name} image={row.imageUrl} size="lg" />
         <div className="min-w-0 flex-1">
-          <p className="text-body break-words">{name}</p>
-          <p className="text-meta text-muted-foreground">
-            {clubGroupRowMetaLine({
-              type: group.type,
-              memberCount: group.memberCount,
-            })}
-          </p>
+          <p className="text-body break-words">{row.name}</p>
+          <p className="text-meta text-muted-foreground">{row.meta}</p>
         </div>
-        {group.isMember ? (
+        {row.joined ? (
           <span className="text-eyebrow text-muted-foreground shrink-0">
             Joined
           </span>
@@ -116,7 +114,7 @@ function CommunityCard({ community }: { community: CommunityRow }) {
       <ul>
         {community.groups.length === 0 ? (
           <li className="border-rule text-meta text-muted-foreground border-t px-5 py-[18px]">
-            No Groups yet
+            {COMMUNITY_NO_GROUPS_COPY}
           </li>
         ) : (
           community.groups.map((group) => (
@@ -131,15 +129,17 @@ function CommunityCard({ community }: { community: CommunityRow }) {
 function StartACommunityCard() {
   return (
     <section className="border-rule rounded-[14px] border p-5">
-      <h2 className="text-body font-semibold">Start a Community</h2>
+      <h2 className="text-body font-semibold">{COMMUNITY_START_COPY.title}</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        Communities organise Club Groups around a Venue.
+        {COMMUNITY_START_COPY.description}
       </p>
       <Button
         asChild
         className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
       >
-        <Link href="/dashboard/communities/new">Create Community</Link>
+        <Link href="/dashboard/communities/new">
+          {COMMUNITY_START_COPY.action}
+        </Link>
       </Button>
     </section>
   );
@@ -191,7 +191,7 @@ export default function CommunitiesPage() {
 
         {mine.error ? (
           <ErrorState
-            title="Communities could not be loaded"
+            title={COMMUNITIES_ERROR_TITLE}
             message={mine.error.message}
             onRetry={() => {
               void mine.refetch();

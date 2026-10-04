@@ -2,37 +2,38 @@ import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import {
+  COMMUNITY_LINK_VENUE_LABEL,
+  COMMUNITY_NO_COURTS_COPY,
+  COMMUNITY_NO_VENUE_COPY,
+  COMMUNITY_UNLINK_VENUE_LABEL,
+  communityVenueView,
+} from "@repo/domain/community";
 import { type RouterOutputs } from "~/trpc/react";
 
 type CommunityHome = RouterOutputs["communities"]["byId"];
 
 export function CommunityVenueBlock({
-  venue,
-  venueLinkRequest,
-  canUnlinkVenue,
-  canRequestVenueLink,
-  canManageVenueLink,
+  community,
   onUnlink,
   onLinkVenue,
 }: {
-  venue: CommunityHome["venue"];
-  venueLinkRequest: CommunityHome["venueLinkRequest"];
-  canUnlinkVenue: boolean;
-  canRequestVenueLink: boolean;
-  canManageVenueLink: boolean;
+  community: CommunityHome;
   onUnlink: () => void;
   onLinkVenue: () => void;
 }) {
+  const { venue, location, notes, canRequestLink, canUnlink } =
+    communityVenueView(community);
   return (
     <section className="border-rule flex flex-col gap-4 rounded-[14px] border p-5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-muted-foreground font-mono text-[11px] font-normal uppercase tracking-[0.04em]">
           Venue
         </h2>
-        {venue && canUnlinkVenue ? (
+        {canUnlink ? (
           <ActionMenu label="Venue actions">
             <ActionMenuItem variant="destructive" onSelect={onUnlink}>
-              Unlink Venue
+              {COMMUNITY_UNLINK_VENUE_LABEL}
             </ActionMenuItem>
           </ActionMenu>
         ) : null}
@@ -51,7 +52,7 @@ export function CommunityVenueBlock({
                 {venue.name}
               </p>
               <p className="text-meta text-muted-foreground break-words">
-                {venue.city}, {venue.country}
+                {location}
               </p>
               {venue.archivedAt ? (
                 <Badge variant="outline" className="mt-2">
@@ -61,7 +62,9 @@ export function CommunityVenueBlock({
             </div>
           </div>
           {venue.courts.length === 0 ? (
-            <p className="text-meta text-muted-foreground">No Courts.</p>
+            <p className="text-meta text-muted-foreground">
+              {COMMUNITY_NO_COURTS_COPY}
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {venue.courts.map((court) => (
@@ -77,33 +80,23 @@ export function CommunityVenueBlock({
         </div>
       ) : (
         <p className="text-body text-muted-foreground">
-          This Community is not linked to a Venue.
+          {COMMUNITY_NO_VENUE_COPY}
         </p>
       )}
 
-      {canManageVenueLink && venueLinkRequest?.status === "pending" ? (
-        <p className="text-meta text-muted-foreground">
-          Venue link request pending for {venueLinkRequest.venue.name} (
-          {venueLinkRequest.venue.city}, {venueLinkRequest.venue.country}).
+      {notes.map((note) => (
+        <p key={note} className="text-meta text-muted-foreground">
+          {note}
         </p>
-      ) : null}
+      ))}
 
-      {canManageVenueLink &&
-      venueLinkRequest?.status === "rejected" &&
-      !venue ? (
-        <p className="text-meta text-muted-foreground">
-          Last Venue link request for {venueLinkRequest.venue.name} was
-          rejected. You may request again.
-        </p>
-      ) : null}
-
-      {!venue && canRequestVenueLink ? (
+      {canRequestLink ? (
         <Button
           type="button"
           className="bg-ink text-paper hover:bg-dimrule h-11 w-full rounded-[10px] font-semibold"
           onClick={onLinkVenue}
         >
-          Link a Venue
+          {COMMUNITY_LINK_VENUE_LABEL}
         </Button>
       ) : null}
     </section>

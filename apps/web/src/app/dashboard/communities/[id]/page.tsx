@@ -29,9 +29,33 @@ import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import {
+  COMMUNITY_ARCHIVED_TOAST,
+  COMMUNITY_CLUB_GROUP_CREATED_TOAST,
+  COMMUNITY_JOIN_REQUESTED_TOAST,
+  COMMUNITY_LEFT_TOAST,
+  COMMUNITY_LOOKUP_NOTE,
+  COMMUNITY_REQUEST_APPROVED_TOAST,
+  COMMUNITY_REQUEST_REJECTED_TOAST,
+  COMMUNITY_TEAM_LINKED_TOAST,
+  COMMUNITY_TEAM_LINK_REJECTED_TOAST,
+  COMMUNITY_UNARCHIVED_TOAST,
+  COMMUNITY_VENUE_LINK_REQUESTED_TOAST,
+  COMMUNITY_VENUE_UNLINKED_TOAST,
+  communityArchiveBanner,
+  communityArchiveConfirm,
+  communityAvailableTabs,
+  communityCanRequestJoin,
+  communityHomeActions,
+  communityLeaveConfirm,
+  communityLeaveNotices,
+  communityRequestCount,
+  communityRoleUpdatedToast,
+  communityShowsRequestsTab,
+  communityUnlinkVenueConfirm,
+} from "@repo/domain/community";
+import {
   communityHomeTabFromQuery,
   communityHomeTabQuery,
-  type CommunityHomeTab,
 } from "@repo/domain/community-home-tab";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { lookupInviteSentToast } from "@repo/domain/invites";
@@ -78,7 +102,7 @@ export default function CommunityHomePage({
 
   const requestJoin = api.communities.requestJoin.useMutation({
     onSuccess: async () => {
-      toast.success("Join request sent");
+      toast.success(COMMUNITY_JOIN_REQUESTED_TOAST);
       await utils.communities.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -88,7 +112,7 @@ export default function CommunityHomePage({
 
   const approveJoinRequest = api.communities.approveJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Request approved");
+      toast.success(COMMUNITY_REQUEST_APPROVED_TOAST);
       await utils.communities.listJoinRequests.invalidate({ communityId: id });
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
@@ -100,7 +124,7 @@ export default function CommunityHomePage({
 
   const rejectJoinRequest = api.communities.rejectJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Request rejected");
+      toast.success(COMMUNITY_REQUEST_REJECTED_TOAST);
       await utils.communities.listJoinRequests.invalidate({ communityId: id });
       await utils.communities.byId.invalidate({ id });
     },
@@ -168,7 +192,7 @@ export default function CommunityHomePage({
 
   const approveTeamLink = api.communities.approveTeamLink.useMutation({
     onSuccess: async () => {
-      toast.success("Team linked");
+      toast.success(COMMUNITY_TEAM_LINKED_TOAST);
       await utils.communities.listTeamLinkRequests.invalidate({
         communityId: id,
       });
@@ -182,7 +206,7 @@ export default function CommunityHomePage({
 
   const rejectTeamLink = api.communities.rejectTeamLink.useMutation({
     onSuccess: async () => {
-      toast.success("Link request rejected");
+      toast.success(COMMUNITY_TEAM_LINK_REJECTED_TOAST);
       await utils.communities.listTeamLinkRequests.invalidate({
         communityId: id,
       });
@@ -199,7 +223,7 @@ export default function CommunityHomePage({
 
   const requestVenueLink = api.communities.requestVenueLink.useMutation({
     onSuccess: async () => {
-      toast.success("Venue link requested");
+      toast.success(COMMUNITY_VENUE_LINK_REQUESTED_TOAST);
       await utils.communities.byId.invalidate({ id });
       setLinkVenueOpen(false);
     },
@@ -210,7 +234,7 @@ export default function CommunityHomePage({
 
   const unlinkVenue = api.communities.unlinkVenue.useMutation({
     onSuccess: async () => {
-      toast.success("Venue unlinked");
+      toast.success(COMMUNITY_VENUE_UNLINKED_TOAST);
       await utils.communities.byId.invalidate({ id });
     },
   });
@@ -231,7 +255,7 @@ export default function CommunityHomePage({
 
   const leaveCommunity = api.communities.leave.useMutation({
     onSuccess: async () => {
-      toast.success("Left Community and its Club Groups");
+      toast.success(COMMUNITY_LEFT_TOAST);
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.groups.mine.invalidate();
@@ -240,7 +264,7 @@ export default function CommunityHomePage({
 
   const softArchive = api.communities.softArchive.useMutation({
     onSuccess: async () => {
-      toast.success("Community Soft-archived");
+      toast.success(COMMUNITY_ARCHIVED_TOAST);
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
@@ -250,7 +274,7 @@ export default function CommunityHomePage({
 
   const unarchive = api.communities.unarchive.useMutation({
     onSuccess: async () => {
-      toast.success("Community unarchived");
+      toast.success(COMMUNITY_UNARCHIVED_TOAST);
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
@@ -268,7 +292,7 @@ export default function CommunityHomePage({
 
   const setMemberRole = api.communities.setMemberRole.useMutation({
     onSuccess: async (result) => {
-      toast.success(`Role updated to ${result.role}`);
+      toast.success(communityRoleUpdatedToast(result.role));
       await utils.communities.listMembers.invalidate({ communityId: id });
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
@@ -278,22 +302,14 @@ export default function CommunityHomePage({
     },
   });
 
-  const isPublic = community.data?.type === "public";
   const isLive = !community.data?.archivedAt;
   const isMember = Boolean(community.data?.membership);
   const joinStatus = community.data?.joinRequest?.status ?? null;
-  const canRequestJoin =
-    isPublic && isLive && !isMember && joinStatus !== "pending";
   const createClubPending =
     createClubPublic.isPending ||
     createClubPrivate.isPending ||
     uploadGroupImage.isPending;
   const viewerUserId = community.data?.membership?.userId;
-  const isLastOwnerBlockedLeave =
-    community.data?.membership?.role === "owner" &&
-    community.data.canLeave === false &&
-    !community.data.linkedTeamBlocksLeave;
-  const linkedTeamBlocksLeave = Boolean(community.data?.linkedTeamBlocksLeave);
 
   async function finishClubGroupCreate(
     group: { id: string },
@@ -365,15 +381,13 @@ export default function CommunityHomePage({
 
   const data = community.data;
   const communityName = data.name ?? "Community";
-  const canShowCreateClubGroup = hasCreateAccess && data.canCreateClubGroup;
-  const canManageInvites =
-    data.canManageLookupInvites || data.canManageInviteLinks;
-  const showRequestsTab = data.canManageJoinRequests || data.canManageTeamLinks;
-  const availableTabs: CommunityHomeTab[] = [
-    "groups",
-    ...(isMember ? (["teams", "members"] as const) : []),
-    ...(showRequestsTab ? (["requests"] as const) : []),
-  ];
+  const actions = communityHomeActions(data, hasCreateAccess);
+  const canShowCreateClubGroup = actions.canCreateClubGroup;
+  const canManageInvites = actions.canInvite;
+  const canRequestJoin = communityCanRequestJoin(data);
+  const archiveBanner = communityArchiveBanner(data);
+  const showRequestsTab = communityShowsRequestsTab(data);
+  const availableTabs = communityAvailableTabs(data);
   const tab = communityHomeTabFromQuery(tabParam, availableTabs);
 
   function setTab(next: string) {
@@ -385,17 +399,19 @@ export default function CommunityHomePage({
       scroll: false,
     });
   }
-  const requestCount =
-    (joinRequests.data?.length ?? 0) + (teamLinkRequests.data?.length ?? 0);
+  const requestCount = communityRequestCount({
+    join: joinRequests.data?.length,
+    team: teamLinkRequests.data?.length,
+  });
   const showAllCommunities = hasCreateAccess;
   const showCommunityOverflow =
     showAllCommunities ||
     canManageInvites ||
-    data.canUnarchive ||
-    isMember ||
-    data.canSoftArchive;
+    actions.canUnarchive ||
+    actions.canLeave ||
+    actions.canSoftArchive;
   const showOverflowAboveDestructive =
-    showAllCommunities || canManageInvites || data.canUnarchive;
+    showAllCommunities || canManageInvites || actions.canUnarchive;
 
   const headerMenu = showCommunityOverflow ? (
     <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
@@ -409,15 +425,16 @@ export default function CommunityHomePage({
           Manage invites
         </ActionMenuItem>
       ) : null}
-      {data.canUnarchive ? (
+      {actions.canUnarchive ? (
         <ActionMenuItem onSelect={() => unarchive.mutate({ communityId: id })}>
           Unarchive
         </ActionMenuItem>
       ) : null}
-      {showOverflowAboveDestructive && (isMember || data.canSoftArchive) ? (
+      {showOverflowAboveDestructive &&
+      (actions.canLeave || actions.canSoftArchive) ? (
         <ActionMenuSeparator />
       ) : null}
-      {isMember ? (
+      {actions.canLeave ? (
         <ActionMenuItem
           variant="destructive"
           onSelect={() => setLeaveOpen(true)}
@@ -425,7 +442,7 @@ export default function CommunityHomePage({
           Leave Community
         </ActionMenuItem>
       ) : null}
-      {data.canSoftArchive ? (
+      {actions.canSoftArchive ? (
         <ActionMenuItem
           variant="destructive"
           onSelect={() => setArchiveOpen(true)}
@@ -438,11 +455,7 @@ export default function CommunityHomePage({
 
   const venueBlock = isMember ? (
     <CommunityVenueBlock
-      venue={data.venue}
-      venueLinkRequest={data.venueLinkRequest}
-      canUnlinkVenue={data.canUnlinkVenue}
-      canRequestVenueLink={data.canRequestVenueLink}
-      canManageVenueLink={data.canManageVenueLink}
+      community={data}
       onUnlink={() => setUnlinkOpen(true)}
       onLinkVenue={() => setLinkVenueOpen(true)}
     />
@@ -477,21 +490,9 @@ export default function CommunityHomePage({
         />
 
         <div className="space-y-6 pt-6">
-          {!isLive && !isMember ? (
-            <SoftArchiveBanner
-              headingLevel={2}
-              heading="This Community is Soft-archived"
-            >
-              It is not open for new joins, requests, or invites. Members can
-              still open history and Games. This is not a missing page.
-            </SoftArchiveBanner>
-          ) : null}
-
-          {!isLive && isMember ? (
-            <SoftArchiveBanner headingLevel={2} heading="Soft-archived">
-              Club Groups stay attached. You can still open Groups and see
-              history and Games. New joins, requests, Lookup invites, and Invite
-              links are paused until an Owner or Admin unarchives.
+          {archiveBanner ? (
+            <SoftArchiveBanner headingLevel={2} heading={archiveBanner.heading}>
+              {archiveBanner.body}
             </SoftArchiveBanner>
           ) : null}
 
@@ -539,8 +540,7 @@ export default function CommunityHomePage({
                     role,
                   })
                 }
-                linkedTeamBlocksLeave={linkedTeamBlocksLeave}
-                isLastOwnerBlockedLeave={isLastOwnerBlockedLeave}
+                leaveNotices={communityLeaveNotices(data)}
                 canInvite={canManageInvites}
                 onInvite={() => setInvitesOpen(true)}
               />
@@ -604,9 +604,7 @@ export default function CommunityHomePage({
       <ConfirmDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
-        title={`Leave ${communityName}?`}
-        description="You will leave this Community and its Club Groups."
-        confirmLabel="Leave Community"
+        {...communityLeaveConfirm(communityName)}
         pending={leaveCommunity.isPending}
         restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
@@ -617,9 +615,7 @@ export default function CommunityHomePage({
       <ConfirmDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
-        title={`Soft-archive ${communityName}?`}
-        description="New joins, requests, and invites pause until an Owner or Admin unarchives."
-        confirmLabel="Soft-archive"
+        {...communityArchiveConfirm(communityName)}
         pending={softArchive.isPending}
         restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
@@ -630,9 +626,7 @@ export default function CommunityHomePage({
       <ConfirmDialog
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
-        title={data.venue ? `Unlink ${data.venue.name}?` : "Unlink Venue?"}
-        description="This Community will no longer be linked to that Venue."
-        confirmLabel="Unlink Venue"
+        {...communityUnlinkVenueConfirm(data.venue?.name ?? null)}
         pending={unlinkVenue.isPending}
         onConfirm={async () => {
           await unlinkVenue.mutateAsync({ communityId: id });
@@ -652,7 +646,7 @@ export default function CommunityHomePage({
         lookup={
           data.canManageLookupInvites
             ? {
-                note: "Owners and Admins can invite people. Invites don't expire.",
+                note: COMMUNITY_LOOKUP_NOTE,
                 lookupInvites: lookupInvites.data,
                 sendPending: sendLookupInvite.isPending,
                 revokePendingId: revokeLookupInvite.isPending
@@ -698,7 +692,11 @@ export default function CommunityHomePage({
                   sport: "padel",
                   requiresApproval,
                 });
-                await finishClubGroupCreate(group, image, "Club Group created");
+                await finishClubGroupCreate(
+                  group,
+                  image,
+                  COMMUNITY_CLUB_GROUP_CREATED_TOAST,
+                );
               } catch {
                 return;
               }
@@ -713,7 +711,11 @@ export default function CommunityHomePage({
                   name,
                   sport: "padel",
                 });
-                await finishClubGroupCreate(group, image, "Club Group created");
+                await finishClubGroupCreate(
+                  group,
+                  image,
+                  COMMUNITY_CLUB_GROUP_CREATED_TOAST,
+                );
               } catch {
                 return;
               }

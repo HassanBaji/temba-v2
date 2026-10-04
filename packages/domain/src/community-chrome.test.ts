@@ -4,7 +4,7 @@ import {
   clubGroupRowMetaLine,
   communityHomeMetaLine,
   communityListMetaLine,
-} from "~/lib/community-chrome";
+} from "./community-chrome";
 
 describe("communityListMetaLine", () => {
   it("reads visibility, member count, and the viewer's role", () => {

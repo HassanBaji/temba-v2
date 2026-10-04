@@ -14,16 +14,13 @@ import {
   communityHomeMetaLine,
   type CommunityRoleName,
   type CommunityVisibility,
-} from "~/lib/community-chrome";
+} from "@repo/domain/community-chrome";
+import {
+  COMMUNITY_TAB_LABELS,
+  communityStatusBadges,
+} from "@repo/domain/community";
 import type { CommunityHomeTab } from "@repo/domain/community-home-tab";
 import { cn } from "~/lib/utils";
-
-const TAB_LABELS: Record<CommunityHomeTab, string> = {
-  groups: "Groups",
-  teams: "Teams",
-  members: "Members",
-  requests: "Requests",
-};
 
 /**
  * Rendered once inside the page's `Tabs` root and outside `TabsContent`, so
@@ -69,8 +66,7 @@ export function CommunityHomeChrome({
   const meta = communityHomeMetaLine({ type, sports, memberCount, role });
   const showInviteBox = tab !== "groups" && canInvite;
   const showCreateBox = tab === "groups" && canCreateClubGroup;
-  const hasBadges =
-    isArchived || joinStatus === "pending" || joinStatus === "rejected";
+  const badges = communityStatusBadges({ isArchived, joinStatus });
 
   return (
     <div className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
@@ -123,17 +119,13 @@ export function CommunityHomeChrome({
               {meta}
             </p>
           ) : null}
-          {hasBadges ? (
+          {badges.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
-              {isArchived ? (
-                <Badge variant="outline">Soft-archived</Badge>
-              ) : null}
-              {joinStatus === "pending" ? (
-                <Badge variant="outline">Join request pending</Badge>
-              ) : null}
-              {joinStatus === "rejected" ? (
-                <Badge variant="outline">Join request rejected</Badge>
-              ) : null}
+              {badges.map((badge) => (
+                <Badge key={badge} variant="outline">
+                  {badge}
+                </Badge>
+              ))}
             </div>
           ) : null}
         </div>
@@ -143,7 +135,7 @@ export function CommunityHomeChrome({
         <TabsList variant="segmented" className="mt-5">
           {availableTabs.map((value) => (
             <TabsTrigger key={value} value={value}>
-              {TAB_LABELS[value]}
+              {COMMUNITY_TAB_LABELS[value]}
               {value === "requests" && requestCount > 0 ? (
                 <Badge variant="secondary" size="sm">
                   {requestCount}

@@ -44,6 +44,13 @@ export type InviteDoor =
       canLink: boolean;
     }
   | {
+      kind: "community";
+      communityId: string;
+      note: string;
+      canLookup: boolean;
+      canLink: boolean;
+    }
+  | {
       kind: "team";
       teamId: string;
       unusedInvite: PendingLookupRow | null;
@@ -80,6 +87,8 @@ export function InviteDoorSheet({
   const utils = api.useUtils();
   const isGroup = door.kind === "group";
   const isTeam = door.kind === "team";
+  const isCommunity = door.kind === "community";
+  const communityId = door.kind === "community" ? door.communityId : "";
   const groupId = door.kind === "group" ? door.groupId : "";
   const gameId = door.kind === "game" ? door.gameId : "";
   const teamId = door.kind === "team" ? door.teamId : "";
@@ -109,6 +118,18 @@ export function InviteDoorSheet({
     { teamId, query: query.trim() },
     { enabled: lookupOn && isTeam, placeholderData: keepPrevious },
   );
+  const communitySearch = api.communities.searchLookupUsers.useQuery(
+    { communityId, query: query.trim() },
+    { enabled: lookupOn && isCommunity, placeholderData: keepPrevious },
+  );
+  const communityPending = api.communities.listLookupInvites.useQuery(
+    { communityId },
+    { enabled: lookupOn && isCommunity },
+  );
+  const communityLink = api.communities.getInviteLink.useQuery(
+    { communityId },
+    { enabled: linkOn && isCommunity },
+  );
   const groupPending = api.groups.listLookupInvites.useQuery(
     { groupId },
     { enabled: lookupOn && isGroup },
@@ -130,9 +151,21 @@ export function InviteDoorSheet({
     { enabled: linkOn && isTeam },
   );
 
-  const search = isGroup ? groupSearch : isTeam ? teamSearch : gameSearch;
+  const search = isCommunity
+    ? communitySearch
+    : isGroup
+      ? groupSearch
+      : isTeam
+        ? teamSearch
+        : gameSearch;
   const currentLink: LinkResultLike | null | undefined = (
-    isGroup ? groupLink : isTeam ? teamLink : gameLink
+    isCommunity
+      ? communityLink
+      : isGroup
+        ? groupLink
+        : isTeam
+          ? teamLink
+          : gameLink
   ).data;
   const pendingInvites: Slot<PendingLookupRow[]> =
     door.kind === "team"
@@ -140,7 +173,9 @@ export function InviteDoorSheet({
           status: "ready",
           value: door.unusedInvite ? [door.unusedInvite] : [],
         }
-      : slotOf(isGroup ? groupPending : gamePending);
+      : slotOf(
+          isCommunity ? communityPending : isGroup ? groupPending : gamePending,
+        );
 
   function afterSend(result: {
     sent: unknown[];
@@ -152,7 +187,10 @@ export function InviteDoorSheet({
     if (result.sent.length > 0) {
       toast.show(lookupInviteSentToast(result.sent.length));
     }
-    if (isGroup) {
+    if (isCommunity) {
+      void utils.communities.listLookupInvites.invalidate({ communityId });
+      void utils.communities.searchLookupUsers.invalidate({ communityId });
+    } else if (isGroup) {
       void utils.groups.listLookupInvites.invalidate({ groupId });
       void utils.groups.searchLookupUsers.invalidate({ groupId });
     } else if (isTeam) {
@@ -181,6 +219,22 @@ export function InviteDoorSheet({
   const sendGame = api.games.sendLookupInvite.useMutation({
     onSuccess: afterSend,
     onError: onSendError,
+  });
+  const sendCommunity = api.communities.sendLookupInvite.useMutation({
+    onSuccess: afterSend,
+    onError: onSendError,
+  });
+  const revokeCommunity = api.communities.revokeLookupInvite.useMutation({
+    onSuccess: () => {
+      toast.show(LOOKUP_INVITE_REVOKED_TOAST);
+      void utils.communities.listLookupInvites.invalidate({ communityId });
+    },
+    onError: (error) => toast.show(error.message),
+  });
+  const createCommunityLink = api.communities.createInviteLink.useMutation({
+    onSuccess: () =>
+      void utils.communities.getInviteLink.invalidate({ communityId }),
+    onError: (error) => toast.show(error.message),
   });
   const sendTeam = api.teams.inviteInApp.useMutation({
     onSuccess: () => afterSend({ sent: [null], refused: [] }),
@@ -223,7 +277,7 @@ export function InviteDoorSheet({
   });
 
   function messageFor(link: LinkResult) {
-    if (door.kind === "team") {
+    if (door.kind === "team" || door.kind === "community") {
       return link.shortUrl ?? link.inviteUrl;
     }
     return door.kind === "group"
@@ -235,6 +289,10 @@ export function InviteDoorSheet({
     try {
       if (door.kind === "team") {
         const link = await createTeamLink.mutateAsync({ teamId });
+        return { shortUrl: null, inviteUrl: link.inviteUrl };
+      }
+      if (door.kind === "community") {
+        const link = await createCommunityLink.mutateAsync({ communityId });
         return { shortUrl: null, inviteUrl: link.inviteUrl };
       }
       return door.kind === "group"
@@ -283,6 +341,8 @@ export function InviteDoorSheet({
       if (userId) {
         sendTeam.mutate({ teamId: door.teamId, userId });
       }
+    } else if (door.kind === "community") {
+      sendCommunity.mutate({ communityId: door.communityId, userIds });
     } else if (door.kind === "group") {
       sendGroup.mutate({ groupId: door.groupId, userIds });
     } else {
@@ -299,6 +359,7 @@ export function InviteDoorSheet({
   }
 
   const revokePendingId =
+    (revokeCommunity.isPending ? revokeCommunity.variables?.inviteId : null) ??
     (revokeGroup.isPending ? revokeGroup.variables?.inviteId : null) ??
     (revokeGame.isPending ? revokeGame.variables?.inviteId : null) ??
     (revokeTeam.isPending ? revokeTeam.variables?.inviteId : null) ??
@@ -307,7 +368,7 @@ export function InviteDoorSheet({
   const lookup: LookupSectionProps | null = door.canLookup
     ? {
         note:
-          door.kind === "group"
+          door.kind === "group" || door.kind === "community"
             ? door.note
             : door.kind === "team"
               ? TEAM_LOOKUP_NOTE
@@ -321,7 +382,10 @@ export function InviteDoorSheet({
             toggleSelection(current, row, isTeam ? "single" : "multiple"),
           ),
         sendPending:
-          sendGroup.isPending || sendGame.isPending || sendTeam.isPending,
+          sendCommunity.isPending ||
+          sendGroup.isPending ||
+          sendGame.isPending ||
+          sendTeam.isPending,
         onSend: send,
         refused,
         formError,
@@ -330,6 +394,8 @@ export function InviteDoorSheet({
         onRevoke: (inviteId) => {
           if (door.kind === "team") {
             revokeTeam.mutate({ inviteId });
+          } else if (door.kind === "community") {
+            revokeCommunity.mutate({ inviteId });
           } else if (door.kind === "group") {
             revokeGroup.mutate({ inviteId });
           } else {
@@ -353,6 +419,7 @@ export function InviteDoorSheet({
                   : currentLink.inviteUrl
                 : null,
               pending:
+                createCommunityLink.isPending ||
                 createGroupLink.isPending ||
                 createGameLink.isPending ||
                 createTeamLink.isPending,

@@ -8,7 +8,16 @@ import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
-import { requestRowMeta } from "@repo/domain/request-meta";
+import {
+  COMMUNITY_JOIN_REQUESTS_ERROR_TITLE,
+  COMMUNITY_JOIN_REQUESTS_TITLE,
+  COMMUNITY_REQUESTS_EMPTY,
+  COMMUNITY_TEAM_LINK_REQUESTS_ERROR_TITLE,
+  COMMUNITY_TEAM_LINK_REQUESTS_TITLE,
+  communityJoinRequestRow,
+  communityRequestsAreEmpty,
+  communityTeamLinkRequestRow,
+} from "@repo/domain/community";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["communities"]["listJoinRequests"][number];
@@ -77,24 +86,23 @@ export function CommunityRequestsTab({
 }) {
   const hasJoin = canManageJoinRequests;
   const hasTeam = canManageTeamLinks;
-  const joinEmpty = hasJoin && joinRequests?.length === 0;
-  const teamEmpty = hasTeam && teamLinkRequests?.length === 0;
-  const bothEmpty = (!hasJoin || joinEmpty) && (!hasTeam || teamEmpty);
-
-  if (bothEmpty && !joinLoading && !teamLoading && !joinError && !teamError) {
-    return (
-      <EmptyState
-        icon={Inbox}
-        title="No pending requests"
-        description="Community join requests and Team link requests will show up here."
-      />
-    );
+  if (
+    communityRequestsAreEmpty({
+      canManageJoinRequests,
+      canManageTeamLinks,
+      joinCount: joinRequests?.length,
+      teamCount: teamLinkRequests?.length,
+      loading: joinLoading || teamLoading,
+      failed: Boolean(joinError ?? teamError),
+    })
+  ) {
+    return <EmptyState icon={Inbox} {...COMMUNITY_REQUESTS_EMPTY} />;
   }
 
   return (
     <div className="flex flex-col gap-[26px]">
       {hasJoin ? (
-        <RequestsCard title="Join requests">
+        <RequestsCard title={COMMUNITY_JOIN_REQUESTS_TITLE}>
           {joinLoading ? (
             <div className="px-5 py-4">
               <Skeleton className="h-16 w-full" />
@@ -104,7 +112,7 @@ export function CommunityRequestsTab({
             <ErrorState
               headingLevel={3}
               className="px-5"
-              title="Join requests could not be loaded"
+              title={COMMUNITY_JOIN_REQUESTS_ERROR_TITLE}
               message={joinError}
               onRetry={onRetryJoin}
             />
@@ -112,19 +120,19 @@ export function CommunityRequestsTab({
           {joinRequests && joinRequests.length > 0 ? (
             <RequestRows>
               {joinRequests.map((request) => {
-                const name = request.user.name ?? "User";
+                const row = communityJoinRequestRow(request);
                 return (
                   <RequestRow
                     key={request.id}
                     leading={
                       <UserAvatar
-                        name={name}
-                        image={request.user.image}
+                        name={row.title}
+                        image={row.image}
                         size="lg"
                       />
                     }
-                    title={name}
-                    meta={requestRowMeta(request.createdAt)}
+                    title={row.title}
+                    meta={row.meta}
                     approvePending={approveJoinPendingId === request.id}
                     rejectPending={rejectJoinPendingId === request.id}
                     onApprove={() => onApproveJoin(request.id)}
@@ -138,7 +146,7 @@ export function CommunityRequestsTab({
       ) : null}
 
       {hasTeam ? (
-        <RequestsCard title="Team link requests">
+        <RequestsCard title={COMMUNITY_TEAM_LINK_REQUESTS_TITLE}>
           {teamLoading ? (
             <div className="px-5 py-4">
               <Skeleton className="h-16 w-full" />
@@ -148,7 +156,7 @@ export function CommunityRequestsTab({
             <ErrorState
               headingLevel={3}
               className="px-5"
-              title="Team link requests could not be loaded"
+              title={COMMUNITY_TEAM_LINK_REQUESTS_ERROR_TITLE}
               message={teamError}
               onRetry={onRetryTeam}
             />
@@ -156,14 +164,12 @@ export function CommunityRequestsTab({
           {teamLinkRequests && teamLinkRequests.length > 0 ? (
             <RequestRows>
               {teamLinkRequests.map((request) => {
-                const requester = request.requestedBy.name ?? "User";
+                const row = communityTeamLinkRequestRow(request);
                 return (
                   <RequestRow
                     key={request.id}
-                    title={request.team.displayName}
-                    meta={requestRowMeta(request.createdAt, [
-                      `From ${requester}`,
-                    ])}
+                    title={row.title}
+                    meta={row.meta}
                     approvePending={approveTeamPendingId === request.id}
                     rejectPending={rejectTeamPendingId === request.id}
                     onApprove={() => onApproveTeam(request.id)}

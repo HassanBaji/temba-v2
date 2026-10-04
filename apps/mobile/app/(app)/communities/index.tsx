@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../../../src/navigation/placeholder-screen";
+import { CommunitiesScreen } from "../../../src/communities/communities-screen";
 
 export default function Communities() {
-  return <PlaceholderScreen title="Communities" />;
+  return <CommunitiesScreen />;
 }
