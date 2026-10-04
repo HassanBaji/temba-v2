@@ -82,7 +82,7 @@ apps/api               ──► @repo/api, @repo/db
 ```
 
 - **Clients never import server code.** `apps/web/src` and `apps/mobile` may import `@repo/api/types` with `import type` and nothing else from `@repo/api`. They never import `@repo/db`. Scripts under `apps/web/scripts` are exempt.
-- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. A function goes there only if a client uses it, or two or more server callers do.
+- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. The one exception is `friendly-game-partner` and `tournament-join`, which keep their routes until Phase 6 (spec section 9). A function goes there only if a client uses it, or two or more server callers do.
 - **`@repo/validators` is for shared schemas only.** A schema used by one procedure stays inline in that procedure file.
 - **`@repo/api` is host-neutral.** No `next/*`, `@clerk/nextjs`, `react` or `server-only`. Auth, role metadata and the web origin arrive through the context.
 - **`apps/api` holds no business logic.** It verifies the session, builds the context and mounts routes.

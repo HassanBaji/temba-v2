@@ -316,7 +316,7 @@ Domain-by-domain still happens, at cutover. See Phase 3.
 - The 24 lib modules the server already imports move first. `@repo/api` cannot exist without them.
 - The pure server cores move: `glicko2`, `level`, `idle`, `match-outcome`, `set-wins-for-games`, `match-slots`, `compare-standing`, `pool-table`, `member-form-marks`, `member-win-loss`, and the pure half of `completed-matches`.
 - Logic used by a single endpoint stays in its procedure file. That includes Pool draw and Match generation in `postPoolDraw.ts` and `drawPools.ts`. The brief asked for bracket generation to live in the domain Package. The tree builder already does (`tournament-knockout`). The draw itself has one caller and existing PGlite tests, so the repo rule keeps it where it is.
-- Modules that return web routes (`/dashboard/...`) do not move as they are. They move in Phase 6, when the mobile route they would feed exists, and they return a typed target that each App maps to its own path.
+- Modules that return web routes (`/dashboard/...`) do not move as they are, except `friendly-game-partner` and `tournament-join`, which the server already imports and which move unchanged in Phase 1 (decided 2026-10-04). They move in Phase 6, when the mobile route they would feed exists, and they return a typed target that each App maps to its own path.
 
 **Layout.** Flat modules with a wildcard export, so `~/lib/tournament-rounds` becomes `@repo/domain/tournament-rounds`. No barrel file. The move stays a rename, and file history is preserved.
 
@@ -526,7 +526,7 @@ Phases 0 to 4 are verified end to end with the existing Playwright flow recordin
 7. **Move the remaining pure lib modules** that do not return web routes, with their tests.
 8. **Scaffold `@repo/validators`** with `sportSchema`. Replace its nine inline copies.
 
-**Not moved in this phase.** The 16 web-bound lib files, and the modules that return `/dashboard/...` routes: `friendly-game-partner`, `home-next-game`, `home-no-games`, `invite-outcome-copy`, `onboarding-step`, `tournament-join`, `create-game-flow`. Single-endpoint logic inside procedure files stays where it is.
+**Not moved in this phase.** The 16 web-bound lib files, and the modules that return `/dashboard/...` routes: `home-next-game`, `home-no-games`, `invite-outcome-copy`, `onboarding-step`, `create-game-flow`. `friendly-game-partner` and `tournament-join` also return routes, but the server reaches them (through `game-summary-cta` and `previewInviteLink.ts`), so they move as they are with the 24 (decided 2026-10-04). Single-endpoint logic inside procedure files stays where it is.
 
 **Files touched.** New `packages/domain/**` and `packages/validators/**`. `packages/db/src/{index,client,testing}.ts`. `apps/web/src/lib/**` shrinks. Import lines change across `apps/web/src`. `apps/web/vitest.config.ts`.
 
@@ -929,6 +929,12 @@ Also answered on 2026-10-03, in a second round:
 | CI | Yes. A GitHub Actions workflow runs typecheck, lint and tests on pull requests. |
 | Win rate | Won divided by played. A draw counts as played. |
 | Timezone | `Asia/Bahrain` as the one product timezone |
+
+Answered on 2026-10-04:
+
+| Question | Decision |
+| --- | --- |
+| `friendly-game-partner` and `tournament-join` return web routes but the server imports them (TEM-304) | Move both to `@repo/domain` as they are. They are the only modules there allowed to return web route strings, until Phase 6 gives them a typed target. |
 
 ### Still unrecorded
 
