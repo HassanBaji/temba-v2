@@ -206,3 +206,12 @@ Built and bundled in the container (`apps/mobile` typecheck, lint, unit tests, `
 - [ ] **TEM-328.** Persistence and sign-out: sign in, force-quit the App, reopen it and check you are still signed in (token cache in the keychain). Tap Sign out on the signed-in screen and check you return to the welcome screen. Then sign in as a different User on the same install and check you see that User's questionnaire state, not the previous User's.
 - [ ] **TEM-328.** The Apple button is the standard ink button with the label "Continue with Apple" and no Apple logo glyph. Apple's review guidelines expect the Apple logo on the button; add it (or switch to `AppleAuthenticationButton` from `expo-apple-authentication`) before the App Store build in Phase 7.
 - [ ] **TEM-328.** Terms and Privacy Policy: the sign-up and welcome screens name them in plain text. Link them to the web pages once the web App's public origin is known (an `EXPO_PUBLIC_WEB_ORIGIN` variable is not defined yet).
+
+## TEM-329 mobile tab shell
+
+Built and bundled in the container (`apps/mobile` typecheck, lint, unit tests for `src/navigation/tab-list.ts`, `expo export --platform ios`). The tabs are `app/(app)/(home)`, `games`, `groups`, `communities` and `profile`, each with its own stack (`src/navigation/tab-stack.tsx`) and placeholder screen; Sign out moved from Home to Profile. The checks below need a phone and a real Clerk user, so they are unverified until done.
+
+- [ ] **TEM-329.** On a notched iPhone (development build, see TEM-328), sign in and check the tab bar clears the home indicator and the content clears the status bar and notch, in portrait and landscape.
+- [ ] **TEM-329.** Check the order Home, Games, Groups, Profile; the active tab's icon and label are ink (icon heavier stroke) and the others are grey; the tab bar has a 1 px top hairline and no shadow. Compare with the web bottom navigation at a phone width.
+- [ ] **TEM-329.** Sign in with an account whose Clerk public metadata has `groupCreator: true` (Clerk dashboard, Users, the user, Metadata, Public) and check Communities appears between Groups and Profile; with the flag removed (sign out and in again) it disappears.
+- [ ] **TEM-329.** Each tab keeps its own stack: the stacks hold only a root placeholder today, so check the header shows the tab title with no shadow; the back affordance appears once a later ticket pushes a screen. Unverified until then.

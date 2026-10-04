@@ -1,8 +1,9 @@
 import { useAuth } from "@clerk/expo";
-import { Redirect, Stack } from "expo-router";
+import { Redirect } from "expo-router";
 
 import { AuthLoading } from "../../src/auth/auth-loading";
 import { OnboardingGate } from "../../src/auth/onboarding-gate";
+import { AppTabs } from "../../src/navigation/app-tabs";
 
 export default function SignedInLayout() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -15,7 +16,7 @@ export default function SignedInLayout() {
   }
   return (
     <OnboardingGate>
-      <Stack screenOptions={{ headerShown: false }} />
+      <AppTabs />
     </OnboardingGate>
   );
 }
