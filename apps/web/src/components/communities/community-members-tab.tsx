@@ -29,7 +29,7 @@ import {
 import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,
-} from "~/lib/group-home-chrome";
+} from "@repo/domain/group-home-chrome";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 

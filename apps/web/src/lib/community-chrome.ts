@@ -1,4 +1,4 @@
-import { groupHomeSportLabel } from "~/lib/group-home-chrome";
+import { groupHomeSportLabel } from "@repo/domain/group-home-chrome";
 import { memberCountLabel } from "@repo/domain/member-count-label";
 
 export type CommunityVisibility = "public" | "private";

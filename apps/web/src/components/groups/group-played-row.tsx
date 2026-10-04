@@ -6,7 +6,7 @@ import {
   groupPlayedOpponentLine,
   groupPlayedScoreLine,
   groupPlayedTeamLabel,
-} from "~/lib/group-home-chrome";
+} from "@repo/domain/group-home-chrome";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GroupPlayedGame = RouterOutputs["groups"]["byId"]["gameHistory"][number];

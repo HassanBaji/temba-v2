@@ -14,12 +14,10 @@ import { Input } from "~/components/ui/input";
 import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,
+  groupMemberFormMarks,
   groupMemberRoleCaption,
-} from "~/lib/group-home-chrome";
+} from "@repo/domain/group-home-chrome";
 import type { LevelBand } from "@repo/domain/level-bands";
-
-/** Design 06c draws four marks per member; the derivation returns up to five. */
-const MEMBER_FORM_MARKS = 4;
 
 type GroupMember = {
   userId: string;
@@ -44,7 +42,7 @@ function GroupMemberRow({ member }: { member: GroupMember }) {
       trailing={
         <>
           <FormStrip
-            marks={member.formMarks.slice(-MEMBER_FORM_MARKS)}
+            marks={groupMemberFormMarks(member.formMarks)}
             size={14}
             gap={4}
           />

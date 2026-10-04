@@ -9,7 +9,7 @@ import { TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   groupHomeBackTarget,
   groupHomeMetaLine,
-} from "~/lib/group-home-chrome";
+} from "@repo/domain/group-home-chrome";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import { cn } from "~/lib/utils";
 
@@ -63,13 +63,17 @@ export function GroupHomeChrome({
 }) {
   const meta = groupHomeMetaLine({ sport, memberCount, createdAt });
   const back = groupHomeBackTarget(communityId);
+  const backHref =
+    back.kind === "community"
+      ? `/dashboard/communities/${back.communityId}`
+      : "/dashboard/groups";
   const showCreateBox = tab === "games" && canCreateGame;
   const showInviteBox = tab !== "games" && canInvite;
 
   return (
     <div className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
       <div className="flex items-center justify-between gap-3">
-        <BackButton variant="boxed" href={back.href} label={back.label} />
+        <BackButton variant="boxed" href={backHref} label={back.label} />
 
         <div className="flex items-center gap-2">
           {showInviteBox ? (

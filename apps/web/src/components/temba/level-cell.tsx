@@ -1,7 +1,5 @@
-import {
-  displayLabelFromStoredBand,
-  type LevelBand,
-} from "@repo/domain/level-bands";
+import { levelCellView } from "@repo/domain/group-home-chrome";
+import type { LevelBand } from "@repo/domain/level-bands";
 import { cn } from "~/lib/utils";
 
 /**
@@ -27,7 +25,9 @@ export function LevelCell({
   onInk?: boolean;
   className?: string;
 }) {
-  if (!band || provisional) {
+  const view = levelCellView(band, provisional);
+
+  if (view.kind === "provisional") {
     return (
       <span
         data-slot="level-cell"
@@ -51,7 +51,7 @@ export function LevelCell({
       data-slot="level-cell"
       className={cn("font-expanded text-lead block text-right", className)}
     >
-      {displayLabelFromStoredBand(band)}
+      {view.label}
     </span>
   );
 }

@@ -1,6 +1,7 @@
-import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
-import { memberCountLabel } from "@repo/domain/member-count-label";
-import { shortPlayerName } from "@repo/domain/player-name";
+import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+import { formatDayMonth, formatMonth } from "./format-game-start";
+import { memberCountLabel } from "./member-count-label";
+import { shortPlayerName } from "./player-name";
 
 const SPORT_LABELS: Record<string, string> = {
   padel: "Padel",
@@ -58,15 +59,18 @@ export function groupHomeMetaLine(input: {
   return parts.join(", ");
 }
 
+export type GroupHomeBackTarget =
+  | { kind: "community"; communityId: string; label: string }
+  | { kind: "groups"; label: string };
+
 /** A Club Group home returns to its Community; a Loose Group to Groups. */
-export function groupHomeBackTarget(communityId: string | null | undefined) {
+export function groupHomeBackTarget(
+  communityId: string | null | undefined,
+): GroupHomeBackTarget {
   if (communityId) {
-    return {
-      href: `/dashboard/communities/${communityId}`,
-      label: "Back to Community",
-    };
+    return { kind: "community", communityId, label: "Back to Community" };
   }
-  return { href: "/dashboard/groups", label: "Back to Groups" };
+  return { kind: "groups", label: "Back to Groups" };
 }
 
 export function groupHomeHasStandingResults(
@@ -196,4 +200,30 @@ export function groupPlayedMarkVariant(
     return outcome;
   }
   return "not-played";
+}
+
+export type LevelCellView =
+  | { kind: "label"; label: string }
+  | { kind: "provisional" };
+
+/**
+ * The Level column: the band label, or the hatched Provisional placeholder
+ * when the Rating is still Provisional (ADR-0009) or the member has no Rating
+ * for the Group's sport.
+ */
+export function levelCellView(
+  band: LevelBand | null | undefined,
+  provisional: boolean,
+): LevelCellView {
+  if (!band || provisional) {
+    return { kind: "provisional" };
+  }
+  return { kind: "label", label: displayLabelFromStoredBand(band) };
+}
+
+/** Design 06c draws four marks per member; the derivation returns up to five. */
+export const GROUP_MEMBER_FORM_MARKS = 4;
+
+export function groupMemberFormMarks<T>(marks: readonly T[]): T[] {
+  return marks.slice(-GROUP_MEMBER_FORM_MARKS);
 }

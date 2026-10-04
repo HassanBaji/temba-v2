@@ -4,10 +4,8 @@ import { Users } from "lucide-react";
 import { EmptyState } from "~/components/common/empty-state";
 import { LevelCell } from "~/components/temba/level-cell";
 import { Button } from "~/components/ui/button";
-import {
-  groupHomeHasStandingResults,
-  groupStandingRecordLabel,
-} from "~/lib/group-home-chrome";
+import { groupStandingRecordLabel } from "@repo/domain/group-home-chrome";
+import { groupStandingState } from "@repo/domain/group-join";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
@@ -157,7 +155,8 @@ export function GroupStandingTab({
   totalGamesPlayed: number;
   awaitingScoreCount: number;
 }) {
-  if (!isMember) {
+  const state = groupStandingState({ isMember, leaderboard });
+  if (state.kind === "not-member") {
     return (
       <EmptyState
         icon={Users}
@@ -167,7 +166,6 @@ export function GroupStandingTab({
     );
   }
 
-  const hasResults = groupHomeHasStandingResults(leaderboard);
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
@@ -178,16 +176,16 @@ export function GroupStandingTab({
 
   return (
     <div className="flex flex-col gap-[26px]">
-      {hasResults ? null : (
+      {state.showNoResultsNotice ? (
         <EmptyState
           icon={Users}
           title="Standings appear after the first result"
           action={createFirstGame}
-          className={leaderboard.length > 0 ? "py-6" : undefined}
+          className={state.showTable ? "py-6" : undefined}
         />
-      )}
+      ) : null}
 
-      {leaderboard.length > 0 ? (
+      {state.showTable ? (
         <>
           <StandingTable leaderboard={leaderboard} />
           <StatPair

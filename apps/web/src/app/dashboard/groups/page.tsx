@@ -27,6 +27,14 @@ import {
   groupRowMetaLine,
 } from "@repo/domain/groups-list";
 import { groupsTabFromQuery, groupsTabQuery } from "@repo/domain/groups-tab";
+import {
+  groupDisplayName,
+  groupJoinDisabled,
+  groupJoinLabel,
+  groupJoinToast,
+  publicGroupJoinDoor,
+  publicGroupMetaLine,
+} from "@repo/domain/group-join";
 import { memberCountLabel } from "@repo/domain/member-count-label";
 import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -81,7 +89,7 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
   return (
     <RowList variant="card">
       {groups.map((group) => {
-        const name = group.name ?? "Untitled Group";
+        const name = groupDisplayName(group.name);
         return (
           <ListRow
             key={group.id}
@@ -116,7 +124,7 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
 }
 
 function toPendingInviteRow(invite: GroupInvite): PendingInviteRow {
-  const title = invite.groupName ?? "Untitled Group";
+  const title = groupDisplayName(invite.groupName);
   return {
     id: invite.id,
     leading: <EntityMonogram name={title} image={invite.imageUrl} size="lg" />,
@@ -158,12 +166,12 @@ function PublicGroupRows({
   return (
     <RowList variant="card">
       {groups.map((group) => {
-        const name = group.name ?? "Untitled Group";
+        const name = groupDisplayName(group.name);
         const isPending = pendingGroupId === group.id;
-        const members = memberCountLabel(group.memberCount);
-        const meta = group.requiresApproval
-          ? `${members} · Requires approval`
-          : members;
+        const meta = publicGroupMetaLine({
+          memberCountLabel: memberCountLabel(group.memberCount),
+          requiresApproval: group.requiresApproval,
+        });
         return (
           <ListRow
             key={group.id}
@@ -186,28 +194,19 @@ function PublicGroupRows({
               <Button
                 type="button"
                 variant={group.joinMode === "join" ? "default" : "outline"}
-                disabled={group.joinMode === "requested"}
+                disabled={groupJoinDisabled(group.joinMode, false)}
                 pending={isPending}
                 onClick={() => {
-                  if (group.joinMode === "request") {
+                  const door = publicGroupJoinDoor(group);
+                  if (door === "requestJoin") {
                     onRequest(group.id);
-                    return;
-                  }
-                  if (group.joinMode === "join") {
+                  } else if (door) {
                     onJoin(group);
                   }
                 }}
                 className="font-semibold"
               >
-                {group.joinMode === "requested"
-                  ? "Requested"
-                  : group.joinMode === "request"
-                    ? isPending
-                      ? "Requesting…"
-                      : "Request to join"
-                    : isPending
-                      ? "Joining…"
-                      : "Join"}
+                {groupJoinLabel(group.joinMode, isPending, "row")}
               </Button>
             }
           />
@@ -259,7 +258,7 @@ export default function GroupsIndexPage({
 
   const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Group");
+      toast.success(groupJoinToast("joinLoosePublic"));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
@@ -270,7 +269,7 @@ export default function GroupsIndexPage({
 
   const joinClubPublic = api.groups.joinClubPublic.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Group");
+      toast.success(groupJoinToast("joinClubPublic"));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
@@ -281,7 +280,7 @@ export default function GroupsIndexPage({
 
   const requestJoin = api.groups.requestJoin.useMutation({
     onSuccess: async () => {
-      toast.success("Requested to join");
+      toast.success(groupJoinToast("requestJoin"));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
@@ -391,7 +390,7 @@ export default function GroupsIndexPage({
                 groups={publicGroups.data}
                 pendingGroupId={pendingPublicGroupId}
                 onJoin={(group) => {
-                  if (group.communityName) {
+                  if (publicGroupJoinDoor(group) === "joinClubPublic") {
                     joinClubPublic.mutate({ groupId: group.id });
                     return;
                   }

@@ -1,6 +1,4 @@
 import { useUser } from "@clerk/expo";
-import { gameJoinToast } from "@repo/domain/game-copy";
-import { hubRegisterToast } from "@repo/domain/game-card";
 import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
 import {
   HISTORY_PAGE_SIZE,
@@ -11,7 +9,6 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Screen } from "../primitives/screen";
 import { Text } from "../primitives/text";
-import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
@@ -21,17 +18,15 @@ import {
   seatJoinRequest,
   waitlistJoinRequest,
   type GamesTab,
-  type JoinRequest,
 } from "./games-model";
 import { GamesView } from "./games-view";
+import { useGameJoin } from "./use-game-join";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function GamesScreen() {
   const { user } = useUser();
   const router = useRouter();
-  const toast = useToast();
-  const utils = api.useUtils();
   const [tab, setTab] = useState<GamesTab>("my-games");
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -47,47 +42,7 @@ export function GamesScreen() {
   );
   const historyRows = useMemo(() => history.data?.pages.flat(), [history.data]);
 
-  const refreshLists = useCallback(
-    () =>
-      Promise.all([
-        utils.games.listMyGames.invalidate(),
-        utils.games.listMyMatchHistory.invalidate(),
-        utils.users.home.invalidate(),
-        utils.games.byId.invalidate(),
-      ]),
-    [utils],
-  );
-
-  const registerSeat = api.games.registerSeat.useMutation({
-    onSuccess: (result) => {
-      toast.show(gameJoinToast(result.waitlisted));
-    },
-    onError: (error) => toast.show(error.message),
-    onSettled: refreshLists,
-  });
-  const register = api.games.register.useMutation({
-    onSuccess: (result) => {
-      toast.show(hubRegisterToast(result.waitlisted));
-    },
-    onError: (error) => toast.show(error.message),
-    onSettled: refreshLists,
-  });
-
-  const pendingGameId =
-    (registerSeat.isPending ? registerSeat.variables?.gameId : null) ??
-    (register.isPending ? register.variables?.gameId : null) ??
-    null;
-
-  const join = useCallback(
-    (request: JoinRequest) => {
-      if (request.door === "register") {
-        register.mutate(request.input);
-      } else {
-        registerSeat.mutate(request.input);
-      }
-    },
-    [register, registerSeat],
-  );
+  const { join, pendingGameId } = useGameJoin();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

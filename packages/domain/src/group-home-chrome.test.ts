@@ -8,24 +8,27 @@ import {
   groupHomeMetaLine,
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
+  groupMemberFormMarks,
   groupMemberRoleCaption,
   groupPlayedMarkVariant,
   groupPlayedOpponentLine,
   groupPlayedScoreLine,
   groupPlayedTeamLabel,
   groupStandingRecordLabel,
+  levelCellView,
 } from "./group-home-chrome";
 
 describe("groupHomeBackTarget", () => {
   it("returns a Club Group home to its Community home", () => {
     assert.deepEqual(groupHomeBackTarget("community-1"), {
-      href: "/dashboard/communities/community-1",
+      kind: "community",
+      communityId: "community-1",
       label: "Back to Community",
     });
   });
 
   it("returns a Loose Group home to the Groups index", () => {
-    const loose = { href: "/dashboard/groups", label: "Back to Groups" };
+    const loose = { kind: "groups", label: "Back to Groups" };
     assert.deepEqual(groupHomeBackTarget(null), loose);
     assert.deepEqual(groupHomeBackTarget(undefined), loose);
     assert.deepEqual(groupHomeBackTarget(""), loose);
@@ -253,5 +256,24 @@ describe("groupPlayedMarkVariant", () => {
   it("draws a draw and a missing result as not-played", () => {
     assert.equal(groupPlayedMarkVariant("draw"), "not-played");
     assert.equal(groupPlayedMarkVariant(null), "not-played");
+  });
+});
+
+describe("levelCellView", () => {
+  it("shows the band label for a settled Rating", () => {
+    assert.deepEqual(levelCellView("B3", false), { kind: "label", label: "B" });
+  });
+
+  it("hatches a Provisional Rating or a missing one", () => {
+    assert.deepEqual(levelCellView("B3", true), { kind: "provisional" });
+    assert.deepEqual(levelCellView(null, false), { kind: "provisional" });
+    assert.deepEqual(levelCellView(undefined, false), { kind: "provisional" });
+  });
+});
+
+describe("groupMemberFormMarks", () => {
+  it("keeps the latest four marks", () => {
+    assert.deepEqual(groupMemberFormMarks([1, 2, 3, 4, 5]), [2, 3, 4, 5]);
+    assert.deepEqual(groupMemberFormMarks([1, 2]), [1, 2]);
   });
 });

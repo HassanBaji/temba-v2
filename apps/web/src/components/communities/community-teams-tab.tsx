@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { AvatarStack } from "~/components/common/avatar-stack";
 import { EmptyState } from "~/components/common/empty-state";
-import { groupHomeSportLabel } from "~/lib/group-home-chrome";
+import { groupHomeSportLabel } from "@repo/domain/group-home-chrome";
 import { type RouterOutputs } from "~/trpc/react";
 
 type ClubTeam = RouterOutputs["communities"]["byId"]["teams"][number];

@@ -37,6 +37,17 @@ import {
   entityImageFileError,
   entityImageUploadInput,
 } from "@repo/domain/entity-image-file";
+import {
+  groupHomeBanner,
+  groupHomeCanJoin,
+  groupHomeJoinDoor,
+  groupJoinDisabled,
+  groupJoinLabel,
+  groupJoinToast,
+  groupLeaveConfirm,
+  groupLeaveToast,
+  type GroupJoinMode,
+} from "@repo/domain/group-join";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -98,7 +109,7 @@ export default function GroupHomePage({
 
   const joinClubPublic = api.groups.joinClubPublic.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Group");
+      toast.success(groupJoinToast("joinClubPublic"));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
       if (group.data?.communityId) {
@@ -115,7 +126,7 @@ export default function GroupHomePage({
 
   const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Group");
+      toast.success(groupJoinToast("joinLoosePublic"));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
     },
@@ -126,7 +137,7 @@ export default function GroupHomePage({
 
   const requestJoin = api.groups.requestJoin.useMutation({
     onSuccess: async () => {
-      toast.success("Requested to join");
+      toast.success(groupJoinToast("requestJoin"));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
       await utils.groups.listJoinRequests.invalidate({ groupId: id });
@@ -193,11 +204,7 @@ export default function GroupHomePage({
 
   const leaveGroup = api.groups.leave.useMutation({
     onSuccess: async (result) => {
-      toast.success(
-        result.communityId
-          ? "Left Group — you remain in the Community"
-          : "Left Group",
-      );
+      toast.success(groupLeaveToast(result.communityId));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
       if (result.communityId) {
@@ -369,15 +376,12 @@ export default function GroupHomePage({
   }
 
   function onJoin() {
-    if (group.data?.joinMode === "request") {
+    const door = group.data ? groupHomeJoinDoor(group.data) : null;
+    if (door === "requestJoin") {
       requestJoin.mutate({ groupId: id });
-      return;
-    }
-    if (group.data?.canJoinLoosePublic) {
+    } else if (door === "joinLoosePublic") {
       joinLoosePublic.mutate({ groupId: id });
-      return;
-    }
-    if (group.data?.canJoinClubPublic) {
+    } else if (door === "joinClubPublic") {
       joinClubPublic.mutate({ groupId: id });
     }
   }
@@ -460,10 +464,7 @@ export default function GroupHomePage({
     canManageInviteLinks: data.canManageInviteLinks,
   });
   const ctaFamily = groupHomeCtaFamily({
-    canJoin:
-      data.joinMode === "join" ||
-      data.joinMode === "request" ||
-      data.joinMode === "requested",
+    canJoin: groupHomeCanJoin(data.joinMode),
     nextJoinableGameId:
       groupHomeNextJoinableGame(data.upcomingGames, Boolean(data.membership))
         ?.id ?? null,
@@ -484,6 +485,7 @@ export default function GroupHomePage({
     isMember: data.membership != null,
     canDelete: data.canDelete,
   });
+  const leaveConfirm = groupLeaveConfirm(groupName);
   const restoreFocusRef =
     restoreFocus === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef;
 
@@ -522,36 +524,22 @@ export default function GroupHomePage({
     />
   );
 
-  const banners = (
-    <>
-      {data.isCommunityArchived && !data.communityMembership ? (
-        <SoftArchiveBanner
-          headingLevel={2}
-          heading="This Club Group's Community is Soft-archived"
-        >
-          It is not open for join. Members of the Community can still open
-          history and Games. This is not a missing page.
-        </SoftArchiveBanner>
-      ) : null}
-
-      {data.isCommunityArchived && data.communityMembership ? (
-        <SoftArchiveBanner headingLevel={2} heading="Community Soft-archived">
-          This Club Group stays attached to its Community. You can still open it
-          and see history and Games while the Community is archived.
-        </SoftArchiveBanner>
-      ) : null}
-
-      {data.communityId &&
-      !data.communityMembership &&
-      !data.isCommunityArchived &&
-      (data.joinMode === "request" || data.joinMode === "requested") ? (
-        <p className="text-body text-muted-foreground">
-          If approved, you also become a Member of{" "}
-          {data.community?.name ?? "this Community"}.
-        </p>
-      ) : null}
-    </>
-  );
+  const bannerCopy = groupHomeBanner({
+    isCommunityArchived: data.isCommunityArchived,
+    hasCommunityMembership: Boolean(data.communityMembership),
+    communityId: data.communityId,
+    communityName: data.community?.name ?? null,
+    joinMode: data.joinMode,
+  });
+  const banners = bannerCopy ? (
+    bannerCopy.heading ? (
+      <SoftArchiveBanner headingLevel={2} heading={bannerCopy.heading}>
+        {bannerCopy.body}
+      </SoftArchiveBanner>
+    ) : (
+      <p className="text-body text-muted-foreground">{bannerCopy.body}</p>
+    )
+  ) : null;
 
   return (
     <DashboardShell
@@ -588,18 +576,17 @@ export default function GroupHomePage({
             <Button
               type="button"
               className="min-h-11 w-full"
-              disabled={data.joinMode === "requested" || joinPending}
+              disabled={groupJoinDisabled(
+                data.joinMode as GroupJoinMode,
+                joinPending,
+              )}
               onClick={onJoin}
             >
-              {data.joinMode === "requested"
-                ? "Requested"
-                : data.joinMode === "request"
-                  ? requestJoin.isPending
-                    ? "Requesting…"
-                    : "Request to join"
-                  : joinPending
-                    ? "Joining…"
-                    : "Join Group"}
+              {groupJoinLabel(
+                data.joinMode as GroupJoinMode,
+                joinPending,
+                "home",
+              )}
             </Button>
           ) : null}
 
@@ -687,9 +674,9 @@ export default function GroupHomePage({
       <ConfirmDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
-        title={`Leave ${groupName}?`}
-        description="You will leave this Group."
-        confirmLabel="Leave Group"
+        title={leaveConfirm.title}
+        description={leaveConfirm.description}
+        confirmLabel={leaveConfirm.confirmLabel}
         pending={leaveGroup.isPending}
         restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {

@@ -9,6 +9,13 @@ import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { GroupPlayedRow } from "~/components/groups/group-played-row";
 import { Button } from "~/components/ui/button";
+import {
+  GROUP_ARCHIVE_GAMES_COPY,
+  GROUP_HISTORY_PAGE_SIZE,
+  groupGamesEmptyDescription,
+  groupHistoryCanLoadMore,
+  groupHistoryPageExhausted,
+} from "@repo/domain/group-join";
 import { offersPartnerJoin } from "@repo/domain/friendly-game-partner";
 import {
   gameSummaryPrimaryAction,
@@ -22,8 +29,6 @@ import { api, type RouterOutputs } from "~/trpc/react";
 
 type GroupHome = RouterOutputs["groups"]["byId"];
 type ScheduledGame = GroupHome["upcomingGames"][number];
-
-const HISTORY_PAGE_SIZE = 20;
 
 const HEADING = "font-expanded pb-2.5 text-title leading-tight";
 
@@ -64,10 +69,10 @@ export function GroupGamesTab({
   const [loadMoreFailed, setLoadMoreFailed] = React.useState(false);
   const older = olderPages.source === gameHistory ? olderPages : null;
   const playedGames = [...gameHistory, ...(older?.games ?? [])];
-  const canLoadMore =
-    !(older?.exhausted ?? false) &&
-    playedGames.length > 0 &&
-    playedGames.length % HISTORY_PAGE_SIZE === 0;
+  const canLoadMore = groupHistoryCanLoadMore({
+    loadedCount: playedGames.length,
+    exhausted: older?.exhausted ?? false,
+  });
 
   async function loadMoreHistory() {
     const last = playedGames.at(-1);
@@ -79,12 +84,15 @@ export function GroupGamesTab({
     try {
       const next = await utils.groups.byId.fetch({
         id: groupId,
-        gameHistory: { limit: HISTORY_PAGE_SIZE, cursor: { id: last.id } },
+        gameHistory: {
+          limit: GROUP_HISTORY_PAGE_SIZE,
+          cursor: { id: last.id },
+        },
       });
       setOlderPages({
         source: gameHistory,
         games: [...(older?.games ?? []), ...next.gameHistory],
-        exhausted: next.gameHistory.length < HISTORY_PAGE_SIZE,
+        exhausted: groupHistoryPageExhausted(next.gameHistory.length),
       });
     } catch {
       setLoadMoreFailed(true);
@@ -101,19 +109,13 @@ export function GroupGamesTab({
       </Link>
     </Button>
   ) : null;
-  const archiveCopy =
-    "Existing Games stay listed here, not on public pickup. Join, waitlist, and Game invites are closed while the Community is Soft-archived.";
 
   if (!hasAny) {
     return (
       <EmptyState
         icon={Calendar}
         title="No Games yet"
-        description={
-          isCommunityArchived
-            ? archiveCopy
-            : "When a Game is set with a live window or Match, it will show up here."
-        }
+        description={groupGamesEmptyDescription(isCommunityArchived)}
         action={createFirstGame}
       />
     );
@@ -125,7 +127,7 @@ export function GroupGamesTab({
         <h2 className={HEADING}>Scheduled</h2>
         {isCommunityArchived ? (
           <p className="text-body text-muted-foreground pb-2.5">
-            {archiveCopy}
+            {GROUP_ARCHIVE_GAMES_COPY}
           </p>
         ) : null}
         {upcomingGames.length === 0 ? (
