@@ -10,6 +10,12 @@ const app = createApp({
   authenticate: clerkAuthenticator({
     secretKey: env.CLERK_SECRET_KEY,
     publishableKey: env.CLERK_PUBLISHABLE_KEY,
+    jwtKey: env.CLERK_JWT_KEY,
+    acceptSessionCookie: env.ACCEPT_SESSION_COOKIE,
+    authorizedParties: [
+      env.WEB_ORIGIN,
+      ...(env.AUTHORIZED_PARTIES?.split(",").map((o) => o.trim()) ?? []),
+    ].filter(Boolean),
   }),
   webOrigin: env.WEB_ORIGIN,
   webhookSigningSecret: env.CLERK_WEBHOOK_SIGNING_SECRET,

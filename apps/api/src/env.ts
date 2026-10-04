@@ -9,6 +9,12 @@ export const env = createEnv({
     CLERK_WEBHOOK_SIGNING_SECRET: z.string().min(1),
     DATABASE_URL: z.string().url(),
     WEB_ORIGIN: z.string().url(),
+    AUTHORIZED_PARTIES: z.string().optional(),
+    ACCEPT_SESSION_COOKIE: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    CLERK_JWT_KEY: z.string().min(1).optional(),
     AWS_ENDPOINT_URL: z.string().url(),
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
