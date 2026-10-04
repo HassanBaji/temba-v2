@@ -2,14 +2,17 @@
 
 import { ListRow, RowList } from "~/components/common/row-list";
 import { ResultMark } from "~/components/temba/result-mark";
-import { formatGameCardDay, formatGameStart } from "~/lib/format-game-start";
+import {
+  formatGameCardDay,
+  formatGameStart,
+} from "@repo/domain/format-game-start";
 import { resultMarkVariant } from "~/lib/result-mark";
 import {
   NOT_DRAWN_TRAILER,
   YOUR_ROUNDS_PREDRAW_CAPTION,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import { YOUR_ROUNDS_HEADING } from "~/lib/tournament-pool-table";
-import type { TournamentRoundScheduleEntry } from "~/lib/tournament-rounds";
+import type { TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
 
 export type TournamentYourRoundsResult = {
   matchId: string;

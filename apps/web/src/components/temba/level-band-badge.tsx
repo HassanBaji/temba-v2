@@ -1,5 +1,8 @@
 import { Badge } from "~/components/ui/badge";
-import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
 import { cn } from "~/lib/utils";
 
 /** Monochrome D → A ramp: lightest gray for D, black (primary) for A. */

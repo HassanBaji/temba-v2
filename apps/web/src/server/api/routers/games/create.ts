@@ -24,8 +24,8 @@ import {
   LEVEL_RANGE_INVERTED_MESSAGE,
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
-} from "~/lib/level-range";
-import { PRICE_PER_PLAYER_MAX_FILS } from "~/lib/price-per-player";
+} from "@repo/domain/level-range";
+import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

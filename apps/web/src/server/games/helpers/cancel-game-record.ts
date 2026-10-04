@@ -3,7 +3,7 @@ import { and, eq, ne } from "drizzle-orm";
 
 import { MatchStatusEnum, gameWaitlist, games, matches } from "@repo/db";
 
-import { isDrawnTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 import { type GameRow } from "~/server/games/access";
 import { type db } from "~/server/db";
 

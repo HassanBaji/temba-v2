@@ -12,7 +12,7 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
-import type { LevelBand } from "~/lib/level-bands";
+import type { LevelBand } from "@repo/domain/level-bands";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

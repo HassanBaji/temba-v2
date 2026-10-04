@@ -8,7 +8,7 @@ import {
   groupHomeHasStandingResults,
   groupStandingRecordLabel,
 } from "~/lib/group-home-chrome";
-import type { LevelBand } from "~/lib/level-bands";
+import type { LevelBand } from "@repo/domain/level-bands";
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 

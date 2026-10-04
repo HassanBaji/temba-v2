@@ -7,7 +7,7 @@ import { admit } from "~/server/games/admit";
 import { isIndividualSeatGame } from "~/server/games/seats";
 import { type db } from "~/server/db";
 import type { SeatPosition } from "~/server/games/utils";
-import { isPartnerRequiredGame } from "~/lib/tournament-rounds";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

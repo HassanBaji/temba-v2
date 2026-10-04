@@ -15,7 +15,7 @@ import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { requestRowMeta } from "~/lib/request-meta";
+import { requestRowMeta } from "@repo/domain/request-meta";
 import { api } from "~/trpc/react";
 
 export default function VenuesPage() {

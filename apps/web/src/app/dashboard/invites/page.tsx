@@ -13,7 +13,7 @@ import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { gameJoinToast } from "~/lib/game-copy";
+import { gameJoinToast } from "@repo/domain/game-copy";
 import { api } from "~/trpc/react";
 
 function inviteMeta(

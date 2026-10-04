@@ -22,7 +22,7 @@ import {
   nextDistinctDisplayRung,
   type LevelBand,
   type SelfDeclareChoice,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";

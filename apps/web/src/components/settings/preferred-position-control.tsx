@@ -11,7 +11,7 @@ import {
   PREFERRED_POSITION_CHOICES,
   preferredPositionNote,
   type PreferredPosition,
-} from "~/lib/preferred-position";
+} from "@repo/domain/preferred-position";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 

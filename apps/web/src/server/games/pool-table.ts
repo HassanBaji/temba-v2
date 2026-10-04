@@ -1,8 +1,8 @@
 import { MatchStatusEnum } from "@repo/db";
 
-import { scoredSetLabel } from "~/lib/tournament-knockout";
-import { poolLabel } from "~/lib/tournament-pool-draw";
-import { hasPools } from "~/lib/tournament-rounds";
+import { scoredSetLabel } from "@repo/domain/tournament-knockout";
+import { poolLabel } from "@repo/domain/tournament-pool-draw";
+import { hasPools } from "@repo/domain/tournament-rounds";
 import { matchOutcome } from "~/server/games/match-outcome";
 
 export type PoolRecordOrderInput = {

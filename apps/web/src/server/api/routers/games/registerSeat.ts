@@ -20,11 +20,11 @@ import {
 import type { SeatPosition } from "~/server/games/utils";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { enqueueWaitlistUser } from "~/server/games/enqueue-waitlist-user";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
+import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
 import {
   isPartnerRequiredGame,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

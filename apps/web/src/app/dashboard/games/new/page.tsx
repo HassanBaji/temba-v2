@@ -66,16 +66,16 @@ import {
   splitTrpcFormError,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import { formatGameWindowName } from "~/lib/game-window";
+import { formatGameWindowName } from "@repo/domain/game-window";
 import {
   LEVEL_BAND_SELECT_NONE,
   LEVEL_RANGE_INVERTED_MESSAGE,
   parseLevelBandSelectTenths,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
-import { parseOptionalPricePerPlayerFils } from "~/lib/price-per-player";
-import { buildKnockoutTree } from "~/lib/tournament-knockout";
-import { sizeTournamentRounds } from "~/lib/tournament-schedule";
+} from "@repo/domain/level-range";
+import { parseOptionalPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { buildKnockoutTree } from "@repo/domain/tournament-knockout";
+import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import {
   clampQualifiersPerPool,
   DEFAULT_QUALIFIERS_PER_POOL,
@@ -84,7 +84,7 @@ import {
   resolveRoundCount,
   sizeFriendlyTournament,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import { api } from "~/trpc/react";
 
 type FormFailure = Parameters<typeof focusFormFailure>[0];

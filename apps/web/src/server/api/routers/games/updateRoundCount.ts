@@ -4,11 +4,11 @@ import { z } from "zod";
 
 import { games } from "@repo/db";
 
-import { hasPools } from "~/lib/tournament-rounds";
+import { hasPools } from "@repo/domain/tournament-rounds";
 import {
   sizeFriendlyTournament,
   validateRoundCount,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

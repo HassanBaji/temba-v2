@@ -13,7 +13,7 @@ import {
   vacateSeat,
 } from "~/server/games/seats";
 import { type db } from "~/server/db";
-import { isPartnerRequiredGame } from "~/lib/tournament-rounds";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

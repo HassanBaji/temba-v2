@@ -9,9 +9,12 @@ import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { formatLevelRangeGateCopy, formatLevelTenths } from "~/lib/level-range";
+import {
+  formatLevelRangeGateCopy,
+  formatLevelTenths,
+} from "@repo/domain/level-range";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { requestRowMeta } from "~/lib/request-meta";
+import { requestRowMeta } from "@repo/domain/request-meta";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];

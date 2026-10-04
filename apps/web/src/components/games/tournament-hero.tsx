@@ -12,7 +12,7 @@ import {
   OPEN_POSITION_SR_LABEL,
   RIGHT_SEAT_LABEL,
   YOUR_TEAM_LABEL,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 

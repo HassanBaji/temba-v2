@@ -31,12 +31,12 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { formatGameClock } from "~/lib/format-game-start";
+import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   CANCEL_GAME_ACTION,
   CANCEL_MATCH_ACTION,
   setLabel,
-} from "~/lib/game-copy";
+} from "@repo/domain/game-copy";
 import { cn } from "~/lib/utils";
 
 export type GameResultsMatch = {

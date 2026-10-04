@@ -17,7 +17,7 @@ import { Button, buttonVariants } from "~/components/ui/button";
 import {
   formatGameCardDay,
   formatWindowDuration,
-} from "~/lib/format-game-start";
+} from "@repo/domain/format-game-start";
 import { friendlyGameVacantSeatLabel } from "~/lib/friendly-game-players";
 import { nextJoinPosition } from "~/lib/game-card-side-join";
 import { gameOccupancy, spotsOpenLabel } from "~/lib/game-occupancy";
@@ -27,10 +27,10 @@ import {
   showsGameCardFooterAction,
   type GameSummaryCta,
   type GameViewerStatus,
-} from "~/lib/game-summary-cta";
+} from "@repo/domain/game-summary-cta";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
-import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
+import { formatLevelRangeLabel } from "@repo/domain/level-range";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 import { UserAvatar } from "../common/user-avatar";

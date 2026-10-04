@@ -19,7 +19,7 @@ import { mintLookup } from "~/server/invites/doors";
 import {
   isPartnerRequiredGame,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db;
 

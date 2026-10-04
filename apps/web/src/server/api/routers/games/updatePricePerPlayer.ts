@@ -12,7 +12,7 @@ import {
   requireGame,
   type GameRow,
 } from "~/server/games/access";
-import { PRICE_PER_PLAYER_MAX_FILS } from "~/lib/price-per-player";
+import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

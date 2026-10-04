@@ -4,12 +4,15 @@ import { z } from "zod";
 
 import { gameTeams } from "@repo/db";
 
-import { isDrawnTournament, isKnockoutOnly } from "~/lib/tournament-rounds";
+import {
+  isDrawnTournament,
+  isKnockoutOnly,
+} from "@repo/domain/tournament-rounds";
 import {
   balancedPoolSizes,
   poolCountForDrawnField,
   TOURNAMENT_TEAM_MIN,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

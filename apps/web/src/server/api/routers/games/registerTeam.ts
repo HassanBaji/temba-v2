@@ -20,7 +20,7 @@ import { throwIfAdmitRefused } from "~/server/games/helpers/throw-if-admit-refus
 import { userAlreadyOnGame } from "~/server/games/helpers/user-already-on-game";
 import { userAllowedByLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { enqueueWaitlistTeam } from "~/server/games/enqueue-waitlist-team";
-import { LEVEL_RANGE_TEAM_MESSAGE } from "~/lib/level-range";
+import { LEVEL_RANGE_TEAM_MESSAGE } from "@repo/domain/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 /**
  * Retired Clerk `<SignUp>` drop-in sub-routes (`routing="path"`). Dedicated

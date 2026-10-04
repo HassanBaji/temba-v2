@@ -26,7 +26,7 @@ import {
 import {
   selfDeclareChoiceFromDisplay,
   type SelfDeclareChoice,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 
 const FIELD_IDS = { choice: "declare-level-choice" };
 

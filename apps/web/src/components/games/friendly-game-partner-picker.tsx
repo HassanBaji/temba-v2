@@ -14,9 +14,12 @@ import { Skeleton } from "~/components/ui/skeleton";
 import {
   formatGameCardDay,
   formatGameClockWithoutMeridiem,
-} from "~/lib/format-game-start";
-import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
+} from "@repo/domain/format-game-start";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { cn } from "~/lib/utils";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { api, type RouterOutputs } from "~/trpc/react";

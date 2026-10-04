@@ -44,9 +44,9 @@ import {
   CANCEL_GAME_ACTION,
   EDIT_GAME_ACTION,
   REGISTER_TEAM_ACTION,
-} from "~/lib/game-copy";
+} from "@repo/domain/game-copy";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
   canOpenOrganizerMergeDrawer,
   halfTeamsFromSides,
@@ -80,8 +80,8 @@ import {
   tournamentViewerSide,
   tournamentHomeJoinKind,
   type TournamentHomeJoinKind,
-} from "~/lib/tournament-home";
-import { tournamentShowsTakeSeat } from "~/lib/tournament-join";
+} from "@repo/domain/tournament-home";
+import { tournamentShowsTakeSeat } from "@repo/domain/tournament-join";
 import {
   KNOCKOUT_HEADING,
   KNOCKOUT_NOT_THROUGH_COPY,
@@ -90,12 +90,12 @@ import {
   knockoutChampionLine,
   viewerMissedKnockout,
   type KnockoutMatchPlace,
-} from "~/lib/tournament-knockout-view";
+} from "@repo/domain/tournament-knockout-view";
 import {
   canOpenOrganizerDrawDrawer,
   canShowUndoPoolDraw,
   hasDraftPoolDraw,
-} from "~/lib/tournament-pool-draw";
+} from "@repo/domain/tournament-pool-draw";
 import {
   viewerTournamentMatchCount,
   viewerTournamentTotalFils,
@@ -108,12 +108,12 @@ import {
   roundsPlayedLabel,
   tournamentRoundSchedule,
   type TournamentRoundScheduleEntry,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 import {
   EACH_MATCH_ROW_LABEL,
   sizeFriendlyTournament,
   tournamentMatchMinutes,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 

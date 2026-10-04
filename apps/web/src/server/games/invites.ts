@@ -30,7 +30,7 @@ import {
 import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,
   LEVEL_RANGE_TEAM_MESSAGE,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;

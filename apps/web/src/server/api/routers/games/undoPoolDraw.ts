@@ -4,7 +4,10 @@ import { z } from "zod";
 
 import { gameTeams, games, matches } from "@repo/db";
 
-import { isDrawnTournament, isKnockoutOnly } from "~/lib/tournament-rounds";
+import {
+  isDrawnTournament,
+  isKnockoutOnly,
+} from "@repo/domain/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

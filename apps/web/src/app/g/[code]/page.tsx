@@ -3,8 +3,8 @@ import { type Metadata } from "next";
 
 import { AcceptGameInviteLink } from "~/components/invites/accept-game-invite-link";
 import { InviteShell } from "~/components/invites/invite-shell";
-import { GENERIC_TEMBA_OPEN_GRAPH } from "~/lib/game-invite-open-graph";
-import { gameInviteShortPath } from "~/lib/invite-paths";
+import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
+import { gameInviteShortPath } from "@repo/domain/invite-paths";
 import { db } from "~/server/db";
 import { findGameInviteLinkByShortCode } from "~/server/invites/doors";
 import { loadGameInviteOpenGraph } from "~/server/invites/game-invite-open-graph";

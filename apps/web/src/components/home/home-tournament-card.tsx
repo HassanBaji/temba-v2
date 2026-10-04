@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { gameJoinToast } from "~/lib/game-copy";
+import { gameJoinToast } from "@repo/domain/game-copy";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type HomeTournamentGame =

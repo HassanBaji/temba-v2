@@ -1,9 +1,9 @@
-import { zonedParts } from "~/lib/product-timezone";
-import { bahrainDate } from "~/lib/bahrain-date.test-support";
+import { zonedParts } from "@repo/domain/product-timezone";
+import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { sizeFriendlyTournament } from "./tournament-sizing";
+import { sizeFriendlyTournament } from "@repo/domain/tournament-sizing";
 import {
   CREATE_FLOW_PRICE_CHIPS,
   CREATE_GAME_TYPE_CARDS,

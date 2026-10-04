@@ -10,8 +10,8 @@ import {
   matchSets,
 } from "@repo/db";
 
-import { knockoutFeeds } from "~/lib/tournament-knockout";
-import { KNOCKOUT_DECIDING_SET_COPY } from "~/lib/tournament-knockout-view";
+import { knockoutFeeds } from "@repo/domain/tournament-knockout";
+import { KNOCKOUT_DECIDING_SET_COPY } from "@repo/domain/tournament-knockout-view";
 import { type db } from "~/server/db";
 import { type GameRow } from "~/server/games/access";
 import { computePoolTables } from "~/server/games/pool-table";

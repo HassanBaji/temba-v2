@@ -7,14 +7,14 @@ import { toast } from "sonner";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { formatAbsoluteDay } from "~/lib/format-game-start";
+import { formatAbsoluteDay } from "@repo/domain/format-game-start";
 import {
   FRIENDLY_SET_GAMES_MAX,
   FRIENDLY_SET_GAMES_MIN,
   clampFriendlySetGames,
   friendlyGameResultsSaveSets,
-} from "~/lib/friendly-game-results";
-import { setLabel } from "~/lib/game-copy";
+} from "@repo/domain/friendly-game-results";
+import { setLabel } from "@repo/domain/game-copy";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 

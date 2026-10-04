@@ -15,7 +15,7 @@ import {
   defaultStandingsPoolIndex,
   otherPoolsPlayedSummary,
   roundResultsHeading,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import { TOURNAMENT_FINISHED_COPY } from "~/lib/tournament-pool-table";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";

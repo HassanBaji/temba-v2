@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { Input } from "~/components/ui/input";
-import { PRICE_PER_PLAYER_CURRENCY } from "~/lib/price-per-player";
+import { PRICE_PER_PLAYER_CURRENCY } from "@repo/domain/price-per-player";
 import { cn } from "~/lib/utils";
 
 export function PricePerPlayerAmountInput({

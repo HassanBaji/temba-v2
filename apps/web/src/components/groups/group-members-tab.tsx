@@ -16,7 +16,7 @@ import {
   groupHomeShowsMemberSearch,
   groupMemberRoleCaption,
 } from "~/lib/group-home-chrome";
-import type { LevelBand } from "~/lib/level-bands";
+import type { LevelBand } from "@repo/domain/level-bands";
 
 /** Design 06c draws four marks per member; the derivation returns up to five. */
 const MEMBER_FORM_MARKS = 4;

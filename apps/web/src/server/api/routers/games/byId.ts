@@ -16,12 +16,12 @@ import {
   venues,
 } from "@repo/db";
 
-import { showsFriendlyRoster } from "~/lib/game-summary-cta";
-import { postedKnockoutRounds } from "~/lib/tournament-knockout-view";
+import { showsFriendlyRoster } from "@repo/domain/game-summary-cta";
+import { postedKnockoutRounds } from "@repo/domain/tournament-knockout-view";
 import {
   isPartnerRequiredGame,
   isDrawnTournament,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

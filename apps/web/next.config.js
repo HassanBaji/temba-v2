@@ -6,7 +6,7 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  transpilePackages: ["@repo/db"],
+  transpilePackages: ["@repo/db", "@repo/domain"],
   eslint: {
     ignoreDuringBuilds: true,
   },

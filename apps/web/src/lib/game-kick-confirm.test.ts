@@ -10,7 +10,7 @@ import {
   gameKickTarget,
   type GameKickRoster,
 } from "./game-kick-confirm";
-import { PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY } from "./tournament-join";
+import { PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY } from "@repo/domain/tournament-join";
 
 const roster: GameKickRoster = {
   registeredPlayers: [

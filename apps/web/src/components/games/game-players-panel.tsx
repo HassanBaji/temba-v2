@@ -13,7 +13,7 @@ import {
   gameTeamDisplayName,
 } from "~/components/games/game-side-label";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
-import { REGISTER_TEAM_ACTION } from "~/lib/game-copy";
+import { REGISTER_TEAM_ACTION } from "@repo/domain/game-copy";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
@@ -41,7 +41,7 @@ import {
   friendlyGameCanKickPlayer,
   friendlyGamePlayersCancelledNote,
 } from "~/lib/friendly-game-players";
-import { showsFriendlyRoster } from "~/lib/game-summary-cta";
+import { showsFriendlyRoster } from "@repo/domain/game-summary-cta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];

@@ -9,7 +9,7 @@ import {
   tournamentTeamsLine,
   type TournamentCardInput,
   type TournamentKnockoutMatch,
-} from "~/lib/tournament-card";
+} from "@repo/domain/tournament-card";
 
 type Occupant = { name: string; isViewer: boolean } | null;
 

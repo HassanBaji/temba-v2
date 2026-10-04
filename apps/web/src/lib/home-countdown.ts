@@ -2,7 +2,7 @@ import {
   formatGameClock,
   formatGameClockWithoutMeridiem,
   formatRelativeDay,
-} from "~/lib/format-game-start";
+} from "@repo/domain/format-game-start";
 
 const MINUTE_MS = 60_000;
 

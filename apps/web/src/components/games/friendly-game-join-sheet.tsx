@@ -23,25 +23,28 @@ import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
 import { SelectCard, SelectCardNote } from "~/components/ui/select-card";
-import { formatGameCardDay } from "~/lib/format-game-start";
+import { formatGameCardDay } from "@repo/domain/format-game-start";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   friendlyGameJoinSheetCaption,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
-} from "~/lib/friendly-game-cta";
+} from "@repo/domain/friendly-game-cta";
 import {
   firstFullyVacantSideIndex,
   isPartnerVacantSideRace,
   offersPartnerJoin,
   PARTNER_VACANT_SIDE_RACE_MESSAGE,
   partnerVacantSideRaceRecovery,
-} from "~/lib/friendly-game-partner";
-import { JOIN_GAME_ACTION } from "~/lib/game-copy";
-import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
-import { defaultJoinSeat } from "~/lib/preferred-seat";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
-import { tournamentFieldSummary } from "~/lib/tournament-home";
+} from "@repo/domain/friendly-game-partner";
+import { JOIN_GAME_ACTION } from "@repo/domain/game-copy";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
+import { defaultJoinSeat } from "@repo/domain/preferred-seat";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { tournamentFieldSummary } from "@repo/domain/tournament-home";
 import {
   isTournamentJoinSheet,
   LEAVE_SEAT_UNTIL_KNOCKOUT_DRAW_COPY,
@@ -56,13 +59,13 @@ import {
   tournamentJoinSeatsTakenLine,
   tournamentJoinSheetOpeningStep,
   tournamentPartnerVacantSideRaceMessage,
-} from "~/lib/tournament-join";
+} from "@repo/domain/tournament-join";
 import {
   isKnockoutOnly,
   isPartnerRequiredGame,
   plannedTournamentRoundCount,
   tournamentRoundSchedule,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 

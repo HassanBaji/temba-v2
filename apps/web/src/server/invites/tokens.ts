@@ -7,7 +7,7 @@ import {
   groupInviteLinkPath,
   groupInviteShortPath,
   teamInviteLinkPath,
-} from "~/lib/invite-paths";
+} from "@repo/domain/invite-paths";
 
 /** Crockford-style alphabet; no 0/O/1/I/L/U. */
 export const GAME_INVITE_SHORT_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ";

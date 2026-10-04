@@ -17,15 +17,15 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { vacantJoinSeats } from "~/lib/friendly-game-cta";
-import { gameSummaryPrimaryAction } from "~/lib/game-summary-cta";
+import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
+import { gameSummaryPrimaryAction } from "@repo/domain/game-summary-cta";
 import {
   tournamentFieldSummary,
   tournamentStatusLine,
   tournamentTeamRows,
   tournamentTeamsCountLine,
-} from "~/lib/tournament-home";
-import { tournamentStartOwnSeat } from "~/lib/tournament-join";
+} from "@repo/domain/tournament-home";
+import { tournamentStartOwnSeat } from "@repo/domain/tournament-join";
 import { acceptInviteLink } from "~/server/api/routers/games/acceptInviteLink";
 import { acceptLookupInvite } from "~/server/api/routers/games/acceptLookupInvite";
 import { gameById } from "~/server/api/routers/games/byId";
@@ -39,7 +39,7 @@ import { sendLookupInvite } from "~/server/api/routers/games/sendLookupInvite";
 import { mintLink } from "~/server/invites/doors";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
+import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
 
 async function insertUser(
   database: TestDatabase,

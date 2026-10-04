@@ -52,7 +52,7 @@ import {
   roundResultsHeading,
   tournamentSizeLine,
   tournamentStatusLine,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import {
   DRAW_RANDOM_VALUE,
   DRAW_ROW_LABEL,
@@ -69,7 +69,7 @@ import {
   TAKE_A_SEAT_TITLE,
   TAKEN_SEAT_LABEL,
   YOUR_SEAT_HEADING,
-} from "~/lib/tournament-join";
+} from "@repo/domain/tournament-join";
 import {
   DRAW_AGAIN_ACTION,
   DRAW_DRAWER_TITLE,
@@ -84,7 +84,7 @@ import {
   POST_POOL_DRAW_ACTION,
   POST_POOL_DRAW_FOOTER_COPY,
   UNDO_POOL_DRAW_ACTION,
-} from "~/lib/tournament-pool-draw";
+} from "@repo/domain/tournament-pool-draw";
 import {
   POOL_RESULTS_HEADING,
   POOL_TABLE_HEADING,
@@ -120,7 +120,7 @@ import {
   lastMatchFinishCopy,
   playersInPairsLine,
   sizeFriendlyTournament,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 
 const ALLOWED_CHAMPION = "There is no overall champion.";
 const ALLOWED_SEEDED = "Nobody is seeded.";

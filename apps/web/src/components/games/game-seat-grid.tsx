@@ -5,7 +5,10 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { formatSeatSideHeading } from "~/components/games/game-side-label";
 import { OpenSeat } from "~/components/temba/seat";
-import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
 
 // Self-contained rather than derived from `RouterOutputs["games"]["byId"]`:
 // this grid also renders invite-preview sides (`~/server/games/utils`'s

@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { WelcomeScreen } from "~/components/auth/welcome-screen";
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export default async function Home({
   searchParams,

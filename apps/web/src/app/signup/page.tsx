@@ -1,5 +1,5 @@
 import { SignUpForm } from "~/components/auth/sign-up-form";
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export default async function SignUpPage({
   searchParams,

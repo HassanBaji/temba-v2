@@ -7,18 +7,21 @@ import { gameCourts, gameTeams, gameWaitlist, games, matches } from "@repo/db";
 import {
   buildKnockoutTree,
   buildPoolKnockoutTree,
-} from "~/lib/tournament-knockout";
+} from "@repo/domain/tournament-knockout";
 import {
   hasKnockout,
   isDrawnTournament,
   isKnockoutOnly,
-} from "~/lib/tournament-rounds";
-import { poolRounds, scheduleRoundSlots } from "~/lib/tournament-schedule";
+} from "@repo/domain/tournament-rounds";
+import {
+  poolRounds,
+  scheduleRoundSlots,
+} from "@repo/domain/tournament-schedule";
 import {
   resolveQualifiersPerPool,
   resolveRoundCount,
   TOURNAMENT_TEAM_MIN,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

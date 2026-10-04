@@ -43,21 +43,21 @@ import {
   visibleCreateCourts,
   type CreateTournamentShape,
 } from "~/lib/create-game-flow";
-import { formatGameClock } from "~/lib/format-game-start";
+import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   formatTimeSlotLabel,
   parseRequiredGameWindow,
   upcomingGameWindowTimeSlots,
-} from "~/lib/game-window";
+} from "@repo/domain/game-window";
 import {
   LEVEL_RANGE_FIELD_DESCRIPTION,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
-import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "~/lib/price-per-player";
+} from "@repo/domain/level-range";
+import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import {
   buildKnockoutTree,
   buildPoolKnockoutTree,
@@ -66,8 +66,8 @@ import {
   qualifierUnit,
   qualifiersConsequenceLine,
   THROUGH_FROM_EACH_GROUP_LABEL,
-} from "~/lib/tournament-knockout";
-import { sizeTournamentRounds } from "~/lib/tournament-schedule";
+} from "@repo/domain/tournament-knockout";
+import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import {
   ALONE_OR_WITH_A_PARTNER_LABEL,
   ANYONE_WITH_THE_LINK_LABEL,
@@ -85,7 +85,7 @@ import {
   TOURNAMENT_TEAM_STEP,
   WHO_CAN_TAKE_A_SEAT_LABEL,
   WITH_A_PARTNER_ONLY_LABEL,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import { cn } from "~/lib/utils";
 
 const STEPPER_LABEL = "text-foreground font-expanded text-title font-normal";

@@ -2,14 +2,14 @@ import { Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
-import { formatGameClock, formatWeekday } from "~/lib/format-game-start";
+import { formatGameClock, formatWeekday } from "@repo/domain/format-game-start";
 import {
   type HomeComingUpGameRow,
   type HomeComingUpRow,
   type HomeComingUpTournamentMatchRow,
   type HomeComingUpTournamentRow,
 } from "~/lib/home-coming-up";
-import { zonedParts } from "~/lib/product-timezone";
+import { zonedParts } from "@repo/domain/product-timezone";
 import { cn } from "~/lib/utils";
 
 const ROW_CLASS =

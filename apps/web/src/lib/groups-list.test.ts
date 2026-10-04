@@ -1,4 +1,4 @@
-import { bahrainDate } from "~/lib/bahrain-date.test-support";
+import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
 import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";

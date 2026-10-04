@@ -33,7 +33,7 @@ import {
   formatTimeSlotLabel,
   parseDateInputValue,
   upcomingGameWindowTimeSlots,
-} from "~/lib/game-window";
+} from "@repo/domain/game-window";
 import { cn } from "~/lib/utils";
 
 function TimeSlotSelect({

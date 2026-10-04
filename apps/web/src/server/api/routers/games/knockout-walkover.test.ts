@@ -17,7 +17,7 @@ import {
   knockoutCancelPrompt,
   knockoutChampion,
   type KnockoutViewRound,
-} from "~/lib/tournament-knockout-view";
+} from "@repo/domain/tournament-knockout-view";
 import { addSet } from "~/server/api/routers/games/addSet";
 import { gameById } from "~/server/api/routers/games/byId";
 import { cancelGame } from "~/server/api/routers/games/cancel";

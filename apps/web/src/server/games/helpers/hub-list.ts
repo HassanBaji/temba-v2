@@ -9,12 +9,12 @@ import {
   teamMembers,
 } from "@repo/db";
 
-import { poolLetter } from "~/lib/tournament-knockout";
+import { poolLetter } from "@repo/domain/tournament-knockout";
 import {
   knockoutChampion,
   knockoutCurrentRound,
   postedKnockoutRounds,
-} from "~/lib/tournament-knockout-view";
+} from "@repo/domain/tournament-knockout-view";
 import {
   hasKnockout,
   hasPools,
@@ -23,7 +23,7 @@ import {
   plannedKnockoutRoundCount,
   plannedTournamentRoundCount,
   postedRoundCount,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 import { matchOutcome } from "~/server/games/match-outcome";
 import {
   computePoolTables,

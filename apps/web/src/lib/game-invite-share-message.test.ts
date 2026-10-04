@@ -1,10 +1,10 @@
-import { bahrainDayFromToday } from "~/lib/bahrain-date.test-support";
+import { bahrainDayFromToday } from "@repo/domain/bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
 import {
   formatGameTimeWindow,
   formatRelativeDay,
-} from "~/lib/format-game-start";
+} from "@repo/domain/format-game-start";
 import {
   formatGameInviteShareMessage,
   gameInviteClipboardText,

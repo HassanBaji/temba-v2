@@ -8,13 +8,13 @@ import {
   formatAbsoluteDay,
   formatGameClock,
   formatPlayedRelativeDay,
-} from "~/lib/format-game-start";
+} from "@repo/domain/format-game-start";
 import {
   formatHeroCountdown,
   formatHeroKickoffTrailer,
   formatHomeKickoff,
 } from "~/lib/home-countdown";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 
 /**
  * The hero-relevant slice of the Friendly Match this Game's details page is

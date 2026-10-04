@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { matches } from "@repo/db";
 
-import { hasKnockout } from "~/lib/tournament-rounds";
+import { hasKnockout } from "@repo/domain/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

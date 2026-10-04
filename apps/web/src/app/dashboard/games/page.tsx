@@ -22,17 +22,20 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { offersPartnerJoin } from "~/lib/friendly-game-partner";
-import { gameJoinToast } from "~/lib/game-copy";
+import { offersPartnerJoin } from "@repo/domain/friendly-game-partner";
+import { gameJoinToast } from "@repo/domain/game-copy";
 import { gamesHubTabFromQuery, gamesHubTabQuery } from "~/lib/games-hub-tab";
 import {
   gameSummaryPrimaryAction,
   gameViewerStatus,
   showsFriendlyRoster,
   showsGameCardPartnerFooter,
-} from "~/lib/game-summary-cta";
-import { isTournamentMatchRow } from "~/lib/tournament-card";
-import { isDrawnTournament, poolRoundLabel } from "~/lib/tournament-rounds";
+} from "@repo/domain/game-summary-cta";
+import { isTournamentMatchRow } from "@repo/domain/tournament-card";
+import {
+  isDrawnTournament,
+  poolRoundLabel,
+} from "@repo/domain/tournament-rounds";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];

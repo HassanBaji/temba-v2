@@ -5,7 +5,7 @@ import {
   MatchStatusEnum,
 } from "@repo/db";
 
-import type { LevelBand } from "~/lib/level-bands";
+import type { LevelBand } from "@repo/domain/level-bands";
 import { matchOutcome } from "~/server/games/match-outcome";
 import { computePoolTables } from "~/server/games/pool-table";
 import { setWinsForGames } from "~/server/games/set-wins-for-games";

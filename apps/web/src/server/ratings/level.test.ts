@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   selfDeclareChoiceFromDisplay,
   storedBandFromDisplayLabel,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 
 import {
   BAND_MIDPOINTS,

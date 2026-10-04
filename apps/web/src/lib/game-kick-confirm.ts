@@ -1,4 +1,4 @@
-import { PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY } from "~/lib/tournament-join";
+import { PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY } from "@repo/domain/tournament-join";
 
 type KickRosterSeat = { userId: string; name: string } | null;
 

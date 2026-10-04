@@ -4,14 +4,14 @@ import {
   LEVEL_BANDS,
   type LevelBand,
   type SelfDeclareChoice,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 
 export {
   LEVEL_BANDS,
   SELF_DECLARE_CHOICES,
   type LevelBand,
   type SelfDeclareChoice,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 
 export const INITIAL_MU = 1500;
 export const INITIAL_PHI = 350;

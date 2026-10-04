@@ -14,12 +14,12 @@ import {
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Button } from "~/components/ui/button";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { CANCEL_MATCH_ACTION } from "~/lib/game-copy";
+import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
 import {
   knockoutCancelDescription,
   knockoutCancelPrompt,
   type KnockoutMatchPlace,
-} from "~/lib/tournament-knockout-view";
+} from "@repo/domain/tournament-knockout-view";
 
 const GOES_THROUGH_LABEL_ID = "knockout-cancel-goes-through";
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { gamePlayers, games, groups, user, venues } from "@repo/db/schema";
 
-import { PARTNER_REQUIRED_REFUSAL_MESSAGE } from "~/lib/tournament-rounds";
+import { PARTNER_REQUIRED_REFUSAL_MESSAGE } from "@repo/domain/tournament-rounds";
 import { acceptInviteLink } from "~/server/api/routers/games/acceptInviteLink";
 import { createInviteLink } from "~/server/api/routers/games/createInviteLink";
 import { createTournament } from "~/server/api/routers/games/createTournament";

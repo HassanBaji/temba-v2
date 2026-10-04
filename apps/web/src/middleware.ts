@@ -1,8 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { PATHNAME_HEADER } from "~/lib/dashboard-onboarding-gate";
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { PATHNAME_HEADER } from "@repo/domain/dashboard-onboarding-gate";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",

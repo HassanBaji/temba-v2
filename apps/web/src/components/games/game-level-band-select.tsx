@@ -10,11 +10,11 @@ import {
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   isAssignableDisplayLevelBand,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 
 export function GameLevelBandSelect({
   id,

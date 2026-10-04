@@ -26,13 +26,13 @@ import {
   fieldErrorMessage,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-import { EDIT_GAME_ACTION } from "~/lib/game-copy";
+import { EDIT_GAME_ACTION } from "@repo/domain/game-copy";
 import {
   LEVEL_RANGE_FIELD_DESCRIPTION,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
-import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "~/lib/price-per-player";
-import { ONE_DAY_OVERRUN_MESSAGE } from "~/lib/tournament-sizing";
+} from "@repo/domain/level-range";
+import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
+import { ONE_DAY_OVERRUN_MESSAGE } from "@repo/domain/tournament-sizing";
 
 type EditFormError = {
   message: string;

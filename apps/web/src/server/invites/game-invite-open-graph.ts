@@ -6,7 +6,7 @@ import {
   gameInviteOpenGraphMetadata,
   GENERIC_TEMBA_OPEN_GRAPH,
   occupiedFriendlyPositions,
-} from "~/lib/game-invite-open-graph";
+} from "@repo/domain/game-invite-open-graph";
 import { type db } from "~/server/db";
 import { requireGame } from "~/server/games/access";
 import { isIndividualSeatGame, listGameSides } from "~/server/games/seats";

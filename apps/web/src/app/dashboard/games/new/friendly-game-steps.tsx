@@ -22,7 +22,7 @@ import {
   LEVEL_BAND_SELECT_NONE,
   LEVEL_RANGE_FIELD_DESCRIPTION,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 import {
   CREATE_FLOW_DURATIONS,
   CREATE_FLOW_OPEN_SEATS_LABEL,
@@ -38,8 +38,8 @@ import {
 import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
-} from "~/lib/game-window";
-import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "~/lib/price-per-player";
+} from "@repo/domain/game-window";
+import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
 
 export function FriendlyGameSteps({
   step,

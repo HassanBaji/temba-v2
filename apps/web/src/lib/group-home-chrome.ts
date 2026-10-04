@@ -1,4 +1,4 @@
-import { formatDayMonth, formatMonth } from "~/lib/format-game-start";
+import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
 import { memberCountLabel } from "~/lib/member-count-label";
 import { shortPlayerName } from "~/lib/player-name";
 

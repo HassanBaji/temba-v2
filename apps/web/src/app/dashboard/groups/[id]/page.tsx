@@ -20,7 +20,7 @@ import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { gameJoinToast } from "~/lib/game-copy";
+import { gameJoinToast } from "@repo/domain/game-copy";
 import {
   groupHomeCanManageInvites,
   groupHomeCanShowCreateGame,
@@ -34,7 +34,7 @@ import {
   entityImageFileError,
   entityImageUploadInput,
 } from "~/lib/entity-image-file";
-import { groupInviteClipboardText } from "~/lib/group-invite-share-message";
+import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
 

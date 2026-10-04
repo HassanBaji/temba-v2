@@ -7,17 +7,20 @@ import {
   type CreateGameTypeId,
   type CreateTournamentShape,
 } from "~/lib/create-game-flow";
-import { parseDateInputValue } from "~/lib/game-window";
-import { isAssignableDisplayLevelBand, LEVEL_BANDS } from "~/lib/level-bands";
+import { parseDateInputValue } from "@repo/domain/game-window";
+import {
+  isAssignableDisplayLevelBand,
+  LEVEL_BANDS,
+} from "@repo/domain/level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 import {
   DEFAULT_QUALIFIERS_PER_POOL,
   defaultPoolCount,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 
 export type CreateGameDraft = {
   groupId: string;

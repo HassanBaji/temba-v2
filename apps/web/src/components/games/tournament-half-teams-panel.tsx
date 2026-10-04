@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
-import { displayLabelFromStoredBand } from "~/lib/level-bands";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
   MERGE_DISMISS_ACTION_LABEL,
   MERGE_OPEN_POSITION_SR,
@@ -36,7 +36,10 @@ import {
   type HalfTeam,
   type MergePositionAssignment,
 } from "~/lib/tournament-half-teams";
-import { LEFT_SEAT_LABEL, RIGHT_SEAT_LABEL } from "~/lib/tournament-home";
+import {
+  LEFT_SEAT_LABEL,
+  RIGHT_SEAT_LABEL,
+} from "@repo/domain/tournament-home";
 
 type Side = {
   sideIndex: number;

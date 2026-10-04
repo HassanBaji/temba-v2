@@ -6,12 +6,15 @@ import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
 import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
-import { vacantJoinSeats } from "~/lib/friendly-game-cta";
+import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
 import {
   friendlyGameLineupVacantAction,
   friendlyGameVacantSeatLabel,
 } from "~/lib/friendly-game-players";
-import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 

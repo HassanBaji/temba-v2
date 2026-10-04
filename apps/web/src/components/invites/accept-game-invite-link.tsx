@@ -14,17 +14,17 @@ import {
 } from "~/components/invites/invite-outcome";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { GAME_TOAST } from "~/lib/game-copy";
+import { GAME_TOAST } from "@repo/domain/game-copy";
 import {
   formatLevelRangeGateCopy,
   formatLevelRangeLabel,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   PARTNER_REQUIRED_INVITE_LANDING_COPY,
   PARTNER_REQUIRED_INVITE_LANDING_CTA,
   tournamentPartnerInviteLandingHref,
-} from "~/lib/tournament-join";
+} from "@repo/domain/tournament-join";
 import { api } from "~/trpc/react";
 
 export function AcceptGameInviteLink({

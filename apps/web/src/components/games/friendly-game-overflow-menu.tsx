@@ -7,7 +7,7 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
-import type { FriendlyGameOverflowItem } from "~/lib/friendly-game-cta";
+import type { FriendlyGameOverflowItem } from "@repo/domain/friendly-game-cta";
 
 /**
  * Organizer overflow menu (game-details redesign, TEM-184 note: "Edit Game",

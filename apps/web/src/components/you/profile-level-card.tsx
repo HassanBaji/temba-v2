@@ -10,7 +10,7 @@ import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
   type LevelBand,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 import {
   confirmationFraction,
   confirmationProgressCaption,

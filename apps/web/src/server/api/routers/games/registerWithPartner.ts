@@ -25,11 +25,11 @@ import { enqueueWaitlistUser } from "~/server/games/enqueue-waitlist-user";
 import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,
   LEVEL_RANGE_PARTNER_MESSAGE,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 import {
   isPartnerRequiredGame,
   PARTNER_REQUIRED_FULL_MESSAGE,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

@@ -1,6 +1,6 @@
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { SsoCallback } from "~/components/auth/sso-callback";
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export default async function SignupSsoCallbackPage({
   searchParams,

@@ -36,7 +36,7 @@ import { runMatchCompletionEffect } from "~/server/games/run-match-completion-ef
 import {
   KNOCKOUT_DECIDING_SET_COPY,
   knockoutChampion,
-} from "~/lib/tournament-knockout-view";
+} from "@repo/domain/tournament-knockout-view";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const AFTER_THE_DAY = new Date("2026-09-21T12:00:00");

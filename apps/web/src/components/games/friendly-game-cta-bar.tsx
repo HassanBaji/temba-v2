@@ -8,7 +8,7 @@ import {
   friendlyGameVacantSeatLine,
   friendlyGameWaitlistLine,
   type FriendlyGameCtaFamily,
-} from "~/lib/friendly-game-cta";
+} from "@repo/domain/friendly-game-cta";
 import { cn } from "~/lib/utils";
 
 /**

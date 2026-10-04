@@ -1,7 +1,7 @@
-import { formatAbsoluteDay } from "~/lib/format-game-start";
+import { formatAbsoluteDay } from "@repo/domain/format-game-start";
 import { parseOptionalCoord } from "~/lib/parse-optional-coord";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
-import type { GameViewerStatus } from "~/lib/game-summary-cta";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import type { GameViewerStatus } from "@repo/domain/game-summary-cta";
 
 export function friendlyGameHomeTitle(
   groupId: string | null | undefined,

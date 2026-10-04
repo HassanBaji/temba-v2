@@ -8,7 +8,7 @@ import {
   tournamentSeatsTakenLine,
   tournamentSeatsTakenSrLabel,
   type TournamentHomeSide,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import { cn } from "~/lib/utils";
 
 export function TournamentSeatsGrid({

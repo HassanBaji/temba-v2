@@ -1,4 +1,4 @@
-import { bahrainDate } from "~/lib/bahrain-date.test-support";
+import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 

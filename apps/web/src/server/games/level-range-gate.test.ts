@@ -26,7 +26,7 @@ import {
   INITIAL_SIGMA,
   muFromLevel,
 } from "~/server/ratings/level";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "~/lib/level-range";
+import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

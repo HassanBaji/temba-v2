@@ -6,7 +6,7 @@ import { useState } from "react";
 import { RowList } from "~/components/common/row-list";
 import { formatGameSideLabel } from "~/components/games/game-side-label";
 import { SeatTile } from "~/components/temba/seat";
-import { displayLabelFromStoredBand } from "~/lib/level-bands";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
   TEAMS_HEADING,
   YOUR_TEAM_TAG,
@@ -17,7 +17,7 @@ import {
   type TournamentHomeOccupant,
   type TournamentHomeSide,
   type TournamentTeamRow,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import { cn } from "~/lib/utils";
 
 export function TournamentTeamsSection({

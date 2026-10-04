@@ -20,8 +20,8 @@ import { homeNextGameSeats } from "~/lib/home-seats";
 import {
   isTournamentMatchRow,
   isDrawnTournamentSummaryRow,
-} from "~/lib/tournament-card";
-import { poolRoundLabel } from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-card";
+import { poolRoundLabel } from "@repo/domain/tournament-rounds";
 import { api } from "~/trpc/react";
 
 function formatLabel(format: string) {

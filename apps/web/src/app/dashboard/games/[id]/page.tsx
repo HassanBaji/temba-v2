@@ -63,8 +63,8 @@ import {
   cancelGameConsequence,
   gameJoinToast,
   kickedToast,
-} from "~/lib/game-copy";
-import { occupiedFriendlyPositions } from "~/lib/game-invite-open-graph";
+} from "@repo/domain/game-copy";
+import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteClipboardText } from "~/lib/game-invite-share-message";
 import {
   gameKickConfirmCopy,
@@ -79,41 +79,41 @@ import {
   friendlyGameOverflowItems,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
-} from "~/lib/friendly-game-cta";
+} from "@repo/domain/friendly-game-cta";
 import { friendlyGameHomeTitle } from "~/lib/friendly-game-chrome";
-import { viewerSidePartnerName } from "~/lib/friendly-game-partner";
+import { viewerSidePartnerName } from "@repo/domain/friendly-game-partner";
 import {
   gameHomeIntentFromQuery,
   gameHomeTabFromQuery,
   gameHomeTabQuery,
 } from "~/lib/game-home-tab";
-import { gameViewerStatus } from "~/lib/game-summary-cta";
-import { gameDetailsChrome } from "~/lib/tournament-home";
-import { type KnockoutMatchPlace } from "~/lib/tournament-knockout-view";
+import { gameViewerStatus } from "@repo/domain/game-summary-cta";
+import { gameDetailsChrome } from "@repo/domain/tournament-home";
+import { type KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import {
   tournamentInviteLandingOpensPartnerSheet,
   tournamentLeaveOrKickConfirmCopy,
-} from "~/lib/tournament-join";
+} from "@repo/domain/tournament-join";
 import {
   isPartnerRequiredGame,
   hasPools,
   isKnockoutOnly,
   showsDrawnTournamentSeats,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 import {
   isOneDayTournamentWindow,
   sizeTournamentRounds,
-} from "~/lib/tournament-schedule";
+} from "@repo/domain/tournament-schedule";
 import {
   oneDayFit,
   resolveRoundCount,
   sizeFriendlyTournament,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import {
   formatGameWindowName,
   parseRequiredGameWindow,
   splitGameWindow,
-} from "~/lib/game-window";
+} from "@repo/domain/game-window";
 import { isNotFoundError } from "~/lib/is-not-found-error";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import {
@@ -122,11 +122,11 @@ import {
   parseLevelBandSelectTenths,
   tenthsToLevelBandSelectValue,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 import {
   filsToMajorInput,
   parseOptionalPricePerPlayerFils,
-} from "~/lib/price-per-player";
+} from "@repo/domain/price-per-player";
 import { api } from "~/trpc/react";
 
 export default function GameHomePage({

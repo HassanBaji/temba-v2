@@ -11,7 +11,7 @@ import {
   REPORT_WRONG_SCORE_CONSEQUENCE,
   REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
   cancelGameConsequence,
-} from "~/lib/game-copy";
+} from "@repo/domain/game-copy";
 import { cn } from "~/lib/utils";
 
 /**

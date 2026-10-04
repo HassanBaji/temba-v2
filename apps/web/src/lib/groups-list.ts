@@ -2,7 +2,7 @@
  * Groups list presentation helpers (`.scratch/groups-redesign/spec.md` §1.1).
  */
 
-import { formatWeekday } from "~/lib/format-game-start";
+import { formatWeekday } from "@repo/domain/format-game-start";
 import { memberCountLabel } from "~/lib/member-count-label";
 
 /**

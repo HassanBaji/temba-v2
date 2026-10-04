@@ -1,5 +1,5 @@
 import { ForgotPasswordForm } from "~/components/auth/forgot-password-form";
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export default async function ResetPasswordPage({
   searchParams,

@@ -16,7 +16,7 @@ import {
   LEVEL_RANGE_INVERTED_MESSAGE,
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

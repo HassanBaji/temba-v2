@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 
 import { AcceptInviteFlow } from "~/components/invites/accept-invite-flow";
 import { InviteShell } from "~/components/invites/invite-shell";
-import { groupInviteLinkPath } from "~/lib/invite-paths";
+import { groupInviteLinkPath } from "@repo/domain/invite-paths";
 
 export default async function GroupInviteLinkPage({
   params,

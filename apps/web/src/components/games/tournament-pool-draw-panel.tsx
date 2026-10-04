@@ -14,7 +14,7 @@ import {
   draftPoolsFromGameTeams,
   hasDraftPoolDraw,
   type DraftPoolTeam,
-} from "~/lib/tournament-pool-draw";
+} from "@repo/domain/tournament-pool-draw";
 
 export function TournamentPoolDrawPanel({
   gameTeams,

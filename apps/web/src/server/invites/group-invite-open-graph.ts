@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 
 import { groups } from "@repo/db";
 
-import { GENERIC_TEMBA_OPEN_GRAPH } from "~/lib/game-invite-open-graph";
-import { groupInviteOpenGraphMetadata } from "~/lib/group-invite-open-graph";
+import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
+import { groupInviteOpenGraphMetadata } from "@repo/domain/group-invite-open-graph";
 import {
   findGroupInviteLinkByShortCode,
   previewLink,

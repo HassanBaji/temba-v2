@@ -8,14 +8,14 @@ import {
   draftKnockoutFirstRound,
   hasDraftKnockoutDraw,
   type KnockoutViewGameTeam,
-} from "~/lib/tournament-knockout-view";
+} from "@repo/domain/tournament-knockout-view";
 import {
   DRAW_AGAIN_ACTION,
   DRAW_KNOCKOUT_ACTION,
   DRAW_KNOCKOUT_EMPTY_DRAFT_COPY,
   POST_KNOCKOUT_DRAW_ACTION,
   POST_KNOCKOUT_DRAW_FOOTER_COPY,
-} from "~/lib/tournament-pool-draw";
+} from "@repo/domain/tournament-pool-draw";
 
 export function TournamentKnockoutDrawPanel({
   gameTeams,

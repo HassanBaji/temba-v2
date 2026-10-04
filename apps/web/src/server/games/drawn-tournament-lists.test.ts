@@ -18,7 +18,7 @@ import {
   tournamentCardKnockoutLine,
   tournamentMatchRoundLabel,
   tournamentTeamsLine,
-} from "~/lib/tournament-card";
+} from "@repo/domain/tournament-card";
 import { addSet } from "~/server/api/routers/games/addSet";
 import { cancelMatch } from "~/server/api/routers/games/cancelMatch";
 import { completeMatch } from "~/server/api/routers/games/completeMatch";

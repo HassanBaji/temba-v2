@@ -2,7 +2,7 @@ import { games, GameFormatEnum, matches, user, venues } from "@repo/db/schema";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { GENERIC_TEMBA_OPEN_GRAPH } from "~/lib/game-invite-open-graph";
+import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
 import { mintLink } from "~/server/invites/doors";
 import { loadGameInviteOpenGraph } from "~/server/invites/game-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";

@@ -8,7 +8,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
 import { Skeleton } from "~/components/ui/skeleton";
-import { requestRowMeta } from "~/lib/request-meta";
+import { requestRowMeta } from "@repo/domain/request-meta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["communities"]["listJoinRequests"][number];

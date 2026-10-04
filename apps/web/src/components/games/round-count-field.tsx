@@ -2,7 +2,7 @@
 
 import { StepperField } from "~/components/games/stepper-field";
 import { Badge } from "~/components/ui/badge";
-import { sizeTournamentRounds } from "~/lib/tournament-schedule";
+import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import {
   formatRoundMatchesPerTeam,
   resolveRoundCount,
@@ -11,7 +11,7 @@ import {
   ROUNDS_LABEL,
   SUGGESTED_ROUNDS_TAG,
   suggestedRoundsResetLabel,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 
 export function RoundCountField({
   id,

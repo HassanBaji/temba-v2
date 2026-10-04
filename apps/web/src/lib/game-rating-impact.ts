@@ -1,4 +1,7 @@
-import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
 
 export type RatingImpactChangeDirection = "up" | "down" | "flat";
 

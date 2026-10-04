@@ -19,8 +19,8 @@ import {
 } from "~/server/games/seats";
 import { gameHasLevelRange } from "~/server/games/user-allowed-by-level-range";
 import { previewLink } from "~/server/invites/doors";
-import { tournamentInvitePreviewNeedsSeatPick } from "~/lib/tournament-join";
-import { isPartnerRequiredGame } from "~/lib/tournament-rounds";
+import { tournamentInvitePreviewNeedsSeatPick } from "@repo/domain/tournament-join";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db;
 

@@ -14,7 +14,7 @@ import {
 import {
   PARTNER_REQUIRED_FULL_MESSAGE,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 import { createTournament } from "~/server/api/routers/games/createTournament";
 import { drawPools } from "~/server/api/routers/games/drawPools";
 import { gameById } from "~/server/api/routers/games/byId";

@@ -4,7 +4,7 @@ import { describe, it } from "vitest";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 
 import { createHomeFixtures } from "./home";
 

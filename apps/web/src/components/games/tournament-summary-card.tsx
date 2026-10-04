@@ -15,10 +15,13 @@ import {
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag } from "~/components/temba/seat";
 import { Button, buttonVariants } from "~/components/ui/button";
-import { formatGameCardDay, formatRelativeDay } from "~/lib/format-game-start";
+import {
+  formatGameCardDay,
+  formatRelativeDay,
+} from "@repo/domain/format-game-start";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
-import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
+import { formatLevelRangeLabel } from "@repo/domain/level-range";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
   NO_TEAMS_YET_COPY,
   showsTournamentOpenFlag,
@@ -51,8 +54,8 @@ import {
   tournamentTeamPairLabel,
   tournamentTeamsLine,
   type TournamentMatchPhase,
-} from "~/lib/tournament-card";
-import { hasKnockout } from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-card";
+import { hasKnockout } from "@repo/domain/tournament-rounds";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 

@@ -14,15 +14,15 @@ import {
   LEVEL_RANGE_INVERTED_MESSAGE,
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
-} from "~/lib/level-range";
-import { PRICE_PER_PLAYER_MAX_FILS } from "~/lib/price-per-player";
+} from "@repo/domain/level-range";
+import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import {
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
   validateQualifiersPerPool,
   validateRoundCount,
   type TournamentSizingIssue,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

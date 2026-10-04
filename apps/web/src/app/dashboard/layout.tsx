@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import {
   dashboardOnboardingRedirect,
   PATHNAME_HEADER,
-} from "~/lib/dashboard-onboarding-gate";
+} from "@repo/domain/dashboard-onboarding-gate";
 import { loadCallerOnboardingState } from "~/server/auth/caller-onboarding-state";
 import { HydrateClient } from "~/trpc/server";
 

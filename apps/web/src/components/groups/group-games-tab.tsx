@@ -8,15 +8,15 @@ import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { GroupPlayedRow } from "~/components/groups/group-played-row";
 import { Button } from "~/components/ui/button";
-import { offersPartnerJoin } from "~/lib/friendly-game-partner";
+import { offersPartnerJoin } from "@repo/domain/friendly-game-partner";
 import {
   gameSummaryPrimaryAction,
   gameViewerStatus,
   showsFriendlyRoster,
   showsGameCardPartnerFooter,
-} from "~/lib/game-summary-cta";
+} from "@repo/domain/game-summary-cta";
 import { cardFrame } from "~/lib/page-layout";
-import { isDrawnTournament } from "~/lib/tournament-rounds";
+import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GroupHome = RouterOutputs["groups"]["byId"];

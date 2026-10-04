@@ -26,12 +26,12 @@ import {
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-import { selfDeclareChoiceFromDisplay } from "~/lib/level-bands";
+import { selfDeclareChoiceFromDisplay } from "@repo/domain/level-bands";
 import {
   onboardingStepFromState,
   shouldFocusStepHeading,
 } from "~/lib/onboarding-step";
-import { preferredPositionNote } from "~/lib/preferred-position";
+import { preferredPositionNote } from "@repo/domain/preferred-position";
 import { api, type RouterInputs } from "~/trpc/react";
 
 type PreferredPosition =

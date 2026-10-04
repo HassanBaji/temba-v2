@@ -77,7 +77,7 @@ import { createVenue } from "~/server/api/routers/venues/create";
 import { rejectLinkRequest as rejectVenueLinkRequest } from "~/server/api/routers/venues/rejectLinkRequest";
 import { softArchive as softArchiveVenue } from "~/server/api/routers/venues/softArchive";
 
-import type { SelfDeclareChoice } from "~/lib/level-bands";
+import type { SelfDeclareChoice } from "@repo/domain/level-bands";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
 

@@ -14,13 +14,13 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { tournamentRoundCount } from "~/lib/tournament-home";
-import { knockoutQualifierLabel } from "~/lib/tournament-knockout";
+import { tournamentRoundCount } from "@repo/domain/tournament-home";
+import { knockoutQualifierLabel } from "@repo/domain/tournament-knockout";
 import {
   knockoutSideLabel,
   viewerMissedKnockout,
-} from "~/lib/tournament-knockout-view";
-import { roundsPlayedLabel } from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-knockout-view";
+import { roundsPlayedLabel } from "@repo/domain/tournament-rounds";
 import { addSet } from "~/server/api/routers/games/addSet";
 import { gameById } from "~/server/api/routers/games/byId";
 import { cancelMatch } from "~/server/api/routers/games/cancelMatch";

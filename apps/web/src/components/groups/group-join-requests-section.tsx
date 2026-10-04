@@ -11,7 +11,7 @@ import { Section } from "~/components/layout/section";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "~/components/ui/field";
 import { Skeleton } from "~/components/ui/skeleton";
-import { requestRowMeta } from "~/lib/request-meta";
+import { requestRowMeta } from "@repo/domain/request-meta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["groups"]["listJoinRequests"][number];

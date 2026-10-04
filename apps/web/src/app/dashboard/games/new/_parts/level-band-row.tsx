@@ -1,11 +1,11 @@
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { isLevelBoundDisabled } from "~/lib/create-game-flow";
-import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "~/lib/level-bands";
+import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 
 export function LevelBandRow({
   id,

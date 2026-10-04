@@ -1,5 +1,5 @@
 import { SecondFactorForm } from "~/components/auth/second-factor-form";
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export default async function FactorTwoPage({
   searchParams,

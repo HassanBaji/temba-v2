@@ -7,12 +7,15 @@ import type { FriendlyGamePartnerPick } from "~/components/games/friendly-game-p
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton } from "~/components/ui/nav-icon-button";
-import { formatGameCardDay } from "~/lib/format-game-start";
-import { seedPartnerCallerPosition } from "~/lib/friendly-game-partner";
+import { formatGameCardDay } from "@repo/domain/format-game-start";
+import { seedPartnerCallerPosition } from "@repo/domain/friendly-game-partner";
 import { formatHomeKickoff } from "~/lib/home-countdown";
-import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
-import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
+import { formatLevelRangeLabel } from "@repo/domain/level-range";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { cn } from "~/lib/utils";
 
 type SeatPosition = "left" | "right";

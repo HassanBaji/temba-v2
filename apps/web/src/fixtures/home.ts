@@ -5,7 +5,7 @@ import type {
   HomeComingUpTournamentMatchRow,
   HomeComingUpTournamentRow,
 } from "~/lib/home-coming-up";
-import type { LevelBand } from "~/lib/level-bands";
+import type { LevelBand } from "@repo/domain/level-bands";
 
 export type HomeSeat = {
   id: string;

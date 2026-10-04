@@ -1,9 +1,9 @@
-import { isTournamentStandingsView } from "~/lib/tournament-home";
-import { sizeTournamentRounds } from "~/lib/tournament-schedule";
+import { isTournamentStandingsView } from "@repo/domain/tournament-home";
+import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import {
   resolveRoundCount,
   sizeFriendlyTournament,
-} from "~/lib/tournament-sizing";
+} from "@repo/domain/tournament-sizing";
 
 export function viewerTournamentTotalFils(
   pricePerPlayerFils: number | null | undefined,

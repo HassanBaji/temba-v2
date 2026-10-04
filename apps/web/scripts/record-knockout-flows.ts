@@ -43,7 +43,7 @@ import { joinLoosePublic } from "~/server/api/routers/groups/joinLoosePublic";
 import { selfDeclareRating } from "~/server/api/routers/ratings/selfDeclare";
 import { markOnboardingComplete } from "~/server/api/routers/users/completeOnboarding";
 import { writePreferredPosition } from "~/server/api/routers/users/setPreferredPosition";
-import { knockoutMatchCode } from "~/lib/tournament-knockout";
+import { knockoutMatchCode } from "@repo/domain/tournament-knockout";
 
 const BASE_URL = process.env.RECORD_BASE_URL ?? "http://localhost:3000";
 const OUT_DIR = join(process.cwd(), "recordings", "knockout");

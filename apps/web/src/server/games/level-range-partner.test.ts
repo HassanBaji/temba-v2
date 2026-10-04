@@ -28,7 +28,7 @@ import {
   LEVEL_RANGE_OUTSIDE_MESSAGE,
   LEVEL_RANGE_PARTNER_MESSAGE,
   LEVEL_RANGE_TEAM_MESSAGE,
-} from "~/lib/level-range";
+} from "@repo/domain/level-range";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

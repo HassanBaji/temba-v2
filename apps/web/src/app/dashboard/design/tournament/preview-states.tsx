@@ -18,21 +18,21 @@ import type {
   TournamentCardFixture,
   TournamentCardFixtures,
 } from "~/fixtures/tournament-card";
-import { formatGameClock } from "~/lib/format-game-start";
-import { zonedDateTimeToInstant } from "~/lib/product-timezone";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
-import type { TournamentMatchPhase } from "~/lib/tournament-card";
+import { formatGameClock } from "@repo/domain/format-game-start";
+import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import type { TournamentMatchPhase } from "@repo/domain/tournament-card";
 import {
   COUNTS_FOR_RATING_LABEL,
   COUNTS_FOR_RATING_YES,
   PRICE_ROW_LABEL,
-} from "~/lib/tournament-home";
+} from "@repo/domain/tournament-home";
 import {
   DRAW_RANDOM_VALUE,
   DRAW_ROW_LABEL,
   PRICE_PER_PLAYER_JOIN_SUFFIX,
   ROUNDS_ROW_LABEL,
-} from "~/lib/tournament-join";
+} from "@repo/domain/tournament-join";
 import {
   ALONE_OR_WITH_A_PARTNER_LABEL,
   ANYONE_WITH_THE_LINK_LABEL,
@@ -65,8 +65,8 @@ import {
   UNEVEN_POOLS_COPY,
   WHO_CAN_TAKE_A_SEAT_LABEL,
   WITH_A_PARTNER_ONLY_LABEL,
-} from "~/lib/tournament-sizing";
-import { sizeTournamentRounds } from "~/lib/tournament-schedule";
+} from "@repo/domain/tournament-sizing";
+import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import { cn } from "~/lib/utils";
 
 const FIELD_LABEL = "text-muted-foreground text-meta font-normal";

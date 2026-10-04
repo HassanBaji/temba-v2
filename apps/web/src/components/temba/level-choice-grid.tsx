@@ -5,7 +5,7 @@ import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   type AssignableDisplayLevelBand,
-} from "~/lib/level-bands";
+} from "@repo/domain/level-bands";
 import { cn } from "~/lib/utils";
 
 export const UNKNOWN_LEVEL_CHOICE = "unknown" as const;
@@ -16,7 +16,7 @@ export type LevelChoiceValue =
 
 /**
  * The rungs the picker offers, sourced from the single display map in
- * `~/lib/level-bands`. PRO is absent by construction: it is the reserved elite
+ * `@repo/domain/level-bands`. PRO is absent by construction: it is the reserved elite
  * display rung and is not in `ASSIGNABLE_DISPLAY_LEVEL_BANDS`.
  */
 const LEVEL_CHOICES: { value: LevelChoiceValue; label: string }[] = [

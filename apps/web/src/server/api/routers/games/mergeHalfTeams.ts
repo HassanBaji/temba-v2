@@ -8,7 +8,7 @@ import {
   isPartnerRequiredGame,
   isDrawnTournament,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";

@@ -6,7 +6,7 @@ import { Camera } from "lucide-react";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { AvatarBadge } from "~/components/ui/avatar";
 import { Skeleton } from "~/components/ui/skeleton";
-import { preferredPositionProfileLine } from "~/lib/preferred-position";
+import { preferredPositionProfileLine } from "@repo/domain/preferred-position";
 import { api } from "~/trpc/react";
 
 const avatarClassName =

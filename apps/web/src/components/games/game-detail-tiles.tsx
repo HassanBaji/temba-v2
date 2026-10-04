@@ -7,9 +7,9 @@ import {
   formatGameTimeWindow,
   formatRelativeDay,
   gameDayProximity,
-} from "~/lib/format-game-start";
-import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerFils } from "~/lib/price-per-player";
+} from "@repo/domain/format-game-start";
+import { formatLevelRangeLabel } from "@repo/domain/level-range";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { cn } from "~/lib/utils";
 
 type TileTone = "neutral" | "warning" | "success";

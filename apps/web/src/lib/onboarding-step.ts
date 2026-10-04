@@ -1,4 +1,4 @@
-import { safeInternalRedirect } from "~/lib/safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 /** Where the Onboarding questionnaire sends a User with no usable `redirect_url`. */
 export const ONBOARDING_FALLBACK_REDIRECT = "/dashboard";

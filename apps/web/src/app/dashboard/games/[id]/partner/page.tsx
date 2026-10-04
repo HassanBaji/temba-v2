@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { friendlyGameHomeHref } from "~/lib/friendly-game-partner";
+import { friendlyGameHomeHref } from "@repo/domain/friendly-game-partner";
 
 export default async function PickAPartnerPage({
   params,

@@ -1,5 +1,5 @@
 import { Button } from "~/components/ui/button";
-import { CANCEL_MATCH_ACTION } from "~/lib/game-copy";
+import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
 import {
   KNOCKOUT_BYE_LABEL,
   KNOCKOUT_CHAMPION_TAG,
@@ -14,8 +14,8 @@ import {
   type KnockoutViewPlace,
   type KnockoutViewRound,
   type KnockoutViewSide,
-} from "~/lib/tournament-knockout-view";
-import { YOUR_TEAM_TAG } from "~/lib/tournament-home";
+} from "@repo/domain/tournament-knockout-view";
+import { YOUR_TEAM_TAG } from "@repo/domain/tournament-home";
 import { cn } from "~/lib/utils";
 
 function KnockoutSideRow({

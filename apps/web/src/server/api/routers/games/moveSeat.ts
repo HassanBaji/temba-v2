@@ -15,7 +15,7 @@ import type { SeatPosition } from "~/server/games/utils";
 import {
   isPartnerRequiredGame,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "~/lib/tournament-rounds";
+} from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

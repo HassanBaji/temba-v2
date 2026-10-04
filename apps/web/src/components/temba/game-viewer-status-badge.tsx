@@ -1,7 +1,7 @@
 import { Check, Hourglass } from "lucide-react";
 
 import { Badge } from "~/components/ui/badge";
-import type { GameViewerStatus } from "~/lib/game-summary-cta";
+import type { GameViewerStatus } from "@repo/domain/game-summary-cta";
 
 export function GameViewerStatusBadge({
   status,
