@@ -2,6 +2,11 @@
 
 Agents skipped these while implementing `spec.md`. Each entry says what to do and which ticket it belongs to. Check an item off when it is done.
 
+## Start here: decisions and order
+
+- [ ] **Decisions needed.** (1) TEM-319 hold-back or skip the one-week soak (see the TEM-319 section). (2) The cancelled Game treatment for both Apps (TEM-333 section). (3) Confirm the TEM-325 choices on a device: Expo SDK 57, NativeWind `5.0.0-rc.0`, the custom 115-width `ArchivoExpanded-Bold` cut from the Latin-subset variable font, pnpm's default linker (TEM-323 and TEM-325 sections). (4) Accept or reverse the TEM-310 deviation: `@repo/api` uses `#src/...` subpath imports, not `#/...`, because Next's webpack rejects `#/`; `CLAUDE.md` records it. (5) The TEM-344 spec decisions below, including account deletion with the product owner.
+- [ ] **Suggested order.** Settings and access, then TEM-312 (deploy the API), then the TEM-313 to TEM-318 checks against the deployed API, then the TEM-319 hold-back decision and its checks, then TEM-320, then TEM-322 (Apple), then TEM-323 (prototype on an iPhone) and the mobile device checks TEM-325 to TEM-343, then TEM-344.
+
 ## Settings and access
 
 - [ ] **TEM-294.** Change the deployment's root directory to `apps/web`. Production builds from this branch fail until it changes.
@@ -120,6 +125,17 @@ Not done: the spike needs a real iPhone, an Android emulator and a reachable API
 - [ ] **TEM-323.** Take a side-by-side photo or screenshot comparing the expanded numerals and the hatch on the phone with `/dashboard/design/home` on web, and attach it to the spec Comments.
 - [ ] **TEM-323.** Build and launch the spike once in an Android emulator (build and launch only).
 - [ ] **TEM-323.** Delete the spike code. Nothing from it is merged.
+
+## TEM-344: Phase 7 spec (ready-for-human, skipped by agents)
+
+Not written: the ticket asks for product decisions (which events notify whom, and account deletion "decided with the product owner"), which agents may not make. Write it as `.scratch/<feature-slug>/spec.md` (for example `.scratch/mobile-release/spec.md`), following spec section 5, Phase 7, and record the decisions in its own Decisions section.
+
+- [ ] **TEM-344.** Universal links for Game, Group, Community and Team Invite links (`/g/{code}`, `/gr/{code}`, `/invites/*/link/{token}`): the Apple App Site Association file served by the web App, the associated-domains entitlement in `apps/mobile/app.json`, and a signed-out open that goes through sign-in and resumes. The in-app paste or open of a link already exists (TEM-340, `apps/mobile/src/invites/`), so the spec only needs the outside-the-app entry.
+- [ ] **TEM-344.** Push notifications: list every event that notifies and its recipients (for example a Lookup invite received, a Group join request to approvers, a seat freed from the Waitlist, a Match result to confirm, a Pool draw posted), the device push token table, register and unregister procedures (additive, one file each), and where the API sends from.
+- [ ] **TEM-344.** TestFlight and App Store submission through EAS: build profiles for development, preview and production (the device checks in this note already need a development build because of the native modules added in TEM-328, TEM-334 and TEM-340), the bundle identifier (currently the placeholder `app.temba.mobile` in `apps/mobile/app.json`), privacy disclosures.
+- [ ] **TEM-344.** API compatibility once a binary ships: procedure changes are additive only (already a `CLAUDE.md` rule), a client version header sent by the mobile tRPC client, and a minimum-version check in the API that lets the app ask for an update.
+- [ ] **TEM-344.** In-app account deletion, decided with the product owner: what happens to the deleted User's Matches, Ratings, Teams, Groups they created and Communities they own (spec risk R8: the App Store requires it).
+- [ ] **TEM-344.** Propose the Phase 7 tickets in dependency order (iOS first; Android later), then publish them to Linear.
 
 ## Deploys and migrations
 
