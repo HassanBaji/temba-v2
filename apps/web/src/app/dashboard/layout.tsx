@@ -7,7 +7,6 @@ import {
   PATHNAME_HEADER,
 } from "~/lib/dashboard-onboarding-gate";
 import { loadCallerOnboardingState } from "~/lib/caller-onboarding-state";
-import { HydrateClient } from "~/trpc/server";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -39,10 +38,6 @@ export default async function DashboardLayout({
   }
 
   return (
-    <HydrateClient>
-      <div className="bg-background text-foreground min-h-screen">
-        {children}
-      </div>
-    </HydrateClient>
+    <div className="bg-background text-foreground min-h-screen">{children}</div>
   );
 }

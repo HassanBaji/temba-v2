@@ -83,6 +83,16 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-318.** Sign up as a new User and confirm a Temba User row appears through the webhook and the Onboarding questionnaire opens. Unverified until done.
 - [ ] **TEM-318.** Rollback check: set `REMOTE_PATHS` in `apps/web/src/trpc/remote-paths.js` to `[]`, rebuild, and confirm media and the webhook are answered by the web route handlers again. The handlers stay until TEM-319.
 
+## TEM-319 web App stops being a backend
+
+- [ ] **TEM-319. HOLD BACK: do not let this commit reach production until the routers have been remote in production for one week with no rollback** (spec Phase 3 task 5). The commit subject is `feat: TEM-319 drop the web App's API handlers, database and bucket access`. Every ticket so far is on pull request 131, so a person must either hold this commit back from that merge (for example revert it on the branch before merging, then re-apply it a week later) or accept skipping the soak. Reverting it restores the in-process handlers, `REMOTE_ROUTERS` and `REMOTE_PATHS`.
+- [ ] **TEM-319.** After this commit, the web App deployment no longer needs `DATABASE_URL`, `CLERK_WEBHOOK_SIGNING_SECRET` or the five `AWS_*` variables. Remove them from the web App's Railway/hosting environments once the API serves everything. It does need `API_ORIGIN` (the public API origin) in every environment, and the deployment must be able to reach it.
+- [ ] **TEM-319.** The rollback steps in the TEM-314 to TEM-318 sections that edit `REMOTE_ROUTERS` or `REMOTE_PATHS` no longer apply after this commit: those files are deleted. Rollback is reverting this commit.
+- [ ] **TEM-319.** Migrations: the web deploy no longer holds `DATABASE_URL`, so run `pnpm exec turbo run db:migrate` from a person's machine or a release step with `DATABASE_URL` set (the Drizzle config lives in `packages/db`).
+- [ ] **TEM-319.** With real Clerk users, a bucket and a seeded database, through `pnpm dev:web`: sign up, upload a Group image, create a Game, score it, confirm it and check the Rating moved. Unverified until done.
+- [ ] **TEM-319.** Run both Playwright flow recordings (`pnpm --filter web record:flows`, `pnpm --filter web record:knockout`) against the proxied setup. Unverified until done. The scripts still import `@repo/db`, `drizzle-orm` and `@repo/api` (exempt from the lint rule), so `apps/web/package.json` keeps them as dev dependencies.
+- [ ] **TEM-319.** If the Clerk webhook endpoint still points at `<web origin>/api/webhooks`, it is now forwarded to the API by the single `/api/:path*` rewrite; no Clerk change is needed. Pointing it straight at `<api origin>/api/webhooks` is optional.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.

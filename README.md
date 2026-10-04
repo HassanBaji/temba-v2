@@ -11,12 +11,12 @@ cp packages/db/.env.example packages/db/.env
 ./start-database.sh
 ```
 
-Fill Clerk keys in `apps/web/.env`. Keep `DATABASE_URL` in both env files.
+Fill Clerk keys in `apps/web/.env`. The API App owns the database, bucket and webhook variables: `cp apps/api/.env.example apps/api/.env` and fill it. Keep `DATABASE_URL` in `apps/api/.env` and `packages/db/.env`.
 
 ## Commands
 
 ```bash
-pnpm exec turbo run dev --filter web
+pnpm dev:web
 pnpm exec turbo run typecheck
 pnpm exec turbo run lint
 pnpm exec turbo run test --filter web

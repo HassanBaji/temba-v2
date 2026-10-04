@@ -21,7 +21,7 @@ import {
 } from "@repo/domain/level-bands";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { cn } from "~/lib/utils";
-import type { LookupUserSearchRow } from "@repo/api/invites/search-lookup-users";
+import type { LookupUserSearchRow } from "@repo/api/types";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type PartnerSuggestion =

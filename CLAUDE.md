@@ -15,8 +15,8 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 | 0 | `apps/temba` renamed to `apps/web` | Done |
 | Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Done |
 | 1 | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting | Done in code, human steps pending |
-| 2 | `@repo/api` Package and the `apps/api` Hono host | Not started |
-| 3 | Web App calls the API over HTTP and drops its database access | Not started |
+| 2 | `@repo/api` Package and the `apps/api` Hono host | Done in code, human steps pending |
+| 3 | Web App calls the API over HTTP and drops its database access | Done in code, human steps pending |
 | 4 | Bearer-only session check in the API context | Not started |
 | 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | Not started |
 | 6 | Mobile screens and flows: everything except Venue administration | Not started |
@@ -31,7 +31,8 @@ Settled decisions: the API runs on Railway, Clerk stays and gains Sign in with A
 Today:
 
 ```text
-apps/web                     Next.js 15 App: UI, route handlers that serve the API in-process
+apps/web                     Next.js 15 App: UI only, `/api/*` is rewritten to the API App
+apps/api                     Hono host: verifies the session, builds the context, mounts routes
 packages/api                 @repo/api: tRPC routers, procedures, shared server modules
 packages/db                  @repo/db: Drizzle schema, client, migrations, PGlite harness
 packages/domain              @repo/domain: pure rules and calculations
@@ -70,7 +71,7 @@ pnpm exec turbo run db:migrate
 
 - Tests run on PGlite and need neither Postgres nor `DATABASE_URL`: `@repo/db` connects on first use. The harness is `@repo/db/testing`.
 - A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`, or `pnpm --filter @repo/api exec vitest run path/to/file.test.ts` for the server tree.
-- After Phase 2 the API runs on port 4000. After Phase 5 `pnpm dev` runs web, API and mobile together.
+- The API runs on port 4000. After Phase 5 `pnpm dev` runs web, API and mobile together.
 
 ## Package boundaries
 

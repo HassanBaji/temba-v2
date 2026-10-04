@@ -1,9 +1,3 @@
-import {
-  GameFormatEnum,
-  GameRegistrationModeEnum,
-  GameSportEnum,
-} from "@repo/db";
-
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import type { RouterOutputs } from "~/trpc/react";
@@ -145,9 +139,9 @@ function baseFixture(args: {
   return {
     id: args.id,
     name: null,
-    format: GameFormatEnum.FRIENDLY_GAME,
-    registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
-    sport: GameSportEnum.PADEL,
+    format: "friendly_game",
+    registrationMode: "individual",
+    sport: "padel",
     venue,
     windowStart: isoMinutesFrom(args.now, args.windowStartMinutes),
     windowEnd: isoMinutesFrom(args.now, args.windowEndMinutes),

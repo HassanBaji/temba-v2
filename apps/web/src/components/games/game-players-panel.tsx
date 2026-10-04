@@ -14,7 +14,7 @@ import {
 } from "~/components/games/game-side-label";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import { REGISTER_TEAM_ACTION } from "@repo/domain/game-copy";
-import type { LookupUserSearchRow } from "@repo/api/invites/search-lookup-users";
+import type { LookupUserSearchRow } from "@repo/api/types";
 import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";

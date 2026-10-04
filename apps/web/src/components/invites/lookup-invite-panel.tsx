@@ -13,8 +13,7 @@ import {
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-import type { LookupListItem } from "@repo/api/invites/doors";
-import type { LookupUserSearchRow } from "@repo/api/invites/search-lookup-users";
+import type { LookupListItem, LookupUserSearchRow } from "@repo/api/types";
 
 export function LookupInvitePanel({
   lookupInvites,

@@ -14,7 +14,7 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from "~/components/ui/combobox";
-import type { LookupUserSearchRow } from "@repo/api/invites/search-lookup-users";
+import type { LookupUserSearchRow } from "@repo/api/types";
 
 export const LOOKUP_USER_SELECT_MAX = 20;
 

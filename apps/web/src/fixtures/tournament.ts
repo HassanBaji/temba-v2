@@ -1,10 +1,3 @@
-import {
-  GameFormatEnum,
-  GameRegistrationModeEnum,
-  GameSportEnum,
-  MatchStatusEnum,
-} from "@repo/db";
-
 import type { LevelBand } from "@repo/domain/level-bands";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { computePoolTables } from "@repo/domain/pool-table";
@@ -249,7 +242,7 @@ function poolMatches(args: {
       start.setHours(18, 0, 0, 0);
       matches.push({
         id: `match-p${poolIndex}-r${pairing.round}-${slot1.id}-${slot2.id}`,
-        status: completed ? MatchStatusEnum.COMPLETED : MatchStatusEnum.PENDING,
+        status: completed ? "completed" : "pending",
         roundNumber: pairing.round,
         startTime: start,
         slot1GameTeamId: slot1.id,
@@ -341,7 +334,7 @@ function baseTournament(args: {
         })
       : [];
   const poolTables = computePoolTables({
-    format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+    format: "friendly_tournament",
     poolCount: POOL_COUNT,
     viewerUserId: args.viewerUserId,
     gameTeams: gameTeams.map((team) => ({
@@ -369,8 +362,8 @@ function baseTournament(args: {
   return {
     id: args.id,
     name: "Bromma Autumn Friendly",
-    format: GameFormatEnum.FRIENDLY_TOURNAMENT,
-    registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
+    format: "friendly_tournament",
+    registrationMode: "individual",
     allowSoloRegister: true,
     isPublic: false,
     groupId: "group-bromma",
@@ -391,7 +384,7 @@ function baseTournament(args: {
     matchMinutes: null,
     drawPostedAt: args.drawPostedAt,
     canUndoDraw: args.drawPostedAt != null,
-    sport: GameSportEnum.PADEL,
+    sport: "padel",
     cancelledAt: null,
     registrationClosedAt: args.drawPostedAt,
     createdBy: ORGANIZER_ID,

@@ -13,7 +13,7 @@ import {
 } from "~/components/invites/invite-outcome";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
-import type { InviteHostKind } from "@repo/api/invites/doors";
+import type { InviteHostKind } from "@repo/api/types";
 
 export function AcceptInviteFlow({
   kind,

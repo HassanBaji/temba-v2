@@ -1,4 +1,4 @@
-import { GroupSportEnum } from "@repo/db";
+import type { Sport } from "@repo/domain/sport";
 
 import type {
   HomeComingUpGameRow,
@@ -48,7 +48,7 @@ export type HomeFormOutcome = "won" | "lost" | "draw";
 export type HomeStandingRow = {
   groupId: string;
   groupName: string;
-  sport: GroupSportEnum;
+  sport: Sport;
   position: number;
   memberCount: number;
 };
@@ -153,7 +153,7 @@ export function createHomeFixtures(now = new Date()): {
     {
       groupId: "group-weekday",
       groupName: "Weekday ladder",
-      sport: GroupSportEnum.PADEL,
+      sport: "padel",
       position: 4,
       memberCount: 13,
     },

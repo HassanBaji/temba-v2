@@ -11,7 +11,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { InviteLinkPanel } from "~/components/invites/invite-link-panel";
 import { LookupInvitePanel } from "~/components/invites/lookup-invite-panel";
-import type { LookupUserSearchRow } from "@repo/api/invites/search-lookup-users";
+import type { LookupUserSearchRow } from "@repo/api/types";
 
 export function GameInvitesDialog({
   open,

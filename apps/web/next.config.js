@@ -3,31 +3,21 @@
  * for Docker builds.
  */
 import { env } from "./src/env.js";
-import { remotePathRewrites } from "./src/trpc/remote-paths.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  transpilePackages: [
-    "@repo/api",
-    "@repo/db",
-    "@repo/domain",
-    "@repo/validators",
-  ],
+  transpilePackages: ["@repo/domain", "@repo/validators"],
   eslint: {
     ignoreDuringBuilds: true,
   },
   async rewrites() {
     if (!env.API_ORIGIN) return [];
-    return {
-      beforeFiles: remotePathRewrites(env.API_ORIGIN),
-      afterFiles: [
-        {
-          source: "/api/remote/:path*",
-          destination: `${env.API_ORIGIN}/api/:path*`,
-        },
-      ],
-      fallback: [],
-    };
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${env.API_ORIGIN}/api/:path*`,
+      },
+    ];
   },
   async redirects() {
     return [

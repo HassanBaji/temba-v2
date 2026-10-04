@@ -15,11 +15,11 @@ A deployable application under `apps/`. Temba has three planned Apps: the Web Ap
 _Avoid_: package, site, frontend, service
 
 **Web App**:
-The Next.js App in `apps/web`, package name `web`. It serves the browser UI and, until the API App ships, the tRPC API.
+The Next.js App in `apps/web`, package name `web`. It serves the browser UI only. Its `/api/*` paths are rewritten to the API App.
 _Avoid_: temba (its old name), dashboard, frontend, site
 
 **API App**:
-The planned Hono host in `apps/api`. It verifies the session, builds the context and mounts the tRPC routers from `@repo/api`. It holds no business logic.
+The Hono host in `apps/api`. It verifies the session, builds the context and mounts the tRPC routers from `@repo/api`. It holds no business logic.
 _Avoid_: backend, server (when you mean this App), service
 
 **Mobile App**:
