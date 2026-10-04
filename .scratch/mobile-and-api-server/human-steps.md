@@ -94,6 +94,19 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-319.** Run both Playwright flow recordings (`pnpm --filter web record:flows`, `pnpm --filter web record:knockout`) against the proxied setup. Unverified until done. The scripts still import `@repo/db`, `drizzle-orm` and `@repo/api` (exempt from the lint rule), so `apps/web/package.json` keeps them as dev dependencies.
 - [ ] **TEM-319.** If the Clerk webhook endpoint still points at `<web origin>/api/webhooks`, it is now forwarded to the API by the single `/api/:path*` rewrite; no Clerk change is needed. Pointing it straight at `<api origin>/api/webhooks` is optional.
 
+## TEM-322: Sign in with Apple on web (ready-for-human, skipped by agents)
+
+Not implemented: the ticket needs an Apple Developer Program membership and Clerk dashboard access. TEM-328 (mobile sign-in) depends on it; its Apple button can only be checked once these steps are done.
+
+- [ ] **TEM-322.** Enrol the business in the Apple Developer Program and note the Team ID.
+- [ ] **TEM-322.** In Certificates, Identifiers & Profiles:
+  - Create (or reuse) the App ID for the iOS App with the "Sign in with Apple" capability. Use the bundle identifier the Mobile App will ship with.
+  - Create a Services ID for the web (for example `<reverse-domain>.web`) with "Sign in with Apple" enabled. Add the web domains (production and staging web origins, and the Clerk Frontend API domain), and add the return URL that the Clerk dashboard shows for Apple (`https://<clerk frontend api>/v1/oauth_callback`).
+  - Create a "Sign in with Apple" private key, download the `.p8` file once, and note its Key ID.
+- [ ] **TEM-322.** In the Clerk dashboard, for the development instance and then the production instance, open SSO connections, add Apple, and enter the Services ID, Team ID, Key ID and the `.p8` private key (development may use Clerk's shared credentials). Keep Google enabled.
+- [ ] **TEM-322.** Then add the button in code (a person or a later agent run, once Clerk is configured): in `apps/web/src/components/auth/oauth-buttons.tsx` add `{ strategy: "oauth_apple", label: "Continue with Apple", Icon: <Apple logo> }` to `ENABLED_OAUTH_PROVIDERS` beside Google and remove the comment that says Apple is not configured. The button follows Apple's Human Interface Guidelines for Sign in with Apple (black button, white Apple logo, "Continue with Apple") and the auth screen design (hairline, no shadow). The same component is used by sign-in and sign-up; check that `sign-up-continue-form.tsx` still collects a missing phone number for an Apple sign-up (Apple may share a private relay email and no phone).
+- [ ] **TEM-322.** Verify on staging: a new User signs up with Apple, gives a phone number on the continue step, gets a Temba User row through the Clerk webhook and reaches the Onboarding questionnaire; an existing User signs in with Apple; Google sign-in still works.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.
