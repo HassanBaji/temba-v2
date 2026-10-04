@@ -12,12 +12,12 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 
 | Phase | What it delivers | Status |
 | --- | --- | --- |
-| 0 | `apps/temba` renamed to `apps/web` | Done |
+| 0 | `apps/temba` renamed to `apps/web` | Done in code, human steps pending |
 | Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Done |
 | 1 | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting | Done in code, human steps pending |
 | 2 | `@repo/api` Package and the `apps/api` Hono host | Done in code, human steps pending |
 | 3 | Web App calls the API over HTTP and drops its database access | Done in code, human steps pending |
-| 4 | Bearer-only session check in the API context | Not started |
+| 4 | Bearer-only session check in the API context | Done in code, human steps pending |
 | 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | Done in code, human steps pending |
 | 6 | Mobile screens and flows: everything except Venue administration | Done in code, human steps pending |
 | 7 | Push, universal links, App Store build (iOS first) | Not started |
