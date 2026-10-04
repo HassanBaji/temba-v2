@@ -1,0 +1,40 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --conditions=temba-source --banner:js=\"import{createRequire}from'node:module';const require=createRequire(import.meta.url);\" --outfile=dist/index.js",
+    "dev": "tsx watch --env-file-if-exists=.env --conditions=temba-source src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format:check": "prettier --check \"**/*.{ts,js}\" --cache",
+    "format:write": "prettier --write \"**/*.{ts,js}\" --cache"
+  },
+  "dependencies": {
+    "@clerk/backend": "^3.7.0",
+    "@hono/node-server": "^1.19.0",
+    "@hono/trpc-server": "^0.4.0",
+    "@repo/api": "workspace:*",
+    "@repo/db": "workspace:*",
+    "@t3-oss/env-core": "^0.12.0",
+    "@trpc/server": "^11.0.0",
+    "hono": "^4.9.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^20.14.10",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.23.0",
+    "prettier": "^3.5.3",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^4.1.11"
+  }
+}
