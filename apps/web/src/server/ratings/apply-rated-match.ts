@@ -13,19 +13,16 @@ import {
 import { type db } from "~/server/db";
 import { isUniqueViolation } from "~/server/db/is-unique-violation";
 import { type GameRow } from "~/server/games/access";
+import { type ClassicGlicko } from "@repo/domain/glicko2";
 import {
-  glicko2Step,
-  type ClassicGlicko,
-  type ClassicGlickoOpponent,
-} from "@repo/domain/glicko2";
-import { applyIdleInflation } from "@repo/domain/idle";
-import {
-  bandWithHysteresis,
   initialRatingFromChoice,
-  levelFromMu,
   type LevelBand,
   type RatingGlickoState,
 } from "@repo/domain/level";
+import {
+  rateDoublesMatch,
+  type DoublesOutcome,
+} from "@repo/domain/rate-doubles-match";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -40,11 +37,11 @@ type MatchRow = {
 export const CLUB_GROUP_RATING_WEIGHT = 1;
 export const LOOSE_OR_GROUPLESS_RATING_WEIGHT = 0.5;
 
+export type RatedMatchOutcome = DoublesOutcome;
+
 export type RatedMatchWeight =
   | typeof CLUB_GROUP_RATING_WEIGHT
   | typeof LOOSE_OR_GROUPLESS_RATING_WEIGHT;
-
-export type RatedMatchOutcome = "slot1" | "slot2" | "draw";
 
 type SlotUsers = {
   slot1: [string, string];
@@ -61,28 +58,6 @@ function defaultRatingState(): RatingGlickoState {
   return initialRatingFromChoice("unknown");
 }
 
-function blendWeightedStep(
-  before: ClassicGlicko,
-  star: ClassicGlicko,
-  weight: RatedMatchWeight,
-): ClassicGlicko {
-  return {
-    mu: before.mu + weight * (star.mu - before.mu),
-    phi: before.phi + weight * (star.phi - before.phi),
-    sigma: before.sigma + weight * (star.sigma - before.sigma),
-  };
-}
-
-function scoreForSlot(
-  result: RatedMatchOutcome,
-  slot: "slot1" | "slot2",
-): 0 | 0.5 | 1 {
-  if (result === "draw") {
-    return 0.5;
-  }
-  return result === slot ? 1 : 0;
-}
-
 function twoUserIds(ids: string[]): [string, string] | null {
   const unique = [...new Set(ids)];
   const first = unique[0];
@@ -91,23 +66,6 @@ function twoUserIds(ids: string[]): [string, string] | null {
     return null;
   }
   return [first, second];
-}
-
-function compositeOpponent(
-  first: RatingGlickoState,
-  second: RatingGlickoState,
-): ClassicGlickoOpponent {
-  return {
-    mu: (first.mu + second.mu) / 2,
-    phi: (first.phi + second.phi) / 2,
-  };
-}
-
-function ratingStateForUser(
-  states: Map<string, RatingGlickoState>,
-  userId: string,
-): RatingGlickoState {
-  return states.get(userId) ?? defaultRatingState();
 }
 
 async function loadSlotUsers(
@@ -293,53 +251,23 @@ export async function applyRatedMatch(
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
 
   const now = new Date();
-  const stateByUser = new Map<string, RatingGlickoState>();
-  for (const userId of userIds) {
-    const row = rowByUser.get(userId);
-    const snapped = snapshotState(row);
-    const inflated = applyIdleInflation(snapped, row?.lastRatedAt, now);
-    stateByUser.set(userId, {
-      mu: inflated.mu,
-      phi: inflated.phi,
-      sigma: inflated.sigma,
-      levelBand: snapped.levelBand,
-    });
-  }
+  const playerInput = (userId: string) => ({
+    state: snapshotState(rowByUser.get(userId)),
+    lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
+  });
+  const rated = rateDoublesMatch({
+    slot1: [playerInput(slots.slot1[0]), playerInput(slots.slot1[1])],
+    slot2: [playerInput(slots.slot2[0]), playerInput(slots.slot2[1])],
+    outcome: result,
+    weight,
+    now,
+  });
 
-  const slot1Composite = compositeOpponent(
-    ratingStateForUser(stateByUser, slots.slot1[0]),
-    ratingStateForUser(stateByUser, slots.slot1[1]),
-  );
-  const slot2Composite = compositeOpponent(
-    ratingStateForUser(stateByUser, slots.slot2[0]),
-    ratingStateForUser(stateByUser, slots.slot2[1]),
-  );
-
-  const players: {
-    userId: string;
-    slot: "slot1" | "slot2";
-    opponent: ClassicGlickoOpponent;
-  }[] = [
-    {
-      userId: slots.slot1[0],
-      slot: "slot1",
-      opponent: slot2Composite,
-    },
-    {
-      userId: slots.slot1[1],
-      slot: "slot1",
-      opponent: slot2Composite,
-    },
-    {
-      userId: slots.slot2[0],
-      slot: "slot2",
-      opponent: slot1Composite,
-    },
-    {
-      userId: slots.slot2[1],
-      slot: "slot2",
-      opponent: slot1Composite,
-    },
+  const players = [
+    { userId: slots.slot1[0], ...rated.slot1[0] },
+    { userId: slots.slot1[1], ...rated.slot1[1] },
+    { userId: slots.slot2[0], ...rated.slot2[0] },
+    { userId: slots.slot2[1], ...rated.slot2[1] },
   ];
 
   for (const player of players) {
@@ -347,14 +275,7 @@ export async function applyRatedMatch(
       continue;
     }
 
-    const before = ratingStateForUser(stateByUser, player.userId);
-    const score = scoreForSlot(result, player.slot);
-    const star = glicko2Step(before, player.opponent, score);
-    const after = blendWeightedStep(before, star, weight);
-    const levelBand = bandWithHysteresis(
-      levelFromMu(after.mu),
-      before.levelBand,
-    );
+    const { before, after, score, levelBand } = player;
 
     try {
       const [inserted] = await database
