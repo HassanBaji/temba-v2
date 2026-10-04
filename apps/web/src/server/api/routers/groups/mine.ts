@@ -8,12 +8,12 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import {
   groupFormMarks,
   type GroupFormMatch,
-} from "~/server/groups/member-form-marks";
+} from "@repo/domain/member-form-marks";
 import { nextGameStartTimeByGroup } from "~/server/groups/next-game";
 import {
   sortStandingMembers,
   standingPosition,
-} from "~/server/standing/compare-standing";
+} from "@repo/domain/compare-standing";
 import { hasStandingResults } from "~/server/standing/group-standing";
 import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
 

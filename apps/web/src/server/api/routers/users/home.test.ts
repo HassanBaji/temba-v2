@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { admit as admitCommunityMember } from "~/server/community-membership";
 import { loadHome } from "~/server/api/routers/users/home";
-import { summarizeCompletedMatchStats } from "~/server/stats/completed-matches";
+import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { acceptLookup, mintLookup } from "~/server/invites/doors";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 

@@ -4,8 +4,8 @@ import {
   GameSportEnum,
 } from "@repo/db";
 
-import { matchOutcome } from "~/server/games/match-outcome";
-import { setWinsForGames } from "~/server/games/set-wins-for-games";
+import { matchOutcome } from "@repo/domain/match-outcome";
+import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import type { RouterOutputs } from "~/trpc/react";
 
 /**

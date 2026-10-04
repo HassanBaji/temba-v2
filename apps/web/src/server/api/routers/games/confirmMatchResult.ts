@@ -12,7 +12,7 @@ import {
   KNOCKOUT_LEVEL_MESSAGE,
   knockoutMatchIsLevel,
 } from "~/server/games/knockout-advance";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import {
   matchResultFullyConfirmed,
   recordMatchResultConfirmation,

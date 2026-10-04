@@ -1,9 +1,8 @@
-import { MatchStatusEnum } from "@repo/db";
-
-import { scoredSetLabel } from "@repo/domain/tournament-knockout";
-import { poolLabel } from "@repo/domain/tournament-pool-draw";
-import { hasPools } from "@repo/domain/tournament-rounds";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { MATCH_STATUS } from "./match-status";
+import { scoredSetLabel } from "./tournament-knockout";
+import { poolLabel } from "./tournament-pool-draw";
+import { hasPools } from "./tournament-rounds";
+import { matchOutcome } from "./match-outcome";
 
 export type PoolRecordOrderInput = {
   gameTeamId: string;
@@ -179,9 +178,7 @@ function addHeadToHeadPoints(
 }
 
 function isSettledMatch(status: string | null) {
-  return (
-    status === MatchStatusEnum.COMPLETED || status === MatchStatusEnum.CANCELLED
-  );
+  return status === MATCH_STATUS.COMPLETED || status === MATCH_STATUS.CANCELLED;
 }
 
 function comparePoolMatches(
@@ -285,7 +282,7 @@ export function computePoolTables(args: {
       }
 
       for (const match of poolMatches) {
-        if (match.status !== MatchStatusEnum.COMPLETED) {
+        if (match.status !== MATCH_STATUS.COMPLETED) {
           continue;
         }
         const slot1Id = match.slot1GameTeamId;
@@ -375,8 +372,8 @@ export function computePoolTables(args: {
           if (!slot1 || !slot2) {
             return [];
           }
-          const completed = match.status === MatchStatusEnum.COMPLETED;
-          const cancelled = match.status === MatchStatusEnum.CANCELLED;
+          const completed = match.status === MATCH_STATUS.COMPLETED;
+          const cancelled = match.status === MATCH_STATUS.CANCELLED;
           const outcome = completed ? matchOutcome(match.sets).result : "none";
           const sets = match.sets.map((set) => ({
             slot1GamesWon: set.slot1GamesWon,
@@ -410,7 +407,7 @@ export function computePoolTables(args: {
               if (!viewerIsSlot1 && !viewerIsSlot2) {
                 return [];
               }
-              const completed = match.status === MatchStatusEnum.COMPLETED;
+              const completed = match.status === MATCH_STATUS.COMPLETED;
               let viewerOutcome: ViewerRoundResult["viewerOutcome"] = null;
               if (completed) {
                 if (match.outcome === "draw") {

@@ -32,7 +32,7 @@ import type { GameRow } from "~/server/games/access";
 import { mintLink } from "~/server/invites/doors";
 import { loadGameInviteOpenGraph } from "~/server/invites/game-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
-import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
+import { INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
 
 async function insertUser(database: TestDatabase, email: string) {

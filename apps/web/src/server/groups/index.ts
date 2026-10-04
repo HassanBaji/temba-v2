@@ -14,10 +14,10 @@ export {
   GROUP_FORM_MARK_LIMIT,
   type FormMark,
   type GroupFormMatch,
-} from "~/server/groups/member-form-marks";
+} from "@repo/domain/member-form-marks";
 export {
   groupMemberWinLoss,
   type GroupWinLossMatch,
   type MemberWinLoss,
-} from "~/server/groups/member-win-loss";
+} from "@repo/domain/member-win-loss";
 export { nextGameStartTimeByGroup } from "~/server/groups/next-game";

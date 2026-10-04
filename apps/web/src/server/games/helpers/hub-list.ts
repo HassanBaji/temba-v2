@@ -24,11 +24,11 @@ import {
   plannedTournamentRoundCount,
   postedRoundCount,
 } from "@repo/domain/tournament-rounds";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import {
   computePoolTables,
   type ViewerRoundResult,
-} from "~/server/games/pool-table";
+} from "@repo/domain/pool-table";
 import { registrationStatusFromState } from "~/server/games/access";
 import { gameListTime } from "~/server/home/upcoming-games";
 import { consult } from "~/server/soft-archive";

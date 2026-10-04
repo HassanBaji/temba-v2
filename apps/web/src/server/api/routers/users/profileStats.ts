@@ -1,12 +1,12 @@
 import type { DbClient } from "@repo/db";
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import {
-  loadCompletedMatchesForUser,
   summarizeCompletedMatchStats,
   type CompletedMatchForStats,
-} from "~/server/stats/completed-matches";
+} from "@repo/domain/completed-matches";
+import { loadCompletedMatchesForUser } from "~/server/stats/completed-matches";
 
 function byChronology(
   left: CompletedMatchForStats,

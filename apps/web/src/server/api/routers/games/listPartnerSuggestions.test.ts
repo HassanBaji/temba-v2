@@ -21,7 +21,7 @@ import {
 import { listPartnerSuggestions } from "~/server/api/routers/games/listPartnerSuggestions";
 import { registerSeat } from "~/server/api/routers/games/registerSeat";
 import { createFriendlyGame } from "~/server/games/create-friendly";
-import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
+import { INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(

@@ -15,7 +15,7 @@ import { isGameOrganizer, requireGame } from "~/server/games/access";
 import { assertMayWriteSets } from "~/server/games/assert-may-write-sets";
 import { bothSlottedTeamsComplete } from "~/server/games/both-slotted-teams-complete";
 import { knockoutMatchIsLevel } from "~/server/games/knockout-advance";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import {
   clearMatchResultConfirmations,
   clearMatchResultConfirmationsExceptUser,

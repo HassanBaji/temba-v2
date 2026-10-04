@@ -9,14 +9,12 @@ import { pendingInvites as pendingTeamInvites } from "~/server/api/routers/teams
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { listHomeCarouselGames } from "~/server/home/carousel-games";
-import {
-  loadCompletedMatchesForUser,
-  summarizeCompletedMatchStats,
-} from "~/server/stats/completed-matches";
+import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
+import { loadCompletedMatchesForUser } from "~/server/stats/completed-matches";
 import {
   sortStandingMembers,
   standingPosition,
-} from "~/server/standing/compare-standing";
+} from "@repo/domain/compare-standing";
 import { loadGroupStandingMembers } from "~/server/standing/load-group-standing";
 
 /**

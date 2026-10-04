@@ -10,7 +10,7 @@ import {
   teams,
 } from "@repo/db";
 
-import { formatLevel, levelFromMu } from "~/server/ratings/level";
+import { formatLevel, levelFromMu } from "@repo/domain/level";
 import { isGameOrganizer } from "~/server/games/access";
 import type { AdmitParty } from "~/server/games/utils";
 

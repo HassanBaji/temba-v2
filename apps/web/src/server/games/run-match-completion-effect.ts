@@ -9,7 +9,7 @@ import {
   knockoutMatchIsLevel,
   placeKnockoutQualifiers,
 } from "~/server/games/knockout-advance";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import { applyRatedMatch } from "~/server/ratings/apply-rated-match";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

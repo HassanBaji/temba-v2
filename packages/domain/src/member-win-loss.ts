@@ -11,14 +11,13 @@
  * (ADR-0011). A draw is played, not won, so it counts as neither either.
  */
 
-import { MatchStatusEnum } from "@repo/db/schema";
-
-import { matchOutcome } from "~/server/games/match-outcome";
+import { MATCH_STATUS } from "./match-status";
+import { matchOutcome } from "./match-outcome";
 import {
   outcomeForSlot,
   seatedUserSlotOnMatch,
   type MatchSlotOccupants,
-} from "~/server/games/match-slots";
+} from "./match-slots";
 
 export type GroupWinLossMatch = MatchSlotOccupants & {
   status: string | null;
@@ -47,7 +46,7 @@ export function groupMemberWinLoss(
   }
 
   for (const match of matches) {
-    if (match.status !== MatchStatusEnum.COMPLETED) {
+    if (match.status !== MATCH_STATUS.COMPLETED) {
       continue;
     }
     const { result } = matchOutcome(match.sets);

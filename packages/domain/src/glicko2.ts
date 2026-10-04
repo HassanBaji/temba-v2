@@ -126,6 +126,44 @@ export function glicko2EmptyPeriod(player: ClassicGlicko): ClassicGlicko {
   });
 }
 
+export type ClassicGlickoResult = ClassicGlickoOpponent & { score: number };
+
+/**
+ * One Glicko-2 rating period against every opponent faced in it. `score` is
+ * 1 (win), 0 (loss), or 0.5 (draw) per opponent.
+ */
+export function glicko2Period(
+  player: ClassicGlicko,
+  results: readonly ClassicGlickoResult[],
+): ClassicGlicko {
+  const p = toGlicko2Scale(player);
+
+  let vInverse = 0;
+  let scoreSum = 0;
+  for (const result of results) {
+    const opponentMu = (result.mu - 1500) / GLICKO2_SCALE;
+    const opponentPhi = result.phi / GLICKO2_SCALE;
+    const gPhi = g(opponentPhi);
+    const eRaw = expectedScore(p.mu, opponentMu, opponentPhi);
+    const e = Math.min(1 - 1e-12, Math.max(1e-12, eRaw));
+    vInverse += gPhi * gPhi * e * (1 - e);
+    scoreSum += gPhi * (result.score - e);
+  }
+  const v = 1 / vInverse;
+  const delta = v * scoreSum;
+
+  const sigmaPrime = newSigma(p.phi, p.sigma, v, delta);
+  const phiStar = Math.sqrt(p.phi * p.phi + sigmaPrime * sigmaPrime);
+  const phiPrime = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+  const muPrime = p.mu + phiPrime * phiPrime * scoreSum;
+
+  return fromGlicko2Scale({
+    mu: muPrime,
+    phi: phiPrime,
+    sigma: sigmaPrime,
+  });
+}
+
 /**
  * One Glicko-2 rating period against a single opponent (the doubles composite).
  * `score` is 1 (win), 0 (loss), or 0.5 (draw).
@@ -135,24 +173,5 @@ export function glicko2Step(
   opponent: ClassicGlickoOpponent,
   score: number,
 ): ClassicGlicko {
-  const p = toGlicko2Scale(player);
-  const opponentMu = (opponent.mu - 1500) / GLICKO2_SCALE;
-  const opponentPhi = opponent.phi / GLICKO2_SCALE;
-
-  const gPhi = g(opponentPhi);
-  const eRaw = expectedScore(p.mu, opponentMu, opponentPhi);
-  const e = Math.min(1 - 1e-12, Math.max(1e-12, eRaw));
-  const v = 1 / (gPhi * gPhi * e * (1 - e));
-  const delta = v * gPhi * (score - e);
-
-  const sigmaPrime = newSigma(p.phi, p.sigma, v, delta);
-  const phiStar = Math.sqrt(p.phi * p.phi + sigmaPrime * sigmaPrime);
-  const phiPrime = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
-  const muPrime = p.mu + phiPrime * phiPrime * gPhi * (score - e);
-
-  return fromGlicko2Scale({
-    mu: muPrime,
-    phi: phiPrime,
-    sigma: sigmaPrime,
-  });
+  return glicko2Period(player, [{ ...opponent, score }]);
 }

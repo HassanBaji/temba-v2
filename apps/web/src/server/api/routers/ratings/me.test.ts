@@ -12,11 +12,7 @@ import {
 } from "@repo/db/schema";
 
 import { loadRatingsMe } from "~/server/api/routers/ratings/me";
-import {
-  INITIAL_PHI,
-  INITIAL_SIGMA,
-  muFromLevel,
-} from "~/server/ratings/level";
+import { INITIAL_PHI, INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {

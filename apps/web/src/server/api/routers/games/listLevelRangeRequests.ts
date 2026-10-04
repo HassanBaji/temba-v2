@@ -12,7 +12,7 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { displayedLevelTenthsForUser } from "~/server/games/user-allowed-by-level-range";
-import { isProvisional } from "~/server/ratings/level";
+import { isProvisional } from "@repo/domain/level";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

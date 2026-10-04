@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { MatchStatusEnum } from "@repo/db/schema";
+import { MATCH_STATUS } from "./match-status";
 
 import { groupFormMarks, type GroupFormMatch } from "./member-form-marks";
 
@@ -21,7 +21,7 @@ function daysBefore(days: number): Date {
 
 function match(overrides: Partial<GroupFormMatch> = {}): GroupFormMatch {
   return {
-    status: MatchStatusEnum.COMPLETED,
+    status: MATCH_STATUS.COMPLETED,
     startTime: daysBefore(1),
     createdAt: daysBefore(2),
     slot1UserIds: [ALICE],
@@ -84,7 +84,7 @@ describe("groupFormMarks", () => {
   });
 
   it("reads a Match awaiting result confirmation as not-played", () => {
-    const matches = [match({ status: MatchStatusEnum.PENDING })];
+    const matches = [match({ status: MATCH_STATUS.PENDING })];
 
     assert.deepEqual(groupFormMarks(matches, ALICE, NOW), ["not-played"]);
     assert.deepEqual(groupFormMarks(matches, BOB, NOW), ["not-played"]);
@@ -113,9 +113,9 @@ describe("groupFormMarks", () => {
 
   it("skips a cancelled Match and a Match still to be played", () => {
     const matches = [
-      match({ status: MatchStatusEnum.CANCELLED }),
+      match({ status: MATCH_STATUS.CANCELLED }),
       match({
-        status: MatchStatusEnum.PENDING,
+        status: MATCH_STATUS.PENDING,
         startTime: new Date(NOW.getTime() + 60 * 60 * 1000),
         createdAt: daysBefore(1),
         sets: [],

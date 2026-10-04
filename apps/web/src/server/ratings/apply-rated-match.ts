@@ -17,15 +17,15 @@ import {
   glicko2Step,
   type ClassicGlicko,
   type ClassicGlickoOpponent,
-} from "~/server/ratings/glicko2";
-import { applyIdleInflation } from "~/server/ratings/idle";
+} from "@repo/domain/glicko2";
+import { applyIdleInflation } from "@repo/domain/idle";
 import {
   bandWithHysteresis,
   initialRatingFromChoice,
   levelFromMu,
   type LevelBand,
   type RatingGlickoState,
-} from "~/server/ratings/level";
+} from "@repo/domain/level";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;

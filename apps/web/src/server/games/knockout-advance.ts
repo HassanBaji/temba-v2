@@ -14,7 +14,7 @@ import { knockoutFeeds } from "@repo/domain/tournament-knockout";
 import { KNOCKOUT_DECIDING_SET_COPY } from "@repo/domain/tournament-knockout-view";
 import { type db } from "~/server/db";
 import { type GameRow } from "~/server/games/access";
-import { computePoolTables } from "~/server/games/pool-table";
+import { computePoolTables } from "@repo/domain/pool-table";
 import { type MatchRow } from "~/server/games/utils";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

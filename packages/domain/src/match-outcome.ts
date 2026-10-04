@@ -1,4 +1,4 @@
-import { setWinsForGames } from "~/server/games/set-wins-for-games";
+import { setWinsForGames } from "./set-wins-for-games";
 
 export function matchOutcome(
   sets: readonly {

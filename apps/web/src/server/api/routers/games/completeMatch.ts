@@ -16,7 +16,7 @@ import {
   knockoutMatchIsLevel,
   placeKnockoutQualifiers,
 } from "~/server/games/knockout-advance";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import { requireMatchOnGame } from "~/server/games/require-match-on-game";
 import { userIsOnMatchSlots } from "~/server/games/user-is-on-match-slots";
 import { applyRatedMatch } from "~/server/ratings/apply-rated-match";

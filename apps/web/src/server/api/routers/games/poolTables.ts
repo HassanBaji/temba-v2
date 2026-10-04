@@ -11,7 +11,7 @@ import { canViewGame, requireGame } from "~/server/games/access";
 import {
   computePoolTables,
   type ComputedPoolTables,
-} from "~/server/games/pool-table";
+} from "@repo/domain/pool-table";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

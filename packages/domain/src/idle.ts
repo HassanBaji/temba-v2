@@ -1,13 +1,10 @@
-import {
-  glicko2EmptyPeriod,
-  type ClassicGlicko,
-} from "~/server/ratings/glicko2";
+import { glicko2EmptyPeriod, type ClassicGlicko } from "./glicko2";
 import {
   INITIAL_PHI,
   youRatingViewFromState,
   type LevelBand,
   type YouRatingView,
-} from "~/server/ratings/level";
+} from "./level";
 
 /** One empty Glicko-2 period per 30 idle days since lastRatedAt. */
 export const IDLE_PERIOD_DAYS = 30;

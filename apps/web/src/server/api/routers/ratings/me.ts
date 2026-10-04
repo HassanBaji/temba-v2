@@ -6,13 +6,13 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { userHasRatedMatch } from "~/server/ratings/has-rated-match";
-import { youRatingViewAfterIdle } from "~/server/ratings/idle";
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
   displayedLevelFromMu,
   levelFromMu,
   progressToNextBand,
   type LevelBand,
-} from "~/server/ratings/level";
+} from "@repo/domain/level";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 

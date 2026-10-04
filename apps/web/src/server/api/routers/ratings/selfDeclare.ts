@@ -15,7 +15,7 @@ import {
   youRatingViewFromState,
   type SelfDeclareChoice,
   type YouRatingView,
-} from "~/server/ratings/level";
+} from "@repo/domain/level";
 
 const sportSchema = z.enum(["padel", "football"]);
 const selfDeclareChoiceSchema = z.enum(SELF_DECLARE_CHOICES);

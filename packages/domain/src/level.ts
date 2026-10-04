@@ -1,17 +1,15 @@
-import { RATING_LEVEL_BAND_VALUES } from "@repo/db/schema";
-
 import {
   LEVEL_BANDS,
   type LevelBand,
   type SelfDeclareChoice,
-} from "@repo/domain/level-bands";
+} from "./level-bands";
 
 export {
   LEVEL_BANDS,
   SELF_DECLARE_CHOICES,
   type LevelBand,
   type SelfDeclareChoice,
-} from "@repo/domain/level-bands";
+} from "./level-bands";
 
 export const INITIAL_MU = 1500;
 export const INITIAL_PHI = 350;
@@ -19,9 +17,6 @@ export const INITIAL_SIGMA = 0.06;
 export const PROVISIONAL_PHI_THRESHOLD = 200;
 /** Typical Rated Matches from a fresh Rating (φ₀) until Provisional clears. */
 export const RATED_MATCHES_TO_CONFIRM = 5;
-
-const _levelBandsMatchSchema: typeof LEVEL_BANDS = RATING_LEVEL_BAND_VALUES;
-void _levelBandsMatchSchema;
 
 /** Band midpoints (continuous Level) for a self-declared Level band. */
 export const BAND_MIDPOINTS: Record<LevelBand, number> = {
@@ -93,32 +88,11 @@ export function displayedLevelFromMu(mu: number): string {
 
 export function bandFromLevel(level: number): LevelBand {
   const clamped = clampLevel(level);
-  if (clamped >= 6.3) {
-    return "A";
-  }
-  if (clamped >= 5.6) {
-    return "B1";
-  }
-  if (clamped >= 4.9) {
-    return "B2";
-  }
-  if (clamped >= 4.2) {
-    return "B3";
-  }
-  if (clamped >= 3.5) {
-    return "C1";
-  }
-  if (clamped >= 2.8) {
-    return "C2";
-  }
-  if (clamped >= 2.1) {
-    return "C3";
-  }
-  if (clamped >= 1.4) {
-    return "D1";
-  }
-  if (clamped >= 0.7) {
-    return "D2";
+  for (let index = LEVEL_BANDS.length - 1; index > 0; index--) {
+    const band = LEVEL_BANDS[index];
+    if (band && clamped >= BAND_LOWER_HUNDREDTHS[band] / 100) {
+      return band;
+    }
   }
   return "D3";
 }

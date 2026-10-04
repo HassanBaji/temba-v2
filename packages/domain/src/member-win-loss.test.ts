@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { MatchStatusEnum } from "@repo/db/schema";
+import { MATCH_STATUS } from "./match-status";
 
 import { groupMemberWinLoss, type GroupWinLossMatch } from "./member-win-loss";
 
@@ -11,7 +11,7 @@ const CARLA = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 function match(overrides: Partial<GroupWinLossMatch> = {}): GroupWinLossMatch {
   return {
-    status: MatchStatusEnum.COMPLETED,
+    status: MATCH_STATUS.COMPLETED,
     slot1UserIds: [ALICE],
     slot2UserIds: [BOB],
     sets: [
@@ -49,7 +49,7 @@ describe("groupMemberWinLoss", () => {
 
   it("ignores a Match awaiting result confirmation", () => {
     const records = groupMemberWinLoss(
-      [match({ status: MatchStatusEnum.PENDING })],
+      [match({ status: MATCH_STATUS.PENDING })],
       [ALICE, BOB],
     );
 
@@ -60,7 +60,7 @@ describe("groupMemberWinLoss", () => {
   it("ignores a cancelled Match and a completed Match with no score", () => {
     const records = groupMemberWinLoss(
       [
-        match({ status: MatchStatusEnum.CANCELLED }),
+        match({ status: MATCH_STATUS.CANCELLED }),
         match({ sets: [{ slot1GamesWon: null, slot2GamesWon: null }] }),
       ],
       [ALICE, BOB],

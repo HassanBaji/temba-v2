@@ -1,10 +1,10 @@
 import { MatchStatusEnum } from "@repo/db/schema";
 
-import { setWinsForGames } from "~/server/games/set-wins-for-games";
+import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import {
   seatedUserSlotOnMatch,
   type MatchSlotOccupants,
-} from "~/server/games/match-slots";
+} from "@repo/domain/match-slots";
 
 export type GroupStandingMatch = MatchSlotOccupants & {
   gameId: string;

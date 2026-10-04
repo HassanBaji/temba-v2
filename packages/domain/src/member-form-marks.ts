@@ -17,14 +17,13 @@
  * Fewer than five results return fewer marks; the strip is never padded.
  */
 
-import { MatchStatusEnum } from "@repo/db/schema";
-
-import { matchOutcome } from "~/server/games/match-outcome";
+import { MATCH_STATUS } from "./match-status";
+import { matchOutcome } from "./match-outcome";
 import {
   outcomeForSlot,
   seatedUserSlotOnMatch,
   type MatchSlotOccupants,
-} from "~/server/games/match-slots";
+} from "./match-slots";
 
 export const GROUP_FORM_MARK_LIMIT = 5;
 
@@ -47,7 +46,7 @@ function playedAt(match: GroupFormMatch): Date {
 }
 
 function markFor(match: GroupFormMatch, slot: 1 | 2): FormMark {
-  if (match.status !== MatchStatusEnum.COMPLETED) {
+  if (match.status !== MATCH_STATUS.COMPLETED) {
     return "not-played";
   }
   const outcome = outcomeForSlot(slot, matchOutcome(match.sets).result);
@@ -65,7 +64,7 @@ export function groupFormMarks(
 ): FormMark[] {
   const played: { match: GroupFormMatch; slot: 1 | 2 }[] = [];
   for (const match of matches) {
-    if (match.status === MatchStatusEnum.CANCELLED) {
+    if (match.status === MATCH_STATUS.CANCELLED) {
       continue;
     }
     const slot = seatedUserSlotOnMatch(match, userId);
@@ -73,7 +72,7 @@ export function groupFormMarks(
       continue;
     }
     if (
-      match.status !== MatchStatusEnum.COMPLETED &&
+      match.status !== MATCH_STATUS.COMPLETED &&
       playedAt(match).getTime() > now.getTime()
     ) {
       continue;

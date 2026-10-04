@@ -6,9 +6,9 @@ import {
 } from "@repo/db";
 
 import type { LevelBand } from "@repo/domain/level-bands";
-import { matchOutcome } from "~/server/games/match-outcome";
-import { computePoolTables } from "~/server/games/pool-table";
-import { setWinsForGames } from "~/server/games/set-wins-for-games";
+import { matchOutcome } from "@repo/domain/match-outcome";
+import { computePoolTables } from "@repo/domain/pool-table";
+import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import type { RouterOutputs } from "~/trpc/react";
 
 /**

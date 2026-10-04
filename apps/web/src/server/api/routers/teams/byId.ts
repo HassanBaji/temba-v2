@@ -17,7 +17,7 @@ import {
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import { consult } from "~/server/soft-archive";
 import { listTeamMembers } from "~/server/teams/helpers/list-team-members";
 import { requireTeam } from "~/server/teams/helpers/require-team";

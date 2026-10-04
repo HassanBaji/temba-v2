@@ -60,9 +60,9 @@ import {
   isKnockoutMatch,
   knockoutMatchIsLevel,
 } from "~/server/games/knockout-advance";
-import { matchOutcome } from "~/server/games/match-outcome";
-import { computePoolTables } from "~/server/games/pool-table";
-import { setWinsForGames } from "~/server/games/set-wins-for-games";
+import { matchOutcome } from "@repo/domain/match-outcome";
+import { computePoolTables } from "@repo/domain/pool-table";
+import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import {
   bandFromLevel,
   bandWithHysteresis,
@@ -71,7 +71,7 @@ import {
   levelFromMu,
   ratedMatchesRemainingToConfirm,
   type LevelBand,
-} from "~/server/ratings/level";
+} from "@repo/domain/level";
 import {
   wrongScoreReversalEligibility,
   type WrongScoreReversalEligibility,

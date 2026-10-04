@@ -23,7 +23,7 @@ import { createGame } from "~/server/api/routers/games/create";
 import { createTournament } from "~/server/api/routers/games/createTournament";
 import { scoreSet } from "~/server/api/routers/games/scoreSet";
 import { createFriendlyGame } from "~/server/games/create-friendly";
-import { INITIAL_SIGMA, muFromLevel } from "~/server/ratings/level";
+import { INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {

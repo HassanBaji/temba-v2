@@ -12,7 +12,7 @@ export {
   applyIdleInflation,
   idleEmptyPeriodCount,
   youRatingViewAfterIdle,
-} from "~/server/ratings/idle";
+} from "@repo/domain/idle";
 export {
   BAND_LOWER_HUNDREDTHS,
   BAND_MIDPOINTS,
@@ -42,4 +42,4 @@ export {
   type RatingGlickoState,
   type SelfDeclareChoice,
   type YouRatingView,
-} from "~/server/ratings/level";
+} from "@repo/domain/level";

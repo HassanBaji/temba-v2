@@ -5,14 +5,14 @@ import { MatchStatusEnum, gamePlayers, matches } from "@repo/db";
 
 import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
-import { matchOutcome } from "~/server/games/match-outcome";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import {
   outcomeForSlot,
   scoredSetsFromMatch,
   slotMembers,
   userSlotOnMatch,
   type MatchSlotMember,
-} from "~/server/games/match-slots";
+} from "@repo/domain/match-slots";
 import { gameListTime, isGameLive } from "~/server/home/upcoming-games";
 
 export type MatchHistoryMember = MatchSlotMember;
