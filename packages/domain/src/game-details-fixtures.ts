@@ -1,17 +1,8 @@
-import { matchOutcome } from "@repo/domain/match-outcome";
-import { setWinsForGames } from "@repo/domain/set-wins-for-games";
-import type { RouterOutputs } from "~/trpc/react";
-
-/**
- * The real `games.byId` door output (game-details redesign, TEM-177/TEM-178).
- * Picking straight from `RouterOutputs` — rather than hand-declaring a
- * parallel type — is what keeps this fixture's shape locked to the real
- * door: a field renamed or retyped on `byId.ts` fails this file to compile.
- */
-type GameDetailsDoorOutput = RouterOutputs["games"]["byId"];
+import type { FriendlyGameDetails } from "./friendly-game-details";
+import { matchOutcome } from "./match-outcome";
 
 export type GameDetailsFixture = Pick<
-  GameDetailsDoorOutput,
+  FriendlyGameDetails,
   | "id"
   | "name"
   | "format"
@@ -58,11 +49,6 @@ function isoMinutesFrom(now: Date, minutes: number) {
 const venue: GameDetailsFixture["venue"] = {
   name: "Riverside Padel",
   city: "London",
-  country: "GB",
-  latitude: null,
-  longitude: null,
-  archivedAt: null,
-  logoImageUrl: null,
 };
 
 function sidesFor(args: { openSeat: boolean }): GameDetailsFixture["sides"] {
@@ -92,7 +78,6 @@ function matchFor(args: {
     id: `set-${index + 1}`,
     slot1GamesWon: set.slot1GamesWon,
     slot2GamesWon: set.slot2GamesWon,
-    wins: setWinsForGames(set.slot1GamesWon, set.slot2GamesWon),
   }));
   const outcome = matchOutcome(scoredSets);
   const frozen = status === "completed" || status === "cancelled";
@@ -100,22 +85,12 @@ function matchFor(args: {
   return {
     id: "match-1",
     startTime,
-    endTime: null,
     durationInMinutes: 90,
-    roundNumber: null,
-    knockoutRound: null,
-    knockoutPosition: null,
     status,
-    courtId: "court-1",
     courtName: "Court 1",
     slot1GameTeamId: "game-team-a",
     slot2GameTeamId: bothSlotsFilled ? "game-team-b" : null,
-    walkoverGameTeamId: null,
-    bothSlotsFilled,
-    bothSidesComplete: bothSlotsFilled,
-    canAddSet: !frozen && bothSlotsFilled,
     canScoreSets: !frozen && bothSlotsFilled,
-    canComplete: !frozen && bothSlotsFilled && outcome.result !== "none",
     outcome,
     sets: scoredSets,
   };

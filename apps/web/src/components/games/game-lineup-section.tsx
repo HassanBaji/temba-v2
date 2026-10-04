@@ -8,13 +8,12 @@ import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
 import {
+  friendlyGameInviteSeatLabel,
   friendlyGameLineupVacantAction,
+  friendlyGameOpenSeatLabel,
+  friendlyGameSeatSubline,
   friendlyGameVacantSeatLabel,
 } from "@repo/domain/friendly-game-players";
-import {
-  displayLabelFromStoredBand,
-  type LevelBand,
-} from "@repo/domain/level-bands";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -24,18 +23,6 @@ type SeatPosition = "left" | "right";
 
 const VS_DIVIDER =
   "text-muted-foreground before:bg-rule after:bg-rule flex shrink-0 items-center gap-3 self-stretch text-xs font-semibold before:h-px before:flex-1 after:h-px after:flex-1 sm:self-center sm:px-1 sm:before:hidden sm:after:hidden";
-
-// Renders the shipped display remap (D / D+ / C / … / A, PR #96), not the
-// raw stored band ("C1"), so this subline reads consistently with every
-// other Level surface (`home-level-block.tsx`, `profile-level-card.tsx`) —
-// reusing the existing helper rather than re-deriving a second label format.
-function seatSubline(position: SeatPosition, levelBand: LevelBand | null) {
-  const positionLabel = position === "left" ? "Left seat" : "Right seat";
-  if (!levelBand) {
-    return positionLabel;
-  }
-  return `${positionLabel} — level ${displayLabelFromStoredBand(levelBand)}`;
-}
 
 function LineupSeatRow({
   occupant,
@@ -83,7 +70,9 @@ function LineupSeatRow({
           ) : (
             <>
               <OpenSeat size="lg" />
-              <span className="sr-only">{`Open ${position} seat`}</span>
+              <span className="sr-only">
+                {friendlyGameOpenSeatLabel(position)}
+              </span>
             </>
           )}
         </div>
@@ -93,7 +82,7 @@ function LineupSeatRow({
             variant="outline"
             size="sm"
             className="shrink-0"
-            aria-label={`Invite to ${sideLabel}, ${position}`}
+            aria-label={friendlyGameInviteSeatLabel(sideLabel, position)}
             onClick={onInvite}
           >
             Invite
@@ -107,7 +96,7 @@ function LineupSeatRow({
     <SeatRow
       occupant={occupant}
       isViewer={isViewer}
-      subline={seatSubline(position, occupant.levelBand)}
+      subline={friendlyGameSeatSubline(position, occupant.levelBand)}
     />
   );
 }

@@ -74,14 +74,11 @@ import {
 } from "@repo/domain/game-kick-confirm";
 import {
   friendlyGameCanMintInvite,
-  friendlyGameCtaFamily,
-  friendlyGameFooterCanLeaveGame,
-  friendlyGameOverflowItems,
-  vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
+import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
 import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
-import { viewerSidePartnerName } from "@repo/domain/friendly-game-partner";
 import {
   gameHomeIntentFromQuery,
   gameHomeTabFromQuery,
@@ -806,64 +803,13 @@ export default function GameHomePage({
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
-  const firstMatch = data.matches[0];
-  const canScoreSets = data.matches.some((match) => match.canScoreSets);
-  const viewerGameTeamId =
-    data.sides.find(
-      (side) =>
-        side.left?.userId === data.viewerUserId ||
-        side.right?.userId === data.viewerUserId,
-    )?.gameTeamId ?? null;
-  const partnerBesideName = viewerSidePartnerName({
-    viewerUserId: data.viewerUserId,
-    sides: data.sides,
-  });
-  // Line-up section's winning-team "Won" tag (game-details redesign,
-  // TEM-180): the Match's own Game-team id for whichever slot the outcome
-  // names, resolved once here rather than re-deriving it inside the section
-  // component. `null` on a draw/no-result outcome (no tag renders).
-  const winningGameTeamId =
-    data.phase === "final" && firstMatch
-      ? firstMatch.outcome.result === "slot1"
-        ? firstMatch.slot1GameTeamId
-        : firstMatch.outcome.result === "slot2"
-          ? firstMatch.slot2GameTeamId
-          : null
-      : null;
+  const plan = friendlyGameDetailsPlan(data);
+  const { firstMatch, winningGameTeamId, canLeaveGame } = plan;
+  const heroInput = friendlyGameHeroInput(data);
   const ctaFamily = usesFriendlyChrome
-    ? friendlyGameCtaFamily({
-        cancelled: Boolean(data.cancelledAt),
-        phase: data.phase,
-        canScoreSets,
-        canWaitlist: data.canWaitlist,
-        isWaitlisted: data.isWaitlisted,
-        waitlistPlace: data.waitlistPlace,
-        canRegister: data.canRegister,
-        isSeated: data.isSeated,
-        isRegistered: data.isRegistered,
-        canMintInvite,
-        vacantSeatCount: vacantJoinSeats(data.sides).length,
-        ratingImpact: data.ratingImpact,
-      })
+    ? plan.ctaFamily
     : { kind: "none" as const };
-  const overflowItems = usesFriendlyChrome
-    ? friendlyGameOverflowItems({
-        isOrganizer: data.isOrganizer,
-        cancelled: Boolean(data.cancelledAt),
-        registrationClosed: Boolean(data.registrationClosedAt),
-        canMintInvite,
-        isWaitlisted: data.isWaitlisted,
-      })
-    : [];
-  // Organiser actions footer (game-details redesign, TEM-184, amended
-  // TEM-193): Leave Game for every seated/registered non-waitlisted User
-  // who `canLeave`, including an organizer who sits. Distinct from Cancel.
-  const canLeaveGame = friendlyGameFooterCanLeaveGame({
-    isSeated: data.isSeated,
-    isRegistered: data.isRegistered,
-    canLeave: data.canLeave,
-    isWaitlisted: data.isWaitlisted,
-  });
+  const overflowItems = usesFriendlyChrome ? plan.overflowItems : [];
   const headerJoin = usesDrawnTournamentSeats && data.canRegister;
   const headerJoinWaitlist = usesDrawnTournamentSeats && data.canWaitlist;
   const headerActions =
@@ -1166,31 +1112,7 @@ export default function GameHomePage({
                 {desktopOverflow}
               </div>
             ) : null}
-            {data.phase && data.phase !== "cancelled" ? (
-              <FriendlyGameDetailsHero
-                phase={data.phase}
-                windowStart={data.windowStart}
-                windowEnd={data.windowEnd}
-                venueName={data.venue?.name ?? null}
-                venueCity={data.venue?.city ?? null}
-                courtName={firstMatch?.courtName ?? null}
-                pricePerPlayerFils={data.pricePerPlayerFils}
-                match={
-                  firstMatch
-                    ? {
-                        startTime: firstMatch.startTime,
-                        durationInMinutes: firstMatch.durationInMinutes,
-                        slot1GameTeamId: firstMatch.slot1GameTeamId,
-                        slot2GameTeamId: firstMatch.slot2GameTeamId,
-                        sets: firstMatch.sets,
-                        outcome: firstMatch.outcome,
-                      }
-                    : null
-                }
-                viewerGameTeamId={viewerGameTeamId}
-                partnerBesideName={partnerBesideName}
-              />
-            ) : null}
+            {heroInput ? <FriendlyGameDetailsHero {...heroInput} /> : null}
           </>
         ) : (
           <GameHomeHeader

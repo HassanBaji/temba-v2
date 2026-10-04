@@ -7,63 +7,17 @@ import type { FriendlyGamePartnerPick } from "~/components/games/friendly-game-p
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton } from "~/components/ui/nav-icon-button";
-import { formatGameCardDay } from "@repo/domain/format-game-start";
-import { seedPartnerCallerPosition } from "@repo/domain/friendly-game-partner";
-import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import {
-  displayLabelFromStoredBand,
-  type LevelBand,
-} from "@repo/domain/level-bands";
-import { formatLevelRangeLabel } from "@repo/domain/level-range";
-import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+  PARTNER_REVIEW_COPY,
+  partnerPlayerMeta,
+  partnerReviewDetails,
+  partnerReviewGameLine,
+  seedPartnerCallerPosition,
+} from "@repo/domain/friendly-game-partner";
+import type { LevelBand } from "@repo/domain/level-bands";
 import { cn } from "~/lib/utils";
 
 type SeatPosition = "left" | "right";
-
-function seatPhrase(position: SeatPosition) {
-  return position === "left" ? "left seat" : "right seat";
-}
-
-function gameLine(args: {
-  windowStart?: Date | string | null;
-  venueName?: string | null;
-}) {
-  const start =
-    args.windowStart == null
-      ? null
-      : args.windowStart instanceof Date
-        ? args.windowStart
-        : new Date(args.windowStart);
-  const venue = args.venueName?.trim();
-  const when = start
-    ? `${formatGameCardDay(start)}, ${formatHomeKickoff(start).time}${
-        formatHomeKickoff(start).meridiem
-          ? ` ${formatHomeKickoff(start).meridiem}`
-          : ""
-      }`
-    : null;
-  if (when && venue) {
-    return `${when} at ${venue}. Two seats, one for each of you.`;
-  }
-  if (when) {
-    return `${when}. Two seats, one for each of you.`;
-  }
-  if (venue) {
-    return `Two seats at ${venue}, one for each of you.`;
-  }
-  return "Two seats, one for each of you.";
-}
-
-function playerMeta(args: {
-  levelBand: LevelBand | null | undefined;
-  position: SeatPosition;
-}) {
-  const seat = seatPhrase(args.position);
-  if (args.levelBand) {
-    return `${displayLabelFromStoredBand(args.levelBand)}, ${seat}`;
-  }
-  return seat;
-}
 
 function DetailRow({
   label,
@@ -110,7 +64,7 @@ function PlayerCard({
       <UserAvatar name={name} image={image} size="sm" className="shrink-0" />
       <p className="text-body truncate font-semibold">{name}</p>
       <p className="text-muted-foreground text-eyebrow">
-        {playerMeta({ levelBand, position })}
+        {partnerPlayerMeta({ levelBand, position })}
       </p>
     </div>
   );
@@ -167,19 +121,12 @@ export function FriendlyGamePartnerReview({
 
   const partnerPosition: SeatPosition =
     callerPosition === "left" ? "right" : "left";
-  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
-  const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
-  const details: { label: string; value: string }[] = [];
-  if (isOrganizer) {
-    details.push({ label: "Organizer", value: "You" });
-  }
-  if (priceLabel) {
-    details.push({ label: "Price per player", value: `${priceLabel} each` });
-  }
-  details.push({ label: "Counts for rating", value: "Yes, as a pair" });
-  if (levelLabel) {
-    details.push({ label: "Level", value: `${levelLabel}, you both fit` });
-  }
+  const details = partnerReviewDetails({
+    isOrganizer,
+    pricePerPlayerFils,
+    levelMinTenths,
+    levelMaxTenths,
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -190,10 +137,10 @@ export function FriendlyGamePartnerReview({
           <span className="size-11" aria-hidden="true" />
         </div>
         <h2 className="font-expanded text-h1-lg mt-6 leading-none tracking-[-0.03em]">
-          Register the team
+          {PARTNER_REVIEW_COPY.title}
         </h2>
         <p className="text-meta mt-2.5 leading-relaxed">
-          {gameLine({ windowStart, venueName })}
+          {partnerReviewGameLine({ windowStart, venueName })}
         </p>
       </div>
 
@@ -202,7 +149,7 @@ export function FriendlyGamePartnerReview({
 
         <section>
           <h3 className="font-expanded text-title pb-2.5 leading-tight">
-            Your team
+            {PARTNER_REVIEW_COPY.yourTeam}
           </h3>
           <div className="flex gap-2">
             <PlayerCard
@@ -240,7 +187,7 @@ export function FriendlyGamePartnerReview({
                   : "text-muted-foreground",
               )}
             >
-              Keep sides
+              {PARTNER_REVIEW_COPY.keepSides}
             </button>
             <button
               type="button"
@@ -257,7 +204,7 @@ export function FriendlyGamePartnerReview({
                   : "text-muted-foreground",
               )}
             >
-              Swap sides
+              {PARTNER_REVIEW_COPY.swapSides}
             </button>
           </div>
         </section>
@@ -284,10 +231,10 @@ export function FriendlyGamePartnerReview({
           disabled={pending}
           onClick={() => onRegister(callerPosition)}
         >
-          {pending ? "Registering…" : "Register us as a team"}
+          {pending ? "Registering…" : PARTNER_REVIEW_COPY.register}
         </Button>
         <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
-          Both seats are booked straight away. Your partner is in now.
+          {PARTNER_REVIEW_COPY.footnote}
         </p>
       </div>
     </div>

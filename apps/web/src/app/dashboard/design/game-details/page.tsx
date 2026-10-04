@@ -4,7 +4,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import {
   createGameDetailsFixtures,
   type GameDetailsFixture,
-} from "~/fixtures/game-details";
+} from "@repo/domain/game-details-fixtures";
 
 /**
  * Minimal, structured per-state dump — not the redesigned production page.

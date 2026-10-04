@@ -1,17 +1,6 @@
 "use client";
 
-import {
-  CANCEL_GAME_ACTION,
-  EDIT_GAME_ACTION,
-  LEAVE_GAME_ACTION,
-  LEAVE_GAME_CONSEQUENCE,
-  MARK_AS_NOT_PLAYED_ACTION,
-  MARK_AS_NOT_PLAYED_CONSEQUENCE,
-  REPORT_WRONG_SCORE_ACTION,
-  REPORT_WRONG_SCORE_CONSEQUENCE,
-  REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
-  cancelGameConsequence,
-} from "@repo/domain/game-copy";
+import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import { cn } from "~/lib/utils";
 
 /**
@@ -115,60 +104,47 @@ export function FriendlyGameActionsFooter({
   onReportWrongScore: () => void;
   onLeaveGame: () => void;
 }) {
-  const isUpcoming = phase === "upcoming" || phase === "ongoing";
+  const actions = friendlyGameFooterActions({
+    phase,
+    isOrganizer,
+    canLeaveGame,
+    canReportWrongScore,
+    playerCount,
+  });
 
-  if (!isOrganizer && !canLeaveGame) {
+  if (actions.length === 0) {
     return null;
   }
+
+  const handlers = {
+    edit: { onClick: onEditGame, pending: false },
+    cancel_game: { onClick: onCancelGame, pending: cancelGamePending },
+    mark_as_not_played: {
+      onClick: onMarkAsNotPlayed,
+      pending: markAsNotPlayedPending,
+    },
+    report_wrong_score: {
+      onClick: onReportWrongScore,
+      pending: reportWrongScorePending,
+    },
+    report_wrong_score_locked: { onClick: undefined, pending: false },
+    leave_game: { onClick: onLeaveGame, pending: leaveGamePending },
+  } as const;
 
   return (
     <div
       data-slot="friendly-game-actions-footer"
       className="border-rule divide-rule divide-y border-t"
     >
-      {isOrganizer && isUpcoming ? (
-        <>
-          <FooterAction label={EDIT_GAME_ACTION} onClick={onEditGame} />
-          <FooterAction
-            label={CANCEL_GAME_ACTION}
-            consequence={cancelGameConsequence(playerCount)}
-            onClick={onCancelGame}
-            pending={cancelGamePending}
-          />
-        </>
-      ) : null}
-      {isOrganizer && phase === "needs_results" ? (
+      {actions.map((action) => (
         <FooterAction
-          label={MARK_AS_NOT_PLAYED_ACTION}
-          consequence={MARK_AS_NOT_PLAYED_CONSEQUENCE}
-          onClick={onMarkAsNotPlayed}
-          pending={markAsNotPlayedPending}
+          key={action.kind}
+          label={action.label}
+          consequence={action.consequence ?? undefined}
+          disabled={!action.enabled}
+          {...handlers[action.kind]}
         />
-      ) : null}
-      {isOrganizer && phase === "final" ? (
-        canReportWrongScore?.eligible ? (
-          <FooterAction
-            label={REPORT_WRONG_SCORE_ACTION}
-            consequence={REPORT_WRONG_SCORE_CONSEQUENCE}
-            onClick={onReportWrongScore}
-            pending={reportWrongScorePending}
-          />
-        ) : (
-          <FooterAction
-            label={REPORT_WRONG_SCORE_ACTION}
-            consequence={REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE}
-            disabled
-          />
-        )
-      ) : null}
-      {canLeaveGame ? (
-        <FooterAction
-          label={LEAVE_GAME_ACTION}
-          consequence={LEAVE_GAME_CONSEQUENCE}
-          onClick={onLeaveGame}
-          pending={leaveGamePending}
-        />
-      ) : null}
+      ))}
     </div>
   );
 }

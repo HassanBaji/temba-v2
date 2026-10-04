@@ -2,11 +2,7 @@
 
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
-import {
-  ratingImpactChangeDirection,
-  ratingImpactChangeMagnitude,
-  ratingImpactStandingSentence,
-} from "@repo/domain/game-rating-impact";
+import { ratingImpactView } from "@repo/domain/game-rating-impact";
 import { type RouterOutputs } from "~/trpc/react";
 
 export type GameRatingImpactBlockValue = NonNullable<
@@ -42,21 +38,9 @@ export function GameRatingImpactBlock({
 }: {
   ratingImpact: GameRatingImpactBlockValue;
 }) {
-  const direction = ratingImpactChangeDirection(ratingImpact.levelChange);
+  const { direction, magnitude, newLevelLabel, sentence, directionText } =
+    ratingImpactView(ratingImpact);
   const DirectionIcon = DIRECTION_ICON[direction];
-  const magnitude = ratingImpactChangeMagnitude(ratingImpact.levelChange);
-  const newLevelLabel = ratingImpact.newLevel.toFixed(1);
-  const sentence = ratingImpactStandingSentence({
-    newLevelBand: ratingImpact.newLevelBand,
-    isProvisional: ratingImpact.isProvisional,
-    ratedMatchesRemainingToConfirm: ratingImpact.ratedMatchesRemainingToConfirm,
-  });
-  const directionSrText =
-    direction === "up"
-      ? `Level increased by ${magnitude}`
-      : direction === "down"
-        ? `Level decreased by ${magnitude}`
-        : "Level unchanged";
 
   return (
     <section
@@ -74,7 +58,7 @@ export function GameRatingImpactBlock({
               {magnitude}
             </p>
           </div>
-          <span className="sr-only">{directionSrText}</span>
+          <span className="sr-only">{directionText}</span>
           <p className="text-muted-foreground text-meta">Change</p>
         </div>
         <div className="mt-4 flex min-w-0 flex-col items-center gap-1 px-3">

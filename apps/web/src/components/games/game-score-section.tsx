@@ -15,6 +15,23 @@ import {
   friendlyGameResultsSaveSets,
 } from "@repo/domain/friendly-game-results";
 import { setLabel } from "@repo/domain/game-copy";
+import {
+  SCORE_INCOMPLETE_MESSAGE,
+  scoreCanConfirm,
+  scoreCanEnter,
+  scoreConfirmationRows,
+  scoreFooterNote,
+  scoreGamesWonForSide,
+  scoreNameByUserId,
+  scoreSetBoxAccessibleLabel,
+  scoreSetBoxState,
+  scoreSetNeverPlayed,
+  scoreShowsConfirmations,
+  scorePhaseFlags,
+  scoreTeamNamesLabel,
+  type FriendlyScorePhase,
+  type SetBoxState,
+} from "@repo/domain/friendly-game-score";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -24,49 +41,9 @@ type GameScoreSectionConfirmation = NonNullable<
   RouterOutputs["games"]["byId"]["matchResultConfirmation"]
 >;
 
-/**
- * The three phases the redesigned Score section renders (game-details
- * redesign, TEM-181). `ongoing` collapses into the same, non-enterable
- * treatment as `upcoming` — the same reconciliation `FriendlyGameDetailsHero`
- * (TEM-179) already made for its own hero: no reminder/notification exists
- * for "the window just started", and the door gate that actually matters
- * (`canScoreSets`) never turns on until `needs_results` regardless.
- */
-export type GameScoreSectionPhase =
-  | "upcoming"
-  | "ongoing"
-  | "needs_results"
-  | "final";
+export type GameScoreSectionPhase = FriendlyScorePhase;
 
 type SetDraft = { slot1: number | null; slot2: number | null };
-
-function nameByUserId(sides: GameScoreSectionSide[]) {
-  const map = new Map<string, string>();
-  for (const side of sides) {
-    if (side.left) {
-      map.set(side.left.userId, side.left.name);
-    }
-    if (side.right) {
-      map.set(side.right.userId, side.right.name);
-    }
-  }
-  return map;
-}
-
-function teamNamesLabel(side: GameScoreSectionSide) {
-  return `${side.left?.name ?? "Open"} & ${side.right?.name ?? "Open"}`;
-}
-
-/** `sides[]` sideIndex 1 always backs Match slot 1, sideIndex 2 slot 2 —
- * `setFriendlyMatchSlotForSide` (`@repo/api/games/seats.ts`) assigns them
- * that way at seat-pick time, so this mapping holds even before either
- * side's Game team exists yet (a `null` `gameTeamId` on an open seat). */
-function gamesWonForSide(
-  set: GameScoreSectionMatch["sets"][number],
-  sideIndex: number,
-) {
-  return sideIndex === 1 ? set.slot1GamesWon : set.slot2GamesWon;
-}
 
 function ScoreTeamHeader({ side }: { side: GameScoreSectionSide }) {
   return (
@@ -75,7 +52,7 @@ function ScoreTeamHeader({ side }: { side: GameScoreSectionSide }) {
         {formatGameSideLabel("friendly_game", side.sideIndex)}
       </p>
       <p className="text-meta mt-0.5 truncate font-medium">
-        {teamNamesLabel(side)}
+        {scoreTeamNamesLabel(side)}
       </p>
     </div>
   );
@@ -100,7 +77,7 @@ function SetBox({
   saving,
   onChange,
 }: {
-  state: "locked" | "unplayed" | "enterable" | "readonly" | "solid" | "outline";
+  state: SetBoxState;
   value: number | null;
   label: string;
   saving?: boolean;
@@ -119,7 +96,7 @@ function SetBox({
     return (
       <div className="bg-ink text-paper rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums">
         <span className="sr-only">
-          {label}: {value} games, won this Set
+          {scoreSetBoxAccessibleLabel(state, label, value)}
         </span>
         <span aria-hidden="true">{value}</span>
       </div>
@@ -130,7 +107,7 @@ function SetBox({
     return (
       <div className="border-ink bg-paper text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center border-[1.5px] text-base font-semibold tabular-nums">
         <span className="sr-only">
-          {label}: {value} games, lost this Set
+          {scoreSetBoxAccessibleLabel(state, label, value)}
         </span>
         <span aria-hidden="true">{value}</span>
       </div>
@@ -141,7 +118,7 @@ function SetBox({
     return (
       <div
         className="hatch text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums"
-        aria-label={`${label}: ${value ?? "not entered yet"}`}
+        aria-label={scoreSetBoxAccessibleLabel(state, label, value)}
       >
         <span aria-hidden="true">{value ?? ""}</span>
       </div>
@@ -183,14 +160,8 @@ function ScoreFooterNote({
   phase: GameScoreSectionPhase;
   confirmedAtLabel: string | null;
 }) {
-  const isFinal = phase === "final";
-  const copy = isFinal
-    ? confirmedAtLabel
-      ? `Confirmed by all four players on ${confirmedAtLabel}. Nothing else needed.`
-      : "Confirmed by all four players. Nothing else needed."
-    : phase === "needs_results"
-      ? "No score yet. Anyone who played can add it. The other three confirm before it counts towards your level."
-      : "Scoring opens when the court is full. Fill the last spot and you'll be able to enter a result after the game.";
+  const { isFinal } = scorePhaseFlags(phase);
+  const copy = scoreFooterNote(phase, confirmedAtLabel);
 
   return (
     <div className="flex items-start gap-2.5">
@@ -216,43 +187,35 @@ function MatchResultConfirmations({
 }: {
   confirmation: GameScoreSectionConfirmation;
   viewerUserId: string;
-  names: Map<string, string>;
+  names: ReadonlyMap<string, string>;
   canConfirm: boolean;
   confirmPending: boolean;
   onConfirm: () => void;
 }) {
-  const confirmedSet = new Set(confirmation.confirmedUserIds);
+  const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
 
   return (
     <div className="border-rule space-y-2.5 border-t pt-4">
       <p className="text-meta font-medium">Confirmations</p>
       <ul className="space-y-1.5">
-        {confirmation.requiredUserIds.map((userId) => {
-          const isConfirmed = confirmedSet.has(userId);
-          const isViewer = userId === viewerUserId;
-          const name = names.get(userId) ?? "Player";
-          return (
-            <li
-              key={userId}
-              className="text-meta flex items-center justify-between gap-3"
+        {rows.map((row) => (
+          <li
+            key={row.userId}
+            className="text-meta flex items-center justify-between gap-3"
+          >
+            <span className="min-w-0 truncate">{row.label}</span>
+            <span
+              className={cn(
+                "shrink-0",
+                row.confirmed
+                  ? "text-ink font-medium"
+                  : "text-muted-foreground",
+              )}
             >
-              <span className="min-w-0 truncate">
-                {name}
-                {isViewer ? " (You)" : ""}
-              </span>
-              <span
-                className={cn(
-                  "shrink-0",
-                  isConfirmed
-                    ? "text-ink font-medium"
-                    : "text-muted-foreground",
-                )}
-              >
-                {isConfirmed ? "Confirmed" : "Waiting"}
-              </span>
-            </li>
-          );
-        })}
+              {row.status}
+            </span>
+          </li>
+        ))}
       </ul>
       {canConfirm ? (
         <Button
@@ -314,11 +277,9 @@ export function GameScoreSection({
     setDrafts(next);
   }, [match.sets]);
 
-  const isUpcoming = phase === "upcoming" || phase === "ongoing";
-  const isFinal = phase === "final";
-  const canEnter = phase === "needs_results" && match.canScoreSets;
+  const canEnter = scoreCanEnter(phase, match.canScoreSets);
   const hasResult = match.outcome.result !== "none";
-  const names = nameByUserId(sides);
+  const names = scoreNameByUserId(sides);
 
   async function saveSets() {
     const payloads = friendlyGameResultsSaveSets(
@@ -329,7 +290,7 @@ export function GameScoreSection({
       })),
     );
     if (payloads.length === 0) {
-      toast.error("Enter games won for both teams");
+      toast.error(SCORE_INCOMPLETE_MESSAGE);
       return;
     }
     try {
@@ -341,12 +302,12 @@ export function GameScoreSection({
     }
   }
 
-  const canConfirm =
-    matchResultConfirmation != null &&
-    hasResult &&
-    !isFinal &&
-    matchResultConfirmation.requiredUserIds.includes(viewerUserId) &&
-    !matchResultConfirmation.viewerHasConfirmed;
+  const canConfirm = scoreCanConfirm({
+    confirmation: matchResultConfirmation,
+    hasResult,
+    phase,
+    viewerUserId,
+  });
 
   return (
     <section
@@ -380,8 +341,7 @@ export function GameScoreSection({
               slot2: set.slot2GamesWon,
             };
             const setName = setLabel(index);
-            const neverPlayed =
-              set.slot1GamesWon == null && set.slot2GamesWon == null;
+            const neverPlayed = scoreSetNeverPlayed(set);
 
             return (
               <li
@@ -394,43 +354,37 @@ export function GameScoreSection({
                 <div className="flex items-center gap-2">
                   {sides.map((side) => {
                     const boxLabel = `${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setName}`;
-                    if (isUpcoming) {
+                    const state = scoreSetBoxState({
+                      phase,
+                      neverPlayed,
+                      canEnter,
+                      isWinningSide:
+                        side.gameTeamId != null &&
+                        side.gameTeamId === winningGameTeamId,
+                    });
+                    if (state === "locked" || state === "unplayed") {
                       return (
                         <SetBox
                           key={side.sideIndex}
-                          state="locked"
+                          state={state}
                           value={null}
                           label={boxLabel}
                         />
                       );
                     }
-                    if (isFinal) {
-                      if (neverPlayed) {
-                        return (
-                          <SetBox
-                            key={side.sideIndex}
-                            state="unplayed"
-                            value={null}
-                            label={boxLabel}
-                          />
-                        );
-                      }
-                      const isWinningSide =
-                        side.gameTeamId != null &&
-                        side.gameTeamId === winningGameTeamId;
+                    if (state === "solid" || state === "outline") {
                       return (
                         <SetBox
                           key={side.sideIndex}
-                          state={isWinningSide ? "solid" : "outline"}
-                          value={gamesWonForSide(set, side.sideIndex)}
+                          state={state}
+                          value={scoreGamesWonForSide(set, side.sideIndex)}
                           label={boxLabel}
                         />
                       );
                     }
-                    // needs_results
                     const value =
                       side.sideIndex === 1 ? draft.slot1 : draft.slot2;
-                    if (!canEnter) {
+                    if (state === "readonly") {
                       return (
                         <SetBox
                           key={side.sideIndex}
@@ -479,7 +433,12 @@ export function GameScoreSection({
           </Button>
         ) : null}
 
-        {matchResultConfirmation && hasResult && phase === "needs_results" ? (
+        {matchResultConfirmation &&
+        scoreShowsConfirmations({
+          confirmation: matchResultConfirmation,
+          hasResult,
+          phase,
+        }) ? (
           <MatchResultConfirmations
             confirmation={matchResultConfirmation}
             viewerUserId={viewerUserId}

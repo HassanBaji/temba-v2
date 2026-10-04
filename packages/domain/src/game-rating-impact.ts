@@ -50,3 +50,26 @@ export function ratingImpactStandingSentence(args: {
 
   return `Still ${bandLabel}. Your level is confirmed — it moves with every rated game you play.`;
 }
+
+export function ratingImpactView(ratingImpact: {
+  levelChange: number;
+  newLevel: number;
+  newLevelBand: LevelBand;
+  isProvisional: boolean;
+  ratedMatchesRemainingToConfirm: number | null;
+}) {
+  const direction = ratingImpactChangeDirection(ratingImpact.levelChange);
+  const magnitude = ratingImpactChangeMagnitude(ratingImpact.levelChange);
+  return {
+    direction,
+    magnitude,
+    newLevelLabel: ratingImpact.newLevel.toFixed(1),
+    sentence: ratingImpactStandingSentence(ratingImpact),
+    directionText:
+      direction === "up"
+        ? `Level increased by ${magnitude}`
+        : direction === "down"
+          ? `Level decreased by ${magnitude}`
+          : "Level unchanged",
+  };
+}

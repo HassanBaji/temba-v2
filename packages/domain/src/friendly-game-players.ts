@@ -1,3 +1,5 @@
+import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+
 export type FriendlyGameVacantSeatAction = "join" | "move" | null;
 
 export type FriendlyGameOccupantAction = "kick";
@@ -70,4 +72,26 @@ export function friendlyGamePlayersCancelledNote(cancelled: boolean) {
   return cancelled
     ? "This Game was cancelled. Seated people stay listed."
     : null;
+}
+
+export function friendlyGameSeatSubline(
+  position: "left" | "right",
+  levelBand: LevelBand | null,
+) {
+  const positionLabel = position === "left" ? "Left seat" : "Right seat";
+  if (!levelBand) {
+    return positionLabel;
+  }
+  return `${positionLabel} — level ${displayLabelFromStoredBand(levelBand)}`;
+}
+
+export function friendlyGameOpenSeatLabel(position: "left" | "right") {
+  return `Open ${position} seat`;
+}
+
+export function friendlyGameInviteSeatLabel(
+  sideLabel: string,
+  position: "left" | "right",
+) {
+  return `Invite to ${sideLabel}, ${position}`;
 }

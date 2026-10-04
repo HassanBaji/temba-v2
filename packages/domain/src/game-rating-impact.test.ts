@@ -5,6 +5,7 @@ import {
   ratingImpactChangeDirection,
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
+  ratingImpactView,
 } from "./game-rating-impact";
 
 describe("ratingImpactChangeMagnitude", () => {
@@ -83,5 +84,45 @@ describe("ratingImpactStandingSentence", () => {
       ratedMatchesRemainingToConfirm: null,
     });
     assert.match(sentence, /^Still D\. /);
+  });
+});
+
+describe("ratingImpactView", () => {
+  const base = {
+    levelChange: 0.2,
+    newLevel: 3.6,
+    newLevelBand: "C2" as const,
+    isProvisional: false,
+    ratedMatchesRemainingToConfirm: null,
+  };
+
+  it("reads a rise with an unsigned magnitude and the new Level", () => {
+    const view = ratingImpactView(base);
+    assert.equal(view.direction, "up");
+    assert.equal(view.magnitude, "0.2");
+    assert.equal(view.newLevelLabel, "3.6");
+    assert.equal(view.directionText, "Level increased by 0.2");
+  });
+
+  it("reads a drop and no change in words", () => {
+    assert.equal(
+      ratingImpactView({ ...base, levelChange: -0.4 }).directionText,
+      "Level decreased by 0.4",
+    );
+    assert.equal(
+      ratingImpactView({ ...base, levelChange: 0 }).directionText,
+      "Level unchanged",
+    );
+  });
+
+  it("uses the Provisional sentence while the Level is unconfirmed", () => {
+    assert.match(
+      ratingImpactView({
+        ...base,
+        isProvisional: true,
+        ratedMatchesRemainingToConfirm: 3,
+      }).sentence,
+      /About 3 more rated games/,
+    );
   });
 });

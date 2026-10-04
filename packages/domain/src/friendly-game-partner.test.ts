@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { displayLabelFromStoredBand } from "./level-bands";
+
 import {
   firstFullyVacantSideIndex,
   friendlyGameHomeHref,
@@ -11,6 +13,16 @@ import {
   seedPartnerCallerPosition,
   viewerSidePartnerName,
   type OffersPartnerJoinInput,
+  friendlyGameJoinOpeningStep,
+  friendlyGameJoinSheetHeader,
+  partnerContinueLabel,
+  partnerIneligibleReason,
+  partnerPlayerMeta,
+  partnerReviewDetails,
+  partnerReviewGameLine,
+  partnerSeatsChip,
+  partnerSuggestionButtonLabel,
+  partnerSuggestionMetaLine,
 } from "./friendly-game-partner";
 
 const occupant = { name: "Ada" };
@@ -365,5 +377,157 @@ describe("isPartnerVacantSideRace", () => {
       }),
       false,
     );
+  });
+});
+
+describe("partner suggestion copy", () => {
+  const row = {
+    name: "Sam Chen",
+    levelBand: "C1" as const,
+    preferredPosition: "left" as const,
+    gamesTogether: 2,
+    ineligible: null,
+  };
+
+  it("describes an eligible partner with position and history", () => {
+    assert.equal(
+      partnerSuggestionMetaLine(row),
+      `${displayLabelFromStoredBand("C1")}, plays left. 2 games together`,
+    );
+    assert.equal(partnerSuggestionButtonLabel(row), "Select Sam Chen");
+  });
+
+  it("falls back to either side and omits the history for a first pairing", () => {
+    assert.equal(
+      partnerSuggestionMetaLine({
+        ...row,
+        levelBand: null,
+        preferredPosition: null,
+        gamesTogether: 0,
+      }),
+      "plays either side",
+    );
+    assert.match(
+      partnerSuggestionMetaLine({ ...row, gamesTogether: 1 }),
+      /1 game together$/,
+    );
+  });
+
+  it("explains why a partner cannot be chosen", () => {
+    const blocked = { ...row, ineligible: "level_range" as const };
+    assert.equal(
+      partnerSuggestionButtonLabel(blocked),
+      "Sam Chen. Outside this game's level range",
+    );
+    assert.equal(
+      partnerIneligibleReason("already_on_game"),
+      "Already in this game",
+    );
+    assert.equal(partnerIneligibleReason("waitlisted"), "On the waitlist");
+  });
+
+  it("counts the open seats", () => {
+    assert.equal(partnerSeatsChip(1), "1 seat open");
+    assert.equal(partnerSeatsChip(2), "2 seats open");
+  });
+
+  it("builds the review line from what is known", () => {
+    assert.equal(
+      partnerReviewGameLine({ venueName: " Riverside " }),
+      "Two seats at Riverside, one for each of you.",
+    );
+    assert.equal(partnerReviewGameLine({}), "Two seats, one for each of you.");
+    assert.match(
+      partnerReviewGameLine({
+        windowStart: new Date("2026-10-04T16:30:00Z"),
+        venueName: "Riverside",
+      }),
+      /at Riverside\. Two seats, one for each of you\.$/,
+    );
+  });
+
+  it("lists the review details, showing the price in three decimals", () => {
+    assert.deepEqual(
+      partnerReviewDetails({
+        isOrganizer: true,
+        pricePerPlayerFils: 12500,
+        levelMinTenths: 30,
+        levelMaxTenths: 45,
+      }).map((detail) => detail.label),
+      ["Organizer", "Price per player", "Counts for rating", "Level"],
+    );
+    assert.equal(
+      partnerReviewDetails({ pricePerPlayerFils: 12500 })[0]?.value,
+      "12.500 BD each",
+    );
+    assert.deepEqual(partnerReviewDetails({}), [
+      { label: "Counts for rating", value: "Yes, as a pair" },
+    ]);
+  });
+
+  it("describes a player's seat", () => {
+    assert.equal(
+      partnerPlayerMeta({ levelBand: null, position: "right" }),
+      "right seat",
+    );
+    assert.equal(
+      partnerPlayerMeta({ levelBand: "C1", position: "left" }),
+      `${displayLabelFromStoredBand("C1")}, left seat`,
+    );
+  });
+});
+
+describe("join sheet copy", () => {
+  it("starts on the chooser only when a partner is offered and no seat was tapped", () => {
+    assert.equal(
+      friendlyGameJoinOpeningStep({
+        offersPartner: true,
+        hasInitialSeat: false,
+      }),
+      "chooser",
+    );
+    assert.equal(
+      friendlyGameJoinOpeningStep({
+        offersPartner: true,
+        hasInitialSeat: true,
+      }),
+      "seat",
+    );
+    assert.equal(
+      friendlyGameJoinOpeningStep({
+        offersPartner: false,
+        hasInitialSeat: false,
+      }),
+      "seat",
+    );
+  });
+
+  it("titles the seat step by whether anything is left", () => {
+    assert.equal(
+      friendlyGameJoinSheetHeader({ step: "seat", isFull: true, title: "Game" })
+        .title,
+      "Game is full",
+    );
+    assert.equal(
+      friendlyGameJoinSheetHeader({
+        step: "seat",
+        isFull: false,
+        title: "Game",
+      }).title,
+      "Pick your spot",
+    );
+    assert.equal(
+      friendlyGameJoinSheetHeader({
+        step: "chooser",
+        isFull: false,
+        title: "Game",
+      }).title,
+      "How do you want to join?",
+    );
+  });
+
+  it("labels the Continue button with the chosen partner", () => {
+    assert.equal(partnerContinueLabel(null), "Continue");
+    assert.equal(partnerContinueLabel("Sam"), "Continue with Sam");
   });
 });

@@ -441,7 +441,7 @@ function baseTournament(args: {
 /**
  * Dev-only Pool tournament preview data (TEM-254). Fixture records only —
  * the route renders props and never calls tRPC, matching `~/fixtures/home.ts`
- * and `~/fixtures/game-details.ts`.
+ * and `@repo/domain/game-details-fixtures`.
  *
  * Six states from `.scratch/friendly-tournament-redesign/spec.md`:
  * - `preDrawWithoutSeat` — viewer is not seated; seats remain.

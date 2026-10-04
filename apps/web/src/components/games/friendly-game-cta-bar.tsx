@@ -3,12 +3,8 @@
 import Link from "next/link";
 
 import { Button } from "~/components/ui/button";
-import {
-  friendlyGameLevelUpdatedLine,
-  friendlyGameVacantSeatLine,
-  friendlyGameWaitlistLine,
-  type FriendlyGameCtaFamily,
-} from "@repo/domain/friendly-game-cta";
+import { friendlyGameCtaCopy } from "@repo/domain/friendly-game-actions";
+import type { FriendlyGameCtaFamily } from "@repo/domain/friendly-game-cta";
 import { cn } from "~/lib/utils";
 
 /**
@@ -41,7 +37,8 @@ export function FriendlyGameCtaBar({
   onInvite?: () => void;
   onShareResult?: () => void;
 }) {
-  if (family.kind === "none") {
+  const copy = friendlyGameCtaCopy(family);
+  if (!copy) {
     return null;
   }
 
@@ -59,7 +56,7 @@ export function FriendlyGameCtaBar({
     >
       {family.kind === "browse" ? (
         <Button asChild className="w-full">
-          <Link href="/dashboard/games">Browse open games</Link>
+          <Link href="/dashboard/games">{copy.actionLabel}</Link>
         </Button>
       ) : null}
 
@@ -70,14 +67,14 @@ export function FriendlyGameCtaBar({
           disabled={joinPending}
           onClick={onJoinWaitlist}
         >
-          {joinPending ? "Joining…" : "Join waitlist"}
+          {joinPending ? copy.pendingLabel : copy.actionLabel}
         </Button>
       ) : null}
 
       {family.kind === "waitlisted" ? (
         <div className="flex items-center gap-3">
           <p className="text-body text-warning min-w-0 flex-1 font-semibold">
-            {friendlyGameWaitlistLine(family.place)}
+            {copy.title}
           </p>
           <Button
             type="button"
@@ -86,7 +83,7 @@ export function FriendlyGameCtaBar({
             disabled={waitlistPending}
             onClick={onLeaveWaitlist}
           >
-            Leave waitlist
+            {copy.actionLabel}
           </Button>
         </div>
       ) : null}
@@ -96,26 +93,24 @@ export function FriendlyGameCtaBar({
           type="button"
           className="w-full"
           pending={joinPending}
-          pendingLabel="Joining…"
+          pendingLabel={copy.pendingLabel ?? undefined}
           onClick={onJoin}
         >
-          Join
+          {copy.actionLabel}
         </Button>
       ) : null}
 
       {family.kind === "upcoming" ? (
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-body font-semibold">You&apos;re in</p>
-            {friendlyGameVacantSeatLine(family.vacantSeatCount) ? (
-              <p className="text-muted-foreground text-meta">
-                {friendlyGameVacantSeatLine(family.vacantSeatCount)}
-              </p>
+            <p className="text-body font-semibold">{copy.title}</p>
+            {copy.subline ? (
+              <p className="text-muted-foreground text-meta">{copy.subline}</p>
             ) : null}
           </div>
           {family.showInvite && onInvite ? (
             <Button type="button" className="shrink-0" onClick={onInvite}>
-              Invite a player
+              {copy.actionLabel}
             </Button>
           ) : null}
         </div>
@@ -124,13 +119,11 @@ export function FriendlyGameCtaBar({
       {family.kind === "needs_score" ? (
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-body font-semibold">Add the score</p>
-            <p className="text-muted-foreground text-meta">
-              Counts once the others confirm
-            </p>
+            <p className="text-body font-semibold">{copy.title}</p>
+            <p className="text-muted-foreground text-meta">{copy.subline}</p>
           </div>
           <Button type="button" className="shrink-0" onClick={onAddResult}>
-            Add result
+            {copy.actionLabel}
           </Button>
         </div>
       ) : null}
@@ -138,13 +131,8 @@ export function FriendlyGameCtaBar({
       {family.kind === "final" ? (
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-body font-semibold">Level updated</p>
-            <p className="text-muted-foreground text-meta">
-              {friendlyGameLevelUpdatedLine(
-                family.newLevelBand,
-                family.newLevel,
-              )}
-            </p>
+            <p className="text-body font-semibold">{copy.title}</p>
+            <p className="text-muted-foreground text-meta">{copy.subline}</p>
           </div>
           {onShareResult ? (
             <Button
@@ -153,7 +141,7 @@ export function FriendlyGameCtaBar({
               className="shrink-0"
               onClick={onShareResult}
             >
-              Share result
+              {copy.actionLabel}
             </Button>
           ) : null}
         </div>

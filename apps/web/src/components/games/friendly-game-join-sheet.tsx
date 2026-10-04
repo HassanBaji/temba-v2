@@ -31,7 +31,11 @@ import {
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
 import {
+  JOIN_ALONE_COPY,
+  JOIN_WITH_PARTNER_COPY,
   firstFullyVacantSideIndex,
+  friendlyGameJoinOpeningStep,
+  friendlyGameJoinSheetHeader,
   isPartnerVacantSideRace,
   offersPartnerJoin,
   PARTNER_VACANT_SIDE_RACE_MESSAGE,
@@ -138,29 +142,29 @@ function ModeChooser({
     <div className="flex flex-col gap-3 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-[18px]">
       <SelectCard
         onClick={onJoinAlone}
-        aria-label="Join alone. One seat. Someone else takes the other."
+        aria-label={JOIN_ALONE_COPY.accessibleName}
         icon={<UserRound className="size-[17px]" strokeWidth={1.75} />}
-        title="Join alone"
-        description="One seat. Someone else takes the other."
+        title={JOIN_ALONE_COPY.title}
+        description={JOIN_ALONE_COPY.description}
         trailing="chevron"
         className="border-ink"
       >
         <TwoSeatDiagram onInk={false} />
-        <SelectCardNote>You are in straight away</SelectCardNote>
+        <SelectCardNote>{JOIN_ALONE_COPY.note}</SelectCardNote>
       </SelectCard>
 
       <SelectCard
         selected
         onClick={onJoinWithPartner}
-        aria-label="Join with a partner. Both seats. You play as a team. Both seats are booked now; your partner is in straight away."
+        aria-label={JOIN_WITH_PARTNER_COPY.accessibleName}
         icon={<Users className="size-[17px]" strokeWidth={1.75} />}
-        title="Join with a partner"
-        description="Both seats. You play as a team."
+        title={JOIN_WITH_PARTNER_COPY.title}
+        description={JOIN_WITH_PARTNER_COPY.description}
         trailing="chevron"
         className="hover:bg-dimrule"
       >
         <TwoSeatDiagram onInk />
-        <SelectCardNote>Both seats booked now</SelectCardNote>
+        <SelectCardNote>{JOIN_WITH_PARTNER_COPY.note}</SelectCardNote>
       </SelectCard>
     </div>
   );
@@ -701,7 +705,11 @@ export function FriendlyGameJoinSheet({
         openPartner
           ? "partner"
           : tournamentOpening === "chooser" ||
-              (!tournamentJoin && !initialSeat && offer)
+              (!tournamentJoin &&
+                friendlyGameJoinOpeningStep({
+                  offersPartner: offer,
+                  hasInitialSeat: initialSeat != null,
+                }) === "chooser")
             ? "chooser"
             : "seat",
       );
@@ -816,16 +824,12 @@ export function FriendlyGameJoinSheet({
     });
   }
 
-  const headerTitle =
-    step === "chooser"
-      ? "How do you want to join?"
-      : isFull
-        ? "Game is full"
-        : "Pick your spot";
-  const headerDescription =
-    step === "chooser"
-      ? "Two seats on the same side are open, so you can take one on your own or bring someone and register as a team."
-      : title;
+  const { title: headerTitle, description: headerDescription } =
+    friendlyGameJoinSheetHeader({
+      step: step === "chooser" ? "chooser" : "seat",
+      isFull,
+      title,
+    });
   const showSheetHeader =
     step !== "partner" &&
     step !== "partnerConfirm" &&

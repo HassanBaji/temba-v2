@@ -9,10 +9,11 @@ import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
+import { formatLevelTenths } from "@repo/domain/level-range";
 import {
-  formatLevelRangeGateCopy,
-  formatLevelTenths,
-} from "@repo/domain/level-range";
+  LEVEL_RANGE_REQUEST_SENT_TOAST,
+  levelRangeRequestCard,
+} from "@repo/domain/level-range-request";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { requestRowMeta } from "@repo/domain/request-meta";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -34,7 +35,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
   const utils = api.useUtils();
   const requestLevelRange = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
-      toast.success("Request sent");
+      toast.success(LEVEL_RANGE_REQUEST_SENT_TOAST);
       await utils.games.byId.invalidate({ id: game.id });
     },
     onError: (error) => {
@@ -62,49 +63,40 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
 
   const gameHasRange =
     game.levelMinTenths != null || game.levelMaxTenths != null;
-  const showRequester =
-    game.canRequestLevelRange ||
-    (game.levelRangeRequest != null &&
-      game.levelRangeRequest.status !== "approved");
+  const requestCard = levelRangeRequestCard(game);
   const showOrganizerQueue = game.isOrganizer && gameHasRange;
-  const pending = game.levelRangeRequest?.status === "pending";
-  const rejected = game.levelRangeRequest?.status === "rejected";
 
-  if (!showRequester && !showOrganizerQueue) {
+  if (!requestCard && !showOrganizerQueue) {
     return null;
   }
 
   return (
     <div className="space-y-6">
-      {showRequester ? (
+      {requestCard ? (
         <Card variant="outlined" className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-title font-medium">Request to play</h3>
-            {pending ? <Badge variant="warning">Pending</Badge> : null}
-            {rejected ? <Badge variant="destructive">Rejected</Badge> : null}
+            <h3 className="text-title font-medium">{requestCard.title}</h3>
+            {requestCard.badge === "Pending" ? (
+              <Badge variant="warning">{requestCard.badge}</Badge>
+            ) : null}
+            {requestCard.badge === "Rejected" ? (
+              <Badge variant="destructive">{requestCard.badge}</Badge>
+            ) : null}
           </div>
-          <p className="text-body text-muted-foreground">
-            {formatLevelRangeGateCopy({
-              levelMinTenths: game.levelMinTenths,
-              levelMaxTenths: game.levelMaxTenths,
-              viewerLevelTenths: game.viewerLevelTenths,
-            })}
-          </p>
-          {pending ? null : (
+          <p className="text-body text-muted-foreground">{requestCard.copy}</p>
+          {requestCard.actionLabel ? (
             <Button
               type="button"
               disabled={
-                requestLevelRange.isPending || !game.canRequestLevelRange
+                requestLevelRange.isPending || !requestCard.actionEnabled
               }
               onClick={() => requestLevelRange.mutate({ gameId: game.id })}
             >
               {requestLevelRange.isPending
                 ? "Requesting…"
-                : rejected
-                  ? "Request again"
-                  : "Request to play"}
+                : requestCard.actionLabel}
             </Button>
-          )}
+          ) : null}
         </Card>
       ) : null}
 
