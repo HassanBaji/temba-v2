@@ -29,7 +29,8 @@ export type RecentFormView = {
   playedCount: number;
 };
 
-const WINDOW = 10;
+export const RECENT_FORM_MATCH_COUNT = 10;
+const WINDOW = RECENT_FORM_MATCH_COUNT;
 
 const OUTCOME_LABEL: Record<RecentFormHistoryRow["outcome"], "W" | "L" | "D"> =
   {

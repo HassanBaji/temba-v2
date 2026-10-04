@@ -67,6 +67,13 @@ type DbClient = typeof db;
 
 const GROUP_GAME_HISTORY_LIMIT = 20;
 
+const gameHistoryPageInput = z.object({
+  limit: z.number().int().min(1).max(100).default(GROUP_GAME_HISTORY_LIMIT),
+  cursor: z.object({ id: z.string().uuid() }).optional(),
+});
+
+export type GroupGameHistoryPage = z.infer<typeof gameHistoryPageInput>;
+
 async function mayDeleteEmptyGroup(args: {
   database: DbClient;
   group: Awaited<ReturnType<typeof requireGroup>>;
@@ -233,7 +240,12 @@ function toGroupPlayedGame(
 
 export async function groupById(
   database: DbClient,
-  args: { groupId: string; userId: string; now?: Date },
+  args: {
+    groupId: string;
+    userId: string;
+    now?: Date;
+    gameHistory?: GroupGameHistoryPage;
+  },
 ) {
   const group = await requireGroup(database, args.groupId);
 
@@ -472,16 +484,35 @@ export async function groupById(
     args.userId,
   );
 
-  const gameHistory = groupGameRows
+  const gameHistoryCandidates = groupGameRows
     .filter((game) => {
       if (game.groupId === null || game.groupId !== group.id) {
         return false;
       }
       return !isGameLive(game, now);
     })
-    .sort((a, b) => gameListTime(b).getTime() - gameListTime(a).getTime())
-    .slice(0, GROUP_GAME_HISTORY_LIMIT)
-    .map((game) => toGroupPlayedGame(game, args.userId));
+    .sort((a, b) => {
+      const timeDelta = gameListTime(b).getTime() - gameListTime(a).getTime();
+      if (timeDelta !== 0) {
+        return timeDelta;
+      }
+      return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+    });
+  const historyCursor = args.gameHistory?.cursor;
+  const historyStart = historyCursor
+    ? gameHistoryCandidates.findIndex((game) => game.id === historyCursor.id) +
+      1
+    : 0;
+  const historyPage =
+    historyCursor && historyStart === 0
+      ? []
+      : gameHistoryCandidates.slice(
+          historyStart,
+          historyStart + (args.gameHistory?.limit ?? GROUP_GAME_HISTORY_LIMIT),
+        );
+  const gameHistory = historyPage.map((game) =>
+    toGroupPlayedGame(game, args.userId),
+  );
 
   // W-L and form marks derive over the Matches already loaded above
   // (`.scratch/groups-redesign/spec.md` §6.1, §6.2). A cancelled Game never
@@ -628,8 +659,17 @@ export async function groupById(
 }
 
 export const byId = protectedProcedure
-  .input(z.object({ id: z.string().uuid() }))
+  .input(
+    z.object({
+      id: z.string().uuid(),
+      gameHistory: gameHistoryPageInput.optional(),
+    }),
+  )
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return groupById(ctx.db, { groupId: input.id, userId: appUser.id });
+    return groupById(ctx.db, {
+      groupId: input.id,
+      userId: appUser.id,
+      gameHistory: input.gameHistory,
+    });
   });

@@ -7,6 +7,7 @@ import { api } from "~/trpc/react";
 
 import {
   deriveRecentForm,
+  RECENT_FORM_MATCH_COUNT,
   recentFormRecord,
   recentFormStatus,
   recentFormWinRateCopy,
@@ -184,7 +185,9 @@ export function HomeRecentFormBlock({ form }: { form: RecentFormView }) {
 }
 
 export function HomeRecentForm() {
-  const history = api.games.listMyMatchHistory.useQuery();
+  const history = api.games.listMyMatchHistory.useQuery({
+    limit: RECENT_FORM_MATCH_COUNT,
+  });
 
   if (history.isLoading) {
     return (

@@ -233,12 +233,18 @@ function HistoryTabPanel({
   errorMessage,
   onRetry,
   rows,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
   emptyState,
 }: {
   isLoading: boolean;
   errorMessage?: string;
   onRetry: () => void;
   rows?: HistoryRow[];
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  onLoadMore: () => void;
   emptyState: React.ReactNode;
 }) {
   if (isLoading) {
@@ -286,13 +292,66 @@ function HistoryTabPanel({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {rows.map((row) => (
-        <MatchHistoryCard key={row.matchId} row={row} />
-      ))}
-    </ul>
+    <>
+      <ul className="flex flex-col gap-3">
+        {rows.map((row) => (
+          <MatchHistoryCard key={row.matchId} row={row} />
+        ))}
+      </ul>
+      <LoadMoreSentinel
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        onLoadMore={onLoadMore}
+      />
+    </>
   );
 }
+
+function LoadMoreSentinel({
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+}: {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  onLoadMore: () => void;
+}) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const onLoadMoreRef = React.useRef(onLoadMore);
+  onLoadMoreRef.current = onLoadMore;
+
+  React.useEffect(() => {
+    const node = ref.current;
+    if (!node || !hasNextPage || isFetchingNextPage) {
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        onLoadMoreRef.current();
+      }
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage]);
+
+  if (!hasNextPage) {
+    return null;
+  }
+
+  return (
+    <div ref={ref} className="mt-3 flex justify-center">
+      <Button
+        variant="outline"
+        disabled={isFetchingNextPage}
+        onClick={onLoadMore}
+      >
+        {isFetchingNextPage ? "Loading…" : "Load more"}
+      </Button>
+    </div>
+  );
+}
+
+const HISTORY_PAGE_SIZE = 20;
 
 function TabCount({ count }: { count: number | undefined }) {
   if (!count) {
@@ -328,7 +387,22 @@ export default function GamesHubPage({
   }
 
   const myGames = api.games.listMyGames.useQuery();
-  const history = api.games.listMyMatchHistory.useQuery();
+  const history = api.games.listMyMatchHistory.useInfiniteQuery(
+    { limit: HISTORY_PAGE_SIZE },
+    {
+      getNextPageParam: (lastPage) => {
+        const last = lastPage.at(-1);
+        if (!last || lastPage.length < HISTORY_PAGE_SIZE) {
+          return undefined;
+        }
+        return { displayTime: last.displayTime, matchId: last.matchId };
+      },
+    },
+  );
+  const historyRows = React.useMemo(
+    () => history.data?.pages.flat(),
+    [history.data],
+  );
   const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
 
@@ -405,7 +479,9 @@ export default function GamesHubPage({
           </TabsTrigger>
           <TabsTrigger value="history" className="group/tab">
             History
-            <TabCount count={history.data?.length} />
+            <TabCount
+              count={history.hasNextPage ? undefined : historyRows?.length}
+            />
           </TabsTrigger>
         </TabsList>
         <TabsContent value="my-games">
@@ -443,7 +519,12 @@ export default function GamesHubPage({
             onRetry={() => {
               void history.refetch();
             }}
-            rows={history.data}
+            rows={historyRows}
+            hasNextPage={history.hasNextPage}
+            isFetchingNextPage={history.isFetchingNextPage}
+            onLoadMore={() => {
+              void history.fetchNextPage();
+            }}
             emptyState={
               <EmptyState
                 icon={Trophy}

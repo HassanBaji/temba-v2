@@ -830,3 +830,92 @@ describe("groupById canManageImage", () => {
     }
   });
 });
+
+describe("groupById Game history pagination", () => {
+  async function seedGroupHistory(database: TestDatabase, hoursAgo: number[]) {
+    const viewer = await insertUser(database, "group-page-viewer@example.com");
+    const venue = await insertVenue(database);
+    const group = await insertGroup(database, viewer.id, { members: [] });
+    for (const hours of hoursAgo) {
+      await insertGroupGame(database, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        groupId: group.id,
+        ...pastWindow(hours),
+      });
+    }
+    return { viewer, group };
+  }
+
+  it("walks the history in pages, newest first, ties ordered by Game id", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { viewer, group } = await seedGroupHistory(
+        db,
+        [48, 24, 72, 48, 48],
+      );
+      const everything = (
+        await groupById(db, {
+          groupId: group.id,
+          userId: viewer.id,
+          now: NOW,
+        })
+      ).gameHistory;
+      expect(everything).toHaveLength(5);
+      const times = everything.map((game) => game.displayTime.getTime());
+      expect(times).toEqual([...times].sort((a, b) => b - a));
+      const tied = everything.slice(1, 4).map((game) => game.id);
+      expect(tied).toEqual([...tied].sort().reverse());
+
+      const walked: string[] = [];
+      const pageSizes: number[] = [];
+      let cursor: { id: string } | undefined;
+      for (;;) {
+        const page = (
+          await groupById(db, {
+            groupId: group.id,
+            userId: viewer.id,
+            now: NOW,
+            gameHistory: { limit: 2, cursor },
+          })
+        ).gameHistory;
+        pageSizes.push(page.length);
+        walked.push(...page.map((game) => game.id));
+        const last = page.at(-1);
+        if (page.length < 2 || !last) {
+          break;
+        }
+        cursor = { id: last.id };
+      }
+      expect(pageSizes).toEqual([2, 2, 1]);
+      expect(walked).toEqual(everything.map((game) => game.id));
+    } finally {
+      await close();
+    }
+  });
+
+  it("returns an empty page past the last Game", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { viewer, group } = await seedGroupHistory(db, [48, 24]);
+      const first = (
+        await groupById(db, {
+          groupId: group.id,
+          userId: viewer.id,
+          now: NOW,
+          gameHistory: { limit: 2 },
+        })
+      ).gameHistory;
+      const last = first[1]!;
+      const next = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        now: NOW,
+        gameHistory: { limit: 2, cursor: { id: last.id } },
+      });
+      expect(next.gameHistory).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+});

@@ -4,6 +4,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
 import {
   deriveRecentForm,
+  RECENT_FORM_MATCH_COUNT,
   type RecentFormBar,
 } from "~/components/home/home-recent-form";
 import { FormSlot } from "~/components/home/home-recent-form-row";
@@ -51,7 +52,9 @@ function ProfileFormSkeleton() {
 }
 
 export function ProfileForm() {
-  const history = api.games.listMyMatchHistory.useQuery();
+  const history = api.games.listMyMatchHistory.useQuery({
+    limit: RECENT_FORM_MATCH_COUNT,
+  });
 
   if (history.isLoading) {
     return <ProfileFormSkeleton />;

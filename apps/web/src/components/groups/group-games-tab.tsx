@@ -2,6 +2,7 @@
 
 import { Calendar } from "lucide-react";
 import Link from "next/link";
+import * as React from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
@@ -17,10 +18,12 @@ import {
 } from "@repo/domain/game-summary-cta";
 import { cardFrame } from "~/lib/page-layout";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
-import { type RouterOutputs } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
 type GroupHome = RouterOutputs["groups"]["byId"];
 type ScheduledGame = GroupHome["upcomingGames"][number];
+
+const HISTORY_PAGE_SIZE = 20;
 
 const HEADING = "font-expanded pb-2.5 text-title leading-tight";
 
@@ -51,7 +54,46 @@ export function GroupGamesTab({
   onJoinWaitlist: (game: ScheduledGame) => void;
   onRegister: (gameId: string) => void;
 }) {
-  const hasAny = upcomingGames.length > 0 || gameHistory.length > 0;
+  const utils = api.useUtils();
+  const [olderPages, setOlderPages] = React.useState<{
+    source: GroupHome["gameHistory"];
+    games: GroupHome["gameHistory"];
+    exhausted: boolean;
+  }>({ source: gameHistory, games: [], exhausted: false });
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [loadMoreFailed, setLoadMoreFailed] = React.useState(false);
+  const older = olderPages.source === gameHistory ? olderPages : null;
+  const playedGames = [...gameHistory, ...(older?.games ?? [])];
+  const canLoadMore =
+    !(older?.exhausted ?? false) &&
+    playedGames.length > 0 &&
+    playedGames.length % HISTORY_PAGE_SIZE === 0;
+
+  async function loadMoreHistory() {
+    const last = playedGames.at(-1);
+    if (!last || loadingMore) {
+      return;
+    }
+    setLoadingMore(true);
+    setLoadMoreFailed(false);
+    try {
+      const next = await utils.groups.byId.fetch({
+        id: groupId,
+        gameHistory: { limit: HISTORY_PAGE_SIZE, cursor: { id: last.id } },
+      });
+      setOlderPages({
+        source: gameHistory,
+        games: [...(older?.games ?? []), ...next.gameHistory],
+        exhausted: next.gameHistory.length < HISTORY_PAGE_SIZE,
+      });
+    } catch {
+      setLoadMoreFailed(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const hasAny = upcomingGames.length > 0 || playedGames.length > 0;
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
@@ -175,16 +217,36 @@ export function GroupGamesTab({
 
       <section>
         <h2 className={HEADING}>Played</h2>
-        {gameHistory.length === 0 ? (
+        {playedGames.length === 0 ? (
           <p className="text-body text-muted-foreground">
             No Game history yet.
           </p>
         ) : (
-          <ul className={cardFrame}>
-            {gameHistory.map((game) => (
-              <GroupPlayedRow key={game.id} game={game} />
-            ))}
-          </ul>
+          <>
+            <ul className={cardFrame}>
+              {playedGames.map((game) => (
+                <GroupPlayedRow key={game.id} game={game} />
+              ))}
+            </ul>
+            {canLoadMore ? (
+              <div className="mt-3 flex flex-col items-center gap-2">
+                {loadMoreFailed ? (
+                  <p className="text-body text-muted-foreground">
+                    More Games could not be loaded.
+                  </p>
+                ) : null}
+                <Button
+                  variant="outline"
+                  disabled={loadingMore}
+                  onClick={() => {
+                    void loadMoreHistory();
+                  }}
+                >
+                  {loadingMore ? "Loading…" : "Load more"}
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
     </div>

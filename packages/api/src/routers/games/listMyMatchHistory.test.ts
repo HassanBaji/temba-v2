@@ -645,3 +645,90 @@ describe("listMyMatchHistoryRows", () => {
     }
   });
 });
+
+describe("listMyMatchHistoryRows pagination", () => {
+  async function seedHistory(database: TestDatabase, startTimes: Date[]) {
+    const viewer = await insertUser(database, "page-viewer@example.com");
+    const partner = await insertUser(database, "page-partner@example.com");
+    const oppLeft = await insertUser(database, "page-opp-left@example.com");
+    const oppRight = await insertUser(database, "page-opp-right@example.com");
+    const venue = await insertVenue(database);
+    const matchIds: string[] = [];
+    for (const startTime of startTimes) {
+      const { game, match } = await insertGame(database, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+      });
+      await seatCompletedFriendly(database, {
+        gameId: game.id,
+        matchId: match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
+        startTime,
+      });
+      matchIds.push(match.id);
+    }
+    return { viewer, matchIds };
+  }
+
+  it("walks every row once across pages, newest first, with ties ordered by Match id", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const tie = new Date("2026-08-10T18:00:00.000Z");
+      const newest = new Date("2026-08-20T18:00:00.000Z");
+      const oldest = new Date("2026-08-01T18:00:00.000Z");
+      const { viewer } = await seedHistory(db, [tie, oldest, newest, tie, tie]);
+
+      const everything = await listMyMatchHistoryRows(db, viewer.id, NOW);
+      expect(everything).toHaveLength(5);
+      expect(everything[0]?.displayTime).toEqual(newest);
+      expect(everything[4]?.displayTime).toEqual(oldest);
+      const tied = everything.slice(1, 4).map((row) => row.matchId);
+      expect(tied).toEqual([...tied].sort().reverse());
+
+      const walked: string[] = [];
+      let cursor: { displayTime: Date; matchId: string } | undefined;
+      const pageSizes: number[] = [];
+      for (;;) {
+        const page = await listMyMatchHistoryRows(db, viewer.id, NOW, {
+          limit: 2,
+          cursor,
+        });
+        pageSizes.push(page.length);
+        walked.push(...page.map((row) => row.matchId));
+        const last = page.at(-1);
+        if (page.length < 2 || !last) {
+          break;
+        }
+        cursor = { displayTime: last.displayTime, matchId: last.matchId };
+      }
+      expect(pageSizes).toEqual([2, 2, 1]);
+      expect(walked).toEqual(everything.map((row) => row.matchId));
+    } finally {
+      await close();
+    }
+  });
+
+  it("returns an empty page past the last row and an exact-fit page followed by an empty one", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { viewer } = await seedHistory(db, [
+        new Date("2026-08-02T18:00:00.000Z"),
+        new Date("2026-08-03T18:00:00.000Z"),
+      ]);
+      const first = await listMyMatchHistoryRows(db, viewer.id, NOW, {
+        limit: 2,
+      });
+      expect(first).toHaveLength(2);
+      const last = first[1]!;
+      const next = await listMyMatchHistoryRows(db, viewer.id, NOW, {
+        limit: 2,
+        cursor: { displayTime: last.displayTime, matchId: last.matchId },
+      });
+      expect(next).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+});

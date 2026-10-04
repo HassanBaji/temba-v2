@@ -215,3 +215,10 @@ Built and bundled in the container (`apps/mobile` typecheck, lint, unit tests fo
 - [ ] **TEM-329.** Check the order Home, Games, Groups, Profile; the active tab's icon and label are ink (icon heavier stroke) and the others are grey; the tab bar has a 1 px top hairline and no shadow. Compare with the web bottom navigation at a phone width.
 - [ ] **TEM-329.** Sign in with an account whose Clerk public metadata has `groupCreator: true` (Clerk dashboard, Users, the user, Metadata, Public) and check Communities appears between Groups and Profile; with the flag removed (sign out and in again) it disappears.
 - [ ] **TEM-329.** Each tab keeps its own stack: the stacks hold only a root placeholder today, so check the header shows the tab title with no shadow; the back affordance appears once a later ticket pushes a screen. Unverified until then.
+
+## TEM-330 paginated Match history and Group Game history
+
+Built and covered by PGlite tests (`listMyMatchHistory.test.ts`, `groups/byId.test.ts`). Scrolling needs a real signed-in User with enough data, so it is unverified until done.
+
+- [ ] **TEM-330.** Sign in as a User with more than 20 Matches in History (seed one with `pnpm --filter @repo/api db:seed` plus extra completed Matches, or use a real account). Open `/dashboard/games?tab=history`, scroll to the end and check further pages load (the "Load more" button also works), the list ends with no button, and the History tab count appears only once everything is loaded.
+- [ ] **TEM-330.** On a Group with more than 20 past Games, open Group home, Games tab, and tap "Load more" under Played until it disappears. Check no Game repeats and the order stays newest first. Check Home's Recent form still shows ten bars.

@@ -1,5 +1,6 @@
 import type { DbClient } from "@repo/db";
 import { and, eq, inArray, or } from "drizzle-orm";
+import { z } from "zod";
 
 import { MatchStatusEnum, gamePlayers, matches } from "@repo/db";
 
@@ -33,6 +34,19 @@ export type MatchHistoryRow = {
   outcome: "won" | "lost" | "draw";
 };
 
+const DEFAULT_PAGE_SIZE = 20;
+
+const historyPageInput = z
+  .object({
+    limit: z.number().int().min(1).max(100).default(DEFAULT_PAGE_SIZE),
+    cursor: z
+      .object({ displayTime: z.date(), matchId: z.string().uuid() })
+      .optional(),
+  })
+  .optional();
+
+export type MatchHistoryPage = z.infer<typeof historyPageInput>;
+
 /**
  * Past Matches the signed-in User sat on via a completed Match slot.
  * Soft-archived Club Group Games are included when they otherwise qualify.
@@ -44,6 +58,7 @@ export async function listMyMatchHistoryRows(
   database: DbClient,
   userId: string,
   now: Date = new Date(),
+  page?: MatchHistoryPage,
 ): Promise<MatchHistoryRow[]> {
   const myPlayerRows = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, userId),
@@ -250,10 +265,35 @@ export async function listMyMatchHistoryRows(
     }
   }
 
-  return rows.sort((a, b) => b.displayTime.getTime() - a.displayTime.getTime());
+  rows.sort((a, b) => {
+    const timeDelta = b.displayTime.getTime() - a.displayTime.getTime();
+    if (timeDelta !== 0) {
+      return timeDelta;
+    }
+    return a.matchId < b.matchId ? 1 : a.matchId > b.matchId ? -1 : 0;
+  });
+
+  if (!page) {
+    return rows;
+  }
+  const { cursor, limit } = page;
+  const start = cursor
+    ? rows.findIndex(
+        (row) =>
+          row.displayTime.getTime() < cursor.displayTime.getTime() ||
+          (row.displayTime.getTime() === cursor.displayTime.getTime() &&
+            row.matchId < cursor.matchId),
+      )
+    : 0;
+  if (start === -1) {
+    return [];
+  }
+  return rows.slice(start, start + limit);
 }
 
-export const listMyMatchHistory = protectedProcedure.query(async ({ ctx }) => {
-  const appUser = await resolveAppUser(ctx.userId);
-  return listMyMatchHistoryRows(ctx.db, appUser.id);
-});
+export const listMyMatchHistory = protectedProcedure
+  .input(historyPageInput)
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listMyMatchHistoryRows(ctx.db, appUser.id, new Date(), input);
+  });
