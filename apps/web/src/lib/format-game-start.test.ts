@@ -1,3 +1,7 @@
+import {
+  bahrainDate,
+  bahrainDayFromToday,
+} from "~/lib/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
@@ -15,7 +19,7 @@ import {
 } from "./format-game-start";
 
 // Local-time constructors keep these independent of the machine's timezone.
-const SATURDAY_EVENING = new Date(2026, 9, 3, 19, 30, 0);
+const SATURDAY_EVENING = bahrainDate(2026, 9, 3, 19, 30, 0);
 
 describe("APP_LOCALE", () => {
   it("is the one locale every date and time uses", () => {
@@ -54,7 +58,7 @@ describe("formatGameStart", () => {
 
 describe("formatRelativeDay", () => {
   it("falls back to a short day-first date beyond tomorrow", () => {
-    const date = new Date(2099, 0, 15, 20, 0, 0);
+    const date = bahrainDate(2099, 0, 15, 20, 0, 0);
     const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
     assert.equal(formatRelativeDay(date), `${weekday} 15 Jan`);
   });
@@ -86,7 +90,7 @@ describe("formatGameCardDay", () => {
   });
 
   it("formats later days as weekday day month", () => {
-    const date = new Date(2099, 0, 15, 20, 0, 0);
+    const date = bahrainDate(2099, 0, 15, 20, 0, 0);
     const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
     assert.equal(formatGameCardDay(date), `${weekday} 15 Jan`);
   });
@@ -94,27 +98,24 @@ describe("formatGameCardDay", () => {
 
 describe("formatGameClockWithoutMeridiem", () => {
   it("drops the trailing AM/PM", () => {
-    const time = new Date(2026, 8, 7, 22, 30, 0);
+    const time = bahrainDate(2026, 8, 7, 22, 30, 0);
     assert.equal(formatGameClockWithoutMeridiem(time), "10:30");
   });
 });
 
 describe("formatPlayedRelativeDay", () => {
   it("reads as today for a start earlier the same local day", () => {
-    const today = new Date();
-    today.setHours(today.getHours() > 1 ? today.getHours() - 1 : 0, 0, 0, 0);
+    const today = bahrainDayFromToday(0, 0);
     assert.equal(formatPlayedRelativeDay(today), "Played today");
   });
 
   it("keeps a singular day for yesterday", () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterday = bahrainDayFromToday(-1);
     assert.equal(formatPlayedRelativeDay(yesterday), "Played 1 day ago");
   });
 
   it("pluralizes multiple days ago", () => {
-    const past = new Date();
-    past.setDate(past.getDate() - 5);
+    const past = bahrainDayFromToday(-5);
     assert.equal(formatPlayedRelativeDay(past), "Played 5 days ago");
   });
 });

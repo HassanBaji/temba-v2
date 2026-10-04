@@ -1,3 +1,4 @@
+import { bahrainDayFromToday } from "~/lib/bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -13,10 +14,8 @@ const shortUrl = "https://app.example/g/A3F8K2PQ";
 
 describe("formatGameInviteShareMessage", () => {
   it("writes the canonical English emoji roster with Open seats and the short join URL", () => {
-    const windowStart = new Date();
-    windowStart.setHours(19, 0, 0, 0);
-    const windowEnd = new Date();
-    windowEnd.setHours(20, 0, 0, 0);
+    const windowStart = bahrainDayFromToday(0, 19);
+    const windowEnd = bahrainDayFromToday(0, 20);
     const message = formatGameInviteShareMessage({
       venueName: "Padel Club",
       courtName: "Court 2",

@@ -3,6 +3,12 @@ import {
   formatGameClock,
   formatWeekday,
 } from "~/lib/format-game-start";
+import {
+  addProductDays,
+  startOfProductDay,
+  zonedDateTimeToInstant,
+  zonedParts,
+} from "~/lib/product-timezone";
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME_PATTERN = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
@@ -22,10 +28,6 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
-export function startOfLocalDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
 export function upcomingGameWindowTimeSlots(
   day: string,
   now: Date = new Date(),
@@ -34,7 +36,7 @@ export function upcomingGameWindowTimeSlots(
   if (!selected) {
     return GAME_WINDOW_TIME_SLOTS;
   }
-  const today = startOfLocalDay(now);
+  const today = startOfProductDay(now);
   if (selected.getTime() > today.getTime()) {
     return GAME_WINDOW_TIME_SLOTS;
   }
@@ -48,7 +50,7 @@ export function upcomingGameWindowTimeSlots(
 }
 
 export function earliestGameWindowDay(now: Date = new Date()) {
-  const today = startOfLocalDay(now);
+  const today = startOfProductDay(now);
   const todaySlots = upcomingGameWindowTimeSlots(
     formatDateInputValue(today),
     now,
@@ -56,7 +58,7 @@ export function earliestGameWindowDay(now: Date = new Date()) {
   if (todaySlots.length > 0) {
     return today;
   }
-  return new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  return addProductDays(today, 1);
 }
 
 function asDate(value: Date | string | null | undefined): Date | null {
@@ -71,7 +73,8 @@ function asDate(value: Date | string | null | undefined): Date | null {
 }
 
 export function formatDateInputValue(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const { year, month, day } = zonedParts(date);
+  return `${year}-${pad(month)}-${pad(day)}`;
 }
 
 export function parseDateInputValue(day: string): Date | undefined {
@@ -82,12 +85,13 @@ export function parseDateInputValue(day: string): Date | undefined {
   const year = Number(dateMatch[1]);
   const month = Number(dateMatch[2]);
   const dayOfMonth = Number(dateMatch[3]);
-  const date = new Date(year, month - 1, dayOfMonth);
+  const date = zonedDateTimeToInstant({ year, month, day: dayOfMonth });
+  const parts = zonedParts(date);
   if (
     Number.isNaN(date.getTime()) ||
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== dayOfMonth
+    parts.year !== year ||
+    parts.month !== month ||
+    parts.day !== dayOfMonth
   ) {
     return undefined;
   }
@@ -107,9 +111,8 @@ function toTimeInputValue(value: Date | string | null | undefined) {
   if (!date) {
     return "";
   }
-  return snapTimeInputValue(
-    `${pad(date.getHours())}:${pad(date.getMinutes())}`,
-  );
+  const { hour, minute } = zonedParts(date);
+  return snapTimeInputValue(`${pad(hour)}:${pad(minute)}`);
 }
 
 export function snapTimeInputValue(time: string): string {
@@ -147,7 +150,15 @@ export function formatTimeSlotLabel(time: string) {
   }
   const hours = Number(timeMatch[1]);
   const minutes = Number(timeMatch[2]);
-  return formatGameClock(new Date(2000, 0, 1, hours, minutes));
+  return formatGameClock(
+    zonedDateTimeToInstant({
+      year: 2000,
+      month: 1,
+      day: 1,
+      hour: hours,
+      minute: minutes,
+    }),
+  );
 }
 
 export function formatGameWindowName(
@@ -172,22 +183,23 @@ function combineDateAndTime(day: string, time: string): Date | undefined {
   const hours = Number(timeMatch[1]);
   const minutes = Number(timeMatch[2]);
   const seconds = Number(timeMatch[3] ?? 0);
-  const combined = new Date(
+  const combined = zonedDateTimeToInstant({
     year,
-    month - 1,
-    dayOfMonth,
-    hours,
-    minutes,
-    seconds,
-  );
+    month,
+    day: dayOfMonth,
+    hour: hours,
+    minute: minutes,
+    second: seconds,
+  });
+  const parts = zonedParts(combined);
   if (
     Number.isNaN(combined.getTime()) ||
-    combined.getFullYear() !== year ||
-    combined.getMonth() !== month - 1 ||
-    combined.getDate() !== dayOfMonth ||
-    combined.getHours() !== hours ||
-    combined.getMinutes() !== minutes ||
-    combined.getSeconds() !== seconds
+    parts.year !== year ||
+    parts.month !== month ||
+    parts.day !== dayOfMonth ||
+    parts.hour !== hours ||
+    parts.minute !== minutes ||
+    parts.second !== seconds
   ) {
     return undefined;
   }

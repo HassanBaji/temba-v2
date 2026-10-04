@@ -6,6 +6,12 @@
  */
 export const APP_LOCALE = "en-US";
 
+import {
+  PRODUCT_TIMEZONE,
+  productDaysBetween,
+  zonedParts,
+} from "~/lib/product-timezone";
+
 type NameStyle = "short" | "long";
 
 function asDate(value: Date | string) {
@@ -13,11 +19,17 @@ function asDate(value: Date | string) {
 }
 
 export function formatWeekday(value: Date | string, style: NameStyle) {
-  return asDate(value).toLocaleDateString(APP_LOCALE, { weekday: style });
+  return asDate(value).toLocaleDateString(APP_LOCALE, {
+    weekday: style,
+    timeZone: PRODUCT_TIMEZONE,
+  });
 }
 
 export function formatMonth(value: Date | string, style: NameStyle) {
-  return asDate(value).toLocaleDateString(APP_LOCALE, { month: style });
+  return asDate(value).toLocaleDateString(APP_LOCALE, {
+    month: style,
+    timeZone: PRODUCT_TIMEZONE,
+  });
 }
 
 /** `4 Oct`, `Sat 4 Oct`, `Saturday 4 October 2026`. */
@@ -26,11 +38,12 @@ export function formatDayMonth(
   options: { weekday?: NameStyle; month?: NameStyle; year?: boolean } = {},
 ) {
   const date = asDate(value);
+  const { day, year } = zonedParts(date);
   const parts = [
     options.weekday ? formatWeekday(date, options.weekday) : null,
-    String(date.getDate()),
+    String(day),
     formatMonth(date, options.month ?? "short"),
-    options.year ? String(date.getFullYear()) : null,
+    options.year ? String(year) : null,
   ];
   return parts.filter((part) => part != null).join(" ");
 }
@@ -43,6 +56,7 @@ export function formatGameClock(startTime: Date | string) {
   return asDate(startTime).toLocaleTimeString(APP_LOCALE, {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: PRODUCT_TIMEZONE,
   });
 }
 
@@ -83,16 +97,8 @@ export function formatGameTimeWindow(
   return formatGameClock(startTime);
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function startOfLocalDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function daysUntilLocalDay(date: Date) {
-  const today = startOfLocalDay(new Date());
-  const target = startOfLocalDay(date);
-  return Math.round((target.getTime() - today.getTime()) / MS_PER_DAY);
+function daysUntilProductDay(date: Date) {
+  return productDaysBetween(new Date(), date);
 }
 
 export type GameDayProximity = "today" | "tomorrow" | "later";
@@ -100,7 +106,7 @@ export type GameDayProximity = "today" | "tomorrow" | "later";
 /** Lets cards tint the day label without re-parsing the relative-day copy. */
 export function gameDayProximity(startTime: Date | string): GameDayProximity {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const diffDays = daysUntilLocalDay(date);
+  const diffDays = daysUntilProductDay(date);
 
   if (diffDays === 0) {
     return "today";
@@ -116,7 +122,7 @@ export function formatRelativeDay(
   options?: { sameDayLabel?: "Tonight" | "Today" },
 ) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const diffDays = daysUntilLocalDay(date);
+  const diffDays = daysUntilProductDay(date);
 
   if (diffDays === 0) {
     return options?.sameDayLabel ?? "Tonight";
@@ -136,7 +142,7 @@ export function formatAbsoluteDay(startTime: Date | string) {
 /** Hub Game card day: Today / Tomorrow / `Thursday 11 Sep`. */
 export function formatGameCardDay(startTime: Date | string) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const diffDays = daysUntilLocalDay(date);
+  const diffDays = daysUntilProductDay(date);
 
   if (diffDays === 0) {
     return "Today";
@@ -172,7 +178,7 @@ export function formatGameClockWithoutMeridiem(time: Date | string) {
  */
 export function formatPlayedRelativeDay(startTime: Date | string) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const daysAgo = -daysUntilLocalDay(date);
+  const daysAgo = -daysUntilProductDay(date);
 
   if (daysAgo <= 0) {
     return "Played today";

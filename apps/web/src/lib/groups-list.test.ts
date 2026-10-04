@@ -1,3 +1,4 @@
+import { bahrainDate } from "~/lib/bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
 import { groupNextGameWeekday, groupRowMetaLine } from "~/lib/groups-list";
@@ -27,12 +28,12 @@ describe("groupRowMetaLine", () => {
 
 describe("groupNextGameWeekday", () => {
   it("abbreviates the weekday", () => {
-    expect(groupNextGameWeekday(new Date(2026, 8, 17, 19, 0))).toBe("Thu");
+    expect(groupNextGameWeekday(bahrainDate(2026, 8, 17, 19, 0))).toBe("Thu");
   });
 
   it("accepts a serialized date", () => {
     expect(
-      groupNextGameWeekday(new Date(2026, 8, 19, 9, 0).toISOString()),
+      groupNextGameWeekday(bahrainDate(2026, 8, 19, 9, 0).toISOString()),
     ).toBe("Sat");
   });
 

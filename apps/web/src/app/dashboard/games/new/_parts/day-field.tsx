@@ -2,6 +2,10 @@
 
 import * as React from "react";
 
+import {
+  dayInputValueFromPickerDate,
+  pickerDateFromInstant,
+} from "~/components/games/calendar-day";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Calendar } from "~/components/ui/calendar";
 import { FieldError } from "~/components/ui/field";
@@ -19,6 +23,7 @@ import {
   formatDayLabel,
   parseDateInputValue,
 } from "~/lib/game-window";
+import { zonedParts } from "~/lib/product-timezone";
 import { cn } from "~/lib/utils";
 
 export function DayField({
@@ -33,13 +38,18 @@ export function DayField({
   onSelectDay: (day: string) => void;
 }) {
   const [dayOpen, setDayOpen] = React.useState(false);
-  const [displayedMonth, setDisplayedMonth] = React.useState(
-    () => parseDateInputValue(day) ?? earliestGameWindowDay(now),
+  const [displayedMonth, setDisplayedMonth] = React.useState(() =>
+    pickerDateFromInstant(
+      parseDateInputValue(day) ?? earliestGameWindowDay(now),
+    ),
   );
 
   const dayOptions = createFlowDayOptions(now);
-  const selectedDay = parseDateInputValue(day);
-  const earliestDay = earliestGameWindowDay(now);
+  const selectedInstant = parseDateInputValue(day);
+  const selectedDay = selectedInstant
+    ? pickerDateFromInstant(selectedInstant)
+    : undefined;
+  const earliestDay = pickerDateFromInstant(earliestGameWindowDay(now));
   const calendarMonth =
     displayedMonth.getTime() < earliestDay.getTime()
       ? earliestDay
@@ -76,7 +86,7 @@ export function DayField({
                 if (!next) {
                   return;
                 }
-                onSelectDay(formatDateInputValue(next));
+                onSelectDay(dayInputValueFromPickerDate(next));
                 setDayOpen(false);
               }}
             />
@@ -93,7 +103,7 @@ export function DayField({
       >
         {dayOptions.map((option) => {
           const value = dayChipValue(option);
-          const today = option.toDateString() === now.toDateString();
+          const today = dayChipValue(option) === formatDateInputValue(now);
           const label = today ? "Today" : formatWeekday(option, "short");
           return (
             <ChoiceChip
@@ -113,7 +123,9 @@ export function DayField({
               >
                 {label}
               </span>
-              <span className="text-base tabular-nums">{option.getDate()}</span>
+              <span className="text-base tabular-nums">
+                {zonedParts(option).day}
+              </span>
             </ChoiceChip>
           );
         })}

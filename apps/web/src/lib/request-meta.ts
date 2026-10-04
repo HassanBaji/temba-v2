@@ -1,11 +1,7 @@
 import { formatDayMonth } from "~/lib/format-game-start";
+import { productDaysBetween, zonedParts } from "~/lib/product-timezone";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const RELATIVE_DAYS = 7;
-
-function startOfLocalDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
 
 /** `Requested today`, `Requested 3 days ago`, then `Requested 4 Oct` after a week. */
 export function formatRequestedAt(
@@ -14,10 +10,7 @@ export function formatRequestedAt(
 ) {
   const date =
     requestedAt instanceof Date ? requestedAt : new Date(requestedAt);
-  const daysAgo = Math.round(
-    (startOfLocalDay(now).getTime() - startOfLocalDay(date).getTime()) /
-      MS_PER_DAY,
-  );
+  const daysAgo = productDaysBetween(date, now);
   if (daysAgo <= 0) {
     return "Requested today";
   }
@@ -28,7 +21,7 @@ export function formatRequestedAt(
     return `Requested ${daysAgo} days ago`;
   }
   return `Requested ${formatDayMonth(date, {
-    year: date.getFullYear() !== now.getFullYear(),
+    year: zonedParts(date).year !== zonedParts(now).year,
   })}`;
 }
 

@@ -1,3 +1,4 @@
+import { bahrainDate } from "~/lib/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
@@ -92,16 +93,16 @@ describe("tournamentCardDateLine", () => {
   it("spans a multi-day window", () => {
     assert.equal(
       tournamentCardDateLine(
-        new Date(2025, 8, 25, 18),
-        new Date(2025, 9, 11, 21),
+        bahrainDate(2025, 8, 25, 18),
+        bahrainDate(2025, 9, 11, 21),
       ),
       "Thu 25 Sep to Sat 11 Oct",
     );
   });
 
   it("shows the hours for a one-day window", () => {
-    const start = new Date(2025, 8, 25, 18);
-    const end = new Date(2025, 8, 25, 22);
+    const start = bahrainDate(2025, 8, 25, 18);
+    const end = bahrainDate(2025, 8, 25, 22);
     assert.equal(
       tournamentCardDateLine(start, end),
       `Thu 25 Sep, ${formatGameClock(start)} – ${formatGameClock(end)}`,
@@ -110,7 +111,7 @@ describe("tournamentCardDateLine", () => {
 
   it("reads From when the window has no end", () => {
     assert.equal(
-      tournamentCardDateLine(new Date(2025, 8, 25, 18), null),
+      tournamentCardDateLine(bahrainDate(2025, 8, 25, 18), null),
       "From Thu 25 Sep",
     );
     assert.equal(tournamentCardDateLine(null, null), null);

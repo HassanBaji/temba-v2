@@ -9,6 +9,7 @@ import {
   type HomeComingUpTournamentMatchRow,
   type HomeComingUpTournamentRow,
 } from "~/lib/home-coming-up";
+import { zonedParts } from "~/lib/product-timezone";
 import { cn } from "~/lib/utils";
 
 const ROW_CLASS =
@@ -22,7 +23,7 @@ function DayBox({ startsAt }: { startsAt: Date }) {
   return (
     <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center">
       <span className="font-expanded text-title leading-none">
-        {startsAt.getDate()}
+        {zonedParts(startsAt).day}
       </span>
       <span className="text-muted-foreground text-meta leading-none">
         {weekdayAbbrev(startsAt)}

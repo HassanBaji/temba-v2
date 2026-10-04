@@ -1,3 +1,5 @@
+import { zonedParts } from "~/lib/product-timezone";
+import { bahrainDate } from "~/lib/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
@@ -41,7 +43,7 @@ import {
   friendlyTournamentFormatLabel,
 } from "./create-game-flow";
 
-const NOW = new Date(2026, 8, 22, 12, 0, 0);
+const NOW = bahrainDate(2026, 8, 22, 12, 0, 0);
 
 const emptyDraft = {
   groupId: "",
@@ -558,10 +560,10 @@ describe("friendly tournament branch", () => {
   });
 
   it("feeds the schedule line from game length and warns on overrun", () => {
-    const start = new Date(2026, 8, 25, 9, 0, 0);
-    const finish = new Date(2026, 8, 25, 12, 0, 0);
+    const start = bahrainDate(2026, 8, 25, 9, 0, 0);
+    const finish = bahrainDate(2026, 8, 25, 12, 0, 0);
     const clock = (date: Date) =>
-      `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}`;
+      `${zonedParts(date).hour}:${String(zonedParts(date).minute).padStart(2, "0")}`;
     const shortGame = friendlyTournamentSchedule({
       start,
       finish,

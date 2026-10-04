@@ -1,4 +1,5 @@
 import { formatAbsoluteDay } from "~/lib/format-game-start";
+import { productDayKey } from "~/lib/product-timezone";
 import {
   fewWeeksRoundStarts,
   isOneDayTournamentWindow,
@@ -157,10 +158,6 @@ export function isPartnerRequiredGame(game: {
 
 function asDate(value: Date | string) {
   return value instanceof Date ? value : new Date(value);
-}
-
-function localDayKey(value: Date) {
-  return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
 }
 
 export type TournamentRoundSummary = {
@@ -326,7 +323,7 @@ function roundDateLines(args: {
   });
   const first = schedule[0]?.start ?? asDate(args.windowStart);
   const last = schedule[schedule.length - 1]?.start ?? first;
-  return localDayKey(last) === localDayKey(first)
+  return productDayKey(last) === productDayKey(first)
     ? [formatAbsoluteDay(first)]
     : [formatAbsoluteDay(first), formatAbsoluteDay(last)];
 }

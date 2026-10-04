@@ -1,3 +1,4 @@
+import { bahrainDate } from "~/lib/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
@@ -47,7 +48,7 @@ describe("formatHomeCountdown", () => {
 
 describe("formatHomeKickoff", () => {
   it("keeps time as one object with trailing meridiem", () => {
-    const start = new Date(2026, 8, 7, 21, 0, 0);
+    const start = bahrainDate(2026, 8, 7, 21, 0, 0);
     const kickoff = formatHomeKickoff(start);
     assert.equal(kickoff.time.includes(" "), false);
     assert.match(kickoff.meridiem, /AM|PM/i);
@@ -75,13 +76,13 @@ describe("formatHeroCountdown", () => {
 
 describe("formatHeroKickoffTrailer", () => {
   it("composes the meridiem with an explicit end-time trailer", () => {
-    const start = new Date(2026, 8, 7, 21, 0, 0);
-    const end = new Date(2026, 8, 7, 22, 30, 0);
+    const start = bahrainDate(2026, 8, 7, 21, 0, 0);
+    const end = bahrainDate(2026, 8, 7, 22, 30, 0);
     assert.equal(formatHeroKickoffTrailer(start, end), "PM until 10:30");
   });
 
   it("falls back to the bare meridiem when no window end exists", () => {
-    const start = new Date(2026, 8, 7, 21, 0, 0);
+    const start = bahrainDate(2026, 8, 7, 21, 0, 0);
     assert.equal(formatHeroKickoffTrailer(start, null), "PM");
   });
 });

@@ -1,3 +1,4 @@
+import { bahrainDate } from "~/lib/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
@@ -311,8 +312,8 @@ describe("postedRoundCount", () => {
 
 describe("tournamentRoundSummary", () => {
   it("returns Round count and the first and last Round days for a 12-team tournament", () => {
-    const start = new Date(2026, 8, 20, 18, 0, 0);
-    const end = new Date(2026, 9, 11, 19, 0, 0);
+    const start = bahrainDate(2026, 8, 20, 18, 0, 0);
+    const end = bahrainDate(2026, 9, 11, 19, 0, 0);
     assert.deepEqual(
       tournamentRoundSummary({
         roundCount: resolvePlannedRoundCount(12, 3, null),
@@ -328,8 +329,8 @@ describe("tournamentRoundSummary", () => {
   });
 
   it("carries an explicit Round count above the suggestion", () => {
-    const start = new Date(2026, 8, 20, 18, 0, 0);
-    const end = new Date(2026, 9, 11, 19, 0, 0);
+    const start = bahrainDate(2026, 8, 20, 18, 0, 0);
+    const end = bahrainDate(2026, 9, 11, 19, 0, 0);
     assert.deepEqual(
       tournamentRoundSummary({
         roundCount: resolvePlannedRoundCount(12, 3, 5),
@@ -345,8 +346,8 @@ describe("tournamentRoundSummary", () => {
   });
 
   it("keeps a single Round on a few-weeks window to its one date", () => {
-    const start = new Date(2026, 8, 20, 18, 0, 0);
-    const end = new Date(2026, 9, 11, 19, 0, 0);
+    const start = bahrainDate(2026, 8, 20, 18, 0, 0);
+    const end = bahrainDate(2026, 9, 11, 19, 0, 0);
     assert.deepEqual(
       tournamentRoundSummary({
         roundCount: resolvePlannedRoundCount(12, 3, 1),
@@ -362,8 +363,8 @@ describe("tournamentRoundSummary", () => {
   });
 
   it("keeps a one-day tournament to a single date line", () => {
-    const start = new Date(2026, 8, 20, 10, 0, 0);
-    const end = new Date(2026, 8, 20, 16, 0, 0);
+    const start = bahrainDate(2026, 8, 20, 10, 0, 0);
+    const end = bahrainDate(2026, 8, 20, 16, 0, 0);
     assert.deepEqual(
       tournamentRoundSummary({
         roundCount: resolvePlannedRoundCount(12, 3, null),
@@ -393,8 +394,8 @@ describe("tournamentRoundSummary", () => {
 
 describe("tournamentRoundSchedule", () => {
   it("steps a one-day window by the Match slot and stays monotonic", () => {
-    const windowStart = new Date(2026, 8, 20, 10, 0, 0);
-    const windowEnd = new Date(2026, 8, 20, 16, 0, 0);
+    const windowStart = bahrainDate(2026, 8, 20, 10, 0, 0);
+    const windowEnd = bahrainDate(2026, 8, 20, 16, 0, 0);
     const schedule = tournamentRoundSchedule({
       windowStart,
       windowEnd,
@@ -424,8 +425,8 @@ describe("tournamentRoundSchedule", () => {
   });
 
   it("steps a one-day window by 20, 30, or 45 minutes", () => {
-    const windowStart = new Date(2026, 8, 20, 10, 0, 0);
-    const windowEnd = new Date(2026, 8, 20, 16, 0, 0);
+    const windowStart = bahrainDate(2026, 8, 20, 10, 0, 0);
+    const windowEnd = bahrainDate(2026, 8, 20, 16, 0, 0);
     for (const minutes of [20, 30, 45, null] as const) {
       const schedule = tournamentRoundSchedule({
         windowStart,
@@ -451,10 +452,10 @@ describe("tournamentRoundSchedule", () => {
     if (roundCount == null) {
       return;
     }
-    const oneDayStart = new Date(2026, 8, 20, 10, 0, 0);
+    const oneDayStart = bahrainDate(2026, 8, 20, 10, 0, 0);
     const oneDay = tournamentRoundSchedule({
       windowStart: oneDayStart,
-      windowEnd: new Date(2026, 8, 20, 16, 0, 0),
+      windowEnd: bahrainDate(2026, 8, 20, 16, 0, 0),
       roundCount,
       matchMinutes: 30,
     });
@@ -467,8 +468,8 @@ describe("tournamentRoundSchedule", () => {
       oneDayStart.getTime() + 4 * 30 * 60 * 1000,
     );
 
-    const windowStart = new Date("2026-09-20T18:00:00");
-    const windowEnd = new Date("2026-10-18T18:45:00");
+    const windowStart = new Date("2026-09-20T18:00:00+03:00");
+    const windowEnd = new Date("2026-10-18T18:45:00+03:00");
     const fewWeeks = tournamentRoundSchedule({
       windowStart,
       windowEnd,
@@ -485,8 +486,8 @@ describe("tournamentRoundSchedule", () => {
   });
 
   it("spreads a multi-week window with fewWeeksRoundStarts and stays monotonic", () => {
-    const windowStart = new Date("2026-09-20T18:00:00");
-    const windowEnd = new Date("2026-10-04T18:45:00");
+    const windowStart = new Date("2026-09-20T18:00:00+03:00");
+    const windowEnd = new Date("2026-10-04T18:45:00+03:00");
     const schedule = tournamentRoundSchedule({
       windowStart,
       windowEnd,

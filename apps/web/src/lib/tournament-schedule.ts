@@ -1,3 +1,4 @@
+import { productDayKey } from "~/lib/product-timezone";
 import {
   suggestedRoundCount,
   tournamentMatchMinutes,
@@ -19,12 +20,8 @@ export type ScheduledPoolMatch = {
   slot2GameTeamId: string;
 };
 
-function localDayKey(value: Date) {
-  return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
-}
-
 export function isOneDayTournamentWindow(start: Date, end: Date) {
-  return localDayKey(start) === localDayKey(end);
+  return productDayKey(start) === productDayKey(end);
 }
 
 function addMinutes(start: Date, minutes: number) {

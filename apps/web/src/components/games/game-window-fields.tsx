@@ -1,6 +1,10 @@
 "use client";
 
 import * as React from "react";
+import {
+  dayInputValueFromPickerDate,
+  pickerDateFromInstant,
+} from "~/components/games/calendar-day";
 import { CalendarIcon } from "lucide-react";
 
 import { Calendar } from "~/components/ui/calendar";
@@ -25,7 +29,6 @@ import {
 } from "~/components/ui/select";
 import {
   earliestGameWindowDay,
-  formatDateInputValue,
   formatDayLabel,
   formatTimeSlotLabel,
   parseDateInputValue,
@@ -118,16 +121,22 @@ export function GameWindowFields({
 }) {
   const [dayOpen, setDayOpen] = React.useState(false);
   const dayButtonRef = React.useRef<HTMLButtonElement>(null);
-  const selectedDay = parseDateInputValue(day);
+  const selectedInstant = parseDateInputValue(day);
+  const selectedDay = selectedInstant
+    ? pickerDateFromInstant(selectedInstant)
+    : undefined;
   const dayLabel = formatDayLabel(day);
   const now = new Date();
-  const earliestDay = React.useMemo(() => earliestGameWindowDay(), []);
+  const earliestDay = React.useMemo(
+    () => pickerDateFromInstant(earliestGameWindowDay()),
+    [],
+  );
   const startSlots = upcomingGameWindowTimeSlots(day, now);
   const finishSlots = startTime
     ? startSlots.filter((slot) => slot >= startTime)
     : startSlots;
   const [displayedMonth, setDisplayedMonth] = React.useState(
-    () => parseDateInputValue(day) ?? earliestDay,
+    () => selectedDay ?? earliestDay,
   );
   const calendarMonth =
     displayedMonth.getTime() < earliestDay.getTime()
@@ -137,7 +146,7 @@ export function GameWindowFields({
   React.useEffect(() => {
     const next = parseDateInputValue(day);
     if (next) {
-      setDisplayedMonth(next);
+      setDisplayedMonth(pickerDateFromInstant(next));
     }
   }, [day]);
 
@@ -198,7 +207,7 @@ export function GameWindowFields({
                 if (!next) {
                   return;
                 }
-                onDayChange(formatDateInputValue(next));
+                onDayChange(dayInputValueFromPickerDate(next));
                 setDayOpen(false);
               }}
             />

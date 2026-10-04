@@ -1,3 +1,4 @@
+import { bahrainDate } from "~/lib/bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
@@ -46,15 +47,15 @@ describe("isOneDayTournamentWindow", () => {
   it("is one day when start and finish fall on the same local day", () => {
     assert.equal(
       isOneDayTournamentWindow(
-        new Date(2026, 8, 20, 10, 0, 0),
-        new Date(2026, 8, 20, 16, 0, 0),
+        bahrainDate(2026, 8, 20, 10, 0, 0),
+        bahrainDate(2026, 8, 20, 16, 0, 0),
       ),
       true,
     );
     assert.equal(
       isOneDayTournamentWindow(
-        new Date(2026, 8, 20, 18, 0, 0),
-        new Date(2026, 9, 4, 18, 45, 0),
+        bahrainDate(2026, 8, 20, 18, 0, 0),
+        bahrainDate(2026, 9, 4, 18, 45, 0),
       ),
       false,
     );
@@ -63,8 +64,8 @@ describe("isOneDayTournamentWindow", () => {
 
 describe("fewWeeksRoundStarts", () => {
   it("places the last Round one Game length before the finish", () => {
-    const windowStart = new Date("2026-09-20T18:00:00");
-    const windowEnd = new Date("2026-10-04T18:45:00");
+    const windowStart = new Date("2026-09-20T18:00:00+03:00");
+    const windowEnd = new Date("2026-10-04T18:45:00+03:00");
     for (const minutes of [20, 30, 45] as const) {
       const starts = fewWeeksRoundStarts(windowStart, windowEnd, 3, minutes);
       assert.equal(starts[0]?.getTime(), windowStart.getTime());
@@ -82,15 +83,15 @@ describe("fewWeeksRoundStarts", () => {
 
   it("anchors the first and last Rounds to the Game window", () => {
     const starts = fewWeeksRoundStarts(
-      new Date("2026-09-20T18:00:00"),
-      new Date("2026-10-04T18:45:00"),
+      new Date("2026-09-20T18:00:00+03:00"),
+      new Date("2026-10-04T18:45:00+03:00"),
       3,
       null,
     );
     assert.deepEqual(starts, [
-      new Date("2026-09-20T18:00:00"),
-      new Date("2026-09-27T18:00:00"),
-      new Date("2026-10-04T18:00:00"),
+      new Date("2026-09-20T18:00:00+03:00"),
+      new Date("2026-09-27T18:00:00+03:00"),
+      new Date("2026-10-04T18:00:00+03:00"),
     ]);
   });
 });
@@ -105,8 +106,8 @@ describe("schedulePoolMatches", () => {
       pools: [{ poolIndex: 1, gameTeamIds: teams }],
       roundCount: 3,
       courtIds: [court1, court2],
-      windowStart: new Date("2026-09-20T10:00:00"),
-      windowEnd: new Date("2026-09-20T16:00:00"),
+      windowStart: new Date("2026-09-20T10:00:00+03:00"),
+      windowEnd: new Date("2026-09-20T16:00:00+03:00"),
       matchMinutes: null,
     });
     assert.deepEqual(
@@ -120,42 +121,42 @@ describe("schedulePoolMatches", () => {
       [
         {
           roundNumber: 1,
-          startTime: new Date("2026-09-20T10:00:00"),
+          startTime: new Date("2026-09-20T10:00:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "D",
         },
         {
           roundNumber: 1,
-          startTime: new Date("2026-09-20T10:00:00"),
+          startTime: new Date("2026-09-20T10:00:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "B",
           slot2GameTeamId: "C",
         },
         {
           roundNumber: 2,
-          startTime: new Date("2026-09-20T10:45:00"),
+          startTime: new Date("2026-09-20T10:45:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "C",
         },
         {
           roundNumber: 2,
-          startTime: new Date("2026-09-20T10:45:00"),
+          startTime: new Date("2026-09-20T10:45:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "D",
           slot2GameTeamId: "B",
         },
         {
           roundNumber: 3,
-          startTime: new Date("2026-09-20T11:30:00"),
+          startTime: new Date("2026-09-20T11:30:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "B",
         },
         {
           roundNumber: 3,
-          startTime: new Date("2026-09-20T11:30:00"),
+          startTime: new Date("2026-09-20T11:30:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "C",
           slot2GameTeamId: "D",
@@ -169,14 +170,14 @@ describe("schedulePoolMatches", () => {
   });
 
   it("steps one-day slots by 20, 30, or 45 minutes", () => {
-    const windowStart = new Date("2026-09-20T10:00:00");
+    const windowStart = new Date("2026-09-20T10:00:00+03:00");
     for (const minutes of [20, 30, 45, null] as const) {
       const scheduled = schedulePoolMatches({
         pools: [{ poolIndex: 1, gameTeamIds: teams }],
         roundCount: 3,
         courtIds: [court1, court2],
         windowStart,
-        windowEnd: new Date("2026-09-20T16:00:00"),
+        windowEnd: new Date("2026-09-20T16:00:00+03:00"),
         matchMinutes: minutes,
       });
       const expected = tournamentMatchMinutes(minutes);
@@ -198,8 +199,8 @@ describe("schedulePoolMatches", () => {
       pools: [{ poolIndex: 1, gameTeamIds: teams }],
       roundCount: 3,
       courtIds: [court1, court2],
-      windowStart: new Date("2026-09-20T18:00:00"),
-      windowEnd: new Date("2026-10-04T18:45:00"),
+      windowStart: new Date("2026-09-20T18:00:00+03:00"),
+      windowEnd: new Date("2026-10-04T18:45:00+03:00"),
       matchMinutes: null,
     });
     assert.deepEqual(
@@ -213,42 +214,42 @@ describe("schedulePoolMatches", () => {
       [
         {
           roundNumber: 1,
-          startTime: new Date("2026-09-20T18:00:00"),
+          startTime: new Date("2026-09-20T18:00:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "D",
         },
         {
           roundNumber: 1,
-          startTime: new Date("2026-09-20T18:00:00"),
+          startTime: new Date("2026-09-20T18:00:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "B",
           slot2GameTeamId: "C",
         },
         {
           roundNumber: 2,
-          startTime: new Date("2026-09-27T18:00:00"),
+          startTime: new Date("2026-09-27T18:00:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "C",
         },
         {
           roundNumber: 2,
-          startTime: new Date("2026-09-27T18:00:00"),
+          startTime: new Date("2026-09-27T18:00:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "D",
           slot2GameTeamId: "B",
         },
         {
           roundNumber: 3,
-          startTime: new Date("2026-10-04T18:00:00"),
+          startTime: new Date("2026-10-04T18:00:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "B",
         },
         {
           roundNumber: 3,
-          startTime: new Date("2026-10-04T18:00:00"),
+          startTime: new Date("2026-10-04T18:00:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "C",
           slot2GameTeamId: "D",
@@ -265,8 +266,8 @@ describe("schedulePoolMatches", () => {
       ],
       roundCount: 3,
       courtIds: [court1, court2],
-      windowStart: new Date("2026-09-20T10:00:00"),
-      windowEnd: new Date("2026-09-20T16:00:00"),
+      windowStart: new Date("2026-09-20T10:00:00+03:00"),
+      windowEnd: new Date("2026-09-20T16:00:00+03:00"),
       matchMinutes: null,
     });
     assert.deepEqual(
@@ -280,42 +281,42 @@ describe("schedulePoolMatches", () => {
       [
         {
           roundNumber: 1,
-          startTime: new Date("2026-09-20T10:00:00"),
+          startTime: new Date("2026-09-20T10:00:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "B",
           slot2GameTeamId: "C",
         },
         {
           roundNumber: 1,
-          startTime: new Date("2026-09-20T10:00:00"),
+          startTime: new Date("2026-09-20T10:00:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "E",
           slot2GameTeamId: "F",
         },
         {
           roundNumber: 2,
-          startTime: new Date("2026-09-20T10:45:00"),
+          startTime: new Date("2026-09-20T10:45:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "C",
         },
         {
           roundNumber: 2,
-          startTime: new Date("2026-09-20T10:45:00"),
+          startTime: new Date("2026-09-20T10:45:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "D",
           slot2GameTeamId: "F",
         },
         {
           roundNumber: 3,
-          startTime: new Date("2026-09-20T11:30:00"),
+          startTime: new Date("2026-09-20T11:30:00+03:00"),
           courtId: court1,
           slot1GameTeamId: "A",
           slot2GameTeamId: "B",
         },
         {
           roundNumber: 3,
-          startTime: new Date("2026-09-20T11:30:00"),
+          startTime: new Date("2026-09-20T11:30:00+03:00"),
           courtId: court2,
           slot1GameTeamId: "D",
           slot2GameTeamId: "E",
@@ -460,8 +461,8 @@ describe("sizeTournamentRounds", () => {
 });
 
 describe("oneDayFit against schedulePoolMatches", () => {
-  const windowStart = new Date("2026-09-20T09:00:00");
-  const windowEnd = new Date("2026-09-20T23:00:00");
+  const windowStart = new Date("2026-09-20T09:00:00+03:00");
+  const windowEnd = new Date("2026-09-20T23:00:00+03:00");
   const courts = ["court-1", "court-2", "court-3", "court-4"];
 
   function poolsOf(sizes: readonly number[]) {
@@ -522,8 +523,8 @@ describe("schedulePoolMatches with a chosen Round count", () => {
   const court2 = "court-2";
   const oneDay = {
     courtIds: [court1, court2],
-    windowStart: new Date("2026-09-20T10:00:00"),
-    windowEnd: new Date("2026-09-20T20:00:00"),
+    windowStart: new Date("2026-09-20T10:00:00+03:00"),
+    windowEnd: new Date("2026-09-20T20:00:00+03:00"),
     matchMinutes: null,
   };
   const pools = [
@@ -587,20 +588,20 @@ describe("schedulePoolMatches with a chosen Round count", () => {
       pools: [{ poolIndex: 1, gameTeamIds: ["A", "B", "C", "D"] }],
       roundCount: 6,
       courtIds: [court1, court2],
-      windowStart: new Date("2026-09-20T18:00:00"),
-      windowEnd: new Date("2026-10-10T18:45:00"),
+      windowStart: new Date("2026-09-20T18:00:00+03:00"),
+      windowEnd: new Date("2026-10-10T18:45:00+03:00"),
       matchMinutes: null,
     });
     const starts = [
       ...new Set(scheduled.map((match) => match.startTime.getTime())),
     ].map((time) => new Date(time));
     assert.deepEqual(starts, [
-      new Date("2026-09-20T18:00:00"),
-      new Date("2026-09-24T18:00:00"),
-      new Date("2026-09-28T18:00:00"),
-      new Date("2026-10-02T18:00:00"),
-      new Date("2026-10-06T18:00:00"),
-      new Date("2026-10-10T18:00:00"),
+      new Date("2026-09-20T18:00:00+03:00"),
+      new Date("2026-09-24T18:00:00+03:00"),
+      new Date("2026-09-28T18:00:00+03:00"),
+      new Date("2026-10-02T18:00:00+03:00"),
+      new Date("2026-10-06T18:00:00+03:00"),
+      new Date("2026-10-10T18:00:00+03:00"),
     ]);
   });
 });

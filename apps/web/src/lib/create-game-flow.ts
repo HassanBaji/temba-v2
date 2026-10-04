@@ -1,4 +1,5 @@
 import { formatDayMonth } from "~/lib/format-game-start";
+import { addProductDays } from "~/lib/product-timezone";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   isAssignableDisplayLevelBand,
@@ -528,13 +529,9 @@ export function createFlowDayOptions(
   count = 5,
 ): Date[] {
   const start = earliestGameWindowDay(now);
-  return Array.from({ length: count }, (_, index) => {
-    return new Date(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate() + index,
-    );
-  });
+  return Array.from({ length: count }, (_, index) =>
+    addProductDays(start, index),
+  );
 }
 
 export function previewStartSlots(

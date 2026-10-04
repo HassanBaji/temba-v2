@@ -18,6 +18,8 @@ import type {
   TournamentCardFixture,
   TournamentCardFixtures,
 } from "~/fixtures/tournament-card";
+import { formatGameClock } from "~/lib/format-game-start";
+import { zonedDateTimeToInstant } from "~/lib/product-timezone";
 import { formatPricePerPlayerCents } from "~/lib/price-per-player";
 import type { TournamentMatchPhase } from "~/lib/tournament-card";
 import {
@@ -336,8 +338,18 @@ function TournamentCreateControlsPreview() {
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
   const priceLabel = formatPricePerPlayerCents(1200);
-  const start = new Date(2026, 8, 20, 9, 0, 0);
-  const finish = new Date(2026, 8, 20, 16, 0, 0);
+  const start = zonedDateTimeToInstant({
+    year: 2026,
+    month: 9,
+    day: 20,
+    hour: 9,
+  });
+  const finish = zonedDateTimeToInstant({
+    year: 2026,
+    month: 9,
+    day: 20,
+    hour: 16,
+  });
   const fit = sizing
     ? oneDayFit({
         start,
@@ -484,12 +496,7 @@ function TournamentCreateControlsPreview() {
           </p>
           {fit.lastFinish ? (
             <p className="text-lead mt-2 leading-snug">
-              {lastMatchFinishCopy(
-                fit.lastFinish.toLocaleTimeString(undefined, {
-                  hour: "numeric",
-                  minute: "2-digit",
-                }),
-              )}
+              {lastMatchFinishCopy(formatGameClock(fit.lastFinish))}
             </p>
           ) : null}
           {fit.overruns ? (

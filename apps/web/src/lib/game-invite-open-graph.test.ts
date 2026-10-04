@@ -1,3 +1,7 @@
+import {
+  bahrainDate,
+  bahrainDayFromToday,
+} from "~/lib/bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -24,10 +28,8 @@ describe("occupiedFriendlyPositions", () => {
 
 describe("gameInviteOpenGraphMetadata", () => {
   it("uses Venue title and occupancy without User names for an individual Friendly game", () => {
-    const today = new Date();
-    today.setHours(19, 0, 0, 0);
-    const end = new Date(today);
-    end.setHours(20, 0, 0, 0);
+    const today = bahrainDayFromToday(0, 19);
+    const end = bahrainDayFromToday(0, 20);
     const metadata = gameInviteOpenGraphMetadata({
       venueName: "Padel Club",
       windowStart: today,
@@ -46,10 +48,8 @@ describe("gameInviteOpenGraphMetadata", () => {
   });
 
   it("appends the Game Level range when set and never a User Level", () => {
-    const today = new Date();
-    today.setHours(19, 0, 0, 0);
-    const end = new Date(today);
-    end.setHours(20, 0, 0, 0);
+    const today = bahrainDayFromToday(0, 19);
+    const end = bahrainDayFromToday(0, 20);
     const metadata = gameInviteOpenGraphMetadata({
       venueName: "Padel Club",
       windowStart: today,
@@ -66,8 +66,8 @@ describe("gameInviteOpenGraphMetadata", () => {
   });
 
   it("omits occupancy for other Game formats", () => {
-    const start = new Date(2026, 8, 15, 19, 0, 0);
-    const end = new Date(2026, 8, 15, 20, 0, 0);
+    const start = bahrainDate(2026, 8, 15, 19, 0, 0);
+    const end = bahrainDate(2026, 8, 15, 20, 0, 0);
     const metadata = gameInviteOpenGraphMetadata({
       venueName: "Padel Club",
       windowStart: start,
