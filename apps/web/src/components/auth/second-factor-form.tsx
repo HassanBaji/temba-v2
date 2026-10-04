@@ -10,7 +10,7 @@ import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
 import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
-import { splitClerkAuthError } from "~/lib/clerk-auth-error";
+import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
 
 const CODE_INPUT_ID = "second-factor-code";

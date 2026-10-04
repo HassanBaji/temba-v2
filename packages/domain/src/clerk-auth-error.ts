@@ -1,6 +1,14 @@
-import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
+export type SplitClerkAuthError = {
+  fieldErrors: Record<string, string>;
+  globalMessage: string | null;
+};
 
-import type { SplitFormError } from "./form-mutation-error";
+type ClerkAuthApiError = {
+  code: string;
+  message: string;
+  longMessage?: string | null;
+  meta?: { paramName?: string };
+};
 
 export const GENERIC_CLERK_AUTH_ERROR = "Something went wrong. Try again.";
 
@@ -20,35 +28,36 @@ export const CLERK_AUTH_ERROR_COPY: Record<string, string> = {
     "That password has appeared in a data breach. Choose a different one.",
 };
 
-function clerkErrorCopy(error: {
-  code: string;
-  message: string;
-  longMessage?: string | null;
-}): string {
+function clerkErrorCopy(error: ClerkAuthApiError): string {
   return (
     CLERK_AUTH_ERROR_COPY[error.code] ?? error.longMessage ?? error.message
   );
 }
 
-function isClerkAuthApiError(err: unknown): err is {
-  errors: Array<{
-    code: string;
-    message: string;
-    longMessage?: string | null;
-    meta?: { paramName?: string };
-  }>;
-} {
+function isClerkAuthApiError(
+  err: unknown,
+): err is { errors: ClerkAuthApiError[] } {
   if (typeof err !== "object" || err === null) {
     return false;
   }
-  try {
-    return isClerkAPIResponseError(err);
-  } catch {
-    return false;
-  }
+  const { clerkError, errors } = err as {
+    clerkError?: unknown;
+    errors?: unknown;
+  };
+  return (
+    clerkError === true &&
+    Array.isArray(errors) &&
+    (errors as Array<Partial<ClerkAuthApiError> | null>).every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof item.code === "string" &&
+        typeof item.message === "string",
+    )
+  );
 }
 
-export function splitClerkAuthError(err: unknown): SplitFormError {
+export function splitClerkAuthError(err: unknown): SplitClerkAuthError {
   if (!isClerkAuthApiError(err)) {
     return { fieldErrors: {}, globalMessage: GENERIC_CLERK_AUTH_ERROR };
   }
@@ -85,19 +94,4 @@ export function clerkFieldErrorMessage(
 
 export function clerkGlobalErrorMessage(err: unknown): string | null {
   return splitClerkAuthError(err).globalMessage;
-}
-
-export function focusClerkAuthFailure(
-  err: unknown,
-  fieldElementIds: Record<string, string>,
-  summary: HTMLElement | null,
-) {
-  const split = splitClerkAuthError(err);
-  const firstField = Object.keys(split.fieldErrors)[0];
-  if (firstField) {
-    const elementId = fieldElementIds[firstField] ?? firstField;
-    document.getElementById(elementId)?.focus();
-    return;
-  }
-  summary?.focus();
 }

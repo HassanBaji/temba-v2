@@ -18,7 +18,7 @@ import {
   countryFlagEmoji,
   formatNationalNumber,
   nationalDigits,
-} from "~/lib/phone-number";
+} from "@repo/domain/phone-number";
 import { cn } from "~/lib/utils";
 
 export function PhoneField({

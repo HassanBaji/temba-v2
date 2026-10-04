@@ -7,7 +7,7 @@ import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { GoogleIcon } from "~/components/ui/icons/google";
 import { authCompleteUrl, ssoCallbackUrl } from "~/lib/auth-redirect";
-import { clerkGlobalErrorMessage } from "~/lib/clerk-auth-error";
+import { clerkGlobalErrorMessage } from "@repo/domain/clerk-auth-error";
 
 /**
  * OAuth providers actually enabled on this Clerk instance

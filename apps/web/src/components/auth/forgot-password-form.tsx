@@ -22,7 +22,7 @@ import {
   authCompleteUrl,
   authCrossLinkUrl,
 } from "~/lib/auth-redirect";
-import { splitClerkAuthError } from "~/lib/clerk-auth-error";
+import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
 
 const FIELD_IDS = {

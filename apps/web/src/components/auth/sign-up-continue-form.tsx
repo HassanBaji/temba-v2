@@ -24,13 +24,13 @@ import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
 import {
   CLERK_AUTH_ERROR_COPY,
   splitClerkAuthError,
-} from "~/lib/clerk-auth-error";
+} from "@repo/domain/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
 import {
   DEFAULT_CALLING_COUNTRY_ISO,
   assembleE164,
   formatInternationalNumber,
-} from "~/lib/phone-number";
+} from "@repo/domain/phone-number";
 
 const FIELD_IDS = {
   username: "signup-continue-username",

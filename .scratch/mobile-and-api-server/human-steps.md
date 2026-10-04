@@ -116,3 +116,7 @@ Nothing calls the API yet, so this deploy changes nothing users see. TEM-313, TE
 - [ ] **TEM-320.** Operator Clerk-call count: in the Clerk dashboard (or the API logs) confirm one Operator procedure call causes one `GET /v1/users/{id}`. Covered by a unit test with a stubbed Clerk client only.
 - [ ] **TEM-320.** Expo token check on a Clerk development instance: from a throwaway Expo app signed in with the Clerk Expo SDK, `const token = await getToken()`, then `curl -s -w " %{http_code}\n" -H "Authorization: Bearer $token" "http://localhost:4000/api/trpc/users.home"` against the local API (or the staging API) returns 200 and the same User's data. Unverified until done; the tests only use locally signed tokens.
 - [ ] **TEM-320.** Rollback, if the web App breaks after deploy: set `ACCEPT_SESSION_COOKIE=true` on the API and restart. Remove the flag and `withoutCookies` handling in `apps/api/src/context.ts` in the release after.
+
+## TEM-321 shared phone and auth-error helpers
+
+- [ ] **TEM-321** In a browser with real Clerk users, run the web sign-in and sign-up forms (`/login`, `/signup`, including the continue step): confirm the phone field, and that a wrong identifier, wrong code and too-many-attempts error show the same messages as before. Until then, form behaviour is verified only by unit tests.
