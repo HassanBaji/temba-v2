@@ -15,6 +15,10 @@ import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
   entityImageUploadInput,
 } from "@repo/domain/entity-image-file";
+import {
+  GROUP_CREATED_TOAST,
+  GROUP_CREATE_LOOSE_DESCRIPTION,
+} from "@repo/domain/group-create";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
@@ -75,7 +79,7 @@ export default function NewLooseGroupPage() {
           name: values.name,
           sport: "padel",
         });
-        await afterCreate(group, values.image, "Group created");
+        await afterCreate(group, values.image, GROUP_CREATED_TOAST);
         return;
       }
       createLoosePrivate.reset();
@@ -84,7 +88,7 @@ export default function NewLooseGroupPage() {
         sport: "padel",
         requiresApproval: values.requiresApproval,
       });
-      await afterCreate(group, values.image, "Group created");
+      await afterCreate(group, values.image, GROUP_CREATED_TOAST);
     } catch {
       return;
     }
@@ -93,7 +97,7 @@ export default function NewLooseGroupPage() {
   return (
     <DashboardShell
       title="Create Group"
-      description="A Group of people you play with, outside any Community. You join it as its first member."
+      description={GROUP_CREATE_LOOSE_DESCRIPTION}
     >
       <Card variant="outlined" className="w-full">
         <GroupCreateForm

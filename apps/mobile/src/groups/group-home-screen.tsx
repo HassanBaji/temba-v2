@@ -8,6 +8,10 @@ import {
   groupLeaveToast,
 } from "@repo/domain/group-join";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
+import {
+  groupDeleteConfirm,
+  groupRemoveImageConfirm,
+} from "@repo/domain/group-admin";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
@@ -32,6 +36,7 @@ import { api } from "../trpc/react";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
 import { Notice } from "./notice";
+import { useGroupAdmin } from "./use-group-admin";
 import { useGroupJoin } from "./use-group-join";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -79,6 +84,14 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   });
 
   const data = group.data;
+  const admin = useGroupAdmin(groupId, data, () => {
+    setConfirm(null);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/groups");
+    }
+  });
   const currentOlder =
     data && older?.source === data.gameHistory ? older : null;
   const playedGames = useMemo(
@@ -116,11 +129,11 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await group.refetch();
+      await Promise.all([group.refetch(), admin.refetchRequests()]);
     } finally {
       setRefreshing(false);
     }
-  }, [group]);
+  }, [group, admin]);
 
   const title = data ? groupHomeHeader(data, apiOrigin).name : "Group";
   const header = (
@@ -187,8 +200,26 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             onConfirm: () => leave.mutate({ groupId }),
           })
         }
+        admin={{
+          approver: admin.approver,
+          imagePending: admin.imagePending,
+          onChangeImage: () => void admin.changeImage(),
+          onRemoveImage: () =>
+            setConfirm({
+              ...groupRemoveImageConfirm(name),
+              onConfirm: () => {
+                setConfirm(null);
+                admin.clearImage();
+              },
+            }),
+          onDelete: () =>
+            setConfirm({
+              ...groupDeleteConfirm(name),
+              onConfirm: admin.deleteGroup,
+            }),
+        }}
         confirm={confirm}
-        confirmPending={leave.isPending}
+        confirmPending={leave.isPending || admin.deletePending}
         onCloseConfirm={() => setConfirm(null)}
         memberQuery={memberQuery}
         onMemberQueryChange={setMemberQuery}

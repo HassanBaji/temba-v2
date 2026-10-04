@@ -2,10 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import {
-  GroupCreateForm,
-  type GroupCreateContext,
-} from "~/components/groups/group-create-form";
+import { GroupCreateForm } from "~/components/groups/group-create-form";
+import type { GroupCreateContext } from "@repo/domain/group-create";
 
 function render(context: GroupCreateContext) {
   return renderToStaticMarkup(

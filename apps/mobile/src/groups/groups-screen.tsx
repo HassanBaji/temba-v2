@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/expo";
 import { Link, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
@@ -14,6 +15,7 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function GroupsScreen() {
   const router = useRouter();
+  const { user } = useUser();
   const [tab, setTab] = useState<GroupsTab>("mine");
   const [refreshing, setRefreshing] = useState(false);
   const { join, pendingGroupId } = useGroupJoin();
@@ -53,6 +55,8 @@ export function GroupsScreen() {
         onOpen={(groupId) => router.push(groupPath(groupId))}
         onJoin={join}
         onRetry={() => void refetchActive()}
+        hasCreateAccess={user?.publicMetadata.groupCreator === true}
+        onCreate={() => router.push("/groups/new")}
       />
       {__DEV__ ? (
         <Link href="/gallery-groups">

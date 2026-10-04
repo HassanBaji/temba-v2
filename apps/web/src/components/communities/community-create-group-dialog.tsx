@@ -10,10 +10,6 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import {
-  GROUP_CREATE_COPY,
-  type GroupCreateType,
-} from "~/components/groups/group-create-form";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -29,6 +25,10 @@ import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { entityImageFileError } from "@repo/domain/entity-image-file";
+import {
+  GROUP_CREATE_COPY,
+  type GroupCreateType,
+} from "@repo/domain/group-create";
 import {
   fieldErrorMessage,
   focusFormFailure,

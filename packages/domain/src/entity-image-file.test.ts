@@ -44,6 +44,15 @@ describe("entityImageFileError", () => {
     ).toBe("Image must be at most 2 MB");
   });
 
+  it("checks a picked image that is not a File", () => {
+    expect(entityImageFileError({ type: "image/heic", size: 1024 })).toBe(
+      "Image must be a JPEG, PNG, or WebP image",
+    );
+    expect(
+      entityImageFileError({ type: "image/png", size: ENTITY_IMAGE_MAX_BYTES }),
+    ).toBeNull();
+  });
+
   it("accepts a JPEG within the cap", () => {
     expect(
       entityImageFileError(fakeFile({ type: "image/jpeg", size: 1024 })),

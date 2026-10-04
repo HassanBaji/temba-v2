@@ -48,6 +48,15 @@ import {
   groupLeaveToast,
   type GroupJoinMode,
 } from "@repo/domain/group-join";
+import {
+  GROUP_DELETED_TOAST,
+  GROUP_IMAGE_REMOVED_TOAST,
+  GROUP_IMAGE_SAVED_TOAST,
+  GROUP_REQUEST_APPROVED_TOAST,
+  GROUP_REQUEST_REJECTED_TOAST,
+  groupDeleteConfirm,
+  groupRemoveImageConfirm,
+} from "@repo/domain/group-admin";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { groupLookupNote, lookupInviteSentToast } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
@@ -159,7 +168,7 @@ export default function GroupHomePage({
 
   const approveJoinRequest = api.groups.approveJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Request approved");
+      toast.success(GROUP_REQUEST_APPROVED_TOAST);
       await Promise.all([
         utils.groups.byId.invalidate({ id }),
         utils.groups.mine.invalidate(),
@@ -186,7 +195,7 @@ export default function GroupHomePage({
 
   const rejectJoinRequest = api.groups.rejectJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Request rejected");
+      toast.success(GROUP_REQUEST_REJECTED_TOAST);
       await Promise.all([
         utils.groups.byId.invalidate({ id }),
         utils.groups.mine.invalidate(),
@@ -212,7 +221,7 @@ export default function GroupHomePage({
 
   const deleteGroup = api.groups.delete.useMutation({
     onSuccess: async (result) => {
-      toast.success("Group deleted");
+      toast.success(GROUP_DELETED_TOAST);
       await utils.groups.mine.invalidate();
       if (result.communityId) {
         await utils.communities.byId.invalidate({ id: result.communityId });
@@ -235,7 +244,7 @@ export default function GroupHomePage({
 
   const uploadImage = api.groups.uploadImage.useMutation({
     onSuccess: async () => {
-      toast.success("Image saved");
+      toast.success(GROUP_IMAGE_SAVED_TOAST);
       await invalidateGroupImage();
     },
     onError: (error) => {
@@ -245,7 +254,7 @@ export default function GroupHomePage({
 
   const clearImage = api.groups.clearImage.useMutation({
     onSuccess: async () => {
-      toast.success("Image removed");
+      toast.success(GROUP_IMAGE_REMOVED_TOAST);
       await invalidateGroupImage();
     },
   });
@@ -478,6 +487,8 @@ export default function GroupHomePage({
     canDelete: data.canDelete,
   });
   const leaveConfirm = groupLeaveConfirm(groupName);
+  const deleteConfirm = groupDeleteConfirm(groupName);
+  const removeImageConfirm = groupRemoveImageConfirm(groupName);
   const restoreFocusRef =
     restoreFocus === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef;
 
@@ -679,9 +690,9 @@ export default function GroupHomePage({
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title={`Delete ${groupName}?`}
-        description="This cannot be undone."
-        confirmLabel="Delete Group"
+        title={deleteConfirm.title}
+        description={deleteConfirm.description}
+        confirmLabel={deleteConfirm.confirmLabel}
         pending={deleteGroup.isPending}
         restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {
@@ -692,9 +703,9 @@ export default function GroupHomePage({
       <ConfirmDialog
         open={removeImageOpen}
         onOpenChange={setRemoveImageOpen}
-        title={`Remove image for ${groupName}?`}
-        description="The current image will be removed."
-        confirmLabel="Remove image"
+        title={removeImageConfirm.title}
+        description={removeImageConfirm.description}
+        confirmLabel={removeImageConfirm.confirmLabel}
         pending={clearImage.isPending}
         restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {

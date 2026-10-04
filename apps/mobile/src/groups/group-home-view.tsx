@@ -2,6 +2,7 @@ import { spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import { groupManageActions } from "@repo/domain/group-admin";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { View } from "react-native";
@@ -17,9 +18,31 @@ import { Button } from "../primitives/button";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { GamesTab, type GamesTabProps } from "./games-tab";
+import {
+  GroupApproverView,
+  type GroupApproverProps,
+} from "./group-approver-view";
 import { groupBanner, groupHomeHeader, groupJoinCta } from "./group-home-model";
 import { MembersTab } from "./members-tab";
 import { StandingTab } from "./standing-tab";
+
+export type GroupAdminHandlers = {
+  approver: Pick<
+    GroupApproverProps,
+    | "requests"
+    | "requiresApprovalPending"
+    | "onRequiresApprovalChange"
+    | "approvePendingId"
+    | "rejectPendingId"
+    | "onApprove"
+    | "onReject"
+    | "onRetry"
+  >;
+  imagePending: boolean;
+  onChangeImage: () => void;
+  onRemoveImage: () => void;
+  onDelete: () => void;
+};
 
 export type GroupHomeViewProps = {
   data: GroupHomeData;
@@ -47,6 +70,7 @@ export type GroupHomeViewProps = {
     position: "left" | "right",
   ) => void;
   actions: GameCardActions;
+  admin: GroupAdminHandlers;
 };
 
 const TABS: { key: GroupHomeTab; label: string }[] = [
@@ -61,6 +85,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
   const cta = groupJoinCta(data, props.joinPending);
   const banner = groupBanner(data);
   const door = cta?.door;
+  const manage = groupManageActions(data);
 
   return (
     <View style={{ gap: spacing.compact }}>
@@ -94,6 +119,37 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               size="sm"
               variant="outline"
               onPress={props.onLeave}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
+      {manage.length > 0 ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {manage.includes("change_image") ? (
+            <Button
+              label="Change image"
+              size="sm"
+              variant="outline"
+              pending={props.admin.imagePending}
+              onPress={props.admin.onChangeImage}
+            />
+          ) : null}
+          {manage.includes("remove_image") ? (
+            <Button
+              label="Remove image"
+              size="sm"
+              variant="outline"
+              disabled={props.admin.imagePending}
+              onPress={props.admin.onRemoveImage}
+            />
+          ) : null}
+          {manage.includes("delete") ? (
+            <Button
+              label="Delete Group"
+              size="sm"
+              variant="outline"
+              onPress={props.admin.onDelete}
             />
           ) : null}
         </View>
@@ -140,6 +196,16 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           upcomingGames={data.upcomingGames}
           isCommunityArchived={data.isCommunityArchived}
           actions={props.actions}
+        />
+      ) : null}
+      {props.tab === "members" ? (
+        <GroupApproverView
+          {...props.admin.approver}
+          canSetRequiresApproval={data.canSetRequiresApproval}
+          requiresApproval={data.requiresApproval}
+          canDecideJoinRequests={data.canDecideJoinRequests}
+          communityName={data.community?.name ?? null}
+          apiOrigin={props.apiOrigin}
         />
       ) : null}
       {props.tab === "members" ? (

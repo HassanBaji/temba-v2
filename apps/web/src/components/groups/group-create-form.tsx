@@ -23,12 +23,16 @@ import {
 } from "~/components/ui/select";
 import { entityImageFileError } from "@repo/domain/entity-image-file";
 import {
+  GROUP_CREATE_COPY,
+  groupCreateRequiresApproval,
+  type GroupCreateContext,
+  type GroupCreateType,
+} from "@repo/domain/group-create";
+import {
   fieldErrorMessage,
   focusFormFailure,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
-
-export type GroupCreateType = "public" | "private";
 
 export type GroupCreateValues = {
   name: string;
@@ -36,33 +40,6 @@ export type GroupCreateValues = {
   requiresApproval: boolean;
   image: File | null;
 };
-
-/** A Loose Group stands alone; a Club Group is created under a Community. */
-export type GroupCreateContext = "loose" | "club";
-
-export const GROUP_CREATE_COPY = {
-  loose: {
-    publicLabel: "Public (anyone with the link)",
-    privateLabel: "Private (invite only)",
-    publicHelp:
-      "Anyone with the Group link can join, or ask to join if you require approval.",
-    privateHelp: "Only you can invite people.",
-    approvalHelp:
-      "People ask to join. You approve or reject them on Group home.",
-    submit: "Create Group",
-  },
-  club: {
-    publicLabel: "Public (Community Members)",
-    privateLabel: "Private (invite only)",
-    publicHelp:
-      "Any Community Member can join, or ask to join if you require approval.",
-    privateHelp:
-      "Owners and Admins can invite anyone. The Group's creator can invite Community Members.",
-    approvalHelp:
-      "Community Members ask to join. You approve or reject them on Group home.",
-    submit: "Create Club Group",
-  },
-} as const;
 
 export function GroupCreateForm({
   context,
@@ -117,7 +94,7 @@ export function GroupCreateForm({
     onSubmit({
       name: trimmed,
       type,
-      requiresApproval: type === "public" && requiresApproval,
+      requiresApproval: groupCreateRequiresApproval(type, requiresApproval),
       image,
     });
   }

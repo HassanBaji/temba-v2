@@ -11,7 +11,15 @@ import { Section } from "~/components/layout/section";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "~/components/ui/field";
 import { Skeleton } from "~/components/ui/skeleton";
-import { requestRowMeta } from "@repo/domain/request-meta";
+import {
+  GROUP_REQUIRE_APPROVAL_HELP,
+  GROUP_REQUIRE_APPROVAL_LABEL,
+  GROUP_REQUESTS_DESCRIPTION,
+  GROUP_REQUESTS_EMPTY,
+  GROUP_REQUESTS_ERROR_TITLE,
+  GROUP_REQUESTS_TITLE,
+  groupJoinRequestMeta,
+} from "@repo/domain/group-admin";
 import { type RouterOutputs } from "~/trpc/react";
 
 type JoinRequest = RouterOutputs["groups"]["listJoinRequests"][number];
@@ -71,26 +79,23 @@ export function GroupApproverControls({
               }
             />
             <FieldLabel htmlFor="group-requires-approval">
-              Require approval
+              {GROUP_REQUIRE_APPROVAL_LABEL}
             </FieldLabel>
           </div>
-          <FieldDescription>
-            When on, people request to join and you decide on this tab. Turning
-            it off does not admit pending requests.
-          </FieldDescription>
+          <FieldDescription>{GROUP_REQUIRE_APPROVAL_HELP}</FieldDescription>
         </Field>
       ) : null}
 
       {canDecideJoinRequests ? (
         <Section
-          title="Requests"
-          description="Approve to admit as a Group member, reject to refuse (they may re-request), or leave pending."
+          title={GROUP_REQUESTS_TITLE}
+          description={GROUP_REQUESTS_DESCRIPTION}
         >
           {joinLoading ? <Skeleton className="h-16 w-full" /> : null}
           {joinError ? (
             <ErrorState
               headingLevel={3}
-              title="Join requests could not be loaded"
+              title={GROUP_REQUESTS_ERROR_TITLE}
               message={joinError}
               onRetry={onRetryJoin}
             />
@@ -110,11 +115,7 @@ export function GroupApproverControls({
                       />
                     }
                     title={name}
-                    meta={requestRowMeta(request.createdAt, [
-                      request.isCommunityMember === false
-                        ? `Not yet a ${communityName ?? "Community"} Member`
-                        : null,
-                    ])}
+                    meta={groupJoinRequestMeta(request, communityName)}
                     approvePending={approvePendingId === request.id}
                     rejectPending={rejectPendingId === request.id}
                     onApprove={() => onApprove(request.id)}
@@ -128,8 +129,8 @@ export function GroupApproverControls({
             <EmptyState
               headingLevel={3}
               icon={Inbox}
-              title="No pending requests"
-              description="Group join requests will show up here."
+              title={GROUP_REQUESTS_EMPTY.title}
+              description={GROUP_REQUESTS_EMPTY.description}
             />
           ) : null}
         </Section>

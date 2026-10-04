@@ -2,6 +2,7 @@ import type {
   GroupHomeData,
   GroupLeaderboardEntryData,
   GroupMineRowData,
+  GroupJoinRequestData,
   GroupPlayedGameData,
   GroupPublicRowData,
 } from "./group-data";
@@ -229,7 +230,36 @@ export function createGroupFixtures(now = new Date()) {
     isLoose: true,
     canManageLookupInvites: false,
     canManageInviteLinks: false,
+    requiresApproval: false,
+    canSetRequiresApproval: false,
+    canDecideJoinRequests: false,
+    canManageImage: false,
+    canDelete: false,
   };
+
+  const creator: GroupHomeData = {
+    ...base,
+    canManageLookupInvites: true,
+    canManageInviteLinks: true,
+    canSetRequiresApproval: true,
+    canDecideJoinRequests: true,
+    canManageImage: true,
+  };
+
+  const joinRequests: GroupJoinRequestData[] = [
+    {
+      id: "request-nora",
+      createdAt: new Date(now.getTime() - 2 * DAY_MS),
+      user: { id: "nora", name: "Nora Berg", image: null },
+      isCommunityMember: null,
+    },
+    {
+      id: "request-sam",
+      createdAt: new Date(now.getTime() - 10 * DAY_MS),
+      user: { id: "sam", name: "Sam Ek", image: null },
+      isCommunityMember: false,
+    },
+  ];
 
   const nonMember: GroupHomeData = {
     ...base,
@@ -238,9 +268,33 @@ export function createGroupFixtures(now = new Date()) {
     canJoinLoosePublic: true,
   };
 
+  const administration = {
+    creator,
+    requiresApproval: { ...creator, requiresApproval: true },
+    noImage: { ...creator, imageUrl: null },
+    deletable: { ...creator, canDelete: true },
+    club: {
+      ...creator,
+      communityId: "community-sodermalm",
+      community: { id: "community-sodermalm", name: "Södermalm Padel" },
+      communityMembership: {},
+      isLoose: false,
+      requiresApproval: true,
+      canDelete: true,
+    },
+    private: {
+      ...creator,
+      canSetRequiresApproval: false,
+      canDecideJoinRequests: false,
+    },
+    member: base,
+  };
+
   return {
     mine,
     publicGroups,
+    administration,
+    joinRequests,
     home: {
       member: base,
       noResults: {

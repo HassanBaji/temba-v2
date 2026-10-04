@@ -37,6 +37,8 @@ export type GroupsViewProps = {
   onOpen: (groupId: string) => void;
   onJoin: (groupId: string, door: GroupJoinDoor) => void;
   onRetry: () => void;
+  hasCreateAccess: boolean;
+  onCreate: () => void;
 };
 
 function TabButtons({
@@ -325,9 +327,26 @@ function PublicList(props: GroupsViewProps) {
 export function GroupsView(props: GroupsViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
-      <Text size="h1" weight="bold" accessibilityRole="header">
-        Groups
-      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text size="h1" weight="bold" accessibilityRole="header">
+          Groups
+        </Text>
+        {props.hasCreateAccess ? (
+          <Button
+            label="Create Group"
+            size="sm"
+            variant="outline"
+            onPress={props.onCreate}
+          />
+        ) : null}
+      </View>
       <TabButtons tab={props.tab} onTabChange={props.onTabChange} />
       {props.tab === "mine" ? (
         <MineList {...props} />

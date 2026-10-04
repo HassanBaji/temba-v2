@@ -77,4 +77,16 @@ export type GroupHomeData = {
   isLoose: boolean;
   canManageLookupInvites: boolean;
   canManageInviteLinks: boolean;
+  requiresApproval: boolean;
+  canSetRequiresApproval: boolean;
+  canDecideJoinRequests: boolean;
+  canManageImage: boolean;
+  canDelete: boolean;
+};
+
+export type GroupJoinRequestData = {
+  id: string;
+  createdAt: Date | string;
+  user: { id: string; name: string | null; image: string | null };
+  isCommunityMember: boolean | null;
 };

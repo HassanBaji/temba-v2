@@ -28,8 +28,10 @@ export function asEntityImageContentType(
   return null;
 }
 
+export type PickedImage = { type: string; size: number };
+
 export function entityImageFileError(
-  file: File,
+  file: PickedImage,
   noun: EntityImageNoun = "Image",
 ): string | null {
   if (!asEntityImageContentType(file.type)) {
