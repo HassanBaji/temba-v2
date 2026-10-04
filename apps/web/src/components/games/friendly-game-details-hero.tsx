@@ -1,5 +1,7 @@
 "use client";
 
+import { Surface } from "~/components/ui/surface";
+import { surfaceToneForPhase } from "@repo/domain/surface-tone";
 import { useEffect, useState } from "react";
 
 import { DividedFigurePair } from "~/components/home/home-all-time";
@@ -239,9 +241,9 @@ export function FriendlyGameDetailsHero({
 
   if (!windowStart) {
     return (
-      <article className="surface-ink bg-ink text-paper rounded-xl p-[22px]">
+      <Surface as="article" tone="ink" radius="surface" className="p-[22px]">
         <p className="text-dim text-meta">Time unset</p>
-      </article>
+      </Surface>
     );
   }
 
@@ -295,7 +297,12 @@ export function FriendlyGameDetailsHero({
   const bookedWithPartner = Boolean(partnerBesideName);
 
   return (
-    <article className="surface-ink bg-ink text-paper rounded-xl p-[22px]">
+    <Surface
+      as="article"
+      tone={surfaceToneForPhase(phase)}
+      radius="surface"
+      className="p-[22px]"
+    >
       <div className="text-dim text-meta flex items-start justify-between gap-3">
         <p className="min-w-0 truncate">
           {/* ADR-0013: booked now, not "Team confirmed" / seats held. */}
@@ -333,6 +340,6 @@ export function FriendlyGameDetailsHero({
       <div className="mt-4">
         <DividedFigurePair surface="dark" figures={figures} />
       </div>
-    </article>
+    </Surface>
   );
 }

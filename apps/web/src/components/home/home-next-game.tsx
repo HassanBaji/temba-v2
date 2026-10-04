@@ -17,6 +17,7 @@ import {
 import { homeNoGamesCreateAction } from "~/lib/home-no-games";
 import type { HomeSeatView } from "@repo/domain/home-seats";
 import { api } from "~/trpc/react";
+import { Surface } from "~/components/ui/surface";
 
 export function HomeNextGame({
   id,
@@ -61,7 +62,7 @@ export function HomeNextGame({
   const secondaryLine = [courtLabel, formatLabel].filter(Boolean).join(" · ");
 
   return (
-    <article className="surface-ink bg-ink text-paper rounded-xl p-[22px]">
+    <Surface as="article" tone="ink" radius="surface" className="p-[22px]">
       <div className="text-dim text-meta flex items-start justify-between gap-3">
         <p className="min-w-0 truncate">{venueName}</p>
         {status ? (
@@ -94,7 +95,7 @@ export function HomeNextGame({
           </Button>
         ) : null}
       </div>
-    </article>
+    </Surface>
   );
 }
 

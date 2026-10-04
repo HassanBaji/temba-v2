@@ -1,5 +1,6 @@
 "use client";
 
+import { Surface } from "~/components/ui/surface";
 import { ShareIcon } from "lucide-react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -98,11 +99,10 @@ export function TournamentHero({
   onInvite?: () => void;
 }) {
   return (
-    <article
-      className={cn(
-        "surface-ink bg-ink text-paper py-[22px] md:-mt-6",
-        pageBleed,
-      )}
+    <Surface
+      as="article"
+      tone="ink"
+      className={cn("py-[22px] md:-mt-6", pageBleed)}
     >
       <div className="flex items-center justify-between">
         <BackButton variant="boxed" surface="ink" href={backHref} />
@@ -168,6 +168,6 @@ export function TournamentHero({
           {INVITE_ACTION_LABEL}
         </Button>
       ) : null}
-    </article>
+    </Surface>
   );
 }

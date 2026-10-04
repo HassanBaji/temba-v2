@@ -1,4 +1,5 @@
 import { ChevronDown } from "lucide-react";
+import { Surface } from "~/components/ui/surface";
 import type { MouseEvent, ReactNode } from "react";
 
 import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
@@ -33,7 +34,7 @@ export function CreateFlowShell({
 }) {
   return (
     <div className="flex flex-col gap-6 pb-28 lg:pb-0">
-      <header className={cn("surface-ink bg-ink text-paper py-[22px]", BLEED)}>
+      <Surface as="header" tone="ink" className={cn("py-[22px]", BLEED)}>
         <div className="flex items-center justify-between">
           {step === 1 ? (
             <CloseButton
@@ -63,7 +64,7 @@ export function CreateFlowShell({
             />
           ))}
         </div>
-      </header>
+      </Surface>
 
       <div className="flex flex-col gap-[26px]">
         {children}
@@ -104,9 +105,11 @@ export function CreateFlowSkeleton() {
   return (
     <div aria-busy="true" className="flex flex-col gap-6">
       <span className="sr-only">Loading</span>
-      <div
+      <Surface
+        as="div"
+        tone="ink"
         aria-hidden="true"
-        className={cn("surface-ink bg-ink py-[22px]", BLEED)}
+        className={cn("py-[22px]", BLEED)}
       >
         <div className="flex h-11 items-center justify-between">
           <Skeleton className="bg-dimrule size-11 rounded-full" />
@@ -118,7 +121,7 @@ export function CreateFlowSkeleton() {
             <span key={index} className="bg-dimrule h-[3px] rounded-sm" />
           ))}
         </div>
-      </div>
+      </Surface>
       <div aria-hidden="true" className="flex flex-col gap-3">
         <Skeleton className="rounded-card h-[124px] w-full" />
         <Skeleton className="rounded-card h-[124px] w-full" />
