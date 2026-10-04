@@ -13,7 +13,7 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 | Phase | What it delivers | Status |
 | --- | --- | --- |
 | 0 | `apps/temba` renamed to `apps/web` | Done |
-| Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Not started |
+| Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Done |
 | 1 | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting | Not started |
 | 2 | `@repo/api` Package and the `apps/api` Hono host | Not started |
 | 3 | Web App calls the API over HTTP and drops its database access | Not started |
