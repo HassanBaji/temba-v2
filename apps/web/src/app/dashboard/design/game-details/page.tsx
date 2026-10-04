@@ -86,8 +86,8 @@ function GameDetailsStateColumn({
         <Field
           label="Price / player"
           value={
-            fixture.pricePerPlayerCents != null
-              ? `£${(fixture.pricePerPlayerCents / 100).toFixed(2)}`
+            fixture.pricePerPlayerFils != null
+              ? `£${(fixture.pricePerPlayerFils / 1000).toFixed(3)}`
               : "—"
           }
         />

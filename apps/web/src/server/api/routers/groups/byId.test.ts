@@ -115,7 +115,7 @@ async function insertGroupGame(
       isPublic: args.isPublic ?? false,
       playersAllowed: 4,
       teamsAllowed: 2,
-      pricePerPlayerCents: 500,
+      pricePerPlayerFils: 500,
       windowStart: args.windowStart,
       windowEnd: args.windowEnd,
     })
@@ -192,7 +192,7 @@ describe("groupById Games tab", () => {
         isWaitlisted: false,
         canRegister: true,
         joinFrozen: false,
-        pricePerPlayerCents: 500,
+        pricePerPlayerFils: 500,
       });
       expect(row?.sides).toEqual([
         { sideIndex: 1, left: null, right: null },

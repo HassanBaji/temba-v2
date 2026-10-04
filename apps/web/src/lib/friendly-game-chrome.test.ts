@@ -73,9 +73,9 @@ describe("friendlyGamePriceRow", () => {
     });
   });
 
-  it("shows the existing amount plus Paid at the venue when cents are positive", () => {
-    assert.deepEqual(friendlyGamePriceRow(1250), {
-      amount: "12.50 BD",
+  it("shows the existing amount plus Paid at the venue when fils are positive", () => {
+    assert.deepEqual(friendlyGamePriceRow(12500), {
+      amount: "12.500 BD",
       helper: "Paid at the venue",
     });
   });

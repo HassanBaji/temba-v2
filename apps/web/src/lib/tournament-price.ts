@@ -5,17 +5,17 @@ import {
   sizeFriendlyTournament,
 } from "~/lib/tournament-sizing";
 
-export function viewerTournamentTotalCents(
-  pricePerPlayerCents: number | null | undefined,
+export function viewerTournamentTotalFils(
+  pricePerPlayerFils: number | null | undefined,
   matchesForViewerPool: number,
 ): number | null {
-  if (pricePerPlayerCents == null) {
+  if (pricePerPlayerFils == null) {
     return null;
   }
   if (!Number.isInteger(matchesForViewerPool) || matchesForViewerPool < 0) {
     return null;
   }
-  return pricePerPlayerCents * matchesForViewerPool;
+  return pricePerPlayerFils * matchesForViewerPool;
 }
 
 type ViewerTournamentGame = {

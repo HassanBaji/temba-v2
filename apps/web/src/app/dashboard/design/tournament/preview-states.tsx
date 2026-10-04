@@ -20,7 +20,7 @@ import type {
 } from "~/fixtures/tournament-card";
 import { formatGameClock } from "~/lib/format-game-start";
 import { zonedDateTimeToInstant } from "~/lib/product-timezone";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import type { TournamentMatchPhase } from "~/lib/tournament-card";
 import {
   COUNTS_FOR_RATING_LABEL,
@@ -337,7 +337,7 @@ function TournamentCreateControlsPreview() {
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
-  const priceLabel = formatPricePerPlayerCents(1200);
+  const priceLabel = formatPricePerPlayerFils(12000);
   const start = zonedDateTimeToInstant({
     year: 2026,
     month: 9,

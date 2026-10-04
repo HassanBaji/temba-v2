@@ -18,7 +18,7 @@ import { Button, buttonVariants } from "~/components/ui/button";
 import { formatGameCardDay, formatRelativeDay } from "~/lib/format-game-start";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
 import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import {
   NO_TEAMS_YET_COPY,
   showsTournamentOpenFlag,
@@ -198,8 +198,8 @@ function TeamPairs({
   );
 }
 
-function PriceLine({ cents }: { cents: number | null }) {
-  const amount = formatPricePerPlayerCents(cents);
+function PriceLine({ fils }: { fils: number | null }) {
+  const amount = formatPricePerPlayerFils(fils);
   if (!amount) {
     return <span className="min-w-0 flex-1" />;
   }
@@ -308,7 +308,7 @@ export function TournamentSummaryCard({
         </SummaryCardBody>
 
         <SummaryCardFooter>
-          <PriceLine cents={game.pricePerPlayerCents} />
+          <PriceLine fils={game.pricePerPlayerFils} />
           {interactive ? (
             <Button
               type="button"
@@ -349,7 +349,7 @@ export function TournamentSummaryCard({
           title={title}
           sides={tournament.joinSides}
           pending={actionPending}
-          pricePerPlayerCents={game.pricePerPlayerCents}
+          pricePerPlayerFils={game.pricePerPlayerFils}
           gameId={game.id}
           format={game.format}
           registrationMode={game.registrationMode}

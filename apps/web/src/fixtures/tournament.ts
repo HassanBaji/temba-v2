@@ -32,7 +32,7 @@ type PoolMatchInput = {
 
 const TEAM_COUNT = 12;
 const POOL_COUNT = 3;
-const PRICE_CENTS = 1200;
+const PRICE_FILS = 12000;
 const VIEWER_ID = "user-viewer";
 const ORGANIZER_ID = "user-jonas";
 
@@ -379,7 +379,7 @@ function baseTournament(args: {
     venue: VENUE,
     windowStart,
     windowEnd,
-    pricePerPlayerCents: PRICE_CENTS,
+    pricePerPlayerFils: PRICE_FILS,
     levelMinTenths: null,
     levelMaxTenths: null,
     playersAllowed: TEAM_COUNT * 2,

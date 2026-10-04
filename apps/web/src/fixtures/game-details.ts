@@ -26,7 +26,7 @@ export type GameDetailsFixture = Pick<
   | "venue"
   | "windowStart"
   | "windowEnd"
-  | "pricePerPlayerCents"
+  | "pricePerPlayerFils"
   | "playersAllowed"
   | "isOrganizer"
   | "viewerUserId"
@@ -151,7 +151,7 @@ function baseFixture(args: {
     venue,
     windowStart: isoMinutesFrom(args.now, args.windowStartMinutes),
     windowEnd: isoMinutesFrom(args.now, args.windowEndMinutes),
-    pricePerPlayerCents: 1200,
+    pricePerPlayerFils: 12000,
     playersAllowed: 4,
     isOrganizer: true,
     viewerUserId: VIEWER_ID,

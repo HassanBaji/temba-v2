@@ -66,7 +66,7 @@ describe("createFlowStepForField", () => {
   });
 
   it("sends level and price to step 4", () => {
-    assert.equal(createFlowStepForField("pricePerPlayerCents"), 4);
+    assert.equal(createFlowStepForField("pricePerPlayerFils"), 4);
     assert.equal(createFlowStepForField("levelMinTenths"), 4);
     assert.equal(createFlowStepForField("levelMaxTenths"), 4);
     assert.equal(createFlowStepForField("name"), 4);
@@ -655,8 +655,8 @@ describe("friendly tournament branch", () => {
   });
 
   it("prices a Game team of two at twice the player price", () => {
-    assert.equal(gameTeamOfTwoCopy("6.50"), "13.00 BD a Game team of two");
-    assert.equal(gameTeamOfTwoCopy("0"), "0.00 BD a Game team of two");
+    assert.equal(gameTeamOfTwoCopy("6.50"), "13.000 BD a Game team of two");
+    assert.equal(gameTeamOfTwoCopy("0"), "0.000 BD a Game team of two");
     assert.equal(gameTeamOfTwoCopy(""), null);
     assert.equal(gameTeamOfTwoCopy("nope"), null);
   });

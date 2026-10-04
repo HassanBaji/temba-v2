@@ -40,7 +40,7 @@ import {
 import { JOIN_GAME_ACTION } from "~/lib/game-copy";
 import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { defaultJoinSeat } from "~/lib/preferred-seat";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import { tournamentFieldSummary } from "~/lib/tournament-home";
 import {
   isTournamentJoinSheet,
@@ -342,7 +342,7 @@ function TournamentTakeASeat({
   format,
   picked,
   pending,
-  pricePerPlayerCents,
+  pricePerPlayerFils,
   roundCount,
   windowStart,
   windowEnd,
@@ -364,7 +364,7 @@ function TournamentTakeASeat({
   picked: FriendlyGameJoinSeat | null;
   pending: boolean;
   error: string | null;
-  pricePerPlayerCents?: number | null;
+  pricePerPlayerFils?: number | null;
   roundCount: number | null;
   windowStart?: Date | string | null;
   windowEnd?: Date | string | null;
@@ -416,7 +416,7 @@ function TournamentTakeASeat({
   const detailRows = tournamentJoinDetailRows({
     roundDates,
     roundCount,
-    priceLabel: formatPricePerPlayerCents(pricePerPlayerCents),
+    priceLabel: formatPricePerPlayerFils(pricePerPlayerFils),
   });
 
   return (
@@ -535,7 +535,7 @@ export function FriendlyGameJoinSheet({
   title,
   sides,
   pending,
-  pricePerPlayerCents,
+  pricePerPlayerFils,
   onPickSeat,
   gameId,
   format,
@@ -562,7 +562,7 @@ export function FriendlyGameJoinSheet({
   title: string;
   sides: readonly FriendlyGameJoinSheetSide[];
   pending: boolean;
-  pricePerPlayerCents?: number | null;
+  pricePerPlayerFils?: number | null;
   /** Return the join promise to keep the sheet open until it settles. */
   onPickSeat: (
     sideIndex: number,
@@ -760,7 +760,7 @@ export function FriendlyGameJoinSheet({
   }
 
   const isFull = vacantJoinSeats(sides).length === 0;
-  const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
   const vacantSideIndex = firstFullyVacantSideIndex(sides);
 
   async function confirmSeat() {
@@ -882,7 +882,7 @@ export function FriendlyGameJoinSheet({
             format={format ?? "friendly_tournament"}
             picked={picked}
             pending={pending}
-            pricePerPlayerCents={pricePerPlayerCents}
+            pricePerPlayerFils={pricePerPlayerFils}
             roundCount={roundCount}
             windowStart={windowStart}
             windowEnd={windowEnd}
@@ -975,7 +975,7 @@ export function FriendlyGameJoinSheet({
             windowStart={windowStart}
             venueName={venueName}
             groupName={groupName}
-            pricePerPlayerCents={pricePerPlayerCents}
+            pricePerPlayerFils={pricePerPlayerFils}
             notice={partnerRaceMessage}
             selectedPartner={selectedPartner}
             onSelectedPartnerChange={setSelectedPartner}
@@ -996,7 +996,7 @@ export function FriendlyGameJoinSheet({
             windowStart={windowStart}
             venueName={venueName}
             isOrganizer={isOrganizer}
-            pricePerPlayerCents={pricePerPlayerCents}
+            pricePerPlayerFils={pricePerPlayerFils}
             levelMinTenths={levelMinTenths}
             levelMaxTenths={levelMaxTenths}
             pending={registerWithPartner.isPending}

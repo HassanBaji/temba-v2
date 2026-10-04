@@ -73,7 +73,7 @@ import {
   parseLevelBandSelectTenths,
   type LevelBandSelectValue,
 } from "~/lib/level-range";
-import { parseOptionalPricePerPlayerCents } from "~/lib/price-per-player";
+import { parseOptionalPricePerPlayerFils } from "~/lib/price-per-player";
 import { buildKnockoutTree } from "~/lib/tournament-knockout";
 import { sizeTournamentRounds } from "~/lib/tournament-schedule";
 import {
@@ -637,13 +637,13 @@ function NewGameForm() {
       focusElement(named.elementId);
       return;
     }
-    const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
+    const parsedPrice = parseOptionalPricePerPlayerFils(pricePerPlayer);
     if (!parsedPrice.ok) {
       setErrors((current) => ({
         ...current,
-        pricePerPlayerCents: parsedPrice.message,
+        pricePerPlayerFils: parsedPrice.message,
       }));
-      focusElement(CREATE_FLOW_FIELD_IDS.pricePerPlayerCents ?? "");
+      focusElement(CREATE_FLOW_FIELD_IDS.pricePerPlayerFils ?? "");
       return;
     }
     const parsedMin = parseLevelBandSelectTenths(levelMin, "min");
@@ -674,8 +674,8 @@ function NewGameForm() {
       windowEnd: when.windowEnd,
       venueId,
       ...(courtIds.length > 0 ? { courtIds } : {}),
-      ...(parsedPrice.cents !== null
-        ? { pricePerPlayerCents: parsedPrice.cents }
+      ...(parsedPrice.fils !== null
+        ? { pricePerPlayerFils: parsedPrice.fils }
         : {}),
       ...(parsedMin !== null ? { levelMinTenths: parsedMin } : {}),
       ...(parsedMax !== null ? { levelMaxTenths: parsedMax } : {}),
@@ -709,13 +709,13 @@ function NewGameForm() {
       setErrors((current) => ({ ...current, [when.field]: when.message }));
       return;
     }
-    const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
+    const parsedPrice = parseOptionalPricePerPlayerFils(pricePerPlayer);
     if (!parsedPrice.ok) {
       setErrors((current) => ({
         ...current,
-        pricePerPlayerCents: parsedPrice.message,
+        pricePerPlayerFils: parsedPrice.message,
       }));
-      focusElement(CREATE_FLOW_FIELD_IDS.pricePerPlayerCents ?? "");
+      focusElement(CREATE_FLOW_FIELD_IDS.pricePerPlayerFils ?? "");
       return;
     }
     const parsedMin = parseLevelBandSelectTenths(levelMin, "min");
@@ -738,8 +738,8 @@ function NewGameForm() {
       windowEnd: when.windowEnd,
       venueId,
       courtId: courtId === "none" ? undefined : courtId,
-      ...(parsedPrice.cents !== null
-        ? { pricePerPlayerCents: parsedPrice.cents }
+      ...(parsedPrice.fils !== null
+        ? { pricePerPlayerFils: parsedPrice.fils }
         : {}),
       ...(parsedMin !== null ? { levelMinTenths: parsedMin } : {}),
       ...(parsedMax !== null ? { levelMaxTenths: parsedMax } : {}),
@@ -1155,12 +1155,12 @@ function NewGameForm() {
               }}
               price={pricePerPlayer}
               priceError={
-                errors.pricePerPlayerCents ??
-                fieldErrorMessage(formError, "pricePerPlayerCents")
+                errors.pricePerPlayerFils ??
+                fieldErrorMessage(formError, "pricePerPlayerFils")
               }
               onPrice={(next) => {
                 setPricePerPlayer(next);
-                clearField("pricePerPlayerCents");
+                clearField("pricePerPlayerFils");
               }}
               isPublic={isPublic}
               onIsPublic={setIsPublic}
@@ -1249,12 +1249,12 @@ function NewGameForm() {
               }}
               price={pricePerPlayer}
               priceError={
-                errors.pricePerPlayerCents ??
-                fieldErrorMessage(createGame.error, "pricePerPlayerCents")
+                errors.pricePerPlayerFils ??
+                fieldErrorMessage(createGame.error, "pricePerPlayerFils")
               }
               onPrice={(next) => {
                 setPricePerPlayer(next);
-                clearField("pricePerPlayerCents");
+                clearField("pricePerPlayerFils");
               }}
               reviewGroup={reviewGroupName}
               reviewVenue={

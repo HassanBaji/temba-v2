@@ -197,13 +197,13 @@ export function GameEditDialog({
                   }
                   aria-invalid={
                     pricePerPlayerError ||
-                    fieldErrorMessage(priceError, "pricePerPlayerCents")
+                    fieldErrorMessage(priceError, "pricePerPlayerFils")
                       ? true
                       : undefined
                   }
                   aria-describedby={
                     pricePerPlayerError ||
-                    fieldErrorMessage(priceError, "pricePerPlayerCents")
+                    fieldErrorMessage(priceError, "pricePerPlayerFils")
                       ? "edit-price-per-player-error"
                       : "edit-price-per-player-copy"
                   }
@@ -213,7 +213,7 @@ export function GameEditDialog({
                 </FieldDescription>
                 <FieldError id="edit-price-per-player-error">
                   {pricePerPlayerError ??
-                    fieldErrorMessage(priceError, "pricePerPlayerCents")}
+                    fieldErrorMessage(priceError, "pricePerPlayerFils")}
                 </FieldError>
               </Field>
             </FieldGroup>

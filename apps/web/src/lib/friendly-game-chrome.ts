@@ -1,6 +1,6 @@
 import { formatAbsoluteDay } from "~/lib/format-game-start";
 import { parseOptionalCoord } from "~/lib/parse-optional-coord";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import type { GameViewerStatus } from "~/lib/game-summary-cta";
 
 export function friendlyGameHomeTitle(
@@ -24,14 +24,14 @@ export function friendlyGameViewerLine(status: GameViewerStatus) {
   return null;
 }
 
-export function friendlyGamePriceRow(cents: number | null | undefined) {
-  const amount = formatPricePerPlayerCents(cents);
+export function friendlyGamePriceRow(fils: number | null | undefined) {
+  const amount = formatPricePerPlayerFils(fils);
   if (amount == null) {
     return null;
   }
   return {
     amount,
-    helper: cents != null && cents > 0 ? "Paid at the venue" : null,
+    helper: fils != null && fils > 0 ? "Paid at the venue" : null,
   };
 }
 

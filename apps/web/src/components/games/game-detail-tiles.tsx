@@ -9,7 +9,7 @@ import {
   gameDayProximity,
 } from "~/lib/format-game-start";
 import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 
 type TileTone = "neutral" | "warning" | "success";
@@ -65,18 +65,18 @@ export function GameDetailTiles({
   windowStart,
   windowEnd,
   durationInMinutes,
-  pricePerPlayerCents,
+  pricePerPlayerFils,
   levelMinTenths,
   levelMaxTenths,
 }: {
   windowStart: Date | string | null;
   windowEnd: Date | string | null | undefined;
   durationInMinutes: number | null | undefined;
-  pricePerPlayerCents: number | null | undefined;
+  pricePerPlayerFils: number | null | undefined;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
 }) {
-  const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
   const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
   const proximity = windowStart ? gameDayProximity(windowStart) : null;
   const imminent = proximity === "today";
@@ -118,7 +118,7 @@ export function GameDetailTiles({
           icon={Coins}
           label="Price per player"
           value={priceLabel}
-          tone={pricePerPlayerCents === 0 ? "success" : "neutral"}
+          tone={pricePerPlayerFils === 0 ? "success" : "neutral"}
         />
       ) : null}
       {levelLabel ? (

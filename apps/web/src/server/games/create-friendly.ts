@@ -100,7 +100,7 @@ export async function createFriendlyGame(
         windowEnd: input.windowEnd,
         playersAllowed: FRIENDLY_PLAYERS_ALLOWED,
         teamsAllowed: FRIENDLY_TEAMS_ALLOWED,
-        pricePerPlayerCents: input.pricePerPlayerCents ?? null,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,

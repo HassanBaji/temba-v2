@@ -148,7 +148,7 @@ export function GroupGamesTab({
                   location={game.venue?.city ?? game.venue?.name}
                   registeredUserCount={game.registeredUserCount}
                   playersAllowed={game.playersAllowed}
-                  pricePerPlayerCents={game.pricePerPlayerCents}
+                  pricePerPlayerFils={game.pricePerPlayerFils}
                   levelMinTenths={game.levelMinTenths}
                   levelMaxTenths={game.levelMaxTenths}
                   sides={rosterSides}

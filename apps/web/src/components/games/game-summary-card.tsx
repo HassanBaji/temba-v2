@@ -30,7 +30,7 @@ import {
 } from "~/lib/game-summary-cta";
 import { formatHomeCountdown, formatHomeKickoff } from "~/lib/home-countdown";
 import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 import { UserAvatar } from "../common/user-avatar";
@@ -332,7 +332,7 @@ export function GameSummaryCard({
   playersAllowed,
   windowStart,
   windowEnd,
-  pricePerPlayerCents,
+  pricePerPlayerFils,
   levelMinTenths,
   levelMaxTenths,
   sides,
@@ -363,7 +363,7 @@ export function GameSummaryCard({
   playersAllowed?: number | null;
   windowStart?: Date | string | null;
   windowEnd?: Date | string | null;
-  pricePerPlayerCents?: number | null;
+  pricePerPlayerFils?: number | null;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
   sides?: HubListSide[];
@@ -403,7 +403,7 @@ export function GameSummaryCard({
   const formatMeta = roundLabel ?? gameFormatLabel(format);
   const durationMeta = formatWindowDuration(windowStart, windowEnd);
   const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
-  const priceAmount = formatPricePerPlayerCents(pricePerPlayerCents);
+  const priceAmount = formatPricePerPlayerFils(pricePerPlayerFils);
   const occupancy = gameOccupancy(registeredUserCount ?? 0, playersAllowed);
   const showRoster = Boolean(sides && sides.length > 0);
   const openSpots = showRoster
@@ -483,7 +483,7 @@ export function GameSummaryCard({
       title={title}
       sides={sides ?? []}
       pending={actionPending}
-      pricePerPlayerCents={pricePerPlayerCents}
+      pricePerPlayerFils={pricePerPlayerFils}
       gameId={gameId}
       format={format ?? undefined}
       registrationMode={registrationMode ?? undefined}

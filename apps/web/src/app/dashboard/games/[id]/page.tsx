@@ -124,8 +124,8 @@ import {
   type LevelBandSelectValue,
 } from "~/lib/level-range";
 import {
-  centsToMajorInput,
-  parseOptionalPricePerPlayerCents,
+  filsToMajorInput,
+  parseOptionalPricePerPlayerFils,
 } from "~/lib/price-per-player";
 import { api } from "~/trpc/react";
 
@@ -458,7 +458,7 @@ export default function GameHomePage({
       toastGlobalFormError(error);
       focusFormFailure(
         error,
-        { pricePerPlayerCents: "edit-price-per-player" },
+        { pricePerPlayerFils: "edit-price-per-player" },
         priceSummaryRef.current,
       );
     },
@@ -678,7 +678,7 @@ export default function GameHomePage({
       setWindowFinishTime(gameWindow.finishTime);
     }
     if (sections.includes("price")) {
-      setPricePerPlayer(centsToMajorInput(data.pricePerPlayerCents));
+      setPricePerPlayer(filsToMajorInput(data.pricePerPlayerFils));
       setPricePerPlayerError(undefined);
     }
     if (sections.includes("level")) {
@@ -985,7 +985,7 @@ export default function GameHomePage({
       return;
     }
     setPricePerPlayerError(undefined);
-    const parsedPrice = parseOptionalPricePerPlayerCents(pricePerPlayer);
+    const parsedPrice = parseOptionalPricePerPlayerFils(pricePerPlayer);
     if (!parsedPrice.ok) {
       setPricePerPlayerError(parsedPrice.message);
       document.getElementById("edit-price-per-player")?.focus();
@@ -993,7 +993,7 @@ export default function GameHomePage({
     }
     updatePricePerPlayer.mutate({
       gameId: id,
-      pricePerPlayerCents: parsedPrice.cents,
+      pricePerPlayerFils: parsedPrice.fils,
     });
   }
 
@@ -1174,7 +1174,7 @@ export default function GameHomePage({
                 venueName={data.venue?.name ?? null}
                 venueCity={data.venue?.city ?? null}
                 courtName={firstMatch?.courtName ?? null}
-                pricePerPlayerCents={data.pricePerPlayerCents}
+                pricePerPlayerFils={data.pricePerPlayerFils}
                 match={
                   firstMatch
                     ? {
@@ -1501,7 +1501,7 @@ export default function GameHomePage({
           title={gameName}
           sides={data.sides}
           pending={registerSeat.isPending}
-          pricePerPlayerCents={data.pricePerPlayerCents}
+          pricePerPlayerFils={data.pricePerPlayerFils}
           gameId={id}
           format={data.format}
           registrationMode={data.registrationMode}

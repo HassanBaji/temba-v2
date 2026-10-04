@@ -12,14 +12,14 @@ import {
   requireGame,
   type GameRow,
 } from "~/server/games/access";
-import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
+import { PRICE_PER_PLAYER_MAX_FILS } from "~/lib/price-per-player";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 async function updateGamePricePerPlayerOnGame(
   database: Tx,
   game: GameRow,
-  pricePerPlayerCents: number | null,
+  pricePerPlayerFils: number | null,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
@@ -31,7 +31,7 @@ async function updateGamePricePerPlayerOnGame(
   const now = new Date();
   await database
     .update(games)
-    .set({ pricePerPlayerCents, updatedAt: now })
+    .set({ pricePerPlayerFils, updatedAt: now })
     .where(eq(games.id, game.id));
 }
 
@@ -40,13 +40,13 @@ export async function updateGamePricePerPlayer(
   args: {
     gameId: string;
     userId: string;
-    pricePerPlayerCents: number | null;
+    pricePerPlayerFils: number | null;
   },
 ) {
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.userId);
   await database.transaction(async (tx) => {
-    await updateGamePricePerPlayerOnGame(tx, game, args.pricePerPlayerCents);
+    await updateGamePricePerPlayerOnGame(tx, game, args.pricePerPlayerFils);
   });
   return { ok: true as const };
 }
@@ -55,11 +55,11 @@ export const updatePricePerPlayer = protectedProcedure
   .input(
     z.object({
       gameId: z.string().uuid(),
-      pricePerPlayerCents: z
+      pricePerPlayerFils: z
         .number()
         .int()
         .min(0)
-        .max(PRICE_PER_PLAYER_MAX_CENTS)
+        .max(PRICE_PER_PLAYER_MAX_FILS)
         .nullable(),
     }),
   )
@@ -68,6 +68,6 @@ export const updatePricePerPlayer = protectedProcedure
     return updateGamePricePerPlayer(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
-      pricePerPlayerCents: input.pricePerPlayerCents,
+      pricePerPlayerFils: input.pricePerPlayerFils,
     });
   });

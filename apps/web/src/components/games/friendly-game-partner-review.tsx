@@ -12,7 +12,7 @@ import { seedPartnerCallerPosition } from "~/lib/friendly-game-partner";
 import { formatHomeKickoff } from "~/lib/home-countdown";
 import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
 import { formatLevelRangeLabel } from "~/lib/level-range";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 
 type SeatPosition = "left" | "right";
@@ -120,7 +120,7 @@ export function FriendlyGamePartnerReview({
   windowStart,
   venueName,
   isOrganizer,
-  pricePerPlayerCents,
+  pricePerPlayerFils,
   levelMinTenths,
   levelMaxTenths,
   pending,
@@ -134,7 +134,7 @@ export function FriendlyGamePartnerReview({
   windowStart?: Date | string | null;
   venueName?: string | null;
   isOrganizer?: boolean;
-  pricePerPlayerCents?: number | null;
+  pricePerPlayerFils?: number | null;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
   pending: boolean;
@@ -164,7 +164,7 @@ export function FriendlyGamePartnerReview({
 
   const partnerPosition: SeatPosition =
     callerPosition === "left" ? "right" : "left";
-  const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
   const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
   const details: { label: string; value: string }[] = [];
   if (isOrganizer) {

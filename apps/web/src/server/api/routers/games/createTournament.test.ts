@@ -285,7 +285,7 @@ describe("createTournament", () => {
         poolCount: 3,
         venueId: venue.id,
         courtIds: [courtA.id, courtB.id],
-        pricePerPlayerCents: 1000,
+        pricePerPlayerFils: 1000,
         ...windowTimes(),
       });
 
@@ -301,7 +301,7 @@ describe("createTournament", () => {
       expect(row?.isPublic).toBe(true);
       expect(row?.registrationMode).toBe("individual");
       expect(row?.allowSoloRegister).toBe(true);
-      expect(row?.pricePerPlayerCents).toBe(1000);
+      expect(row?.pricePerPlayerFils).toBe(1000);
       expect(row?.levelMinTenths).toBeNull();
       expect(row?.levelMaxTenths).toBeNull();
       expect(row?.matchMinutes).toBe(45);

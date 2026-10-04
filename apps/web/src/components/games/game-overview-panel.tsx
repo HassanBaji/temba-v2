@@ -40,7 +40,7 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
         windowStart={game.windowStart}
         windowEnd={game.windowEnd}
         durationInMinutes={firstMatch?.durationInMinutes}
-        pricePerPlayerCents={game.pricePerPlayerCents}
+        pricePerPlayerFils={game.pricePerPlayerFils}
         levelMinTenths={game.levelMinTenths}
         levelMaxTenths={game.levelMaxTenths}
       />

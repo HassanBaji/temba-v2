@@ -126,7 +126,7 @@ function buildRow(args: {
     windowStart,
     windowEnd,
     venue: { id: "venue-bromma", name: "Padelhuset Bromma", city: "Bromma" },
-    pricePerPlayerCents: 10000,
+    pricePerPlayerFils: 100000,
     levelMinTenths: 30,
     levelMaxTenths: 40,
     registeredUserCount,

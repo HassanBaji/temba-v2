@@ -46,7 +46,7 @@ import {
   REGISTER_TEAM_ACTION,
 } from "~/lib/game-copy";
 import { friendlyGameCanKickPlayer } from "~/lib/friendly-game-players";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import {
   canOpenOrganizerMergeDrawer,
   halfTeamsFromSides,
@@ -98,7 +98,7 @@ import {
 } from "~/lib/tournament-pool-draw";
 import {
   viewerTournamentMatchCount,
-  viewerTournamentTotalCents,
+  viewerTournamentTotalFils,
 } from "~/lib/tournament-price";
 import {
   hasKnockout,
@@ -232,17 +232,17 @@ export function TournamentHome({
     thenKnockout,
   });
   const matchesForViewer = viewerTournamentMatchCount(data);
-  const totalCents =
+  const totalFils =
     seated && matchesForViewer != null
-      ? viewerTournamentTotalCents(data.pricePerPlayerCents, matchesForViewer)
+      ? viewerTournamentTotalFils(data.pricePerPlayerFils, matchesForViewer)
       : null;
   const detailRows = homeDetailRows({
     organizerName,
     groupName: data.groupName,
     matchMinutes: data.matchMinutes,
-    pricePerPlayerCents: data.pricePerPlayerCents,
+    pricePerPlayerFils: data.pricePerPlayerFils,
     seated,
-    totalCents,
+    totalFils,
   });
   const drawn = isTournamentStandingsView(data.drawPostedAt);
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
@@ -1006,9 +1006,9 @@ function homeDetailRows(args: {
   organizerName: string | null;
   groupName: string | null;
   matchMinutes: number | null;
-  pricePerPlayerCents: number | null;
+  pricePerPlayerFils: number | null;
   seated: boolean;
-  totalCents: number | null;
+  totalFils: number | null;
 }) {
   const rows = [
     {
@@ -1024,7 +1024,7 @@ function homeDetailRows(args: {
       value: `${tournamentMatchMinutes(args.matchMinutes)} min`,
     },
   ];
-  const price = formatPricePerPlayerCents(args.pricePerPlayerCents);
+  const price = formatPricePerPlayerFils(args.pricePerPlayerFils);
   if (price) {
     rows.push({
       label: PRICE_ROW_LABEL,
@@ -1035,8 +1035,8 @@ function homeDetailRows(args: {
     label: COUNTS_FOR_RATING_LABEL,
     value: COUNTS_FOR_RATING_YES,
   });
-  if (args.seated && args.totalCents != null) {
-    const amount = formatPricePerPlayerCents(args.totalCents);
+  if (args.seated && args.totalFils != null) {
+    const amount = formatPricePerPlayerFils(args.totalFils);
     if (amount) {
       rows.push({
         label: YOU_OWE_ROW_LABEL,

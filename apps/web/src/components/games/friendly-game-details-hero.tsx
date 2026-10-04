@@ -14,7 +14,7 @@ import {
   formatHeroKickoffTrailer,
   formatHomeKickoff,
 } from "~/lib/home-countdown";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 
 /**
  * The hero-relevant slice of the Friendly Match this Game's details page is
@@ -106,11 +106,11 @@ function viewerPerspective(
   return { verdict, viewerSetWins, opponentSetWins, sets };
 }
 
-function priceFigureValue(pricePerPlayerCents: number | null) {
-  if (pricePerPlayerCents == null) {
+function priceFigureValue(pricePerPlayerFils: number | null) {
+  if (pricePerPlayerFils == null) {
     return "—";
   }
-  return formatPricePerPlayerCents(pricePerPlayerCents) ?? "—";
+  return formatPricePerPlayerFils(pricePerPlayerFils) ?? "—";
 }
 
 function durationFigureValue(durationInMinutes: number | null) {
@@ -211,7 +211,7 @@ export function FriendlyGameDetailsHero({
   venueName,
   venueCity,
   courtName,
-  pricePerPlayerCents,
+  pricePerPlayerFils,
   match,
   viewerGameTeamId,
   partnerBesideName,
@@ -222,7 +222,7 @@ export function FriendlyGameDetailsHero({
   venueName: string | null;
   venueCity: string | null;
   courtName: string | null;
-  pricePerPlayerCents: number | null;
+  pricePerPlayerFils: number | null;
   match: FriendlyGameDetailsHeroMatch | null;
   viewerGameTeamId: string | null;
   /** Occupant of the other Position on the viewer's side, when both sit. */
@@ -282,7 +282,7 @@ export function FriendlyGameDetailsHero({
       : [
           {
             key: "price",
-            value: priceFigureValue(pricePerPlayerCents),
+            value: priceFigureValue(pricePerPlayerFils),
             label: "Price",
           },
           {

@@ -793,7 +793,7 @@ async function friendly(
     start: Date;
     minutes?: number;
     seats?: Seat[];
-    pricePerPlayerCents?: number | null;
+    pricePerPlayerFils?: number | null;
     levelMinTenths?: number | null;
     levelMaxTenths?: number | null;
   },
@@ -811,7 +811,7 @@ async function friendly(
     ),
     venueId: args.venueId,
     courtId: args.courtId ?? null,
-    pricePerPlayerCents: args.pricePerPlayerCents ?? null,
+    pricePerPlayerFils: args.pricePerPlayerFils ?? null,
     levelMinTenths: args.levelMinTenths ?? null,
     levelMaxTenths: args.levelMaxTenths ?? null,
   });
@@ -998,7 +998,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
       name: played.name,
       start: at(2, 19),
       seats: seats(played.seats),
-      pricePerPlayerCents: 800,
+      pricePerPlayerFils: 8000,
     });
     await moveIntoPast(game.id, start);
     await step(`play history ${played.daysAgo}d`, () =>
@@ -1057,7 +1057,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     name: "Tuesday Ladder",
     start: at(1, 19),
     seats: seats(["me", "omar", "lina", "sofia"]),
-    pricePerPlayerCents: 1000,
+    pricePerPlayerFils: 10000,
   });
   await registerSeat(db, { gameId: full.id, userId: u.maya!.id });
   await registerSeat(db, { gameId: full.id, userId: u.leo!.id });
@@ -1070,7 +1070,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     courtId: riverside.courtIds[0],
     name: "Friday Night Padel",
     start: at(4, 20),
-    pricePerPlayerCents: 750,
+    pricePerPlayerFils: 7500,
   });
   await registerWithPartner(db, {
     gameId: halfFull.id,
@@ -1172,7 +1172,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     windowEnd: at(9, 13),
     venueId: central.id,
     courtIds: central.courtIds.slice(0, 2),
-    pricePerPlayerCents: 1500,
+    pricePerPlayerFils: 15000,
   });
   for (const key of ["me", "omar", "maya", "diego", "sofia"]) {
     await register(db, { gameId: americano.id, userId: u[key]!.id });
@@ -1192,7 +1192,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     windowEnd: at(12, 17),
     venueId: central.id,
     courtIds: central.courtIds,
-    pricePerPlayerCents: 2000,
+    pricePerPlayerFils: 20000,
   });
   const openPairs: [string, string][] = [
     ["lina", "priya"],

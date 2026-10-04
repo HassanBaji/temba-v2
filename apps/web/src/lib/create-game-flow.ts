@@ -24,8 +24,8 @@ import {
   formatHomeKickoff,
 } from "~/lib/home-countdown";
 import {
-  formatPricePerPlayerCents,
-  parseOptionalPricePerPlayerCents,
+  formatPricePerPlayerFils,
+  parseOptionalPricePerPlayerFils,
 } from "~/lib/price-per-player";
 import {
   formatPoolSizeLine,
@@ -162,7 +162,7 @@ export const CREATE_FLOW_FIELD_IDS: Record<string, string> = {
   venueId: "game-venue",
   courtId: "game-court",
   courtIds: "game-court",
-  pricePerPlayerCents: "game-price-per-player",
+  pricePerPlayerFils: "game-price-per-player",
   levelMinTenths: "game-level-min",
   levelMaxTenths: "game-level-max",
   windowStart: "game-window-start",
@@ -654,12 +654,12 @@ export const CREATE_FLOW_PRICE_CHIPS: readonly {
 ];
 
 export function priceChipIsSelected(chipValue: string, input: string) {
-  const chip = parseOptionalPricePerPlayerCents(chipValue);
-  const current = parseOptionalPricePerPlayerCents(input);
-  if (!chip.ok || !current.ok || chip.cents == null || current.cents == null) {
+  const chip = parseOptionalPricePerPlayerFils(chipValue);
+  const current = parseOptionalPricePerPlayerFils(input);
+  if (!chip.ok || !current.ok || chip.fils == null || current.fils == null) {
     return false;
   }
-  return chip.cents === current.cents;
+  return chip.fils === current.fils;
 }
 
 export function dayChipValue(date: Date) {
@@ -786,15 +786,15 @@ export function friendlyTournamentCourtsLabel(names: readonly string[]) {
 }
 
 export function gameTeamOfTwoCopy(price: string) {
-  const parsed = parseOptionalPricePerPlayerCents(price);
-  if (!parsed.ok || parsed.cents == null) {
+  const parsed = parseOptionalPricePerPlayerFils(price);
+  if (!parsed.ok || parsed.fils == null) {
     return null;
   }
-  const doubled = parsed.cents * 2;
+  const doubled = parsed.fils * 2;
   if (doubled === 0) {
-    return "0.00 BD a Game team of two";
+    return "0.000 BD a Game team of two";
   }
-  const formatted = formatPricePerPlayerCents(doubled);
+  const formatted = formatPricePerPlayerFils(doubled);
   if (!formatted) {
     return null;
   }

@@ -16,7 +16,7 @@ import {
   formatGameClockWithoutMeridiem,
 } from "~/lib/format-game-start";
 import { displayLabelFromStoredBand, type LevelBand } from "~/lib/level-bands";
-import { formatPricePerPlayerCents } from "~/lib/price-per-player";
+import { formatPricePerPlayerFils } from "~/lib/price-per-player";
 import { cn } from "~/lib/utils";
 import type { LookupUserSearchRow } from "~/server/invites/search-lookup-users";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -318,7 +318,7 @@ export function FriendlyGamePartnerPicker({
   windowStart,
   venueName,
   groupName,
-  pricePerPlayerCents,
+  pricePerPlayerFils,
   selectedPartner,
   onSelectedPartnerChange,
   onBack,
@@ -331,7 +331,7 @@ export function FriendlyGamePartnerPicker({
   windowStart?: Date | string | null;
   venueName?: string | null;
   groupName?: string | null;
-  pricePerPlayerCents?: number | null;
+  pricePerPlayerFils?: number | null;
   selectedPartner: FriendlyGamePartnerPick | null;
   onSelectedPartnerChange: (partner: FriendlyGamePartnerPick | null) => void;
   onBack?: () => void;
@@ -358,7 +358,7 @@ export function FriendlyGamePartnerPicker({
         : new Date(windowStart);
   const clock = start ? formatGameClockWithoutMeridiem(start) : null;
   const day = start ? formatGameCardDay(start) : null;
-  const priceLabel = formatPricePerPlayerCents(pricePerPlayerCents);
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
   const seatsChip =
     vacantSeatCount === 1 ? "1 seat open" : `${vacantSeatCount} seats open`;
 

@@ -85,7 +85,7 @@ describe("Friendly Game create", () => {
       });
 
       expect(created.game.format).toBe("friendly_game");
-      expect(created.game.pricePerPlayerCents).toBeNull();
+      expect(created.game.pricePerPlayerFils).toBeNull();
       expect(created.game.levelMinTenths).toBeNull();
       expect(created.game.levelMaxTenths).toBeNull();
       const shells = await db.query.matchSets.findMany({
@@ -97,7 +97,7 @@ describe("Friendly Game create", () => {
     }
   });
 
-  it("stores optional pricePerPlayerCents (unset, free, or cents)", async () => {
+  it("stores optional pricePerPlayerFils (unset, free, or fils)", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "create-price-owner@example.com");
@@ -112,7 +112,7 @@ describe("Friendly Game create", () => {
         windowStart,
         windowEnd,
       });
-      expect(unset.game.pricePerPlayerCents).toBeNull();
+      expect(unset.game.pricePerPlayerFils).toBeNull();
 
       const free = await createFriendlyGame(db, {
         createdBy: owner.id,
@@ -120,9 +120,9 @@ describe("Friendly Game create", () => {
         venueId: venue.id,
         windowStart,
         windowEnd,
-        pricePerPlayerCents: 0,
+        pricePerPlayerFils: 0,
       });
-      expect(free.game.pricePerPlayerCents).toBe(0);
+      expect(free.game.pricePerPlayerFils).toBe(0);
 
       const priced = await createFriendlyGame(db, {
         createdBy: owner.id,
@@ -130,9 +130,9 @@ describe("Friendly Game create", () => {
         venueId: venue.id,
         windowStart,
         windowEnd,
-        pricePerPlayerCents: 1250,
+        pricePerPlayerFils: 1250,
       });
-      expect(priced.game.pricePerPlayerCents).toBe(1250);
+      expect(priced.game.pricePerPlayerFils).toBe(1250);
     } finally {
       await close();
     }

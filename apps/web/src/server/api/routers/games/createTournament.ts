@@ -15,7 +15,7 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "~/lib/level-range";
-import { PRICE_PER_PLAYER_MAX_CENTS } from "~/lib/price-per-player";
+import { PRICE_PER_PLAYER_MAX_FILS } from "~/lib/price-per-player";
 import {
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
@@ -151,11 +151,11 @@ export const createTournamentInputSchema = z
     windowEnd: z.coerce.date(),
     venueId: z.string().uuid({ message: "Pick a Venue" }),
     courtIds: z.array(z.string().uuid()).optional(),
-    pricePerPlayerCents: z
+    pricePerPlayerFils: z
       .number()
       .int()
       .min(0)
-      .max(PRICE_PER_PLAYER_MAX_CENTS)
+      .max(PRICE_PER_PLAYER_MAX_FILS)
       .nullable()
       .optional(),
     levelMinTenths: z
@@ -273,7 +273,7 @@ export async function createTournament(
         roundCount: sized.roundCount,
         qualifiersPerPool: sized.qualifiersPerPool,
         matchMinutes: input.matchMinutes,
-        pricePerPlayerCents: input.pricePerPlayerCents ?? null,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,

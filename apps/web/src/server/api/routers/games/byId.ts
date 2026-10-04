@@ -563,7 +563,7 @@ export async function gameById(
       : null,
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
-    pricePerPlayerCents: game.pricePerPlayerCents,
+    pricePerPlayerFils: game.pricePerPlayerFils,
     levelMinTenths: game.levelMinTenths,
     levelMaxTenths: game.levelMaxTenths,
     playersAllowed: game.playersAllowed,

@@ -5,10 +5,10 @@ import { schedulePoolMatches } from "./tournament-schedule";
 import { sizeFriendlyTournament } from "./tournament-sizing";
 import {
   viewerTournamentMatchCount,
-  viewerTournamentTotalCents,
+  viewerTournamentTotalFils,
 } from "./tournament-price";
 
-describe("viewerTournamentTotalCents", () => {
+describe("viewerTournamentTotalFils", () => {
   it("multiplies the per-player price by an even field's Matches per Game team", () => {
     const result = sizeFriendlyTournament(12, 3);
     assert.equal(result.ok, true);
@@ -17,7 +17,7 @@ describe("viewerTournamentTotalCents", () => {
     }
     assert.equal(result.sizing.uneven, false);
     assert.equal(result.sizing.matchesPerTeamMin, 3);
-    assert.equal(viewerTournamentTotalCents(10000, 3), 30000);
+    assert.equal(viewerTournamentTotalFils(10000, 3), 30000);
   });
 
   it("uses the viewer's own smaller Pool, not the maximum", () => {
@@ -30,18 +30,18 @@ describe("viewerTournamentTotalCents", () => {
     assert.equal(result.sizing.matchesPerTeamMax, 3);
     assert.equal(result.sizing.matchesPerTeamMin, 2);
     assert.equal(
-      viewerTournamentTotalCents(10000, result.sizing.matchesPerTeamMin),
+      viewerTournamentTotalFils(10000, result.sizing.matchesPerTeamMin),
       20000,
     );
     assert.notEqual(
-      viewerTournamentTotalCents(10000, result.sizing.matchesPerTeamMin),
-      viewerTournamentTotalCents(10000, result.sizing.matchesPerTeamMax),
+      viewerTournamentTotalFils(10000, result.sizing.matchesPerTeamMin),
+      viewerTournamentTotalFils(10000, result.sizing.matchesPerTeamMax),
     );
   });
 
   it("is null when the price is unset", () => {
-    assert.equal(viewerTournamentTotalCents(null, 3), null);
-    assert.equal(viewerTournamentTotalCents(undefined, 3), null);
+    assert.equal(viewerTournamentTotalFils(null, 3), null);
+    assert.equal(viewerTournamentTotalFils(undefined, 3), null);
   });
 });
 
@@ -84,13 +84,13 @@ describe("viewerTournamentMatchCount", () => {
   it("counts the viewer's posted Matches for one Pass", () => {
     const count = viewerTournamentMatchCount(posted(postedMatches(3)));
     assert.equal(count, 3);
-    assert.equal(viewerTournamentTotalCents(1000, count ?? -1), 3000);
+    assert.equal(viewerTournamentTotalFils(1000, count ?? -1), 3000);
   });
 
   it("counts both meetings when two Passes are posted", () => {
     const count = viewerTournamentMatchCount(posted(postedMatches(6)));
     assert.equal(count, 6);
-    assert.equal(viewerTournamentTotalCents(1000, count ?? -1), 6000);
+    assert.equal(viewerTournamentTotalFils(1000, count ?? -1), 6000);
   });
 
   it("counts only the posted Rounds of a partial Pass", () => {

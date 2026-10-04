@@ -93,7 +93,7 @@ export type HubListRow = {
   windowStart: Date | null;
   windowEnd: Date | null;
   venue: { id: string; name: string; city: string } | null;
-  pricePerPlayerCents: number | null;
+  pricePerPlayerFils: number | null;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
   registeredUserCount: number;
@@ -150,8 +150,8 @@ export type CreateFriendlyGameInput = {
   courtId?: string | null;
   windowStart: Date;
   windowEnd: Date;
-  /** Null / omitted = unset. 0 = free. Positive = cents per User occupying a seat. */
-  pricePerPlayerCents?: number | null;
+  /** Null / omitted = unset. 0 = free. Positive = fils per User occupying a seat. */
+  pricePerPlayerFils?: number | null;
   /** Null / omitted = that bound unset. 0 = Level 0.0. */
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
@@ -176,7 +176,7 @@ export type CreateGameInput = {
   venueId: string;
   courtId?: string | null;
   courtIds?: string[];
-  pricePerPlayerCents?: number | null;
+  pricePerPlayerFils?: number | null;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
 };
