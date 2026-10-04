@@ -107,6 +107,20 @@ Not implemented: the ticket needs an Apple Developer Program membership and Cler
 - [ ] **TEM-322.** Then add the button in code (a person or a later agent run, once Clerk is configured): in `apps/web/src/components/auth/oauth-buttons.tsx` add `{ strategy: "oauth_apple", label: "Continue with Apple", Icon: <Apple logo> }` to `ENABLED_OAUTH_PROVIDERS` beside Google and remove the comment that says Apple is not configured. The button follows Apple's Human Interface Guidelines for Sign in with Apple (black button, white Apple logo, "Continue with Apple") and the auth screen design (hairline, no shadow). The same component is used by sign-in and sign-up; check that `sign-up-continue-form.tsx` still collects a missing phone number for an Apple sign-up (Apple may share a private relay email and no phone).
 - [ ] **TEM-322.** Verify on staging: a new User signs up with Apple, gives a phone number on the continue step, gets a Temba User row through the Clerk webhook and reaches the Onboarding questionnaire; an existing User signs in with Apple; Google sign-in still works.
 
+## TEM-323: iPhone prototype (ready-for-human, skipped by agents)
+
+Not done: the spike needs a real iPhone, an Android emulator and a reachable API with a real Clerk session. TEM-324 and TEM-325 were built without its answers. Each agent took the choice the spec names first and its stated fallback only where the first choice demonstrably failed in the container, and recorded the choice in its own section of this note. Confirm or overturn those choices with this spike.
+
+- [ ] **TEM-323.** On a real iPhone, with a throwaway Expo app in the Workspace (do not merge it), answer the five questions from spec Phase 5 task 1 and write each answer into the `## Comments` section of `.scratch/mobile-and-api-server/spec.md`:
+  1. Which NativeWind version (v5 on Tailwind v4, or v4 with a JavaScript preset) works with the pinned Expo SDK and the generated tokens. Record the NativeWind and Expo SDK versions.
+  2. Whether the custom `ArchivoExpanded-Bold` (width 115, weight 700) instance and the static Archivo weights render with tabular figures (`fontVariant: ['tabular-nums']`). If 115 looks wrong or loses `tnum`, fall back to the stock 112.5 file (spec risk R4).
+  3. Whether the SVG `Hatch` scrolls smoothly with 50 rows of ten hatched slots. If not, the fallback is a pre-rendered tile image per tone (spec 4.4).
+  4. Whether a tRPC call with a Clerk session token from the Expo SDK reaches the local API (`pnpm dev:web` on the laptop, phone on the same network).
+  5. Whether Expo installs and runs cleanly under pnpm's default linker, or the Workspace needs `node-linker=hoisted` in `.npmrc` (spec risk R11; if it does, land that change alone with a full web gate run).
+- [ ] **TEM-323.** Take a side-by-side photo or screenshot comparing the expanded numerals and the hatch on the phone with `/dashboard/design/home` on web, and attach it to the spec Comments.
+- [ ] **TEM-323.** Build and launch the spike once in an Android emulator (build and launch only).
+- [ ] **TEM-323.** Delete the spike code. Nothing from it is merged.
+
 ## Deploys and migrations
 
 - [ ] **TEM-302.** Apply migration `0048` when deploying.
