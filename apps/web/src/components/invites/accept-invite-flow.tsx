@@ -14,6 +14,7 @@ import {
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import type { InviteHostKind } from "@repo/api/types";
+import { inviteLinkAcceptToast } from "@repo/domain/invites";
 
 export function AcceptInviteFlow({
   kind,
@@ -43,7 +44,7 @@ export function AcceptInviteFlow({
 
   const communityAccept = api.communities.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success("Joined Community");
+      toast.success(inviteLinkAcceptToast("community"));
       router.replace(`/dashboard/communities/${result.communityId}`);
     },
     onError: (error) => {
@@ -52,7 +53,7 @@ export function AcceptInviteFlow({
   });
   const groupAccept = api.groups.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success("Joined Group");
+      toast.success(inviteLinkAcceptToast("group"));
       router.replace(`/dashboard/groups/${result.groupId}`);
     },
     onError: (error) => {
@@ -61,7 +62,7 @@ export function AcceptInviteFlow({
   });
   const teamAccept = api.teams.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success("Joined Team");
+      toast.success(inviteLinkAcceptToast("team"));
       router.replace(`/dashboard/teams/${result.teamId}`);
     },
     onError: (error) => {

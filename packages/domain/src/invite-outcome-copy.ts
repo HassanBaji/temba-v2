@@ -29,11 +29,13 @@ export function inviteOutcomeCopy(
   };
 }
 
+export type InviteOutcomeTarget = "home" | "sign-in";
+
 export function inviteOutcomeAction(isSignedIn: boolean): {
   label: string;
-  href: string;
+  target: InviteOutcomeTarget;
 } {
   return isSignedIn
-    ? { label: "Go to Home", href: "/dashboard" }
-    : { label: "Sign in", href: "/login" };
+    ? { label: "Go to Home", target: "home" }
+    : { label: "Sign in", target: "sign-in" };
 }

@@ -49,13 +49,9 @@ import {
   type GroupJoinMode,
 } from "@repo/domain/group-join";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
+import { groupLookupNote, lookupInviteSentToast } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
-
-const GROUP_LOOSE_LOOKUP_NOTE =
-  "Only you can invite people here. Invites don't expire.";
-const GROUP_CLUB_LOOKUP_NOTE =
-  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator can invite Community Members.";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
@@ -275,11 +271,7 @@ export default function GroupHomePage({
     onSuccess: async (result) => {
       setLookupRefused(result.refused);
       if (result.sent.length > 0) {
-        toast.success(
-          result.sent.length === 1
-            ? "Lookup invite sent"
-            : `${result.sent.length} Lookup invites sent`,
-        );
+        toast.success(lookupInviteSentToast(result.sent.length));
       }
       await utils.groups.listLookupInvites.invalidate({ groupId: id });
       await utils.groups.searchLookupUsers.invalidate({ groupId: id });
@@ -735,9 +727,7 @@ export default function GroupHomePage({
         lookup={
           data.canManageLookupInvites
             ? {
-                note: data.isLoose
-                  ? GROUP_LOOSE_LOOKUP_NOTE
-                  : GROUP_CLUB_LOOKUP_NOTE,
+                note: groupLookupNote(data.isLoose),
                 lookupInvites: lookupInvites.data,
                 sendPending: sendLookupInvite.isPending,
                 revokePendingId: revokeLookupInvite.isPending

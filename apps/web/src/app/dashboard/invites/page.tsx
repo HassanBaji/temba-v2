@@ -13,23 +13,14 @@ import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { gameJoinToast } from "@repo/domain/game-copy";
+import {
+  gameInviteSeatCopy,
+  lookupInviteAcceptToast,
+  INVITE_JOIN_WAITLIST_LABEL,
+  INVITE_SIT_HERE_LABEL,
+  mergeInviteInbox,
+} from "@repo/domain/invites";
 import { api } from "~/trpc/react";
-
-function inviteMeta(
-  kind: "community" | "group" | "team" | "game",
-  name: string,
-) {
-  const label =
-    kind === "community"
-      ? "Community"
-      : kind === "group"
-        ? "Group"
-        : kind === "team"
-          ? "Team"
-          : "Game";
-  return `${label} invite from ${name}`;
-}
 
 export default function InvitesPage() {
   const utils = api.useUtils();
@@ -40,7 +31,7 @@ export default function InvitesPage() {
 
   const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Community");
+      toast.success(lookupInviteAcceptToast("community"));
       await utils.communities.pendingLookupInvites.invalidate();
       await utils.communities.mine.invalidate();
     },
@@ -51,7 +42,7 @@ export default function InvitesPage() {
 
   const acceptGroup = api.groups.acceptLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Group");
+      toast.success(lookupInviteAcceptToast("group"));
       await utils.groups.pendingLookupInvites.invalidate();
       await utils.groups.mine.invalidate();
       await utils.communities.mine.invalidate();
@@ -63,7 +54,7 @@ export default function InvitesPage() {
 
   const acceptTeam = api.teams.acceptInAppInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Team");
+      toast.success(lookupInviteAcceptToast("team"));
       await utils.teams.pendingInvites.invalidate();
       await utils.teams.mine.invalidate();
     },
@@ -74,7 +65,7 @@ export default function InvitesPage() {
 
   const acceptGame = api.games.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
-      toast.success(gameJoinToast(result.waitlisted));
+      toast.success(lookupInviteAcceptToast("game", result));
       await utils.games.pendingLookupInvites.invalidate();
       await utils.games.byId.invalidate({ id: result.gameId });
       await utils.users.home.invalidate();
@@ -95,43 +86,12 @@ export default function InvitesPage() {
     groupInvites.error ??
     teamInvites.error ??
     gameInvites.error;
-  const items = [
-    ...(communityInvites.data ?? []).map((invite) => ({
-      kind: "community" as const,
-      id: invite.id,
-      title: invite.communityName,
-      invitedBy: invite.invitedBy,
-      createdAt: invite.createdAt,
-    })),
-    ...(groupInvites.data ?? []).map((invite) => ({
-      kind: "group" as const,
-      id: invite.id,
-      title: invite.groupName ?? "Untitled Group",
-      invitedBy: invite.invitedBy,
-      createdAt: invite.createdAt,
-    })),
-    ...(teamInvites.data ?? []).map((invite) => ({
-      kind: "team" as const,
-      id: invite.id,
-      title: invite.displayName,
-      invitedBy: invite.invitedBy,
-      createdAt: invite.createdAt,
-    })),
-    ...(gameInvites.data ?? []).map((invite) => ({
-      kind: "game" as const,
-      id: invite.id,
-      title: invite.gameName,
-      invitedBy: invite.invitedBy,
-      createdAt: invite.createdAt,
-      needsSeatPick: invite.needsSeatPick,
-      format: invite.format,
-      registrationStatus: invite.registrationStatus,
-      sides: invite.sides,
-      vacantSeats: invite.vacantSeats,
-    })),
-  ].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const items = mergeInviteInbox({
+    community: communityInvites.data,
+    group: groupInvites.data,
+    team: teamInvites.data,
+    game: gameInvites.data,
+  });
 
   function isRowPending(kind: string, id: string) {
     if (kind === "community") {
@@ -196,25 +156,11 @@ export default function InvitesPage() {
         <RowList>
           {items.map((invite) => {
             const pending = isRowPending(invite.kind, invite.id);
-            const inviterName = invite.invitedBy.name ?? "Someone";
-            const inviterImage = invite.invitedBy.image;
-            if (
-              invite.kind === "game" &&
-              invite.needsSeatPick &&
-              invite.sides
-            ) {
-              const joinFrozen =
-                invite.registrationStatus === "closed" ||
-                invite.registrationStatus === "cancelled";
-              const waitlistOnly =
-                !joinFrozen &&
-                (invite.registrationStatus === "full" ||
-                  invite.vacantSeats.length === 0);
+            const { inviterName, inviterImage, seatPick } = invite;
+            if (invite.kind === "game" && seatPick) {
+              const { joinFrozen, waitlistOnly } = seatPick;
               return (
-                <li
-                  key={`${invite.kind}-${invite.id}`}
-                  className="space-y-3 px-4 py-4"
-                >
+                <li key={invite.key} className="space-y-3 px-4 py-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <UserAvatar
                       name={inviterName}
@@ -226,22 +172,18 @@ export default function InvitesPage() {
                         {invite.title}
                       </p>
                       <p className="text-meta text-muted-foreground truncate">
-                        {inviteMeta(invite.kind, inviterName)}
+                        {invite.meta}
                       </p>
                     </div>
                     <InviteKindBadge kind={invite.kind} />
                   </div>
                   <p className="text-body text-muted-foreground">
-                    {joinFrozen
-                      ? "Occupied seats show who is already registered. This Game is not open for registration."
-                      : waitlistOnly
-                        ? "No vacant Position. Occupied seats show who is already registered."
-                        : "Occupied seats show who is already registered. Pick a vacant Position to sit."}
+                    {gameInviteSeatCopy(seatPick, "inbox")}
                   </p>
                   <GameSeatGrid
-                    sides={invite.sides}
+                    sides={seatPick.sides}
                     canJoinVacant={!joinFrozen && !waitlistOnly}
-                    joinLabel="Sit here"
+                    joinLabel={INVITE_SIT_HERE_LABEL}
                     joining={pending}
                     canMove={false}
                     moving={false}
@@ -265,7 +207,7 @@ export default function InvitesPage() {
                       disabled={pending}
                       onClick={() => onAccept("game", invite.id)}
                     >
-                      {pending ? "Joining…" : "Join waitlist"}
+                      {pending ? "Joining…" : INVITE_JOIN_WAITLIST_LABEL}
                     </Button>
                   ) : null}
                 </li>
@@ -273,7 +215,7 @@ export default function InvitesPage() {
             }
             return (
               <ListRow
-                key={`${invite.kind}-${invite.id}`}
+                key={invite.key}
                 leading={
                   <UserAvatar
                     name={inviterName}
@@ -282,7 +224,7 @@ export default function InvitesPage() {
                   />
                 }
                 title={invite.title}
-                meta={inviteMeta(invite.kind, inviterName)}
+                meta={invite.meta}
                 stackTrailing
                 trailing={
                   <div className="flex items-center gap-2">

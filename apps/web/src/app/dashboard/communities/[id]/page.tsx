@@ -34,6 +34,7 @@ import {
   type CommunityHomeTab,
 } from "@repo/domain/community-home-tab";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import { lookupInviteSentToast } from "@repo/domain/invites";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
@@ -128,11 +129,7 @@ export default function CommunityHomePage({
     onSuccess: async (result) => {
       setLookupRefused(result.refused);
       if (result.sent.length > 0) {
-        toast.success(
-          result.sent.length === 1
-            ? "Lookup invite sent"
-            : `${result.sent.length} Lookup invites sent`,
-        );
+        toast.success(lookupInviteSentToast(result.sent.length));
       }
       await utils.communities.listLookupInvites.invalidate({ communityId: id });
       await utils.communities.searchLookupUsers.invalidate({

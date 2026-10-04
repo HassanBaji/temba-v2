@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  inviteOutcomeAction,
-  inviteOutcomeCopy,
-} from "~/lib/invite-outcome-copy";
+import { inviteOutcomeAction, inviteOutcomeCopy } from "./invite-outcome-copy";
 
 describe("inviteOutcomeCopy", () => {
   it("gives invalid and unavailable links different titles", () => {
@@ -46,14 +43,14 @@ describe("inviteOutcomeAction", () => {
   it("sends signed-in Users Home", () => {
     expect(inviteOutcomeAction(true)).toEqual({
       label: "Go to Home",
-      href: "/dashboard",
+      target: "home",
     });
   });
 
   it("offers sign-in to signed-out visitors", () => {
     expect(inviteOutcomeAction(false)).toEqual({
       label: "Sign in",
-      href: "/login",
+      target: "sign-in",
     });
   });
 });

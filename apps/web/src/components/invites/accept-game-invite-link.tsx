@@ -14,7 +14,15 @@ import {
 } from "~/components/invites/invite-outcome";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { GAME_TOAST } from "@repo/domain/game-copy";
+import {
+  gameInviteSeatCopy,
+  gameInviteLinkStage,
+  gameInviteSeatState,
+  INVITE_JOIN_WAITLIST_LABEL,
+  INVITE_SIT_HERE_LABEL,
+  inviteLinkAcceptToast,
+  levelRangeGateAction,
+} from "@repo/domain/invites";
 import {
   formatLevelRangeGateCopy,
   formatLevelRangeLabel,
@@ -49,16 +57,9 @@ export function AcceptGameInviteLink({
   });
   const accept = api.games.acceptInviteLink.useMutation({
     onSuccess: (result) => {
+      toast.success(inviteLinkAcceptToast("game", result.outcome));
       if (result.outcome === "waiting_for_partner") {
-        toast.success("Waiting for your Team partner to accept");
         return;
-      }
-      if (result.outcome === "waitlisted") {
-        toast.success(GAME_TOAST.joinedWaitlist);
-      } else if (result.outcome === "already") {
-        toast.success("Already on this Game");
-      } else {
-        toast.success(GAME_TOAST.joined);
       }
       router.replace(`/dashboard/games/${result.gameId}`);
     },
@@ -69,19 +70,18 @@ export function AcceptGameInviteLink({
   });
 
   const ready = preview.data?.status === "ready" ? preview.data : undefined;
-  const blockedByLevelRange =
-    isSignedIn && ready?.viewerPassesLevelRange === false;
-  const partnerRequiredJoin = Boolean(ready?.partnerRequiredJoin);
-  const needsSeatPick = Boolean(ready?.needsSeatPick) && !blockedByLevelRange;
+  const stage = ready ? gameInviteLinkStage(ready, isSignedIn) : "accept";
+  const blockedByLevelRange = stage === "level_range";
+  const partnerRequiredJoin = stage === "partner";
+  const needsSeatPick = stage === "seat_pick";
   const sides = ready?.sides ?? [];
   const vacantSeats = ready?.vacantSeats ?? [];
-  const joinFrozen =
-    ready?.registrationStatus === "closed" ||
-    ready?.registrationStatus === "cancelled";
-  const waitlistOnly =
-    needsSeatPick &&
-    !joinFrozen &&
-    (ready?.registrationStatus === "full" || vacantSeats.length === 0);
+  const seatState = gameInviteSeatState({
+    registrationStatus: ready?.registrationStatus ?? "open",
+    vacantSeatCount: vacantSeats.length,
+  });
+  const joinFrozen = seatState.joinFrozen;
+  const waitlistOnly = needsSeatPick && seatState.waitlistOnly;
   const canJoinVacant = isSignedIn && !joinFrozen && !waitlistOnly;
   const seatRaceError =
     needsSeatPick && accept.isError && accept.error.data?.code === "CONFLICT";
@@ -90,8 +90,11 @@ export function AcceptGameInviteLink({
     ready?.levelMinTenths,
     ready?.levelMaxTenths,
   );
-  const pendingRequest = ready?.levelRangeRequest?.status === "pending";
-  const rejectedRequest = ready?.levelRangeRequest?.status === "rejected";
+  const levelAction = levelRangeGateAction({
+    requestStatus: ready?.levelRangeRequest?.status ?? null,
+    canRequest: ready?.canRequestLevelRange ?? false,
+    requesting: requestLevelRange.isPending,
+  });
 
   React.useEffect(() => {
     if (!isSignedIn) {
@@ -195,16 +198,12 @@ export function AcceptGameInviteLink({
             })}
           </p>
         </div>
-        {pendingRequest ? (
-          <p className="text-body text-muted-foreground">
-            Request pending. Organizers have not decided yet.
-          </p>
+        {levelAction.kind === "pending-note" ? (
+          <p className="text-body text-muted-foreground">{levelAction.text}</p>
         ) : (
           <Button
             className="min-h-11"
-            disabled={
-              requestLevelRange.isPending || !ready.canRequestLevelRange
-            }
+            disabled={levelAction.disabled}
             onClick={() =>
               requestLevelRange.mutate({
                 gameId: ready.gameId,
@@ -212,11 +211,7 @@ export function AcceptGameInviteLink({
               })
             }
           >
-            {requestLevelRange.isPending
-              ? "Requesting…"
-              : rejectedRequest
-                ? "Request again"
-                : "Request to play"}
+            {levelAction.label}
           </Button>
         )}
       </div>
@@ -264,19 +259,16 @@ export function AcceptGameInviteLink({
             <p className="text-body text-muted-foreground">{rangeLabel}</p>
           ) : null}
           <p className="text-body text-muted-foreground">
-            {joinFrozen
-              ? "Occupied seats show who is already registered. This Game is not open for registration."
-              : isSignedIn
-                ? waitlistOnly
-                  ? "No vacant Position. Occupied seats show who is already registered. Accept to join the waitlist."
-                  : "Occupied seats show who is already registered. Pick a vacant Position to sit."
-                : "Occupied seats show who is already registered. Sign in or create an account to pick a vacant Position."}
+            {gameInviteSeatCopy(
+              { joinFrozen, waitlistOnly },
+              isSignedIn ? "link" : "link-signed-out",
+            )}
           </p>
         </div>
         <GameSeatGrid
           sides={sides}
           canJoinVacant={canJoinVacant}
-          joinLabel="Sit here"
+          joinLabel={INVITE_SIT_HERE_LABEL}
           joining={accept.isPending}
           canMove={false}
           moving={false}
@@ -295,7 +287,7 @@ export function AcceptGameInviteLink({
               onClick={onJoinWaitlist}
               disabled={accept.isPending}
             >
-              {accept.isPending ? "Joining…" : "Join waitlist"}
+              {accept.isPending ? "Joining…" : INVITE_JOIN_WAITLIST_LABEL}
             </Button>
           ) : null
         ) : (

@@ -73,6 +73,7 @@ import {
 } from "@repo/domain/game-edit-save";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
+import { gameInviteAccess, lookupInviteSentToast } from "@repo/domain/invites";
 import {
   gameKickConfirmCopy,
   gameKickTarget,
@@ -541,11 +542,7 @@ export default function GameHomePage({
     onSuccess: async (result) => {
       setLookupRefused(result.refused);
       if (result.sent.length > 0) {
-        toast.success(
-          result.sent.length === 1
-            ? "Lookup invite sent"
-            : `${result.sent.length} Lookup invites sent`,
-        );
+        toast.success(lookupInviteSentToast(result.sent.length));
       }
       await utils.games.listLookupInvites.invalidate({ gameId: id });
       await utils.games.searchLookupUsers.invalidate({ gameId: id });
@@ -613,15 +610,20 @@ export default function GameHomePage({
         data.registrationMode,
       ),
   );
+  const inviteAccess = data
+    ? gameInviteAccess({
+        friendlyChrome: usesFriendlyChrome,
+        isOrganizer: data.isOrganizer,
+        registrationStatus: data.registrationStatus,
+        cancelledAt: data.cancelledAt,
+        joinFrozen: data.joinFrozen,
+        registrationMode: data.registrationMode,
+        partnerRequired: isPartnerRequiredGame(data),
+      })
+    : { canManage: false, canSendLookup: false };
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
-  const canManageGameInvites = usesFriendlyChrome
-    ? canMintInvite
-    : Boolean(data?.isOrganizer && !data.cancelledAt && !data.joinFrozen);
-  const canSendGameLookup = Boolean(
-    canManageGameInvites &&
-      data?.registrationMode !== "team_only" &&
-      !(data && isPartnerRequiredGame(data)),
-  );
+  const canManageGameInvites = inviteAccess.canManage;
+  const canSendGameLookup = inviteAccess.canSendLookup;
   const lookupSearch = api.games.searchLookupUsers.useQuery(
     { gameId: id, query: lookupQuery },
     { enabled: invitesOpen && canSendGameLookup },

@@ -226,6 +226,9 @@ export function createGroupFixtures(now = new Date()) {
     joinMode: "member",
     canJoinLoosePublic: false,
     canJoinClubPublic: false,
+    isLoose: true,
+    canManageLookupInvites: false,
+    canManageInviteLinks: false,
   };
 
   const nonMember: GroupHomeData = {
@@ -268,6 +271,11 @@ export function createGroupFixtures(now = new Date()) {
         community: { id: "community-sodermalm", name: "Södermalm Padel" },
         joinMode: "request",
         canJoinLoosePublic: false,
+      },
+      organizer: {
+        ...base,
+        canManageLookupInvites: true,
+        canManageInviteLinks: true,
       },
       archivedClub: {
         ...base,

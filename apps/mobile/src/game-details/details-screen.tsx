@@ -26,11 +26,14 @@ import {
   tournamentLeaveOrKickConfirmCopy,
   tournamentPartnerVacantSideRaceMessage,
 } from "@repo/domain/tournament-join";
+import { gameInviteAccess } from "@repo/domain/invites";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 
+import { InviteDoorSheet } from "../invites/invite-door-sheet";
+import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
@@ -113,6 +116,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     position: "left" | "right";
   } | null>(null);
   const [teamId, setTeamId] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
   const data = game.data;
@@ -399,8 +403,44 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     />
   );
 
+  const inviteAccess = data
+    ? gameInviteAccess({
+        friendlyChrome: friendly,
+        isOrganizer: data.isOrganizer,
+        registrationStatus: data.registrationStatus,
+        cancelledAt: data.cancelledAt,
+        joinFrozen: data.joinFrozen,
+        registrationMode: data.registrationMode,
+        partnerRequired: isPartnerRequiredGame(data),
+      })
+    : null;
+  const inviteEntry = inviteAccess?.canManage ? (
+    <InviteEntry onPress={() => setInviteOpen(true)} />
+  ) : null;
+
   const sheets = data ? (
     <>
+      {inviteAccess?.canManage ? (
+        <InviteDoorSheet
+          visible={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          door={{
+            kind: "game",
+            gameId,
+            canLookup: inviteAccess.canSendLookup,
+            canLink: true,
+            share: {
+              format: data.format,
+              registrationMode: data.registrationMode,
+              venueName: data.venue?.name ?? null,
+              courtName: data.matches[0]?.courtName ?? null,
+              windowStart: data.windowStart,
+              windowEnd: data.windowEnd,
+              sides: data.sides,
+            },
+          }}
+        />
+      ) : null}
       <JoinSheet
         visible={joinOpen}
         initialSeat={initialSeat}
@@ -498,6 +538,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
       <View style={{ flex: 1 }}>
         <Screen refreshing={refreshing} onRefresh={onRefresh}>
           {header}
+          {inviteEntry}
           <TournamentContent
             game={details}
             organizer={{
@@ -583,6 +624,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     <View style={{ flex: 1 }}>
       <Screen refreshing={refreshing} onRefresh={onRefresh}>
         {header}
+        {inviteEntry}
         <GameDetailsContent
           game={details}
           handlers={handlers}

@@ -29,6 +29,7 @@ const HOME_STATES = [
   { key: "nonMemberRequest", label: "Request" },
   { key: "requested", label: "Requested" },
   { key: "clubRequest", label: "Club request" },
+  { key: "organizer", label: "Organizer" },
   { key: "archivedClub", label: "Archived Club" },
 ] as const;
 
@@ -114,6 +115,7 @@ export default function GalleryGroups() {
         onTabChange={setTab}
         joinPending={false}
         onJoin={noop}
+        onInvite={noop}
         onLeave={noop}
         confirm={null}
         confirmPending={false}

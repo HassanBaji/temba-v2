@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../../../src/navigation/placeholder-screen";
+import { InvitesScreen } from "../../../src/invites/invites-screen";
 
 export default function Invites() {
-  return <PlaceholderScreen title="Invites" />;
+  return <InvitesScreen />;
 }

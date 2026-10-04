@@ -74,4 +74,7 @@ export type GroupHomeData = {
   joinMode: string;
   canJoinLoosePublic: boolean;
   canJoinClubPublic: boolean;
+  isLoose: boolean;
+  canManageLookupInvites: boolean;
+  canManageInviteLinks: boolean;
 };

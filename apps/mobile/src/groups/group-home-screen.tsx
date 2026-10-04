@@ -8,6 +8,8 @@ import {
   groupLeaveToast,
 } from "@repo/domain/group-join";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
+import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -20,6 +22,7 @@ import {
   waitlistJoinRequest,
 } from "../games/games-model";
 import { useGameJoin } from "../games/use-game-join";
+import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { Screen } from "../primitives/screen";
 import { Skeleton } from "../primitives/skeleton";
@@ -48,6 +51,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const [refreshing, setRefreshing] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [older, setOlder] = useState<OlderPages | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
@@ -176,6 +180,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onTabChange={setTab}
         joinPending={pendingGroupId === groupId}
         onJoin={(door) => joinGroup(groupId, door)}
+        onInvite={() => setInviteOpen(true)}
         onLeave={() =>
           setConfirm({
             ...groupLeaveConfirm(name),
@@ -212,6 +217,21 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
           onRegister: (gameId) => joinGame(registerRequest(gameId)),
         }}
       />
+      {groupHomeCanManageInvites(data) ? (
+        <InviteDoorSheet
+          visible={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          door={{
+            kind: "group",
+            groupId,
+            name: data.name,
+            sport: data.sport,
+            note: groupLookupNote(data.isLoose),
+            canLookup: data.canManageLookupInvites,
+            canLink: data.canManageInviteLinks,
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }

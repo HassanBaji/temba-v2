@@ -1,6 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
+import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { View } from "react-native";
@@ -28,6 +29,7 @@ export type GroupHomeViewProps = {
   joinPending: boolean;
   onJoin: (door: GroupJoinDoor) => void;
   onLeave: () => void;
+  onInvite: () => void;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
   onCloseConfirm: () => void;
@@ -76,14 +78,24 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         </View>
       </View>
 
-      {data.membership ? (
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label="Leave Group"
-            size="sm"
-            variant="outline"
-            onPress={props.onLeave}
-          />
+      {data.membership || groupHomeCanManageInvites(data) ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {groupHomeCanManageInvites(data) ? (
+            <Button
+              label="Invite"
+              size="sm"
+              variant="outline"
+              onPress={props.onInvite}
+            />
+          ) : null}
+          {data.membership ? (
+            <Button
+              label="Leave Group"
+              size="sm"
+              variant="outline"
+              onPress={props.onLeave}
+            />
+          ) : null}
         </View>
       ) : null}
 

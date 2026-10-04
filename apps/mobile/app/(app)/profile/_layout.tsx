@@ -7,6 +7,7 @@ export default function ProfileLayout() {
     <TabStack title="Profile">
       <Stack.Screen name="teams" options={{ title: "Teams" }} />
       <Stack.Screen name="invites" options={{ title: "Invites" }} />
+      <Stack.Screen name="invite-link" options={{ title: "Invite" }} />
     </TabStack>
   );
 }

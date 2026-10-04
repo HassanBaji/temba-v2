@@ -9,7 +9,9 @@ import {
   inviteOutcomeCopy,
   type InviteHostLabel,
   type InviteOutcomeKind,
-} from "~/lib/invite-outcome-copy";
+} from "@repo/domain/invite-outcome-copy";
+
+const OUTCOME_HREFS = { home: "/dashboard", "sign-in": "/login" } as const;
 
 const OUTCOME_ICONS: Record<InviteOutcomeKind, LucideIcon> = {
   invalid: Link2Off,
@@ -36,7 +38,7 @@ export function InviteOutcome({
       headingLevel={1}
       action={
         <Button asChild>
-          <Link href={action.href}>{action.label}</Link>
+          <Link href={OUTCOME_HREFS[action.target]}>{action.label}</Link>
         </Button>
       }
     />
