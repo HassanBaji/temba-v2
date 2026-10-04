@@ -1,8 +1,7 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 
 export function isOperatorPublicMetadata(
-  publicMetadata: UserPublicMetadata | undefined,
+  publicMetadata: Record<string, unknown> | undefined,
 ): boolean {
   return publicMetadata?.operator === true;
 }
@@ -11,14 +10,13 @@ export function isOperatorPublicMetadata(
  * Clerk `publicMetadata.operator` is the Operator check. No User role column
  * and no in-app grant or revoke.
  */
-export async function requireOperator() {
-  const clerkUser = await currentUser();
-  if (!clerkUser || !isOperatorPublicMetadata(clerkUser.publicMetadata)) {
+export async function requireOperator(ctx: {
+  getPublicMetadata: () => Promise<Record<string, unknown> | undefined>;
+}) {
+  if (!isOperatorPublicMetadata(await ctx.getPublicMetadata())) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Only Operators can manage Venues",
     });
   }
-
-  return clerkUser;
 }

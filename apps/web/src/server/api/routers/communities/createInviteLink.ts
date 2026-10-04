@@ -6,7 +6,7 @@ import { requireLiveCommunity } from "~/server/communities/helpers/require-live-
 import { requireStaff } from "~/server/communities/helpers/require-staff";
 import { type db } from "~/server/db";
 import { mintLink, throwInviteFrozen } from "~/server/invites/doors";
-import { communityInviteLinkUrl, getAppOrigin } from "~/server/invites/tokens";
+import { communityInviteLinkUrl } from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -45,6 +45,6 @@ export const createInviteLinkProcedure = protectedProcedure
     return createInviteLink(ctx.db, {
       communityId: input.communityId,
       userId: appUser.id,
-      origin: getAppOrigin(ctx.headers),
+      origin: ctx.webOrigin,
     });
   });

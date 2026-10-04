@@ -42,15 +42,6 @@ export function parseGameInviteShortCode(raw: string) {
   return code;
 }
 
-export function getAppOrigin(headers: Headers) {
-  const host = headers.get("x-forwarded-host") ?? headers.get("host");
-  const proto = headers.get("x-forwarded-proto") ?? "http";
-  if (host) {
-    return `${proto}://${host}`;
-  }
-  return `http://localhost:${process.env.PORT ?? 3000}`;
-}
-
 export function communityInviteLinkUrl(origin: string, token: string) {
   return `${origin}${communityInviteLinkPath(token)}`;
 }

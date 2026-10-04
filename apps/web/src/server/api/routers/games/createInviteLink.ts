@@ -7,11 +7,7 @@ import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { assertGameInviteDoorsOpen } from "~/server/games/invites";
 import { mintLink } from "~/server/invites/doors";
-import {
-  gameInviteLinkUrl,
-  gameInviteShortUrl,
-  getAppOrigin,
-} from "~/server/invites/tokens";
+import { gameInviteLinkUrl, gameInviteShortUrl } from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -51,6 +47,6 @@ export const createInviteLinkProcedure = protectedProcedure
     return createInviteLink(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
-      origin: getAppOrigin(ctx.headers),
+      origin: ctx.webOrigin,
     });
   });

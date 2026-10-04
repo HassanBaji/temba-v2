@@ -1,4 +1,4 @@
-import { safeInternalRedirect } from "./safe-internal-redirect";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 /**
  * Request header `middleware.ts` sets with the current path plus search, so

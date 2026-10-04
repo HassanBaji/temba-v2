@@ -5,7 +5,7 @@ import { protectedProcedure } from "~/server/api/trpc";
 import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { mintLink } from "~/server/invites/doors";
-import { getAppOrigin, teamInviteLinkUrl } from "~/server/invites/tokens";
+import { teamInviteLinkUrl } from "~/server/invites/tokens";
 import { requireIncompleteTeamCreator } from "~/server/teams/helpers/require-incomplete-team-creator";
 
 type DbClient = typeof db;
@@ -47,6 +47,6 @@ export const createInviteLinkProcedure = protectedProcedure
     return createInviteLink(ctx.db, {
       teamId: input.teamId,
       userId: appUser.id,
-      origin: getAppOrigin(ctx.headers),
+      origin: ctx.webOrigin,
     });
   });

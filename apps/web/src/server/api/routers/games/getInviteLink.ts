@@ -5,11 +5,7 @@ import { resolveAppUser } from "~/server/auth/resolve-app-user";
 import { type db } from "~/server/db";
 import { assertGameOrganizer, requireGame } from "~/server/games/access";
 import { getLiveLink } from "~/server/invites/doors";
-import {
-  gameInviteLinkUrl,
-  gameInviteShortUrl,
-  getAppOrigin,
-} from "~/server/invites/tokens";
+import { gameInviteLinkUrl, gameInviteShortUrl } from "~/server/invites/tokens";
 
 type DbClient = typeof db;
 
@@ -42,6 +38,6 @@ export const getInviteLinkProcedure = protectedProcedure
     return getInviteLink(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
-      origin: getAppOrigin(ctx.headers),
+      origin: ctx.webOrigin,
     });
   });

@@ -83,6 +83,13 @@ elif env_value_empty apps/web/.env CLERK_WEBHOOK_SIGNING_SECRET; then
   set_env_kv apps/web/.env CLERK_WEBHOOK_SIGNING_SECRET "whsec_cloud-agent-build-only-not-a-real-key"
 fi
 
+# Invite links are built from the web origin.
+if [ -n "${WEB_ORIGIN:-}" ]; then
+  set_env_kv apps/web/.env WEB_ORIGIN "$WEB_ORIGIN"
+elif env_value_empty apps/web/.env WEB_ORIGIN; then
+  set_env_kv apps/web/.env WEB_ORIGIN "http://localhost:3000"
+fi
+
 # Railway Bucket (Venue logos and Group images). Sync when Cloud secrets are
 # present so env validation can require endpoint, keys, bucket, and region.
 # Empty .env.example keys fail validation; if Cloud secrets are absent, write

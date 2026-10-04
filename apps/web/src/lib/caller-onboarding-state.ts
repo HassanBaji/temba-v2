@@ -6,7 +6,7 @@ import { cache } from "react";
 
 import { user } from "@repo/db";
 
-import { type DashboardOnboardingState } from "@repo/domain/dashboard-onboarding-gate";
+import { type DashboardOnboardingState } from "~/lib/dashboard-onboarding-gate";
 import { db } from "~/server/db";
 
 /**

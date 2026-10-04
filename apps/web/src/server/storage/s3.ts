@@ -5,15 +5,15 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 
-import { env } from "~/env";
+import { storageEnv } from "~/server/storage/env";
 
 export function createS3Client(): S3Client {
   return new S3Client({
-    endpoint: env.AWS_ENDPOINT_URL,
-    region: env.AWS_DEFAULT_REGION,
+    endpoint: storageEnv.AWS_ENDPOINT_URL,
+    region: storageEnv.AWS_DEFAULT_REGION,
     credentials: {
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+      accessKeyId: storageEnv.AWS_ACCESS_KEY_ID,
+      secretAccessKey: storageEnv.AWS_SECRET_ACCESS_KEY,
     },
     forcePathStyle: false,
   });
@@ -27,7 +27,7 @@ export function getS3Client(): S3Client {
 }
 
 export function getS3BucketName(): string {
-  return env.AWS_S3_BUCKET_NAME;
+  return storageEnv.AWS_S3_BUCKET_NAME;
 }
 
 export function isS3NotFoundError(error: unknown): boolean {

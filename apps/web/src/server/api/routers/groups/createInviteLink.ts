@@ -7,7 +7,6 @@ import { type db } from "~/server/db";
 import { requireGroupInviteLinkMinter } from "~/server/groups/helpers/require-group-invite-link-minter";
 import { mintLink } from "~/server/invites/doors";
 import {
-  getAppOrigin,
   groupInviteLinkUrl,
   groupInviteShortUrl,
 } from "~/server/invites/tokens";
@@ -54,6 +53,6 @@ export const createInviteLinkProcedure = protectedProcedure
     return createInviteLink(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
-      origin: getAppOrigin(ctx.headers),
+      origin: ctx.webOrigin,
     });
   });

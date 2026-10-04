@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import {
   dashboardOnboardingRedirect,
   PATHNAME_HEADER,
-} from "@repo/domain/dashboard-onboarding-gate";
-import { loadCallerOnboardingState } from "~/server/auth/caller-onboarding-state";
+} from "~/lib/dashboard-onboarding-gate";
+import { loadCallerOnboardingState } from "~/lib/caller-onboarding-state";
 import { HydrateClient } from "~/trpc/server";
 
 export const metadata: Metadata = {

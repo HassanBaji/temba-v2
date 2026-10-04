@@ -7,13 +7,14 @@
  * need to use are documented accordingly near the end.
  */
 
-import { auth } from "@clerk/nextjs/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { requireOperator } from "~/server/auth/require-operator";
 import { db } from "~/server/db";
+
+export type PublicMetadata = Record<string, unknown>;
 
 /**
  * 1. CONTEXT
@@ -27,14 +28,17 @@ import { db } from "~/server/db";
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const { userId } = await auth();
-  return {
-    db,
-    userId,
-    ...opts,
-  };
+export type TRPCContextHost = {
+  userId: string | null;
+  getPublicMetadata: () => Promise<PublicMetadata | undefined>;
+  headers: Headers;
+  webOrigin: string;
 };
+
+export const createTRPCContext = (host: TRPCContextHost) => ({
+  db,
+  ...host,
+});
 
 /**
  * 2. INITIALIZATION
@@ -136,7 +140,9 @@ export const protectedProcedure = t.procedure
  *
  * Clerk `publicMetadata.operator === true`. Community roles are unchanged.
  */
-export const operatorProcedure = protectedProcedure.use(async ({ next }) => {
-  await requireOperator();
-  return next();
-});
+export const operatorProcedure = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    await requireOperator(ctx);
+    return next();
+  },
+);
