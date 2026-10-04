@@ -9,12 +9,13 @@ import {
   games,
   matchSets,
   matches,
+  teamMembers,
   teams,
   user,
   venues,
 } from "@repo/db/schema";
 
-import { loadTeamRecord } from "~/server/teams/team-record";
+import { teamById } from "~/server/api/routers/teams/byId";
 import { createPgliteDb, type TestDatabase } from "~/server/test/pglite";
 
 const START = new Date("2026-09-01T18:00:00.000Z");
@@ -37,6 +38,10 @@ async function setup(database: TestDatabase) {
     .insert(teams)
     .values({ createdBy: owner!.id })
     .returning({ id: teams.id });
+  await database.insert(teamMembers).values([
+    { teamId: ours!.id, userId: owner!.id },
+    { teamId: theirs!.id, userId: owner!.id },
+  ]);
   return {
     ownerId: owner!.id,
     venueId: venue!.id,
@@ -102,12 +107,27 @@ async function playMatch(
   return match!.id;
 }
 
-describe("loadTeamRecord", () => {
+async function loadTeamRecord(
+  database: TestDatabase,
+  base: Awaited<ReturnType<typeof setup>>,
+  teamId: string,
+) {
+  const { gamesPlayed, wins, losses } = await teamById(
+    database as unknown as Parameters<typeof teamById>[0],
+    {
+      teamId,
+      userId: base.ownerId,
+    },
+  );
+  return { gamesPlayed, wins, losses };
+}
+
+describe("teamById record", () => {
   it("shows zero played for a new Team", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const base = await setup(db);
-      expect(await loadTeamRecord(db, base.teamId)).toEqual({
+      expect(await loadTeamRecord(db, base, base.teamId)).toEqual({
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
@@ -130,12 +150,12 @@ describe("loadTeamRecord", () => {
         ourSlot: 2,
         sets: [{ slot1GamesWon: 6, slot2GamesWon: 3 }],
       });
-      expect(await loadTeamRecord(db, base.teamId)).toEqual({
+      expect(await loadTeamRecord(db, base, base.teamId)).toEqual({
         gamesPlayed: 2,
         wins: 1,
         losses: 1,
       });
-      expect(await loadTeamRecord(db, base.rivalId)).toEqual({
+      expect(await loadTeamRecord(db, base, base.rivalId)).toEqual({
         gamesPlayed: 2,
         wins: 1,
         losses: 1,
@@ -156,7 +176,7 @@ describe("loadTeamRecord", () => {
           { slot1GamesWon: 3, slot2GamesWon: 6 },
         ],
       });
-      expect(await loadTeamRecord(db, base.teamId)).toEqual({
+      expect(await loadTeamRecord(db, base, base.teamId)).toEqual({
         gamesPlayed: 1,
         wins: 0,
         losses: 0,
@@ -193,7 +213,7 @@ describe("loadTeamRecord", () => {
         sets,
         cancelledGame: true,
       });
-      expect(await loadTeamRecord(db, base.teamId)).toEqual({
+      expect(await loadTeamRecord(db, base, base.teamId)).toEqual({
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
