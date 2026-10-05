@@ -1,6 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
 import {
-  CREATE_FLOW_STEP_COUNT,
   createFlowLaterSteps,
   friendlyGameKickoff,
   friendlyGamePreviewLine,
@@ -17,8 +15,14 @@ import { Button } from "../primitives/button";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { GameDetailsStep, TournamentDetailsStep } from "./details-step";
+import {
+  CREATE_ENTRY_HEADER,
+  stepHeader,
+  type StepHeaderText,
+} from "./create-header";
 import type { CreateAction, CreateState, FieldErrors } from "./create-model";
+import { GameDetailsStep, TournamentDetailsStep } from "./details-step";
+import { StepFooter, StepShell } from "./step-shell";
 import { TypeStep } from "./type-step";
 import { GameWhenStep, TournamentWhenStep } from "./when-step";
 import { groupLabel, WhereStep } from "./where-step";
@@ -36,31 +40,12 @@ export type CreateViewProps = {
   onContinue: () => void;
   onCancel: () => void;
   onRetry: () => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  children?: React.ReactNode;
 };
 
-function Progress({ step }: { step: number }) {
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ flexDirection: "row", gap: 6 }}
-    >
-      {Array.from({ length: CREATE_FLOW_STEP_COUNT }, (_, index) => (
-        <View
-          key={index}
-          style={{
-            flex: 1,
-            height: 3,
-            borderRadius: radii.sm,
-            backgroundColor: index < step ? colors.paper : colors.dimrule,
-          }}
-        />
-      ))}
-    </View>
-  );
-}
-
-function Header({
+function laterStepHeader({
   state,
   groupName,
   venueName,
@@ -70,7 +55,7 @@ function Header({
   groupName: string | null;
   venueName: string | null;
   courtNames: string[];
-}) {
+}): StepHeaderText {
   const { draft, type } = state;
   const kickoff =
     type === "friendly_game"
@@ -93,66 +78,54 @@ function Header({
           venueName,
           courtName: courtNames[0] ?? null,
         });
-  const stepTitle =
-    state.step === 1
-      ? "Game type"
-      : (createFlowLaterSteps(type).find((item) => item.step === state.step)
-          ?.title ?? "");
-
-  return (
-    <Surface tone="ink" style={{ gap: 12 }}>
-      <Text size="meta" uppercase mono accessibilityRole="header">
-        {`Step ${state.step} of ${CREATE_FLOW_STEP_COUNT} · ${stepTitle}`}
-      </Text>
-      <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
-        <Text size="title" weight="semibold">
-          {title}
-        </Text>
-        {detail ? <Text size="meta">{detail}</Text> : null}
-      </View>
-      <Progress step={state.step} />
-    </Surface>
-  );
+  return { title: [title], subtitle: detail || null, context: null };
 }
 
 export function CreateView(props: CreateViewProps) {
   const { state, groups, picker } = props;
   const { draft } = state;
+  const shell = {
+    refreshing: props.refreshing,
+    onRefresh: props.onRefresh,
+  };
 
-  if (groups.status === "loading") {
+  if (groups.status !== "ready" || groups.value.length === 0) {
     return (
-      <View style={{ gap: 12 }}>
-        <Skeleton height={120} />
-        <Skeleton height={56} />
-        <Skeleton height={56} />
-      </View>
-    );
-  }
-  if (groups.status === "error") {
-    return (
-      <Surface accessibilityRole="alert" style={{ gap: 8 }}>
-        <Text size="lead" weight="semibold">
-          Groups could not be loaded
-        </Text>
-        <Text size="meta" tone="muted">
-          {groups.message}
-        </Text>
-        <Button label="Try again" variant="outline" onPress={props.onRetry} />
-      </Surface>
-    );
-  }
-  if (groups.value.length === 0) {
-    return (
-      <Surface style={{ gap: 8 }}>
-        <Text size="lead" weight="semibold">
-          No Group to create in
-        </Text>
-        <Text size="meta" tone="muted">
-          You can create a Game in a Group you organize. Create or join a Group
-          first.
-        </Text>
-        <Button label="Back" variant="outline" onPress={props.onCancel} />
-      </Surface>
+      <StepShell step={null} header={CREATE_ENTRY_HEADER} {...shell}>
+        {props.children}
+        {groups.status === "loading" ? (
+          <View style={{ gap: 12 }}>
+            <Skeleton height={120} />
+            <Skeleton height={56} />
+            <Skeleton height={56} />
+          </View>
+        ) : groups.status === "error" ? (
+          <Surface accessibilityRole="alert" style={{ gap: 8 }}>
+            <Text size="lead" weight="semibold">
+              Groups could not be loaded
+            </Text>
+            <Text size="meta" tone="muted">
+              {groups.message}
+            </Text>
+            <Button
+              label="Try again"
+              variant="outline"
+              onPress={props.onRetry}
+            />
+          </Surface>
+        ) : (
+          <Surface style={{ gap: 8 }}>
+            <Text size="lead" weight="semibold">
+              No Group to create in
+            </Text>
+            <Text size="meta" tone="muted">
+              You can create a Game in a Group you organize. Create or join a
+              Group first.
+            </Text>
+            <Button label="Back" variant="outline" onPress={props.onCancel} />
+          </Surface>
+        )}
+      </StepShell>
     );
   }
 
@@ -178,7 +151,6 @@ export function CreateView(props: CreateViewProps) {
     errors: props.errors,
     dispatch: props.dispatch,
   };
-  const last = state.step === CREATE_FLOW_STEP_COUNT;
   const emptyCatalog =
     state.step === 2 &&
     pickerData !== null &&
@@ -188,15 +160,43 @@ export function CreateView(props: CreateViewProps) {
     props.formMessage ??
     (emptyCatalog ? "No live Venues. Create is not available." : null) ??
     (picker?.status === "error" ? picker.message : null);
+  const header =
+    stepHeader(state, {
+      groupName,
+      venues: pickerData
+        ? { locked: pickerData.locked, count: pickerData.venues.length }
+        : null,
+    }) ??
+    laterStepHeader({
+      state,
+      groupName,
+      venueName: venue?.name ?? null,
+      courtNames,
+    });
+  const upcoming =
+    state.step <= 2
+      ? createFlowLaterSteps(state.type).filter(
+          (item) => item.step > state.step,
+        )
+      : [];
 
   return (
-    <View style={{ gap: 24 }}>
-      <Header
-        state={state}
-        groupName={groupName}
-        venueName={venue?.name ?? null}
-        courtNames={courtNames}
-      />
+    <StepShell
+      step={state.step}
+      header={header}
+      onBack={props.onBack}
+      upcoming={upcoming}
+      footer={
+        <StepFooter
+          state={state}
+          pending={props.pending}
+          onContinue={props.onContinue}
+          onCancel={props.onCancel}
+        />
+      }
+      {...shell}
+    >
+      {props.children}
       <FormErrorSummary message={summary} />
       {state.step === 1 ? <TypeStep {...step} /> : null}
       {state.step === 2 ? (
@@ -224,38 +224,6 @@ export function CreateView(props: CreateViewProps) {
           />
         )
       ) : null}
-      <View style={{ gap: 8 }}>
-        <Button
-          label={
-            last
-              ? props.pending
-                ? "Creating…"
-                : state.type === "friendly_tournament"
-                  ? "Create tournament"
-                  : "Create Game"
-              : "Continue"
-          }
-          size="lg"
-          pending={props.pending}
-          onPress={props.onContinue}
-        />
-        {state.step > 1 ? (
-          <Button
-            label="Back"
-            variant="outline"
-            size="lg"
-            disabled={props.pending}
-            onPress={props.onBack}
-          />
-        ) : null}
-        <Button
-          label="Cancel"
-          variant="outline"
-          size="lg"
-          disabled={props.pending}
-          onPress={props.onCancel}
-        />
-      </View>
-    </View>
+    </StepShell>
   );
 }

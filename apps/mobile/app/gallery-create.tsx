@@ -11,8 +11,6 @@ import {
 } from "../src/create-game/create-model";
 import type { Slot } from "../src/home/home-model";
 import { Button } from "../src/primitives/button";
-import { Screen } from "../src/primitives/screen";
-import { ScreenHeader } from "../src/primitives/screen-header";
 import { Text } from "../src/primitives/text";
 
 type Picker =
@@ -30,12 +28,29 @@ const STATES: readonly {
   draft: CreateGameFixtureKey;
   picker: Picker;
   failing?: boolean;
+  pending?: boolean;
 }[] = [
   {
     key: "type",
     label: "Type",
     type: null,
     step: 1,
+    draft: "emptyGame",
+    picker: "loose",
+  },
+  {
+    key: "typePicked",
+    label: "Type: picked",
+    type: "friendly_tournament",
+    step: 1,
+    draft: "emptyGame",
+    picker: "loose",
+  },
+  {
+    key: "gameWhereEmpty",
+    label: "Game: no Group",
+    type: "friendly_game",
+    step: 2,
     draft: "emptyGame",
     picker: "loose",
   },
@@ -94,6 +109,15 @@ const STATES: readonly {
     step: 4,
     draft: "gameReview",
     picker: "loose",
+  },
+  {
+    key: "gameCreating",
+    label: "Game: creating",
+    type: "friendly_game",
+    step: 4,
+    draft: "gameReview",
+    picker: "loose",
+    pending: true,
   },
   {
     key: "invertedLevel",
@@ -202,55 +226,55 @@ export default function GalleryCreate() {
             value: loader === "noGroups" ? [] : fixtures.groups,
           };
   const picker: Slot<(typeof fixtures.pickers)["loose"]> | null =
-    entry.step === 1
+    entry.step === 1 || !draft.groupId
       ? null
       : { status: "ready", value: fixtures.pickers[entry.picker] };
   const noop = () => undefined;
 
   return (
-    <Screen>
-      <Text size="h2" weight="semibold">
-        Create states
-      </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {STATES.map((item) => (
-          <Button
-            key={item.key}
-            label={item.label}
-            size="sm"
-            variant={item.key === stateKey ? "default" : "outline"}
-            selected={item.key === stateKey}
-            onPress={() => setStateKey(item.key)}
-          />
-        ))}
+    <CreateView
+      state={state}
+      now={fixtures.now}
+      errors={errors}
+      formMessage={null}
+      groups={groups}
+      picker={picker}
+      pending={entry.pending ?? false}
+      dispatch={noop}
+      onBack={noop}
+      onContinue={noop}
+      onCancel={noop}
+      onRetry={noop}
+    >
+      <View style={{ gap: 12 }}>
+        <Text size="h2" weight="semibold">
+          Create states
+        </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {STATES.map((item) => (
+            <Button
+              key={item.key}
+              label={item.label}
+              size="sm"
+              variant={item.key === stateKey ? "default" : "outline"}
+              selected={item.key === stateKey}
+              onPress={() => setStateKey(item.key)}
+            />
+          ))}
+        </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {LOADERS.map((item) => (
+            <Button
+              key={item.key}
+              label={item.label}
+              size="sm"
+              variant={item.key === loader ? "default" : "outline"}
+              selected={item.key === loader}
+              onPress={() => setLoader(item.key)}
+            />
+          ))}
+        </View>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {LOADERS.map((item) => (
-          <Button
-            key={item.key}
-            label={item.label}
-            size="sm"
-            variant={item.key === loader ? "default" : "outline"}
-            selected={item.key === loader}
-            onPress={() => setLoader(item.key)}
-          />
-        ))}
-      </View>
-      <ScreenHeader nav="close" fallback="/games" />
-      <CreateView
-        state={state}
-        now={fixtures.now}
-        errors={errors}
-        formMessage={null}
-        groups={groups}
-        picker={picker}
-        pending={false}
-        dispatch={noop}
-        onBack={noop}
-        onContinue={noop}
-        onCancel={noop}
-        onRetry={noop}
-      />
-    </Screen>
+    </CreateView>
   );
 }

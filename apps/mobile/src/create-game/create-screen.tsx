@@ -5,8 +5,6 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 
 import { gamePath } from "../games/games-model";
 import { slotOf } from "../lib/slot-of";
-import { Screen } from "../primitives/screen";
-import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
@@ -20,7 +18,9 @@ import {
   type CreateAction,
   type FieldErrors,
 } from "./create-model";
+import { CREATE_ENTRY_HEADER } from "./create-header";
 import { CreateView } from "./create-view";
+import { StepShell } from "./step-shell";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 const GROUP_REFUSED = "You cannot create a Game in that Group.";
@@ -197,8 +197,7 @@ export function CreateGameScreen({
 
   if (isLoaded && user?.publicMetadata.groupCreator !== true) {
     return (
-      <Screen>
-        <ScreenHeader nav="close" fallback="/games" />
+      <StepShell step={null} header={CREATE_ENTRY_HEADER}>
         <Surface style={{ gap: 8 }} accessibilityRole="alert">
           <Text size="lead" weight="semibold">
             Creating Games is not available for your account yet
@@ -207,7 +206,7 @@ export function CreateGameScreen({
             Ask a Group organizer to add you, or join a Game from the Games tab.
           </Text>
         </Surface>
-      </Screen>
+      </StepShell>
     );
   }
 
@@ -219,22 +218,21 @@ export function CreateGameScreen({
   };
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <ScreenHeader nav="close" fallback="/games" />
-      <CreateView
-        state={state}
-        now={now}
-        errors={errors}
-        formMessage={formMessage}
-        groups={slotOf(groups)}
-        picker={state.draft.groupId ? slotOf(picker) : null}
-        pending={pending}
-        dispatch={dispatch}
-        onBack={onBack}
-        onContinue={onContinue}
-        onCancel={() => router.back()}
-        onRetry={() => void groups.refetch()}
-      />
-    </Screen>
+    <CreateView
+      state={state}
+      now={now}
+      errors={errors}
+      formMessage={formMessage}
+      groups={slotOf(groups)}
+      picker={state.draft.groupId ? slotOf(picker) : null}
+      pending={pending}
+      dispatch={dispatch}
+      onBack={onBack}
+      onContinue={onContinue}
+      onCancel={() => router.back()}
+      onRetry={() => void groups.refetch()}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+    />
   );
 }

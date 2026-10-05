@@ -262,6 +262,16 @@ export function advance(
   return STAY;
 }
 
+export function continueBlocked(state: CreateState): boolean {
+  if (state.step === 1) {
+    return state.type === null;
+  }
+  if (state.step === 2) {
+    return state.draft.groupId === "";
+  }
+  return false;
+}
+
 export type SubmitRequest =
   | {
       kind: "friendly_game";

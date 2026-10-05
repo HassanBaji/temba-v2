@@ -22,6 +22,7 @@ export type ButtonProps = {
   disabled?: boolean;
   selected?: boolean;
   icon?: React.ReactNode;
+  iconPlacement?: "leading" | "trailing";
 };
 
 const VARIANTS: Record<
@@ -52,6 +53,7 @@ export function Button({
   disabled = false,
   selected,
   icon,
+  iconPlacement = "leading",
 }: ButtonProps) {
   const tone = useSurfaceTone();
   const resolved = variant ?? (tone === "ink" ? "inverse" : "default");
@@ -87,7 +89,7 @@ export function Button({
         <ActivityIndicator color={colorway.foreground} />
       ) : (
         <>
-          {icon ? <View>{icon}</View> : null}
+          {icon && iconPlacement === "leading" ? <View>{icon}</View> : null}
           {size === "icon" ? null : (
             <Text
               weight="medium"
@@ -97,6 +99,7 @@ export function Button({
               {label}
             </Text>
           )}
+          {icon && iconPlacement === "trailing" ? <View>{icon}</View> : null}
         </>
       )}
     </Pressable>

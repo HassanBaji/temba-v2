@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { hairline } from "./hairline-width";
 import { createInkRegistry } from "./ink-registry";
 import { isNearEnd } from "./scroll-end";
 import { InkRegistryContext } from "./surface-context";
@@ -13,7 +14,11 @@ export type ScreenProps = {
   refreshing?: boolean;
   onRefresh?: () => void;
   onNearEnd?: () => void;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
 };
+
+const FOOTER_PADDING_Y = 14;
 
 export function Screen({
   children,
@@ -21,6 +26,8 @@ export function Screen({
   refreshing = false,
   onRefresh,
   onNearEnd,
+  header,
+  footer,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const registry = useMemo(
@@ -36,16 +43,24 @@ export function Screen({
   const content = {
     gap: spacing.section,
     paddingHorizontal: spacing.surface,
-    paddingTop: insets.top + spacing.surface,
-    paddingBottom: insets.bottom + spacing.section,
+    paddingTop: header ? spacing.section : insets.top + spacing.surface,
+    paddingBottom: footer ? spacing.section : insets.bottom + spacing.section,
   };
+  const body = header ? (
+    <>
+      {header}
+      <View style={content}>{children}</View>
+    </>
+  ) : (
+    children
+  );
 
   return (
     <InkRegistryContext.Provider value={registry}>
       <View style={{ flex: 1, backgroundColor: colors.paper }}>
         {scroll ? (
           <ScrollView
-            contentContainerStyle={content}
+            contentContainerStyle={header ? undefined : content}
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustKeyboardInsets
             scrollEventThrottle={onNearEnd ? 100 : undefined}
@@ -74,11 +89,29 @@ export function Screen({
               ) : undefined
             }
           >
-            {children}
+            {body}
           </ScrollView>
+        ) : header ? (
+          <View style={{ flex: 1 }}>{body}</View>
         ) : (
           <View style={[{ flex: 1 }, content]}>{children}</View>
         )}
+        {footer ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              paddingVertical: FOOTER_PADDING_Y,
+              paddingHorizontal: spacing.surface,
+              borderTopWidth: hairline,
+              borderTopColor: colors.rule,
+              backgroundColor: colors.paper,
+            }}
+          >
+            {footer}
+          </View>
+        ) : null}
       </View>
     </InkRegistryContext.Provider>
   );
