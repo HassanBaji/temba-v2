@@ -18,7 +18,11 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { useTonePalette } from "../primitives/surface-context";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { nextStepTitle, type StepHeaderText } from "./create-header";
+import {
+  nextStepTitle,
+  type KickoffHero,
+  type StepHeaderText,
+} from "./create-header";
 import { continueBlocked, type CreateState } from "./create-model";
 
 const PROGRESS_HEIGHT = 3;
@@ -114,12 +118,49 @@ function StepHeader({
 function HeaderText({ header }: { header: StepHeaderText }) {
   return (
     <View accessibilityLiveRegion="polite" style={{ gap: 10 }}>
-      <Text size="display" width="expanded" accessibilityRole="header">
-        {header.title.join("\n")}
-      </Text>
+      {header.hero ? (
+        <Hero hero={header.hero} />
+      ) : (
+        <Text size="display" width="expanded" accessibilityRole="header">
+          {header.title.join("\n")}
+        </Text>
+      )}
       {header.subtitle ? <Text tone="muted">{header.subtitle}</Text> : null}
       {header.context ? (
         <ContextRow icon={header.context.icon} parts={header.context.parts} />
+      ) : null}
+    </View>
+  );
+}
+
+function Hero({ hero }: { hero: KickoffHero }) {
+  const label = [`${hero.value} ${hero.unit}`.trim(), hero.trailing]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <View
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={label}
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "baseline",
+        columnGap: 8,
+      }}
+    >
+      <Text size="hero" width="expanded">
+        {hero.value}
+      </Text>
+      {hero.unit ? (
+        <Text size="title" weight="medium">
+          {hero.unit}
+        </Text>
+      ) : null}
+      {hero.trailing ? (
+        <Text size="title" tone="muted">
+          {hero.trailing}
+        </Text>
       ) : null}
     </View>
   );
@@ -129,14 +170,14 @@ function ContextRow({
   icon,
   parts,
 }: {
-  icon: keyof typeof CONTEXT_ICONS;
+  icon?: keyof typeof CONTEXT_ICONS;
   parts: readonly string[];
 }) {
   const palette = useTonePalette();
-  const Icon = CONTEXT_ICONS[icon];
+  const Icon = icon ? CONTEXT_ICONS[icon] : null;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Icon size={sizes.iconRow} color={palette.muted} />
+      {Icon ? <Icon size={sizes.iconRow} color={palette.muted} /> : null}
       <Text
         size="meta"
         tone="muted"

@@ -1,7 +1,5 @@
 import {
   createFlowLaterSteps,
-  friendlyGameKickoff,
-  friendlyGamePreviewLine,
   friendlyTournamentDefaultName,
   friendlyTournamentPreviewDetail,
   type CreateGroupOption,
@@ -17,6 +15,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import {
   CREATE_ENTRY_HEADER,
+  friendlyGameTimeHeader,
   stepHeader,
   type StepHeaderText,
 } from "./create-header";
@@ -59,27 +58,22 @@ function laterStepHeader({
   courtNames: string[];
 }): StepHeaderText {
   const { draft, type } = state;
-  const kickoff =
-    type === "friendly_game"
-      ? friendlyGameKickoff(draft.day, draft.startTime, draft.finishTime)
-      : null;
-  const title =
-    type === "friendly_tournament"
-      ? draft.name.trim() || friendlyTournamentDefaultName(draft.day)
-      : (kickoff?.time ?? "New Game");
-  const detail =
-    type === "friendly_tournament"
-      ? friendlyTournamentPreviewDetail({
-          day: draft.day,
-          venueName,
-          courtNames,
-        })
-      : friendlyGamePreviewLine({
-          day: draft.startTime ? draft.day : "",
-          groupName,
-          venueName,
-          courtName: courtNames[0] ?? null,
-        });
+  if (type !== "friendly_tournament") {
+    return friendlyGameTimeHeader({
+      day: draft.day,
+      startTime: draft.startTime,
+      finishTime: draft.finishTime,
+      groupName,
+      venueName,
+      courtName: courtNames[0] ?? null,
+    });
+  }
+  const title = draft.name.trim() || friendlyTournamentDefaultName(draft.day);
+  const detail = friendlyTournamentPreviewDetail({
+    day: draft.day,
+    venueName,
+    courtNames,
+  });
   return { title: [title], subtitle: detail || null, context: null };
 }
 

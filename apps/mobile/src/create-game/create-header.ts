@@ -5,6 +5,12 @@ import {
   type CreateGameTypeId,
 } from "@repo/domain/create-game-flow";
 import {
+  formatDayLabel,
+  formatTimeSlotLabel,
+  parseGameDateTime,
+} from "@repo/domain/game-window";
+import { formatHomeKickoff } from "@repo/domain/home-countdown";
+import {
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
@@ -13,10 +19,17 @@ import type { CreateState } from "./create-model";
 
 export type HeaderContextIcon = "users" | "trophy";
 
+export type KickoffHero = {
+  value: string;
+  unit: string;
+  trailing: string | null;
+};
+
 export type StepHeaderText = {
   title: readonly string[];
+  hero?: KickoffHero;
   subtitle: string | null;
-  context: { icon: HeaderContextIcon; parts: readonly string[] } | null;
+  context: { icon?: HeaderContextIcon; parts: readonly string[] } | null;
 };
 
 export const CREATE_ENTRY_HEADER: StepHeaderText = {
@@ -96,4 +109,47 @@ export function nextStepTitle(
     createFlowLaterSteps(type).find((item) => item.step === step + 1)?.title ??
     null
   );
+}
+
+export function kickoffHero(
+  day: string,
+  startTime: string,
+  finishTime: string,
+): KickoffHero | null {
+  const startsAt = startTime ? parseGameDateTime(day, startTime) : undefined;
+  if (!startsAt) {
+    return null;
+  }
+  const { time, meridiem } = formatHomeKickoff(startsAt);
+  const endsAt = finishTime ? parseGameDateTime(day, finishTime) : undefined;
+  return {
+    value: time,
+    unit: meridiem,
+    trailing:
+      endsAt && endsAt.getTime() > startsAt.getTime()
+        ? `to ${formatTimeSlotLabel(finishTime)}`
+        : null,
+  };
+}
+
+export function friendlyGameTimeHeader(input: {
+  day: string;
+  startTime: string;
+  finishTime: string;
+  groupName: string | null;
+  venueName: string | null;
+  courtName: string | null;
+}): StepHeaderText {
+  const hero = kickoffHero(input.day, input.startTime, input.finishTime);
+  const parts = [
+    input.day ? formatDayLabel(input.day) : null,
+    input.venueName ?? input.groupName,
+    input.courtName,
+  ].filter((part): part is string => Boolean(part));
+  return {
+    title: hero ? [] : ["Pick a time"],
+    ...(hero ? { hero } : {}),
+    subtitle: null,
+    context: parts.length > 0 ? { parts } : null,
+  };
 }

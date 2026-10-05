@@ -11,6 +11,7 @@ export type StepSectionLink = {
   onPress: () => void;
   icon?: ComponentType<{ size: number; color: ColorValue }>;
   accessibilityLabel?: string;
+  selected?: boolean;
 };
 
 export type StepSectionProps = {
@@ -65,12 +66,14 @@ function SectionLink({
   onPress,
   icon: Icon,
   accessibilityLabel,
+  selected,
 }: StepSectionLink) {
   const palette = useTonePalette();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: sizes.touchTarget,
@@ -80,10 +83,16 @@ function SectionLink({
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      {Icon ? <Icon size={sizes.iconRow} color={palette.muted} /> : null}
+      {Icon ? (
+        <Icon
+          size={sizes.iconRow}
+          color={selected ? palette.foreground : palette.muted}
+        />
+      ) : null}
       <Text
         size="meta"
-        tone="muted"
+        tone={selected ? "default" : "muted"}
+        weight={selected ? "semibold" : "regular"}
         style={Icon ? undefined : { textDecorationLine: "underline" }}
       >
         {label}

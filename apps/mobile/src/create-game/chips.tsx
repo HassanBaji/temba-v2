@@ -69,7 +69,7 @@ export function ChoiceChip({
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={
           role === "button"
-            ? { disabled: inactive }
+            ? { disabled: inactive, selected }
             : { checked: selected, disabled: inactive }
         }
         disabled={inactive}
@@ -109,6 +109,7 @@ export function ChoiceChip({
 
 export type ChipEscape = {
   label: string;
+  selected?: boolean;
   icon?: ChipIcon;
   accessibilityLabel?: string;
   onPress?: () => void;
@@ -154,6 +155,7 @@ export function ChipGrid<T extends string | number>({
           <ChoiceChip
             key="escape"
             dashed
+            selected={escape.selected}
             label={escape.label}
             icon={escape.icon}
             accessibilityLabel={escape.accessibilityLabel}

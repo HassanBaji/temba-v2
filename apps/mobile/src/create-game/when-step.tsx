@@ -1,12 +1,10 @@
+import { spacing } from "@repo/design-tokens";
 import {
   CREATE_FLOW_DURATIONS,
   CREATE_FLOW_MATCH_MINUTE_CHIPS,
   TOURNAMENT_SHAPE_OPTIONS,
   FRIENDLY_TOURNAMENT_UNEVEN_GROUPS,
   TOURNAMENT_FORMAT_LABEL,
-  createDayChipLabel,
-  createFlowDayOptions,
-  dayChipValue,
   finishSlotForDuration,
   friendlyTournamentGroupsLine,
   matchingDurationPreset,
@@ -43,15 +41,17 @@ import { useState } from "react";
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
+import { Hairline } from "../primitives/hairline";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { ChipGrid, FieldError, Stepper } from "./chips";
+import { DayField } from "./day-field";
 import type { StepProps } from "./step-props";
+import { HelperNote, StepSection } from "./step-section";
 
-const DAY_COUNT = 14;
-const CUSTOM_FINISH = "custom";
+const TIME_COLUMNS = 4;
 
 function DayAndStart({ state, now, errors, dispatch }: StepProps) {
   const { draft } = state;
@@ -71,48 +71,39 @@ function DayAndStart({ state, now, errors, dispatch }: StepProps) {
 
   return (
     <>
-      <Section title="Day">
-        <ChipGrid
-          label="Day"
-          columns={4}
-          chips={createFlowDayOptions(now, DAY_COUNT).map((option) => ({
-            value: dayChipValue(option),
-            label: createDayChipLabel(option, now),
-          }))}
-          isSelected={(day) => day === draft.day}
-          onSelect={(day) => dispatch({ kind: "setDay", day, now })}
-        />
-        <FieldError message={dayError} />
-      </Section>
-      <Section title="Start time">
-        <Text size="meta" tone="muted">
-          30 minute steps
-        </Text>
+      <DayField
+        now={now}
+        day={draft.day}
+        error={dayError}
+        onSelect={(day) => dispatch({ kind: "setDay", day, now })}
+      />
+      <StepSection title="Start time" note="30 minute steps">
         <ChipGrid
           label="Start time"
-          columns={4}
+          columns={TIME_COLUMNS}
           chips={visibleStarts.map((slot) => ({
             value: slot,
             label: formatTimeSlotLabel(slot),
           }))}
           isSelected={(slot) => slot === draft.startTime}
           onSelect={(slot) => dispatch({ kind: "setStart", slot })}
+          escape={
+            slots.length > visibleStarts.length
+              ? {
+                  label: "More",
+                  accessibilityLabel: "More start times",
+                  onPress: () => setStartExpanded(true),
+                }
+              : undefined
+          }
         />
-        {!startExpanded && slots.length > visibleStarts.length ? (
-          <Button
-            label="More times"
-            variant="outline"
-            size="sm"
-            onPress={() => setStartExpanded(true)}
-          />
-        ) : null}
         <FieldError message={startError} />
-      </Section>
+      </StepSection>
     </>
   );
 }
 
-function FinishTime({ state, now, errors, dispatch }: StepProps) {
+function Duration({ state, now, errors, dispatch }: StepProps) {
   const { draft } = state;
   const [customOpen, setCustomOpen] = useState(false);
   const preset = matchingDurationPreset(draft.startTime, draft.finishTime);
@@ -122,42 +113,40 @@ function FinishTime({ state, now, errors, dispatch }: StepProps) {
     (slot) => slot > draft.startTime,
   );
   const durations = CREATE_FLOW_DURATIONS.map((minutes) => ({
-    value: String(minutes),
+    value: minutes,
     label: `${minutes} min`,
     disabled:
       !draft.startTime ||
       finishSlotForDuration(draft.startTime, minutes) == null,
   }));
-  const selected = showCustom
-    ? CUSTOM_FINISH
-    : preset != null
-      ? String(preset)
-      : "";
 
   return (
-    <Section title="Finish">
-      {draft.finishTime ? (
-        <Text size="meta" tone="muted">
-          {formatTimeSlotLabel(draft.finishTime)}
-        </Text>
-      ) : null}
+    <StepSection
+      title="Duration"
+      note={
+        draft.finishTime ? formatTimeSlotLabel(draft.finishTime) : undefined
+      }
+    >
       <ChipGrid
         label="Duration"
-        chips={[...durations, { value: CUSTOM_FINISH, label: "Custom" }]}
-        isSelected={(value) => value === selected}
-        onSelect={(value) => {
-          if (value === CUSTOM_FINISH) {
-            setCustomOpen(true);
-            return;
-          }
+        columns={CREATE_FLOW_DURATIONS.length + 1}
+        chips={durations}
+        isSelected={(minutes) => !showCustom && minutes === preset}
+        onSelect={(minutes) => {
           setCustomOpen(false);
-          dispatch({ kind: "setDuration", minutes: Number(value) });
+          dispatch({ kind: "setDuration", minutes });
+        }}
+        escape={{
+          label: "Set",
+          selected: showCustom,
+          accessibilityLabel: "Set a finish time",
+          onPress: () => setCustomOpen(true),
         }}
       />
       {showCustom ? (
         <ChipGrid
           label="Finish time"
-          columns={4}
+          columns={TIME_COLUMNS}
           chips={slots.map((slot) => ({
             value: slot,
             label: formatTimeSlotLabel(slot),
@@ -167,15 +156,23 @@ function FinishTime({ state, now, errors, dispatch }: StepProps) {
         />
       ) : null}
       <FieldError message={errors.windowEnd} />
-    </Section>
+    </StepSection>
   );
 }
 
 export function GameWhenStep(props: StepProps) {
   return (
-    <View style={{ gap: 24 }}>
+    <View style={{ gap: spacing.section }}>
       <DayAndStart {...props} />
-      <FinishTime {...props} />
+      <Duration {...props} />
+      <View style={{ gap: 14 }}>
+        <Hairline />
+        <HelperNote>
+          Day, start time, and finish time are required. Pick today or a later
+          day. Times are in 30-minute intervals; for today, only upcoming times
+          are listed.
+        </HelperNote>
+      </View>
     </View>
   );
 }

@@ -1,4 +1,5 @@
 import { createCreateGameFixtures } from "@repo/domain/create-game-fixtures";
+import type { CreateGameDraft } from "@repo/domain/create-game-draft";
 import type { CreateGameFixtureKey } from "@repo/domain/create-game-fixtures";
 import { Redirect } from "expo-router";
 import { useMemo, useState } from "react";
@@ -27,6 +28,7 @@ const STATES: readonly {
   type: CreateState["type"];
   step: CreateState["step"];
   draft: CreateGameFixtureKey;
+  patch?: Partial<CreateGameDraft>;
   picker: Picker;
   failing?: boolean;
   pending?: boolean;
@@ -164,11 +166,46 @@ const STATES: readonly {
     },
   },
   {
+    key: "gameWhenEmpty",
+    label: "Game: when, empty",
+    type: "friendly_game",
+    step: 3,
+    draft: "gameWhereFilled",
+    picker: "loose",
+  },
+  {
+    key: "gameWhenErrors",
+    label: "Game: when, errors",
+    type: "friendly_game",
+    step: 3,
+    draft: "gameWhereFilled",
+    picker: "loose",
+    failing: true,
+  },
+  {
     key: "gameWhen",
     label: "Game: when",
     type: "friendly_game",
     step: 3,
     draft: "gameWhenFilled",
+    picker: "loose",
+  },
+  {
+    key: "gameWhenCustomFinish",
+    label: "Game: when, custom finish",
+    type: "friendly_game",
+    step: 3,
+    draft: "gameWhenFilled",
+    patch: { finishTime: "22:30" },
+    picker: "loose",
+  },
+  {
+    key: "gameWhenLaterDate",
+    label: "Game: when, later date",
+    type: "friendly_game",
+    step: 3,
+    draft: "gameWhenFilled",
+    patch: { day: "2026-10-20" },
     picker: "loose",
   },
   {
@@ -277,7 +314,7 @@ export default function GalleryCreate() {
   if (!entry) {
     return null;
   }
-  const draft = { ...fixtures.drafts[entry.draft] };
+  const draft = { ...fixtures.drafts[entry.draft], ...entry.patch };
   const state: CreateState = { type: entry.type, step: entry.step, draft };
   const errors = entry.server
     ? entry.server.errors

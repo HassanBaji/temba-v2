@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { nextStepTitle, stepHeader } from "./create-header";
+import {
+  friendlyGameTimeHeader,
+  kickoffHero,
+  nextStepTitle,
+  stepHeader,
+} from "./create-header";
 
 const NO_GROUP = { groupName: null, venues: null };
 const WITH_GROUP = {
@@ -113,5 +118,87 @@ describe("nextStepTitle", () => {
 
   it("has nothing after the last step", () => {
     expect(nextStepTitle("friendly_game", 4)).toBe(null);
+  });
+});
+
+describe("kickoffHero", () => {
+  it("splits an evening start into value and meridiem", () => {
+    expect(kickoffHero("2026-10-06", "20:00", "21:30")).toEqual({
+      value: "8:00",
+      unit: "PM",
+      trailing: "to 9:30 PM",
+    });
+  });
+
+  it("reads a morning start", () => {
+    expect(kickoffHero("2026-10-06", "09:30", "11:00")).toEqual({
+      value: "9:30",
+      unit: "AM",
+      trailing: "to 11:00 AM",
+    });
+  });
+
+  it("crosses noon", () => {
+    expect(kickoffHero("2026-10-06", "11:00", "12:30")).toEqual({
+      value: "11:00",
+      unit: "AM",
+      trailing: "to 12:30 PM",
+    });
+  });
+
+  it("has no trailing part without a finish", () => {
+    expect(kickoffHero("2026-10-06", "20:00", "")).toEqual({
+      value: "8:00",
+      unit: "PM",
+      trailing: null,
+    });
+  });
+
+  it("drops a finish that is not after the start", () => {
+    expect(kickoffHero("2026-10-06", "20:00", "19:00")?.trailing).toBe(null);
+  });
+
+  it("is a placeholder before a start time or for invalid input", () => {
+    expect(kickoffHero("2026-10-06", "", "21:30")).toBe(null);
+    expect(kickoffHero("", "20:00", "21:30")).toBe(null);
+    expect(kickoffHero("2026-02-30", "20:00", "21:30")).toBe(null);
+    expect(kickoffHero("2026-10-06", "soon", "21:30")).toBe(null);
+  });
+});
+
+describe("friendlyGameTimeHeader", () => {
+  const base = {
+    day: "2026-10-06",
+    startTime: "20:00",
+    finishTime: "21:30",
+    groupName: "Friday Padel",
+    venueName: "Seef Padel Club",
+    courtName: "Court 1",
+  };
+
+  it("shows the kickoff hero with day, Venue and Court", () => {
+    expect(friendlyGameTimeHeader(base)).toEqual({
+      title: [],
+      hero: { value: "8:00", unit: "PM", trailing: "to 9:30 PM" },
+      subtitle: null,
+      context: { parts: ["Tue 6 Oct 2026", "Seef Padel Club", "Court 1"] },
+    });
+  });
+
+  it("asks for a time before a start is picked", () => {
+    const header = friendlyGameTimeHeader({
+      ...base,
+      startTime: "",
+      finishTime: "",
+    });
+    expect(header.title).toEqual(["Pick a time"]);
+    expect(header.hero).toBeUndefined();
+  });
+
+  it("falls back to the Group without a Venue and skips an empty Court", () => {
+    expect(
+      friendlyGameTimeHeader({ ...base, venueName: null, courtName: null })
+        .context?.parts,
+    ).toEqual(["Tue 6 Oct 2026", "Friday Padel"]);
   });
 });
