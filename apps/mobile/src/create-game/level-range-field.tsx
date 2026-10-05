@@ -54,14 +54,19 @@ function BoundRow({
   );
 }
 
-export function LevelRangeField({ state, errors, dispatch }: StepProps) {
+export function LevelRangeRows({
+  state,
+  errors,
+  dispatch,
+  openLink = true,
+}: StepProps & { openLink?: boolean }) {
   const { draft } = state;
   const summary = levelRangeSummary(draft.levelMin, draft.levelMax);
   const setBound = (bound: "min" | "max") => (value: LevelBandSelectValue) =>
     dispatch({ kind: "setLevelBound", bound, value });
 
   return (
-    <StepSection title="Level range" note="Optional">
+    <>
       <BoundRow
         bound="min"
         value={draft.levelMin}
@@ -100,7 +105,7 @@ export function LevelRangeField({ state, errors, dispatch }: StepProps) {
             {summary.maximum}
           </Text>
         </Text>
-        {summary.open ? null : (
+        {summary.open || !openLink ? null : (
           <Pressable
             accessibilityRole="button"
             onPress={() => dispatch({ kind: "openLevelRange" })}
@@ -120,9 +125,23 @@ export function LevelRangeField({ state, errors, dispatch }: StepProps) {
           </Pressable>
         )}
       </View>
-      <HelperNote>
-        Users without a Level must request to play when a range is set.
-      </HelperNote>
+    </>
+  );
+}
+
+export function LevelRangeHelper() {
+  return (
+    <HelperNote>
+      Users without a Level must request to play when a range is set.
+    </HelperNote>
+  );
+}
+
+export function LevelRangeField(props: StepProps) {
+  return (
+    <StepSection title="Level range" note="Optional">
+      <LevelRangeRows {...props} />
+      <LevelRangeHelper />
     </StepSection>
   );
 }

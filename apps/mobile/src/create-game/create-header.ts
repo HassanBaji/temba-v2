@@ -156,6 +156,18 @@ export function friendlyGameTimeHeader(input: {
   };
 }
 
+function tournamentHero(teamCount: number, matchTotal: number): KickoffHero {
+  return {
+    value: String(teamCount),
+    unit: "Game teams",
+    trailing: matchTotal > 0 ? matchCountLabel(matchTotal) : null,
+  };
+}
+
+function presentParts(parts: readonly (string | null)[]) {
+  return parts.filter((part): part is string => Boolean(part));
+}
+
 export function tournamentFormatHeader(input: {
   teamCount: number;
   matchTotal: number;
@@ -163,19 +175,42 @@ export function tournamentFormatHeader(input: {
   venueName: string | null;
   courtCount: number;
 }): StepHeaderText {
-  const parts = [
-    input.day ? formatDayLabel(input.day) : null,
-    input.venueName,
-    input.courtCount > 0 ? courtCountValue(input.courtCount) : null,
-  ].filter((part): part is string => Boolean(part));
   return {
     title: [],
-    hero: {
-      value: String(input.teamCount),
-      unit: "Game teams",
-      trailing: input.matchTotal > 0 ? matchCountLabel(input.matchTotal) : null,
-    },
+    hero: tournamentHero(input.teamCount, input.matchTotal),
     subtitle: null,
-    context: { parts },
+    context: {
+      parts: presentParts([
+        input.day ? formatDayLabel(input.day) : null,
+        input.venueName,
+        input.courtCount > 0 ? courtCountValue(input.courtCount) : null,
+      ]),
+    },
+  };
+}
+
+export function tournamentEntryHeader(input: {
+  teamCount: number;
+  matchTotal: number;
+  day: string;
+  startTime: string;
+  finishTime: string;
+  courtCount: number;
+}): StepHeaderText {
+  const window =
+    input.startTime && input.finishTime
+      ? `${formatTimeSlotLabel(input.startTime)} to ${formatTimeSlotLabel(input.finishTime)}`
+      : null;
+  return {
+    title: [],
+    hero: tournamentHero(input.teamCount, input.matchTotal),
+    subtitle: null,
+    context: {
+      parts: presentParts([
+        input.day ? formatDayLabel(input.day) : null,
+        window,
+        input.courtCount > 0 ? courtCountValue(input.courtCount) : null,
+      ]),
+    },
   };
 }

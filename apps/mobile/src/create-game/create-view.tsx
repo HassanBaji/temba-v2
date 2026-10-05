@@ -1,7 +1,5 @@
 import {
   createFlowLaterSteps,
-  friendlyTournamentDefaultName,
-  friendlyTournamentPreviewDetail,
   type CreateGroupOption,
   type CreateVenuePicker,
 } from "@repo/domain/create-game-flow";
@@ -18,6 +16,7 @@ import {
   CREATE_ENTRY_HEADER,
   friendlyGameTimeHeader,
   stepHeader,
+  tournamentEntryHeader,
   tournamentFormatHeader,
   type StepHeaderText,
 } from "./create-header";
@@ -80,13 +79,14 @@ function laterStepHeader({
       courtCount: draft.courtIds.length,
     });
   }
-  const title = draft.name.trim() || friendlyTournamentDefaultName(draft.day);
-  const detail = friendlyTournamentPreviewDetail({
+  return tournamentEntryHeader({
+    teamCount: draft.teamCount,
+    matchTotal: tournamentMatchTotals(friendlyTournamentPlan(draft)).total,
     day: draft.day,
-    venueName,
-    courtNames,
+    startTime: draft.startTime,
+    finishTime: draft.finishTime,
+    courtCount: draft.courtIds.length,
   });
-  return { title: [title], subtitle: detail || null, context: null };
 }
 
 export function CreateView(props: CreateViewProps) {

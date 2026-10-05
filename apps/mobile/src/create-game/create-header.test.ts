@@ -5,6 +5,7 @@ import {
   kickoffHero,
   nextStepTitle,
   stepHeader,
+  tournamentEntryHeader,
   tournamentFormatHeader,
 } from "./create-header";
 
@@ -232,6 +233,33 @@ describe("tournamentFormatHeader", () => {
     expect(
       tournamentFormatHeader({ ...base, venueName: null, courtCount: 0 })
         .context?.parts,
+    ).toEqual(["Tue 6 Oct 2026"]);
+  });
+});
+
+describe("tournamentEntryHeader", () => {
+  const base = {
+    teamCount: 12,
+    matchTotal: 23,
+    day: "2026-10-06",
+    startTime: "09:00",
+    finishTime: "15:00",
+    courtCount: 3,
+  };
+
+  it("shows Game teams and Matches with day, window and Courts", () => {
+    expect(tournamentEntryHeader(base)).toEqual({
+      title: [],
+      hero: { value: "12", unit: "Game teams", trailing: "23 Matches" },
+      subtitle: null,
+      context: { parts: ["Tue 6 Oct 2026", "9:00 AM to 3:00 PM", "3 Courts"] },
+    });
+  });
+
+  it("skips the window without a finish and the Courts count without Courts", () => {
+    expect(
+      tournamentEntryHeader({ ...base, finishTime: "", courtCount: 0 }).context
+        ?.parts,
     ).toEqual(["Tue 6 Oct 2026"]);
   });
 });
