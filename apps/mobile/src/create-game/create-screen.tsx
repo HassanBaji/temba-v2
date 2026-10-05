@@ -1,11 +1,12 @@
 import { useUser } from "@clerk/expo";
 import { parseCreateFlowType } from "@repo/domain/create-game-flow";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useReducer, useState } from "react";
 
 import { gamePath } from "../games/games-model";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
@@ -197,7 +198,7 @@ export function CreateGameScreen({
   if (isLoaded && user?.publicMetadata.groupCreator !== true) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: "Create Game" }} />
+        <ScreenHeader nav="close" fallback="/games" />
         <Surface style={{ gap: 8 }} accessibilityRole="alert">
           <Text size="lead" weight="semibold">
             Creating Games is not available for your account yet
@@ -219,7 +220,7 @@ export function CreateGameScreen({
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <Stack.Screen options={{ title: "Create Game" }} />
+      <ScreenHeader nav="close" fallback="/games" />
       <CreateView
         state={state}
         now={now}

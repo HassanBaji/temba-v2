@@ -12,6 +12,7 @@ import {
 import type { Slot } from "../src/home/home-model";
 import { Button } from "../src/primitives/button";
 import { Screen } from "../src/primitives/screen";
+import { ScreenHeader } from "../src/primitives/screen-header";
 import { Text } from "../src/primitives/text";
 
 type Picker =
@@ -235,6 +236,7 @@ export default function GalleryCreate() {
           />
         ))}
       </View>
+      <ScreenHeader nav="close" fallback="/games" />
       <CreateView
         state={state}
         now={fixtures.now}

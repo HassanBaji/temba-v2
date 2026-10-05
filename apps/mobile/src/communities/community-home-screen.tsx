@@ -15,7 +15,6 @@ import {
   COMMUNITY_VENUE_UNLINKED_TOAST,
   communityArchiveConfirm,
   communityHomeActions,
-  communityHomeHeader,
   communityLeaveConfirm,
   communityLeaveNotices,
   communityRequestCount,
@@ -31,7 +30,7 @@ import {
   type CommunityRoleValue,
 } from "@repo/domain/community-role-change";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
@@ -41,12 +40,12 @@ import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
-import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
-import { newClubGroupPath } from "./communities-model";
+import { COMMUNITIES_PATH, newClubGroupPath } from "./communities-model";
 import { CommunityHomeView } from "./community-home-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -257,15 +256,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
     }
   }, [community, data, joinRequests, teamLinkRequests, members]);
 
-  const title = data ? communityHomeHeader(data).name : "Community";
-  const header = (
-    <Stack.Screen
-      options={{
-        title,
-        headerTitle: () => <Text weight="semibold">{title}</Text>,
-      }}
-    />
-  );
+  const header = <ScreenHeader nav="back" fallback={COMMUNITIES_PATH} />;
 
   if (isNotFoundError(community.error)) {
     return (
@@ -307,7 +298,6 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      {header}
       <CommunityHomeView
         data={data}
         apiOrigin={apiOrigin}

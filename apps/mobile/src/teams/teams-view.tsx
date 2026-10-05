@@ -15,6 +15,7 @@ import type { Slot } from "../home/home-model";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -223,9 +224,7 @@ export function TeamsView(props: TeamsViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
-        <Text size="h1" weight="bold" accessibilityRole="header">
-          {TEAMS_TITLE}
-        </Text>
+        <ScreenHeader nav="back" fallback="/profile" title={TEAMS_TITLE} />
         <Text size="meta" tone="muted">
           {TEAMS_DESCRIPTION}
         </Text>

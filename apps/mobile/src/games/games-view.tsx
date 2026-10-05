@@ -1,9 +1,11 @@
 import { spacing } from "@repo/design-tokens";
 import type { CardSeatPosition } from "@repo/domain/game-card";
 import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
+import { Plus } from "lucide-react-native";
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -151,26 +153,18 @@ export function GamesView(props: GamesViewProps) {
 
   return (
     <View style={{ gap: spacing.compact }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <Text size="h1" weight="bold" accessibilityRole="header">
-          Games
-        </Text>
-        {props.hasCreateAccess ? (
-          <Button
-            label="Create Game"
-            size="sm"
-            variant="outline"
-            onPress={props.onCreate}
-          />
-        ) : null}
-      </View>
+      <ScreenHeader
+        title="Games"
+        actions={
+          props.hasCreateAccess ? (
+            <HeaderIconButton
+              icon={Plus}
+              accessibilityLabel="Create Game"
+              onPress={props.onCreate}
+            />
+          ) : null
+        }
+      />
       <TabButtons
         tab={tab}
         onTabChange={props.onTabChange}

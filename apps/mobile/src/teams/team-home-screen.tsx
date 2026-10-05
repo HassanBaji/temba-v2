@@ -12,15 +12,15 @@ import {
   teamHomeView,
   teamUnlinkConfirm,
 } from "@repo/domain/teams";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { Notice } from "../groups/notice";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
-import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { TEAMS_PATH } from "./teams-model";
@@ -109,15 +109,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
   }, [team]);
 
   const view = data ? teamHomeView(data) : null;
-  const title = view?.title ?? "Team";
-  const header = (
-    <Stack.Screen
-      options={{
-        title,
-        headerTitle: () => <Text weight="semibold">{title}</Text>,
-      }}
-    />
-  );
+  const header = <ScreenHeader nav="back" fallback={TEAMS_PATH} />;
 
   if (isNotFoundError(team.error)) {
     return (
@@ -164,7 +156,6 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      {header}
       <TeamHomeView
         view={view}
         linkOpen={linkOpen}

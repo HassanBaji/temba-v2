@@ -1,5 +1,6 @@
 import { useUser } from "@clerk/expo";
 import {
+  GROUP_CREATE_COPY,
   GROUP_CREATE_NOT_AVAILABLE,
   GROUP_CREATED_TOAST,
   groupCreateDoor,
@@ -7,11 +8,12 @@ import {
   type GroupCreateType,
 } from "@repo/domain/group-create";
 import { GROUP_CREATED_WITHOUT_IMAGE_TOAST } from "@repo/domain/entity-image-file";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 
 import { splitTrpcFormError } from "../lib/form-error";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
@@ -146,7 +148,11 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
   ) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: "Create Group" }} />
+        <ScreenHeader
+          nav="close"
+          fallback="/groups"
+          title={GROUP_CREATE_COPY.loose.submit}
+        />
         <Surface style={{ gap: 8 }} accessibilityRole="alert">
           <Text size="lead" weight="semibold">
             {GROUP_CREATE_NOT_AVAILABLE.title}
@@ -161,7 +167,6 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: "Create Group" }} />
       <GroupCreateView
         context={context}
         name={name}

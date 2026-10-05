@@ -15,6 +15,7 @@ import type { Slot } from "../home/home-model";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Section } from "../primitives/section";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
@@ -158,9 +159,7 @@ export function InvitesView(props: InvitesViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
-        <Text size="h1" weight="bold" accessibilityRole="header">
-          Invites
-        </Text>
+        <ScreenHeader nav="back" fallback="/profile" title="Invites" />
         <Text size="meta" tone="muted">
           Invites sent to you. Accept one to join.
         </Text>

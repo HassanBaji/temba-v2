@@ -1,32 +1,13 @@
 import { colors } from "@repo/design-tokens";
 import { Stack } from "expo-router";
 
-import { Text } from "../primitives/text";
-
-export function TabStack({
-  title,
-  children,
-}: {
-  title: string;
-  children?: React.ReactNode;
-}) {
+export function TabStack() {
   return (
     <Stack
       screenOptions={{
-        headerShadowVisible: false,
-        headerTintColor: colors.ink,
-        headerStyle: { backgroundColor: colors.paper },
+        headerShown: false,
         contentStyle: { backgroundColor: colors.paper },
       }}
-    >
-      <Stack.Screen
-        name="index"
-        options={{
-          title,
-          headerTitle: () => <Text weight="semibold">{title}</Text>,
-        }}
-      />
-      {children}
-    </Stack>
+    />
   );
 }

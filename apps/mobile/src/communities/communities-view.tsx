@@ -16,6 +16,7 @@ import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -157,9 +158,7 @@ export function CommunitiesView(props: CommunitiesViewProps) {
   const { communities } = props;
   return (
     <View style={{ gap: spacing.compact }}>
-      <Text size="h1" weight="bold" accessibilityRole="header">
-        {COMMUNITIES_TITLE}
-      </Text>
+      <ScreenHeader title={COMMUNITIES_TITLE} />
       {communities.status === "loading" ? (
         <View style={{ gap: 12 }} accessibilityLabel="Loading Communities">
           {[0, 1].map((key) => (

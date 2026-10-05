@@ -10,6 +10,7 @@ import { View } from "react-native";
 
 import { Button } from "../src/primitives/button";
 import { Screen } from "../src/primitives/screen";
+import { ScreenHeader } from "../src/primitives/screen-header";
 import { Text } from "../src/primitives/text";
 import { TournamentBar } from "../src/tournament/tournament-bar";
 import { OrganizerSheets } from "../src/tournament/organizer-sheets";
@@ -99,6 +100,7 @@ export default function GalleryTournament() {
           />
         ))}
       </View>
+      <ScreenHeader nav="back" fallback="/games" />
       <TournamentContent
         game={game}
         handlers={handlers}

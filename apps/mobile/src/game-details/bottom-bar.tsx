@@ -63,7 +63,7 @@ export function BottomBar({
           flexDirection: "row",
           alignItems: "center",
           gap: 12,
-          paddingHorizontal: spacing.compact,
+          paddingHorizontal: spacing.surface,
           paddingTop: 12,
           paddingBottom: (inset ? insets.bottom : 0) + 12,
         }}

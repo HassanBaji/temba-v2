@@ -32,9 +32,11 @@ import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TeamAvatars } from "../teams/team-avatars";
+import { COMMUNITIES_PATH } from "./communities-model";
 import {
   CommunityMembersView,
   type CommunityMembersViewProps,
@@ -221,28 +223,30 @@ export function CommunityHomeView(props: CommunityHomeViewProps) {
 
   return (
     <View style={{ gap: spacing.compact }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar
-          name={header.name}
-          uri={mediaUrl(data.venue?.logoImageUrl, props.apiOrigin)}
-          size="xl"
-        />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="h2" weight="bold" accessibilityRole="header">
-            {header.name}
-          </Text>
-          {header.meta ? (
-            <Text size="meta" tone="muted">
-              {header.meta}
+      <ScreenHeader nav="back" fallback={COMMUNITIES_PATH}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Avatar
+            name={header.name}
+            uri={mediaUrl(data.venue?.logoImageUrl, props.apiOrigin)}
+            size="xl"
+          />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text size="h2" weight="bold" accessibilityRole="header">
+              {header.name}
             </Text>
-          ) : null}
-          {header.badges.length > 0 ? (
-            <Text size="eyebrow" tone="muted" mono uppercase>
-              {header.badges.join(" · ")}
-            </Text>
-          ) : null}
+            {header.meta ? (
+              <Text size="meta" tone="muted">
+                {header.meta}
+              </Text>
+            ) : null}
+            {header.badges.length > 0 ? (
+              <Text size="eyebrow" tone="muted" mono uppercase>
+                {header.badges.join(" · ")}
+              </Text>
+            ) : null}
+          </View>
         </View>
-      </View>
+      </ScreenHeader>
 
       {actions.canInvite ||
       actions.canUnarchive ||

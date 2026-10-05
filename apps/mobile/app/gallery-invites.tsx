@@ -18,6 +18,7 @@ import {
 import { InvitesView } from "../src/invites/invites-view";
 import { Button } from "../src/primitives/button";
 import { Screen } from "../src/primitives/screen";
+import { ScreenHeader } from "../src/primitives/screen-header";
 import { Text } from "../src/primitives/text";
 
 const INBOX_STATES = [
@@ -171,6 +172,7 @@ export default function GalleryInvites() {
         Invite link states
       </Text>
       <Picker states={LINK_STATES} value={linkState} onChange={setLinkState} />
+      <ScreenHeader nav="back" fallback="/profile" title="Invite" />
       <InviteLinkView
         kind={
           linkState === "community"

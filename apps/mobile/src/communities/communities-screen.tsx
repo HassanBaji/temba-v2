@@ -1,4 +1,5 @@
 import { useUser } from "@clerk/expo";
+import { COMMUNITIES_TITLE } from "@repo/domain/community";
 import { Link, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
@@ -7,6 +8,7 @@ import { groupPath } from "../groups/groups-model";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import { NEW_COMMUNITY_PATH, communityPath } from "./communities-model";
@@ -37,6 +39,7 @@ export function CommunitiesScreen() {
   if (isLoaded && !hasCreateAccess) {
     return (
       <Screen>
+        <ScreenHeader title={COMMUNITIES_TITLE} />
         <Notice
           title="Communities list is limited"
           description="This list is set up by Temba staff."
