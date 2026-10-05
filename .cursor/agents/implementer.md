@@ -64,9 +64,9 @@ Do not start coding before understanding the surrounding implementation.
 
 When adding or changing a tRPC procedure, follow `.cursor/rules/api-one-endpoint-per-file.mdc`.
 
-- One procedure per file under `api/routers/<domain>/`. Logic lives in that file.
+- One procedure per file under `packages/api/src/routers/<domain>/`. Logic lives in that file.
 - `index.ts` only composes procedures.
-- Do not add a twin `server/<domain>/<verb>.ts` that the procedure only forwards to.
+- Do not add a twin `packages/api/src/<domain>/<verb>.ts` that the procedure only forwards to.
 - Do not copy fat assembler files or twin domain-verb files as the pattern (superseded; TEM-134…TEM-146).
 - Call existing shared glossary modules; do not reimplement them.
 - Do not introduce service / repository / use-case layers for API doors.

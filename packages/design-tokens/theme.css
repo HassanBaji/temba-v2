@@ -1,0 +1,86 @@
+/* Generated from src/tokens.ts by `pnpm --filter @repo/design-tokens generate`. Do not edit. */
+
+@theme static {
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1rem;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.125rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-lead: 1.0625rem;
+  --text-lead--line-height: 1.5rem;
+  --text-title: 1.1875rem;
+  --text-title--line-height: 1.625rem;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 1.875rem;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.125rem;
+  --text-h1-lg: 2rem;
+  --text-h1-lg--line-height: 2.1rem;
+  --text-display: 2.25rem;
+  --text-display--line-height: 2.375rem;
+  --text-hero: 3rem;
+  --text-hero--line-height: 2.88rem;
+  --container-content: 44rem;
+  --container-wide: 64rem;
+  --container-column: 26.25rem;
+  --rail-width: 15rem;
+  --bottom-nav-height: 3.5rem;
+  --mobile-top-bar-height: 4.25rem;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --radius-xs: 5px;
+  --radius-card: 14px;
+  --color-ink: var(--primary);
+  --color-paper: var(--card);
+  --color-rule: var(--border);
+  --color-wash: var(--muted);
+  --color-dim: var(--on-ink-muted);
+  --color-dimrule: var(--on-ink-border);
+  --color-raised: var(--on-ink-raised);
+}
+
+:root {
+  --background: #ffffff;
+  --surface-raised: #fafaf8;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --muted: #f5f5f5;
+  --secondary: #f5f5f5;
+  --accent: #f5f5f5;
+  --muted-foreground: #6e6e6e;
+  --border: #e5e5e2;
+  --input: #8c8c8c;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --ring: #0a0a0a;
+  --on-ink-muted: #8e8e8e;
+  --on-ink-border: #2e2e2e;
+  --on-ink-raised: #1c1c1c;
+  --chart-1: #0a0a0a;
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-ring: #ffffff;
+}
+
+@utility font-expanded {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variation-settings: "wdth" 115, "wght" 700;
+}
+
+@utility hatch {
+  --hatch-stroke: #dcdcdc;
+  --hatch-inset: var(--color-rule);
+  background-image: repeating-linear-gradient(45deg, var(--hatch-stroke) 0 1px, transparent 1px 5px);
+  box-shadow: inset 0 0 0 1px var(--hatch-inset);
+}
+
+@utility hatch-on-ink {
+  --hatch-stroke: #333333;
+  --hatch-inset: var(--color-dimrule);
+}

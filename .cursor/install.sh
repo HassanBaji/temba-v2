@@ -20,12 +20,14 @@ fi
 pnpm install --frozen-lockfile
 
 # --- Local env files ------------------------------------------------------
-# Created from the checked-in examples if absent. DATABASE_URL points at the
-# local PostgreSQL instance; Clerk keys are supplied via environment secrets.
-[ -f apps/temba/.env ] || cp apps/temba/.env.example apps/temba/.env
+# Created from the checked-in examples if absent. DATABASE_URL (in apps/api and
+# packages/db) points at the local PostgreSQL instance; Clerk keys are supplied
+# via environment secrets.
+[ -f apps/web/.env ] || cp apps/web/.env.example apps/web/.env
+[ -f apps/api/.env ] || cp apps/api/.env.example apps/api/.env
 [ -f packages/db/.env ] || cp packages/db/.env.example packages/db/.env
 
-# Sync Clerk secrets from Cloud Agent environment variables into apps/temba/.env
+# Sync Clerk secrets from Cloud Agent environment variables into apps/web/.env
 # when present. Values are never printed. Empty .env placeholders are replaced.
 # Reject known-invalid placeholder strings so agents do not silently sync them.
 set_env_kv() {
@@ -68,48 +70,49 @@ env_value_empty() {
 }
 
 if is_usable_clerk_secret "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}"; then
-  set_env_kv apps/temba/.env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
+  set_env_kv apps/web/.env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
 elif [ -n "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" ]; then
-  echo "warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
+  echo "warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY looks like a placeholder; not syncing to apps/web/.env" >&2
 fi
 if is_usable_clerk_secret "${CLERK_SECRET_KEY:-}"; then
-  set_env_kv apps/temba/.env CLERK_SECRET_KEY "$CLERK_SECRET_KEY"
+  set_env_kv apps/web/.env CLERK_SECRET_KEY "$CLERK_SECRET_KEY"
 elif [ -n "${CLERK_SECRET_KEY:-}" ]; then
-  echo "warning: CLERK_SECRET_KEY looks like a placeholder; not syncing to apps/temba/.env" >&2
-fi
-if [ -n "${CLERK_WEBHOOK_SIGNING_SECRET:-}" ]; then
-  set_env_kv apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET "$CLERK_WEBHOOK_SIGNING_SECRET"
-elif env_value_empty apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET; then
-  set_env_kv apps/temba/.env CLERK_WEBHOOK_SIGNING_SECRET "whsec_cloud-agent-build-only-not-a-real-key"
+  echo "warning: CLERK_SECRET_KEY looks like a placeholder; not syncing to apps/web/.env" >&2
 fi
 
-# Railway Bucket (Venue logos and Group images). Sync when Cloud secrets are
-# present so env validation can require endpoint, keys, bucket, and region.
-# Empty .env.example keys fail validation; if Cloud secrets are absent, write
-# syntactically valid placeholders so /login can render. Live upload and media
-# GET still need real AWS keys.
-if [ -n "${AWS_ENDPOINT_URL:-}" ]; then
-  set_env_kv apps/temba/.env AWS_ENDPOINT_URL "$AWS_ENDPOINT_URL"
-elif env_value_empty apps/temba/.env AWS_ENDPOINT_URL; then
-  set_env_kv apps/temba/.env AWS_ENDPOINT_URL "https://t3.storageapi.dev"
+# Invite links are built from the web origin.
+if [ -n "${WEB_ORIGIN:-}" ]; then
+  set_env_kv apps/web/.env WEB_ORIGIN "$WEB_ORIGIN"
+elif env_value_empty apps/web/.env WEB_ORIGIN; then
+  set_env_kv apps/web/.env WEB_ORIGIN "http://localhost:3000"
 fi
-if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
-  set_env_kv apps/temba/.env AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-elif env_value_empty apps/temba/.env AWS_ACCESS_KEY_ID; then
-  set_env_kv apps/temba/.env AWS_ACCESS_KEY_ID "cloud-agent-build-only-not-a-real-key"
+if [ -n "${API_ORIGIN:-}" ]; then
+  set_env_kv apps/web/.env API_ORIGIN "$API_ORIGIN"
+elif env_value_empty apps/web/.env API_ORIGIN; then
+  set_env_kv apps/web/.env API_ORIGIN "http://localhost:4000"
 fi
-if [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
-  set_env_kv apps/temba/.env AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
-elif env_value_empty apps/temba/.env AWS_SECRET_ACCESS_KEY; then
-  set_env_kv apps/temba/.env AWS_SECRET_ACCESS_KEY "cloud-agent-build-only-not-a-real-key"
+
+# The API App holds the database, bucket and webhook secrets. Placeholders keep
+# env validation passing so the API boots; live upload and media GET need real
+# AWS keys.
+sync_api_env() {
+  local key="$1" fallback="$2"
+  local value="${!key:-}"
+  if [ -n "$value" ]; then
+    set_env_kv apps/api/.env "$key" "$value"
+  elif env_value_empty apps/api/.env "$key"; then
+    set_env_kv apps/api/.env "$key" "$fallback"
+  fi
+}
+if is_usable_clerk_secret "${CLERK_SECRET_KEY:-}"; then
+  set_env_kv apps/api/.env CLERK_SECRET_KEY "$CLERK_SECRET_KEY"
 fi
-if [ -n "${AWS_S3_BUCKET_NAME:-}" ]; then
-  set_env_kv apps/temba/.env AWS_S3_BUCKET_NAME "$AWS_S3_BUCKET_NAME"
-elif env_value_empty apps/temba/.env AWS_S3_BUCKET_NAME; then
-  set_env_kv apps/temba/.env AWS_S3_BUCKET_NAME "customizable-pannier-xnbsgm"
+if is_usable_clerk_secret "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}"; then
+  set_env_kv apps/api/.env CLERK_PUBLISHABLE_KEY "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
 fi
-if [ -n "${AWS_DEFAULT_REGION:-}" ]; then
-  set_env_kv apps/temba/.env AWS_DEFAULT_REGION "$AWS_DEFAULT_REGION"
-elif env_value_empty apps/temba/.env AWS_DEFAULT_REGION; then
-  set_env_kv apps/temba/.env AWS_DEFAULT_REGION "auto"
-fi
+sync_api_env CLERK_WEBHOOK_SIGNING_SECRET "whsec_cloud-agent-build-only-not-a-real-key"
+sync_api_env AWS_ENDPOINT_URL "https://t3.storageapi.dev"
+sync_api_env AWS_ACCESS_KEY_ID "cloud-agent-build-only-not-a-real-key"
+sync_api_env AWS_SECRET_ACCESS_KEY "cloud-agent-build-only-not-a-real-key"
+sync_api_env AWS_S3_BUCKET_NAME "customizable-pannier-xnbsgm"
+sync_api_env AWS_DEFAULT_REGION "auto"

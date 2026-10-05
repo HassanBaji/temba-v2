@@ -1,0 +1,13 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+@import "@repo/design-tokens/theme.css";
+
+@theme {
+  --font-geist-mono: GeistMono-Regular;
+  --font-archivo-regular: Archivo-Regular;
+  --font-archivo-medium: Archivo-Medium;
+  --font-archivo-semibold: Archivo-SemiBold;
+  --font-archivo-bold: Archivo-Bold;
+  --font-archivo-expanded: ArchivoExpanded-Bold;
+}

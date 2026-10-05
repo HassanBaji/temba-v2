@@ -1,0 +1,52 @@
+import { z } from "zod";
+
+import { GroupTypeEnum } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
+
+import { protectedProcedure } from "#src/trpc";
+import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { type db } from "#src/db";
+import { createLooseGroup } from "#src/groups/helpers/create-loose-group";
+
+type DbClient = typeof db;
+
+export async function createLoosePublic(
+  database: DbClient,
+  args: {
+    name: string;
+    description?: string;
+    sport: "padel" | "football";
+    userId: string;
+    requiresApproval?: boolean;
+  },
+) {
+  return createLooseGroup({
+    database,
+    name: args.name,
+    description: args.description,
+    sport: args.sport,
+    type: GroupTypeEnum.PUBLIC,
+    createdBy: args.userId,
+    requiresApproval: args.requiresApproval,
+  });
+}
+
+export const createLoosePublicProcedure = protectedProcedure
+  .input(
+    z.object({
+      name: z.string().trim().min(1).max(255),
+      description: z.string().trim().max(255).optional(),
+      sport: sportSchema,
+      requiresApproval: z.boolean().optional(),
+    }),
+  )
+  .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return createLoosePublic(ctx.db, {
+      name: input.name,
+      description: input.description,
+      sport: input.sport,
+      userId: appUser.id,
+      requiresApproval: input.requiresApproval,
+    });
+  });

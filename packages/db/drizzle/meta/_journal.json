@@ -337,6 +337,13 @@
       "when": 1790858128322,
       "tag": "0047_knockout_walkover",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791077646381,
+      "tag": "0048_price_per_player_fils",
+      "breakpoints": true
     }
   ]
 }

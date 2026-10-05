@@ -69,7 +69,7 @@ After each implementer returns, confirm from the repository (not from claims alo
 
 - A commit exists for that ticket in the required message form, **or** the ticket is BLOCKED
 - Acceptance criteria are addressed in code
-- Relevant `pnpm exec turbo run typecheck`, `pnpm exec turbo run lint`, tests, and `pnpm exec turbo run build --filter temba` (or the ticket's named checks) were run
+- Relevant `pnpm exec turbo run typecheck`, `pnpm exec turbo run lint`, tests, and `pnpm exec turbo run build --filter web` (or the ticket's named checks) were run
 
 If the implementer left the tree dirty, failing, or incomplete, send it back **only if you are still on that same ticket and have not started the next**. Prefer a fresh implementer for a retry of the **same** ticket rather than carrying a tainted context forward. Never start the next ticket until this one is complete or BLOCKED.
 

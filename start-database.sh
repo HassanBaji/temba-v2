@@ -13,10 +13,10 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_ENV="$SCRIPT_DIR/packages/db/.env"
-APP_ENV="$SCRIPT_DIR/apps/temba/.env"
+APP_ENV="$SCRIPT_DIR/apps/web/.env"
 
 if [ ! -f "$APP_ENV" ]; then
-  echo "App env file missing. Copy apps/temba/.env.example to apps/temba/.env first."
+  echo "App env file missing. Copy apps/web/.env.example to apps/web/.env first."
   exit 1
 fi
 

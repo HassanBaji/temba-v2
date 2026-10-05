@@ -12,14 +12,14 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 
 | Phase | What it delivers | Status |
 | --- | --- | --- |
-| 0 | `apps/temba` renamed to `apps/web` | Not started |
-| Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Not started |
-| 1 | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting | Not started |
-| 2 | `@repo/api` Package and the `apps/api` Hono host | Not started |
-| 3 | Web App calls the API over HTTP and drops its database access | Not started |
-| 4 | Bearer-only session check in the API context | Not started |
-| 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | Not started |
-| 6 | Mobile screens and flows: everything except Venue administration | Not started |
+| 0 | `apps/temba` renamed to `apps/web` | Done in code, human steps pending |
+| Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Done |
+| 1 | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting | Done in code, human steps pending |
+| 2 | `@repo/api` Package and the `apps/api` Hono host | Done in code, human steps pending |
+| 3 | Web App calls the API over HTTP and drops its database access | Done in code, human steps pending |
+| 4 | Bearer-only session check in the API context | Done in code, human steps pending |
+| 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | Done in code, human steps pending |
+| 6 | Mobile screens and flows: everything except Venue administration | Done in code, human steps pending |
 | 7 | Push, universal links, App Store build (iOS first) | Not started |
 
 Until a phase lands, its paths below do not exist. Do not create them outside that phase's tickets.
@@ -31,8 +31,14 @@ Settled decisions: the API runs on Railway, Clerk stays and gains Sign in with A
 Today:
 
 ```text
-apps/temba                   Next.js 15 App: UI, tRPC API (src/server), route handlers
-packages/db                  @repo/db: Drizzle schema, client, migrations
+apps/web                     Next.js 15 App: UI only, `/api/*` is rewritten to the API App
+apps/mobile                  Expo App (SDK 57): Expo Router, NativeWind v5, Clerk, tRPC; scaffold and placeholder screen only
+apps/api                     Hono host: verifies the session, builds the context, mounts routes
+packages/api                 @repo/api: tRPC routers, procedures, shared server modules
+packages/db                  @repo/db: Drizzle schema, client, migrations, PGlite harness
+packages/domain              @repo/domain: pure rules and calculations
+packages/design-tokens       @repo/design-tokens: tokens as data, generates the web theme stylesheet
+packages/validators          @repo/validators: Zod schemas with two or more callers
 packages/eslint-config       @repo/eslint-config
 packages/typescript-config   @repo/typescript-config
 ```
@@ -51,23 +57,23 @@ packages/design-tokens  @repo/design-tokens  colors, spacing, radii, type scale,
 
 ## Commands
 
-Run from Root. The App filter is `temba` until Phase 0 renames it to `web`.
+Run from Root. The Web App filter is `web`.
 
 ```bash
 pnpm install
 ./start-database.sh                          # local Postgres in Docker
-pnpm exec turbo run dev --filter temba       # web on :3000
+pnpm exec turbo run dev --filter web         # web on :3000
 pnpm exec turbo run typecheck lint test      # the gate for every pull request
-pnpm exec turbo run build --filter temba
-pnpm --filter temba format:write
-pnpm --filter temba db:seed                  # wipes and seeds a local database
+pnpm exec turbo run build --filter web
+pnpm --filter web format:write
+pnpm --filter @repo/api db:seed              # wipes and seeds a local database
 pnpm exec turbo run db:generate              # new migration from schema changes
 pnpm exec turbo run db:migrate
 ```
 
-- Tests run on PGlite and need no Postgres, but `DATABASE_URL` must be set to any value until Phase 1 makes the client lazy.
-- A single test: `pnpm --filter temba exec vitest run path/to/file.test.ts`.
-- After Phase 2 the API runs on port 4000. After Phase 5 `pnpm dev` runs web, API and mobile together.
+- Tests run on PGlite and need neither Postgres nor `DATABASE_URL`: `@repo/db` connects on first use. The harness is `@repo/db/testing`.
+- A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`, or `pnpm --filter @repo/api exec vitest run path/to/file.test.ts` for the server tree.
+- The API runs on port 4000. `pnpm dev` runs web, API and mobile together; the Expo dev server is on port 8081 and needs `apps/mobile/.env` (copy `.env.example`).
 
 ## Package boundaries
 
@@ -82,11 +88,11 @@ apps/api               ──► @repo/api, @repo/db
 ```
 
 - **Clients never import server code.** `apps/web/src` and `apps/mobile` may import `@repo/api/types` with `import type` and nothing else from `@repo/api`. They never import `@repo/db`. Scripts under `apps/web/scripts` are exempt.
-- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. A function goes there only if a client uses it, or two or more server callers do.
+- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. The one exception is `friendly-game-partner` and `tournament-join`, which keep their routes until Phase 6 (spec section 9). A function goes there only if a client uses it, or two or more server callers do.
 - **`@repo/validators` is for shared schemas only.** A schema used by one procedure stays inline in that procedure file.
 - **`@repo/api` is host-neutral.** No `next/*`, `@clerk/nextjs`, `react` or `server-only`. Auth, role metadata and the web origin arrive through the context.
 - **`apps/api` holds no business logic.** It verifies the session, builds the context and mounts routes.
-- **No `~/` alias inside Packages.** It is a web App alias. `@repo/api` uses `#/...` subpath imports. Other Packages use relative imports.
+- **No `~/` alias inside Packages.** It is a web App alias. `@repo/api` uses `#src/...` subpath imports (webpack rejects `#/`). Other Packages use relative imports.
 - **No barrel files** in `@repo/domain`. Import `@repo/domain/<module>`.
 
 ## Conventions
