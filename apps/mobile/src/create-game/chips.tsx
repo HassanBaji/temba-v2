@@ -28,12 +28,14 @@ export type ChoiceChipProps = {
   icon?: ChipIcon;
   role?: "radio" | "checkbox" | "button";
   disabled?: boolean;
+  dense?: boolean;
   accessibilityLabel?: string;
   onPress?: () => void;
 };
 
 const CHIP_PADDING = 14;
 const CHIP_GAP = 8;
+const DENSE_CHIP_GAP = 4;
 const DISABLED_OPACITY = 0.4;
 
 export function ChoiceChip({
@@ -45,6 +47,7 @@ export function ChoiceChip({
   icon: Icon,
   role = "button",
   disabled = false,
+  dense = false,
   accessibilityLabel,
   onPress,
 }: ChoiceChipProps) {
@@ -76,7 +79,7 @@ export function ChoiceChip({
         onPress={onPress}
         style={({ pressed }) => ({
           height: sizes.touchTarget,
-          paddingHorizontal: CHIP_PADDING,
+          paddingHorizontal: dense ? 0 : CHIP_PADDING,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
@@ -124,6 +127,7 @@ export function ChipGrid<T extends string | number>({
   multiple = false,
   selection = "ink",
   check = false,
+  dense = false,
   escape,
 }: {
   label: string;
@@ -134,8 +138,10 @@ export function ChipGrid<T extends string | number>({
   multiple?: boolean;
   selection?: "ink" | "soft";
   check?: boolean;
+  dense?: boolean;
   escape?: ChipEscape;
 }) {
+  const gap = dense ? DENSE_CHIP_GAP : CHIP_GAP;
   const cells = [
     ...chips.map((chip) => (
       <ChoiceChip
@@ -146,6 +152,7 @@ export function ChipGrid<T extends string | number>({
         selected={isSelected(chip.value)}
         selection={selection}
         check={check}
+        dense={dense}
         disabled={chip.disabled}
         onPress={() => onSelect(chip.value)}
       />
@@ -169,11 +176,11 @@ export function ChipGrid<T extends string | number>({
     <View
       accessibilityRole={multiple ? undefined : "radiogroup"}
       accessibilityLabel={label}
-      style={{ gap: CHIP_GAP }}
+      style={{ gap }}
     >
       {columns ? (
         gridRows(cells, columns).map((row, rowIndex) => (
-          <View key={rowIndex} style={{ flexDirection: "row", gap: CHIP_GAP }}>
+          <View key={rowIndex} style={{ flexDirection: "row", gap }}>
             {row.map((cell, cellIndex) => (
               <View key={cell?.key ?? `empty-${cellIndex}`} style={{ flex: 1 }}>
                 {cell}
@@ -182,7 +189,7 @@ export function ChipGrid<T extends string | number>({
           </View>
         ))
       ) : (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: CHIP_GAP }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap }}>
           {cells.map((cell) => (
             <View
               key={cell.key}

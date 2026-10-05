@@ -1,11 +1,10 @@
+import { spacing } from "@repo/design-tokens";
 import {
   CREATE_FLOW_OPEN_SEATS_LABEL,
   CREATE_FLOW_PRICE_CHIPS,
   KNOCKOUT_ONLY_FORMAT_LABEL,
   KNOCKOUT_REVIEW_LABEL,
   TOURNAMENT_FORMAT_LABEL,
-  friendlyGameKickoff,
-  friendlyGamePreviewLine,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
   friendlyTournamentPreviewDetail,
@@ -44,7 +43,13 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { ChipGrid, FieldError } from "./chips";
+import { LevelRangeField } from "./level-range-field";
+import { MoneyField } from "./money-field";
+import { ReviewCard } from "./review-card";
 import type { StepProps } from "./step-props";
+import { HelperNote, StepSection } from "./step-section";
+
+const PRICE_COLUMNS = 4;
 
 type DetailsProps = StepProps & {
   groupName: string | null;
@@ -182,43 +187,56 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function GamePrice({ state, errors, dispatch }: StepProps) {
+  const { draft } = state;
+  return (
+    <StepSection title="Price per player" note="Optional">
+      <MoneyField
+        value={draft.pricePerPlayer}
+        onChangeText={(price) => dispatch({ kind: "setPrice", price })}
+        accessibilityLabel="Price per player in BD"
+        error={errors.pricePerPlayerFils}
+      />
+      <ChipGrid
+        label="Price per player"
+        columns={PRICE_COLUMNS}
+        selection="soft"
+        chips={CREATE_FLOW_PRICE_CHIPS.map((chip) => ({
+          value: chip.value,
+          label: chip.label,
+        }))}
+        isSelected={(value) => priceChipIsSelected(value, draft.pricePerPlayer)}
+        onSelect={(price) => dispatch({ kind: "setPrice", price })}
+      />
+      <HelperNote>Zero means free. Temba does not collect payment.</HelperNote>
+    </StepSection>
+  );
+}
+
 export function GameDetailsStep(props: DetailsProps) {
   const { state, groupName, picker } = props;
   const { draft } = state;
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
-  const court = venue?.courts.find((item) => item.id === draft.courtId);
-  const kickoff = friendlyGameKickoff(
-    draft.day,
-    draft.startTime,
-    draft.finishTime,
-  );
-  const preview = friendlyGamePreviewLine({
-    day: draft.startTime ? draft.day : "",
-    groupName,
-    venueName: venue?.name ?? null,
-    courtName: court?.name ?? null,
-  });
+  const court =
+    draft.courtId === "none"
+      ? undefined
+      : venue?.courts.find((item) => item.id === draft.courtId);
+  const venueName = venue?.name ?? "Venue";
 
   return (
-    <View style={{ gap: 24 }}>
-      <LevelRange {...props} />
-      <Price {...props} />
-      <Surface style={{ gap: 8 }}>
-        {kickoff ? (
-          <>
-            <Text size="title" weight="semibold">
-              {kickoff.time}
-            </Text>
-            <Text size="meta" tone="muted">
-              {kickoff.trailer}
-            </Text>
-          </>
-        ) : null}
-        <Text size="meta">{preview}</Text>
-        <ReviewRow label="Group" value={groupName ?? "Group"} />
-        <ReviewRow label="Venue" value={venue?.name ?? "Venue"} />
-        <ReviewRow label="Seats" value={CREATE_FLOW_OPEN_SEATS_LABEL} />
-      </Surface>
+    <View style={{ gap: spacing.section }}>
+      <LevelRangeField {...props} />
+      <GamePrice {...props} />
+      <ReviewCard
+        rows={[
+          { label: "Group", value: groupName ?? "Group" },
+          {
+            label: "Venue",
+            value: court ? `${venueName}, ${court.name}` : venueName,
+          },
+          { label: "Seats", value: CREATE_FLOW_OPEN_SEATS_LABEL },
+        ]}
+      />
     </View>
   );
 }

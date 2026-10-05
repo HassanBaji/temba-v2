@@ -209,12 +209,32 @@ const STATES: readonly {
     picker: "loose",
   },
   {
+    key: "gameLevelPriceEmpty",
+    label: "Game: Level and price, empty",
+    type: "friendly_game",
+    step: 4,
+    draft: "gameWhenFilled",
+    picker: "loose",
+  },
+  {
     key: "gameReview",
-    label: "Game: review",
+    label: "Game: Level and price, filled",
     type: "friendly_game",
     step: 4,
     draft: "gameReview",
     picker: "loose",
+  },
+  {
+    key: "gameLevelPriceServerError",
+    label: "Game: server error on Level and price",
+    type: "friendly_game",
+    step: 4,
+    draft: "gameReview",
+    picker: "loose",
+    server: {
+      message: "Game could not be created.",
+      errors: { pricePerPlayerFils: "Price per player is too large" },
+    },
   },
   {
     key: "gameCreating",
