@@ -25,7 +25,8 @@ import { GameDetailsStep, TournamentDetailsStep } from "./details-step";
 import { StepFooter, StepShell } from "./step-shell";
 import { TypeStep } from "./type-step";
 import { GameWhenStep, TournamentWhenStep } from "./when-step";
-import { groupLabel, WhereStep } from "./where-step";
+import { groupLabel } from "./group-field";
+import { WhereStep } from "./where-step";
 
 export type CreateViewProps = {
   state: CreateState;

@@ -8,6 +8,7 @@ import { CreateView } from "../src/create-game/create-view";
 import {
   submitRequest,
   type CreateState,
+  type FieldErrors,
 } from "../src/create-game/create-model";
 import type { Slot } from "../src/home/home-model";
 import { Button } from "../src/primitives/button";
@@ -29,6 +30,8 @@ const STATES: readonly {
   picker: Picker;
   failing?: boolean;
   pending?: boolean;
+  pickerStatus?: "loading" | "error";
+  server?: { message: string; errors: FieldErrors };
 }[] = [
   {
     key: "type",
@@ -101,6 +104,36 @@ const STATES: readonly {
     step: 2,
     draft: "gameWhereFilled",
     picker: "emptyCatalog",
+  },
+  {
+    key: "gameVenuesLoading",
+    label: "Game: Venues loading",
+    type: "friendly_game",
+    step: 2,
+    draft: "gameWhereFilled",
+    picker: "loose",
+    pickerStatus: "loading",
+  },
+  {
+    key: "gameVenuesError",
+    label: "Game: Venues error",
+    type: "friendly_game",
+    step: 2,
+    draft: "gameWhereFilled",
+    picker: "loose",
+    pickerStatus: "error",
+  },
+  {
+    key: "gameWhereServerError",
+    label: "Game: server error on where",
+    type: "friendly_game",
+    step: 2,
+    draft: "gameWhereFilled",
+    picker: "loose",
+    server: {
+      message: "Game could not be created.",
+      errors: { venueId: "This Venue is no longer available." },
+    },
   },
   {
     key: "gameWhen",
@@ -218,12 +251,14 @@ export default function GalleryCreate() {
   }
   const draft = { ...fixtures.drafts[entry.draft] };
   const state: CreateState = { type: entry.type, step: entry.step, draft };
-  const errors = entry.failing
-    ? (() => {
-        const result = submitRequest(state, fixtures.now);
-        return result.ok ? {} : result.errors;
-      })()
-    : {};
+  const errors = entry.server
+    ? entry.server.errors
+    : entry.failing
+      ? (() => {
+          const result = submitRequest(state, fixtures.now);
+          return result.ok ? {} : result.errors;
+        })()
+      : {};
   const groups: Slot<typeof fixtures.groups> =
     loader === "loading"
       ? { status: "loading" }
@@ -236,7 +271,11 @@ export default function GalleryCreate() {
   const picker: Slot<(typeof fixtures.pickers)["loose"]> | null =
     entry.step === 1 || !draft.groupId
       ? null
-      : { status: "ready", value: fixtures.pickers[entry.picker] };
+      : entry.pickerStatus === "loading"
+        ? { status: "loading" }
+        : entry.pickerStatus === "error"
+          ? { status: "error", message: "Venues could not be loaded." }
+          : { status: "ready", value: fixtures.pickers[entry.picker] };
   const noop = () => undefined;
 
   return (
@@ -244,7 +283,7 @@ export default function GalleryCreate() {
       state={state}
       now={fixtures.now}
       errors={errors}
-      formMessage={null}
+      formMessage={entry.server?.message ?? null}
       groups={groups}
       picker={picker}
       pending={entry.pending ?? false}

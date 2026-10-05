@@ -1,55 +1,196 @@
-import { colors, sizes } from "@repo/design-tokens";
-import { Minus, Plus } from "lucide-react-native";
-import { View } from "react-native";
+import { colors, radii, sizes } from "@repo/design-tokens";
+import { Check, Minus, Plus } from "lucide-react-native";
+import type { ComponentType } from "react";
+import { Pressable, View, type ColorValue } from "react-native";
 
 import { Button } from "../primitives/button";
+import { hairline } from "../primitives/hairline-width";
+import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { tonePalette } from "../primitives/tone-palette";
+import { gridRows } from "./grid-rows";
 
 export type Chip<T extends string | number> = {
   value: T;
   label: string;
   disabled?: boolean;
+  accessibilityLabel?: string;
 };
 
-export function ChipRow<T extends string | number>({
+type ChipIcon = ComponentType<{ size: number; color: ColorValue }>;
+
+export type ChoiceChipProps = {
+  label: string;
+  selected?: boolean;
+  selection?: "ink" | "soft";
+  dashed?: boolean;
+  check?: boolean;
+  icon?: ChipIcon;
+  role?: "radio" | "checkbox" | "button";
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  onPress?: () => void;
+};
+
+const CHIP_PADDING = 14;
+const CHIP_GAP = 8;
+const DISABLED_OPACITY = 0.4;
+
+export function ChoiceChip({
+  label,
+  selected = false,
+  selection = "ink",
+  dashed = false,
+  check = false,
+  icon: Icon,
+  role = "button",
+  disabled = false,
+  accessibilityLabel,
+  onPress,
+}: ChoiceChipProps) {
+  const ink = selected && selection === "ink";
+  const tone = ink ? "ink" : "paper";
+  const palette = tonePalette(tone);
+  const escape = dashed && !selected;
+  const inactive = disabled || !onPress;
+  const borderColor = ink
+    ? palette.background
+    : selected
+      ? palette.foreground
+      : escape
+        ? colors.inputBorder
+        : palette.rule;
+  const iconColor = escape ? palette.muted : palette.foreground;
+
+  return (
+    <SurfaceToneContext.Provider value={tone}>
+      <Pressable
+        accessibilityRole={role}
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityState={
+          role === "button"
+            ? { disabled: inactive }
+            : { checked: selected, disabled: inactive }
+        }
+        disabled={inactive}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          height: sizes.touchTarget,
+          paddingHorizontal: CHIP_PADDING,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          borderRadius: radii.md,
+          borderWidth: hairline,
+          borderStyle: escape ? "dashed" : "solid",
+          borderColor,
+          backgroundColor:
+            ink || (!selected && !pressed) ? palette.background : palette.wash,
+          opacity: disabled ? DISABLED_OPACITY : 1,
+        })}
+      >
+        {Icon ? <Icon size={sizes.iconRow} color={iconColor} /> : null}
+        <Text
+          weight={selected ? "semibold" : "regular"}
+          tone={escape ? "muted" : "default"}
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
+          {label}
+        </Text>
+        {selected && check ? (
+          <Check size={sizes.iconRow} color={palette.foreground} />
+        ) : null}
+      </Pressable>
+    </SurfaceToneContext.Provider>
+  );
+}
+
+export type ChipEscape = {
+  label: string;
+  icon?: ChipIcon;
+  accessibilityLabel?: string;
+  onPress?: () => void;
+};
+
+export function ChipGrid<T extends string | number>({
   label,
   chips,
   isSelected,
   onSelect,
   columns,
+  multiple = false,
+  selection = "ink",
+  check = false,
+  escape,
 }: {
   label: string;
   chips: readonly Chip<T>[];
   isSelected: (value: T) => boolean;
   onSelect: (value: T) => void;
   columns?: number;
+  multiple?: boolean;
+  selection?: "ink" | "soft";
+  check?: boolean;
+  escape?: ChipEscape;
 }) {
-  const basis = columns ? `${Math.floor(100 / columns) - 2}%` : undefined;
+  const cells = [
+    ...chips.map((chip) => (
+      <ChoiceChip
+        key={String(chip.value)}
+        label={chip.label}
+        accessibilityLabel={chip.accessibilityLabel}
+        role={multiple ? "checkbox" : "radio"}
+        selected={isSelected(chip.value)}
+        selection={selection}
+        check={check}
+        disabled={chip.disabled}
+        onPress={() => onSelect(chip.value)}
+      />
+    )),
+    ...(escape
+      ? [
+          <ChoiceChip
+            key="escape"
+            dashed
+            label={escape.label}
+            icon={escape.icon}
+            accessibilityLabel={escape.accessibilityLabel}
+            onPress={escape.onPress}
+          />,
+        ]
+      : []),
+  ];
+
   return (
     <View
-      accessibilityRole="radiogroup"
+      accessibilityRole={multiple ? undefined : "radiogroup"}
       accessibilityLabel={label}
-      style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+      style={{ gap: CHIP_GAP }}
     >
-      {chips.map((chip) => (
-        <View
-          key={String(chip.value)}
-          style={
-            basis
-              ? { width: basis as `${number}%`, flexGrow: 1 }
-              : { minWidth: 64 }
-          }
-        >
-          <Button
-            label={chip.label}
-            size="sm"
-            variant={isSelected(chip.value) ? "default" : "outline"}
-            selected={isSelected(chip.value)}
-            disabled={chip.disabled}
-            onPress={() => onSelect(chip.value)}
-          />
+      {columns ? (
+        gridRows(cells, columns).map((row, rowIndex) => (
+          <View key={rowIndex} style={{ flexDirection: "row", gap: CHIP_GAP }}>
+            {row.map((cell, cellIndex) => (
+              <View key={cell?.key ?? `empty-${cellIndex}`} style={{ flex: 1 }}>
+                {cell}
+              </View>
+            ))}
+          </View>
+        ))
+      ) : (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: CHIP_GAP }}>
+          {cells.map((cell) => (
+            <View
+              key={cell.key}
+              style={{ minWidth: sizes.touchTarget, maxWidth: "100%" }}
+            >
+              {cell}
+            </View>
+          ))}
         </View>
-      ))}
+      )}
     </View>
   );
 }

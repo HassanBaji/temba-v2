@@ -1,9 +1,5 @@
-import {
-  createVenueCopy,
-  venueCardMeta,
-  venueMatchesQuery,
-  visibleCreateCourts,
-} from "@repo/domain/create-game-flow";
+import { radii, spacing } from "@repo/design-tokens";
+import { visibleCreateCourts } from "@repo/domain/create-game-flow";
 import {
   playersInPairsLine,
   TOURNAMENT_TEAM_MAX,
@@ -14,20 +10,16 @@ import { useState } from "react";
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
-import { Section } from "../primitives/section";
-import { Skeleton } from "../primitives/skeleton";
-import { Surface } from "../primitives/surface";
+import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
-import { TextField } from "../primitives/text-field";
-import { ChipRow, FieldError, Stepper } from "./chips";
+import { ChipGrid, FieldError, Stepper } from "./chips";
+import { GroupField } from "./group-field";
 import type { StepProps, WhereData } from "./step-props";
+import { StepSection } from "./step-section";
+import { VenueField } from "./venue-field";
 
-export function groupLabel(group: {
-  name: string | null;
-  communityName: string | null;
-}) {
-  return group.name ?? group.communityName ?? "Untitled Group";
-}
+const COURT_COLUMNS = 5;
+const COURT_CELL_HEIGHT = 44;
 
 export function WhereStep({
   state,
@@ -38,7 +30,6 @@ export function WhereStep({
 }: StepProps & WhereData) {
   const { draft } = state;
   const tournament = state.type === "friendly_tournament";
-  const [query, setQuery] = useState("");
   const [courtsExpanded, setCourtsExpanded] = useState(false);
   const pickerData = picker?.status === "ready" ? picker.value : null;
   const venues = pickerData?.venues ?? [];
@@ -55,131 +46,107 @@ export function WhereStep({
             ? []
             : [draft.courtId],
       );
-  const emptyCatalog =
-    pickerData !== null && !pickerData.locked && venues.length === 0;
-  const venueCopy = !draft.groupId
-    ? "Pick a Group first. Venue rules depend on the Group."
-    : pickerData
-      ? createVenueCopy(pickerData, { manyCourts: tournament })
-      : tournament
-        ? "Pick a Venue. Courts are optional."
-        : "Pick a Venue. Court is optional.";
+  const moreCourts = !courtsExpanded && courts.length > visibleCourts.length;
 
   return (
-    <View style={{ gap: 24 }}>
-      <Section title="Group">
-        <ChipRow
-          label="Group"
-          chips={groups.map((group) => ({
-            value: group.id,
-            label: groupLabel(group),
-          }))}
-          isSelected={(id) => id === draft.groupId}
-          onSelect={(groupId) => dispatch({ kind: "setGroup", groupId })}
-        />
-        <FieldError message={errors.groupId} />
-      </Section>
+    <View style={{ gap: spacing.section }}>
+      <GroupField
+        groups={groups}
+        groupId={draft.groupId}
+        error={errors.groupId}
+        onSelect={(groupId) => dispatch({ kind: "setGroup", groupId })}
+      />
 
-      <Section title="Venue">
-        <Text size="meta" tone="muted">
-          {venueCopy}
-        </Text>
-        {draft.groupId && picker?.status === "loading" ? (
-          <Skeleton height={56} />
-        ) : null}
-        {picker?.status === "error" ? (
-          <Text size="meta" weight="medium" accessibilityRole="alert">
-            {picker.message}
-          </Text>
-        ) : null}
-        {emptyCatalog ? (
-          <Text size="meta" weight="medium">
-            No Venues are available yet.
-          </Text>
-        ) : null}
-        {pickerData?.locked && selectedVenue ? (
-          <Surface accessibilityState={{ selected: true, disabled: true }}>
-            <Text weight="semibold">{selectedVenue.name}</Text>
-            <Text size="meta" tone="muted">
-              {venueCardMeta(selectedVenue.courts.length, selectedVenue.city)}
-            </Text>
-          </Surface>
-        ) : null}
-        {pickerData && !pickerData.locked && venues.length > 0 ? (
-          <>
-            {venues.length > 6 ? (
-              <TextField
-                label="Search Venues"
-                value={query}
-                onChangeText={setQuery}
-                autoCapitalize="none"
-              />
-            ) : null}
-            <View style={{ gap: 8 }}>
-              {venues
-                .filter((venue) => venueMatchesQuery(venue, query))
-                .map((venue) => (
-                  <Button
-                    key={venue.id}
-                    label={`${venue.name} · ${venueCardMeta(venue.courts.length, venue.city)}`}
-                    variant={venue.id === draft.venueId ? "default" : "outline"}
-                    selected={venue.id === draft.venueId}
-                    onPress={() => {
-                      setCourtsExpanded(false);
-                      dispatch({ kind: "setVenue", venueId: venue.id });
-                    }}
-                  />
-                ))}
-            </View>
-          </>
-        ) : null}
-        <FieldError message={errors.venueId} />
-      </Section>
+      <VenueField
+        groupId={draft.groupId}
+        picker={picker}
+        venueId={draft.venueId}
+        manyCourts={tournament}
+        error={errors.venueId}
+        onSelect={(venueId) => {
+          setCourtsExpanded(false);
+          dispatch({ kind: "setVenue", venueId });
+        }}
+      />
 
-      <Section title={tournament ? "Courts" : "Court"}>
-        <Text size="meta" tone="muted">
-          Optional
-        </Text>
-        {selectedVenue && courts.length > 0 ? (
-          <>
-            <ChipRow
-              label={tournament ? "Courts" : "Court"}
-              chips={[
-                ...(tournament ? [] : [{ value: "none", label: "No Court" }]),
-                ...visibleCourts.map((court) => ({
+      {tournament ? (
+        <StepSection title="Courts" note="Optional">
+          {selectedVenue && courts.length > 0 ? (
+            <>
+              <ChipGrid
+                label="Courts"
+                multiple
+                chips={visibleCourts.map((court) => ({
                   value: court.id,
                   label: court.name,
-                })),
-              ]}
-              isSelected={(id) =>
-                tournament ? draft.courtIds.includes(id) : draft.courtId === id
-              }
-              onSelect={(courtId) =>
-                dispatch(
-                  tournament
-                    ? { kind: "toggleCourt", courtId }
-                    : { kind: "setCourt", courtId },
-                )
-              }
-            />
-            {!courtsExpanded && courts.length > visibleCourts.length ? (
-              <Button
-                label={`All ${courts.length} courts`}
-                variant="outline"
-                size="sm"
-                onPress={() => setCourtsExpanded(true)}
+                }))}
+                isSelected={(id) => draft.courtIds.includes(id)}
+                onSelect={(courtId) =>
+                  dispatch({ kind: "toggleCourt", courtId })
+                }
               />
-            ) : null}
-          </>
-        ) : (
-          <Text size="meta" tone="muted">
-            {selectedVenue
-              ? "This Venue has no Courts."
-              : "Pick a Venue to choose Courts."}
-          </Text>
-        )}
-        <FieldError message={errors.courtId ?? errors.courtIds} />
-      </Section>
+              {moreCourts ? (
+                <Button
+                  label={`All ${courts.length} courts`}
+                  variant="outline"
+                  size="sm"
+                  onPress={() => setCourtsExpanded(true)}
+                />
+              ) : null}
+            </>
+          ) : (
+            <Text size="meta" tone="muted">
+              {selectedVenue
+                ? "This Venue has no Courts."
+                : "Pick a Venue to choose Courts."}
+            </Text>
+          )}
+          <FieldError message={errors.courtIds} />
+        </StepSection>
+      ) : (
+        <StepSection title="Court" note="Optional" locked={!selectedVenue}>
+          {!selectedVenue ? (
+            <CourtPlaceholders />
+          ) : courts.length === 0 ? (
+            <Text size="meta" tone="muted">
+              This Venue has no Courts.
+            </Text>
+          ) : (
+            <>
+              <ChipGrid
+                label="Court"
+                columns={COURT_COLUMNS}
+                chips={[
+                  {
+                    value: "none",
+                    label: "None",
+                    accessibilityLabel: "No Court",
+                  },
+                  ...visibleCourts.map((court) => ({
+                    value: court.id,
+                    label: court.name,
+                  })),
+                ]}
+                isSelected={(id) => draft.courtId === id}
+                onSelect={(courtId) => dispatch({ kind: "setCourt", courtId })}
+                escape={
+                  moreCourts
+                    ? {
+                        label: "More",
+                        accessibilityLabel: `All ${courts.length} Courts`,
+                        onPress: () => setCourtsExpanded(true),
+                      }
+                    : undefined
+                }
+              />
+              <Text size="meta" tone="muted">
+                Leave on None to settle the Court at the Venue.
+              </Text>
+            </>
+          )}
+          <FieldError message={errors.courtId} />
+        </StepSection>
+      )}
 
       {tournament ? (
         <Stepper
@@ -198,6 +165,23 @@ export function WhereStep({
           error={errors.teamCount}
         />
       ) : null}
+    </View>
+  );
+}
+
+function CourtPlaceholders() {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      aria-hidden
+      style={{ flexDirection: "row", gap: 8 }}
+    >
+      {Array.from({ length: COURT_COLUMNS }, (_, index) => (
+        <View key={index} style={{ flex: 1, height: COURT_CELL_HEIGHT }}>
+          <Hatch radius={radii.md} />
+        </View>
+      ))}
     </View>
   );
 }

@@ -47,7 +47,7 @@ import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
-import { ChipRow, FieldError, Stepper } from "./chips";
+import { ChipGrid, FieldError, Stepper } from "./chips";
 import type { StepProps } from "./step-props";
 
 const DAY_COUNT = 14;
@@ -72,7 +72,7 @@ function DayAndStart({ state, now, errors, dispatch }: StepProps) {
   return (
     <>
       <Section title="Day">
-        <ChipRow
+        <ChipGrid
           label="Day"
           columns={4}
           chips={createFlowDayOptions(now, DAY_COUNT).map((option) => ({
@@ -88,7 +88,7 @@ function DayAndStart({ state, now, errors, dispatch }: StepProps) {
         <Text size="meta" tone="muted">
           30 minute steps
         </Text>
-        <ChipRow
+        <ChipGrid
           label="Start time"
           columns={4}
           chips={visibleStarts.map((slot) => ({
@@ -141,7 +141,7 @@ function FinishTime({ state, now, errors, dispatch }: StepProps) {
           {formatTimeSlotLabel(draft.finishTime)}
         </Text>
       ) : null}
-      <ChipRow
+      <ChipGrid
         label="Duration"
         chips={[...durations, { value: CUSTOM_FINISH, label: "Custom" }]}
         isSelected={(value) => value === selected}
@@ -155,7 +155,7 @@ function FinishTime({ state, now, errors, dispatch }: StepProps) {
         }}
       />
       {showCustom ? (
-        <ChipRow
+        <ChipGrid
           label="Finish time"
           columns={4}
           chips={slots.map((slot) => ({
@@ -230,7 +230,7 @@ export function TournamentWhenStep(props: StepProps) {
 
       {knockoutOnly ? null : (
         <Section title="Groups">
-          <ChipRow
+          <ChipGrid
             label="Groups"
             chips={poolOptions.map((count) => ({
               value: count,
@@ -318,7 +318,7 @@ export function TournamentWhenStep(props: StepProps) {
 
       <DayAndStart {...props} />
       <Section title="Finish">
-        <ChipRow
+        <ChipGrid
           label="Finish time"
           columns={4}
           chips={slots.map((slot) => ({
@@ -332,7 +332,7 @@ export function TournamentWhenStep(props: StepProps) {
       </Section>
 
       <Section title="Game length">
-        <ChipRow
+        <ChipGrid
           label="Game length"
           chips={CREATE_FLOW_MATCH_MINUTE_CHIPS.map((value) => ({
             value,

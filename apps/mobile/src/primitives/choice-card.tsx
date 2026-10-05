@@ -15,7 +15,7 @@ export type ChoiceCardProps = {
   description?: string;
   leading?: ComponentType<{ size: number; color: ColorValue }>;
   trailing?: "check" | "chevron";
-  layout?: "card" | "row";
+  variant?: "card" | "row";
   accessibilityLabel?: string;
   onPress: () => void;
   children?: React.ReactNode;
@@ -31,14 +31,14 @@ export function ChoiceCard({
   description,
   leading: Leading,
   trailing = "check",
-  layout = "card",
+  variant = "card",
   accessibilityLabel,
   onPress,
   children,
 }: ChoiceCardProps) {
   const tone = selected ? "ink" : "paper";
   const palette = tonePalette(tone);
-  const card = layout === "card";
+  const card = variant === "card";
 
   return (
     <SurfaceToneContext.Provider value={tone}>

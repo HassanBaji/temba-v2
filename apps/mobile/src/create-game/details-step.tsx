@@ -43,7 +43,7 @@ import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
-import { ChipRow, FieldError } from "./chips";
+import { ChipGrid, FieldError } from "./chips";
 import type { StepProps } from "./step-props";
 
 type DetailsProps = StepProps & {
@@ -76,7 +76,7 @@ function LevelRange({ state, errors, dispatch }: StepProps) {
       <Text size="meta" tone="muted">
         Optional
       </Text>
-      <ChipRow
+      <ChipGrid
         label="Who can enter"
         chips={[
           { value: "anyone", label: "Anyone" },
@@ -94,7 +94,7 @@ function LevelRange({ state, errors, dispatch }: StepProps) {
       {showRange ? (
         <>
           <Text weight="medium">Minimum Level</Text>
-          <ChipRow
+          <ChipGrid
             label="Minimum Level"
             chips={bands("min")}
             isSelected={(value) => value === draft.levelMin}
@@ -108,7 +108,7 @@ function LevelRange({ state, errors, dispatch }: StepProps) {
           />
           <FieldError message={errors.levelMinTenths} />
           <Text weight="medium">Maximum Level</Text>
-          <ChipRow
+          <ChipGrid
             label="Maximum Level"
             chips={bands("max")}
             isSelected={(value) => value === draft.levelMax}
@@ -135,7 +135,7 @@ function Price({ state, errors, dispatch }: StepProps) {
       <Text size="meta" tone="muted">
         Optional
       </Text>
-      <ChipRow
+      <ChipGrid
         label="Price per player"
         chips={CREATE_FLOW_PRICE_CHIPS.map((chip) => ({
           value: chip.value,
@@ -255,7 +255,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
       <LevelRange {...props} />
       <Price {...props} />
       <Section title={WHO_CAN_TAKE_A_SEAT_LABEL}>
-        <ChipRow
+        <ChipGrid
           label={WHO_CAN_TAKE_A_SEAT_LABEL}
           chips={[
             { value: "group", label: groupName ?? "Group" },
@@ -268,7 +268,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
         />
       </Section>
       <Section title={HOW_PEOPLE_JOIN_LABEL}>
-        <ChipRow
+        <ChipGrid
           label={HOW_PEOPLE_JOIN_LABEL}
           chips={[
             { value: "solo", label: ALONE_OR_WITH_A_PARTNER_LABEL },
