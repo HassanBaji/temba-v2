@@ -14,6 +14,7 @@ import { ChoiceRow } from "../lib/choice-row";
 import { ToggleRow } from "../lib/toggle-row";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 
@@ -46,9 +47,7 @@ export function GroupCreateView(props: GroupCreateViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
-        <Text size="h1" weight="bold" accessibilityRole="header">
-          {copy.submit}
-        </Text>
+        <ScreenHeader nav="close" fallback="/groups" title={copy.submit} />
         <Text size="meta" tone="muted">
           {props.context === "club"
             ? GROUP_CREATE_CLUB_DESCRIPTION

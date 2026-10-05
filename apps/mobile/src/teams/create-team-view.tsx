@@ -8,6 +8,7 @@ import {
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 
@@ -25,9 +26,11 @@ export function CreateTeamView(props: CreateTeamViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
-        <Text size="h1" weight="bold" accessibilityRole="header">
-          {TEAM_CREATE_LABEL}
-        </Text>
+        <ScreenHeader
+          nav="close"
+          fallback="/profile"
+          title={TEAM_CREATE_LABEL}
+        />
         <Text size="meta" tone="muted">
           {TEAM_CREATE_DESCRIPTION}
         </Text>

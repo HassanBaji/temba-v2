@@ -35,8 +35,8 @@ export function Screen({
 
   const content = {
     gap: spacing.section,
-    paddingHorizontal: spacing.compact,
-    paddingTop: insets.top + spacing.compact,
+    paddingHorizontal: spacing.surface,
+    paddingTop: insets.top + spacing.surface,
     paddingBottom: insets.bottom + spacing.section,
   };
 

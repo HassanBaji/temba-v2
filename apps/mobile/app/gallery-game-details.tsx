@@ -26,6 +26,7 @@ import {
 import type { OrganizerHandlers } from "../src/game-details/organizer-card";
 import { Button } from "../src/primitives/button";
 import { Screen } from "../src/primitives/screen";
+import { ScreenHeader } from "../src/primitives/screen-header";
 import { Text } from "../src/primitives/text";
 
 const KEYS = Object.keys(
@@ -135,6 +136,7 @@ export default function GalleryGameDetails() {
           onPress={() => setEditSection("menu")}
         />
       ) : null}
+      <ScreenHeader nav="back" fallback="/games" />
       <GameDetailsContent
         game={game}
         handlers={handlers}

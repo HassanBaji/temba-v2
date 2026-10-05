@@ -22,12 +22,14 @@ import { Notice } from "../groups/notice";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Section } from "../primitives/section";
 import { Sheet } from "../primitives/sheet";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TeamAvatars } from "./team-avatars";
+import { TEAMS_PATH } from "./teams-model";
 
 export type LinkCommunity = { id: string; name: string };
 
@@ -214,19 +216,21 @@ export function TeamHomeView(props: TeamHomeViewProps) {
   return (
     <View style={{ gap: spacing.section }}>
       <View style={{ gap: spacing.compact }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-          >
-            <TeamAvatars people={view.people} openSeats={view.openSeats} />
+        <ScreenHeader nav="back" fallback={TEAMS_PATH}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <TeamAvatars people={view.people} openSeats={view.openSeats} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text size="h1" weight="bold" accessibilityRole="header">
+                {view.title}
+              </Text>
+            </View>
           </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="h1" weight="bold" accessibilityRole="header">
-              {view.title}
-            </Text>
-          </View>
-        </View>
+        </ScreenHeader>
         <Text size="eyebrow" tone="muted" mono uppercase>
           {view.badges.join(" · ")}
         </Text>

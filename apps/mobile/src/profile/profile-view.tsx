@@ -1,6 +1,7 @@
 import { View } from "react-native";
 
 import { Block } from "../home/slot-block";
+import { ScreenHeader } from "../primitives/screen-header";
 import { ProfileAllTimeCard } from "./all-time-card";
 import { ProfileFormCard } from "./form-card";
 import { ProfileHeader } from "./profile-header";
@@ -38,6 +39,7 @@ export function ProfileView({
 
   return (
     <View style={{ gap: SECTION_GAP }}>
+      <ScreenHeader title="Profile" />
       <ProfileHeader
         name={model.name}
         imageUri={model.imageUri}

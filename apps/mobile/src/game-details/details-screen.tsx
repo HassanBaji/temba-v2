@@ -1,5 +1,4 @@
 import type { FriendlyGameDetails } from "@repo/domain/friendly-game-details";
-import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
 import {
   isPartnerVacantSideRace,
   offersPartnerJoin,
@@ -28,7 +27,7 @@ import {
 } from "@repo/domain/tournament-join";
 import { gameInviteAccess } from "@repo/domain/invites";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 
@@ -37,6 +36,7 @@ import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -391,17 +391,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     });
   }
 
-  const title = data
-    ? friendlyGameHomeTitle(data.groupId, data.groupName)
-    : "Game";
-  const header = (
-    <Stack.Screen
-      options={{
-        title,
-        headerTitle: () => <Text weight="semibold">{title}</Text>,
-      }}
-    />
-  );
+  const header = <ScreenHeader nav="back" fallback="/games" />;
 
   const inviteAccess = data
     ? gameInviteAccess({

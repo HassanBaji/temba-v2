@@ -4,6 +4,7 @@ import type {
   GroupPublicRowData,
 } from "@repo/domain/group-data";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
+import { Plus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import type { Slot } from "../home/home-model";
@@ -12,6 +13,7 @@ import { Button } from "../primitives/button";
 import { FormSlot } from "../primitives/form-slot";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -327,26 +329,18 @@ function PublicList(props: GroupsViewProps) {
 export function GroupsView(props: GroupsViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <Text size="h1" weight="bold" accessibilityRole="header">
-          Groups
-        </Text>
-        {props.hasCreateAccess ? (
-          <Button
-            label="Create Group"
-            size="sm"
-            variant="outline"
-            onPress={props.onCreate}
-          />
-        ) : null}
-      </View>
+      <ScreenHeader
+        title="Groups"
+        actions={
+          props.hasCreateAccess ? (
+            <HeaderIconButton
+              icon={Plus}
+              accessibilityLabel="Create Group"
+              onPress={props.onCreate}
+            />
+          ) : null
+        }
+      />
       <TabButtons tab={props.tab} onTabChange={props.onTabChange} />
       {props.tab === "mine" ? (
         <MineList {...props} />

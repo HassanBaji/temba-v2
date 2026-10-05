@@ -1,19 +1,21 @@
 import { useUser } from "@clerk/expo";
 import {
   COMMUNITY_CREATED_TOAST,
+  COMMUNITY_CREATE_COPY,
   COMMUNITY_CREATE_NOT_AVAILABLE,
 } from "@repo/domain/community";
 import type { CommunityVisibility } from "@repo/domain/community-chrome";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 
 import { splitTrpcFormError } from "../lib/form-error";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import { communityPath } from "./communities-model";
+import { COMMUNITIES_PATH, communityPath } from "./communities-model";
 import { CommunityCreateView } from "./community-create-view";
 
 export function CommunityCreateScreen() {
@@ -56,7 +58,11 @@ export function CommunityCreateScreen() {
   if (isLoaded && user?.publicMetadata.groupCreator !== true) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: "Create Community" }} />
+        <ScreenHeader
+          nav="close"
+          fallback={COMMUNITIES_PATH}
+          title={COMMUNITY_CREATE_COPY.title}
+        />
         <Surface style={{ gap: 8 }} accessibilityRole="alert">
           <Text size="lead" weight="semibold">
             {COMMUNITY_CREATE_NOT_AVAILABLE.title}
@@ -71,7 +77,6 @@ export function CommunityCreateScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: "Create Community" }} />
       <CommunityCreateView
         name={name}
         onNameChange={setName}

@@ -10,6 +10,7 @@ import { useCallback, useState } from "react";
 import type { Slot } from "../home/home-model";
 import { Notice } from "../groups/notice";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import {
@@ -37,12 +38,17 @@ function kindOf(link: InviteLinkPath): InviteKind {
   return link.kind;
 }
 
+function InviteLinkHeader() {
+  return <ScreenHeader nav="back" fallback="/profile" title="Invite" />;
+}
+
 export function InviteLinkScreen() {
   const params = useLocalSearchParams<InviteLinkParams>();
   const link = inviteLinkFromParams(params);
   if (!link) {
     return (
       <Screen>
+        <InviteLinkHeader />
         <Notice
           title="Couldn't open this invite"
           description="The link is incomplete. Go back and paste it again."
@@ -229,6 +235,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
+      <InviteLinkHeader />
       <InviteLinkView
         kind={kind}
         preview={preview}

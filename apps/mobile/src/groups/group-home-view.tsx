@@ -15,6 +15,7 @@ import type { GameCardActions } from "../games/game-card";
 import { SeatPickerSheet } from "../games/seat-picker-sheet";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { GamesTab, type GamesTabProps } from "./games-tab";
@@ -89,19 +90,21 @@ export function GroupHomeView(props: GroupHomeViewProps) {
 
   return (
     <View style={{ gap: spacing.compact }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar name={header.name} uri={header.imageUri} size="xl" />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="h2" weight="bold" accessibilityRole="header">
-            {header.name}
-          </Text>
-          {header.meta ? (
-            <Text size="meta" tone="muted">
-              {header.meta}
+      <ScreenHeader nav="back" fallback="/groups">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Avatar name={header.name} uri={header.imageUri} size="xl" />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text size="h2" weight="bold" accessibilityRole="header">
+              {header.name}
             </Text>
-          ) : null}
+            {header.meta ? (
+              <Text size="meta" tone="muted">
+                {header.meta}
+              </Text>
+            ) : null}
+          </View>
         </View>
-      </View>
+      </ScreenHeader>
 
       {data.membership || groupHomeCanManageInvites(data) ? (
         <View style={{ flexDirection: "row", gap: 8 }}>

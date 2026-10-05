@@ -9,8 +9,10 @@ import { View } from "react-native";
 
 import { ChoiceRow } from "../lib/choice-row";
 import { Button } from "../primitives/button";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
+import { COMMUNITIES_PATH } from "./communities-model";
 
 export type CommunityCreateViewProps = {
   name: string;
@@ -33,9 +35,11 @@ export function CommunityCreateView(props: CommunityCreateViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
-        <Text size="h1" weight="bold" accessibilityRole="header">
-          {COMMUNITY_CREATE_COPY.title}
-        </Text>
+        <ScreenHeader
+          nav="close"
+          fallback={COMMUNITIES_PATH}
+          title={COMMUNITY_CREATE_COPY.title}
+        />
         <Text size="meta" tone="muted">
           {COMMUNITY_CREATE_COPY.description}
         </Text>

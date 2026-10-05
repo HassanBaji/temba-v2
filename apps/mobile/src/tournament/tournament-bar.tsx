@@ -49,7 +49,7 @@ export function TournamentBar({
       <View
         style={{
           gap: 8,
-          paddingHorizontal: spacing.compact,
+          paddingHorizontal: spacing.surface,
           paddingTop: 12,
           paddingBottom: (inset ? insets.bottom : 0) + 12,
         }}

@@ -15,7 +15,7 @@ import {
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
@@ -29,8 +29,8 @@ import { useGameJoin } from "../games/use-game-join";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { Screen } from "../primitives/screen";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
-import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { groupHomeHeader } from "./group-home-model";
@@ -135,15 +135,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     }
   }, [group, admin]);
 
-  const title = data ? groupHomeHeader(data, apiOrigin).name : "Group";
-  const header = (
-    <Stack.Screen
-      options={{
-        title,
-        headerTitle: () => <Text weight="semibold">{title}</Text>,
-      }}
-    />
-  );
+  const header = <ScreenHeader nav="back" fallback="/groups" />;
 
   if (isNotFoundError(group.error)) {
     return (
@@ -185,7 +177,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      {header}
       <GroupHomeView
         data={data}
         apiOrigin={apiOrigin}
