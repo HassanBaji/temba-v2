@@ -5,7 +5,10 @@ import { Pressable, View, type ColorValue } from "react-native";
 
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
-import { SurfaceToneContext } from "../primitives/surface-context";
+import {
+  SurfaceToneContext,
+  useTonePalette,
+} from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { tonePalette } from "../primitives/tone-palette";
 import { gridRows } from "./grid-rows";
@@ -267,6 +270,113 @@ export function Stepper({
       ) : null}
       <FieldError message={error} />
     </View>
+  );
+}
+
+const STEPPER_ROW_HEIGHT = 56;
+const STEPPER_BUTTON_SIZE = 40;
+
+export function StepperRow({
+  label,
+  value,
+  unit,
+  min,
+  max,
+  step,
+  onChange,
+  decreaseLabel,
+  increaseLabel,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  decreaseLabel: string;
+  increaseLabel: string;
+}) {
+  const palette = useTonePalette();
+  return (
+    <View
+      style={{
+        height: STEPPER_ROW_HEIGHT,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 8,
+        borderRadius: radii.lg,
+        borderWidth: hairline,
+        borderColor: palette.foreground,
+      }}
+    >
+      <StepperButton
+        label={decreaseLabel}
+        icon={Minus}
+        disabled={value - step < min}
+        onPress={() => onChange(value - step)}
+      />
+      <View
+        accessible
+        accessibilityLabel={`${label}: ${value} ${unit}`}
+        accessibilityLiveRegion="polite"
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "center",
+          gap: 6,
+        }}
+      >
+        <Text size="h2" width="expanded">
+          {String(value)}
+        </Text>
+        <Text tone="muted">{unit}</Text>
+      </View>
+      <StepperButton
+        label={increaseLabel}
+        icon={Plus}
+        disabled={value + step > max}
+        onPress={() => onChange(value + step)}
+      />
+    </View>
+  );
+}
+
+function StepperButton({
+  label,
+  icon: Icon,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  icon: ChipIcon;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const palette = useTonePalette();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      hitSlop={(sizes.touchTarget - STEPPER_BUTTON_SIZE) / 2}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: STEPPER_BUTTON_SIZE,
+        height: STEPPER_BUTTON_SIZE,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: radii.md,
+        borderWidth: hairline,
+        borderColor: palette.rule,
+        backgroundColor: pressed ? palette.wash : palette.background,
+        opacity: disabled ? DISABLED_OPACITY : 1,
+      })}
+    >
+      <Icon size={sizes.iconAction} color={palette.foreground} />
+    </Pressable>
   );
 }
 

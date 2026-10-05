@@ -9,16 +9,16 @@ import {
 import { useState } from "react";
 import { View } from "react-native";
 
-import { Button } from "../primitives/button";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
-import { ChipGrid, FieldError, Stepper } from "./chips";
+import { ChipGrid, FieldError, StepperRow } from "./chips";
 import { GroupField } from "./group-field";
 import type { StepProps, WhereData } from "./step-props";
-import { StepSection } from "./step-section";
+import { HelperNote, StepSection } from "./step-section";
 import { VenueField } from "./venue-field";
 
 const COURT_COLUMNS = 5;
+const TOURNAMENT_COURT_COLUMNS = 4;
 const COURT_CELL_HEIGHT = 44;
 
 export function WhereStep({
@@ -72,43 +72,45 @@ export function WhereStep({
       />
 
       {tournament ? (
-        <StepSection title="Courts" note="Optional">
-          {selectedVenue && courts.length > 0 ? (
-            <>
-              <ChipGrid
-                label="Courts"
-                multiple
-                chips={visibleCourts.map((court) => ({
-                  value: court.id,
-                  label: court.name,
-                }))}
-                isSelected={(id) => draft.courtIds.includes(id)}
-                onSelect={(courtId) =>
-                  dispatch({ kind: "toggleCourt", courtId })
-                }
-              />
-              {moreCourts ? (
-                <Button
-                  label={`All ${courts.length} courts`}
-                  variant="outline"
-                  size="sm"
-                  onPress={() => setCourtsExpanded(true)}
-                />
-              ) : null}
-            </>
-          ) : (
+        <StepSection
+          title="Courts in use"
+          note="Sets the schedule"
+          locked={!selectedVenue}
+        >
+          {!selectedVenue ? (
+            <CourtPlaceholders columns={TOURNAMENT_COURT_COLUMNS} />
+          ) : courts.length === 0 ? (
             <Text size="meta" tone="muted">
-              {selectedVenue
-                ? "This Venue has no Courts."
-                : "Pick a Venue to choose Courts."}
+              This Venue has no Courts.
             </Text>
+          ) : (
+            <ChipGrid
+              label="Courts in use"
+              multiple
+              columns={TOURNAMENT_COURT_COLUMNS}
+              chips={visibleCourts.map((court) => ({
+                value: court.id,
+                label: court.name,
+              }))}
+              isSelected={(id) => draft.courtIds.includes(id)}
+              onSelect={(courtId) => dispatch({ kind: "toggleCourt", courtId })}
+              escape={
+                moreCourts
+                  ? {
+                      label: "More",
+                      accessibilityLabel: `All ${courts.length} Courts`,
+                      onPress: () => setCourtsExpanded(true),
+                    }
+                  : undefined
+              }
+            />
           )}
           <FieldError message={errors.courtIds} />
         </StepSection>
       ) : (
         <StepSection title="Court" note="Optional" locked={!selectedVenue}>
           {!selectedVenue ? (
-            <CourtPlaceholders />
+            <CourtPlaceholders columns={COURT_COLUMNS} />
           ) : courts.length === 0 ? (
             <Text size="meta" tone="muted">
               This Venue has no Courts.
@@ -151,27 +153,29 @@ export function WhereStep({
       )}
 
       {tournament ? (
-        <Stepper
-          label="Game teams"
-          value={draft.teamCount}
-          unit="Game teams"
-          min={TOURNAMENT_TEAM_MIN}
-          max={TOURNAMENT_TEAM_MAX}
-          step={TOURNAMENT_TEAM_STEP}
-          onChange={(teamCount) =>
-            dispatch({ kind: "setTeamCount", teamCount })
-          }
-          decreaseLabel="Fewer Game teams"
-          increaseLabel="More Game teams"
-          hint={playersInPairsLine(draft.teamCount)}
-          error={errors.teamCount}
-        />
+        <StepSection title="Game teams" note="Pairs, two seats each">
+          <StepperRow
+            label="Game teams"
+            value={draft.teamCount}
+            unit="Game teams"
+            min={TOURNAMENT_TEAM_MIN}
+            max={TOURNAMENT_TEAM_MAX}
+            step={TOURNAMENT_TEAM_STEP}
+            onChange={(teamCount) =>
+              dispatch({ kind: "setTeamCount", teamCount })
+            }
+            decreaseLabel="Fewer Game teams"
+            increaseLabel="More Game teams"
+          />
+          <HelperNote>{playersInPairsLine(draft.teamCount)}</HelperNote>
+          <FieldError message={errors.teamCount} />
+        </StepSection>
       ) : null}
     </View>
   );
 }
 
-function CourtPlaceholders() {
+function CourtPlaceholders({ columns }: { columns: number }) {
   return (
     <View
       accessibilityElementsHidden
@@ -179,7 +183,7 @@ function CourtPlaceholders() {
       aria-hidden
       style={{ flexDirection: "row", gap: 8 }}
     >
-      {Array.from({ length: COURT_COLUMNS }, (_, index) => (
+      {Array.from({ length: columns }, (_, index) => (
         <View key={index} style={{ flex: 1, height: COURT_CELL_HEIGHT }}>
           <Hatch radius={radii.md} />
         </View>
