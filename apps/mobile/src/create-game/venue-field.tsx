@@ -2,11 +2,12 @@ import { radii, sizes } from "@repo/design-tokens";
 import {
   createVenueCopy,
   venueCardMeta,
+  venueMatchesQuery,
   visibleCreateGroups,
   type CreateVenuePicker,
 } from "@repo/domain/create-game-flow";
 import { Lock, Search } from "lucide-react-native";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import type { Slot } from "../home/home-model";
@@ -18,7 +19,9 @@ import { Skeleton } from "../primitives/skeleton";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { FieldError } from "./chips";
+import { SearchSheet } from "./search-sheet";
 import { StepSection } from "./step-section";
+import { venueSheetLabel } from "./venue-sheet";
 
 const SEARCH_FIELD_HEIGHT = 46;
 const SKELETON_ROWS = 2;
@@ -30,6 +33,7 @@ export function VenueField({
   venueId,
   manyCourts,
   error,
+  initialSheetQuery,
   onSelect,
 }: {
   groupId: string;
@@ -37,8 +41,10 @@ export function VenueField({
   venueId: string;
   manyCourts: boolean;
   error?: string;
+  initialSheetQuery?: string;
   onSelect: (venueId: string) => void;
 }) {
+  const [sheetOpen, setSheetOpen] = useState(initialSheetQuery !== undefined);
   const ready = picker?.status === "ready" ? picker.value : null;
   const unlocked = ready !== null && !ready.locked && ready.venues.length > 0;
 
@@ -64,7 +70,15 @@ export function VenueField({
         </Text>
       ) : (
         <>
-          <SearchFieldButton />
+          <SearchFieldButton onPress={() => setSheetOpen(true)} />
+          <VenueSheet
+            visible={sheetOpen}
+            venues={picker.value.venues}
+            venueId={venueId}
+            initialQuery={initialSheetQuery}
+            onSelect={onSelect}
+            onClose={() => setSheetOpen(false)}
+          />
           <VenueList
             venues={visibleCreateGroups(picker.value.venues, venueId)}
             venueId={venueId}
@@ -184,15 +198,14 @@ function LinkedVenue({
   );
 }
 
-function SearchFieldButton() {
+function SearchFieldButton({ onPress }: { onPress: () => void }) {
   const palette = useTonePalette();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Search all Venues"
-      accessibilityState={{ disabled: true }}
-      disabled
-      style={{
+      onPress={onPress}
+      style={({ pressed }) => ({
         height: SEARCH_FIELD_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
@@ -200,9 +213,9 @@ function SearchFieldButton() {
         paddingHorizontal: 14,
         borderRadius: radii.lg,
         borderWidth: hairline,
-        borderColor: palette.rule,
+        borderColor: pressed ? palette.foreground : palette.rule,
         backgroundColor: palette.wash,
-      }}
+      })}
     >
       <Search size={sizes.iconRow} color={palette.muted} />
       <Text tone="muted">Search all Venues</Text>
@@ -236,5 +249,45 @@ function VenueList({
         </Fragment>
       ))}
     </ListFrame>
+  );
+}
+
+function VenueSheet({
+  visible,
+  venues,
+  venueId,
+  initialQuery,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  venues: CreateVenuePicker["venues"];
+  venueId: string;
+  initialQuery?: string;
+  onSelect: (venueId: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <SearchSheet
+      visible={visible}
+      title="Find a Venue"
+      placeholder="Venue name or area"
+      listLabel="Venue"
+      initialQuery={initialQuery}
+      selectedId={venueId}
+      filter={(query) =>
+        venues
+          .filter((venue) => venueMatchesQuery(venue, query))
+          .map((venue) => ({
+            id: venue.id,
+            title: venue.name,
+            description: venueCardMeta(venue.courts.length, venue.city),
+          }))
+      }
+      resultLabel={venueSheetLabel}
+      emptyMessage={(query) => `No Venues match “${query}”.`}
+      onPick={onSelect}
+      onClose={onClose}
+    />
   );
 }

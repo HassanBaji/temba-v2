@@ -8,7 +8,9 @@ import { useState } from "react";
 import { View } from "react-native";
 
 import { ChipGrid, ChoiceChip, FieldError } from "./chips";
+import { SearchSheet } from "./search-sheet";
 import { StepSection } from "./step-section";
+import { groupSheetLabel, labelMatchesQuery } from "./venue-sheet";
 
 export function groupLabel(group: {
   name: string | null;
@@ -29,8 +31,15 @@ export function GroupField({
   onSelect: (groupId: string) => void;
 }) {
   const [changing, setChanging] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const selected = groups.find((group) => group.id === groupId);
   const collapsed = selected !== undefined && !changing;
+  const pick = (id: string) => {
+    setChanging(false);
+    if (id !== groupId) {
+      onSelect(id);
+    }
+  };
 
   return (
     <StepSection
@@ -69,19 +78,34 @@ export function GroupField({
             label: groupLabel(group),
           }))}
           isSelected={(id) => id === groupId}
-          onSelect={(id) => {
-            setChanging(false);
-            if (id !== groupId) {
-              onSelect(id);
-            }
-          }}
+          onSelect={pick}
           escape={
             groups.length > VISIBLE_GROUP_CHIP_COUNT
-              ? { label: `All ${groups.length} groups`, icon: Search }
+              ? {
+                  label: `All ${groups.length} groups`,
+                  icon: Search,
+                  onPress: () => setSheetOpen(true),
+                }
               : undefined
           }
         />
       )}
+      <SearchSheet
+        visible={sheetOpen}
+        title={`All ${groups.length} groups`}
+        placeholder="Group name"
+        listLabel="Group"
+        selectedId={groupId}
+        filter={(query) =>
+          groups
+            .map((group) => ({ id: group.id, title: groupLabel(group) }))
+            .filter((row) => labelMatchesQuery(row.title, query))
+        }
+        resultLabel={groupSheetLabel}
+        emptyMessage={(query) => `No Groups match “${query}”.`}
+        onPick={pick}
+        onClose={() => setSheetOpen(false)}
+      />
       <FieldError message={error} />
     </StepSection>
   );

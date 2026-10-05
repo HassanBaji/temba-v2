@@ -27,7 +27,8 @@ export function WhereStep({
   dispatch,
   groups,
   picker,
-}: StepProps & WhereData) {
+  initialVenueSheetQuery,
+}: StepProps & WhereData & { initialVenueSheetQuery?: string }) {
   const { draft } = state;
   const tournament = state.type === "friendly_tournament";
   const [courtsExpanded, setCourtsExpanded] = useState(false);
@@ -63,6 +64,7 @@ export function WhereStep({
         venueId={draft.venueId}
         manyCourts={tournament}
         error={errors.venueId}
+        initialSheetQuery={initialVenueSheetQuery}
         onSelect={(venueId) => {
           setCourtsExpanded(false);
           dispatch({ kind: "setVenue", venueId });

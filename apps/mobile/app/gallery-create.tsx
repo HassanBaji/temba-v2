@@ -31,6 +31,7 @@ const STATES: readonly {
   failing?: boolean;
   pending?: boolean;
   pickerStatus?: "loading" | "error";
+  venueSheetQuery?: string;
   server?: { message: string; errors: FieldErrors };
 }[] = [
   {
@@ -104,6 +105,33 @@ const STATES: readonly {
     step: 2,
     draft: "gameWhereFilled",
     picker: "emptyCatalog",
+  },
+  {
+    key: "venueSheet",
+    label: "Venue sheet",
+    type: "friendly_game",
+    step: 2,
+    draft: "gameWhereFilled",
+    picker: "loose",
+    venueSheetQuery: "",
+  },
+  {
+    key: "venueSheetQuery",
+    label: "Venue sheet: query",
+    type: "friendly_game",
+    step: 2,
+    draft: "gameWhereFilled",
+    picker: "loose",
+    venueSheetQuery: "riffa",
+  },
+  {
+    key: "venueSheetEmpty",
+    label: "Venue sheet: no results",
+    type: "friendly_game",
+    step: 2,
+    draft: "gameWhereFilled",
+    picker: "loose",
+    venueSheetQuery: "Sitra",
   },
   {
     key: "gameVenuesLoading",
@@ -280,6 +308,7 @@ export default function GalleryCreate() {
 
   return (
     <CreateView
+      key={entry.key}
       state={state}
       now={fixtures.now}
       errors={errors}
@@ -292,6 +321,7 @@ export default function GalleryCreate() {
       onContinue={noop}
       onCancel={noop}
       onRetry={noop}
+      initialVenueSheetQuery={entry.venueSheetQuery}
     >
       <View style={{ gap: 12 }}>
         <Text size="h2" weight="semibold">

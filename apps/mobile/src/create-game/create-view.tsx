@@ -43,6 +43,7 @@ export type CreateViewProps = {
   onRetry: () => void;
   refreshing?: boolean;
   onRefresh?: () => void;
+  initialVenueSheetQuery?: string;
   children?: React.ReactNode;
 };
 
@@ -201,7 +202,12 @@ export function CreateView(props: CreateViewProps) {
       <FormErrorSummary message={summary} />
       {state.step === 1 ? <TypeStep {...step} /> : null}
       {state.step === 2 ? (
-        <WhereStep {...step} groups={groups.value} picker={picker} />
+        <WhereStep
+          {...step}
+          groups={groups.value}
+          picker={picker}
+          initialVenueSheetQuery={props.initialVenueSheetQuery}
+        />
       ) : null}
       {state.step === 3 ? (
         state.type === "friendly_tournament" ? (
