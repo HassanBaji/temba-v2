@@ -7,6 +7,7 @@ import { View } from "react-native";
 
 import { CreateView } from "../src/create-game/create-view";
 import {
+  advance,
   submitRequest,
   type CreateState,
   type FieldErrors,
@@ -21,6 +22,8 @@ type Picker =
   | "clubUnlinked"
   | "archivedClub"
   | "emptyCatalog";
+
+const TOURNAMENT_DAY = "2026-10-09";
 
 const STATES: readonly {
   key: string;
@@ -294,6 +297,25 @@ const STATES: readonly {
     type: "friendly_tournament",
     step: 3,
     draft: "tournamentGroupsOnly",
+    patch: { day: TOURNAMENT_DAY },
+    picker: "loose",
+  },
+  {
+    key: "groupsUneven",
+    label: "Groups only, uneven groups",
+    type: "friendly_tournament",
+    step: 3,
+    draft: "tournamentGroupsOnly",
+    patch: { day: TOURNAMENT_DAY, teamCount: 14, poolCount: 3 },
+    picker: "loose",
+  },
+  {
+    key: "groupsCustomRounds",
+    label: "Groups only, custom Rounds",
+    type: "friendly_tournament",
+    step: 3,
+    draft: "tournamentGroupsOnly",
+    patch: { day: TOURNAMENT_DAY, roundCount: 2, matchMinutes: "25" },
     picker: "loose",
   },
   {
@@ -302,6 +324,16 @@ const STATES: readonly {
     type: "friendly_tournament",
     step: 3,
     draft: "tournamentKnockoutOnly",
+    patch: { day: TOURNAMENT_DAY },
+    picker: "loose",
+  },
+  {
+    key: "knockoutOnlyByes",
+    label: "Knockout only with Byes",
+    type: "friendly_tournament",
+    step: 3,
+    draft: "tournamentKnockoutOnly",
+    patch: { day: TOURNAMENT_DAY, teamCount: 12 },
     picker: "loose",
   },
   {
@@ -310,7 +342,52 @@ const STATES: readonly {
     type: "friendly_tournament",
     step: 3,
     draft: "tournamentGroupsThenKnockout",
+    patch: { day: TOURNAMENT_DAY },
     picker: "loose",
+  },
+  {
+    key: "tournamentOverrun",
+    label: "Tournament: schedule overruns",
+    type: "friendly_tournament",
+    step: 3,
+    draft: "tournamentGroupsThenKnockout",
+    patch: { day: TOURNAMENT_DAY, finishTime: "12:00" },
+    picker: "loose",
+  },
+  {
+    key: "tournamentNoCourts",
+    label: "Tournament: no Courts",
+    type: "friendly_tournament",
+    step: 3,
+    draft: "tournamentGroupsThenKnockout",
+    patch: { day: TOURNAMENT_DAY, courtIds: [] },
+    picker: "loose",
+  },
+  {
+    key: "tournamentFormatErrors",
+    label: "Tournament: format and day, errors",
+    type: "friendly_tournament",
+    step: 3,
+    draft: "tournamentGroupsOnly",
+    patch: { day: TOURNAMENT_DAY, matchMinutes: "7" },
+    picker: "loose",
+    failing: true,
+  },
+  {
+    key: "tournamentFormatServerError",
+    label: "Tournament: server error on format",
+    type: "friendly_tournament",
+    step: 3,
+    draft: "tournamentGroupsThenKnockout",
+    patch: { day: TOURNAMENT_DAY },
+    picker: "loose",
+    server: {
+      message: "Tournament could not be created.",
+      errors: {
+        roundCount: "Pick a Round count in range",
+        qualifiersPerPool: "Pick how many go through from each group",
+      },
+    },
   },
   {
     key: "teamCount",
@@ -318,7 +395,9 @@ const STATES: readonly {
     type: "friendly_tournament",
     step: 3,
     draft: "teamCountDoesNotFit",
+    patch: { day: TOURNAMENT_DAY },
     picker: "loose",
+    failing: true,
   },
   {
     key: "tournamentReview",
@@ -329,6 +408,19 @@ const STATES: readonly {
     picker: "loose",
   },
 ];
+
+function failingErrors(state: CreateState, now: Date): FieldErrors {
+  if (state.step === 3) {
+    const result = advance(state, {
+      now,
+      venuesPending: false,
+      emptyCatalog: false,
+    });
+    return result.moved ? {} : result.errors;
+  }
+  const result = submitRequest(state, now);
+  return result.ok ? {} : result.errors;
+}
 
 const LOADERS = [
   { key: "ready", label: "Ready" },
@@ -356,10 +448,7 @@ export default function GalleryCreate() {
   const errors = entry.server
     ? entry.server.errors
     : entry.failing
-      ? (() => {
-          const result = submitRequest(state, fixtures.now);
-          return result.ok ? {} : result.errors;
-        })()
+      ? failingErrors(state, fixtures.now)
       : {};
   const groups: Slot<typeof fixtures.groups> =
     loader === "loading"

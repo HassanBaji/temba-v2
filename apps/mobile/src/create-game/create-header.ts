@@ -11,11 +11,13 @@ import {
 } from "@repo/domain/game-window";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import {
+  courtCountValue,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
 
 import type { CreateState } from "./create-model";
+import { matchCountLabel } from "./create-summary";
 
 export type HeaderContextIcon = "users" | "trophy";
 
@@ -151,5 +153,29 @@ export function friendlyGameTimeHeader(input: {
     ...(hero ? { hero } : {}),
     subtitle: null,
     context: parts.length > 0 ? { parts } : null,
+  };
+}
+
+export function tournamentFormatHeader(input: {
+  teamCount: number;
+  matchTotal: number;
+  day: string;
+  venueName: string | null;
+  courtCount: number;
+}): StepHeaderText {
+  const parts = [
+    input.day ? formatDayLabel(input.day) : null,
+    input.venueName,
+    input.courtCount > 0 ? courtCountValue(input.courtCount) : null,
+  ].filter((part): part is string => Boolean(part));
+  return {
+    title: [],
+    hero: {
+      value: String(input.teamCount),
+      unit: "Game teams",
+      trailing: input.matchTotal > 0 ? matchCountLabel(input.matchTotal) : null,
+    },
+    subtitle: null,
+    context: { parts },
   };
 }

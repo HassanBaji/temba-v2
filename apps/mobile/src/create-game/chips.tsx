@@ -275,6 +275,7 @@ export function Stepper({
 
 const STEPPER_ROW_HEIGHT = 56;
 const STEPPER_BUTTON_SIZE = 40;
+const STEPPER_CARD_BUTTON_SIZE = 32;
 
 export function StepperRow({
   label,
@@ -343,14 +344,96 @@ export function StepperRow({
   );
 }
 
+export function StepperCard({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  decreaseLabel,
+  increaseLabel,
+  notes = [],
+  error,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  decreaseLabel: string;
+  increaseLabel: string;
+  notes?: readonly string[];
+  error?: string;
+}) {
+  const palette = useTonePalette();
+  return (
+    <View
+      style={{
+        flex: 1,
+        gap: 10,
+        padding: 14,
+        borderRadius: radii.lg,
+        borderWidth: hairline,
+        borderColor: palette.rule,
+      }}
+    >
+      <Text size="meta" weight="semibold">
+        {label}
+      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <StepperButton
+          label={decreaseLabel}
+          icon={Minus}
+          size={STEPPER_CARD_BUTTON_SIZE}
+          disabled={value - step < min}
+          onPress={() => onChange(value - step)}
+        />
+        <View
+          accessible
+          accessibilityLabel={`${label}: ${value}`}
+          accessibilityLiveRegion="polite"
+        >
+          <Text size="title" width="expanded">
+            {String(value)}
+          </Text>
+        </View>
+        <StepperButton
+          label={increaseLabel}
+          icon={Plus}
+          size={STEPPER_CARD_BUTTON_SIZE}
+          disabled={value + step > max}
+          onPress={() => onChange(value + step)}
+        />
+      </View>
+      {notes.map((note) => (
+        <Text key={note} size="meta" tone="muted">
+          {note}
+        </Text>
+      ))}
+      <FieldError message={error} />
+    </View>
+  );
+}
+
 function StepperButton({
   label,
   icon: Icon,
+  size = STEPPER_BUTTON_SIZE,
   disabled,
   onPress,
 }: {
   label: string;
   icon: ChipIcon;
+  size?: number;
   disabled: boolean;
   onPress: () => void;
 }) {
@@ -361,11 +444,11 @@ function StepperButton({
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      hitSlop={(sizes.touchTarget - STEPPER_BUTTON_SIZE) / 2}
+      hitSlop={(sizes.touchTarget - size) / 2}
       onPress={onPress}
       style={({ pressed }) => ({
-        width: STEPPER_BUTTON_SIZE,
-        height: STEPPER_BUTTON_SIZE,
+        width: size,
+        height: size,
         alignItems: "center",
         justifyContent: "center",
         borderRadius: radii.md,

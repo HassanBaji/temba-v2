@@ -5,6 +5,7 @@ import {
   kickoffHero,
   nextStepTitle,
   stepHeader,
+  tournamentFormatHeader,
 } from "./create-header";
 
 const NO_GROUP = { groupName: null, venues: null };
@@ -200,5 +201,37 @@ describe("friendlyGameTimeHeader", () => {
       friendlyGameTimeHeader({ ...base, venueName: null, courtName: null })
         .context?.parts,
     ).toEqual(["Tue 6 Oct 2026", "Friday Padel"]);
+  });
+});
+
+describe("tournamentFormatHeader", () => {
+  const base = {
+    teamCount: 12,
+    matchTotal: 23,
+    day: "2026-10-06",
+    venueName: "Seef Padel Club",
+    courtCount: 3,
+  };
+
+  it("shows Game teams and Matches with day, Venue and Courts", () => {
+    expect(tournamentFormatHeader(base)).toEqual({
+      title: [],
+      hero: { value: "12", unit: "Game teams", trailing: "23 Matches" },
+      subtitle: null,
+      context: { parts: ["Tue 6 Oct 2026", "Seef Padel Club", "3 Courts"] },
+    });
+  });
+
+  it("drops the Match total when nothing can be counted", () => {
+    expect(
+      tournamentFormatHeader({ ...base, matchTotal: 0 }).hero?.trailing,
+    ).toBeNull();
+  });
+
+  it("skips the Courts count and the Venue when they are missing", () => {
+    expect(
+      tournamentFormatHeader({ ...base, venueName: null, courtCount: 0 })
+        .context?.parts,
+    ).toEqual(["Tue 6 Oct 2026"]);
   });
 });

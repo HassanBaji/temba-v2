@@ -5,6 +5,7 @@ import {
   type CreateGroupOption,
   type CreateVenuePicker,
 } from "@repo/domain/create-game-flow";
+import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
 import { View } from "react-native";
 
 import type { Slot } from "../home/home-model";
@@ -17,9 +18,11 @@ import {
   CREATE_ENTRY_HEADER,
   friendlyGameTimeHeader,
   stepHeader,
+  tournamentFormatHeader,
   type StepHeaderText,
 } from "./create-header";
 import type { CreateAction, CreateState, FieldErrors } from "./create-model";
+import { tournamentMatchTotals } from "./create-summary";
 import { GameDetailsStep, TournamentDetailsStep } from "./details-step";
 import { StepFooter, StepShell } from "./step-shell";
 import { TypeStep } from "./type-step";
@@ -66,6 +69,15 @@ function laterStepHeader({
       groupName,
       venueName,
       courtName: courtNames[0] ?? null,
+    });
+  }
+  if (state.step === 3) {
+    return tournamentFormatHeader({
+      teamCount: draft.teamCount,
+      matchTotal: tournamentMatchTotals(friendlyTournamentPlan(draft)).total,
+      day: draft.day,
+      venueName,
+      courtCount: draft.courtIds.length,
     });
   }
   const title = draft.name.trim() || friendlyTournamentDefaultName(draft.day);
