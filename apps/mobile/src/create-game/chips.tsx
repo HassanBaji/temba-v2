@@ -32,11 +32,14 @@ export type ChoiceChipProps = {
   role?: "radio" | "checkbox" | "button";
   disabled?: boolean;
   dense?: boolean;
+  fill?: boolean;
   accessibilityLabel?: string;
   onPress?: () => void;
 };
 
 const CHIP_PADDING = 14;
+const FILL_CHIP_PADDING = 8;
+const FILL_CHIP_LINES = 2;
 const CHIP_GAP = 8;
 const DENSE_CHIP_GAP = 4;
 const DISABLED_OPACITY = 0.4;
@@ -51,6 +54,7 @@ export function ChoiceChip({
   role = "button",
   disabled = false,
   dense = false,
+  fill = false,
   accessibilityLabel,
   onPress,
 }: ChoiceChipProps) {
@@ -81,8 +85,14 @@ export function ChoiceChip({
         disabled={inactive}
         onPress={onPress}
         style={({ pressed }) => ({
-          height: sizes.touchTarget,
-          paddingHorizontal: dense ? 0 : CHIP_PADDING,
+          ...(fill
+            ? { flexGrow: 1, minHeight: sizes.touchTarget, paddingVertical: 4 }
+            : { height: sizes.touchTarget }),
+          paddingHorizontal: dense
+            ? 0
+            : fill
+              ? FILL_CHIP_PADDING
+              : CHIP_PADDING,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
@@ -100,8 +110,8 @@ export function ChoiceChip({
         <Text
           weight={selected ? "semibold" : "regular"}
           tone={escape ? "muted" : "default"}
-          numberOfLines={1}
-          style={{ flexShrink: 1 }}
+          numberOfLines={fill ? FILL_CHIP_LINES : 1}
+          style={{ flexShrink: 1, textAlign: "center" }}
         >
           {label}
         </Text>
@@ -156,6 +166,7 @@ export function ChipGrid<T extends string | number>({
         selection={selection}
         check={check}
         dense={dense}
+        fill={Boolean(columns)}
         disabled={chip.disabled}
         onPress={() => onSelect(chip.value)}
       />
@@ -168,6 +179,7 @@ export function ChipGrid<T extends string | number>({
             selected={escape.selected}
             label={escape.label}
             icon={escape.icon}
+            fill={Boolean(columns)}
             accessibilityLabel={escape.accessibilityLabel}
             onPress={escape.onPress}
           />,

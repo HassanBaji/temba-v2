@@ -136,7 +136,7 @@ function WindowForm({
           <Text weight="medium">Start time</Text>
           <ChipGrid
             label="Start time"
-            columns={4}
+            columns={3}
             chips={choices.startSlots.map((slot) => ({
               value: slot,
               label: formatTimeSlotLabel(slot),
@@ -147,7 +147,7 @@ function WindowForm({
           <Text weight="medium">Finish time</Text>
           <ChipGrid
             label="Finish time"
-            columns={4}
+            columns={3}
             chips={choices.finishSlots.map((slot) => ({
               value: slot,
               label: formatTimeSlotLabel(slot),

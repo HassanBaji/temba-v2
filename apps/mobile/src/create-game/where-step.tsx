@@ -17,8 +17,8 @@ import type { StepProps, WhereData } from "./step-props";
 import { HelperNote, StepSection } from "./step-section";
 import { VenueField } from "./venue-field";
 
-const COURT_COLUMNS = 5;
-const TOURNAMENT_COURT_COLUMNS = 4;
+const COURT_COLUMNS = 3;
+const TOURNAMENT_COURT_COLUMNS = 3;
 const COURT_CELL_HEIGHT = 44;
 
 export function WhereStep({

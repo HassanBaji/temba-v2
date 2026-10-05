@@ -45,7 +45,7 @@ import { ScheduleCard } from "./schedule-card";
 import type { StepProps } from "./step-props";
 import { HelperNote, StepSection } from "./step-section";
 
-const TIME_COLUMNS = 4;
+const TIME_COLUMNS = 3;
 
 function DayAndStart({ state, now, errors, dispatch }: StepProps) {
   const { draft } = state;

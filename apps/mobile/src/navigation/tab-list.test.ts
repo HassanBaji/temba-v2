@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { visibleTabs } from "./tab-list";
+import { tabBarHidden, visibleTabs } from "./tab-list";
 
 describe("visibleTabs", () => {
   it("shows Home, Games, Groups and Profile without the Group creator flag", () => {
@@ -20,5 +20,17 @@ describe("visibleTabs", () => {
       "Communities",
       "Profile",
     ]);
+  });
+});
+
+describe("tabBarHidden", () => {
+  it("hides the tab bar on the create Game flow", () => {
+    expect(tabBarHidden(["(app)", "games", "new"])).toBe(true);
+  });
+
+  it("keeps the tab bar elsewhere", () => {
+    expect(tabBarHidden(["(app)", "games"])).toBe(false);
+    expect(tabBarHidden(["(app)", "games", "abc123"])).toBe(false);
+    expect(tabBarHidden(["(app)", "groups", "new"])).toBe(false);
   });
 });
