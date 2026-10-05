@@ -39,8 +39,16 @@ const STATES: readonly {
     picker: "loose",
   },
   {
-    key: "typePicked",
-    label: "Type: picked",
+    key: "typeGame",
+    label: "Type: Friendly game",
+    type: "friendly_game",
+    step: 1,
+    draft: "emptyGame",
+    picker: "loose",
+  },
+  {
+    key: "typeTournament",
+    label: "Type: Friendly tournament",
     type: "friendly_tournament",
     step: 1,
     draft: "emptyGame",
