@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/expo";
 import { COMMUNITIES_TITLE } from "@repo/domain/community";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { Notice } from "../groups/notice";
@@ -9,7 +9,6 @@ import { apiOrigin } from "../lib/api-origin-runtime";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
-import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import { NEW_COMMUNITY_PATH, communityPath } from "./communities-model";
 import { CommunitiesView } from "./communities-view";
@@ -58,13 +57,6 @@ export function CommunitiesScreen() {
         onCreate={() => router.push(NEW_COMMUNITY_PATH)}
         onRetry={() => void mine.refetch()}
       />
-      {__DEV__ ? (
-        <Link href="/gallery-communities">
-          <Text size="meta" weight="medium">
-            Open the Communities states gallery
-          </Text>
-        </Link>
-      ) : null}
     </Screen>
   );
 }

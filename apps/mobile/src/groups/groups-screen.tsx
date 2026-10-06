@@ -1,11 +1,10 @@
 import { useUser } from "@clerk/expo";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { slotOf } from "../lib/slot-of";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { Screen } from "../primitives/screen";
-import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import { groupPath, type GroupsTab } from "./groups-model";
 import { GroupsView } from "./groups-view";
@@ -58,13 +57,6 @@ export function GroupsScreen() {
         hasCreateAccess={user?.publicMetadata.groupCreator === true}
         onCreate={() => router.push("/groups/new")}
       />
-      {__DEV__ ? (
-        <Link href="/gallery-groups">
-          <Text size="meta" weight="medium">
-            Open the Groups states gallery
-          </Text>
-        </Link>
-      ) : null}
     </Screen>
   );
 }

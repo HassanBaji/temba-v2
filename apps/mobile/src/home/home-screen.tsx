@@ -1,11 +1,10 @@
 import { useUser } from "@clerk/expo";
 import { RECENT_FORM_MATCH_COUNT } from "@repo/domain/home-recent-form";
 import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
-import { Link, useRouter, type Href } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { Screen } from "../primitives/screen";
-import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import {
   homeContentFromApi,
@@ -98,20 +97,6 @@ export function HomeScreen() {
         onNavigate={onNavigate}
         onRetry={() => void refetchAll()}
       />
-      {__DEV__ ? (
-        <>
-          <Link href="/gallery">
-            <Text size="meta" weight="medium">
-              Open the primitives gallery
-            </Text>
-          </Link>
-          <Link href="/gallery-home">
-            <Text size="meta" weight="medium">
-              Open the Home states gallery
-            </Text>
-          </Link>
-        </>
-      ) : null}
     </Screen>
   );
 }
