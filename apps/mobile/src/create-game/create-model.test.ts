@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   advance,
+  continueBlocked,
   createReducer,
   initialCreateState,
   serverFailure,
@@ -174,6 +175,45 @@ describe("advance", () => {
     const state = stateAt(3, "friendly_game", fixtures.drafts.gameWhereFilled);
     const result = advance(state, context);
     expect(result.moved).toBe(false);
+  });
+});
+
+describe("continueBlocked", () => {
+  it("blocks step 1 until a type is picked", () => {
+    expect(continueBlocked(stateAt(1, null, fixtures.drafts.emptyGame))).toBe(
+      true,
+    );
+    for (const type of ["friendly_game", "friendly_tournament"] as const) {
+      expect(continueBlocked(stateAt(1, type, fixtures.drafts.emptyGame))).toBe(
+        false,
+      );
+    }
+  });
+
+  it("blocks step 2 until a Group is picked, in both branches", () => {
+    for (const type of ["friendly_game", "friendly_tournament"] as const) {
+      expect(continueBlocked(stateAt(2, type, fixtures.drafts.emptyGame))).toBe(
+        true,
+      );
+      expect(
+        continueBlocked(stateAt(2, type, fixtures.drafts.gameWhereFilled)),
+      ).toBe(false);
+    }
+  });
+
+  it("leaves step 2 open without a Venue so advance can name the field", () => {
+    const draft = { ...fixtures.drafts.gameWhereFilled, venueId: "" };
+    expect(continueBlocked(stateAt(2, "friendly_game", draft))).toBe(false);
+  });
+
+  it("never blocks steps 3 and 4, in both branches", () => {
+    for (const type of ["friendly_game", "friendly_tournament"] as const) {
+      for (const step of [3, 4] as const) {
+        expect(
+          continueBlocked(stateAt(step, type, fixtures.drafts.emptyGame)),
+        ).toBe(false);
+      }
+    }
   });
 });
 

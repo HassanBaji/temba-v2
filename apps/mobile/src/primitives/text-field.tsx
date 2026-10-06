@@ -1,12 +1,28 @@
-import { colors, radii, spacing, typeScale } from "@repo/design-tokens";
+import {
+  colors,
+  expanded,
+  radii,
+  spacing,
+  typeScale,
+} from "@repo/design-tokens";
 import { forwardRef } from "react";
 import { TextInput, View, type TextInputProps } from "react-native";
 
-import { fontFamilyFor } from "./font-family";
+import { fontFamilyFor, type TextWidth } from "./font-family";
 import { hairline } from "./hairline-width";
 import { Text } from "./text";
 
 const FIELD_HEIGHT = 48;
+
+export function inputType(size: number, width: TextWidth) {
+  return {
+    fontFamily: fontFamilyFor({ weight: "regular", width, mono: false }),
+    fontSize: size,
+    letterSpacing:
+      width === "expanded" ? expanded.letterSpacingEm * size : undefined,
+    fontVariant: ["tabular-nums" as const],
+  };
+}
 
 export type TextFieldProps = Omit<TextInputProps, "style"> & {
   label?: string;

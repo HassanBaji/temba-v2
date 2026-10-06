@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/expo";
 import { colors, sizes } from "@repo/design-tokens";
-import { Tabs } from "expo-router";
+import { Tabs, useSegments } from "expo-router";
 import { Building2, CircleUser, House, Users } from "lucide-react-native";
 import type { ComponentType } from "react";
 import type { ColorValue } from "react-native";
@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { FieldIcon } from "./field-icon";
-import { type TabSlot, visibleTabs } from "./tab-list";
+import { tabBarHidden, type TabSlot, visibleTabs } from "./tab-list";
 
 type TabIcon = ComponentType<{
   size: number;
@@ -36,6 +36,7 @@ const ROUTES: Record<TabSlot, string> = {
 export function AppTabs() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
   const tabs = visibleTabs(user?.publicMetadata.groupCreator === true);
   const shown = new Set(tabs.map((tab) => tab.slot));
 
@@ -45,13 +46,15 @@ export function AppTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: {
-          backgroundColor: colors.paper,
-          borderTopWidth: hairline,
-          borderTopColor: colors.rule,
-          height: sizes.bottomTabs + insets.bottom,
-          paddingBottom: insets.bottom,
-        },
+        tabBarStyle: tabBarHidden(segments)
+          ? { display: "none" }
+          : {
+              backgroundColor: colors.paper,
+              borderTopWidth: hairline,
+              borderTopColor: colors.rule,
+              height: sizes.bottomTabs + insets.bottom,
+              paddingBottom: insets.bottom,
+            },
       }}
     >
       {(Object.keys(ROUTES) as TabSlot[]).map((slot) => {

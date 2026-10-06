@@ -15,3 +15,8 @@ export function visibleTabs(isGroupCreator: boolean): TabEntry[] {
     ? TABS
     : TABS.filter((tab) => tab.slot !== "communities");
 }
+
+export function tabBarHidden(segments: readonly string[]): boolean {
+  const games = segments.indexOf("games");
+  return games !== -1 && segments[games + 1] === "new";
+}

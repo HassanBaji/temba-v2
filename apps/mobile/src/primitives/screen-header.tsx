@@ -6,6 +6,7 @@ import { Pressable, View, type ColorValue } from "react-native";
 
 import { backTarget } from "./back-target";
 import { hairline } from "./hairline-width";
+import { useSurfaceTone } from "./surface-context";
 import { Text } from "./text";
 
 const NAV_BUTTON = 40;
@@ -14,8 +15,8 @@ const TITLE_GAP = 20;
 const ACTION_GAP = 4;
 
 type HeaderNav =
-  | { nav?: undefined; fallback?: undefined }
-  | { nav: "back" | "close"; fallback: Href };
+  | { nav?: undefined; fallback?: undefined; onNav?: undefined }
+  | { nav: "back" | "close"; fallback: Href; onNav?: () => void };
 
 export type ScreenHeaderProps = HeaderNav & {
   title?: string;
@@ -27,6 +28,7 @@ export function ScreenHeader({
   title,
   nav,
   fallback,
+  onNav,
   actions,
   children,
 }: ScreenHeaderProps) {
@@ -78,7 +80,7 @@ export function ScreenHeader({
           justifyContent: "space-between",
         }}
       >
-        <NavButton nav={nav} fallback={fallback} />
+        <NavButton nav={nav} fallback={fallback} onNav={onNav} />
         {actionRow}
       </View>
       {heading}
@@ -90,11 +92,14 @@ export function ScreenHeader({
 function NavButton({
   nav,
   fallback,
+  onNav,
 }: {
   nav: "back" | "close";
   fallback: Href;
+  onNav?: () => void;
 }) {
   const router = useRouter();
+  const onInk = useSurfaceTone() === "ink";
   const Icon = nav === "back" ? ChevronLeft : X;
 
   return (
@@ -103,6 +108,10 @@ function NavButton({
       accessibilityLabel={nav === "back" ? "Back" : "Close"}
       hitSlop={NAV_HIT_SLOP}
       onPress={() => {
+        if (onNav) {
+          onNav();
+          return;
+        }
         const target = backTarget(router.canGoBack(), fallback);
         if (target.kind === "back") {
           router.back();
@@ -117,12 +126,12 @@ function NavButton({
         justifyContent: "center",
         borderRadius: radii.md,
         borderWidth: hairline,
-        borderColor: colors.rule,
-        backgroundColor: colors.paper,
+        borderColor: onInk ? colors.dimrule : colors.rule,
+        backgroundColor: onInk ? colors.ink : colors.paper,
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Icon size={sizes.iconAction} color={colors.ink} />
+      <Icon size={sizes.iconAction} color={onInk ? colors.paper : colors.ink} />
     </Pressable>
   );
 }
