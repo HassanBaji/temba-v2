@@ -24,7 +24,12 @@
           "photosPermission": "Temba uses your photo library so you can choose a profile photo."
         }
       ],
-      "@clerk/expo",
+      [
+        "@clerk/expo",
+        {
+          "appleSignIn": false
+        }
+      ],
       [
         "expo-font",
         {
