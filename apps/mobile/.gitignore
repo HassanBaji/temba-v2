@@ -1,2 +1,4 @@
 .expo/
 dist/
+ios/
+android/
