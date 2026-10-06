@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "app.temba.mobile",
-      "usesAppleSignIn": true,
+
       "supportsTablet": false
     },
     "android": {
