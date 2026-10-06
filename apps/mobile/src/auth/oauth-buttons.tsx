@@ -1,9 +1,8 @@
 import { useSSO } from "@clerk/expo";
-import { useSignInWithApple } from "@clerk/expo/apple";
 import { clerkGlobalErrorMessage } from "@repo/domain/clerk-auth-error";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
 
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -20,19 +19,15 @@ type OAuthOutcome = {
 
 export function OauthButtons() {
   const { startSSOFlow } = useSSO();
-  const { startAppleAuthenticationFlow } = useSignInWithApple();
-  const [pending, setPending] = useState<"google" | "apple" | null>(null);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(
-    provider: "google" | "apple",
-    start: () => Promise<OAuthOutcome>,
-  ) {
+  async function run(start: () => Promise<OAuthOutcome>) {
     if (pending) {
       return;
     }
     setError(null);
-    setPending(provider);
+    setPending(true);
     try {
       const outcome = await start();
       if (outcome.createdSessionId && outcome.setActive) {
@@ -49,7 +44,7 @@ export function OauthButtons() {
     } catch (err) {
       setError(clerkGlobalErrorMessage(err));
     } finally {
-      setPending(null);
+      setPending(false);
     }
   }
 
@@ -67,33 +62,14 @@ export function OauthButtons() {
         </View>
       </View>
       <FormErrorSummary message={error} />
-      {Platform.OS === "ios" ? (
-        <Button
-          label="Continue with Apple"
-          size="lg"
-          pending={pending === "apple"}
-          disabled={pending !== null}
-          onPress={() => {
-            void run("apple", async () => {
-              const result = await startAppleAuthenticationFlow();
-              return {
-                createdSessionId: result.createdSessionId,
-                setActive: result.setActive,
-                signUp: result.signUp,
-                cancelled: result.signUp?.status == null,
-              };
-            });
-          }}
-        />
-      ) : null}
       <Button
         label="Continue with Google"
         size="lg"
         variant="outline"
-        pending={pending === "google"}
-        disabled={pending !== null}
+        pending={pending}
+        disabled={pending}
         onPress={() => {
-          void run("google", async () => {
+          void run(async () => {
             const result = await startSSOFlow({ strategy: "oauth_google" });
             return {
               createdSessionId: result.createdSessionId,

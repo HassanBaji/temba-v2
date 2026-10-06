@@ -57,3 +57,5 @@ CLAUDE.local.md
 
 # local flow recordings (apps/web record:flows)
 apps/web/recordings/
+apps/mobile/ios/
+apps/mobile/android/
