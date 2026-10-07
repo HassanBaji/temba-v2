@@ -62,10 +62,6 @@ function currentTenthsOf(member: SetLevelMember) {
     : DEFAULT_CURRENT_TENTHS;
 }
 
-function lowerFirst(text: string) {
-  return text.charAt(0).toLowerCase() + text.slice(1);
-}
-
 function matchCountLabel(count: number) {
   return `${count} Rated ${count === 1 ? "Match" : "Matches"}`;
 }
