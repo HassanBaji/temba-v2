@@ -59,6 +59,7 @@ export type GroupHomeViewProps = {
   onCloseConfirm: () => void;
   memberQuery: string;
   onMemberQueryChange: (query: string) => void;
+  onSetLevel: (userId: string) => void;
   games: Omit<
     GamesTabProps,
     "upcomingGames" | "isCommunityArchived" | "actions"
@@ -217,6 +218,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           query={props.memberQuery}
           onQueryChange={props.onMemberQueryChange}
           apiOrigin={props.apiOrigin}
+          canSetLevel={data.viewerCanSetLevel}
+          onSetLevel={props.onSetLevel}
         />
       ) : null}
 

@@ -135,6 +135,8 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     }
   }, [group, admin]);
 
+  const openSetLevelScreen = useCallback(() => undefined, []);
+
   const header = <ScreenHeader nav="back" fallback="/groups" />;
 
   if (isNotFoundError(group.error)) {
@@ -214,6 +216,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onCloseConfirm={() => setConfirm(null)}
         memberQuery={memberQuery}
         onMemberQueryChange={setMemberQuery}
+        onSetLevel={openSetLevelScreen}
         games={{
           playedGames,
           pendingGameId,

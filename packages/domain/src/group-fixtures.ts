@@ -239,6 +239,7 @@ export function createGroupFixtures(now = new Date()) {
     canDecideJoinRequests: false,
     canManageImage: false,
     canDelete: false,
+    viewerCanSetLevel: false,
   };
 
   const creator: GroupHomeData = {

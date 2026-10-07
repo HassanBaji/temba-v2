@@ -6,6 +6,7 @@ import {
   groupHomeHeader,
   groupJoinCta,
   memberList,
+  memberSheetView,
   playedRowView,
   standingRowView,
   standingStats,
@@ -100,7 +101,7 @@ describe("standing rows", () => {
 
   it("hatches a Provisional or missing Level and labels a settled one", () => {
     expect(rows[0]!.level).toEqual({ kind: "label", label: "B+" });
-    expect(rows[2]!.level).toEqual({ kind: "provisional" });
+    expect(rows[2]!.level.kind).toBe("provisional");
     expect(rows[3]!.accessibilityLabel).toContain("Level still Provisional");
   });
 
@@ -168,5 +169,85 @@ describe("memberList", () => {
     expect(ada.caption).toBe("Organizer");
     expect(ada.formMarks).toHaveLength(4);
     expect(memberList([], "", ORIGIN).isEmpty).toBe(true);
+  });
+});
+
+describe("memberList for a Level setter", () => {
+  const leaderboard = home.member.standing.leaderboard;
+  const withSet = {
+    ...leaderboard[1]!,
+    levelOverride: {
+      setByName: "Sara Karlsson",
+      setByIsViewer: false,
+      createdAt: new Date("2026-03-07T12:00:00Z"),
+      reason: "back_from_injury" as const,
+    },
+  };
+  const members = [
+    leaderboard[0]!,
+    { ...leaderboard[2]!, isViewer: true },
+    withSet,
+  ];
+
+  it("makes every row but the viewer's selectable", () => {
+    const rows = memberList(members, "", ORIGIN, true).rows;
+    expect(rows.map((row) => row.selectable)).toEqual([true, false, true]);
+    expect(
+      memberList(members, "", ORIGIN).rows.some((row) => row.selectable),
+    ).toBe(false);
+  });
+
+  it("captions a member with a set only for a Level setter", () => {
+    const [, , row] = memberList(members, "", ORIGIN, true).rows;
+    expect(row!.caption).toContain("Set by Sara K");
+    expect(memberList(members, "", ORIGIN).rows[2]!.caption).toBe(
+      "Member since Feb",
+    );
+  });
+
+  it("speaks the Level with its Provisional state", () => {
+    const provisional = {
+      ...leaderboard[0]!,
+      levelBand: "C2" as const,
+      levelProvisional: true,
+      level: "3.2",
+    };
+    const row = memberList([provisional], "", ORIGIN).rows[0]!;
+    expect(row.accessibilityLabel).toContain("Level C 3.2, still Provisional");
+  });
+});
+
+describe("memberSheetView", () => {
+  const entry = {
+    ...home.member.standing.leaderboard[1]!,
+    name: "Ada Lindqvist",
+    levelProvisional: true,
+    ratedMatchCount: 1,
+    levelOverride: {
+      setByName: "Sara Karlsson",
+      setByIsViewer: false,
+      createdAt: new Date("2026-03-07T12:00:00Z"),
+      reason: "back_from_injury" as const,
+    },
+  };
+
+  it("carries the Provisional note, the latest set and the match count", () => {
+    const view = memberSheetView(entry);
+    expect(view.provisionalNote).toBe(
+      "This Level is still Provisional. Set it by hand if you know Ada plays at a different Level.",
+    );
+    expect(view.latestSet).toMatch(/^Set by Sara K, .*\. Back from injury$/);
+    expect(view.summary).toMatch(/ · 1 Rated Match$/);
+  });
+
+  it("omits the Provisional note and latest set when there are none", () => {
+    const view = memberSheetView({
+      ...entry,
+      levelProvisional: false,
+      levelOverride: null,
+    });
+    expect(view.provisionalNote).toBeNull();
+    expect(view.latestSet).toBeNull();
+    expect(view.summary).toBe("1 Rated Match");
   });
 });

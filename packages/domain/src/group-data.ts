@@ -93,6 +93,7 @@ export type GroupHomeData = {
   canDecideJoinRequests: boolean;
   canManageImage: boolean;
   canDelete: boolean;
+  viewerCanSetLevel: boolean;
 };
 
 export type GroupJoinRequestData = {
