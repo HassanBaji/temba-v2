@@ -145,7 +145,11 @@ type ExpectedGroups =
   | "uploadImage"
   | "clearImage";
 
-type ExpectedNotifications = "list" | "unreadCount";
+type ExpectedNotifications =
+  | "list"
+  | "unreadCount"
+  | "markRead"
+  | "markAllRead";
 
 type ExpectedRatings = "me" | "selfDeclare";
 

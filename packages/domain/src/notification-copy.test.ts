@@ -2,7 +2,11 @@ import { bahrainDate } from "./bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { formatNotificationTime, notificationCopy } from "./notification-copy";
+import {
+  formatNotificationTime,
+  invitesWaitingLabel,
+  notificationCopy,
+} from "./notification-copy";
 
 const NOW = bahrainDate(2026, 9, 10, 9, 0, 0);
 
@@ -106,5 +110,15 @@ describe("formatNotificationTime", () => {
       formatNotificationTime(bahrainDate(2025, 11, 20, 18, 0, 0), NOW),
       "20 Dec 2025",
     );
+  });
+});
+
+describe("invitesWaitingLabel", () => {
+  it("counts one invite in the singular", () => {
+    assert.equal(invitesWaitingLabel(1), "1 invite waiting");
+  });
+
+  it("counts several invites in the plural", () => {
+    assert.equal(invitesWaitingLabel(3), "3 invites waiting");
   });
 });

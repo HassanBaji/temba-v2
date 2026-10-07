@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useCreateAccess } from "~/components/create-access-gate";
+import { NotificationBell } from "~/components/notifications/notification-bell";
 import {
   visibleAppNavItems,
   isNavItemActive,
@@ -33,8 +34,8 @@ export function AppRail() {
       role="navigation"
       aria-label="Primary"
     >
-      <SidebarHeader>
-        <SidebarMenu>
+      <SidebarHeader className="flex-row items-center">
+        <SidebarMenu className="min-w-0 flex-1">
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="h-11">
               <Link href="/dashboard">
@@ -43,6 +44,7 @@ export function AppRail() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <NotificationBell />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

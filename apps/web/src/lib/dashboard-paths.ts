@@ -83,6 +83,9 @@ export function detailBackHref(
   if (pathname.startsWith("/dashboard/you/settings")) {
     return "/dashboard/you";
   }
+  if (pathname.startsWith("/dashboard/notifications")) {
+    return "/dashboard";
+  }
   if (/^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/groups";
   }

@@ -39,6 +39,14 @@ describe("detailBackHref", () => {
     assert.equal(detailBackHref("/dashboard/you/settings/"), "/dashboard/you");
   });
 
+  it("returns Home for the Notifications page", () => {
+    assert.equal(detailBackHref("/dashboard/notifications"), "/dashboard");
+  });
+
+  it("leaves the Invites page without a back target", () => {
+    assert.equal(detailBackHref("/dashboard/invites"), undefined);
+  });
+
   it("does not treat Profile itself as a detail page", () => {
     assert.equal(detailBackHref("/dashboard/you"), undefined);
   });

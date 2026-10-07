@@ -77,3 +77,8 @@ export function formatNotificationTime(
     year: zonedParts(date).year !== zonedParts(now).year,
   });
 }
+
+/** The Notifications page's top row, shown only when `count > 0`. */
+export function invitesWaitingLabel(count: number) {
+  return `${count} ${count === 1 ? "invite" : "invites"} waiting`;
+}
