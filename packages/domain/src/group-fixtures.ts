@@ -34,6 +34,7 @@ function entry(
     levelProvisional: false,
     level: "3.2",
     ratedMatchCount: played,
+    levelOverride: null,
     formMarks: [],
     joinedAt: new Date("2025-02-11T12:00:00Z"),
     ...extra,

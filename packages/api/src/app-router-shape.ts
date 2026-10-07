@@ -144,7 +144,7 @@ type ExpectedGroups =
   | "uploadImage"
   | "clearImage";
 
-type ExpectedRatings = "me" | "selfDeclare";
+type ExpectedRatings = "me" | "selfDeclare" | "setLevel";
 
 type ExpectedTeams =
   | "create"

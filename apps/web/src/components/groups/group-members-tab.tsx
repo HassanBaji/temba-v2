@@ -1,23 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { Users } from "lucide-react";
+import { Users, X } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { MemberRow } from "~/components/common/member-row";
 import { RowList } from "~/components/common/row-list";
+import {
+  SetLevelDialog,
+  type SavedLevel,
+} from "~/components/groups/set-level-dialog";
 import { FormStrip } from "~/components/temba/form-strip";
 import { LevelCell } from "~/components/temba/level-cell";
 import type { ResultMarkVariant } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Surface } from "~/components/ui/surface";
 import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,
   groupMemberFormMarks,
   groupMemberRoleCaption,
 } from "@repo/domain/group-home-chrome";
+import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
+import {
+  levelOverrideCaption,
+  levelOverrideReasonLabel,
+} from "@repo/domain/level-slider";
 
 type GroupMember = {
   userId: string;
@@ -30,16 +40,72 @@ type GroupMember = {
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
+  ratedMatchCount: number;
+  levelOverride: GroupLevelOverrideData | null;
 };
 
-function GroupMemberRow({ member }: { member: GroupMember }) {
+function memberCaption(member: GroupMember, canSetLevel: boolean) {
+  const parts = [
+    groupMemberRoleCaption(member),
+    canSetLevel && member.levelOverride
+      ? levelOverrideCaption(member.levelOverride)
+      : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function SavedBanner({
+  saved,
+  onDismiss,
+}: {
+  saved: SavedLevel;
+  onDismiss: () => void;
+}) {
+  const reason = saved.reason ? levelOverrideReasonLabel(saved.reason) : null;
+  return (
+    <Surface
+      tone="ink"
+      radius="card"
+      role="status"
+      className="flex items-start justify-between gap-3 px-5 py-4"
+    >
+      <p className="text-body">
+        <span className="font-semibold">
+          {saved.name} set to {saved.levelLabel}.
+        </span>
+        {reason
+          ? ` Reason: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`
+          : null}
+      </p>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={onDismiss}
+        className="-m-2 flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-current"
+      >
+        <X aria-hidden="true" className="size-[18px]" />
+      </button>
+    </Surface>
+  );
+}
+
+function GroupMemberRow({
+  member,
+  canSetLevel,
+  onSelect,
+}: {
+  member: GroupMember;
+  canSetLevel: boolean;
+  onSelect?: () => void;
+}) {
   return (
     <MemberRow
       size="lg"
       name={member.name}
       image={member.image}
       isViewer={member.isViewer}
-      meta={groupMemberRoleCaption(member) ?? undefined}
+      onSelect={onSelect}
+      meta={memberCaption(member, canSetLevel)}
       trailing={
         <>
           <FormStrip
@@ -78,15 +144,24 @@ function InviteBlock({ onInvite }: { onInvite: () => void }) {
 }
 
 export function GroupMembersTab({
+  groupId,
   members,
   canInvite,
+  canSetLevel,
   onInvite,
 }: {
+  groupId: string;
   members: GroupMember[];
   canInvite: boolean;
+  canSetLevel: boolean;
   onInvite: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [saved, setSaved] = useState<SavedLevel | null>(null);
+  const selected = canSetLevel
+    ? (members.find((member) => member.userId === selectedUserId) ?? null)
+    : null;
   const showSearch = groupHomeShowsMemberSearch(members.length);
   const visible = showSearch
     ? filterGroupMembersByName(members, query)
@@ -107,6 +182,9 @@ export function GroupMembersTab({
 
   return (
     <div className="flex flex-col gap-[26px]">
+      {saved ? (
+        <SavedBanner saved={saved} onDismiss={() => setSaved(null)} />
+      ) : null}
       {showSearch ? (
         <Input
           type="search"
@@ -124,12 +202,41 @@ export function GroupMembersTab({
       ) : (
         <RowList variant="card">
           {visible.map((member) => (
-            <GroupMemberRow key={member.userId} member={member} />
+            <GroupMemberRow
+              key={member.userId}
+              member={member}
+              canSetLevel={canSetLevel}
+              onSelect={
+                canSetLevel && !member.isViewer
+                  ? () => setSelectedUserId(member.userId)
+                  : undefined
+              }
+            />
           ))}
         </RowList>
       )}
 
+      {canSetLevel ? (
+        <p className="text-meta text-muted-foreground">
+          Select a member to set their Level. Hatched Levels are still
+          Provisional.
+        </p>
+      ) : null}
+
       {canInvite ? <InviteBlock onInvite={onInvite} /> : null}
+
+      {canSetLevel ? (
+        <SetLevelDialog
+          groupId={groupId}
+          member={selected}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedUserId(null);
+            }
+          }}
+          onSaved={setSaved}
+        />
+      ) : null}
     </div>
   );
 }

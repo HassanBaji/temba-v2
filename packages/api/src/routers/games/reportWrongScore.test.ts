@@ -8,7 +8,9 @@ import {
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
+  groupMembers,
   groups,
+  levelOverrides,
   matches,
   matchResultConfirmations,
   matchSets,
@@ -21,6 +23,8 @@ import {
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
+import { setMemberLevel } from "#src/routers/ratings/setLevel";
+import { muFromLevel } from "@repo/domain/level";
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -583,6 +587,152 @@ describe("reportWrongScore (Option A wrong-score reversal, TEM-185)", () => {
           await close();
         }
       });
+    }
+  });
+});
+
+describe("Level override and the wrong-score reversal", () => {
+  async function setLevelFrom(
+    database: TestDatabase,
+    args: {
+      setterId: string;
+      targetId: string;
+      memberIds: string[];
+      levelTenths: number;
+    },
+  ) {
+    const [group] = await database
+      .insert(groups)
+      .values({
+        name: `Group ${crypto.randomUUID()}`,
+        createdBy: args.setterId,
+        sport: "padel",
+      })
+      .returning({ id: groups.id });
+    if (!group) {
+      throw new Error("Failed to insert group");
+    }
+    for (const userId of args.memberIds) {
+      await database.insert(groupMembers).values({ groupId: group.id, userId });
+    }
+    return setMemberLevel(database, {
+      groupId: group.id,
+      setterUserId: args.setterId,
+      targetUserId: args.targetId,
+      levelTenths: args.levelTenths,
+    });
+  }
+
+  it("a later Match steps from the set baseline", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, matchId, sets, organizer, a, b, c, d } =
+        await setUpSeatedFriendlyMatch(db);
+      const firstSet = sets[0];
+      if (!firstSet) {
+        throw new Error("Expected a Set shell");
+      }
+      await setLevelFrom(db, {
+        setterId: organizer.id,
+        targetId: a.id,
+        memberIds: [organizer.id, a.id],
+        levelTenths: 55,
+      });
+
+      await completeAndRateViaConfirmation(db, {
+        gameId: game.id,
+        matchId,
+        setId: firstSet.id,
+        a,
+        b,
+        c,
+        d,
+      });
+
+      const event = (await ratingEventsFor(db, matchId)).find(
+        (row) => row.userId === a.id,
+      );
+      expect(event?.muBefore).toBeCloseTo(muFromLevel(5.5), 9);
+      expect(event?.phiBefore).toBe(150);
+    } finally {
+      await close();
+    }
+  });
+
+  it("reverses a Match that came before a set: keeps that Rating, restores the rest, re-rates from current Ratings", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, matchId, sets, organizer, a, b, c, d } =
+        await setUpSeatedFriendlyMatch(db);
+      const firstSet = sets[0];
+      if (!firstSet) {
+        throw new Error("Expected a Set shell");
+      }
+      await completeAndRateViaConfirmation(db, {
+        gameId: game.id,
+        matchId,
+        setId: firstSet.id,
+        a,
+        b,
+        c,
+        d,
+      });
+      const eventByUser = new Map(
+        (await ratingEventsFor(db, matchId)).map((event) => [
+          event.userId,
+          event,
+        ]),
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await setLevelFrom(db, {
+        setterId: organizer.id,
+        targetId: a.id,
+        memberIds: [organizer.id, a.id],
+        levelTenths: 55,
+      });
+      const ratingOfA = await ratingRowFor(db, a.id);
+      const overridesBefore = await db.select().from(levelOverrides);
+
+      await reportWrongScore(db, {
+        gameId: game.id,
+        matchId,
+        userId: organizer.id,
+      });
+
+      expect(await ratingEventsFor(db, matchId)).toHaveLength(0);
+      const keptA = await ratingRowFor(db, a.id);
+      expect(keptA?.mu).toBe(ratingOfA?.mu);
+      expect(keptA?.phi).toBe(ratingOfA?.phi);
+      expect(keptA?.sigma).toBe(ratingOfA?.sigma);
+      expect(keptA?.levelBand).toBe("B2");
+      for (const other of [b, c, d]) {
+        const stored = eventByUser.get(other.id);
+        const row = await ratingRowFor(db, other.id);
+        expect(row?.mu).toBeCloseTo(stored?.muBefore ?? NaN, 10);
+        expect(row?.phi).toBeCloseTo(stored?.phiBefore ?? NaN, 10);
+      }
+      expect(await db.select().from(levelOverrides)).toEqual(overridesBefore);
+
+      await scoreSet(db, {
+        gameId: game.id,
+        matchId,
+        setId: firstSet.id,
+        userId: a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: b.id });
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: c.id });
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: d.id });
+
+      const rerated = await ratingEventsFor(db, matchId);
+      expect(rerated).toHaveLength(4);
+      expect(rerated.find((row) => row.userId === a.id)?.muBefore).toBe(
+        ratingOfA?.mu,
+      );
+    } finally {
+      await close();
     }
   });
 });

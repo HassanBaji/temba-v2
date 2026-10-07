@@ -344,6 +344,13 @@
       "when": 1791077646381,
       "tag": "0048_price_per_player_fils",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791370933034,
+      "tag": "0049_powerful_retro_girl",
+      "breakpoints": true
     }
   ]
 }

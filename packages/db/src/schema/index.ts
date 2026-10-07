@@ -2,6 +2,7 @@ export * from "./account";
 export * from "./session";
 export * from "./user";
 export * from "./ratings";
+export * from "./level-overrides";
 export * from "./verification";
 export * from "./venues";
 export * from "./courts";

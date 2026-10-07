@@ -176,6 +176,10 @@ _Avoid_: Owner, moderator, Operator
 A Temba staff User. Not a Community role. Operators curate Venues and Courts and decide Venue link requests.
 _Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
 
+**Level setter**:
+A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator, Organizer and Community roles.
+_Avoid_: admin, rating admin, rating editor, Operator (when you mean this)
+
 **Member**:
 A Community role with no staff powers. Community membership is required to join that Community’s Club Groups. Leaving a Community is refused while the User sits on any Team linked to that Community.
 _Avoid_: player (when you mean Member), user (when you mean this role)
@@ -349,8 +353,12 @@ The discrete skill label D–D+–C–C+–B–B+–A–PRO (PRO highest) shown 
 _Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
-UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling).
+UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling). A Level override clears Provisional.
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
+
+**Level override**:
+A Level that a Level setter set by hand, and its audit record. It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
+_Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
 A completed, non-cancelled Match that produced rating events for the Users on its two Game teams.

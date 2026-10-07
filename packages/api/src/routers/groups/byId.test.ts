@@ -29,6 +29,7 @@ import {
 
 import { groupById } from "#src/routers/groups/byId";
 import { loadRatingsMe } from "#src/routers/ratings/me";
+import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import { commit } from "#src/soft-archive";
@@ -1001,6 +1002,117 @@ describe("groupById Game history pagination", () => {
         gameHistory: { limit: 2, cursor: { id: last.id } },
       });
       expect(next.gameHistory).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById Level setter fields", () => {
+  const setterMetadata = async () => ({ levelSetter: true });
+  const plainMetadata = async () => ({});
+
+  async function setUp(database: TestDatabase) {
+    const viewer = await insertUser(database, "ls-viewer@example.com");
+    const member = await insertUser(database, "ls-member@example.com");
+    const group = await insertGroup(database, viewer.id, {
+      members: [member.id],
+    });
+    return { viewer, member, group };
+  }
+
+  function leaderboardEntry(
+    result: Awaited<ReturnType<typeof groupById>>,
+    userId: string,
+  ) {
+    return result.standing.leaderboard.find((row) => row.userId === userId);
+  }
+
+  it("is true only for a member Level setter in a Group with a sport", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { viewer, group } = await setUp(db);
+      const outsider = await insertUser(db, "ls-outsider@example.com");
+      const noSport = await insertGroup(db, viewer.id, { sport: null });
+      const args = { groupId: group.id, userId: viewer.id };
+
+      expect(
+        (await groupById(db, { ...args, getPublicMetadata: setterMetadata }))
+          .viewerCanSetLevel,
+      ).toBe(true);
+      expect(
+        (await groupById(db, { ...args, getPublicMetadata: plainMetadata }))
+          .viewerCanSetLevel,
+      ).toBe(false);
+      expect((await groupById(db, args)).viewerCanSetLevel).toBe(false);
+      expect(
+        (
+          await groupById(db, {
+            groupId: group.id,
+            userId: outsider.id,
+            getPublicMetadata: setterMetadata,
+          })
+        ).viewerCanSetLevel,
+      ).toBe(false);
+      expect(
+        (
+          await groupById(db, {
+            groupId: noSport.id,
+            userId: viewer.id,
+            getPublicMetadata: setterMetadata,
+          })
+        ).viewerCanSetLevel,
+      ).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("shows the latest set to a Level setter only", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { viewer, member, group } = await setUp(db);
+      await setMemberLevel(db, {
+        groupId: group.id,
+        setterUserId: viewer.id,
+        targetUserId: member.id,
+        levelTenths: 30,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await setMemberLevel(db, {
+        groupId: group.id,
+        setterUserId: viewer.id,
+        targetUserId: member.id,
+        levelTenths: 46,
+        reason: "plays_above_results",
+      });
+
+      const asSetter = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        getPublicMetadata: setterMetadata,
+      });
+      expect(leaderboardEntry(asSetter, member.id)).toMatchObject({
+        level: "4.6",
+        levelProvisional: false,
+        levelOverride: {
+          setByName: "ls-viewer",
+          setByIsViewer: true,
+          reason: "plays_above_results",
+        },
+      });
+      expect(leaderboardEntry(asSetter, viewer.id)?.levelOverride).toBeNull();
+
+      const asPlainMember = await groupById(db, {
+        groupId: group.id,
+        userId: member.id,
+        getPublicMetadata: plainMetadata,
+      });
+      expect(leaderboardEntry(asPlainMember, member.id)).toMatchObject({
+        level: "4.6",
+        levelProvisional: false,
+        levelOverride: null,
+      });
     } finally {
       await close();
     }

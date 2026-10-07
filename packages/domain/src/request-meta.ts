@@ -3,26 +3,30 @@ import { productDaysBetween, zonedParts } from "./product-timezone";
 
 const RELATIVE_DAYS = 7;
 
+/** `today`, `yesterday`, `3 days ago`, then `4 Oct` after a week. */
+export function formatPastDay(value: Date | string, now: Date = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  const daysAgo = productDaysBetween(date, now);
+  if (daysAgo <= 0) {
+    return "today";
+  }
+  if (daysAgo === 1) {
+    return "yesterday";
+  }
+  if (daysAgo < RELATIVE_DAYS) {
+    return `${daysAgo} days ago`;
+  }
+  return formatDayMonth(date, {
+    year: zonedParts(date).year !== zonedParts(now).year,
+  });
+}
+
 /** `Requested today`, `Requested 3 days ago`, then `Requested 4 Oct` after a week. */
 export function formatRequestedAt(
   requestedAt: Date | string,
   now: Date = new Date(),
 ) {
-  const date =
-    requestedAt instanceof Date ? requestedAt : new Date(requestedAt);
-  const daysAgo = productDaysBetween(date, now);
-  if (daysAgo <= 0) {
-    return "Requested today";
-  }
-  if (daysAgo === 1) {
-    return "Requested yesterday";
-  }
-  if (daysAgo < RELATIVE_DAYS) {
-    return `Requested ${daysAgo} days ago`;
-  }
-  return `Requested ${formatDayMonth(date, {
-    year: zonedParts(date).year !== zonedParts(now).year,
-  })}`;
+  return `Requested ${formatPastDay(requestedAt, now)}`;
 }
 
 /**
