@@ -7,7 +7,9 @@ export function notificationHref(item: {
     return `/dashboard/groups/${item.group.id}`;
   }
   if (
-    (item.type === "game_player_joined" || item.type === "game_player_left") &&
+    (item.type === "game_player_joined" ||
+      item.type === "game_player_left" ||
+      item.type === "game_finished") &&
     item.game
   ) {
     return `/dashboard/games/${item.game.id}`;

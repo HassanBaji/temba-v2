@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Inbox } from "lucide-react";
+import { Bell, Flag, Inbox } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -45,6 +45,29 @@ function NotificationTitle({
         </span>
       ))}
     </>
+  );
+}
+
+function NotificationLeading({
+  type,
+  actor,
+}: {
+  type: string;
+  actor: { name: string; image: string | null } | null;
+}) {
+  if (type === "game_finished") {
+    return (
+      <span className="border-rule text-ink flex size-10 items-center justify-center rounded-full border">
+        <Flag aria-hidden="true" className="size-5" />
+      </span>
+    );
+  }
+  return (
+    <UserAvatar
+      name={actor?.name ?? "Someone"}
+      image={actor?.image}
+      size="lg"
+    />
   );
 }
 
@@ -197,13 +220,10 @@ export default function NotificationsPage() {
                 key={item.id}
                 asChild
                 leading={
-                  <UserAvatar
-                    name={item.actor?.name ?? "Someone"}
-                    image={item.actor?.image}
-                    size="lg"
-                  />
+                  <NotificationLeading type={item.type} actor={item.actor} />
                 }
                 title={<NotificationTitle parts={copy.title} unread={unread} />}
+                subtitle={copy.subline}
                 meta={notificationMeta(item)}
                 trailing={unread ? <UnreadDot /> : null}
               >

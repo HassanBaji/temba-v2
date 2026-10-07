@@ -37,6 +37,21 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Game a Finished Game is about", () => {
+    assert.equal(
+      notificationHref({
+        type: "game_finished",
+        group: { id: "g1" },
+        game: { id: "x3" },
+      }),
+      "/dashboard/games/x3",
+    );
+    assert.equal(
+      notificationHref({ type: "game_finished", group: null, game: null }),
+      null,
+    );
+  });
+
   it("has no target without a Group or for a type it does not know", () => {
     assert.equal(
       notificationHref({ type: "group_member_joined", group: null }),

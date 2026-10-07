@@ -210,6 +210,59 @@ describe("notificationCopy for a Game leave", () => {
   });
 });
 
+describe("notificationCopy for a Finished Game", () => {
+  const game = {
+    name: "Thursday Padel",
+    format: "friendly_tournament",
+    windowStart: bahrainDate(2026, 9, 8, 19, 0, 0),
+  };
+
+  function finished(item: Partial<NotificationCopyInput>) {
+    return notificationCopy({
+      type: "game_finished",
+      audience: "admin",
+      actor: null,
+      group: { name: "Night Crew" },
+      game,
+      ...item,
+    });
+  }
+
+  it("tells an admin that every Match is in", () => {
+    assert.deepEqual(finished({}), {
+      title: [
+        { text: "Thursday Padel", strong: true },
+        { text: " has finished", strong: false },
+      ],
+      subline: "Every Match is in.",
+    });
+  });
+
+  it("points a player to their results", () => {
+    assert.deepEqual(finished({ audience: "player" }), {
+      title: [
+        { text: "Thursday Padel", strong: true },
+        { text: " has finished", strong: false },
+      ],
+      subline: "See your results.",
+    });
+  });
+
+  it("falls back to the format and day for a Game with no name", () => {
+    assert.equal(
+      finished({ game: { ...game, name: null, format: "friendly_game" } })
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Friendly game · Thu 8 Oct has finished",
+    );
+  });
+
+  it("returns null without a Game or for an audience it does not know", () => {
+    assert.equal(finished({ game: null }), null);
+    assert.equal(finished({ audience: "spectator" }), null);
+  });
+});
+
 describe("notificationMeta", () => {
   const createdAt = bahrainDate(2026, 9, 10, 8, 58, 0);
 

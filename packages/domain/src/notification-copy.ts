@@ -68,6 +68,16 @@ function joinSubject(item: NotificationCopyInput): NotificationTitlePart[] {
   return [strong(actorName(item.actor))];
 }
 
+function gameFinishedSubline(audience: string) {
+  if (audience === "admin") {
+    return "Every Match is in.";
+  }
+  if (audience === "player") {
+    return "See your results.";
+  }
+  return null;
+}
+
 /** Null for a `type` or `audience` this client does not know, so the row is skipped. */
 export function notificationCopy(
   item: NotificationCopyInput,
@@ -117,6 +127,18 @@ export function notificationCopy(
       ],
       subline: null,
     };
+  }
+  if (item.type === "game_finished" && item.game) {
+    const subline = gameFinishedSubline(item.audience);
+    if (subline) {
+      return {
+        title: [
+          strong(notificationGameName(item.game)),
+          plain(" has finished"),
+        ],
+        subline,
+      };
+    }
   }
   return null;
 }

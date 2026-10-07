@@ -10,6 +10,7 @@ import {
   placeKnockoutQualifiers,
 } from "#src/games/knockout-advance";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
 import { applyRatedMatch } from "#src/ratings/apply-rated-match";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -69,5 +70,6 @@ export async function runMatchCompletionEffect(
     await applyRatedMatch(tx, game, locked, outcome.result);
     await advanceKnockoutWinner(tx, locked, outcome.result);
     await placeKnockoutQualifiers(tx, game, locked);
+    await notifyIfGameFinished(tx, game);
   });
 }
