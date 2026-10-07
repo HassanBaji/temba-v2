@@ -2,12 +2,14 @@
 
 import { Fragment } from "react";
 
+import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
 import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
 import {
+  friendlyGameCanKickPlayer,
   friendlyGameInviteSeatLabel,
   friendlyGameLineupVacantAction,
   friendlyGameOpenSeatLabel,
@@ -35,6 +37,9 @@ function LineupSeatRow({
   canMove,
   moving,
   onMove,
+  canKick,
+  kickPending,
+  onKick,
 }: {
   occupant: GameDetailsSeat | null;
   position: SeatPosition;
@@ -46,6 +51,9 @@ function LineupSeatRow({
   canMove: boolean;
   moving: boolean;
   onMove: () => void;
+  canKick: boolean;
+  kickPending: boolean;
+  onKick: (userId: string) => void;
 }) {
   if (vacant || !occupant) {
     const vacantAction = friendlyGameLineupVacantAction(canMove);
@@ -97,6 +105,20 @@ function LineupSeatRow({
       occupant={occupant}
       isViewer={isViewer}
       subline={friendlyGameSeatSubline(position, occupant.levelBand)}
+      trailing={
+        canKick ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-label={`${KICK_ACTION} ${occupant.name}`}
+            disabled={kickPending}
+            onClick={() => onKick(occupant.userId)}
+          >
+            {KICK_ACTION}
+          </Button>
+        ) : undefined
+      }
     />
   );
 }
@@ -112,6 +134,9 @@ function LineupTeamColumn({
   canMove,
   moving,
   onMove,
+  canKick,
+  kickPending,
+  onKick,
 }: {
   side: GameDetailsSide;
   isWinner: boolean;
@@ -123,6 +148,9 @@ function LineupTeamColumn({
   canMove: boolean;
   moving: boolean;
   onMove: (position: SeatPosition) => void;
+  canKick: (userId: string) => boolean;
+  kickPending: boolean;
+  onKick: (userId: string) => void;
 }) {
   const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
   return (
@@ -147,6 +175,9 @@ function LineupTeamColumn({
           canMove={canMove}
           moving={moving}
           onMove={() => onMove("left")}
+          canKick={side.left != null && canKick(side.left.userId)}
+          kickPending={kickPending}
+          onKick={onKick}
         />
         <LineupSeatRow
           occupant={side.right}
@@ -159,6 +190,9 @@ function LineupTeamColumn({
           canMove={canMove}
           moving={moving}
           onMove={() => onMove("right")}
+          canKick={side.right != null && canKick(side.right.userId)}
+          kickPending={kickPending}
+          onKick={onKick}
         />
       </div>
     </div>
@@ -184,6 +218,10 @@ export function GameLineupSection({
   canMove,
   moving,
   onMove,
+  isOrganizer,
+  cancelled,
+  kickPending,
+  onKick,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
@@ -194,6 +232,10 @@ export function GameLineupSection({
   canMove: boolean;
   moving: boolean;
   onMove: (sideIndex: number, position: SeatPosition) => void;
+  isOrganizer: boolean;
+  cancelled: boolean;
+  kickPending: boolean;
+  onKick: (userId: string) => void;
 }) {
   // Final phase never shows invite affordances in this section, regardless
   // of the caller's organizer-only `canMintInvite` value (spec: "no invite
@@ -204,6 +246,12 @@ export function GameLineupSection({
     vacantSeats.some(
       (seat) => seat.sideIndex === sideIndex && seat.position === position,
     );
+  const canKick = (userId: string) =>
+    friendlyGameCanKickPlayer({
+      isOrganizer,
+      cancelled,
+      isViewer: userId === viewerUserId,
+    });
 
   return (
     <section
@@ -238,6 +286,9 @@ export function GameLineupSection({
               canMove={canMove}
               moving={moving}
               onMove={(position) => onMove(side.sideIndex, position)}
+              canKick={canKick}
+              kickPending={kickPending}
+              onKick={onKick}
             />
           </Fragment>
         ))}

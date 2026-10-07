@@ -1147,6 +1147,10 @@ export default function GameHomePage({
               onMove={(sideIndex, position) =>
                 moveSeat.mutate({ gameId: id, sideIndex, position })
               }
+              isOrganizer={data.isOrganizer}
+              cancelled={Boolean(data.cancelledAt)}
+              kickPending={kick.isPending}
+              onKick={(userId) => requestKick({ userId })}
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
