@@ -6,9 +6,11 @@ import { cn } from "~/lib/utils";
  * The Level column on the Standing and Members tabs: the member's Level band
  * label, or a hatched block when there is no settled band to show.
  *
- * With a `level`, the label reads "C+ 3.8". Hatched means the Rating is still **Provisional** (`isProvisional(phi)`,
- * ADR-0009), or the member has no `ratings` row for the Group's sport. It is
- * not a match-count rule.
+ * With a `level`, the label reads "C+ 3.8", and a Provisional member shows it
+ * on the hatch. Without one (the Standing tab), a Provisional member is a bare
+ * hatch. Hatched means the Rating is still **Provisional**
+ * (`isProvisional(phi)`, ADR-0009), or the member has no `ratings` row for the
+ * Group's sport. It is not a match-count rule.
  *
  * Distinct from `LevelBandBadge`, which is the badge form used elsewhere.
  */
@@ -33,6 +35,7 @@ export function LevelCell({
     view.label && level ? `${view.label} ${level}` : (view.label ?? null);
 
   if (view.kind === "provisional") {
+    const hatchText = level ? text : null;
     return (
       <span
         data-slot="level-cell"
@@ -43,15 +46,15 @@ export function LevelCell({
           aria-hidden="true"
           className={cn(
             "flex h-5 items-center justify-center rounded-[4px]",
-            text ? "text-meta px-1.5 font-semibold" : "w-11",
+            hatchText ? "text-meta px-1.5 font-semibold" : "w-11",
             onInk ? "hatch hatch-on-ink" : "hatch",
           )}
         >
-          {text}
+          {hatchText}
         </span>
         <span className="sr-only">
-          {text
-            ? `Level ${text}, still Provisional`
+          {hatchText
+            ? `Level ${hatchText}, still Provisional`
             : "Level still Provisional"}
         </span>
       </span>
