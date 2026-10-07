@@ -37,6 +37,8 @@ export type GroupLeaderboardEntryData = {
   losses: number;
   levelBand: LevelBand | null;
   levelProvisional: boolean;
+  level: string | null;
+  ratedMatchCount: number;
   formMarks: FormMark[];
   joinedAt: Date | string | null;
 };

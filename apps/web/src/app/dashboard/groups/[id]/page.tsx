@@ -665,6 +665,7 @@ export default function GroupHomePage({
                   formMarks: entry.formMarks,
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
+                  level: entry.level,
                 }))}
                 canInvite={canManageInvites}
                 onInvite={() => setInvitesOpen(true)}

@@ -21,12 +21,14 @@ import {
   groups,
   matchSets,
   matches,
+  ratingEvents,
   ratings,
   user,
   venues,
 } from "@repo/db/schema";
 
 import { groupById } from "#src/routers/groups/byId";
+import { loadRatingsMe } from "#src/routers/ratings/me";
 import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import { commit } from "#src/soft-archive";
@@ -587,6 +589,91 @@ describe("groupById standing facts", () => {
         "not-played",
       ]);
       expect(detail.totalGamesPlayed).toBe(3);
+    } finally {
+      await close();
+    }
+  });
+
+  it("returns Level and Rated Match count, with idle-aware Provisional matching ratings.me", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "level-viewer@example.com");
+      const idle = await insertUser(db, "level-idle@example.com");
+      const unrated = await insertUser(db, "level-unrated@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, viewer.id, {
+        members: [idle.id, unrated.id],
+      });
+      const { matchId } = await insertGroupGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        groupId: group.id,
+        ...pastWindow(24),
+      });
+
+      const longAgo = new Date(NOW.getTime() - 400 * 24 * 60 * 60 * 1000);
+      await db.insert(ratings).values([
+        {
+          userId: viewer.id,
+          sport: GroupSportEnum.PADEL,
+          mu: 1900,
+          phi: 190,
+          sigma: 0.06,
+          levelBand: "C1",
+          lastRatedAt: NOW,
+        },
+        {
+          userId: idle.id,
+          sport: GroupSportEnum.PADEL,
+          mu: 1900,
+          phi: 199.9,
+          sigma: 0.06,
+          levelBand: "C1",
+          lastRatedAt: longAgo,
+        },
+      ]);
+      await db.insert(ratingEvents).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.PADEL,
+        matchId,
+        outcomeScore: 1,
+        weight: 1,
+        muBefore: 1850,
+        phiBefore: 200,
+        sigmaBefore: 0.06,
+        muAfter: 1900,
+        phiAfter: 190,
+        sigmaAfter: 0.06,
+      });
+
+      const detail = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+      const byUserId = new Map(
+        detail.standing.leaderboard.map((entry) => [entry.userId, entry]),
+      );
+
+      expect(byUserId.get(viewer.id)).toMatchObject({
+        level: "3.8",
+        ratedMatchCount: 1,
+        levelProvisional: false,
+      });
+      expect(byUserId.get(idle.id)).toMatchObject({
+        level: "3.8",
+        ratedMatchCount: 0,
+        levelProvisional: true,
+      });
+      expect(byUserId.get(unrated.id)).toMatchObject({
+        level: null,
+        ratedMatchCount: 0,
+        levelBand: null,
+        levelProvisional: true,
+      });
+
+      const me = await loadRatingsMe(db, { userId: idle.id });
+      expect(me.rating?.provisional).toBe(true);
     } finally {
       await close();
     }

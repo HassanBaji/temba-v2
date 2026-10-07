@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -8,6 +8,7 @@ import {
   groupMembers,
   GroupTypeEnum,
   MatchStatusEnum,
+  ratingEvents,
   ratings,
   type GroupSportEnum,
 } from "@repo/db";
@@ -55,7 +56,7 @@ import {
   gameListTime,
   isGameLive,
 } from "#src/home/upcoming-games";
-import { isProvisional } from "@repo/domain/level";
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { consult } from "#src/soft-archive";
 import {
   sortStandingMembers,
@@ -371,9 +372,15 @@ export async function groupById(
   // Level reads `ratings` for `(member.userId, group.sport)` — unique on that
   // pair (D5). A Group with no sport has no Rating to read, so every member
   // falls back to the hatched Provisional placeholder.
+  const now = args.now ?? new Date();
   const ratingByUserId = new Map<
     string,
-    { levelBand: LevelBand; provisional: boolean }
+    {
+      levelBand: LevelBand;
+      provisional: boolean;
+      level: string;
+      ratedMatchCount: number;
+    }
   >();
   if (group.sport && memberUserIds.length > 0) {
     const ratingRows = await database.query.ratings.findMany({
@@ -381,17 +388,30 @@ export async function groupById(
         eq(ratings.sport, group.sport),
         inArray(ratings.userId, memberUserIds),
       ),
-      columns: { userId: true, levelBand: true, phi: true },
     });
+    const matchCountRows = await database
+      .select({ userId: ratingEvents.userId, ratedMatchCount: count() })
+      .from(ratingEvents)
+      .where(
+        and(
+          eq(ratingEvents.sport, group.sport),
+          inArray(ratingEvents.userId, memberUserIds),
+        ),
+      )
+      .groupBy(ratingEvents.userId);
+    const ratedMatchCountByUserId = new Map(
+      matchCountRows.map((row) => [row.userId, Number(row.ratedMatchCount)]),
+    );
     for (const row of ratingRows) {
+      const view = youRatingViewAfterIdle(row, now);
       ratingByUserId.set(row.userId, {
-        levelBand: row.levelBand,
-        provisional: isProvisional(row.phi),
+        levelBand: view.levelBand,
+        provisional: view.provisional,
+        level: view.level,
+        ratedMatchCount: ratedMatchCountByUserId.get(row.userId) ?? 0,
       });
     }
   }
-
-  const now = args.now ?? new Date();
 
   // Upcoming / history are scoped by this Group id only (excludes null groupId).
   // Soft-archived Communities are not filtered — members still see Games.
@@ -570,6 +590,8 @@ export async function groupById(
       losses: record.losses,
       levelBand: rating?.levelBand ?? null,
       levelProvisional: rating?.provisional ?? true,
+      level: rating?.level ?? null,
+      ratedMatchCount: rating?.ratedMatchCount ?? 0,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       joinedAt: entry.joinedAt,
       isOrganizer:

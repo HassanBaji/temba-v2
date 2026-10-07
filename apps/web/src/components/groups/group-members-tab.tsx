@@ -29,6 +29,7 @@ type GroupMember = {
   formMarks: ResultMarkVariant[];
   levelBand: LevelBand | null;
   levelProvisional: boolean;
+  level: string | null;
 };
 
 function GroupMemberRow({ member }: { member: GroupMember }) {
@@ -48,8 +49,9 @@ function GroupMemberRow({ member }: { member: GroupMember }) {
           />
           <LevelCell
             band={member.levelBand}
+            level={member.level}
             provisional={member.levelProvisional}
-            className="w-12"
+            className="w-16"
           />
         </>
       }
