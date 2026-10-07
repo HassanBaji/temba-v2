@@ -11,6 +11,9 @@ export function titleFromPath(pathname: string) {
   if (pathname.startsWith("/dashboard/invites")) {
     return "Invites";
   }
+  if (pathname.startsWith("/dashboard/notifications")) {
+    return "Notifications";
+  }
   if (pathname.startsWith("/dashboard/groups/new")) {
     return "Create Group";
   }
@@ -79,6 +82,9 @@ export function detailBackHref(
   }
   if (pathname.startsWith("/dashboard/you/settings")) {
     return "/dashboard/you";
+  }
+  if (pathname.startsWith("/dashboard/notifications")) {
+    return "/dashboard";
   }
   if (/^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/groups";

@@ -6,6 +6,7 @@ import {
   FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
   type GameRow,
+  gameAdminUserIds,
   isRegistrationOpen,
   registeredGameTeamCount,
   registeredUserCount,
@@ -17,6 +18,8 @@ import {
   occupySeat,
   remainingCapacity,
 } from "#src/games/seats";
+import { gameNotificationsSuppressed } from "#src/notifications/game-notifications-suppressed";
+import { notify } from "#src/notifications/notify";
 import { consult } from "#src/soft-archive";
 import { type db } from "#src/db";
 import {
@@ -52,6 +55,29 @@ async function userOnGame(database: AdmitDb, gameId: string, userId: string) {
     columns: { id: true },
   });
   return Boolean(row);
+}
+
+async function notifyGameJoined(
+  database: AdmitDb,
+  game: GameRow,
+  door: AdmitDoor,
+  party: { userIds: readonly string[]; teamId?: string },
+) {
+  if (await gameNotificationsSuppressed(database, game)) {
+    return;
+  }
+  const adminIds = await gameAdminUserIds(database, game);
+  await notify(database, {
+    type: "game_player_joined",
+    recipients: adminIds.map((userId) => ({ userId, audience: "admin" })),
+    excludeUserIds: [...party.userIds],
+    actorUserId: party.userIds[0],
+    partnerUserId: party.userIds[1],
+    teamId: party.teamId,
+    groupId: game.groupId,
+    gameId: game.id,
+    viaWaitlist: door === "promote",
+  });
 }
 
 async function refuseRegisterDoors(
@@ -99,17 +125,18 @@ export async function admit(
   }
 
   if (args.party.kind === "user") {
-    return admitUser(database, args.game, args.party);
+    return admitUser(database, args.game, args.door, args.party);
   }
   if (args.party.kind === "pair") {
-    return admitPair(database, args.game, args.party);
+    return admitPair(database, args.game, args.door, args.party);
   }
-  return admitTeam(database, args.game, args.party);
+  return admitTeam(database, args.game, args.door, args.party);
 }
 
 async function admitUser(
   database: AdmitDb,
   game: GameRow,
+  door: AdmitDoor,
   party: Extract<AdmitParty, { kind: "user" }>,
 ): Promise<AdmitResult> {
   if (await userOnGame(database, game.id, party.userId)) {
@@ -131,6 +158,7 @@ async function admitUser(
       party.seat.sideIndex,
       party.seat.position,
     );
+    await notifyGameJoined(database, game, door, { userIds: [party.userId] });
     return {
       ok: true,
       placement: {
@@ -151,6 +179,7 @@ async function admitUser(
     gameId: game.id,
     userId: party.userId,
   });
+  await notifyGameJoined(database, game, door, { userIds: [party.userId] });
   return {
     ok: true,
     placement: { kind: "user", userId: party.userId },
@@ -160,6 +189,7 @@ async function admitUser(
 async function admitPair(
   database: AdmitDb,
   game: GameRow,
+  door: AdmitDoor,
   party: Extract<AdmitParty, { kind: "pair" }>,
 ): Promise<AdmitResult> {
   for (const userId of party.userIds) {
@@ -177,6 +207,7 @@ async function admitPair(
     party.sideIndex,
     party.callerPosition,
   );
+  await notifyGameJoined(database, game, door, { userIds: party.userIds });
   return {
     ok: true,
     placement: {
@@ -190,6 +221,7 @@ async function admitPair(
 async function admitTeam(
   database: AdmitDb,
   game: GameRow,
+  door: AdmitDoor,
   party: Extract<AdmitParty, { kind: "team" }>,
 ): Promise<AdmitResult> {
   const team = await database.query.teams.findFirst({
@@ -249,6 +281,10 @@ async function admitTeam(
       .set({ teamId: party.teamId, updatedAt: new Date() })
       .where(eq(gameTeams.id, occupiedTeamId));
   }
+  await notifyGameJoined(database, game, door, {
+    userIds: members.map((member) => member.userId),
+    teamId: party.teamId,
+  });
 
   return {
     ok: true,

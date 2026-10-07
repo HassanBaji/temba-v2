@@ -18,6 +18,7 @@ import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { isPoolDrawPosted } from "#src/games/assert-pool-draw-not-posted";
 import { placeKnockoutQualifiers } from "#src/games/knockout-advance";
 import { leaveRegisteredSeat } from "#src/games/leave-registered-seat";
+import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -45,7 +46,7 @@ async function cancelUnplayedPoolMatchesForGameTeam(
   args: { gameId: string; gameTeamId: string },
 ) {
   const now = new Date();
-  await database
+  const cancelled = await database
     .update(matches)
     .set({ status: MatchStatusEnum.CANCELLED, updatedAt: now })
     .where(
@@ -58,7 +59,9 @@ async function cancelUnplayedPoolMatchesForGameTeam(
           eq(matches.slot2GameTeamId, args.gameTeamId),
         ),
       ),
-    );
+    )
+    .returning({ id: matches.id });
+  return cancelled.length > 0;
 }
 
 /**
@@ -130,10 +133,11 @@ export async function kick(
     isDrawnTournament(game.format, game.poolCount, game.tournamentShape) &&
     isPoolDrawPosted(game);
   await database.transaction(async (tx) => {
+    let cancelledPoolMatches = false;
     if (removesDrawnTeam) {
       const gameTeamId = await registeredGameTeamId(tx, game.id, userId);
       if (gameTeamId) {
-        await cancelUnplayedPoolMatchesForGameTeam(tx, {
+        cancelledPoolMatches = await cancelUnplayedPoolMatchesForGameTeam(tx, {
           gameId: game.id,
           gameTeamId,
         });
@@ -151,6 +155,9 @@ export async function kick(
     );
     if (removesDrawnTeam) {
       await placeKnockoutQualifiers(tx, game, { knockoutRound: null });
+    }
+    if (cancelledPoolMatches) {
+      await notifyIfGameFinished(tx, game);
     }
   });
   return { ok: true as const };

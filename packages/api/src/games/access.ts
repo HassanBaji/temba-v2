@@ -14,6 +14,7 @@ import {
   teamMembers,
 } from "@repo/db";
 
+import { groupApproverUserIds } from "#src/groups/helpers/is-group-approver";
 import { consult } from "#src/soft-archive";
 import type { RegistrationStatus } from "#src/games/utils";
 
@@ -158,6 +159,29 @@ export async function isGameOrganizer(
     return false;
   }
   return mayOrganizeGroupGames(database, group, userId);
+}
+
+/**
+ * The Game admin audience: who hears about a Game, never who may act on it.
+ * On a Group Game, Organizers ∪ Group approvers minus a Club Group creator who
+ * left the Community and everyone while it is Soft-archived reduces to the
+ * Group approvers.
+ */
+export async function gameAdminUserIds(
+  database: DbOrTx,
+  game: Pick<GameRow, "createdBy" | "groupId">,
+): Promise<string[]> {
+  if (!game.groupId) {
+    return [game.createdBy];
+  }
+  const group = await database.query.groups.findFirst({
+    where: eq(groups.id, game.groupId),
+    columns: { communityId: true, createdBy: true },
+  });
+  if (!group) {
+    return [];
+  }
+  return groupApproverUserIds(database, group);
 }
 
 export async function assertGameOrganizer(

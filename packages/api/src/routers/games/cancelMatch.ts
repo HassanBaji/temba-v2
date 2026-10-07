@@ -18,6 +18,7 @@ import {
   isKnockoutMatch,
   placeKnockoutQualifiers,
 } from "#src/games/knockout-advance";
+import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -76,6 +77,7 @@ async function cancelMatchOnGame(
       });
     }
     await awardKnockoutWalkover(database, match, advancingGameTeamId);
+    await notifyIfGameFinished(database, game);
     return { cancelledGame: false as const };
   }
   if (advancingGameTeamId) {
@@ -91,6 +93,7 @@ async function cancelMatchOnGame(
     .set({ status: MatchStatusEnum.CANCELLED, updatedAt: now })
     .where(eq(matches.id, match.id));
   await placeKnockoutQualifiers(database, game, match);
+  await notifyIfGameFinished(database, game);
   return { cancelledGame: false as const };
 }
 

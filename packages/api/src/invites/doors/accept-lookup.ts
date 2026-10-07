@@ -20,6 +20,7 @@ import { isIndividualSeatGame } from "#src/games/seats";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
 import { loadLookupInvite } from "#src/invites/doors/helpers/load-lookup-invite";
 import { writeDb } from "#src/invites/doors/helpers/write-db";
+import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { assertInviteOpen } from "#src/invites/doors/consult";
 import type {
   AcceptLookupResult,
@@ -131,7 +132,7 @@ export async function acceptLookup(
   if (host.kind === "group") {
     const group = await database.query.groups.findFirst({
       where: eq(groups.id, host.id),
-      columns: { id: true, communityId: true },
+      columns: { id: true, communityId: true, createdBy: true },
     });
     if (!group) {
       return { ok: false, reason: "not_found" };
@@ -195,6 +196,7 @@ export async function acceptLookup(
       groupId: host.id,
       userId: args.userId,
     });
+    await notifyGroupJoined(database, { group, joinerUserId: args.userId });
     await markPendingGroupJoinRequestApproved(database, {
       groupId: host.id,
       userId: args.userId,
