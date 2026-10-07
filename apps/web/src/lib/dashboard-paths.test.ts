@@ -8,6 +8,10 @@ import {
 } from "./dashboard-paths";
 
 describe("titleFromPath", () => {
+  it("titles the Notifications page", () => {
+    assert.equal(titleFromPath("/dashboard/notifications"), "Notifications");
+  });
+
   it("titles Settings for the Profile settings route", () => {
     assert.equal(titleFromPath("/dashboard/you/settings"), "Settings");
   });

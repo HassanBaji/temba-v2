@@ -106,7 +106,7 @@ _Avoid_: invitation, Invite, Community join request (when you mean this Group re
 
 **Group approver**:
 Who may set Require approval and decide Group join requests. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived.
-_Avoid_: Group owner, organizer (when you mean this write permission)
+_Avoid_: Group owner, organizer (when you mean this write permission), group admin
 
 **Loose Group Private**:
 A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it.
@@ -306,7 +306,15 @@ _Avoid_: fee, cost, entry fee, registration price (registration is the open/clos
 
 **Organizer**:
 Of a Group Game: that Group’s creator, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, kick registered or waitlisted entries, edit window and price per player and Game Level range, and decide Game Level range requests.
-_Avoid_: creator (when you mean this set), host, admin (when you mean this)
+_Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
+
+**Game admins**:
+Who hears about a Game's joins and leaves, and gets the admin Finished Game notice: the Organizers and the Group approvers of the Game's Group, except a Club Group creator who has left the Community, and nobody while the Community is Soft-archived. On a groupless Game, its creator. Decides who is notified only, never who may act.
+_Avoid_: Organizer (that is the write permission), game admin (lowercase, as a role), co-host, host
+
+**Finished Game**:
+A Game that is not cancelled and whose Matches are all completed or cancelled, with at least one completed. Derived, not stored. An Americano, which has no Matches, is never a Finished Game.
+_Avoid_: completed Game (completed is a Match status), ended, over, past Game
 
 **Game Level range**:
 Optional inclusive minimum and/or maximum Level band bounds (D–A) on a Game, stored as tenths. Both unset means no Level gate. Distinct from a User’s continuous Level.
@@ -331,6 +339,14 @@ _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboardin
 **Home**:
 The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
+
+**Notification**:
+An in-app record that tells one User that something happened on a Group or Game they run, or that a Game they played on has finished. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
+_Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
+
+**Notifications page**:
+The Web App page at `/dashboard/notifications`, opened from the bell, listing the signed-in User's Notifications newest first, with a link to pending invites when there are any.
+_Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
 A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
