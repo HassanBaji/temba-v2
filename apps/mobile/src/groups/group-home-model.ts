@@ -280,7 +280,7 @@ export type MemberSheetView = {
   latestSet: string | null;
 };
 
-function firstName(name: string) {
+export function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 

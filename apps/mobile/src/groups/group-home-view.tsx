@@ -25,6 +25,8 @@ import {
 } from "./group-approver-view";
 import { groupBanner, groupHomeHeader, groupJoinCta } from "./group-home-model";
 import { MembersTab } from "./members-tab";
+import { SavedLevelBanner } from "./saved-level-banner";
+import type { SavedLevel } from "./set-level-model";
 import { StandingTab } from "./standing-tab";
 
 export type GroupAdminHandlers = {
@@ -60,6 +62,8 @@ export type GroupHomeViewProps = {
   memberQuery: string;
   onMemberQueryChange: (query: string) => void;
   onSetLevel: (userId: string) => void;
+  saved: SavedLevel | null;
+  onDismissSaved: () => void;
   games: Omit<
     GamesTabProps,
     "upcomingGames" | "isCommunityArchived" | "actions"
@@ -200,6 +204,12 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           upcomingGames={data.upcomingGames}
           isCommunityArchived={data.isCommunityArchived}
           actions={props.actions}
+        />
+      ) : null}
+      {props.tab === "members" && props.saved && data.viewerCanSetLevel ? (
+        <SavedLevelBanner
+          saved={props.saved}
+          onDismiss={props.onDismissSaved}
         />
       ) : null}
       {props.tab === "members" ? (

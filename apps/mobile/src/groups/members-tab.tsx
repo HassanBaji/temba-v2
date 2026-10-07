@@ -155,7 +155,12 @@ export function MembersTab({
         <MemberSheet
           member={selected ? memberSheetView(selected) : null}
           onClose={() => setSelectedUserId(null)}
-          onSetLevel={() => selected && onSetLevel(selected.userId)}
+          onSetLevel={() => {
+            if (selected) {
+              setSelectedUserId(null);
+              onSetLevel(selected.userId);
+            }
+          }}
         />
       ) : null}
     </View>
