@@ -1,4 +1,5 @@
 import { formatDayMonth } from "./format-game-start";
+import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
 import { productDaysBetween, zonedParts } from "./product-timezone";
 
@@ -12,8 +13,18 @@ export type NotificationCopy = {
 export type NotificationCopyInput = {
   type: string;
   audience: string;
+  viaWaitlist?: boolean;
   actor: { name: string } | null;
+  partner?: { name: string } | null;
+  team?: { name: string | null } | null;
   group: { name: string | null } | null;
+  game?: NotificationGame | null;
+};
+
+type NotificationGame = {
+  name: string | null;
+  format: string;
+  windowStart: Date | string | null;
 };
 
 const MS_PER_MINUTE = 60 * 1000;
@@ -31,6 +42,32 @@ function actorName(actor: NotificationCopyInput["actor"]) {
   return actor?.name ?? "Someone";
 }
 
+/** A nameless Game reads as its format and day, `Friendly game · Thu 9 Oct`. */
+function notificationGameName(game: NotificationGame) {
+  if (game.name?.trim()) {
+    return game.name;
+  }
+  const format = gameFormatLabel(game.format);
+  return game.windowStart
+    ? `${format} · ${formatDayMonth(game.windowStart, { weekday: "short" })}`
+    : format;
+}
+
+/** A named Team, else both Users of a pair or unnamed Team, else the actor. */
+function joinSubject(item: NotificationCopyInput): NotificationTitlePart[] {
+  if (item.team?.name) {
+    return [strong(item.team.name)];
+  }
+  if (item.partner) {
+    return [
+      strong(actorName(item.actor)),
+      plain(" and "),
+      strong(item.partner.name),
+    ];
+  }
+  return [strong(actorName(item.actor))];
+}
+
 /** Null for a `type` or `audience` this client does not know, so the row is skipped. */
 export function notificationCopy(
   item: NotificationCopyInput,
@@ -45,7 +82,36 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (
+    item.type === "game_player_joined" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: [
+        ...joinSubject(item),
+        plain(item.viaWaitlist ? " came off the Waitlist into " : " joined "),
+        strong(notificationGameName(item.game)),
+      ],
+      subline: null,
+    };
+  }
   return null;
+}
+
+/** Relative time, plus the Group name on a Notification about a Group Game. */
+export function notificationMeta(
+  item: {
+    createdAt: Date | string;
+    group: { name: string | null } | null;
+    game?: NotificationGame | null;
+  },
+  now: Date = new Date(),
+) {
+  const time = formatNotificationTime(item.createdAt, now);
+  return item.game && item.group
+    ? `${time} · ${groupDisplayName(item.group.name)}`
+    : time;
 }
 
 /** `Just now`, `2 min ago`, `3 h ago`, `Yesterday`, `4 days ago`, then `3 Oct`. */

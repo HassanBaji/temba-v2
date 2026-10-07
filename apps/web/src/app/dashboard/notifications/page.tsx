@@ -14,9 +14,9 @@ import { Button } from "~/components/ui/button";
 import { useInviteInboxCount } from "~/hooks/use-invite-inbox-count";
 import { notificationHref } from "~/lib/notification-href";
 import {
-  formatNotificationTime,
   invitesWaitingLabel,
   notificationCopy,
+  notificationMeta,
   type NotificationTitlePart,
 } from "@repo/domain/notification-copy";
 import { api } from "~/trpc/react";
@@ -170,7 +170,7 @@ export default function NotificationsPage() {
         <EmptyState
           icon={Bell}
           title="No notifications yet"
-          description="When someone joins a Group you run, it shows up here."
+          description="When someone joins a Group or Game you run, it shows up here."
         />
       ) : null}
 
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
                   />
                 }
                 title={<NotificationTitle parts={copy.title} unread={unread} />}
-                meta={formatNotificationTime(item.createdAt)}
+                meta={notificationMeta(item)}
                 trailing={unread ? <UnreadDot /> : null}
               >
                 <Link
