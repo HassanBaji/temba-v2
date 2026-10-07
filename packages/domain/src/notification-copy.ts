@@ -96,6 +96,28 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (
+    item.type === "game_player_left" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    const partnerRemoved = item.partner
+      ? [
+          plain(". "),
+          strong(item.partner.name),
+          plain(" was removed with them"),
+        ]
+      : [];
+    return {
+      title: [
+        strong(actorName(item.actor)),
+        plain(" left "),
+        strong(notificationGameName(item.game)),
+        ...partnerRemoved,
+      ],
+      subline: null,
+    };
+  }
   return null;
 }
 

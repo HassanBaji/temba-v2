@@ -6,7 +6,10 @@ export function notificationHref(item: {
   if (item.type === "group_member_joined" && item.group) {
     return `/dashboard/groups/${item.group.id}`;
   }
-  if (item.type === "game_player_joined" && item.game) {
+  if (
+    (item.type === "game_player_joined" || item.type === "game_player_left") &&
+    item.game
+  ) {
     return `/dashboard/games/${item.game.id}`;
   }
   return null;

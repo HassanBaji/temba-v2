@@ -155,6 +155,61 @@ describe("notificationCopy for a Game join", () => {
   });
 });
 
+describe("notificationCopy for a Game leave", () => {
+  const game = {
+    name: "Thursday Padel",
+    format: "friendly_tournament",
+    windowStart: bahrainDate(2026, 9, 8, 19, 0, 0),
+  };
+
+  function left(item: Partial<NotificationCopyInput>) {
+    return notificationCopy({
+      type: "game_player_left",
+      audience: "admin",
+      actor: { name: "Sara" },
+      group: { name: "Night Crew" },
+      game,
+      ...item,
+    });
+  }
+
+  it("names the User who left and the Game in bold", () => {
+    assert.deepEqual(left({}), {
+      title: [
+        { text: "Sara", strong: true },
+        { text: " left ", strong: false },
+        { text: "Thursday Padel", strong: true },
+      ],
+      subline: null,
+    });
+  });
+
+  it("names the partner who was removed with the leaver", () => {
+    assert.deepEqual(left({ partner: { name: "Omar" } })?.title, [
+      { text: "Sara", strong: true },
+      { text: " left ", strong: false },
+      { text: "Thursday Padel", strong: true },
+      { text: ". ", strong: false },
+      { text: "Omar", strong: true },
+      { text: " was removed with them", strong: false },
+    ]);
+  });
+
+  it("falls back to Someone and to the format and day", () => {
+    assert.equal(
+      left({ actor: null, game: { ...game, name: null } })
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Someone left Friendly tournament · Thu 8 Oct",
+    );
+  });
+
+  it("returns null without a Game or for another audience", () => {
+    assert.equal(left({ game: null }), null);
+    assert.equal(left({ audience: "player" }), null);
+  });
+});
+
 describe("notificationMeta", () => {
   const createdAt = bahrainDate(2026, 9, 10, 8, 58, 0);
 

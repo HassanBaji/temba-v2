@@ -26,6 +26,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Game a Game leave is about", () => {
+    assert.equal(
+      notificationHref({
+        type: "game_player_left",
+        group: null,
+        game: { id: "x2" },
+      }),
+      "/dashboard/games/x2",
+    );
+  });
+
   it("has no target without a Group or for a type it does not know", () => {
     assert.equal(
       notificationHref({ type: "group_member_joined", group: null }),
