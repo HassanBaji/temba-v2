@@ -11,6 +11,9 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { notificationRetentionCutoff } from "#src/notifications/retention";
+import { displayedLevelFromMu } from "@repo/domain/level";
+import { type LevelBand } from "@repo/domain/level-bands";
+import { type LevelOverrideReason } from "@repo/domain/level-slider";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -42,6 +45,11 @@ export type NotificationItem = {
     name: string | null;
     format: string;
     windowStart: Date | null;
+  } | null;
+  levelSet: {
+    level: string;
+    levelBand: LevelBand;
+    reason: LevelOverrideReason | null;
   } | null;
 };
 
@@ -93,10 +101,24 @@ export async function listNotifications(
       game: {
         columns: { id: true, name: true, format: true, windowStart: true },
       },
+      levelOverride: {
+        columns: { muAfter: true, levelBandAfter: true, reason: true },
+      },
     },
   });
 
-  const items = rows.slice(0, limit);
+  const items = rows
+    .slice(0, limit)
+    .map(({ levelOverride, ...item }) => ({
+      ...item,
+      levelSet: levelOverride
+        ? {
+            level: displayedLevelFromMu(levelOverride.muAfter),
+            levelBand: levelOverride.levelBandAfter,
+            reason: levelOverride.reason,
+          }
+        : null,
+    }));
   const last = items.at(-1);
   return {
     items,

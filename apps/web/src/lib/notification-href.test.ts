@@ -52,6 +52,14 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Group a Level set was made in", () => {
+    assert.equal(
+      notificationHref({ type: "level_set", group: { id: "g2" } }),
+      "/dashboard/groups/g2",
+    );
+    assert.equal(notificationHref({ type: "level_set", group: null }), null);
+  });
+
   it("has no target without a Group or for a type it does not know", () => {
     assert.equal(
       notificationHref({ type: "group_member_joined", group: null }),

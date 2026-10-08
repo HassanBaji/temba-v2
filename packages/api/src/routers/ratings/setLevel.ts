@@ -8,6 +8,7 @@ import { levelSetterProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { notify } from "#src/notifications/notify";
 import {
   bandFromLevel,
   confirmedPhiForOverride,
@@ -149,6 +150,15 @@ export async function setMemberLevel(
     if (!override) {
       throw new Error("Failed to record the Level override");
     }
+
+    await notify(tx, {
+      type: "level_set",
+      recipients: [{ userId: args.targetUserId, audience: "player" }],
+      excludeUserIds: [args.setterUserId],
+      actorUserId: args.setterUserId,
+      groupId: group.id,
+      levelOverrideId: override.id,
+    });
 
     return {
       overrideId: override.id,

@@ -6,10 +6,12 @@ import {
   groupMembers,
   groups,
   levelOverrides,
+  notifications,
   ratings,
   user,
 } from "@repo/db/schema";
 
+import { listNotifications } from "#src/routers/notifications/list";
 import { loadRatingsMe } from "#src/routers/ratings/me";
 import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { INITIAL_MU, muFromLevel } from "@repo/domain/level";
@@ -67,6 +69,12 @@ async function ratingFor(database: TestDatabase, userId: string) {
       eq(ratings.userId, userId),
       eq(ratings.sport, GroupSportEnum.PADEL),
     ),
+  });
+}
+
+async function notificationsFor(database: TestDatabase, userId: string) {
+  return database.query.notifications.findMany({
+    where: eq(notifications.recipientUserId, userId),
   });
 }
 
@@ -382,6 +390,133 @@ describe("setMemberLevel", () => {
           }),
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
         expect(await overridesFor(db, target.id)).toHaveLength(0);
+      } finally {
+        await close();
+      }
+    });
+  });
+
+  describe("level_set Notification", () => {
+    it("notifies only the target, with the setter as actor, in the Group the set was made in", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const { setter, target, group } = await setUp(db);
+        const bystander = await insertUser(db, "bystander");
+        await db
+          .insert(groupMembers)
+          .values({ groupId: group.id, userId: bystander.id });
+
+        const result = await setMemberLevel(db, {
+          groupId: group.id,
+          setterUserId: setter.id,
+          targetUserId: target.id,
+          levelTenths: 38,
+          reason: "plays_above_results",
+        });
+
+        const rows = await notificationsFor(db, target.id);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+          recipientUserId: target.id,
+          type: "level_set",
+          audience: "player",
+          actorUserId: setter.id,
+          groupId: group.id,
+          levelOverrideId: result.overrideId,
+          gameId: null,
+          readAt: null,
+        });
+        expect(await notificationsFor(db, setter.id)).toHaveLength(0);
+        expect(await notificationsFor(db, bystander.id)).toHaveLength(0);
+      } finally {
+        await close();
+      }
+    });
+
+    it("writes one Notification per set", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const { setter, target, group } = await setUp(db);
+        for (const levelTenths of [30, 32]) {
+          await setMemberLevel(db, {
+            groupId: group.id,
+            setterUserId: setter.id,
+            targetUserId: target.id,
+            levelTenths,
+          });
+        }
+        expect(await notificationsFor(db, target.id)).toHaveLength(2);
+      } finally {
+        await close();
+      }
+    });
+
+    it("writes nothing when a setter tries to set their own Level", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const { setter, group } = await setUp(db);
+        await expect(
+          setMemberLevel(db, {
+            groupId: group.id,
+            setterUserId: setter.id,
+            targetUserId: setter.id,
+            levelTenths: 40,
+          }),
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+        expect(await db.query.notifications.findMany()).toHaveLength(0);
+      } finally {
+        await close();
+      }
+    });
+
+    it("lists the set Level, its band and the reason for the target", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const { setter, target, group } = await setUp(db);
+        await setMemberLevel(db, {
+          groupId: group.id,
+          setterUserId: setter.id,
+          targetUserId: target.id,
+          levelTenths: 38,
+          reason: "plays_above_results",
+        });
+
+        const { items } = await listNotifications(db, { userId: target.id });
+        expect(items).toHaveLength(1);
+        expect(items[0]).toMatchObject({
+          type: "level_set",
+          audience: "player",
+          actor: { id: setter.id, name: "setter" },
+          group: { id: group.id, name: "Friday Night" },
+          game: null,
+          levelSet: {
+            level: "3.8",
+            levelBand: "C1",
+            reason: "plays_above_results",
+          },
+        });
+      } finally {
+        await close();
+      }
+    });
+
+    it("lists a set without a reason with a null reason", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const { setter, target, group } = await setUp(db);
+        await setMemberLevel(db, {
+          groupId: group.id,
+          setterUserId: setter.id,
+          targetUserId: target.id,
+          levelTenths: 46,
+        });
+
+        const { items } = await listNotifications(db, { userId: target.id });
+        expect(items[0]?.levelSet).toEqual({
+          level: "4.6",
+          levelBand: "B3",
+          reason: null,
+        });
       } finally {
         await close();
       }

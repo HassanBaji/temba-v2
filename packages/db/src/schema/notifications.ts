@@ -14,12 +14,14 @@ import { user } from "./user";
 import { teams } from "./teams";
 import { groups } from "./groups";
 import { games } from "./games";
+import { levelOverrides } from "./level-overrides";
 
 export const NOTIFICATION_TYPE_VALUES = [
   "group_member_joined",
   "game_player_joined",
   "game_player_left",
   "game_finished",
+  "level_set",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];
@@ -63,6 +65,10 @@ export const notifications = pgTable(
     gameId: uuid("game_id").references(() => games.id, {
       onDelete: "cascade",
     }),
+    levelOverrideId: uuid("level_override_id").references(
+      () => levelOverrides.id,
+      { onDelete: "cascade" },
+    ),
     viaWaitlist: boolean("via_waitlist").notNull().default(false),
     dedupeKey: varchar("dedupe_key", { length: 255 }),
     readAt: timestamp("read_at"),
@@ -112,5 +118,9 @@ export const notificationRelations = relations(notifications, ({ one }) => ({
   game: one(games, {
     fields: [notifications.gameId],
     references: [games.id],
+  }),
+  levelOverride: one(levelOverrides, {
+    fields: [notifications.levelOverrideId],
+    references: [levelOverrides.id],
   }),
 }));

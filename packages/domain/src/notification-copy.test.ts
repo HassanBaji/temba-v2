@@ -263,6 +263,65 @@ describe("notificationCopy for a Finished Game", () => {
   });
 });
 
+describe("notificationCopy for a Level set", () => {
+  function levelSet(item: Partial<NotificationCopyInput>) {
+    return notificationCopy({
+      type: "level_set",
+      audience: "player",
+      actor: { name: "Sara" },
+      group: { name: "Night Crew" },
+      levelSet: { level: "3.8", levelBand: "C1", reason: "back_from_injury" },
+      ...item,
+    });
+  }
+
+  it("names the setter, the letter and the Level, with the reason as the subline", () => {
+    assert.deepEqual(levelSet({}), {
+      title: [
+        { text: "Sara", strong: true },
+        { text: " set your Level to ", strong: false },
+        { text: "C+ 3.8", strong: true },
+      ],
+      subline: "Back from injury",
+    });
+  });
+
+  it("has no subline without a reason", () => {
+    assert.equal(
+      levelSet({ levelSet: { level: "4.6", levelBand: "B3", reason: null } })
+        ?.subline,
+      null,
+    );
+  });
+
+  it("falls back to Someone for a deleted setter", () => {
+    assert.equal(
+      levelSet({ actor: null })
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Someone set your Level to C+ 3.8",
+    );
+  });
+
+  it("never says rating, admin or notified", () => {
+    const copy = levelSet({});
+    const text = [
+      ...(copy?.title.map((part) => part.text) ?? []),
+      copy?.subline ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+    for (const word of ["rating", "admin", "notified"]) {
+      assert.equal(text.includes(word), false, word);
+    }
+  });
+
+  it("returns null without the set or for an audience it does not know", () => {
+    assert.equal(levelSet({ levelSet: null }), null);
+    assert.equal(levelSet({ audience: "admin" }), null);
+  });
+});
+
 describe("notificationMeta", () => {
   const createdAt = bahrainDate(2026, 9, 10, 8, 58, 0);
 

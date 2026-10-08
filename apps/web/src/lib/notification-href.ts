@@ -3,7 +3,10 @@ export function notificationHref(item: {
   group: { id: string } | null;
   game?: { id: string } | null;
 }): string | null {
-  if (item.type === "group_member_joined" && item.group) {
+  if (
+    (item.type === "group_member_joined" || item.type === "level_set") &&
+    item.group
+  ) {
     return `/dashboard/groups/${item.group.id}`;
   }
   if (
