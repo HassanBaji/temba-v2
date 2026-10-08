@@ -59,11 +59,6 @@
       "types": "./dist/routers/groups/index.d.ts",
       "default": "./src/routers/groups/index.ts"
     },
-    "#src/routers/notifications": {
-      "temba-source": "./src/routers/notifications/index.ts",
-      "types": "./dist/routers/notifications/index.d.ts",
-      "default": "./src/routers/notifications/index.ts"
-    },
     "#src/routers/ratings": {
       "temba-source": "./src/routers/ratings/index.ts",
       "types": "./dist/routers/ratings/index.d.ts",

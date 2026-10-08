@@ -9,7 +9,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { consult, refuseIfFrozen } from "#src/soft-archive";
 
 type DbClient = typeof db;
@@ -83,24 +82,20 @@ export async function joinClubPublic(
     });
   }
 
-  await database.transaction(async (tx) => {
-    const [created] = await tx
-      .insert(groupMembers)
-      .values({
-        groupId: group.id,
-        userId: args.userId,
-      })
-      .returning();
+  const [created] = await database
+    .insert(groupMembers)
+    .values({
+      groupId: group.id,
+      userId: args.userId,
+    })
+    .returning();
 
-    if (!created) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to join Group",
-      });
-    }
-
-    await notifyGroupJoined(tx, { group, joinerUserId: args.userId });
-  });
+  if (!created) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to join Group",
+    });
+  }
 
   return { ok: true as const, groupId: group.id };
 }
