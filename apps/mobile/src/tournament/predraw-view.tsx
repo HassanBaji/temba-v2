@@ -56,6 +56,7 @@ export type PreDrawHandlers = {
   onTakeSeat: (seat: { sideIndex: number; position: Position }) => void;
   onRegisterTeam: (teamId: string) => void;
   onRequestLevel: () => void;
+  onOpenPlayer?: (userId: string) => void;
 };
 
 function HeroSeat({
@@ -165,6 +166,7 @@ function SeatTile({
   viewerUserId,
   joinable,
   onJoin,
+  onOpen,
 }: {
   occupant: Occupant | null;
   position: Position;
@@ -172,6 +174,7 @@ function SeatTile({
   viewerUserId: string;
   joinable: boolean;
   onJoin: () => void;
+  onOpen?: (userId: string) => void;
 }) {
   const palette = useTonePalette();
   const positionName = position === "left" ? "Left" : "Right";
@@ -209,16 +212,17 @@ function SeatTile({
   const level = occupant.levelBand
     ? displayLabelFromStoredBand(occupant.levelBand)
     : null;
-  return (
+  const label = [
+    occupant.userId === viewerUserId ? "You" : occupant.name,
+    `${positionName} seat`,
+    level,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const tile = (
     <View
-      accessible
-      accessibilityLabel={[
-        occupant.userId === viewerUserId ? "You" : occupant.name,
-        `${positionName} seat`,
-        level,
-      ]
-        .filter(Boolean)
-        .join(", ")}
+      accessible={!onOpen}
+      accessibilityLabel={onOpen ? undefined : label}
       style={{
         flex: 1,
         minWidth: 0,
@@ -243,6 +247,25 @@ function SeatTile({
       </View>
     </View>
   );
+
+  if (!onOpen) {
+    return tile;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Opens their Player profile"
+      onPress={() => onOpen(occupant.userId)}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      {tile}
+    </Pressable>
+  );
 }
 
 function TeamRow({
@@ -251,12 +274,14 @@ function TeamRow({
   viewerUserId,
   canTakeSeat,
   onTakeSeat,
+  onOpenPlayer,
 }: {
   row: TournamentTeamRow;
   side: TournamentDetailsSide | null;
   viewerUserId: string;
   canTakeSeat: boolean;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
+  onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
 }) {
   const teamLabel = formatGameSideLabel("friendly_tournament", row.sideIndex);
   const joinable = canTakeSeat && !row.isViewer;
@@ -291,6 +316,7 @@ function TeamRow({
             viewerUserId={viewerUserId}
             joinable={joinable && side?.[position] == null}
             onJoin={() => onTakeSeat({ sideIndex: row.sideIndex, position })}
+            onOpen={onOpenPlayer}
           />
         ))}
       </View>
@@ -302,10 +328,12 @@ function TeamsCard({
   game,
   view,
   onTakeSeat,
+  onOpenPlayer,
 }: {
   game: TournamentDetails;
   view: TournamentHomeView;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
+  onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
 }) {
   const [expanded, setExpanded] = useState(false);
   const rows = tournamentTeamRows(game.sides, game.viewerUserId);
@@ -324,6 +352,7 @@ function TeamsCard({
         viewerUserId={game.viewerUserId}
         canTakeSeat={view.canTakeSeat}
         onTakeSeat={onTakeSeat}
+        onOpenPlayer={onOpenPlayer}
       />
     </View>
   );
@@ -561,7 +590,12 @@ export function PreDrawView({
       {view.joinKind === "register_team" ? (
         <RegisterTeam game={game} handlers={handlers} />
       ) : null}
-      <TeamsCard game={game} view={view} onTakeSeat={handlers.onTakeSeat} />
+      <TeamsCard
+        game={game}
+        view={view}
+        onTakeSeat={handlers.onTakeSeat}
+        onOpenPlayer={handlers.onOpenPlayer}
+      />
       <SeatsCard view={view} />
       <ScheduleCard view={view} venueName={game.venue?.name ?? null} />
     </View>

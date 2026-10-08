@@ -16,6 +16,7 @@ import {
   friendlyGameSeatSubline,
   friendlyGameVacantSeatLabel,
 } from "@repo/domain/friendly-game-players";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -40,6 +41,7 @@ function LineupSeatRow({
   canKick,
   kickPending,
   onKick,
+  linked,
 }: {
   occupant: GameDetailsSeat | null;
   position: SeatPosition;
@@ -54,6 +56,7 @@ function LineupSeatRow({
   canKick: boolean;
   kickPending: boolean;
   onKick: (userId: string) => void;
+  linked: boolean;
 }) {
   if (vacant || !occupant) {
     const vacantAction = friendlyGameLineupVacantAction(canMove);
@@ -104,6 +107,7 @@ function LineupSeatRow({
     <SeatRow
       occupant={occupant}
       isViewer={isViewer}
+      href={linked ? playerProfilePath(occupant.userId) : undefined}
       subline={friendlyGameSeatSubline(position, occupant.levelBand)}
       trailing={
         canKick ? (
@@ -137,6 +141,7 @@ function LineupTeamColumn({
   canKick,
   kickPending,
   onKick,
+  linkToPlayers,
 }: {
   side: GameDetailsSide;
   isWinner: boolean;
@@ -151,6 +156,7 @@ function LineupTeamColumn({
   canKick: (userId: string) => boolean;
   kickPending: boolean;
   onKick: (userId: string) => void;
+  linkToPlayers: boolean;
 }) {
   const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
   return (
@@ -178,6 +184,7 @@ function LineupTeamColumn({
           canKick={side.left != null && canKick(side.left.userId)}
           kickPending={kickPending}
           onKick={onKick}
+          linked={linkToPlayers}
         />
         <LineupSeatRow
           occupant={side.right}
@@ -193,6 +200,7 @@ function LineupTeamColumn({
           canKick={side.right != null && canKick(side.right.userId)}
           kickPending={kickPending}
           onKick={onKick}
+          linked={linkToPlayers}
         />
       </div>
     </div>
@@ -222,6 +230,7 @@ export function GameLineupSection({
   cancelled,
   kickPending,
   onKick,
+  linkToPlayers,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
@@ -236,6 +245,7 @@ export function GameLineupSection({
   cancelled: boolean;
   kickPending: boolean;
   onKick: (userId: string) => void;
+  linkToPlayers: boolean;
 }) {
   // Final phase never shows invite affordances in this section, regardless
   // of the caller's organizer-only `canMintInvite` value (spec: "no invite
@@ -289,6 +299,7 @@ export function GameLineupSection({
               canKick={canKick}
               kickPending={kickPending}
               onKick={onKick}
+              linkToPlayers={linkToPlayers}
             />
           </Fragment>
         ))}

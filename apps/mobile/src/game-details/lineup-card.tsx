@@ -119,12 +119,38 @@ function SeatRow({
   position,
   isViewer,
   onKick,
+  onOpen,
 }: {
   seat: FriendlyGameDetailsSeat;
   position: Position;
   isViewer: boolean;
   onKick: (() => void) | null;
+  onOpen: (() => void) | null;
 }) {
+  const subline = friendlyGameSeatSubline(position, seat.levelBand);
+  const occupant = (
+    <>
+      <Avatar name={seat.name} uri={seat.image} size="lg" />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="body" weight="medium" numberOfLines={1}>
+          {seat.name}
+          {isViewer ? " (You)" : ""}
+        </Text>
+        <Text size="meta" tone="muted" numberOfLines={1}>
+          {subline}
+        </Text>
+      </View>
+    </>
+  );
+  const occupantStyle = {
+    flex: 1,
+    minWidth: 0,
+    minHeight: sizes.touchTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  } as const;
+
   return (
     <View
       style={{
@@ -134,16 +160,22 @@ function SeatRow({
         gap: 12,
       }}
     >
-      <Avatar name={seat.name} uri={seat.image} size="lg" />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="body" weight="medium" numberOfLines={1}>
-          {seat.name}
-          {isViewer ? " (You)" : ""}
-        </Text>
-        <Text size="meta" tone="muted" numberOfLines={1}>
-          {friendlyGameSeatSubline(position, seat.levelBand)}
-        </Text>
-      </View>
+      {onOpen ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${seat.name}${isViewer ? " (You)" : ""}, ${subline}`}
+          accessibilityHint="Opens their Player profile"
+          onPress={onOpen}
+          style={({ pressed }) => [
+            occupantStyle,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
+        >
+          {occupant}
+        </Pressable>
+      ) : (
+        <View style={occupantStyle}>{occupant}</View>
+      )}
       {onKick ? (
         <Button
           label={KICK_ACTION}
@@ -168,6 +200,7 @@ function SideColumn({
   onMove,
   kickableUserIds,
   onKick,
+  onOpenPlayer,
 }: {
   side: FriendlyGameDetailsSide;
   viewerUserId: string;
@@ -179,6 +212,7 @@ function SideColumn({
   onMove: (position: Position) => void;
   kickableUserIds: readonly string[];
   onKick: ((userId: string) => void) | undefined;
+  onOpenPlayer: ((userId: string) => void) | undefined;
 }) {
   const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
   return (
@@ -206,6 +240,7 @@ function SideColumn({
                 ? () => onKick(seat.userId)
                 : null
             }
+            onOpen={onOpenPlayer ? () => onOpenPlayer(seat.userId) : null}
           />
         ) : (
           <VacantRow
@@ -232,6 +267,7 @@ export function LineupCard({
   onMove,
   kickableUserIds = [],
   onKick,
+  onOpenPlayer,
 }: {
   sides: FriendlyGameDetailsSide[];
   viewerUserId: string;
@@ -242,6 +278,7 @@ export function LineupCard({
   onMove: (sideIndex: number, position: Position) => void;
   kickableUserIds?: readonly string[];
   onKick?: (userId: string) => void;
+  onOpenPlayer?: (userId: string) => void;
 }) {
   const vacant = vacantJoinSeats(sides);
   const isVacant = (sideIndex: number, position: Position) =>
@@ -284,6 +321,7 @@ export function LineupCard({
               onMove={(position) => onMove(side.sideIndex, position)}
               kickableUserIds={kickableUserIds}
               onKick={onKick}
+              onOpenPlayer={onOpenPlayer}
             />
           </Fragment>
         ))}

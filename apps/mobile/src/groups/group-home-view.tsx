@@ -194,7 +194,16 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         ))}
       </View>
 
-      {props.tab === "standing" ? <StandingTab data={data} /> : null}
+      {props.tab === "standing" ? (
+        <StandingTab
+          data={data}
+          onOpenMember={
+            groupMemberRowsLink(data.membership)
+              ? props.onOpenMember
+              : undefined
+          }
+        />
+      ) : null}
       {props.tab === "games" ? (
         <GamesTab
           {...props.games}

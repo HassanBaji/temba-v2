@@ -597,6 +597,7 @@ export default function GroupHomePage({
           <TabsContent value="standing">
             <GroupStandingTab
               isMember={Boolean(data.membership)}
+              linkToPlayers={groupMemberRowsLink(data.membership)}
               leaderboard={data.standing.leaderboard}
               groupId={id}
               canShowCreateGame={canShowCreateGame}
