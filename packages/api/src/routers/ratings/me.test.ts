@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   GroupSportEnum,
   games,
+  levelOverrides,
   matches,
   ratingEvents,
   ratings,
@@ -12,7 +13,12 @@ import {
 } from "@repo/db/schema";
 
 import { loadRatingsMe } from "#src/routers/ratings/me";
-import { INITIAL_PHI, INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
+import {
+  INITIAL_PHI,
+  INITIAL_SIGMA,
+  displayedLevelFromMu,
+  muFromLevel,
+} from "@repo/domain/level";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -183,6 +189,60 @@ describe("loadRatingsMe ratedMatchCount", () => {
         where: eq(ratingEvents.userId, viewer.id),
       });
       expect(leftover).toHaveLength(21);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("loadRatingsMe history with Level sets", () => {
+  it("merges sets and Rated Matches in time order and ends at the hero Level", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-set@example.com");
+      const setter = await insertUser(db, "ratings-me-setter@example.com");
+      const [match] = await insertGameWithMatches(db, viewer.id, 1);
+      if (!match) {
+        throw new Error("Expected a match");
+      }
+      await insertRatingEvent(db, {
+        userId: viewer.id,
+        matchId: match.id,
+        createdAt: new Date(Date.UTC(2026, 1, 1)),
+      });
+      const setMu = muFromLevel(5);
+      await db.insert(levelOverrides).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.PADEL,
+        setByUserId: setter.id,
+        hadRating: true,
+        muBefore: muFromLevel(3.3),
+        phiBefore: INITIAL_PHI,
+        sigmaBefore: INITIAL_SIGMA,
+        levelBandBefore: "C2",
+        muAfter: setMu,
+        phiAfter: 150,
+        sigmaAfter: INITIAL_SIGMA,
+        levelBandAfter: "B2",
+        createdAt: new Date(Date.UTC(2026, 1, 2)),
+      });
+      await db.insert(ratings).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.PADEL,
+        mu: setMu,
+        phi: 150,
+        sigma: INITIAL_SIGMA,
+        levelBand: "B2",
+      });
+
+      const result = await loadRatingsMe(db, { userId: viewer.id });
+      expect(result.history).toEqual([
+        displayedLevelFromMu(muFromLevel(3.2)),
+        displayedLevelFromMu(muFromLevel(3.3)),
+        displayedLevelFromMu(setMu),
+      ]);
+      expect(result.history.at(-1)).toBe(result.rating?.level);
+      expect(result.ratedMatchCount).toBe(1);
     } finally {
       await close();
     }

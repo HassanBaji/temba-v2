@@ -8,10 +8,12 @@ import {
 import {
   BAND_MIDPOINTS,
   INITIAL_PHI,
+  LEVEL_OVERRIDE_PHI,
   PROVISIONAL_PHI_THRESHOLD,
   RATED_MATCHES_TO_CONFIRM,
   bandFromLevel,
   bandWithHysteresis,
+  confirmedPhiForOverride,
   initialRatingFromChoice,
   levelFromMu,
   progressToNextBand,
@@ -137,5 +139,16 @@ describe("ratedMatchesRemainingToConfirm", () => {
   it("scales remaining with φ between a fresh Rating and the threshold", () => {
     expect(ratedMatchesRemainingToConfirm(275)).toBe(3);
     expect(ratedMatchesRemainingToConfirm(260)).toBe(2);
+  });
+});
+
+describe("confirmedPhiForOverride", () => {
+  it("lowers a Provisional φ to the override ceiling", () => {
+    expect(confirmedPhiForOverride(350)).toBe(LEVEL_OVERRIDE_PHI);
+    expect(confirmedPhiForOverride(null)).toBe(LEVEL_OVERRIDE_PHI);
+  });
+
+  it("never raises a φ that is already lower", () => {
+    expect(confirmedPhiForOverride(90)).toBe(90);
   });
 });

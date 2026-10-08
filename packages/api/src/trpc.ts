@@ -11,6 +11,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
+import { requireLevelSetter } from "#src/auth/require-level-setter";
 import { requireOperator } from "#src/auth/require-operator";
 import { type db } from "#src/db";
 
@@ -141,6 +142,19 @@ export const protectedProcedure = t.procedure
 export const operatorProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {
     await requireOperator(ctx);
+    return next();
+  },
+);
+
+/**
+ * Level setter procedure
+ *
+ * Clerk `publicMetadata.levelSetter === true`. Independent of Operator and
+ * Community roles.
+ */
+export const levelSetterProcedure = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    await requireLevelSetter(ctx);
     return next();
   },
 );

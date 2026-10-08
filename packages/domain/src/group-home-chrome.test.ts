@@ -264,10 +264,18 @@ describe("levelCellView", () => {
     assert.deepEqual(levelCellView("B3", false), { kind: "label", label: "B" });
   });
 
-  it("hatches a Provisional Rating or a missing one", () => {
-    assert.deepEqual(levelCellView("B3", true), { kind: "provisional" });
-    assert.deepEqual(levelCellView(null, false), { kind: "provisional" });
-    assert.deepEqual(levelCellView(undefined, false), { kind: "provisional" });
+  it("hatches a Provisional Rating and keeps its letter", () => {
+    assert.deepEqual(levelCellView("B3", true), {
+      kind: "provisional",
+      label: "B",
+    });
+  });
+
+  it("hatches a missing Rating with no letter", () => {
+    const bare = { kind: "provisional", label: null };
+    assert.deepEqual(levelCellView(null, false), bare);
+    assert.deepEqual(levelCellView(undefined, false), bare);
+    assert.deepEqual(levelCellView(null, true), bare);
   });
 });
 

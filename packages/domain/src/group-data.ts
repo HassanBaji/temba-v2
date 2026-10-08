@@ -1,5 +1,6 @@
 import type { HubGameRow } from "./hub-game-row";
 import type { LevelBand } from "./level-bands";
+import type { LevelOverrideReason } from "./level-slider";
 import type { MatchSlotMember } from "./match-slots";
 import type { FormMark } from "./member-form-marks";
 
@@ -23,6 +24,13 @@ export type GroupPublicRowData = {
   joinMode: "join" | "request" | "requested";
 };
 
+export type GroupLevelOverrideData = {
+  setByName: string;
+  setByIsViewer: boolean;
+  createdAt: Date | string;
+  reason: LevelOverrideReason | null;
+};
+
 export type GroupLeaderboardEntryData = {
   userId: string;
   name: string | null;
@@ -37,6 +45,9 @@ export type GroupLeaderboardEntryData = {
   losses: number;
   levelBand: LevelBand | null;
   levelProvisional: boolean;
+  level: string | null;
+  ratedMatchCount: number;
+  levelOverride: GroupLevelOverrideData | null;
   formMarks: FormMark[];
   joinedAt: Date | string | null;
 };
@@ -82,6 +93,7 @@ export type GroupHomeData = {
   canDecideJoinRequests: boolean;
   canManageImage: boolean;
   canDelete: boolean;
+  viewerCanSetLevel: boolean;
 };
 
 export type GroupJoinRequestData = {

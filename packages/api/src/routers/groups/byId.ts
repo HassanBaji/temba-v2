@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -7,13 +7,17 @@ import {
   games,
   groupMembers,
   GroupTypeEnum,
+  levelOverrides,
   MatchStatusEnum,
+  ratingEvents,
   ratings,
+  user,
   type GroupSportEnum,
 } from "@repo/db";
 
 import type { LevelBand } from "@repo/domain/level-bands";
 import { protectedProcedure } from "#src/trpc";
+import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isStaffRole, mayCreateGameOnGroup } from "#src/games/access";
@@ -55,7 +59,7 @@ import {
   gameListTime,
   isGameLive,
 } from "#src/home/upcoming-games";
-import { isProvisional } from "@repo/domain/level";
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { consult } from "#src/soft-archive";
 import {
   sortStandingMembers,
@@ -245,6 +249,7 @@ export async function groupById(
     userId: string;
     now?: Date;
     gameHistory?: GroupGameHistoryPage;
+    getPublicMetadata?: () => Promise<Record<string, unknown> | undefined>;
   },
 ) {
   const group = await requireGroup(database, args.groupId);
@@ -371,9 +376,15 @@ export async function groupById(
   // Level reads `ratings` for `(member.userId, group.sport)` — unique on that
   // pair (D5). A Group with no sport has no Rating to read, so every member
   // falls back to the hatched Provisional placeholder.
+  const now = args.now ?? new Date();
   const ratingByUserId = new Map<
     string,
-    { levelBand: LevelBand; provisional: boolean }
+    {
+      levelBand: LevelBand;
+      provisional: boolean;
+      level: string;
+      ratedMatchCount: number;
+    }
   >();
   if (group.sport && memberUserIds.length > 0) {
     const ratingRows = await database.query.ratings.findMany({
@@ -381,17 +392,77 @@ export async function groupById(
         eq(ratings.sport, group.sport),
         inArray(ratings.userId, memberUserIds),
       ),
-      columns: { userId: true, levelBand: true, phi: true },
     });
+    const matchCountRows = await database
+      .select({ userId: ratingEvents.userId, ratedMatchCount: count() })
+      .from(ratingEvents)
+      .where(
+        and(
+          eq(ratingEvents.sport, group.sport),
+          inArray(ratingEvents.userId, memberUserIds),
+        ),
+      )
+      .groupBy(ratingEvents.userId);
+    const ratedMatchCountByUserId = new Map(
+      matchCountRows.map((row) => [row.userId, Number(row.ratedMatchCount)]),
+    );
     for (const row of ratingRows) {
+      const view = youRatingViewAfterIdle(row, now);
       ratingByUserId.set(row.userId, {
-        levelBand: row.levelBand,
-        provisional: isProvisional(row.phi),
+        levelBand: view.levelBand,
+        provisional: view.provisional,
+        level: view.level,
+        ratedMatchCount: ratedMatchCountByUserId.get(row.userId) ?? 0,
       });
     }
   }
 
-  const now = args.now ?? new Date();
+  // One Clerk read per Group page view, and only for a member of a Group with
+  // a sport — the only viewer a Level setter can act as.
+  const viewerCanSetLevel =
+    membership !== undefined &&
+    group.sport !== null &&
+    args.getPublicMetadata !== undefined &&
+    isLevelSetterPublicMetadata(await args.getPublicMetadata());
+
+  const levelOverrideByUserId = new Map<
+    string,
+    {
+      setByName: string;
+      setByIsViewer: boolean;
+      createdAt: Date;
+      reason: (typeof levelOverrides.$inferSelect)["reason"];
+    }
+  >();
+  if (viewerCanSetLevel && group.sport && memberUserIds.length > 0) {
+    const overrideRows = await database
+      .select({
+        userId: levelOverrides.userId,
+        setByUserId: levelOverrides.setByUserId,
+        setByName: user.name,
+        createdAt: levelOverrides.createdAt,
+        reason: levelOverrides.reason,
+      })
+      .from(levelOverrides)
+      .innerJoin(user, eq(user.id, levelOverrides.setByUserId))
+      .where(
+        and(
+          eq(levelOverrides.sport, group.sport),
+          inArray(levelOverrides.userId, memberUserIds),
+        ),
+      )
+      .orderBy(desc(levelOverrides.createdAt), desc(levelOverrides.id));
+    for (const row of overrideRows) {
+      if (!levelOverrideByUserId.has(row.userId)) {
+        levelOverrideByUserId.set(row.userId, {
+          setByName: row.setByName,
+          setByIsViewer: row.setByUserId === args.userId,
+          createdAt: row.createdAt,
+          reason: row.reason,
+        });
+      }
+    }
+  }
 
   // Upcoming / history are scoped by this Group id only (excludes null groupId).
   // Soft-archived Communities are not filtered — members still see Games.
@@ -570,6 +641,9 @@ export async function groupById(
       losses: record.losses,
       levelBand: rating?.levelBand ?? null,
       levelProvisional: rating?.provisional ?? true,
+      level: rating?.level ?? null,
+      ratedMatchCount: rating?.ratedMatchCount ?? 0,
+      levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       joinedAt: entry.joinedAt,
       isOrganizer:
@@ -653,6 +727,7 @@ export async function groupById(
     canDelete,
     canCreateGame,
     canManageImage: isApprover,
+    viewerCanSetLevel,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,
   };
@@ -671,5 +746,6 @@ export const byId = protectedProcedure
       groupId: input.id,
       userId: appUser.id,
       gameHistory: input.gameHistory,
+      getPublicMetadata: ctx.getPublicMetadata,
     });
   });

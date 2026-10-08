@@ -1,6 +1,8 @@
-import { spacing } from "@repo/design-tokens";
+import { colors, sizes, spacing } from "@repo/design-tokens";
 import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
-import { View } from "react-native";
+import { ChevronRight } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, View } from "react-native";
 
 import { Avatar } from "../primitives/avatar";
 import { FormSlot } from "../primitives/form-slot";
@@ -11,28 +13,20 @@ import { TextField } from "../primitives/text-field";
 import {
   MEMBERS_EMPTY_COPY,
   MEMBERS_NO_MATCH_COPY,
+  MEMBERS_SET_LEVEL_HINT,
   memberList,
+  memberSheetView,
   type MemberRowView,
 } from "./group-home-model";
 import { LevelCell } from "./level-cell";
+import { MemberSheet } from "./member-sheet";
 import { Notice } from "./notice";
 
 const MARK_WIDTH = 16;
 
-function MemberRow({ row }: { row: MemberRowView }) {
+function MemberRowContent({ row }: { row: MemberRowView }) {
   return (
-    <View
-      accessible
-      accessibilityLabel={row.accessibilityLabel}
-      style={{
-        minHeight: 64,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: spacing.surface,
-        paddingVertical: 12,
-      }}
-    >
+    <>
       <Avatar name={row.name} uri={row.imageUri} size="lg" />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight={row.isViewer ? "semibold" : "regular"} numberOfLines={1}>
@@ -51,8 +45,50 @@ function MemberRow({ row }: { row: MemberRowView }) {
           </View>
         ))}
       </View>
-      <LevelCell view={row.level} />
-    </View>
+      <LevelCell view={row.level} level={row.levelText} />
+    </>
+  );
+}
+
+function MemberRow({
+  row,
+  onSelect,
+}: {
+  row: MemberRowView;
+  onSelect: () => void;
+}) {
+  const style = {
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: spacing.surface,
+    paddingVertical: 12,
+  } as const;
+
+  if (!row.selectable) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={row.accessibilityLabel}
+        style={style}
+      >
+        <MemberRowContent row={row} />
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={row.accessibilityLabel}
+      accessibilityHint="Opens the member sheet"
+      onPress={onSelect}
+      style={({ pressed }) => ({ ...style, opacity: pressed ? 0.6 : 1 })}
+    >
+      <MemberRowContent row={row} />
+      <ChevronRight size={sizes.iconAction} color={colors.muted} />
+    </Pressable>
   );
 }
 
@@ -61,13 +97,23 @@ export function MembersTab({
   query,
   onQueryChange,
   apiOrigin,
+  canSetLevel,
+  onSetLevel,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
   onQueryChange: (query: string) => void;
   apiOrigin: string;
+  canSetLevel: boolean;
+  onSetLevel: (userId: string) => void;
 }) {
-  const list = memberList(leaderboard, query, apiOrigin);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const list = memberList(leaderboard, query, apiOrigin, canSetLevel);
+  const selected = canSetLevel
+    ? leaderboard.find(
+        (entry) => entry.userId === selectedUserId && !entry.isViewer,
+      )
+    : undefined;
 
   if (list.isEmpty) {
     return <Notice {...MEMBERS_EMPTY_COPY} />;
@@ -92,11 +138,31 @@ export function MembersTab({
           {list.rows.map((row, index) => (
             <View key={row.key}>
               {index > 0 ? <Hairline /> : null}
-              <MemberRow row={row} />
+              <MemberRow
+                row={row}
+                onSelect={() => setSelectedUserId(row.key)}
+              />
             </View>
           ))}
         </Surface>
       )}
+      {canSetLevel ? (
+        <Text size="meta" tone="muted">
+          {MEMBERS_SET_LEVEL_HINT}
+        </Text>
+      ) : null}
+      {canSetLevel ? (
+        <MemberSheet
+          member={selected ? memberSheetView(selected) : null}
+          onClose={() => setSelectedUserId(null)}
+          onSetLevel={() => {
+            if (selected) {
+              setSelectedUserId(null);
+              onSetLevel(selected.userId);
+            }
+          }}
+        />
+      ) : null}
     </View>
   );
 }
