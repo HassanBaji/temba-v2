@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   detailBackHref,
+  groupMembersTabHref,
   pageHidesMobileTopBar,
   playerMatchesPath,
   playerProfilePath,
@@ -76,6 +77,7 @@ describe("pageHidesMobileTopBar", () => {
     "/dashboard/you/settings",
     "/dashboard/games/new",
     "/dashboard/groups/abc",
+    "/dashboard/groups/abc/members/user_1",
   ])("hides the top bar on %s", (pathname) => {
     assert.equal(pageHidesMobileTopBar(pathname), true);
   });
@@ -90,6 +92,22 @@ describe("pageHidesMobileTopBar", () => {
     "/dashboard/youth",
   ])("keeps the top bar on %s", (pathname) => {
     assert.equal(pageHidesMobileTopBar(pathname), false);
+  });
+});
+
+describe("groupMembersTabHref", () => {
+  it("opens the Members tab", () => {
+    assert.equal(
+      groupMembersTabHref("abc"),
+      "/dashboard/groups/abc?tab=members",
+    );
+  });
+
+  it("names the member whose Level was just set", () => {
+    assert.equal(
+      groupMembersTabHref("abc", "user_1"),
+      "/dashboard/groups/abc?tab=members&saved=user_1",
+    );
   });
 });
 

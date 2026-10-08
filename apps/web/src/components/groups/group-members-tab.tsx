@@ -6,16 +6,16 @@ import { Users, X } from "lucide-react";
 import { EmptyState } from "~/components/common/empty-state";
 import { MemberRow } from "~/components/common/member-row";
 import { RowList } from "~/components/common/row-list";
-import {
-  SetLevelDialog,
-  type SavedLevel,
-} from "~/components/groups/set-level-dialog";
 import { FormStrip } from "~/components/temba/form-strip";
 import { LevelCell } from "~/components/temba/level-cell";
 import type { ResultMarkVariant } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Surface } from "~/components/ui/surface";
+import {
+  groupMemberSetLevelHref,
+  playerProfilePath,
+} from "~/lib/dashboard-paths";
 import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,
@@ -27,9 +27,9 @@ import type { LevelBand } from "@repo/domain/level-bands";
 import {
   levelOverrideCaption,
   levelOverrideReasonLabel,
+  levelSliderLabel,
+  type LevelOverrideReason,
 } from "@repo/domain/level-slider";
-
-import { playerProfilePath } from "~/lib/dashboard-paths";
 
 type GroupMember = {
   userId: string;
@@ -45,6 +45,23 @@ type GroupMember = {
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
 };
+
+type SavedLevel = {
+  name: string;
+  levelLabel: string;
+  reason: LevelOverrideReason | null;
+};
+
+function savedLevelOf(member: GroupMember | undefined): SavedLevel | null {
+  if (!member?.level || !member.levelOverride) {
+    return null;
+  }
+  return {
+    name: member.name,
+    levelLabel: levelSliderLabel(Number(member.level) * 10),
+    reason: member.levelOverride.reason,
+  };
+}
 
 function memberCaption(member: GroupMember, canSetLevel: boolean) {
   const parts = [
@@ -95,21 +112,18 @@ function GroupMemberRow({
   member,
   canSetLevel,
   href,
-  onSelect,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
   href?: string;
-  onSelect?: () => void;
 }) {
   return (
     <MemberRow
       size="lg"
-      href={href}
       name={member.name}
       image={member.image}
       isViewer={member.isViewer}
-      onSelect={onSelect}
+      href={href}
       meta={memberCaption(member, canSetLevel)}
       trailing={
         <>
@@ -154,6 +168,8 @@ export function GroupMembersTab({
   linkToPlayers,
   canInvite,
   canSetLevel,
+  savedUserId,
+  onDismissSaved,
   onInvite,
 }: {
   groupId: string;
@@ -161,13 +177,14 @@ export function GroupMembersTab({
   linkToPlayers: boolean;
   canInvite: boolean;
   canSetLevel: boolean;
+  /** The member whose Level was just set, from the Set Level page. */
+  savedUserId: string | null;
+  onDismissSaved: () => void;
   onInvite: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [saved, setSaved] = useState<SavedLevel | null>(null);
-  const selected = canSetLevel
-    ? (members.find((member) => member.userId === selectedUserId) ?? null)
+  const saved = canSetLevel
+    ? savedLevelOf(members.find((member) => member.userId === savedUserId))
     : null;
   const showSearch = groupHomeShowsMemberSearch(members.length);
   const visible = showSearch
@@ -189,9 +206,7 @@ export function GroupMembersTab({
 
   return (
     <div className="flex flex-col gap-[26px]">
-      {saved ? (
-        <SavedBanner saved={saved} onDismiss={() => setSaved(null)} />
-      ) : null}
+      {saved ? <SavedBanner saved={saved} onDismiss={onDismissSaved} /> : null}
       {showSearch ? (
         <Input
           type="search"
@@ -214,12 +229,11 @@ export function GroupMembersTab({
               member={member}
               canSetLevel={canSetLevel}
               href={
-                linkToPlayers ? playerProfilePath(member.userId) : undefined
-              }
-              onSelect={
                 canSetLevel && !member.isViewer
-                  ? () => setSelectedUserId(member.userId)
-                  : undefined
+                  ? groupMemberSetLevelHref(groupId, member.userId)
+                  : linkToPlayers
+                    ? playerProfilePath(member.userId)
+                    : undefined
               }
             />
           ))}
@@ -234,24 +248,6 @@ export function GroupMembersTab({
       ) : null}
 
       {canInvite ? <InviteBlock onInvite={onInvite} /> : null}
-
-      {canSetLevel ? (
-        <SetLevelDialog
-          groupId={groupId}
-          member={selected}
-          profileHref={
-            linkToPlayers && selected
-              ? playerProfilePath(selected.userId)
-              : undefined
-          }
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedUserId(null);
-            }
-          }}
-          onSaved={setSaved}
-        />
-      ) : null}
     </div>
   );
 }

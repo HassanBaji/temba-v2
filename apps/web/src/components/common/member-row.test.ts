@@ -49,4 +49,14 @@ describe("MemberRow", () => {
       render({ name: "Omar Haddad", onSelect: () => undefined }),
     ).toContain("<button");
   });
+
+  it("renders a link row when it has an href", () => {
+    const html = render({
+      name: "Omar Haddad",
+      href: "/dashboard/groups/abc/members/user_1",
+    });
+
+    expect(html).toContain('href="/dashboard/groups/abc/members/user_1"');
+    expect(html).not.toContain("<button");
+  });
 });

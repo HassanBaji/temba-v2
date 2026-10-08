@@ -24,11 +24,13 @@ export function MemberRow({
   badge?: ReactNode;
   trailing?: ReactNode;
   size?: "default" | "lg";
+  /** Makes the whole row a link, with a chevron on narrow screens too. */
   href?: string;
   /** Makes the whole row a button, with a chevron on narrow screens too. */
   onSelect?: () => void;
 }) {
   const hasTrailing = badge != null || trailing != null;
+  const navigates = href != null || onSelect != null;
 
   const rowProps = {
     size,
@@ -43,11 +45,11 @@ export function MemberRow({
     ),
     meta,
     trailing:
-      hasTrailing || onSelect ? (
+      hasTrailing || navigates ? (
         <div className="flex items-center gap-2">
           {badge}
           {trailing}
-          {onSelect ? (
+          {navigates ? (
             <ChevronRight
               aria-hidden="true"
               className="text-muted-foreground size-[18px] shrink-0 sm:hidden"
