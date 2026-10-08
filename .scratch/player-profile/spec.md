@@ -416,7 +416,7 @@ Implement in order. Ticket 1 blocks all others. Tickets 2 and 3 depend on 1. Tic
 | # | Title | Blocked by |
 | --- | --- | --- |
 | 1 | Open a Group member's Player profile with header, Level card and Overall (done) | none |
-| 2 | Streaks and Preferred Position on the Player profile | 1 |
+| 2 | Streaks and Preferred Position on the Player profile (done) | 1 |
 | 3 | Last 10 strip and the three most recent Matches on the Player profile | 1 |
 | 4 | Last 10 screen with filters and the Match sheet | 3 |
 | 5 | Open Player profiles from Group Standing and Game Line-ups | 1 |

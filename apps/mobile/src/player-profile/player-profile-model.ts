@@ -1,8 +1,12 @@
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   overallView,
+  playedSideView,
   playerHeaderSubtitle,
+  streaksView,
+  type PlayedSideView,
   type PlayerOverallView,
+  type PlayerStreaksView,
 } from "@repo/domain/player-profile";
 import {
   playerLevelCardView,
@@ -20,6 +24,8 @@ export type PlayerProfileModel = {
   imageUri: string | null;
   subtitle: string;
   level: PlayerLevelCardView;
+  streaks: PlayerStreaksView;
+  position: PlayedSideView;
   overall: PlayerOverallView;
 };
 
@@ -38,6 +44,8 @@ export function playerProfileModel(
     imageUri: mediaUrl(data.player.image, apiOrigin),
     subtitle: playerHeaderSubtitle(data.venue),
     level: playerLevelCardView(data.rating),
+    streaks: streaksView(data.streaks),
+    position: playedSideView(data.position),
     overall: overallView(data.overall),
   };
 }

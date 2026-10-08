@@ -21,6 +21,27 @@ describe("playerProfileModel", () => {
     ]);
   });
 
+  it("builds the Streaks and Preferred Position cards", () => {
+    const model = playerProfileModel(fixtures.confirmed, ORIGIN);
+    expect(model.streaks).toEqual({
+      current: { headline: "4 wins in a row", wonMarks: 4 },
+      best: { headline: "7 wins", reachedIn: "March 2026" },
+    });
+    expect(model.position).toEqual({
+      label: "Left side",
+      subtitle: "Played left in 72% of matches",
+      court: { left: "ink", right: "paper" },
+    });
+  });
+
+  it("hides the played side below five recorded Matches", () => {
+    expect(playerProfileModel(fixtures.provisional, ORIGIN).position).toEqual({
+      label: "Either side",
+      subtitle: null,
+      court: { left: "ink", right: "ink" },
+    });
+  });
+
   it("resolves a stored image path against the API origin", () => {
     const model = playerProfileModel(
       {
@@ -36,6 +57,9 @@ describe("playerProfileModel", () => {
     const model = playerProfileModel(fixtures.newPlayer, ORIGIN);
     expect(model.subtitle).toBe("Padel");
     expect(model.level).toEqual({ kind: "none", label: "No Level yet" });
+    expect(model.streaks.best.headline).toBe("—");
+    expect(model.position.label).toBe("No preference set");
+    expect(model.position.court).toEqual({ left: "hatch", right: "hatch" });
     expect(model.overall.tiles.map((tile) => tile.value)).toEqual([
       "0",
       "0",

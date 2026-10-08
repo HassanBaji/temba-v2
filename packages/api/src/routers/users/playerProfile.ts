@@ -23,8 +23,9 @@ import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { levelFromMu } from "@repo/domain/level";
 import { matchOutcome } from "@repo/domain/match-outcome";
-import { userSlotOnMatch } from "@repo/domain/match-slots";
+import { outcomeForSlot, userSlotOnMatch } from "@repo/domain/match-slots";
 import { setWinsForGames } from "@repo/domain/set-wins-for-games";
+import { bestWinStreak, currentWinStreak } from "@repo/domain/win-streak";
 
 const VENUE_WINDOW = 10;
 const VENUE_MIN_MATCHES = 2;
@@ -82,6 +83,7 @@ type CountedMatch = {
   createdAt: Date;
   displayTime: Date;
   userSlot: 1 | 2;
+  position: "left" | "right" | null;
   sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
   venue: { id: string; name: string };
 };
@@ -102,13 +104,16 @@ async function loadCountedMatches(
   const seats = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, userId),
     columns: { id: true },
-    with: { gameTeamPlayers: { columns: { gameTeamId: true } } },
+    with: {
+      gameTeamPlayers: { columns: { gameTeamId: true, position: true } },
+    },
   });
-  const teamIds = new Set(
+  const positionByTeam = new Map(
     seats.flatMap((seat) =>
-      seat.gameTeamPlayers.map((link) => link.gameTeamId),
+      seat.gameTeamPlayers.map((link) => [link.gameTeamId, link.position]),
     ),
   );
+  const teamIds = new Set(positionByTeam.keys());
   if (teamIds.size === 0) {
     return [];
   }
@@ -161,10 +166,13 @@ async function loadCountedMatches(
     if (userSlot == null) {
       continue;
     }
+    const userTeamId =
+      userSlot === 1 ? row.slot1GameTeamId : row.slot2GameTeamId;
     counted.push({
       createdAt: row.createdAt,
       displayTime: row.startTime ?? gameListTime(game),
       userSlot,
+      position: userTeamId ? (positionByTeam.get(userTeamId) ?? null) : null,
       sets: row.sets,
       venue: game.venue,
     });
@@ -219,6 +227,34 @@ function overallFrom(counted: readonly CountedMatch[]) {
   };
 }
 
+function streaksFrom(newest: readonly CountedMatch[]) {
+  const results = newest.map((match) => ({
+    won:
+      outcomeForSlot(match.userSlot, matchOutcome(match.sets).result) === "won",
+    playedAt: match.displayTime,
+  }));
+  const best = bestWinStreak(results);
+  return {
+    current: currentWinStreak(results),
+    best: best.count,
+    bestReachedAt: best.reachedAt,
+  };
+}
+
+/** Left and right counts over the Matches with a recorded Position. */
+function playedSideCounts(counted: readonly CountedMatch[]) {
+  let leftCount = 0;
+  let rightCount = 0;
+  for (const match of counted) {
+    if (match.position === "left") {
+      leftCount += 1;
+    } else if (match.position === "right") {
+      rightCount += 1;
+    }
+  }
+  return { recordedCount: leftCount + rightCount, leftCount, rightCount };
+}
+
 async function padelRating(database: DbClient, userId: string, now: Date) {
   const row = await database.query.ratings.findFirst({
     where: and(
@@ -258,7 +294,7 @@ export async function loadPlayerProfile(
   }
   const player = await database.query.user.findFirst({
     where: eq(user.id, args.playerId),
-    columns: { id: true, name: true, image: true },
+    columns: { id: true, name: true, image: true, preferredPosition: true },
   });
   if (!player) {
     throw notFound();
@@ -279,6 +315,11 @@ export async function loadPlayerProfile(
     venue: usualVenue(counted),
     rating,
     overall: overallFrom(counted),
+    streaks: streaksFrom(counted),
+    position: {
+      declared: player.preferredPosition,
+      ...playedSideCounts(counted),
+    },
   };
 }
 

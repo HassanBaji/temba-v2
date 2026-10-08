@@ -6,13 +6,17 @@ import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   PLAYER_PROFILE_REFUSED,
   overallView,
+  playedSideView,
   playerHeaderSubtitle,
+  streaksView,
 } from "@repo/domain/player-profile";
 import { playerLevelCardView } from "@repo/domain/player-profile-level";
 import { api } from "~/trpc/react";
 
 import { PlayerBackButton, PlayerHeader } from "./player-header";
 import { PlayerOverallCard } from "./player-overall-card";
+import { PlayerPositionCard } from "./player-position-card";
+import { PlayerStreaksCard } from "./player-streaks-card";
 
 function PlayerProfileRefused() {
   return (
@@ -71,6 +75,8 @@ export function PlayerProfile({ userId }: { userId: string }) {
         subtitle={playerHeaderSubtitle(data.venue)}
         level={playerLevelCardView(data.rating)}
       />
+      <PlayerStreaksCard view={streaksView(data.streaks)} />
+      <PlayerPositionCard view={playedSideView(data.position)} />
       <PlayerOverallCard view={overallView(data.overall)} />
     </div>
   );

@@ -2,6 +2,8 @@ import type { DbClient } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import { outcomeForSlot } from "@repo/domain/match-slots";
+import { bestWinStreak } from "@repo/domain/win-streak";
 import {
   summarizeCompletedMatchStats,
   type CompletedMatchForStats,
@@ -20,22 +22,15 @@ function byChronology(
 }
 
 function longestWinStreak(played: readonly CompletedMatchForStats[]) {
-  const ordered = [...played].sort(byChronology);
-  let longest = 0;
-  let current = 0;
-  for (const match of ordered) {
-    const result = matchOutcome(match.sets).result;
-    const won = match.userSlot === 1 ? result === "slot1" : result === "slot2";
-    if (won) {
-      current += 1;
-      if (current > longest) {
-        longest = current;
-      }
-    } else {
-      current = 0;
-    }
-  }
-  return longest;
+  const newestFirst = [...played].sort(byChronology).reverse();
+  return bestWinStreak(
+    newestFirst.map((match) => ({
+      won:
+        outcomeForSlot(match.userSlot, matchOutcome(match.sets).result) ===
+        "won",
+      playedAt: match.displayTime,
+    })),
+  ).count;
 }
 
 function mostPlayedPartner(

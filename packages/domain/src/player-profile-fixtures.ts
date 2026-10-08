@@ -1,4 +1,8 @@
-import type { PlayerOverallInput } from "./player-profile";
+import type {
+  PlayerOverallInput,
+  PlayerPositionInput,
+  PlayerStreaksInput,
+} from "./player-profile";
 import type { PlayerLevelInput } from "./player-profile-level";
 
 export type PlayerProfileFixture = {
@@ -6,6 +10,8 @@ export type PlayerProfileFixture = {
   venue: { name: string } | null;
   rating: PlayerLevelInput | null;
   overall: PlayerOverallInput;
+  streaks: PlayerStreaksInput;
+  position: PlayerPositionInput;
 };
 
 const EMPTY_OVERALL: PlayerOverallInput = {
@@ -15,6 +21,19 @@ const EMPTY_OVERALL: PlayerOverallInput = {
   drawn: 0,
   setsWon: 0,
   setsPlayed: 0,
+};
+
+const NO_STREAKS: PlayerStreaksInput = {
+  current: 0,
+  best: 0,
+  bestReachedAt: null,
+};
+
+const NO_POSITION: PlayerPositionInput = {
+  declared: null,
+  recordedCount: 0,
+  leftCount: 0,
+  rightCount: 0,
 };
 
 const ELIN = {
@@ -55,6 +74,17 @@ export function createPlayerProfileFixtures(): {
       setsWon: 85,
       setsPlayed: 139,
     },
+    streaks: {
+      current: 4,
+      best: 7,
+      bestReachedAt: new Date("2026-03-14T17:00:00.000Z"),
+    },
+    position: {
+      declared: "left",
+      recordedCount: 50,
+      leftCount: 36,
+      rightCount: 14,
+    },
   };
 
   const provisional: PlayerProfileFixture = {
@@ -74,6 +104,17 @@ export function createPlayerProfileFixtures(): {
       drawn: 0,
       setsWon: 4,
       setsPlayed: 7,
+    },
+    streaks: {
+      current: 0,
+      best: 2,
+      bestReachedAt: new Date("2026-09-20T17:00:00.000Z"),
+    },
+    position: {
+      declared: "either",
+      recordedCount: 3,
+      leftCount: 2,
+      rightCount: 1,
     },
   };
 
@@ -110,6 +151,8 @@ export function createPlayerProfileFixtures(): {
       ratedMatchesRemaining: 5,
     },
     overall: EMPTY_OVERALL,
+    streaks: NO_STREAKS,
+    position: { ...NO_POSITION, declared: "right" },
   };
 
   const newPlayer: PlayerProfileFixture = {
@@ -117,6 +160,8 @@ export function createPlayerProfileFixtures(): {
     venue: null,
     rating: null,
     overall: EMPTY_OVERALL,
+    streaks: NO_STREAKS,
+    position: NO_POSITION,
   };
 
   const self: PlayerProfileFixture = {

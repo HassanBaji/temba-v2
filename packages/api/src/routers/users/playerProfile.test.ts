@@ -257,6 +257,24 @@ async function friendlyMatch(
   return game;
 }
 
+async function recordPosition(
+  database: TestDatabase,
+  gameId: string,
+  userId: string,
+  position: "left" | "right" | null,
+) {
+  const seated = await database.query.gamePlayers.findFirst({
+    where: and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.userId, userId)),
+  });
+  if (!seated) {
+    throw new Error("Player is not seated");
+  }
+  await database
+    .update(gameTeamPlayers)
+    .set({ position })
+    .where(eq(gameTeamPlayers.gamePlayerId, seated.id));
+}
+
 describe("mayViewPlayer", () => {
   it("lets a User see their own profile", async () => {
     await withDb(async (db) => {
@@ -490,6 +508,83 @@ describe("loadPlayerProfile", () => {
           setsWon: 0,
           setsPlayed: 0,
         },
+        streaks: { current: 0, best: 0, bestReachedAt: null },
+        position: {
+          declared: null,
+          recordedCount: 0,
+          leftCount: 0,
+          rightCount: 0,
+        },
+      });
+    });
+  });
+
+  it("reads the current and best Win streak, giving a tie to the more recent one", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      const oldestFirst = [WIN, WIN, LOSS, WIN, WIN, DRAW, WIN];
+      for (const [index, sets] of oldestFirst.entries()) {
+        await friendlyMatch(db, people, { sets, startTime: at(index + 1) });
+      }
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.left.id,
+        playerId: people.player.id,
+      });
+      expect(result.streaks).toEqual({
+        current: 1,
+        best: 2,
+        bestReachedAt: at(5),
+      });
+    });
+  });
+
+  it("has no current streak when the newest Match is lost", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      for (const [index, sets] of [WIN, WIN, WIN, LOSS].entries()) {
+        await friendlyMatch(db, people, { sets, startTime: at(index + 1) });
+      }
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.left.id,
+        playerId: people.player.id,
+      });
+      expect(result.streaks).toEqual({
+        current: 0,
+        best: 3,
+        bestReachedAt: at(3),
+      });
+    });
+  });
+
+  it("counts the played side over Matches with a recorded Position only", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await db
+        .update(user)
+        .set({ preferredPosition: "left" })
+        .where(eq(user.id, people.player.id));
+      const positions = ["left", "left", "right", null] as const;
+      for (const [index, position] of positions.entries()) {
+        const game = await friendlyMatch(db, people, {
+          sets: WIN,
+          startTime: at(index + 1),
+        });
+        await recordPosition(db, game.id, people.player.id, position);
+      }
+      await friendlyMatch(db, people, {
+        sets: WIN,
+        startTime: at(9),
+        sport: GameSportEnum.Football,
+      });
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.left.id,
+        playerId: people.player.id,
+      });
+      expect(result.position).toEqual({
+        declared: "left",
+        recordedCount: 3,
+        leftCount: 2,
+        rightCount: 1,
       });
     });
   });
