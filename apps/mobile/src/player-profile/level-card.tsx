@@ -7,7 +7,13 @@ import { MountFill } from "../primitives/mount-fill";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
-export function PlayerLevelCard({ view }: { view: PlayerLevelCardView }) {
+export function PlayerLevelCard({
+  view,
+  trend,
+}: {
+  view: PlayerLevelCardView;
+  trend: string | null;
+}) {
   const palette = useTonePalette();
   const tile = {
     borderRadius: radii.md,
@@ -36,7 +42,9 @@ export function PlayerLevelCard({ view }: { view: PlayerLevelCardView }) {
   return (
     <View
       accessible
-      accessibilityLabel={view.accessibilityLabel}
+      accessibilityLabel={[view.accessibilityLabel, trend]
+        .filter(Boolean)
+        .join(". ")}
       style={[tile, { gap: 12 }]}
     >
       <View
@@ -62,6 +70,15 @@ export function PlayerLevelCard({ view }: { view: PlayerLevelCardView }) {
         <Text size="h2" width="expanded" weight="bold">
           {view.level}
         </Text>
+        {trend ? (
+          <Text
+            size="meta"
+            tone="muted"
+            style={{ marginLeft: "auto", flexShrink: 1 }}
+          >
+            {trend}
+          </Text>
+        ) : null}
       </View>
       <MountFill percent={view.fillPercent} hatched={view.provisional} />
       <View style={{ gap: 2 }}>

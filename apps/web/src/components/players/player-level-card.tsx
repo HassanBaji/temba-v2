@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import type { PlayerLevelCardView } from "@repo/domain/player-profile-level";
 import { cn } from "~/lib/utils";
 
-export function PlayerLevelCard({ view }: { view: PlayerLevelCardView }) {
+export function PlayerLevelCard({
+  view,
+  trend,
+}: {
+  view: PlayerLevelCardView;
+  trend: string | null;
+}) {
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     setDrawn(true);
@@ -39,6 +45,11 @@ export function PlayerLevelCard({ view }: { view: PlayerLevelCardView }) {
         >
           {view.level}
         </span>
+        {trend ? (
+          <span className="text-meta text-dim ml-auto tabular-nums">
+            {trend}
+          </span>
+        ) : null}
         <span className="sr-only">{view.accessibilityLabel}</span>
       </p>
       <div

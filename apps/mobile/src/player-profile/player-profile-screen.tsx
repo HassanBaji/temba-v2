@@ -1,5 +1,10 @@
 import { PLAYER_PROFILE_REFUSED } from "@repo/domain/player-profile";
-import { useLocalSearchParams, type Href } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRouter,
+  useSegments,
+  type Href,
+} from "expo-router";
 import { useCallback, useState } from "react";
 
 import { Notice } from "../groups/notice";
@@ -8,6 +13,7 @@ import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { api } from "../trpc/react";
+import { playerMatchesPath } from "./player-path";
 import { playerProfileState } from "./player-profile-model";
 import { PlayerProfileView } from "./player-profile-view";
 
@@ -15,6 +21,8 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 const FALLBACK: Href = "/";
 
 export function PlayerProfileScreen({ userId }: { userId: string }) {
+  const router = useRouter();
+  const segments = useSegments();
   const [refreshing, setRefreshing] = useState(false);
   const query = api.users.playerProfile.useQuery(
     { userId },
@@ -68,7 +76,14 @@ export function PlayerProfileScreen({ userId }: { userId: string }) {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <PlayerProfileView model={state.model} fallback={FALLBACK} />
+      <PlayerProfileView
+        model={state.model}
+        fallback={FALLBACK}
+        onOpenMatch={(matchId) =>
+          router.push(playerMatchesPath(segments, userId, matchId))
+        }
+        onSeeAll={() => router.push(playerMatchesPath(segments, userId))}
+      />
     </Screen>
   );
 }

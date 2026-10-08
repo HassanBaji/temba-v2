@@ -34,7 +34,7 @@ export function PlayerHeader({
           </Text>
         </View>
       </View>
-      <PlayerLevelCard view={model.level} />
+      <PlayerLevelCard view={model.level} trend={model.trend} />
     </Surface>
   );
 }

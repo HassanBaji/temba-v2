@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import {
   detailBackHref,
   pageHidesMobileTopBar,
+  playerMatchesPath,
   playerProfilePath,
   titleFromPath,
 } from "./dashboard-paths";
@@ -97,6 +98,17 @@ describe("Player profile paths", () => {
 
   it("builds the Player profile path from the user id", () => {
     assert.equal(playerProfilePath(userId), `/dashboard/players/${userId}`);
+  });
+
+  it("builds the Last 10 path, with the Match to open", () => {
+    assert.equal(
+      playerMatchesPath(userId),
+      `/dashboard/players/${userId}/matches`,
+    );
+    assert.equal(
+      playerMatchesPath(userId, "match-1"),
+      `/dashboard/players/${userId}/matches?match=match-1`,
+    );
   });
 
   it("titles the Player profile and its Last 10 page", () => {

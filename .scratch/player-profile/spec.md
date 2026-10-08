@@ -291,8 +291,8 @@ Reads, roughly:
 | --- | --- |
 | `player-profile-level.ts` | `playerLevelCardView`, `displayBandSpan` |
 | `win-streak.ts` | `currentWinStreak`, `bestWinStreak` (server) |
-| `player-profile.ts` | `playerHeaderSubtitle`, `streaksView`, `playedSideView`, `overallView`, `lastTenSummary` |
-| `player-profile-matches.ts` | `playerMatchKindLabel`, `playerMatchRowView`, `levelChangeLabel`, `filterLastTen` |
+| `player-profile.ts` | `playerHeaderSubtitle`, `streaksView`, `playedSideView`, `overallView` |
+| `player-profile-matches.ts` | `playerMatchKindLabel`, `playerMatchRowView`, `levelChangeLabel`, `levelTrendLabel`, `lastTenSummary`, `filterLastTen` |
 | `player-profile-fixtures.ts` | Shared fixtures for every state in section 6, used by both clients' tests |
 
 The server's Venue choice (D7) and played-side counts (D6) are computed in the procedure file. They have one caller.
@@ -417,7 +417,7 @@ Implement in order. Ticket 1 blocks all others. Tickets 2 and 3 depend on 1. Tic
 | --- | --- | --- |
 | 1 | Open a Group member's Player profile with header, Level card and Overall (done) | none |
 | 2 | Streaks and Preferred Position on the Player profile (done) | 1 |
-| 3 | Last 10 strip and the three most recent Matches on the Player profile | 1 |
+| 3 | Last 10 strip and the three most recent Matches on the Player profile (done) | 1 |
 | 4 | Last 10 screen with filters and the Match sheet | 3 |
 | 5 | Open Player profiles from Group Standing and Game Line-ups | 1 |
 | 6 | Open Player profiles from Pool tables and the Knockout tree | 5 |

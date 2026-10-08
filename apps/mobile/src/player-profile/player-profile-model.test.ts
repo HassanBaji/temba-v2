@@ -42,6 +42,39 @@ describe("playerProfileModel", () => {
     });
   });
 
+  it("builds the Last 10 strip, the three recent rows and the trend", () => {
+    const model = playerProfileModel(fixtures.confirmed, ORIGIN);
+    expect(model.trend).toBe("Last 10: +0.3");
+    expect(model.lastTen.record).toBe("7 won, 3 lost");
+    expect(model.lastTen.marks).toHaveLength(10);
+    expect(model.lastTen.seeAll).toBe("See all 10 games");
+    expect(model.matches).toHaveLength(10);
+    expect(model.recentMatches.map((row) => row.meta)).toEqual([
+      "Thu 1 Oct, Tuesday Crew",
+      "Mon 28 Sep, Autumn Cup, Round 2",
+      "Sat 26 Sep, Autumn Cup, Semi-final",
+    ]);
+    expect(model.recentMatches[0]).toMatchObject({
+      opponents: "vs Sofia L & Adam R",
+      sets: ["6\u20134", "6\u20133"],
+      delta: "+0.1",
+    });
+  });
+
+  it("shows No games yet with no See all and no trend for a new player", () => {
+    const model = playerProfileModel(fixtures.newPlayer, ORIGIN);
+    expect(model.trend).toBeNull();
+    expect(model.lastTen).toMatchObject({
+      record: "No games yet.",
+      ends: null,
+      seeAll: null,
+    });
+    expect(model.lastTen.marks.every((mark) => mark === "not-played")).toBe(
+      true,
+    );
+    expect(model.recentMatches).toEqual([]);
+  });
+
   it("resolves a stored image path against the API origin", () => {
     const model = playerProfileModel(
       {

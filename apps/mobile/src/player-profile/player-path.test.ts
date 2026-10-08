@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { playerPath } from "./player-path";
+import { playerMatchesPath, playerPath } from "./player-path";
 
 const USER = "8c0f1f4e-2d0c-4f49-9a55-6a1f3b1f0a01";
 
@@ -32,5 +32,19 @@ describe("playerPath", () => {
 
   it("falls back to the Home stack outside a tab", () => {
     expect(playerPath([], USER)).toBe(`/players/${USER}`);
+  });
+});
+
+describe("playerMatchesPath", () => {
+  it("opens the Last 10 screen in the current tab", () => {
+    expect(
+      playerMatchesPath(["(app)", "groups", "players", "[userId]"], USER),
+    ).toBe(`/groups/players/${USER}/matches`);
+  });
+
+  it("carries the Match to open", () => {
+    expect(playerMatchesPath(["(app)", "(home)"], USER, "match-1")).toBe(
+      `/players/${USER}/matches?match=match-1`,
+    );
   });
 });

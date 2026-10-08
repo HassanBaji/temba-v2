@@ -5,6 +5,12 @@ export function playerProfilePath(userId: string) {
   return `/dashboard/players/${userId}`;
 }
 
+/** The Last 10 page, opened on one Match's sheet when `matchId` is given. */
+export function playerMatchesPath(userId: string, matchId?: string) {
+  const path = `${playerProfilePath(userId)}/matches`;
+  return matchId ? `${path}?match=${matchId}` : path;
+}
+
 export function titleFromPath(pathname: string) {
   if (pathname === "/dashboard") {
     return "Home";

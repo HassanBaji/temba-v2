@@ -515,6 +515,8 @@ describe("loadPlayerProfile", () => {
           leftCount: 0,
           rightCount: 0,
         },
+        trend: null,
+        lastMatches: [],
       });
     });
   });
@@ -791,6 +793,271 @@ describe("loadPlayerProfile", () => {
       });
       expect(idle.rating?.provisional).toBe(true);
       expect(idle.rating?.ratedMatchesRemaining).toBeGreaterThan(0);
+    });
+  });
+
+  it("returns the ten newest Matches with kind fields, both teams and the owner's side", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      for (let index = 1; index <= 11; index++) {
+        await friendlyMatch(db, people, {
+          sets: index % 2 === 0 ? LOSS : WIN,
+          startTime: at(index),
+        });
+      }
+      const group = await insertGroup(db, { createdBy: people.player.id });
+      const grouped = await insertGame(db, {
+        createdBy: people.player.id,
+        venueId: people.venue.id,
+      });
+      await db
+        .update(games)
+        .set({ groupId: group.id })
+        .where(eq(games.id, grouped.id));
+      await playMatch(db, {
+        gameId: grouped.id,
+        slot1: [people.left.id, people.right.id],
+        slot2: [people.player.id, people.partner.id],
+        sets: [
+          { slot1GamesWon: 4, slot2GamesWon: 6 },
+          { slot1GamesWon: 7, slot2GamesWon: 6 },
+          { slot1GamesWon: 3, slot2GamesWon: 6 },
+          { slot1GamesWon: null, slot2GamesWon: null },
+        ],
+        startTime: at(20),
+      });
+      await db.insert(ratings).values({
+        userId: people.left.id,
+        sport: GroupSportEnum.PADEL,
+        mu: muFromLevel(4.3),
+        phi: 120,
+        sigma: 0.06,
+        levelBand: "B3",
+        lastRatedAt: at(19),
+      });
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.left.id,
+        playerId: people.player.id,
+        now: at(21),
+      });
+
+      expect(result.lastMatches).toHaveLength(10);
+      expect(result.lastMatches.map((match) => match.playedAt)).toEqual([
+        at(20),
+        ...[11, 10, 9, 8, 7, 6, 5, 4, 3].map((day) => at(day)),
+      ]);
+      const [newest] = result.lastMatches;
+      expect(newest).toMatchObject({
+        gameId: grouped.id,
+        outcome: "won",
+        ownerSlot: 2,
+        game: {
+          name: "Evening padel",
+          format: GameFormatEnum.FRIENDLY_GAME,
+          groupName: "Tuesday Crew",
+          roundNumber: null,
+          knockoutRound: null,
+          venueName: "Padelhuset",
+        },
+        sets: [
+          { slot1GamesWon: 4, slot2GamesWon: 6 },
+          { slot1GamesWon: 7, slot2GamesWon: 6 },
+          { slot1GamesWon: 3, slot2GamesWon: 6 },
+        ],
+        rating: null,
+        canOpenGame: true,
+      });
+      expect(newest?.slot1).toEqual([
+        {
+          userId: people.left.id,
+          name: "Sofia Lind",
+          image: null,
+          levelBand: "B3",
+          level: "4.3",
+          provisional: false,
+        },
+        {
+          userId: people.right.id,
+          name: "Adam Ross",
+          image: null,
+          levelBand: null,
+          level: null,
+          provisional: false,
+        },
+      ]);
+      expect(newest?.slot2.map((player) => player.userId)).toEqual([
+        people.player.id,
+        people.partner.id,
+      ]);
+      expect(result.lastMatches[1]?.outcome).toBe("won");
+      expect(result.lastMatches[2]?.outcome).toBe("lost");
+      expect(result.trend).toBeNull();
+    });
+  });
+
+  it("reads a draw and the Pool, Knockout and Americano kind fields", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      const americano = await friendlyMatch(db, people, {
+        sets: DRAW,
+        startTime: at(1),
+        format: GameFormatEnum.AMERICANO,
+      });
+      const tournament = await friendlyMatch(db, people, {
+        sets: WIN,
+        startTime: at(2),
+        format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+      });
+      await db
+        .update(matches)
+        .set({ roundNumber: 3 })
+        .where(eq(matches.gameId, tournament.id));
+      const knockout = await friendlyMatch(db, people, {
+        sets: LOSS,
+        startTime: at(3),
+        format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+      });
+      await db
+        .update(matches)
+        .set({ knockoutRound: 1, knockoutPosition: 1 })
+        .where(eq(matches.gameId, knockout.id));
+      await db.insert(matches).values({
+        gameId: knockout.id,
+        knockoutRound: 2,
+        knockoutPosition: 1,
+      });
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.left.id,
+        playerId: people.player.id,
+      });
+
+      expect(
+        result.lastMatches.map((match) => ({
+          outcome: match.outcome,
+          gameId: match.gameId,
+          roundNumber: match.game.roundNumber,
+          knockoutRound: match.game.knockoutRound,
+          format: match.game.format,
+        })),
+      ).toEqual([
+        {
+          outcome: "lost",
+          gameId: knockout.id,
+          roundNumber: null,
+          knockoutRound: { round: 1, roundCount: 2 },
+          format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+        },
+        {
+          outcome: "won",
+          gameId: tournament.id,
+          roundNumber: 3,
+          knockoutRound: null,
+          format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+        },
+        {
+          outcome: "draw",
+          gameId: americano.id,
+          roundNumber: null,
+          knockoutRound: null,
+          format: GameFormatEnum.AMERICANO,
+        },
+      ]);
+    });
+  });
+
+  it("reads the owner's rating change per Match and sums the trend", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      const played = [];
+      for (const day of [1, 2, 3]) {
+        played.push(
+          await friendlyMatch(db, people, { sets: WIN, startTime: at(day) }),
+        );
+      }
+      const steps: [number, number][] = [
+        [4.12, 4.18],
+        [4.18, 4.31],
+      ];
+      for (const [index, [before, after]] of steps.entries()) {
+        const [row] = await db
+          .select({ id: matches.id })
+          .from(matches)
+          .where(eq(matches.gameId, played[index]!.id));
+        await db.insert(ratingEvents).values({
+          userId: people.player.id,
+          sport: GroupSportEnum.PADEL,
+          matchId: row!.id,
+          outcomeScore: 1,
+          weight: 1,
+          muBefore: muFromLevel(before),
+          phiBefore: 120,
+          sigmaBefore: 0.06,
+          muAfter: muFromLevel(after),
+          phiAfter: 118,
+          sigmaAfter: 0.06,
+        });
+      }
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.left.id,
+        playerId: people.player.id,
+      });
+
+      expect(result.lastMatches.map((match) => match.rating)).toEqual([
+        null,
+        {
+          levelBefore: 4.2,
+          levelAfter: 4.3,
+          bandBefore: "C1",
+          bandAfter: "B3",
+          levelChange: 0.1,
+        },
+        {
+          levelBefore: 4.1,
+          levelAfter: 4.2,
+          bandBefore: "C1",
+          bandAfter: "C1",
+          levelChange: 0.1,
+        },
+      ]);
+      expect(result.trend).toEqual({ levelChange: 0.2 });
+    });
+  });
+
+  it("lets the viewer open only the Games canViewGame allows", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      const viewer = await insertUser(db, "Group friend");
+      const group = await insertGroup(db, { createdBy: viewer.id });
+      await joinGroup(db, group.id, [viewer.id, people.player.id]);
+      const groupGame = await insertGame(db, {
+        createdBy: people.player.id,
+        venueId: people.venue.id,
+      });
+      await db
+        .update(games)
+        .set({ groupId: group.id })
+        .where(eq(games.id, groupGame.id));
+      await playMatch(db, {
+        gameId: groupGame.id,
+        slot1: [people.player.id, people.partner.id],
+        slot2: [people.left.id, people.right.id],
+        sets: WIN,
+        startTime: at(2),
+      });
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: viewer.id,
+        playerId: people.player.id,
+      });
+
+      expect(result.lastMatches.map((match) => match.canOpenGame)).toEqual([
+        true,
+        false,
+      ]);
     });
   });
 });

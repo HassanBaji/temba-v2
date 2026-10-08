@@ -31,11 +31,13 @@ export function PlayerHeader({
   image,
   subtitle,
   level,
+  trend,
 }: {
   name: string;
   image: string | null;
   subtitle: string;
   level: PlayerLevelCardView;
+  trend: string | null;
 }) {
   return (
     <Surface as="header" tone="ink" radius="surface" className="p-5">
@@ -54,7 +56,7 @@ export function PlayerHeader({
         </div>
       </div>
       <div className="mt-5">
-        <PlayerLevelCard view={level} />
+        <PlayerLevelCard view={level} trend={trend} />
       </div>
     </Surface>
   );

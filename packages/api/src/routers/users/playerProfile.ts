@@ -8,6 +8,8 @@ import {
   GroupSportEnum,
   MatchStatusEnum,
   gamePlayers,
+  gameTeamPlayers,
+  games,
   groupMembers,
   matches,
   ratingEvents,
@@ -18,12 +20,23 @@ import {
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { canViewGame } from "#src/games/access";
 import { gameListTime } from "#src/home/upcoming-games";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
-import { levelFromMu } from "@repo/domain/level";
+import {
+  bandFromLevel,
+  bandWithHysteresis,
+  formatLevel,
+  levelFromMu,
+} from "@repo/domain/level";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { outcomeForSlot, userSlotOnMatch } from "@repo/domain/match-slots";
+import {
+  LAST_TEN_SIZE,
+  type PlayerMatchInput,
+  type PlayerMatchPlayer,
+} from "@repo/domain/player-profile-matches";
 import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import { bestWinStreak, currentWinStreak } from "@repo/domain/win-streak";
 
@@ -80,12 +93,16 @@ export async function mayViewPlayer(
 }
 
 type CountedMatch = {
+  matchId: string;
+  gameId: string;
   createdAt: Date;
   displayTime: Date;
   userSlot: 1 | 2;
   position: "left" | "right" | null;
+  slotTeamIds: { 1: string | null; 2: string | null };
   sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
   venue: { id: string; name: string };
+  game: Omit<PlayerMatchInput["game"], "venueName">;
 };
 
 function newestFirst(left: CountedMatch, right: CountedMatch) {
@@ -127,15 +144,19 @@ async function loadCountedMatches(
       ),
     ),
     columns: {
+      id: true,
       startTime: true,
       createdAt: true,
       slot1GameTeamId: true,
       slot2GameTeamId: true,
+      roundNumber: true,
+      knockoutRound: true,
     },
     with: {
       game: {
         columns: {
           id: true,
+          name: true,
           groupId: true,
           cancelledAt: true,
           sport: true,
@@ -146,7 +167,10 @@ async function loadCountedMatches(
         },
         with: {
           venue: { columns: { id: true, name: true } },
-          matches: { columns: { startTime: true, status: true } },
+          group: { columns: { name: true } },
+          matches: {
+            columns: { startTime: true, status: true, knockoutRound: true },
+          },
         },
       },
       sets: {
@@ -169,12 +193,30 @@ async function loadCountedMatches(
     const userTeamId =
       userSlot === 1 ? row.slot1GameTeamId : row.slot2GameTeamId;
     counted.push({
+      matchId: row.id,
+      gameId: game.id,
       createdAt: row.createdAt,
       displayTime: row.startTime ?? gameListTime(game),
       userSlot,
       position: userTeamId ? (positionByTeam.get(userTeamId) ?? null) : null,
+      slotTeamIds: { 1: row.slot1GameTeamId, 2: row.slot2GameTeamId },
       sets: row.sets,
       venue: game.venue,
+      game: {
+        name: game.name,
+        format: game.format,
+        groupName: game.group?.name ?? null,
+        roundNumber: row.roundNumber,
+        knockoutRound:
+          row.knockoutRound == null
+            ? null
+            : {
+                round: row.knockoutRound,
+                roundCount: Math.max(
+                  ...game.matches.map((match) => match.knockoutRound ?? 0),
+                ),
+              },
+      },
     });
   }
   return counted.sort(newestFirst);
@@ -201,6 +243,204 @@ function usualVenue(newest: readonly CountedMatch[]) {
     }
   }
   return best && best.count >= VENUE_MIN_MATCHES ? { name: best.name } : null;
+}
+
+/** Each player's current padel Level, read the way their own profile reads it. */
+async function currentLevels(
+  database: DbClient,
+  userIds: readonly string[],
+  now: Date,
+) {
+  if (userIds.length === 0) {
+    return new Map<string, ReturnType<typeof youRatingViewAfterIdle>>();
+  }
+  const rows = await database.query.ratings.findMany({
+    where: and(
+      inArray(ratings.userId, [...userIds]),
+      eq(ratings.sport, GroupSportEnum.PADEL),
+    ),
+  });
+  return new Map(
+    rows.map((row) => [row.userId, youRatingViewAfterIdle(row, now)]),
+  );
+}
+
+async function teamPlayers(
+  database: DbClient,
+  teamIds: readonly string[],
+  now: Date,
+) {
+  const links =
+    teamIds.length === 0
+      ? []
+      : await database.query.gameTeamPlayers.findMany({
+          where: inArray(gameTeamPlayers.gameTeamId, [...teamIds]),
+          columns: { gameTeamId: true },
+          orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+          with: {
+            gamePlayer: {
+              columns: {},
+              with: {
+                user: { columns: { id: true, name: true, image: true } },
+              },
+            },
+          },
+        });
+  const people = links.flatMap((link) =>
+    link.gamePlayer.user
+      ? [{ teamId: link.gameTeamId, user: link.gamePlayer.user }]
+      : [],
+  );
+  const levels = await currentLevels(
+    database,
+    [...new Set(people.map((person) => person.user.id))],
+    now,
+  );
+
+  const byTeam = new Map<string, PlayerMatchPlayer[]>();
+  for (const person of people) {
+    const level = levels.get(person.user.id);
+    const players = byTeam.get(person.teamId) ?? [];
+    players.push({
+      userId: person.user.id,
+      name: person.user.name,
+      image: person.user.image,
+      levelBand: level?.levelBand ?? null,
+      level: level?.level ?? null,
+      provisional: level?.provisional ?? false,
+    });
+    byTeam.set(person.teamId, players);
+  }
+  return byTeam;
+}
+
+/**
+ * The owner's rating change per Match. The band in effect before the Match
+ * is not stored, so it is rebuilt the way `games.byId` rebuilds it.
+ */
+async function ratingChanges(
+  database: DbClient,
+  userId: string,
+  matchIds: readonly string[],
+) {
+  const events =
+    matchIds.length === 0
+      ? []
+      : await database.query.ratingEvents.findMany({
+          where: and(
+            eq(ratingEvents.userId, userId),
+            eq(ratingEvents.sport, GroupSportEnum.PADEL),
+            inArray(ratingEvents.matchId, [...matchIds]),
+          ),
+          columns: { matchId: true, muBefore: true, muAfter: true },
+        });
+  return new Map(
+    events.map((event) => {
+      const before = levelFromMu(event.muBefore);
+      const after = levelFromMu(event.muAfter);
+      const levelBefore = Number(formatLevel(before));
+      const levelAfter = Number(formatLevel(after));
+      const bandBefore = bandFromLevel(before);
+      return [
+        event.matchId,
+        {
+          levelBefore,
+          levelAfter,
+          bandBefore,
+          bandAfter: bandWithHysteresis(after, bandBefore),
+          levelChange: Math.round((levelAfter - levelBefore) * 10) / 10,
+        },
+      ];
+    }),
+  );
+}
+
+async function openableGameIds(
+  database: DbClient,
+  viewerId: string,
+  gameIds: readonly string[],
+) {
+  const rows =
+    gameIds.length === 0
+      ? []
+      : await database.query.games.findMany({
+          where: inArray(games.id, [...gameIds]),
+        });
+  const openable = new Set<string>();
+  for (const game of rows) {
+    if (await canViewGame(database, game, viewerId)) {
+      openable.add(game.id);
+    }
+  }
+  return openable;
+}
+
+async function lastMatchesFrom(
+  database: DbClient,
+  args: { viewerId: string; playerId: string; now: Date },
+  newest: readonly CountedMatch[],
+): Promise<PlayerMatchInput[]> {
+  const shown = newest.slice(0, LAST_TEN_SIZE);
+  const teamIds = shown.flatMap((match) =>
+    [match.slotTeamIds[1], match.slotTeamIds[2]].filter(
+      (id): id is string => id != null,
+    ),
+  );
+  const [players, ratingByMatch, openable] = await Promise.all([
+    teamPlayers(database, teamIds, args.now),
+    ratingChanges(
+      database,
+      args.playerId,
+      shown.map((match) => match.matchId),
+    ),
+    openableGameIds(database, args.viewerId, [
+      ...new Set(shown.map((match) => match.gameId)),
+    ]),
+  ]);
+  const playersOf = (teamId: string | null) =>
+    teamId ? (players.get(teamId) ?? []) : [];
+
+  return shown.map((match) => {
+    // A completed Match with no scored Set has no winner, so it reads as a draw.
+    const outcome = outcomeForSlot(
+      match.userSlot,
+      matchOutcome(match.sets).result,
+    );
+    return {
+      matchId: match.matchId,
+      gameId: match.gameId,
+      playedAt: match.displayTime,
+      outcome: outcome ?? "draw",
+      game: { ...match.game, venueName: match.venue.name },
+      ownerSlot: match.userSlot,
+      slot1: playersOf(match.slotTeamIds[1]),
+      slot2: playersOf(match.slotTeamIds[2]),
+      sets: match.sets.flatMap((set) =>
+        set.slot1GamesWon != null && set.slot2GamesWon != null
+          ? [
+              {
+                slot1GamesWon: set.slot1GamesWon,
+                slot2GamesWon: set.slot2GamesWon,
+              },
+            ]
+          : [],
+      ),
+      rating: ratingByMatch.get(match.matchId) ?? null,
+      canOpenGame: openable.has(match.gameId),
+    };
+  });
+}
+
+/** D5: the sum of the rated deltas, so it equals after-last minus before-first. */
+function trendFrom(lastMatches: readonly PlayerMatchInput[]) {
+  const rated = lastMatches.flatMap((match) =>
+    match.rating ? [match.rating.levelChange] : [],
+  );
+  if (rated.length === 0) {
+    return null;
+  }
+  const sum = rated.reduce((total, change) => total + change, 0);
+  return { levelChange: Math.round(sum * 10) / 10 };
 }
 
 function overallFrom(counted: readonly CountedMatch[]) {
@@ -300,10 +540,16 @@ export async function loadPlayerProfile(
     throw notFound();
   }
 
+  const now = args.now ?? new Date();
   const [rating, counted] = await Promise.all([
-    padelRating(database, player.id, args.now ?? new Date()),
+    padelRating(database, player.id, now),
     loadCountedMatches(database, player.id),
   ]);
+  const lastMatches = await lastMatchesFrom(
+    database,
+    { viewerId: args.viewerId, playerId: player.id, now },
+    counted,
+  );
 
   return {
     player: {
@@ -314,12 +560,14 @@ export async function loadPlayerProfile(
     },
     venue: usualVenue(counted),
     rating,
+    trend: trendFrom(lastMatches),
     overall: overallFrom(counted),
     streaks: streaksFrom(counted),
     position: {
       declared: player.preferredPosition,
       ...playedSideCounts(counted),
     },
+    lastMatches,
   };
 }
 

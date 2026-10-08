@@ -11,14 +11,21 @@ import {
   streaksView,
 } from "@repo/domain/player-profile";
 import { playerLevelCardView } from "@repo/domain/player-profile-level";
+import {
+  LAST_TEN_RECENT_ROWS,
+  lastTenSummary,
+  levelTrendLabel,
+  playerMatchRowView,
+} from "@repo/domain/player-profile-matches";
 import { api } from "~/trpc/react";
 
 import { PlayerBackButton, PlayerHeader } from "./player-header";
+import { PlayerLastTenCard } from "./player-last-ten-card";
 import { PlayerOverallCard } from "./player-overall-card";
 import { PlayerPositionCard } from "./player-position-card";
 import { PlayerStreaksCard } from "./player-streaks-card";
 
-function PlayerProfileRefused() {
+export function PlayerProfileRefused() {
   return (
     <div className="space-y-5">
       <PlayerBackButton surface="paper" />
@@ -74,10 +81,18 @@ export function PlayerProfile({ userId }: { userId: string }) {
         image={data.player.image}
         subtitle={playerHeaderSubtitle(data.venue)}
         level={playerLevelCardView(data.rating)}
+        trend={levelTrendLabel(data.trend)}
       />
       <PlayerStreaksCard view={streaksView(data.streaks)} />
       <PlayerPositionCard view={playedSideView(data.position)} />
       <PlayerOverallCard view={overallView(data.overall)} />
+      <PlayerLastTenCard
+        userId={userId}
+        summary={lastTenSummary(data.lastMatches)}
+        rows={data.lastMatches
+          .slice(0, LAST_TEN_RECENT_ROWS)
+          .map(playerMatchRowView)}
+      />
     </div>
   );
 }

@@ -15,3 +15,13 @@ export function playerPath(segments: readonly string[], userId: string) {
   const prefix = TAB_PREFIX[tab] ?? "";
   return `${prefix}/players/${userId}`;
 }
+
+/** The Last 10 screen, opened on one Match's sheet when `matchId` is given. */
+export function playerMatchesPath(
+  segments: readonly string[],
+  userId: string,
+  matchId?: string,
+) {
+  const path = `${playerPath(segments, userId)}/matches`;
+  return matchId ? `${path}?match=${matchId}` : path;
+}
