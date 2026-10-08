@@ -10,10 +10,12 @@ export function MemberSheet({
   member,
   onClose,
   onSetLevel,
+  onViewProfile,
 }: {
   member: MemberSheetView | null;
   onClose: () => void;
   onSetLevel: () => void;
+  onViewProfile?: () => void;
 }) {
   return (
     <Sheet visible={member != null} onClose={onClose} title={member?.name}>
@@ -52,6 +54,14 @@ export function MemberSheet({
             </Surface>
           ) : null}
           <Button label="Set Level" size="lg" onPress={onSetLevel} />
+          {onViewProfile ? (
+            <Button
+              label="View profile"
+              size="lg"
+              variant="outline"
+              onPress={onViewProfile}
+            />
+          ) : null}
         </View>
       ) : null}
     </Sheet>

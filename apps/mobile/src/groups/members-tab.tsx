@@ -180,6 +180,16 @@ export function MembersTab({
               onSetLevel(selected.userId);
             }
           }}
+          onViewProfile={
+            onOpenMember
+              ? () => {
+                  if (selected) {
+                    setSelectedUserId(null);
+                    onOpenMember(selected.userId);
+                  }
+                }
+              : undefined
+          }
         />
       ) : null}
     </View>

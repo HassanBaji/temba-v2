@@ -239,6 +239,11 @@ export function GroupMembersTab({
         <SetLevelDialog
           groupId={groupId}
           member={selected}
+          profileHref={
+            linkToPlayers && selected
+              ? playerProfilePath(selected.userId)
+              : undefined
+          }
           onOpenChange={(open) => {
             if (!open) {
               setSelectedUserId(null);
