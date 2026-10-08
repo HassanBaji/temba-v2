@@ -42,4 +42,11 @@ describe("MemberRow", () => {
     expect(html.indexOf("Omar Haddad")).toBeLessThan(html.indexOf("Creator"));
     expect(html.indexOf("Creator")).toBeLessThan(html.indexOf("Remove"));
   });
+
+  it("renders a button row only when it can be selected", () => {
+    expect(render({ name: "Omar Haddad" })).not.toContain("<button");
+    expect(
+      render({ name: "Omar Haddad", onSelect: () => undefined }),
+    ).toContain("<button");
+  });
 });

@@ -32,6 +32,9 @@ function entry(
     losses: record.losses,
     levelBand: "C2",
     levelProvisional: false,
+    level: "3.2",
+    ratedMatchCount: played,
+    levelOverride: null,
     formMarks: [],
     joinedAt: new Date("2025-02-11T12:00:00Z"),
     ...extra,
@@ -142,6 +145,7 @@ export function createGroupFixtures(now = new Date()) {
       {
         isOrganizer: true,
         levelBand: "B1",
+        level: "5.1",
         formMarks: ["won", "won", "won", "lost"],
       },
     ),
@@ -168,7 +172,7 @@ export function createGroupFixtures(now = new Date()) {
       "elin",
       "Elin Nilsson",
       { wins: 1, losses: 4 },
-      { levelBand: null, levelProvisional: true },
+      { levelBand: null, levelProvisional: true, level: null },
     ),
   ];
 
@@ -235,6 +239,7 @@ export function createGroupFixtures(now = new Date()) {
     canDecideJoinRequests: false,
     canManageImage: false,
     canDelete: false,
+    viewerCanSetLevel: false,
   };
 
   const creator: GroupHomeData = {

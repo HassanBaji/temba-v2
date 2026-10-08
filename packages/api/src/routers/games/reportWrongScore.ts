@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  levelOverrides,
   MatchStatusEnum,
   matches,
   matchResultConfirmations,
@@ -33,8 +34,8 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  * sequential, so restoring stored before-values would otherwise silently
  * erase legitimate later changes.
  *
- * When eligible, in one transaction: restores all four Ratings (μ, φ, σ) to
- * the before-values stored on this Match's rating events, deletes those four
+ * When eligible, in one transaction: restores each Rating (μ, φ, σ) to the
+ * before-values stored on this Match's rating events, deletes those four
  * rating events, clears the Match's `match_result_confirmations`, and drops
  * `match.status` back to `pending`. No new status/phase is invented — this
  * re-derives the existing `needs_results` phase (`byId.ts`) and re-enters
@@ -98,8 +99,39 @@ export async function reportWrongScore(
       where: eq(ratingEvents.matchId, locked.id),
     });
 
+    const eventUserIds = matchEvents.map((event) => event.userId);
+    let laterOverrides: { userId: string; sport: string; createdAt: Date }[] =
+      [];
+    if (eventUserIds.length > 0) {
+      await tx
+        .select({ id: ratings.id })
+        .from(ratings)
+        .where(inArray(ratings.userId, eventUserIds))
+        .orderBy(ratings.userId)
+        .for("update");
+      laterOverrides = await tx
+        .select({
+          userId: levelOverrides.userId,
+          sport: levelOverrides.sport,
+          createdAt: levelOverrides.createdAt,
+        })
+        .from(levelOverrides)
+        .where(inArray(levelOverrides.userId, eventUserIds));
+    }
+
     const now = new Date();
     for (const event of matchEvents) {
+      // A Level override set after this Match is that User's baseline: their
+      // Rating stays as it is, and only the event goes.
+      const hasLaterOverride = laterOverrides.some(
+        (override) =>
+          override.userId === event.userId &&
+          override.sport === event.sport &&
+          override.createdAt > event.createdAt,
+      );
+      if (hasLaterOverride) {
+        continue;
+      }
       await tx
         .update(ratings)
         .set({

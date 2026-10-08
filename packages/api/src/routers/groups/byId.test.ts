@@ -21,12 +21,15 @@ import {
   groups,
   matchSets,
   matches,
+  ratingEvents,
   ratings,
   user,
   venues,
 } from "@repo/db/schema";
 
 import { groupById } from "#src/routers/groups/byId";
+import { loadRatingsMe } from "#src/routers/ratings/me";
+import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import { commit } from "#src/soft-archive";
@@ -592,6 +595,91 @@ describe("groupById standing facts", () => {
     }
   });
 
+  it("returns Level and Rated Match count, with idle-aware Provisional matching ratings.me", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "level-viewer@example.com");
+      const idle = await insertUser(db, "level-idle@example.com");
+      const unrated = await insertUser(db, "level-unrated@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, viewer.id, {
+        members: [idle.id, unrated.id],
+      });
+      const { matchId } = await insertGroupGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        groupId: group.id,
+        ...pastWindow(24),
+      });
+
+      const longAgo = new Date(NOW.getTime() - 400 * 24 * 60 * 60 * 1000);
+      await db.insert(ratings).values([
+        {
+          userId: viewer.id,
+          sport: GroupSportEnum.PADEL,
+          mu: 1900,
+          phi: 190,
+          sigma: 0.06,
+          levelBand: "C1",
+          lastRatedAt: NOW,
+        },
+        {
+          userId: idle.id,
+          sport: GroupSportEnum.PADEL,
+          mu: 1900,
+          phi: 199.9,
+          sigma: 0.06,
+          levelBand: "C1",
+          lastRatedAt: longAgo,
+        },
+      ]);
+      await db.insert(ratingEvents).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.PADEL,
+        matchId,
+        outcomeScore: 1,
+        weight: 1,
+        muBefore: 1850,
+        phiBefore: 200,
+        sigmaBefore: 0.06,
+        muAfter: 1900,
+        phiAfter: 190,
+        sigmaAfter: 0.06,
+      });
+
+      const detail = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+      const byUserId = new Map(
+        detail.standing.leaderboard.map((entry) => [entry.userId, entry]),
+      );
+
+      expect(byUserId.get(viewer.id)).toMatchObject({
+        level: "3.8",
+        ratedMatchCount: 1,
+        levelProvisional: false,
+      });
+      expect(byUserId.get(idle.id)).toMatchObject({
+        level: "3.8",
+        ratedMatchCount: 0,
+        levelProvisional: true,
+      });
+      expect(byUserId.get(unrated.id)).toMatchObject({
+        level: null,
+        ratedMatchCount: 0,
+        levelBand: null,
+        levelProvisional: true,
+      });
+
+      const me = await loadRatingsMe(db, { userId: idle.id });
+      expect(me.rating?.provisional).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
   it("shows no Level at all when the Group has no sport", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -914,6 +1002,117 @@ describe("groupById Game history pagination", () => {
         gameHistory: { limit: 2, cursor: { id: last.id } },
       });
       expect(next.gameHistory).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById Level setter fields", () => {
+  const setterMetadata = async () => ({ levelSetter: true });
+  const plainMetadata = async () => ({});
+
+  async function setUp(database: TestDatabase) {
+    const viewer = await insertUser(database, "ls-viewer@example.com");
+    const member = await insertUser(database, "ls-member@example.com");
+    const group = await insertGroup(database, viewer.id, {
+      members: [member.id],
+    });
+    return { viewer, member, group };
+  }
+
+  function leaderboardEntry(
+    result: Awaited<ReturnType<typeof groupById>>,
+    userId: string,
+  ) {
+    return result.standing.leaderboard.find((row) => row.userId === userId);
+  }
+
+  it("is true only for a member Level setter in a Group with a sport", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { viewer, group } = await setUp(db);
+      const outsider = await insertUser(db, "ls-outsider@example.com");
+      const noSport = await insertGroup(db, viewer.id, { sport: null });
+      const args = { groupId: group.id, userId: viewer.id };
+
+      expect(
+        (await groupById(db, { ...args, getPublicMetadata: setterMetadata }))
+          .viewerCanSetLevel,
+      ).toBe(true);
+      expect(
+        (await groupById(db, { ...args, getPublicMetadata: plainMetadata }))
+          .viewerCanSetLevel,
+      ).toBe(false);
+      expect((await groupById(db, args)).viewerCanSetLevel).toBe(false);
+      expect(
+        (
+          await groupById(db, {
+            groupId: group.id,
+            userId: outsider.id,
+            getPublicMetadata: setterMetadata,
+          })
+        ).viewerCanSetLevel,
+      ).toBe(false);
+      expect(
+        (
+          await groupById(db, {
+            groupId: noSport.id,
+            userId: viewer.id,
+            getPublicMetadata: setterMetadata,
+          })
+        ).viewerCanSetLevel,
+      ).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("shows the latest set to a Level setter only", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { viewer, member, group } = await setUp(db);
+      await setMemberLevel(db, {
+        groupId: group.id,
+        setterUserId: viewer.id,
+        targetUserId: member.id,
+        levelTenths: 30,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await setMemberLevel(db, {
+        groupId: group.id,
+        setterUserId: viewer.id,
+        targetUserId: member.id,
+        levelTenths: 46,
+        reason: "plays_above_results",
+      });
+
+      const asSetter = await groupById(db, {
+        groupId: group.id,
+        userId: viewer.id,
+        getPublicMetadata: setterMetadata,
+      });
+      expect(leaderboardEntry(asSetter, member.id)).toMatchObject({
+        level: "4.6",
+        levelProvisional: false,
+        levelOverride: {
+          setByName: "ls-viewer",
+          setByIsViewer: true,
+          reason: "plays_above_results",
+        },
+      });
+      expect(leaderboardEntry(asSetter, viewer.id)?.levelOverride).toBeNull();
+
+      const asPlainMember = await groupById(db, {
+        groupId: group.id,
+        userId: member.id,
+        getPublicMetadata: plainMetadata,
+      });
+      expect(leaderboardEntry(asPlainMember, member.id)).toMatchObject({
+        level: "4.6",
+        levelProvisional: false,
+        levelOverride: null,
+      });
     } finally {
       await close();
     }

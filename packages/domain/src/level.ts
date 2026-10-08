@@ -15,6 +15,8 @@ export const INITIAL_MU = 1500;
 export const INITIAL_PHI = 350;
 export const INITIAL_SIGMA = 0.06;
 export const PROVISIONAL_PHI_THRESHOLD = 200;
+/** φ ceiling a Level override writes; below the Provisional threshold so idle growth cannot undo it. */
+export const LEVEL_OVERRIDE_PHI = 150;
 /** Typical Rated Matches from a fresh Rating (φ₀) until Provisional clears. */
 export const RATED_MATCHES_TO_CONFIRM = 5;
 
@@ -224,6 +226,10 @@ export function ratedMatchesRemainingToConfirm(phi: number): number {
     ((cappedPhi - PROVISIONAL_PHI_THRESHOLD) / span) * RATED_MATCHES_TO_CONFIRM,
   );
   return Math.max(1, remaining);
+}
+
+export function confirmedPhiForOverride(phi: number | null): number {
+  return Math.min(phi ?? INITIAL_PHI, LEVEL_OVERRIDE_PHI);
 }
 
 export function initialRatingFromChoice(

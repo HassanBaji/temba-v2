@@ -1,5 +1,4 @@
 import {
-  createFlowLaterSteps,
   type CreateGroupOption,
   type CreateVenuePicker,
 } from "@repo/domain/create-game-flow";
@@ -181,19 +180,12 @@ export function CreateView(props: CreateViewProps) {
       venueName: venue?.name ?? null,
       courtNames,
     });
-  const upcoming =
-    state.step <= 2
-      ? createFlowLaterSteps(state.type).filter(
-          (item) => item.step > state.step,
-        )
-      : [];
 
   return (
     <StepShell
       step={state.step}
       header={header}
       onBack={props.onBack}
-      upcoming={upcoming}
       footer={
         <StepFooter
           state={state}

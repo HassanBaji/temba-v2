@@ -6,15 +6,41 @@ import { Text } from "../primitives/text";
 
 const CELL_WIDTH = 44;
 const CELL_HEIGHT = 20;
+const LEVEL_CELL_WIDTH = 64;
 
-export function LevelCell({ view }: { view: LevelCellView }) {
+export function LevelCell({
+  view,
+  level,
+}: {
+  view: LevelCellView;
+  level?: string | null;
+}) {
+  const text = view.label && level ? `${view.label} ${level}` : view.label;
+
   if (view.kind === "provisional") {
+    const hatchText = level ? text : null;
     return (
       <View
-        accessibilityLabel="Level still Provisional"
-        style={{ width: CELL_WIDTH, height: CELL_HEIGHT }}
+        accessibilityLabel={
+          hatchText
+            ? `Level ${hatchText}, still Provisional`
+            : "Level still Provisional"
+        }
+        style={{
+          width: hatchText ? undefined : CELL_WIDTH,
+          minWidth: hatchText ? CELL_WIDTH : undefined,
+          height: CELL_HEIGHT,
+          paddingHorizontal: hatchText ? 6 : 0,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         <Hatch />
+        {hatchText ? (
+          <Text size="meta" weight="semibold">
+            {hatchText}
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -22,9 +48,12 @@ export function LevelCell({ view }: { view: LevelCellView }) {
     <Text
       width="expanded"
       weight="bold"
-      style={{ minWidth: CELL_WIDTH, textAlign: "right" }}
+      style={{
+        minWidth: level ? LEVEL_CELL_WIDTH : CELL_WIDTH,
+        textAlign: "right",
+      }}
     >
-      {view.label}
+      {text}
     </Text>
   );
 }

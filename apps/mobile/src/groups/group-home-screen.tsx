@@ -15,7 +15,7 @@ import {
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { useRouter, useSegments } from "expo-router";
+import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
@@ -37,6 +37,11 @@ import { api } from "../trpc/react";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
 import { Notice } from "./notice";
+import {
+  savedLevelFromParams,
+  setLevelPath,
+  type SavedLevelParams,
+} from "./set-level-model";
 import { useGroupAdmin } from "./use-group-admin";
 import { useGroupJoin } from "./use-group-join";
 
@@ -51,6 +56,8 @@ type OlderPages = {
 export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const router = useRouter();
   const segments = useSegments();
+  const params = useLocalSearchParams<SavedLevelParams>();
+  const saved = savedLevelFromParams(params);
   const toast = useToast();
   const utils = api.useUtils();
   const [tab, setTab] = useState<GroupHomeTab>("standing");
@@ -137,6 +144,20 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     }
   }, [group, admin]);
 
+  const openSetLevelScreen = useCallback(
+    (userId: string) => router.push(setLevelPath(groupId, userId)),
+    [router, groupId],
+  );
+  const dismissSaved = useCallback(
+    () =>
+      router.setParams({
+        savedName: undefined,
+        savedLevel: undefined,
+        savedReason: undefined,
+      }),
+    [router],
+  );
+
   const header = <ScreenHeader nav="back" fallback="/groups" />;
 
   if (isNotFoundError(group.error)) {
@@ -217,6 +238,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         memberQuery={memberQuery}
         onMemberQueryChange={setMemberQuery}
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}
+        onSetLevel={openSetLevelScreen}
+        saved={saved}
+        onDismissSaved={dismissSaved}
         games={{
           playedGames,
           pendingGameId,

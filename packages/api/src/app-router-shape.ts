@@ -151,7 +151,7 @@ type ExpectedNotifications =
   | "markRead"
   | "markAllRead";
 
-type ExpectedRatings = "me" | "selfDeclare";
+type ExpectedRatings = "me" | "selfDeclare" | "setLevel";
 
 type ExpectedTeams =
   | "create"

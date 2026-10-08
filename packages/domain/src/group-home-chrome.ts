@@ -204,21 +204,25 @@ export function groupPlayedMarkVariant(
 
 export type LevelCellView =
   | { kind: "label"; label: string }
-  | { kind: "provisional" };
+  | { kind: "provisional"; label: string | null };
 
 /**
  * The Level column: the band label, or the hatched Provisional placeholder
  * when the Rating is still Provisional (ADR-0009) or the member has no Rating
- * for the Group's sport.
+ * for the Group's sport. A Provisional member with a band still carries its
+ * letter, for the Members tab to draw on the hatch.
  */
 export function levelCellView(
   band: LevelBand | null | undefined,
   provisional: boolean,
 ): LevelCellView {
-  if (!band || provisional) {
-    return { kind: "provisional" };
+  if (!band) {
+    return { kind: "provisional", label: null };
   }
-  return { kind: "label", label: displayLabelFromStoredBand(band) };
+  const label = displayLabelFromStoredBand(band);
+  return provisional
+    ? { kind: "provisional", label }
+    : { kind: "label", label };
 }
 
 /** Design 06c draws four marks per member; the derivation returns up to five. */

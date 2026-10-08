@@ -1,6 +1,6 @@
 import { and, count, eq } from "drizzle-orm";
 
-import { GroupSportEnum, ratingEvents, ratings } from "@repo/db";
+import { GroupSportEnum, levelOverrides, ratingEvents, ratings } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,41 +16,51 @@ import {
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** Recent Rated Match Level points for the home sparkline. */
-const HISTORY_EVENT_LIMIT = 15;
+/** Recent Level changes (Rated Matches and sets) for the home sparkline. */
+const HISTORY_CHANGE_LIMIT = 15;
 
 async function padelLevelHistory(
   database: DbClient,
   userId: string,
 ): Promise<string[]> {
-  const events = await database.query.ratingEvents.findMany({
-    where: and(
-      eq(ratingEvents.userId, userId),
-      eq(ratingEvents.sport, GroupSportEnum.PADEL),
-    ),
-    orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
-    limit: HISTORY_EVENT_LIMIT,
-    columns: {
-      muBefore: true,
-      muAfter: true,
-    },
-  });
+  const [events, overrides] = await Promise.all([
+    database.query.ratingEvents.findMany({
+      where: and(
+        eq(ratingEvents.userId, userId),
+        eq(ratingEvents.sport, GroupSportEnum.PADEL),
+      ),
+      orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+      limit: HISTORY_CHANGE_LIMIT,
+      columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
+    }),
+    database.query.levelOverrides.findMany({
+      where: and(
+        eq(levelOverrides.userId, userId),
+        eq(levelOverrides.sport, GroupSportEnum.PADEL),
+      ),
+      orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+      limit: HISTORY_CHANGE_LIMIT,
+      columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
+    }),
+  ]);
 
-  if (events.length === 0) {
-    return [];
-  }
+  const changes = [...events, ...overrides]
+    .sort(
+      (a, b) =>
+        a.createdAt.getTime() - b.createdAt.getTime() ||
+        (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+    )
+    .slice(-HISTORY_CHANGE_LIMIT);
 
-  const chronological = [...events].reverse();
-  const first = chronological[0];
+  const first = changes[0];
   if (!first) {
     return [];
   }
 
-  const history = [displayedLevelFromMu(first.muBefore)];
-  for (const event of chronological) {
-    history.push(displayedLevelFromMu(event.muAfter));
-  }
-  return history;
+  return [
+    displayedLevelFromMu(first.muBefore),
+    ...changes.map((change) => displayedLevelFromMu(change.muAfter)),
+  ];
 }
 
 async function padelRatedMatchCount(

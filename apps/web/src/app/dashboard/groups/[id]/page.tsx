@@ -657,6 +657,8 @@ export default function GroupHomePage({
                 communityName={data.community?.name ?? null}
               />
               <GroupMembersTab
+                groupId={id}
+                canSetLevel={data.viewerCanSetLevel}
                 members={data.standing.leaderboard.map((entry) => ({
                   userId: entry.userId,
                   name: entry.name ?? "Member",
@@ -667,6 +669,9 @@ export default function GroupHomePage({
                   formMarks: entry.formMarks,
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
+                  level: entry.level,
+                  ratedMatchCount: entry.ratedMatchCount,
+                  levelOverride: entry.levelOverride,
                 }))}
                 linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
