@@ -8,6 +8,7 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { FriendlyGameSeatBlocks } from "~/components/games/friendly-game-seat-blocks";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
+import { gamePlayersLink } from "~/lib/game-player-links";
 import {
   formatGameSideLabel,
   gameTeamDisplayName,
@@ -151,6 +152,7 @@ export function GamePlayersPanel({
               }
               onMove={onMoveSeat}
               onKick={onKick}
+              linkToPlayers={gamePlayersLink(game)}
             />
             {game.unseatedPlayers.length > 0 ? (
               <div className="space-y-2">

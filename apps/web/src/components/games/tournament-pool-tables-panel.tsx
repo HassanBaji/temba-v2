@@ -1,17 +1,25 @@
 "use client";
 
+import * as React from "react";
+
+import {
+  GameTeamPlayersSheet,
+  type GameTeamPlayersSheetTeam,
+} from "~/components/games/game-team-players-sheet";
 import { ResultTag } from "~/components/temba/result-mark";
 import {
   POOL_WINNER_LABEL,
   TOURNAMENT_FINISHED_COPY,
   poolRecordDisplay,
 } from "@repo/domain/tournament-pool-table";
+import { gameTeamPlayers } from "~/lib/game-player-links";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
 
 type PoolTables = NonNullable<RouterOutputs["games"]["byId"]["poolTables"]>;
 type PoolTable = PoolTables["pools"][number];
 type PoolRow = PoolTable["rows"][number];
+type GameTeams = Parameters<typeof gameTeamPlayers>[0];
 
 const CARD = "border-rule overflow-hidden rounded-card border";
 const COL_POSITION = "w-10 pl-[18px] pr-0 text-left";
@@ -23,10 +31,16 @@ const BODY_CELL = "py-4";
 export function PoolRecordTable({
   rows,
   finished,
+  gameTeams,
 }: {
   rows: PoolRow[];
   finished: boolean;
+  /** Given when the viewer may open Player profiles from this table. */
+  gameTeams?: GameTeams;
 }) {
+  const [openTeam, setOpenTeam] =
+    React.useState<GameTeamPlayersSheetTeam | null>(null);
+
   return (
     <div className={CARD}>
       <table className="w-full table-fixed">
@@ -71,19 +85,14 @@ export function PoolRecordTable({
                 {row.position}
               </td>
               <td className={cn(COL_TEAM, BODY_CELL)}>
-                <span
-                  className={cn(
-                    "text-body block truncate",
-                    row.isViewer && "font-semibold",
-                  )}
-                >
-                  {row.name}
-                </span>
-                {finished && row.isWinner ? (
-                  <ResultTag variant="won" className="text-eyebrow mt-1">
-                    {POOL_WINNER_LABEL}
-                  </ResultTag>
-                ) : null}
+                <PoolTeamName
+                  row={row}
+                  players={
+                    gameTeams ? gameTeamPlayers(gameTeams, row.gameTeamId) : []
+                  }
+                  winner={finished && row.isWinner}
+                  onOpen={setOpenTeam}
+                />
               </td>
               <td
                 className={cn(
@@ -125,14 +134,60 @@ export function PoolRecordTable({
           ))}
         </tbody>
       </table>
+      <GameTeamPlayersSheet team={openTeam} onClose={() => setOpenTeam(null)} />
     </div>
+  );
+}
+
+function PoolTeamName({
+  row,
+  players,
+  winner,
+  onOpen,
+}: {
+  row: PoolRow;
+  players: GameTeamPlayersSheetTeam["players"];
+  winner: boolean;
+  onOpen: (team: GameTeamPlayersSheetTeam) => void;
+}) {
+  const content = (
+    <>
+      <span
+        className={cn(
+          "text-body block max-w-full truncate",
+          row.isViewer && "font-semibold",
+        )}
+      >
+        {row.name}
+      </span>
+      {winner ? (
+        <ResultTag variant="won" className="text-eyebrow mt-1">
+          {POOL_WINNER_LABEL}
+        </ResultTag>
+      ) : null}
+    </>
+  );
+  if (players.length === 0) {
+    return content;
+  }
+  return (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      onClick={() => onOpen({ name: row.name, players })}
+      className="focus-visible:ring-ring/50 -my-3 flex min-h-11 w-full flex-col items-start justify-center rounded-sm text-left underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]"
+    >
+      {content}
+    </button>
   );
 }
 
 export function TournamentPoolTablesPanel({
   poolTables,
+  gameTeams,
 }: {
   poolTables: PoolTables;
+  gameTeams?: GameTeams;
 }) {
   if (poolTables.pools.length === 0) {
     return null;
@@ -150,6 +205,7 @@ export function TournamentPoolTablesPanel({
           key={pool.poolIndex}
           rows={pool.rows}
           finished={pool.finished}
+          gameTeams={gameTeams}
         />
       ))}
     </div>

@@ -29,6 +29,8 @@ import {
   levelOverrideReasonLabel,
 } from "@repo/domain/level-slider";
 
+import { playerProfilePath } from "~/lib/dashboard-paths";
+
 type GroupMember = {
   userId: string;
   name: string;
@@ -92,15 +94,18 @@ function SavedBanner({
 function GroupMemberRow({
   member,
   canSetLevel,
+  href,
   onSelect,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
+  href?: string;
   onSelect?: () => void;
 }) {
   return (
     <MemberRow
       size="lg"
+      href={href}
       name={member.name}
       image={member.image}
       isViewer={member.isViewer}
@@ -146,12 +151,14 @@ function InviteBlock({ onInvite }: { onInvite: () => void }) {
 export function GroupMembersTab({
   groupId,
   members,
+  linkToPlayers,
   canInvite,
   canSetLevel,
   onInvite,
 }: {
   groupId: string;
   members: GroupMember[];
+  linkToPlayers: boolean;
   canInvite: boolean;
   canSetLevel: boolean;
   onInvite: () => void;
@@ -206,6 +213,9 @@ export function GroupMembersTab({
               key={member.userId}
               member={member}
               canSetLevel={canSetLevel}
+              href={
+                linkToPlayers ? playerProfilePath(member.userId) : undefined
+              }
               onSelect={
                 canSetLevel && !member.isViewer
                   ? () => setSelectedUserId(member.userId)
@@ -229,6 +239,11 @@ export function GroupMembersTab({
         <SetLevelDialog
           groupId={groupId}
           member={selected}
+          profileHref={
+            linkToPlayers && selected
+              ? playerProfilePath(selected.userId)
+              : undefined
+          }
           onOpenChange={(open) => {
             if (!open) {
               setSelectedUserId(null);

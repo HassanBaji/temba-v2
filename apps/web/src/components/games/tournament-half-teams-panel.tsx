@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
@@ -68,9 +70,11 @@ export function TournamentHalfTeamsPanel({
   onMerge,
   onDismiss,
   knockoutOnly,
+  linkToPlayers = false,
 }: {
   sides: Side[];
   knockoutOnly: boolean;
+  linkToPlayers?: boolean;
   mergePending: boolean;
   mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
   onMerge: (input: {
@@ -173,14 +177,14 @@ export function TournamentHalfTeamsPanel({
 
         {first && second ? (
           <div className="flex items-center gap-2.5">
-            <HalfTeamCard team={first} />
+            <HalfTeamCard team={first} linked={linkToPlayers} />
             <span
               aria-hidden="true"
               className="text-muted-foreground flex w-[26px] shrink-0 items-center justify-center"
             >
               <Plus className="size-[18px]" strokeWidth={2} />
             </span>
-            <HalfTeamCard team={second} />
+            <HalfTeamCard team={second} linked={linkToPlayers} />
           </div>
         ) : null}
 
@@ -239,7 +243,7 @@ export function TournamentHalfTeamsPanel({
   );
 }
 
-function HalfTeamCard({ team }: { team: HalfTeam }) {
+function HalfTeamCard({ team, linked }: { team: HalfTeam; linked: boolean }) {
   const levelLabel = occupantLevelLabel(team);
   const openLabel = mergeOpenPositionLabel(team.openPosition);
 
@@ -255,7 +259,16 @@ function HalfTeamCard({ team }: { team: HalfTeam }) {
           className="border-rule size-[34px] shrink-0 rounded-sm border"
         />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-body truncate">{team.occupant.name}</span>
+          {linked ? (
+            <Link
+              href={playerProfilePath(team.occupant.userId)}
+              className="text-body focus-visible:ring-ring/50 truncate rounded-sm underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]"
+            >
+              {team.occupant.name}
+            </Link>
+          ) : (
+            <span className="text-body truncate">{team.occupant.name}</span>
+          )}
           <span className="text-muted-foreground text-eyebrow">
             {mergeOccupantSubline(team.takenPosition, levelLabel)}
           </span>

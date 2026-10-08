@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ChevronLeft, Minus, Plus } from "lucide-react";
 
 import {
@@ -68,9 +69,11 @@ function matchCountLabel(count: number) {
 
 function MemberStep({
   member,
+  profileHref,
   onSetLevel,
 }: {
   member: SetLevelMember;
+  profileHref?: string;
   onSetLevel: () => void;
 }) {
   const letter = member.levelBand
@@ -125,6 +128,15 @@ function MemberStep({
       >
         Set Level
       </Button>
+      {profileHref ? (
+        <Button
+          asChild
+          variant="outline"
+          className="min-h-11 w-full font-semibold"
+        >
+          <Link href={profileHref}>View profile</Link>
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -331,11 +343,13 @@ function SetLevelStep({
 export function SetLevelDialog({
   groupId,
   member,
+  profileHref,
   onOpenChange,
   onSaved,
 }: {
   groupId: string;
   member: SetLevelMember | null;
+  profileHref?: string;
   onOpenChange: (open: boolean) => void;
   onSaved: (saved: SavedLevel) => void;
 }) {
@@ -349,7 +363,11 @@ export function SetLevelDialog({
     <ResponsiveDialog open={member !== null} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="max-h-[90dvh] overflow-y-auto">
         {member === null ? null : step === "member" ? (
-          <MemberStep member={member} onSetLevel={() => setStep("set")} />
+          <MemberStep
+            member={member}
+            profileHref={profileHref}
+            onSetLevel={() => setStep("set")}
+          />
         ) : (
           <SetLevelStep
             groupId={groupId}

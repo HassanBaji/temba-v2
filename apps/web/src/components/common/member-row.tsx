@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ListRow } from "~/components/common/row-list";
@@ -13,6 +14,7 @@ export function MemberRow({
   badge,
   trailing,
   size,
+  href,
   onSelect,
 }: {
   name: string;
@@ -22,6 +24,7 @@ export function MemberRow({
   badge?: ReactNode;
   trailing?: ReactNode;
   size?: "default" | "lg";
+  href?: string;
   /** Makes the whole row a button, with a chevron on narrow screens too. */
   onSelect?: () => void;
 }) {
@@ -58,6 +61,14 @@ export function MemberRow({
     return (
       <ListRow {...rowProps} asChild className="text-left">
         <button type="button" onClick={onSelect} />
+      </ListRow>
+    );
+  }
+
+  if (href != null) {
+    return (
+      <ListRow {...rowProps} asChild>
+        <Link href={href} />
       </ListRow>
     );
   }

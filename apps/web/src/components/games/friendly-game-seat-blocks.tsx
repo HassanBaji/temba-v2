@@ -9,6 +9,7 @@ import {
   friendlyGameVacantSeatAction,
   friendlyGameVacantSeatLabel,
 } from "@repo/domain/friendly-game-players";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameSide = RouterOutputs["games"]["byId"]["sides"][number];
@@ -28,6 +29,7 @@ function FriendlySeatRow({
   onJoin,
   onMove,
   onKick,
+  linked,
 }: {
   sideLabel: string;
   positionLabel: "Left" | "Right";
@@ -42,6 +44,7 @@ function FriendlySeatRow({
   onJoin: () => void;
   onMove: () => void;
   onKick: (userId: string) => void;
+  linked: boolean;
 }) {
   if (occupant) {
     const isViewer = occupant.userId === viewerUserId;
@@ -54,6 +57,7 @@ function FriendlySeatRow({
       <SeatRow
         occupant={occupant}
         isViewer={isViewer}
+        href={linked ? playerProfilePath(occupant.userId) : undefined}
         subline={positionLabel}
         trailing={
           canKick ? (
@@ -124,6 +128,7 @@ export function FriendlyGameSeatBlocks({
   onJoin,
   onMove,
   onKick,
+  linkToPlayers,
 }: {
   sides: GameSide[];
   viewerUserId: string;
@@ -139,6 +144,7 @@ export function FriendlyGameSeatBlocks({
   onJoin: (sideIndex: number, position: "left" | "right") => void;
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onKick: (userId: string) => void;
+  linkToPlayers: boolean;
 }) {
   const vacantAction = friendlyGameVacantSeatAction({
     cancelled,
@@ -176,6 +182,7 @@ export function FriendlyGameSeatBlocks({
                 onJoin={() => onJoin(side.sideIndex, "left")}
                 onMove={() => onMove(side.sideIndex, "left")}
                 onKick={onKick}
+                linked={linkToPlayers}
               />
               <FriendlySeatRow
                 sideLabel={sideLabel}
@@ -191,6 +198,7 @@ export function FriendlyGameSeatBlocks({
                 onJoin={() => onJoin(side.sideIndex, "right")}
                 onMove={() => onMove(side.sideIndex, "right")}
                 onKick={onKick}
+                linked={linkToPlayers}
               />
             </div>
           </div>

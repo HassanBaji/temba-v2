@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
+import { type ComponentProps } from "react";
 
 import { PoolRecordTable } from "~/components/games/tournament-pool-tables-panel";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
@@ -191,8 +192,10 @@ export function TournamentStandingsHeader({
 
 export function TournamentStandingsSection({
   poolTables,
+  gameTeams,
 }: {
   poolTables: PoolTables;
+  gameTeams?: ComponentProps<typeof PoolRecordTable>["gameTeams"];
 }) {
   const defaultPool = defaultStandingsPoolIndex(
     poolTables.viewerPoolIndex,
@@ -243,7 +246,11 @@ export function TournamentStandingsSection({
           value={String(pool.poolIndex)}
           className="pt-[22px]"
         >
-          <PoolRecordTable rows={pool.rows} finished={pool.finished} />
+          <PoolRecordTable
+            rows={pool.rows}
+            finished={pool.finished}
+            gameTeams={gameTeams}
+          />
           {viewerRounds.length > 0 ? (
             <div className="pt-[26px]">
               <TournamentYourRounds mode="results" rounds={viewerRounds} />

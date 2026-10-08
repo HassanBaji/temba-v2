@@ -4,6 +4,8 @@ import { describe, it } from "vitest";
 import {
   detailBackHref,
   pageHidesMobileTopBar,
+  playerMatchesPath,
+  playerProfilePath,
   titleFromPath,
 } from "./dashboard-paths";
 
@@ -88,5 +90,44 @@ describe("pageHidesMobileTopBar", () => {
     "/dashboard/youth",
   ])("keeps the top bar on %s", (pathname) => {
     assert.equal(pageHidesMobileTopBar(pathname), false);
+  });
+});
+
+describe("Player profile paths", () => {
+  const userId = "8c0f1f4e-2d0c-4f49-9a55-6a1f3b1f0a01";
+
+  it("builds the Player profile path from the user id", () => {
+    assert.equal(playerProfilePath(userId), `/dashboard/players/${userId}`);
+  });
+
+  it("builds the Last 10 path, with the Match to open", () => {
+    assert.equal(
+      playerMatchesPath(userId),
+      `/dashboard/players/${userId}/matches`,
+    );
+    assert.equal(
+      playerMatchesPath(userId, "match-1"),
+      `/dashboard/players/${userId}/matches?match=match-1`,
+    );
+  });
+
+  it("titles the Player profile and its Last 10 page", () => {
+    assert.equal(titleFromPath(`/dashboard/players/${userId}`), "Player");
+    assert.equal(
+      titleFromPath(`/dashboard/players/${userId}/matches`),
+      "Last 10 games",
+    );
+  });
+
+  it("leaves the profile's Back to the previous page and sends Last 10 to the profile", () => {
+    assert.equal(detailBackHref(`/dashboard/players/${userId}`), undefined);
+    assert.equal(
+      detailBackHref(`/dashboard/players/${userId}/matches`),
+      `/dashboard/players/${userId}`,
+    );
+  });
+
+  it("hides the mobile top bar under the ink header", () => {
+    assert.equal(pageHidesMobileTopBar(`/dashboard/players/${userId}`), true);
   });
 });

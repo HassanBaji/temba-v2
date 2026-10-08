@@ -124,12 +124,14 @@ export function TournamentMergeDrawer({
   mergeError,
   onMerge,
   knockoutOnly,
+  linkToPlayers = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sides: MergeSide[];
   teamCount: number | null;
   knockoutOnly: boolean;
+  linkToPlayers?: boolean;
   mergePending: boolean;
   mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
   onMerge: (input: MergeInput) => void | Promise<void>;
@@ -192,6 +194,7 @@ export function TournamentMergeDrawer({
             onMerge={onMerge}
             onDismiss={() => onOpenChange(false)}
             knockoutOnly={knockoutOnly}
+            linkToPlayers={linkToPlayers}
           />
         </div>
       </DrawerContent>

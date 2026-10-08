@@ -7,6 +7,7 @@ import { Button } from "~/components/ui/button";
 import { groupStandingRecordLabel } from "@repo/domain/group-home-chrome";
 import { groupStandingState } from "@repo/domain/group-join";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
@@ -36,7 +37,13 @@ const COL_LEVEL = "w-[76px] pl-0 pr-5 text-right";
 const HEAD_CELL = "py-3.5 font-normal";
 const BODY_CELL = "py-4";
 
-function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
+function StandingTable({
+  leaderboard,
+  linkToPlayers,
+}: {
+  leaderboard: StandingEntry[];
+  linkToPlayers: boolean;
+}) {
   return (
     <div className={cardFrame}>
       <table className="w-full table-fixed">
@@ -63,6 +70,7 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
               className={cn(
                 "border-rule border-t",
                 entry.isViewer && "bg-ink text-paper",
+                linkToPlayers && "relative",
               )}
             >
               <td
@@ -75,14 +83,26 @@ function StandingTable({ leaderboard }: { leaderboard: StandingEntry[] }) {
                 {entry.position}
               </td>
               <td className={cn(COL_PLAYER, BODY_CELL)}>
-                <span
-                  className={cn(
-                    "text-body block truncate",
-                    entry.isViewer && "font-semibold",
-                  )}
-                >
-                  {entry.isViewer ? "You" : (entry.name ?? "Member")}
-                </span>
+                {linkToPlayers ? (
+                  <Link
+                    href={playerProfilePath(entry.userId)}
+                    className={cn(
+                      "text-body block truncate after:absolute after:inset-0",
+                      entry.isViewer && "font-semibold",
+                    )}
+                  >
+                    {entry.isViewer ? "You" : (entry.name ?? "Member")}
+                  </Link>
+                ) : (
+                  <span
+                    className={cn(
+                      "text-body block truncate",
+                      entry.isViewer && "font-semibold",
+                    )}
+                  >
+                    {entry.isViewer ? "You" : (entry.name ?? "Member")}
+                  </span>
+                )}
               </td>
               <td
                 className={cn(
@@ -142,6 +162,7 @@ function StatPair({
 
 export function GroupStandingTab({
   isMember,
+  linkToPlayers,
   leaderboard,
   groupId,
   canShowCreateGame,
@@ -149,6 +170,7 @@ export function GroupStandingTab({
   awaitingScoreCount,
 }: {
   isMember: boolean;
+  linkToPlayers: boolean;
   leaderboard: StandingEntry[];
   groupId: string;
   canShowCreateGame: boolean;
@@ -187,7 +209,10 @@ export function GroupStandingTab({
 
       {state.showTable ? (
         <>
-          <StandingTable leaderboard={leaderboard} />
+          <StandingTable
+            leaderboard={leaderboard}
+            linkToPlayers={linkToPlayers}
+          />
           <StatPair
             totalGamesPlayed={totalGamesPlayed}
             awaitingScoreCount={awaitingScoreCount}
