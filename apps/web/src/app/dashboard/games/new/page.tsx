@@ -676,7 +676,6 @@ function NewGameForm() {
     fieldErrorMessage(formError, "courtId") ??
     fieldErrorMessage(formError, "courtIds");
   const laterSteps = createFlowLaterSteps(typeParam);
-  const futureSteps = laterSteps.filter((item) => item.step > displayedStep);
   const nextTitle = laterSteps.find(
     (item) => item.step === displayedStep + 1,
   )?.title;
@@ -833,7 +832,6 @@ function NewGameForm() {
             }
           }}
           preview={preview}
-          futureSteps={futureSteps}
           footer={
             <div className="flex items-center gap-2.5">
               {displayedStep > 1 && displayedStep < 4 ? (

@@ -5,13 +5,12 @@ import {
 } from "@repo/domain/create-game-flow";
 import { useFocusEffect } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
-import { ArrowRight, ChevronDown, Trophy, Users } from "lucide-react-native";
+import { ArrowRight, Trophy, Users } from "lucide-react-native";
 import { Fragment, useCallback } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "../primitives/button";
-import { Hairline } from "../primitives/hairline";
 import { MountFill } from "../primitives/mount-fill";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -34,7 +33,6 @@ export type StepShellProps = {
   step: CreateFlowStep | null;
   header: StepHeaderText;
   onBack?: () => void;
-  upcoming?: readonly { step: number; title: string }[];
   footer?: React.ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -45,7 +43,6 @@ export function StepShell({
   step,
   header,
   onBack,
-  upcoming = [],
   footer,
   refreshing,
   onRefresh,
@@ -59,7 +56,6 @@ export function StepShell({
       footer={footer}
     >
       {children}
-      {upcoming.length > 0 ? <UpcomingSteps steps={upcoming} /> : null}
     </Screen>
   );
 }
@@ -225,37 +221,6 @@ function Progress({ step }: { step: CreateFlowStep }) {
           </View>
         );
       })}
-    </View>
-  );
-}
-
-function UpcomingSteps({
-  steps,
-}: {
-  steps: readonly { step: number; title: string }[];
-}) {
-  return (
-    <View>
-      <Hairline />
-      {steps.map((item) => (
-        <View
-          key={item.step}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            paddingVertical: 14,
-          }}
-        >
-          <Text size="title" width="expanded" tone="muted" style={{ flex: 1 }}>
-            {item.title}
-          </Text>
-          <Text size="eyebrow" mono uppercase tone="muted">
-            {`Step ${item.step}`}
-          </Text>
-          <ChevronDown size={sizes.iconRow} color={colors.muted} />
-        </View>
-      ))}
     </View>
   );
 }

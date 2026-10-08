@@ -1,4 +1,3 @@
-import { ChevronDown } from "lucide-react";
 import { Surface } from "~/components/ui/surface";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -19,7 +18,6 @@ export function CreateFlowShell({
   onCancel,
   onBack,
   preview,
-  futureSteps,
   footer,
   children,
 }: {
@@ -28,7 +26,6 @@ export function CreateFlowShell({
   onCancel: (event: MouseEvent<HTMLAnchorElement>) => void;
   onBack: () => void;
   preview: ReactNode;
-  futureSteps: readonly { step: CreateFlowStep; title: string }[];
   footer: ReactNode;
   children: ReactNode;
 }) {
@@ -68,24 +65,6 @@ export function CreateFlowShell({
 
       <div className="flex flex-col gap-[26px]">
         {children}
-        {futureSteps.length > 0 ? (
-          <div className="border-rule flex flex-col gap-3.5 border-t pt-[18px]">
-            {futureSteps.map((item) => (
-              <div
-                key={item.step}
-                className="text-muted-foreground flex items-center justify-between"
-              >
-                <div className="flex items-baseline gap-2.5">
-                  <p className="font-expanded text-title">{item.title}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-wide">
-                    Step {item.step}
-                  </p>
-                </div>
-                <ChevronDown aria-hidden="true" className="size-[18px]" />
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       <div
