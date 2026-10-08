@@ -21,6 +21,7 @@ import {
 import { isIndividualSeatGame } from "#src/games/seats";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
 import { writeDb } from "#src/invites/doors/helpers/write-db";
+import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { isInviteLinkLive } from "#src/invites/invite-link-expiry";
 import { assertInviteOpen } from "#src/invites/doors/consult";
 import type {
@@ -81,7 +82,7 @@ export async function acceptLink(
     }
     const group = await database.query.groups.findFirst({
       where: eq(groups.id, host.id),
-      columns: { communityId: true },
+      columns: { id: true, communityId: true, createdBy: true },
     });
     if (!group) {
       return { ok: false, reason: "not_found" };
@@ -111,9 +112,12 @@ export async function acceptLink(
         return { ok: false, reason: "not_found" };
       }
     }
-    await writeDb(database).insert(groupMembers).values({
-      groupId: host.id,
-      userId: args.userId,
+    await writeDb(database).transaction(async (tx) => {
+      await tx.insert(groupMembers).values({
+        groupId: host.id,
+        userId: args.userId,
+      });
+      await notifyGroupJoined(tx, { group, joinerUserId: args.userId });
     });
     await markPendingGroupJoinRequestApproved(database, {
       groupId: host.id,

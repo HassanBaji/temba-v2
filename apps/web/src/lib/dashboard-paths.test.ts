@@ -17,6 +17,10 @@ describe("titleFromPath", () => {
     assert.equal(titleFromPath("/dashboard/you/extra"), "Profile");
   });
 
+  it("titles Notifications for the Notifications page", () => {
+    assert.equal(titleFromPath("/dashboard/notifications"), "Notifications");
+  });
+
   it("keeps Create Game for the single create route", () => {
     assert.equal(titleFromPath("/dashboard/games/new"), "Create Game");
   });

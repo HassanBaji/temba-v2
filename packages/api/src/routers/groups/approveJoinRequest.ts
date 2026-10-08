@@ -20,6 +20,7 @@ import {
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { consult, refuseIfFrozen } from "#src/soft-archive";
 
 type DbClient = typeof db;
@@ -121,6 +122,11 @@ export async function approveJoinRequest(
       await tx.insert(groupMembers).values({
         groupId: group.id,
         userId: request.userId,
+      });
+      await notifyGroupJoined(tx, {
+        group,
+        joinerUserId: request.userId,
+        decidedByUserId: args.userId,
       });
     }
   });

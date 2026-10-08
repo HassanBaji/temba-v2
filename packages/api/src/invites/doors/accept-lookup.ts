@@ -18,6 +18,7 @@ import { isStaffRole, requireGame } from "#src/games/access";
 import { admitIndividualUser } from "#src/games/invites";
 import { isIndividualSeatGame } from "#src/games/seats";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
+import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { loadLookupInvite } from "#src/invites/doors/helpers/load-lookup-invite";
 import { writeDb } from "#src/invites/doors/helpers/write-db";
 import { assertInviteOpen } from "#src/invites/doors/consult";
@@ -131,7 +132,7 @@ export async function acceptLookup(
   if (host.kind === "group") {
     const group = await database.query.groups.findFirst({
       where: eq(groups.id, host.id),
-      columns: { id: true, communityId: true },
+      columns: { id: true, communityId: true, createdBy: true },
     });
     if (!group) {
       return { ok: false, reason: "not_found" };
@@ -191,9 +192,12 @@ export async function acceptLookup(
     if (!(await markLookupAccepted(database, host, args.inviteId))) {
       return { ok: false, reason: "unavailable" };
     }
-    await writeDb(database).insert(groupMembers).values({
-      groupId: host.id,
-      userId: args.userId,
+    await writeDb(database).transaction(async (tx) => {
+      await tx.insert(groupMembers).values({
+        groupId: host.id,
+        userId: args.userId,
+      });
+      await notifyGroupJoined(tx, { group, joinerUserId: args.userId });
     });
     await markPendingGroupJoinRequestApproved(database, {
       groupId: host.id,
