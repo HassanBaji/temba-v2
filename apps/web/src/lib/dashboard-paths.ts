@@ -103,3 +103,16 @@ export function detailBackHref(
   }
   return undefined;
 }
+
+export function groupMemberSetLevelHref(groupId: string, userId: string) {
+  return `/dashboard/groups/${groupId}/members/${userId}`;
+}
+
+/** `savedUserId` shows the saved banner for the member whose Level was just set. */
+export function groupMembersTabHref(groupId: string, savedUserId?: string) {
+  const query = new URLSearchParams({ tab: "members" });
+  if (savedUserId) {
+    query.set("saved", savedUserId);
+  }
+  return `/dashboard/groups/${groupId}?${query.toString()}`;
+}

@@ -19,6 +19,7 @@ import { InvitesDialog } from "~/components/invites/invites-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
+import { groupMembersTabHref } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import {
@@ -69,12 +70,17 @@ export default function GroupHomePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    saved?: string | string[];
+  }>;
 }) {
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const tab = groupHomeTabFromQuery(tabParam);
+  const savedUserId =
+    (Array.isArray(query.saved) ? query.saved[0] : query.saved) ?? null;
   const { hasCreateAccess } = useCreateAccess();
   const router = useRouter();
   const pathname = usePathname() ?? `/dashboard/groups/${id}`;
@@ -657,6 +663,10 @@ export default function GroupHomePage({
               <GroupMembersTab
                 groupId={id}
                 canSetLevel={data.viewerCanSetLevel}
+                savedUserId={savedUserId}
+                onDismissSaved={() =>
+                  router.replace(groupMembersTabHref(id), { scroll: false })
+                }
                 members={data.standing.leaderboard.map((entry) => ({
                   userId: entry.userId,
                   name: entry.name ?? "Member",

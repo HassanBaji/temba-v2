@@ -22,7 +22,7 @@ export function LevelSlider({
   onTenthsChange: (tenths: number) => void;
 }) {
   return (
-    <div data-vaul-no-drag className="px-4">
+    <div className="px-4">
       <div className="relative h-8">
         <span
           data-slot="level-slider-value"
