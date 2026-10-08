@@ -48,20 +48,22 @@ export async function register(
     });
   }
 
-  const admitted = await admit(database, {
-    game,
-    door: "register",
-    party: { kind: "user", userId: args.userId },
-    now,
-  });
-  if (!admitted.ok) {
-    if (admitted.reason === "full") {
-      await enqueueWaitlistUser(database, game.id, args.userId);
-      return { ok: true as const, waitlisted: true as const };
+  return database.transaction(async (tx) => {
+    const admitted = await admit(tx, {
+      game,
+      door: "register",
+      party: { kind: "user", userId: args.userId },
+      now,
+    });
+    if (!admitted.ok) {
+      if (admitted.reason === "full") {
+        await enqueueWaitlistUser(tx, game.id, args.userId);
+        return { ok: true as const, waitlisted: true as const };
+      }
+      throwIfAdmitRefused(admitted);
     }
-    throwIfAdmitRefused(admitted);
-  }
-  return { ok: true as const, waitlisted: false as const };
+    return { ok: true as const, waitlisted: false as const };
+  });
 }
 
 export const registerProcedure = protectedProcedure

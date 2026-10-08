@@ -18,6 +18,7 @@ import {
 } from "#src/games/knockout-advance";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
+import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
 import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { applyRatedMatch } from "#src/ratings/apply-rated-match";
 
@@ -128,6 +129,7 @@ export async function completeMatch(
     await applyRatedMatch(tx, game, locked, outcome.result);
     await advanceKnockoutWinner(tx, locked, outcome.result);
     await placeKnockoutQualifiers(tx, game, locked);
+    await notifyIfGameFinished(tx, game);
   });
   return { ok: true as const };
 }

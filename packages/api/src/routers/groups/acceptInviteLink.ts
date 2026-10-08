@@ -12,10 +12,12 @@ export async function acceptInviteLink(
   database: DbClient,
   args: { token: string; userId: string },
 ) {
-  const accepted = await acceptLink(database, "group", {
-    token: args.token,
-    userId: args.userId,
-  });
+  const accepted = await database.transaction((tx) =>
+    acceptLink(tx, "group", {
+      token: args.token,
+      userId: args.userId,
+    }),
+  );
   if (!accepted.ok) {
     if (accepted.reason === "already_member") {
       throw new TRPCError({

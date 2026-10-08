@@ -8,6 +8,10 @@ import {
 } from "./dashboard-paths";
 
 describe("titleFromPath", () => {
+  it("titles the Notifications page", () => {
+    assert.equal(titleFromPath("/dashboard/notifications"), "Notifications");
+  });
+
   it("titles Settings for the Profile settings route", () => {
     assert.equal(titleFromPath("/dashboard/you/settings"), "Settings");
   });
@@ -33,6 +37,14 @@ describe("detailBackHref", () => {
   it("returns Profile for the Settings page", () => {
     assert.equal(detailBackHref("/dashboard/you/settings"), "/dashboard/you");
     assert.equal(detailBackHref("/dashboard/you/settings/"), "/dashboard/you");
+  });
+
+  it("returns Home for the Notifications page", () => {
+    assert.equal(detailBackHref("/dashboard/notifications"), "/dashboard");
+  });
+
+  it("leaves the Invites page without a back target", () => {
+    assert.equal(detailBackHref("/dashboard/invites"), undefined);
   });
 
   it("does not treat Profile itself as a detail page", () => {

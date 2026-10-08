@@ -35,10 +35,12 @@ export async function acceptLookupInvite(
   }
 
   const group = await requireGroup(database, invite.groupId);
-  const accepted = await acceptLookup(
-    database,
-    { kind: "group", id: group.id },
-    { inviteId: invite.id, userId: args.userId },
+  const accepted = await database.transaction((tx) =>
+    acceptLookup(
+      tx,
+      { kind: "group", id: group.id },
+      { inviteId: invite.id, userId: args.userId },
+    ),
   );
   if (!accepted.ok) {
     if (accepted.reason === "must_be_member") {

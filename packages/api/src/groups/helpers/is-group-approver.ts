@@ -1,7 +1,7 @@
 import type { DbClient, DbTx } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 
-import { communities, type groups } from "@repo/db";
+import { communities, communityMembers, type groups } from "@repo/db";
 import { eq } from "drizzle-orm";
 
 import { isStaffRole } from "#src/games/access";
@@ -38,6 +38,36 @@ export async function isGroupApprover(
   }
 
   return group.createdBy === userId;
+}
+
+export async function groupApproverUserIds(
+  database: DbOrTx,
+  group: Pick<typeof groups.$inferSelect, "communityId" | "createdBy">,
+): Promise<string[]> {
+  if (!group.communityId) {
+    return [group.createdBy];
+  }
+  const community = await database.query.communities.findFirst({
+    where: eq(communities.id, group.communityId),
+    columns: { archivedAt: true },
+  });
+  if (!community) {
+    return [];
+  }
+  if (consult({ archivedAt: community.archivedAt }).freeze("host")) {
+    return [];
+  }
+  const memberships = await database.query.communityMembers.findMany({
+    where: eq(communityMembers.communityId, group.communityId),
+    columns: { userId: true, role: true },
+  });
+  const approverIds = new Set<string>();
+  for (const membership of memberships) {
+    if (isStaffRole(membership.role) || membership.userId === group.createdBy) {
+      approverIds.add(membership.userId);
+    }
+  }
+  return [...approverIds];
 }
 
 export async function assertGroupApprover(
