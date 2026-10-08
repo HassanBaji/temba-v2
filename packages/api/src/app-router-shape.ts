@@ -175,6 +175,7 @@ type ExpectedUsers =
   | "home"
   | "onboardingState"
   | "profileStats"
+  | "playerProfile"
   | "setPreferredPosition"
   | "completeOnboarding";
 

@@ -1,6 +1,19 @@
+const PLAYER_PROFILE = /^\/dashboard\/players\/[^/]+\/?$/;
+const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
+
+export function playerProfilePath(userId: string) {
+  return `/dashboard/players/${userId}`;
+}
+
 export function titleFromPath(pathname: string) {
   if (pathname === "/dashboard") {
     return "Home";
+  }
+  if (PLAYER_MATCHES.test(pathname)) {
+    return "Last 10 games";
+  }
+  if (pathname.startsWith("/dashboard/players/")) {
+    return "Player";
   }
   if (pathname.startsWith("/dashboard/you/settings")) {
     return "Settings";
@@ -69,6 +82,7 @@ export function pageHidesMobileTopBar(pathname: string) {
     pathname === "/dashboard/you" ||
     pathname.startsWith("/dashboard/you/") ||
     pathname.startsWith("/dashboard/games/new") ||
+    PLAYER_PROFILE.test(pathname) ||
     /^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)
   );
 }
@@ -85,6 +99,10 @@ export function detailBackHref(
   }
   if (pathname.startsWith("/dashboard/notifications")) {
     return "/dashboard";
+  }
+  const playerMatches = PLAYER_MATCHES.exec(pathname);
+  if (playerMatches?.[1]) {
+    return playerProfilePath(playerMatches[1]);
   }
   if (/^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/groups";

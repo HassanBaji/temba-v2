@@ -18,6 +18,7 @@ import {
   groupMemberRoleCaption,
 } from "@repo/domain/group-home-chrome";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 
 type GroupMember = {
   userId: string;
@@ -31,10 +32,17 @@ type GroupMember = {
   levelProvisional: boolean;
 };
 
-function GroupMemberRow({ member }: { member: GroupMember }) {
+function GroupMemberRow({
+  member,
+  linked,
+}: {
+  member: GroupMember;
+  linked: boolean;
+}) {
   return (
     <MemberRow
       size="lg"
+      href={linked ? playerProfilePath(member.userId) : undefined}
       name={member.name}
       image={member.image}
       isViewer={member.isViewer}
@@ -77,10 +85,12 @@ function InviteBlock({ onInvite }: { onInvite: () => void }) {
 
 export function GroupMembersTab({
   members,
+  linkToPlayers,
   canInvite,
   onInvite,
 }: {
   members: GroupMember[];
+  linkToPlayers: boolean;
   canInvite: boolean;
   onInvite: () => void;
 }) {
@@ -122,7 +132,11 @@ export function GroupMembersTab({
       ) : (
         <RowList variant="card">
           {visible.map((member) => (
-            <GroupMemberRow key={member.userId} member={member} />
+            <GroupMemberRow
+              key={member.userId}
+              member={member}
+              linked={linkToPlayers}
+            />
           ))}
         </RowList>
       )}

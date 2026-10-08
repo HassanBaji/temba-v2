@@ -1,6 +1,6 @@
 import { spacing } from "@repo/design-tokens";
 import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Avatar } from "../primitives/avatar";
 import { FormSlot } from "../primitives/form-slot";
@@ -19,11 +19,17 @@ import { Notice } from "./notice";
 
 const MARK_WIDTH = 16;
 
-function MemberRow({ row }: { row: MemberRowView }) {
-  return (
+function MemberRow({
+  row,
+  onOpen,
+}: {
+  row: MemberRowView;
+  onOpen?: (userId: string) => void;
+}) {
+  const content = (
     <View
-      accessible
-      accessibilityLabel={row.accessibilityLabel}
+      accessible={!onOpen}
+      accessibilityLabel={onOpen ? undefined : row.accessibilityLabel}
       style={{
         minHeight: 64,
         flexDirection: "row",
@@ -54,6 +60,21 @@ function MemberRow({ row }: { row: MemberRowView }) {
       <LevelCell view={row.level} />
     </View>
   );
+
+  if (!onOpen) {
+    return content;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={row.accessibilityLabel}
+      accessibilityHint="Opens their Player profile"
+      onPress={() => onOpen(row.key)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      {content}
+    </Pressable>
+  );
 }
 
 export function MembersTab({
@@ -61,11 +82,13 @@ export function MembersTab({
   query,
   onQueryChange,
   apiOrigin,
+  onOpenMember,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
   onQueryChange: (query: string) => void;
   apiOrigin: string;
+  onOpenMember?: (userId: string) => void;
 }) {
   const list = memberList(leaderboard, query, apiOrigin);
 
@@ -92,7 +115,7 @@ export function MembersTab({
           {list.rows.map((row, index) => (
             <View key={row.key}>
               {index > 0 ? <Hairline /> : null}
-              <MemberRow row={row} />
+              <MemberRow row={row} onOpen={onOpenMember} />
             </View>
           ))}
         </Surface>

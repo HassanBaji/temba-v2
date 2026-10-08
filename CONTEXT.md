@@ -162,7 +162,7 @@ _Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred 
 
 **Preferred Position**:
 A User's standing preference for Left or right, or Either. A default for the Game seat picker, not a Position itself.
-_Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side
+_Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
@@ -339,6 +339,22 @@ _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboardin
 **Home**:
 The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
+
+**Player profile**:
+A read-only page about one User: their padel Level, Win streaks, Preferred Position, All time stats and Last 10. Visible to that User and to every User who shares a Group or a Game with them. Distinct from You, which is the signed-in User's own page with settings.
+_Avoid_: public profile, player card, user page
+
+**Last 10**:
+A User's ten most recent completed padel Matches, across every Game format. Newest first. Walkovers are not Matches with a result and never appear.
+_Avoid_: recent games, history (when you mean this fixed window), Recent form (that is Home's strip, which excludes Americano)
+
+**Win streak**:
+Consecutive won Matches in time order. A loss or a draw ends it. The current Win streak ends at the newest Match; the best is the longest ever.
+_Avoid_: form, run, streak (bare, when a losing run is meant)
+
+**Played side**:
+The share of a User's Matches with a recorded Position that they played on the left or on the right. Derived, never declared. Distinct from Preferred Position.
+_Avoid_: Preferred Position (that is declared), backhand side, forehand side
 
 **Notification**:
 An in-app record that tells one User that something happened on a Group or Game they run, or that a Game they played on has finished. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.

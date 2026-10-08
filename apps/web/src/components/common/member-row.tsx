@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ListRow } from "~/components/common/row-list";
@@ -12,6 +13,7 @@ export function MemberRow({
   badge,
   trailing,
   size,
+  href,
 }: {
   name: string;
   image?: string | null;
@@ -20,11 +22,13 @@ export function MemberRow({
   badge?: ReactNode;
   trailing?: ReactNode;
   size?: "default" | "lg";
+  href?: string;
 }) {
   const hasTrailing = badge != null || trailing != null;
 
   return (
     <ListRow
+      asChild={href != null}
       size={size}
       leading={<UserAvatar name={name} image={image} size="lg" />}
       title={
@@ -44,6 +48,8 @@ export function MemberRow({
           </div>
         ) : undefined
       }
-    />
+    >
+      {href != null ? <Link href={href} /> : undefined}
+    </ListRow>
   );
 }

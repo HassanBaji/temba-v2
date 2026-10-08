@@ -406,7 +406,7 @@ None blocks ticket 1.
 
 ## 12. Domain doc changes shipping with this spec
 
-- `CONTEXT.md`: the terms in 8.1. Not applied yet; ticket 1 applies them.
+- `CONTEXT.md`: the terms in 8.1. Applied by ticket 1.
 - No ADR.
 
 ## 13. Tickets (draft, not yet in Linear)
@@ -415,7 +415,7 @@ Implement in order. Ticket 1 blocks all others. Tickets 2 and 3 depend on 1. Tic
 
 | # | Title | Blocked by |
 | --- | --- | --- |
-| 1 | Open a Group member's Player profile with header, Level card and Overall | none |
+| 1 | Open a Group member's Player profile with header, Level card and Overall (done) | none |
 | 2 | Streaks and Preferred Position on the Player profile | 1 |
 | 3 | Last 10 strip and the three most recent Matches on the Player profile | 1 |
 | 4 | Last 10 screen with filters and the Match sheet | 3 |
