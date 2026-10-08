@@ -19,6 +19,7 @@ import {
   type TournamentHomeSide,
   type TournamentTeamRow,
 } from "@repo/domain/tournament-home";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 
 export function TournamentTeamsSection({
@@ -26,10 +27,12 @@ export function TournamentTeamsSection({
   viewerUserId,
   canTakeSeat,
   onTakeSeat,
+  linkToPlayers = false,
 }: {
   sides: readonly TournamentHomeSide[];
   viewerUserId: string;
   canTakeSeat: boolean;
+  linkToPlayers?: boolean;
   onTakeSeat?: (seat: {
     sideIndex: number;
     position: "left" | "right";
@@ -64,6 +67,7 @@ export function TournamentTeamsSection({
             viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
+            linkToPlayers={linkToPlayers}
           />
         ))}
         {collapsible ? (
@@ -96,6 +100,7 @@ export function TournamentTeamsSection({
             viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
+            linkToPlayers={linkToPlayers}
           />
         ))}
         {view.tail.map((row) => (
@@ -106,6 +111,7 @@ export function TournamentTeamsSection({
             viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
+            linkToPlayers={linkToPlayers}
           />
         ))}
       </RowList>
@@ -124,6 +130,7 @@ function TeamSeat({
   viewerUserId,
   joinable,
   onJoin,
+  linked,
 }: {
   occupant: TournamentHomeOccupant | null;
   position: "left" | "right";
@@ -131,6 +138,7 @@ function TeamSeat({
   viewerUserId: string;
   joinable: boolean;
   onJoin?: () => void;
+  linked: boolean;
 }) {
   const positionName = position === "left" ? "Left" : "Right";
 
@@ -156,6 +164,7 @@ function TeamSeat({
           : null
       }
       caption={positionName}
+      href={linked ? playerProfilePath(occupant.userId) : undefined}
     />
   );
 }
@@ -166,6 +175,7 @@ function TeamRow({
   viewerUserId,
   canTakeSeat,
   onTakeSeat,
+  linkToPlayers,
 }: {
   row: TournamentTeamRow;
   side: TournamentHomeSide | null;
@@ -175,6 +185,7 @@ function TeamRow({
     sideIndex: number;
     position: "left" | "right";
   }) => void;
+  linkToPlayers: boolean;
 }) {
   const teamLabel = formatGameSideLabel("friendly_tournament", row.sideIndex);
 
@@ -220,6 +231,7 @@ function TeamRow({
                 }
               : undefined
           }
+          linked={linkToPlayers}
         />
         <TeamSeat
           occupant={side?.right ?? null}
@@ -234,6 +246,7 @@ function TeamRow({
                 }
               : undefined
           }
+          linked={linkToPlayers}
         />
       </div>
     </li>

@@ -16,7 +16,8 @@ import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { groupMembersTabHref } from "~/lib/dashboard-paths";
+import { groupMembersTabHref, playerProfilePath } from "~/lib/dashboard-paths";
+import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { api } from "~/trpc/react";
 
 function SetLevelPageFrame({
@@ -112,7 +113,14 @@ export default function SetLevelPage({
 
   return (
     <SetLevelPageFrame groupId={id}>
-      <SetLevelMemberSummary member={member} />
+      <SetLevelMemberSummary
+        member={member}
+        profileHref={
+          groupMemberRowsLink(group.data.membership)
+            ? playerProfilePath(member.userId)
+            : undefined
+        }
+      />
       <SetLevelForm
         groupId={id}
         member={member}

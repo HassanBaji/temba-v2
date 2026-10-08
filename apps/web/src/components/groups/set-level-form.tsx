@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
 
 import { LevelSlider } from "~/components/groups/level-slider";
@@ -52,7 +53,13 @@ function matchCountLabel(count: number) {
   return `${count} Rated ${count === 1 ? "Match" : "Matches"}`;
 }
 
-export function SetLevelMemberSummary({ member }: { member: SetLevelMember }) {
+export function SetLevelMemberSummary({
+  member,
+  profileHref,
+}: {
+  member: SetLevelMember;
+  profileHref?: string;
+}) {
   const override = member.levelOverride;
 
   return (
@@ -79,6 +86,15 @@ export function SetLevelMemberSummary({ member }: { member: SetLevelMember }) {
             ? `. ${levelOverrideReasonLabel(override.reason)}`
             : null}
         </p>
+      ) : null}
+      {profileHref ? (
+        <Button
+          asChild
+          variant="outline"
+          className="min-h-11 w-full font-semibold"
+        >
+          <Link href={profileHref}>View profile</Link>
+        </Button>
       ) : null}
     </section>
   );

@@ -53,9 +53,11 @@ function MemberRowContent({ row }: { row: MemberRowView }) {
 function MemberRow({
   row,
   onSelect,
+  onOpen,
 }: {
   row: MemberRowView;
   onSelect: () => void;
+  onOpen?: (userId: string) => void;
 }) {
   const style = {
     minHeight: 64,
@@ -65,6 +67,20 @@ function MemberRow({
     paddingHorizontal: spacing.surface,
     paddingVertical: 12,
   } as const;
+
+  if (!row.selectable && onOpen) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={row.accessibilityLabel}
+        accessibilityHint="Opens their Player profile"
+        onPress={() => onOpen(row.key)}
+        style={({ pressed }) => ({ ...style, opacity: pressed ? 0.6 : 1 })}
+      >
+        <MemberRowContent row={row} />
+      </Pressable>
+    );
+  }
 
   if (!row.selectable) {
     return (
@@ -99,6 +115,7 @@ export function MembersTab({
   apiOrigin,
   canSetLevel,
   onSetLevel,
+  onOpenMember,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
@@ -106,6 +123,7 @@ export function MembersTab({
   apiOrigin: string;
   canSetLevel: boolean;
   onSetLevel: (userId: string) => void;
+  onOpenMember?: (userId: string) => void;
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const list = memberList(leaderboard, query, apiOrigin, canSetLevel);
@@ -141,6 +159,7 @@ export function MembersTab({
               <MemberRow
                 row={row}
                 onSelect={() => setSelectedUserId(row.key)}
+                onOpen={onOpenMember}
               />
             </View>
           ))}
@@ -161,6 +180,16 @@ export function MembersTab({
               onSetLevel(selected.userId);
             }
           }}
+          onViewProfile={
+            onOpenMember
+              ? () => {
+                  if (selected) {
+                    setSelectedUserId(null);
+                    onOpenMember(selected.userId);
+                  }
+                }
+              : undefined
+          }
         />
       ) : null}
     </View>

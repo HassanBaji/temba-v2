@@ -59,18 +59,18 @@ export function MemberRow({
       ) : undefined,
   };
 
-  if (href != null) {
-    return (
-      <ListRow {...rowProps} asChild>
-        <Link href={href} />
-      </ListRow>
-    );
-  }
-
   if (onSelect) {
     return (
       <ListRow {...rowProps} asChild className="text-left">
         <button type="button" onClick={onSelect} />
+      </ListRow>
+    );
+  }
+
+  if (href != null) {
+    return (
+      <ListRow {...rowProps} asChild>
+        <Link href={href} />
       </ListRow>
     );
   }

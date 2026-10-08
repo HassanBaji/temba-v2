@@ -2,6 +2,7 @@ import { spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { groupManageActions } from "@repo/domain/group-admin";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
@@ -61,6 +62,7 @@ export type GroupHomeViewProps = {
   onCloseConfirm: () => void;
   memberQuery: string;
   onMemberQueryChange: (query: string) => void;
+  onOpenMember: (userId: string) => void;
   onSetLevel: (userId: string) => void;
   saved: SavedLevel | null;
   onDismissSaved: () => void;
@@ -197,7 +199,16 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         ))}
       </View>
 
-      {props.tab === "standing" ? <StandingTab data={data} /> : null}
+      {props.tab === "standing" ? (
+        <StandingTab
+          data={data}
+          onOpenMember={
+            groupMemberRowsLink(data.membership)
+              ? props.onOpenMember
+              : undefined
+          }
+        />
+      ) : null}
       {props.tab === "games" ? (
         <GamesTab
           {...props.games}
@@ -227,6 +238,11 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           leaderboard={data.standing.leaderboard}
           query={props.memberQuery}
           onQueryChange={props.onMemberQueryChange}
+          onOpenMember={
+            groupMemberRowsLink(data.membership)
+              ? props.onOpenMember
+              : undefined
+          }
           apiOrigin={props.apiOrigin}
           canSetLevel={data.viewerCanSetLevel}
           onSetLevel={props.onSetLevel}

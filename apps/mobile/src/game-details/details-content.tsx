@@ -38,6 +38,7 @@ export type DetailsHandlers = {
   onConfirm: () => void;
   onRequestLevel: () => void;
   onFooterAction: (kind: FriendlyGameFooterAction["kind"]) => void;
+  onOpenPlayer?: (userId: string) => void;
 };
 
 export type DetailsOrganizer = {
@@ -99,6 +100,7 @@ export function GameDetailsContent({
         onMove={handlers.onMove}
         kickableUserIds={organizer?.plan.kickableUserIds}
         onKick={organizer?.handlers.onKickPlayer}
+        onOpenPlayer={handlers.onOpenPlayer}
       />
       {live && firstMatch ? (
         <ScoreCard

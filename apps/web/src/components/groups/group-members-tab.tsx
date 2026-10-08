@@ -12,7 +12,10 @@ import type { ResultMarkVariant } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Surface } from "~/components/ui/surface";
-import { groupMemberSetLevelHref } from "~/lib/dashboard-paths";
+import {
+  groupMemberSetLevelHref,
+  playerProfilePath,
+} from "~/lib/dashboard-paths";
 import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,
@@ -162,6 +165,7 @@ function InviteBlock({ onInvite }: { onInvite: () => void }) {
 export function GroupMembersTab({
   groupId,
   members,
+  linkToPlayers,
   canInvite,
   canSetLevel,
   savedUserId,
@@ -170,6 +174,7 @@ export function GroupMembersTab({
 }: {
   groupId: string;
   members: GroupMember[];
+  linkToPlayers: boolean;
   canInvite: boolean;
   canSetLevel: boolean;
   /** The member whose Level was just set, from the Set Level page. */
@@ -226,7 +231,9 @@ export function GroupMembersTab({
               href={
                 canSetLevel && !member.isViewer
                   ? groupMemberSetLevelHref(groupId, member.userId)
-                  : undefined
+                  : linkToPlayers
+                    ? playerProfilePath(member.userId)
+                    : undefined
               }
             />
           ))}

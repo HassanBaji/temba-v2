@@ -8,6 +8,7 @@ import {
   gameTeamPlayers,
   gameTeams,
   games,
+  groupMembers,
   groups,
   matches,
   matchSets,
@@ -266,6 +267,41 @@ async function setUpSeatedFriendlyGame(
 
   return { game: created.game, matchId: created.matchId, sets, a, b, c, d };
 }
+
+describe("gameById isGroupMember", () => {
+  it("is true only for a member of the Game's Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "group-member-owner@example.com");
+      const member = await insertUser(db, "group-member@example.com");
+      const venue = await insertVenue(db);
+      const game = await insertFriendlyGame(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+      });
+      if (!game.groupId) {
+        throw new Error("Expected a Group Game");
+      }
+      await db
+        .insert(groupMembers)
+        .values({ groupId: game.groupId, userId: member.id });
+
+      const asMember = await gameById(db, {
+        gameId: game.id,
+        userId: member.id,
+      });
+      const asOrganizer = await gameById(db, {
+        gameId: game.id,
+        userId: owner.id,
+      });
+
+      expect(asMember.isGroupMember).toBe(true);
+      expect(asOrganizer.isGroupMember).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+});
 
 describe("gameById roundCount", () => {
   it("exposes the stored Round count, null when the Organizer kept the suggestion", async () => {

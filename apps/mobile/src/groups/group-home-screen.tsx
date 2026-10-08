@@ -15,7 +15,7 @@ import {
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
@@ -28,6 +28,7 @@ import {
 import { useGameJoin } from "../games/use-game-join";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { apiOrigin } from "../lib/api-origin-runtime";
+import { playerPath } from "../player-profile/player-path";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
@@ -54,6 +55,7 @@ type OlderPages = {
 
 export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const router = useRouter();
+  const segments = useSegments();
   const params = useLocalSearchParams<SavedLevelParams>();
   const saved = savedLevelFromParams(params);
   const toast = useToast();
@@ -235,6 +237,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onCloseConfirm={() => setConfirm(null)}
         memberQuery={memberQuery}
         onMemberQueryChange={setMemberQuery}
+        onOpenMember={(userId) => router.push(playerPath(segments, userId))}
         onSetLevel={openSetLevelScreen}
         saved={saved}
         onDismissSaved={dismissSaved}

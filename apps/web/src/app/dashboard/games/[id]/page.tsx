@@ -107,6 +107,7 @@ import {
 } from "@repo/domain/tournament-rounds";
 import { splitGameWindow } from "@repo/domain/game-window";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import {
   LEVEL_BAND_SELECT_NONE,
@@ -989,6 +990,7 @@ export default function GameHomePage({
             ) : null}
             <TournamentHome
               data={data}
+              linkToPlayers={gamePlayersLink(data)}
               sharePending={createInviteLink.isPending}
               joinPending={registerSeat.isPending}
               leavePending={leaveGame.isPending || leaveWaitlist.isPending}
@@ -1151,6 +1153,7 @@ export default function GameHomePage({
               cancelled={Boolean(data.cancelledAt)}
               kickPending={kick.isPending}
               onKick={(userId) => requestKick({ userId })}
+              linkToPlayers={gamePlayersLink(data)}
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
@@ -1216,7 +1219,12 @@ export default function GameHomePage({
             <TabsContent value="overview">
               <div className="space-y-6">
                 {data.drawPostedAt && data.poolTables?.pools.length ? (
-                  <TournamentPoolTablesPanel poolTables={data.poolTables} />
+                  <TournamentPoolTablesPanel
+                    poolTables={data.poolTables}
+                    gameTeams={
+                      gamePlayersLink(data) ? data.gameTeams : undefined
+                    }
+                  />
                 ) : null}
                 <GameOverviewPanel game={data} />
               </div>

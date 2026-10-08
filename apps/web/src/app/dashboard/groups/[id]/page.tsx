@@ -61,6 +61,7 @@ import {
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { groupLookupNote, lookupInviteSentToast } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
@@ -602,6 +603,7 @@ export default function GroupHomePage({
           <TabsContent value="standing">
             <GroupStandingTab
               isMember={Boolean(data.membership)}
+              linkToPlayers={groupMemberRowsLink(data.membership)}
               leaderboard={data.standing.leaderboard}
               groupId={id}
               canShowCreateGame={canShowCreateGame}
@@ -681,6 +683,7 @@ export default function GroupHomePage({
                   ratedMatchCount: entry.ratedMatchCount,
                   levelOverride: entry.levelOverride,
                 }))}
+                linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
                 onInvite={() => setInvitesOpen(true)}
               />

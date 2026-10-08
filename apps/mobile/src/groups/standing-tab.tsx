@@ -1,7 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import { groupStandingState } from "@repo/domain/group-join";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Hairline } from "../primitives/hairline";
 import { hairline as hairlineWidth } from "../primitives/hairline-width";
@@ -37,11 +37,11 @@ function HeaderCell({ label, width }: { label: string; width?: number }) {
   );
 }
 
-function RowBody({ row }: { row: StandingRowView }) {
+function RowBody({ row, linked }: { row: StandingRowView; linked: boolean }) {
   return (
     <View
-      accessible
-      accessibilityLabel={row.accessibilityLabel}
+      accessible={!linked}
+      accessibilityLabel={linked ? undefined : row.accessibilityLabel}
       style={{
         minHeight: 56,
         flexDirection: "row",
@@ -87,7 +87,44 @@ function RowBody({ row }: { row: StandingRowView }) {
   );
 }
 
-function StandingTable({ rows }: { rows: StandingRowView[] }) {
+function StandingRow({
+  row,
+  onOpen,
+}: {
+  row: StandingRowView;
+  onOpen?: (userId: string) => void;
+}) {
+  const body = row.isViewer ? (
+    <Surface tone="ink" padded={false} radius="md">
+      <RowBody row={row} linked={onOpen != null} />
+    </Surface>
+  ) : (
+    <RowBody row={row} linked={onOpen != null} />
+  );
+
+  if (!onOpen) {
+    return body;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={row.accessibilityLabel}
+      accessibilityHint="Opens their Player profile"
+      onPress={() => onOpen(row.key)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      {body}
+    </Pressable>
+  );
+}
+
+function StandingTable({
+  rows,
+  onOpenMember,
+}: {
+  rows: StandingRowView[];
+  onOpenMember?: (userId: string) => void;
+}) {
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View
@@ -108,13 +145,7 @@ function StandingTable({ rows }: { rows: StandingRowView[] }) {
       {rows.map((row) => (
         <View key={row.key}>
           <Hairline />
-          {row.isViewer ? (
-            <Surface tone="ink" padded={false} radius="md">
-              <RowBody row={row} />
-            </Surface>
-          ) : (
-            <RowBody row={row} />
-          )}
+          <StandingRow row={row} onOpen={onOpenMember} />
         </View>
       ))}
       <Hairline />
@@ -169,7 +200,13 @@ function StatPair({ data }: { data: GroupHomeData }) {
   );
 }
 
-export function StandingTab({ data }: { data: GroupHomeData }) {
+export function StandingTab({
+  data,
+  onOpenMember,
+}: {
+  data: GroupHomeData;
+  onOpenMember?: (userId: string) => void;
+}) {
   const state = groupStandingState({
     isMember: data.membership != null,
     leaderboard: data.standing.leaderboard,
@@ -186,6 +223,7 @@ export function StandingTab({ data }: { data: GroupHomeData }) {
         <>
           <StandingTable
             rows={data.standing.leaderboard.map(standingRowView)}
+            onOpenMember={onOpenMember}
           />
           <StatPair data={data} />
         </>
