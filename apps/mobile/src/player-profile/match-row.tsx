@@ -1,4 +1,4 @@
-import { sizes, spacing } from "@repo/design-tokens";
+import { colors, sizes, spacing } from "@repo/design-tokens";
 import type { PlayerMatchRowView } from "@repo/domain/player-profile-matches";
 import { Pressable, View, type ViewStyle } from "react-native";
 
@@ -17,9 +17,13 @@ const ROW: ViewStyle = {
 export function PlayerMatchRow({
   row,
   onPress,
+  showPartner = false,
+  selected = false,
 }: {
   row: PlayerMatchRowView;
   onPress?: () => void;
+  showPartner?: boolean;
+  selected?: boolean;
 }) {
   const content = (
     <>
@@ -28,6 +32,11 @@ export function PlayerMatchRow({
         <Text size="body" weight="semibold" numberOfLines={1}>
           {row.opponents}
         </Text>
+        {showPartner ? (
+          <Text size="meta" numberOfLines={1}>
+            {row.partnerVenue}
+          </Text>
+        ) : null}
         <Text size="meta" tone="muted" numberOfLines={1}>
           {row.meta}
         </Text>
@@ -60,8 +69,15 @@ export function PlayerMatchRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={row.accessibilityLabel}
+      accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed }) => [ROW, { opacity: pressed ? 0.6 : 1 }]}
+      style={({ pressed }) => [
+        ROW,
+        {
+          opacity: pressed ? 0.6 : 1,
+          backgroundColor: selected ? colors.wash : undefined,
+        },
+      ]}
     >
       {content}
     </Pressable>

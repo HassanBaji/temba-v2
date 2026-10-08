@@ -91,7 +91,7 @@ export function PlayerProfile({ userId }: { userId: string }) {
         summary={lastTenSummary(data.lastMatches)}
         rows={data.lastMatches
           .slice(0, LAST_TEN_RECENT_ROWS)
-          .map(playerMatchRowView)}
+          .map((match) => playerMatchRowView(match, data.player.id))}
       />
     </div>
   );

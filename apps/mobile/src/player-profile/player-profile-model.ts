@@ -51,7 +51,9 @@ export function playerProfileModel(
   data: ApiPlayerProfile | PlayerProfileFixture,
   apiOrigin: string,
 ): PlayerProfileModel {
-  const matches = data.lastMatches.map(playerMatchRowView);
+  const matches = data.lastMatches.map((match) =>
+    playerMatchRowView(match, data.player.id),
+  );
   return {
     name: data.player.name,
     imageUri: mediaUrl(data.player.image, apiOrigin),

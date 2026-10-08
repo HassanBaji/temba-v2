@@ -4,7 +4,13 @@ import { ResultMark } from "~/components/temba/result-mark";
 import type { PlayerMatchRowView } from "@repo/domain/player-profile-matches";
 import { cn } from "~/lib/utils";
 
-function RowContent({ row }: { row: PlayerMatchRowView }) {
+function RowContent({
+  row,
+  showPartner,
+}: {
+  row: PlayerMatchRowView;
+  showPartner: boolean;
+}) {
   return (
     <>
       <ResultMark variant={row.outcome} decorative className="size-5" />
@@ -12,6 +18,9 @@ function RowContent({ row }: { row: PlayerMatchRowView }) {
         <span className="text-body block truncate font-semibold">
           {row.opponents}
         </span>
+        {showPartner ? (
+          <span className="text-meta block truncate">{row.partnerVenue}</span>
+        ) : null}
         <span className="text-meta text-muted-foreground block truncate">
           {row.meta}
         </span>
@@ -38,20 +47,40 @@ const ROW = "flex min-h-11 items-center gap-3 px-5 py-3.5";
 export function PlayerMatchRow({
   row,
   href,
+  onSelect,
+  selected = false,
+  showPartner = false,
 }: {
   row: PlayerMatchRowView;
   href?: string;
+  onSelect?: () => void;
+  selected?: boolean;
+  showPartner?: boolean;
 }) {
-  if (!href) {
+  const content = <RowContent row={row} showPartner={showPartner} />;
+  const interactive = cn(
+    ROW,
+    "hover:bg-wash w-full text-left transition-colors",
+    selected && "bg-wash",
+  );
+  if (onSelect) {
     return (
-      <div className={ROW}>
-        <RowContent row={row} />
-      </div>
+      <button
+        type="button"
+        aria-current={selected || undefined}
+        onClick={onSelect}
+        className={interactive}
+      >
+        {content}
+      </button>
     );
   }
-  return (
-    <Link href={href} className={cn(ROW, "hover:bg-wash transition-colors")}>
-      <RowContent row={row} />
-    </Link>
-  );
+  if (href) {
+    return (
+      <Link href={href} className={interactive}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={ROW}>{content}</div>;
 }

@@ -1,7 +1,12 @@
 import { formatDayMonth } from "./format-game-start";
-import type { LevelBand } from "./level-bands";
+import { formatLevel } from "./level";
+import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { shortPlayerName } from "./player-name";
-import type { MatchOutcome, ResultMarkVariant } from "./result-mark";
+import {
+  RESULT_MARK_LABEL,
+  type MatchOutcome,
+  type ResultMarkVariant,
+} from "./result-mark";
 import { knockoutMatchRoundName } from "./tournament-knockout";
 
 export type PlayerMatchPlayer = {
@@ -49,6 +54,7 @@ export type PlayerMatchRowView = {
   matchId: string;
   outcome: MatchOutcome;
   opponents: string;
+  partnerVenue: string;
   meta: string;
   sets: string[];
   delta: string | null;
@@ -120,9 +126,25 @@ function ownerSets(match: PlayerMatchInput) {
   );
 }
 
+function ownerTeam(match: PlayerMatchInput) {
+  return match.ownerSlot === 1 ? match.slot1 : match.slot2;
+}
+
+function opponentTeam(match: PlayerMatchInput) {
+  return match.ownerSlot === 1 ? match.slot2 : match.slot1;
+}
+
 function opponentNames(match: PlayerMatchInput) {
-  const opponents = match.ownerSlot === 1 ? match.slot2 : match.slot1;
-  return opponents.map((player) => shortPlayerName(player.name));
+  return opponentTeam(match).map((player) => shortPlayerName(player.name));
+}
+
+/** "with Jonas B, Padelhuset Bromma"; just the Venue when no partner sat. */
+function partnerVenueLine(match: PlayerMatchInput, ownerId: string) {
+  const partners = ownerTeam(match)
+    .filter((player) => player.userId !== ownerId)
+    .map((player) => shortPlayerName(player.name));
+  const venue = match.game.venueName;
+  return partners.length > 0 ? `with ${partners.join(" & ")}, ${venue}` : venue;
 }
 
 function deltaWords(levelChange: number) {
@@ -135,6 +157,7 @@ function deltaWords(levelChange: number) {
 
 export function playerMatchRowView(
   match: PlayerMatchInput,
+  ownerId: string,
 ): PlayerMatchRowView {
   const names = opponentNames(match);
   const kind = playerMatchKindLabel(match.game);
@@ -153,6 +176,7 @@ export function playerMatchRowView(
     matchId: match.matchId,
     outcome: match.outcome,
     opponents: names.length > 0 ? `vs ${names.join(" & ")}` : "",
+    partnerVenue: partnerVenueLine(match, ownerId),
     meta: `${formatDayMonth(match.playedAt, { weekday: "short" })}, ${kind}`,
     sets,
     delta: match.rating ? levelChangeLabel(match.rating.levelChange) : null,
@@ -196,5 +220,136 @@ export function lastTenSummary(
         }
       : null,
     seeAll: shown.length > 0 ? `See all ${gamesWord(shown.length)}` : null,
+  };
+}
+
+export type LastTenFilter = "all" | "won" | "lost";
+
+export type LastTenFilterChip = {
+  filter: LastTenFilter;
+  label: string;
+  count: number;
+};
+
+export const LAST_TEN_FILTER_EMPTY = "No games here.";
+
+/**
+ * The Last 10 screen's chips and rows. Counts come from the data, and a draw
+ * shows under All only.
+ */
+export function filterLastTen<T extends { outcome: MatchOutcome }>(
+  matches: readonly T[],
+  filter: LastTenFilter,
+): { chips: LastTenFilterChip[]; matches: T[]; empty: string | null } {
+  const shown = matches.slice(0, LAST_TEN_SIZE);
+  const won = shown.filter((match) => match.outcome === "won");
+  const lost = shown.filter((match) => match.outcome === "lost");
+  const filtered = filter === "won" ? won : filter === "lost" ? lost : shown;
+
+  return {
+    chips: [
+      { filter: "all", label: `All ${shown.length}`, count: shown.length },
+      { filter: "won", label: `Won ${won.length}`, count: won.length },
+      { filter: "lost", label: `Lost ${lost.length}`, count: lost.length },
+    ],
+    matches: filtered,
+    empty: filtered.length === 0 ? LAST_TEN_FILTER_EMPTY : null,
+  };
+}
+
+export type PlayerMatchSheetPlayer = {
+  userId: string;
+  name: string;
+  image: string | null;
+  /** "B 4.2", or null for the hatched placeholder while Provisional or unrated. */
+  level: string | null;
+  accessibilityLabel: string;
+};
+
+export type PlayerMatchSheetTeam = {
+  players: PlayerMatchSheetPlayer[];
+  /** One chip per scored Set; `won` draws it ink, otherwise `wash`. */
+  sets: { games: number; won: boolean }[];
+};
+
+export type PlayerMatchSheetView = {
+  matchId: string;
+  gameId: string;
+  title: string;
+  subtitle: string;
+  outcome: MatchOutcome;
+  badge: string;
+  teams: [PlayerMatchSheetTeam, PlayerMatchSheetTeam];
+  rating: {
+    label: string;
+    before: string;
+    after: string;
+    delta: string;
+    accessibilityLabel: string;
+  } | null;
+  canOpenGame: boolean;
+};
+
+export const OPEN_GAME_ACTION = "Open game";
+
+function sheetPlayer(player: PlayerMatchPlayer): PlayerMatchSheetPlayer {
+  const level =
+    player.levelBand && player.level != null && !player.provisional
+      ? `${displayLabelFromStoredBand(player.levelBand)} ${player.level}`
+      : null;
+  return {
+    userId: player.userId,
+    name: player.name,
+    image: player.image,
+    level,
+    accessibilityLabel: level
+      ? `${player.name}, Level ${level}`
+      : `${player.name}, Level still Provisional`,
+  };
+}
+
+function bandLevel(band: LevelBand, level: number) {
+  return `${displayLabelFromStoredBand(band)} ${formatLevel(level)}`;
+}
+
+function sheetRating(rating: PlayerMatchRating, ownerName: string) {
+  const label = `${shortPlayerName(ownerName)}'s rating`;
+  const before = bandLevel(rating.bandBefore, rating.levelBefore);
+  const after = bandLevel(rating.bandAfter, rating.levelAfter);
+  return {
+    label,
+    before,
+    after,
+    delta: levelChangeLabel(rating.levelChange),
+    accessibilityLabel: `${label}, ${before} to ${after}, ${deltaWords(rating.levelChange)}`,
+  };
+}
+
+/** 09d: the Match sheet, with the profile owner's team first. */
+export function playerMatchSheetView(
+  match: PlayerMatchInput,
+  ownerName: string,
+): PlayerMatchSheetView {
+  const sets = ownerSets(match);
+
+  return {
+    matchId: match.matchId,
+    gameId: match.gameId,
+    title: playerMatchKindLabel(match.game),
+    subtitle: `${formatDayMonth(match.playedAt, { weekday: "short" })}, ${match.game.venueName}`,
+    outcome: match.outcome,
+    badge: RESULT_MARK_LABEL[match.outcome],
+    teams: [
+      {
+        players: ownerTeam(match).map(sheetPlayer),
+        sets: sets.map((set) => ({ games: set.us, won: set.us > set.them })),
+      },
+      {
+        players: opponentTeam(match).map(sheetPlayer),
+        sets: sets.map((set) => ({ games: set.them, won: set.them > set.us })),
+      },
+    ],
+    rating: match.rating ? sheetRating(match.rating, ownerName) : null,
+    canOpenGame: match.canOpenGame,
   };
 }
