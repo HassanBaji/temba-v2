@@ -330,6 +330,8 @@ Where the client cannot know, the server rule still decides, and D15 handles a r
 
 The Line-up and tournament rule reads `games.byId` `isRegistered` (a `game_players` row, so waitlisted viewers are out) and `isGroupMember`, an additive field ticket 5 added because the payload did not say whether the viewer belongs to the Game's Group.
 
+The Pool table and Knockout tree sheet lists a Game team's players from `games.byId` `gameTeams[].members`, so ticket 6 needs no new field. Bye, Qualifier, Winner-of and open cells, and Game teams with no players, are not tappable.
+
 ## 8. Domain docs
 
 ### 8.1 Proposed `CONTEXT.md` additions (applied in ticket 1)
@@ -422,7 +424,7 @@ Implement in order. Ticket 1 blocks all others. Tickets 2 and 3 depend on 1. Tic
 | 3 | Last 10 strip and the three most recent Matches on the Player profile (done) | 1 |
 | 4 | Last 10 screen with filters and the Match sheet (done) | 3 |
 | 5 | Open Player profiles from Group Standing and Game Line-ups (done) | 1 |
-| 6 | Open Player profiles from Pool tables and the Knockout tree | 5 |
+| 6 | Open Player profiles from Pool tables and the Knockout tree (done) | 5 |
 
 ### Ticket 1: Open a Group member's Player profile with header, Level card and Overall
 

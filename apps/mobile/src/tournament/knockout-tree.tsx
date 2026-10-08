@@ -15,36 +15,44 @@ import {
   type KnockoutViewRound,
   type KnockoutViewSide,
 } from "@repo/domain/tournament-knockout-view";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
+import { gameTeamPlayers } from "../player-profile/game-player-links";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import type { GameTeamLinks } from "./game-team-sheet";
+
+const SIDE_ROW = {
+  minHeight: sizes.touchTarget,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  paddingVertical: 4,
+} as const;
 
 function SideRow({
   side,
   resultTag = null,
   walkover = false,
+  links,
 }: {
   side: KnockoutViewSide;
   resultTag?: string | null;
   walkover?: boolean;
+  links?: GameTeamLinks;
 }) {
   const isTeam = side.kind === "team";
   const isViewer = side.kind === "team" && side.team.isViewer;
   const label = knockoutSideLabel(side);
-  return (
-    <View
-      style={{
-        minHeight: sizes.touchTarget,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        paddingVertical: 4,
-      }}
-    >
+  const players =
+    side.kind === "team" && links
+      ? gameTeamPlayers(links.gameTeams, side.team.gameTeamId)
+      : [];
+  const content = (
+    <>
       <View
         style={{
           flex: 1,
@@ -79,7 +87,21 @@ function SideRow({
           {resultTag}
         </Text>
       ) : null}
-    </View>
+    </>
+  );
+
+  if (!links || players.length === 0) {
+    return <View style={SIDE_ROW}>{content}</View>;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityHint="Lists this Game team's players"
+      onPress={() => links.onOpenTeam({ name: label, players })}
+      style={({ pressed }) => ({ ...SIDE_ROW, opacity: pressed ? 0.6 : 1 })}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -89,10 +111,12 @@ function PlaceCard({
   place,
   isFinal,
   onCancelMatch,
+  links,
 }: {
   place: KnockoutViewPlace;
   isFinal: boolean;
   onCancelMatch?: CancelMatch;
+  links?: GameTeamLinks;
 }) {
   const meta =
     place.kind === "match"
@@ -122,11 +146,13 @@ function PlaceCard({
           <SideRow
             side={place.slot1}
             {...knockoutPlaceSideTags(place, 1, isFinal)}
+            links={links}
           />
           <Hairline />
           <SideRow
             side={place.slot2}
             {...knockoutPlaceSideTags(place, 2, isFinal)}
+            links={links}
           />
           {place.scoreLabel ? (
             <Text size="meta" tone="muted" style={{ paddingTop: 8 }}>
@@ -152,7 +178,7 @@ function PlaceCard({
         </View>
       ) : (
         <View>
-          <SideRow side={place.side} />
+          <SideRow side={place.side} links={links} />
           <Hairline />
           <View
             accessible
@@ -184,10 +210,12 @@ function Round({
   round,
   isFinal,
   onCancelMatch,
+  links,
 }: {
   round: KnockoutViewRound;
   isFinal: boolean;
   onCancelMatch?: CancelMatch;
+  links?: GameTeamLinks;
 }) {
   const day = knockoutRoundDayLine(round);
   return (
@@ -208,6 +236,7 @@ function Round({
           place={place}
           isFinal={isFinal}
           onCancelMatch={onCancelMatch}
+          links={links}
         />
       ))}
     </View>
@@ -217,9 +246,11 @@ function Round({
 export function KnockoutTree({
   rounds,
   onCancelMatch,
+  links,
 }: {
   rounds: readonly KnockoutViewRound[];
   onCancelMatch?: CancelMatch;
+  links?: GameTeamLinks;
 }) {
   return (
     <View style={{ gap: 24 }}>
@@ -229,6 +260,7 @@ export function KnockoutTree({
           round={round}
           isFinal={index === rounds.length - 1}
           onCancelMatch={onCancelMatch}
+          links={links}
         />
       ))}
     </View>

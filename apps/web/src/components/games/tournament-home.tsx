@@ -187,6 +187,7 @@ export function TournamentHome({
           standings={tournamentStandingsView(data)}
           poolTables={data.poolTables}
           knockout={data.knockout}
+          gameTeams={linkToPlayers ? data.gameTeams : undefined}
           backHref={backHref}
           showUndo={showUndo}
           undoPending={undoPending}
@@ -480,6 +481,7 @@ function TournamentStandingsTree({
   standings,
   poolTables,
   knockout,
+  gameTeams,
   backHref,
   showUndo,
   undoPending,
@@ -490,6 +492,7 @@ function TournamentStandingsTree({
   standings: TournamentStandingsView;
   poolTables: GameDetail["poolTables"];
   knockout: GameDetail["knockout"];
+  gameTeams: GameDetail["gameTeams"] | undefined;
   backHref: string;
   showUndo: boolean;
   undoPending: boolean;
@@ -514,12 +517,16 @@ function TournamentStandingsTree({
             <TournamentKnockoutTree
               rounds={knockout}
               onCancelMatch={onCancelMatch}
+              gameTeams={gameTeams}
             />
           </div>
         ) : null}
         {standings.showPoolTables && poolTables ? (
           <div className="pt-[18px]">
-            <TournamentStandingsSection poolTables={poolTables} />
+            <TournamentStandingsSection
+              poolTables={poolTables}
+              gameTeams={gameTeams}
+            />
           </div>
         ) : null}
       </div>
@@ -541,6 +548,7 @@ function TournamentStandingsTree({
               rounds={knockout}
               headingLevel="h3"
               onCancelMatch={onCancelMatch}
+              gameTeams={gameTeams}
             />
           </div>
         </section>

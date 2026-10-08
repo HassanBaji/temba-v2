@@ -25,11 +25,17 @@ import { useState, type ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
+import { gameTeamPlayers } from "../player-profile/game-player-links";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import {
+  GameTeamSheet,
+  type GameTeamLinks,
+  type GameTeamSheetTeam,
+} from "./game-team-sheet";
 import { KnockoutTree } from "./knockout-tree";
 import { OpenSlot } from "./open-slot";
 
@@ -59,9 +65,11 @@ function Trailing({ trailing }: { trailing: MatchTrailing }) {
 function RecordTable({
   rows,
   finished,
+  links,
 }: {
   rows: Pool["rows"];
   finished: boolean;
+  links?: GameTeamLinks;
 }) {
   const palette = useTonePalette();
   const heads = ["P", "W", "D", "L"];
@@ -95,67 +103,88 @@ function RecordTable({
       </View>
       {rows.map((row) => {
         const stats = [row.played, row.won, row.drawn, row.lost];
-        return (
-          <View key={row.gameTeamId}>
-            <Hairline />
-            <View
-              accessible
-              accessibilityLabel={`${row.position}. ${row.name}. Played ${poolRecordDisplay(row.played)}, won ${poolRecordDisplay(row.won)}, drawn ${poolRecordDisplay(row.drawn)}, lost ${poolRecordDisplay(row.lost)}${finished && row.isWinner ? `. ${POOL_WINNER_LABEL}` : ""}`}
-              style={{
-                minHeight: sizes.touchTarget,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                backgroundColor: row.isViewer ? palette.wash : undefined,
-              }}
+        const players = links
+          ? gameTeamPlayers(links.gameTeams, row.gameTeamId)
+          : [];
+        const rowStyle = {
+          minHeight: sizes.touchTarget,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          backgroundColor: row.isViewer ? palette.wash : undefined,
+        } as const;
+        const label = `${row.position}. ${row.name}. Played ${poolRecordDisplay(row.played)}, won ${poolRecordDisplay(row.won)}, drawn ${poolRecordDisplay(row.drawn)}, lost ${poolRecordDisplay(row.lost)}${finished && row.isWinner ? `. ${POOL_WINNER_LABEL}` : ""}`;
+        const cells = (
+          <>
+            <Text
+              size="body"
+              width="expanded"
+              style={{ width: 20 }}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
             >
+              {row.position}
+            </Text>
+            <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
               <Text
                 size="body"
+                weight={row.isViewer ? "semibold" : "regular"}
+                numberOfLines={1}
+              >
+                {row.name}
+              </Text>
+              {finished && row.isWinner ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <ResultMark variant="won" size={16} decorative />
+                  <Text size="eyebrow" tone="muted">
+                    {POOL_WINNER_LABEL}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {stats.map((value, index) => (
+              <Text
+                key={heads[index]}
+                size="lead"
                 width="expanded"
-                style={{ width: 20 }}
+                style={{ width: STAT_WIDTH, textAlign: "center" }}
                 accessibilityElementsHidden
                 importantForAccessibility="no"
               >
-                {row.position}
+                {poolRecordDisplay(value)}
               </Text>
-              <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                <Text
-                  size="body"
-                  weight={row.isViewer ? "semibold" : "regular"}
-                  numberOfLines={1}
-                >
-                  {row.name}
-                </Text>
-                {finished && row.isWinner ? (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <ResultMark variant="won" size={16} decorative />
-                    <Text size="eyebrow" tone="muted">
-                      {POOL_WINNER_LABEL}
-                    </Text>
-                  </View>
-                ) : null}
+            ))}
+          </>
+        );
+        return (
+          <View key={row.gameTeamId}>
+            <Hairline />
+            {links && players.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                accessibilityHint="Lists this Game team's players"
+                onPress={() => links.onOpenTeam({ name: row.name, players })}
+                style={({ pressed }) => ({
+                  ...rowStyle,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                {cells}
+              </Pressable>
+            ) : (
+              <View accessible accessibilityLabel={label} style={rowStyle}>
+                {cells}
               </View>
-              {stats.map((value, index) => (
-                <Text
-                  key={heads[index]}
-                  size="lead"
-                  width="expanded"
-                  style={{ width: STAT_WIDTH, textAlign: "center" }}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no"
-                >
-                  {poolRecordDisplay(value)}
-                </Text>
-              ))}
-            </View>
+            )}
           </View>
         );
       })}
@@ -295,7 +324,13 @@ function RoundResults({
   );
 }
 
-function PoolTablesSection({ poolTables }: { poolTables: PoolTables }) {
+function PoolTablesSection({
+  poolTables,
+  links,
+}: {
+  poolTables: PoolTables;
+  links?: GameTeamLinks;
+}) {
   const [selected, setSelected] = useState(
     defaultStandingsPoolIndex(poolTables.viewerPoolIndex, poolTables.pools),
   );
@@ -327,7 +362,7 @@ function PoolTablesSection({ poolTables }: { poolTables: PoolTables }) {
           />
         ))}
       </View>
-      <RecordTable rows={pool.rows} finished={pool.finished} />
+      <RecordTable rows={pool.rows} finished={pool.finished} links={links} />
       <ViewerRounds rounds={viewerRounds} />
       <RoundResults
         matches={pool.matches}
@@ -390,20 +425,30 @@ export function StandingsView({
   game,
   standings,
   onCancelMatch,
+  onOpenPlayer,
 }: {
   game: TournamentDetails;
   standings: TournamentStandingsView;
   onCancelMatch?: ComponentProps<typeof KnockoutTree>["onCancelMatch"];
+  onOpenPlayer?: (userId: string) => void;
 }) {
   const { poolTables, knockout } = game;
+  const [openTeam, setOpenTeam] = useState<GameTeamSheetTeam | null>(null);
+  const links = onOpenPlayer
+    ? { gameTeams: game.gameTeams, onOpenTeam: setOpenTeam }
+    : undefined;
   return (
     <View style={{ gap: 24 }}>
       <StandingsHeader standings={standings} />
       {standings.showKnockoutTree && knockout ? (
-        <KnockoutTree rounds={knockout} onCancelMatch={onCancelMatch} />
+        <KnockoutTree
+          rounds={knockout}
+          onCancelMatch={onCancelMatch}
+          links={links}
+        />
       ) : null}
       {standings.showPoolTables && poolTables ? (
-        <PoolTablesSection poolTables={poolTables} />
+        <PoolTablesSection poolTables={poolTables} links={links} />
       ) : null}
       {standings.knockoutSectionTitle && knockout ? (
         <View style={{ gap: 12 }}>
@@ -420,8 +465,19 @@ export function StandingsView({
               {KNOCKOUT_NOT_THROUGH_COPY}
             </Text>
           ) : null}
-          <KnockoutTree rounds={knockout} onCancelMatch={onCancelMatch} />
+          <KnockoutTree
+            rounds={knockout}
+            onCancelMatch={onCancelMatch}
+            links={links}
+          />
         </View>
+      ) : null}
+      {onOpenPlayer ? (
+        <GameTeamSheet
+          team={openTeam}
+          onClose={() => setOpenTeam(null)}
+          onOpenPlayer={onOpenPlayer}
+        />
       ) : null}
     </View>
   );

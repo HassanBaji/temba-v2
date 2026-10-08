@@ -1219,7 +1219,12 @@ export default function GameHomePage({
             <TabsContent value="overview">
               <div className="space-y-6">
                 {data.drawPostedAt && data.poolTables?.pools.length ? (
-                  <TournamentPoolTablesPanel poolTables={data.poolTables} />
+                  <TournamentPoolTablesPanel
+                    poolTables={data.poolTables}
+                    gameTeams={
+                      gamePlayersLink(data) ? data.gameTeams : undefined
+                    }
+                  />
                 ) : null}
                 <GameOverviewPanel game={data} />
               </div>
