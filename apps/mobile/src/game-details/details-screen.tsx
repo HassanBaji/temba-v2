@@ -27,13 +27,15 @@ import {
 } from "@repo/domain/tournament-join";
 import { gameInviteAccess } from "@repo/domain/invites";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
+import { gamePlayersLink } from "../player-profile/game-player-links";
+import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -104,6 +106,7 @@ function LoadingSkeleton() {
 
 export function GameDetailsScreen({ gameId }: { gameId: string }) {
   const router = useRouter();
+  const segments = useSegments();
   const toast = useToast();
   const utils = api.useUtils();
   const [refreshing, setRefreshing] = useState(false);
@@ -521,6 +524,10 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     );
   }
 
+  const onOpenPlayer = gamePlayersLink(data)
+    ? (userId: string) => router.push(playerPath(segments, userId))
+    : undefined;
+
   if (tournament) {
     const details: TournamentDetails = data;
     const firstTeamId = details.eligibleTeams[0]?.id ?? "";
@@ -552,6 +559,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
               onSave: (matchId, payloads) => void saveScore(matchId, payloads),
               onAddSet: (matchId) => addSet.mutate({ gameId, matchId }),
               onComplete: askCompleteMatch,
+              onOpenPlayer,
             }}
           />
         </Screen>
@@ -608,6 +616,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
       }
       organizer.onFooterAction(kind);
     },
+    onOpenPlayer,
   };
 
   return (

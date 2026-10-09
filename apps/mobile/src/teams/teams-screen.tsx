@@ -1,10 +1,9 @@
 import { TEAM_JOINED_TOAST } from "@repo/domain/teams";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
-import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { NEW_TEAM_PATH, teamPath } from "./teams-model";
@@ -63,13 +62,6 @@ export function TeamsScreen() {
         onAccept={(inviteId) => accept.mutate({ inviteId })}
         onRetry={() => void refetchAll()}
       />
-      {__DEV__ ? (
-        <Link href="/gallery-teams">
-          <Text size="meta" weight="medium">
-            Open the Teams states gallery
-          </Text>
-        </Link>
-      ) : null}
     </Screen>
   );
 }

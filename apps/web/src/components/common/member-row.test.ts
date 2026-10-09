@@ -42,4 +42,21 @@ describe("MemberRow", () => {
     expect(html.indexOf("Omar Haddad")).toBeLessThan(html.indexOf("Creator"));
     expect(html.indexOf("Creator")).toBeLessThan(html.indexOf("Remove"));
   });
+
+  it("renders a button row only when it can be selected", () => {
+    expect(render({ name: "Omar Haddad" })).not.toContain("<button");
+    expect(
+      render({ name: "Omar Haddad", onSelect: () => undefined }),
+    ).toContain("<button");
+  });
+
+  it("renders a link row when it has an href", () => {
+    const html = render({
+      name: "Omar Haddad",
+      href: "/dashboard/groups/abc/members/user_1",
+    });
+
+    expect(html).toContain('href="/dashboard/groups/abc/members/user_1"');
+    expect(html).not.toContain("<button");
+  });
 });

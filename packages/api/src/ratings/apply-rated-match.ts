@@ -245,9 +245,14 @@ export async function applyRatedMatch(
   });
   const alreadyRated = new Set(existingEvents.map((row) => row.userId));
 
-  const existingRows = await database.query.ratings.findMany({
-    where: and(inArray(ratings.userId, userIds), eq(ratings.sport, sport)),
-  });
+  // Locked in user-id order so a Level override or reversal on the same rows
+  // serializes with this write instead of being overwritten by it.
+  const existingRows = await database
+    .select()
+    .from(ratings)
+    .where(and(inArray(ratings.userId, userIds), eq(ratings.sport, sport)))
+    .orderBy(ratings.userId)
+    .for("update");
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
 
   const now = new Date();

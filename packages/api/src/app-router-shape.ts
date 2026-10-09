@@ -15,6 +15,7 @@ type ExpectedTopLevel =
   | "communities"
   | "games"
   | "groups"
+  | "notifications"
   | "ratings"
   | "teams"
   | "users"
@@ -144,7 +145,13 @@ type ExpectedGroups =
   | "uploadImage"
   | "clearImage";
 
-type ExpectedRatings = "me" | "selfDeclare";
+type ExpectedNotifications =
+  | "list"
+  | "unreadCount"
+  | "markRead"
+  | "markAllRead";
+
+type ExpectedRatings = "me" | "selfDeclare" | "setLevel";
 
 type ExpectedTeams =
   | "create"
@@ -168,6 +175,7 @@ type ExpectedUsers =
   | "home"
   | "onboardingState"
   | "profileStats"
+  | "playerProfile"
   | "setPreferredPosition"
   | "completeOnboarding";
 
@@ -193,6 +201,9 @@ type _Communities = AssertTrue<
 >;
 type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
 type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
+type _Notifications = AssertTrue<
+  Equal<keyof RouterInputs["notifications"], ExpectedNotifications>
+>;
 type _Ratings = AssertTrue<
   Equal<keyof RouterInputs["ratings"], ExpectedRatings>
 >;
@@ -205,6 +216,7 @@ export type AppRouterShapeChecks = [
   _Communities,
   _Games,
   _Groups,
+  _Notifications,
   _Ratings,
   _Teams,
   _Users,

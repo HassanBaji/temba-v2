@@ -4,11 +4,10 @@ import {
   HISTORY_PAGE_SIZE,
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
 import { Screen } from "../primitives/screen";
-import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
@@ -95,30 +94,6 @@ export function GamesScreen() {
         onCreate={() => router.push("/games/new")}
         onRetry={() => void onRefresh()}
       />
-      {__DEV__ ? (
-        <>
-          <Link href="/gallery-games">
-            <Text size="meta" weight="medium">
-              Open the Games states gallery
-            </Text>
-          </Link>
-          <Link href="/gallery-game-details">
-            <Text size="meta" weight="medium">
-              Open the Game details states gallery
-            </Text>
-          </Link>
-          <Link href="/gallery-tournament">
-            <Text size="meta" weight="medium">
-              Open the Friendly tournament states gallery
-            </Text>
-          </Link>
-          <Link href="/gallery-create">
-            <Text size="meta" weight="medium">
-              Open the Create Game states gallery
-            </Text>
-          </Link>
-        </>
-      ) : null}
     </Screen>
   );
 }

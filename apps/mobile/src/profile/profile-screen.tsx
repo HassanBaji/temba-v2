@@ -2,14 +2,13 @@ import { useAuth, useUser } from "@clerk/expo";
 import { RECENT_FORM_MATCH_COUNT } from "@repo/domain/home-recent-form";
 import type { PreferredPosition } from "@repo/domain/preferred-position";
 import * as ImagePicker from "expo-image-picker";
-import { Link, useRouter, type Href } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { recentFormFromHistory } from "../home/home-model";
 import { splitTrpcFormError } from "../lib/form-error";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
-import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { imageDataUri, photoErrorMessage } from "./photo";
@@ -203,13 +202,6 @@ export function ProfileScreen() {
         }}
         onRetry={() => void refetchAll()}
       />
-      {__DEV__ ? (
-        <Link href="/gallery-profile">
-          <Text size="meta" weight="medium">
-            Open the Profile states gallery
-          </Text>
-        </Link>
-      ) : null}
     </Screen>
   );
 }

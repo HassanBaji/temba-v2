@@ -30,6 +30,7 @@ import {
   getRegistrationStatus,
   isClubGroupGameJoinFrozen,
   isGameOrganizer,
+  isGroupMember,
   registeredGameTeamCount,
   registeredUserCount,
   requireGame,
@@ -585,6 +586,9 @@ export async function gameById(
     createdBy: game.createdBy,
     createdAt: game.createdAt,
     isOrganizer: organizer,
+    isGroupMember: game.groupId
+      ? await isGroupMember(database, game.groupId, args.userId)
+      : false,
     viewerUserId: args.userId,
     joinFrozen: await isClubGroupGameJoinFrozen(database, game),
     isRegistered: alreadyOnGame,

@@ -109,6 +109,7 @@ export function TournamentHome({
   onPost,
   onUndo,
   onCancelKnockoutMatch,
+  linkToPlayers = false,
 }: {
   data: GameDetail;
   sharePending: boolean;
@@ -151,6 +152,7 @@ export function TournamentHome({
   onPost: () => void | Promise<void>;
   onUndo: () => void | Promise<void>;
   onCancelKnockoutMatch?: (place: KnockoutMatchPlace) => void;
+  linkToPlayers?: boolean;
 }) {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
@@ -185,6 +187,7 @@ export function TournamentHome({
           standings={tournamentStandingsView(data)}
           poolTables={data.poolTables}
           knockout={data.knockout}
+          gameTeams={linkToPlayers ? data.gameTeams : undefined}
           backHref={backHref}
           showUndo={showUndo}
           undoPending={undoPending}
@@ -213,6 +216,7 @@ export function TournamentHome({
             sides={data.sides}
             viewerUserId={data.viewerUserId}
             canTakeSeat={view.canTakeSeat}
+            linkToPlayers={linkToPlayers}
             venueName={data.venue?.name ?? null}
             schedule={schedule}
             teamCount={data.teamsAllowed}
@@ -349,10 +353,12 @@ function TournamentPredrawTree({
   onPost,
   onTakeSeat,
   onInvite,
+  linkToPlayers,
 }: {
   sides: GameDetail["sides"];
   viewerUserId: string;
   canTakeSeat: boolean;
+  linkToPlayers: boolean;
   venueName: string | null;
   schedule: TournamentRoundScheduleEntry[];
   teamCount: number | null;
@@ -432,6 +438,7 @@ function TournamentPredrawTree({
         mergeError={mergeError}
         onMerge={onMerge}
         knockoutOnly={knockoutOnly}
+        linkToPlayers={linkToPlayers}
       />
       <TournamentDrawDrawer
         open={drawOpen}
@@ -458,6 +465,7 @@ function TournamentPredrawTree({
         viewerUserId={viewerUserId}
         canTakeSeat={canTakeSeat}
         onTakeSeat={onTakeSeat}
+        linkToPlayers={linkToPlayers}
       />
       <TournamentSeatsGrid sides={sides} onInvite={onInvite} />
       <TournamentYourRounds
@@ -473,6 +481,7 @@ function TournamentStandingsTree({
   standings,
   poolTables,
   knockout,
+  gameTeams,
   backHref,
   showUndo,
   undoPending,
@@ -483,6 +492,7 @@ function TournamentStandingsTree({
   standings: TournamentStandingsView;
   poolTables: GameDetail["poolTables"];
   knockout: GameDetail["knockout"];
+  gameTeams: GameDetail["gameTeams"] | undefined;
   backHref: string;
   showUndo: boolean;
   undoPending: boolean;
@@ -507,12 +517,16 @@ function TournamentStandingsTree({
             <TournamentKnockoutTree
               rounds={knockout}
               onCancelMatch={onCancelMatch}
+              gameTeams={gameTeams}
             />
           </div>
         ) : null}
         {standings.showPoolTables && poolTables ? (
           <div className="pt-[18px]">
-            <TournamentStandingsSection poolTables={poolTables} />
+            <TournamentStandingsSection
+              poolTables={poolTables}
+              gameTeams={gameTeams}
+            />
           </div>
         ) : null}
       </div>
@@ -534,6 +548,7 @@ function TournamentStandingsTree({
               rounds={knockout}
               headingLevel="h3"
               onCancelMatch={onCancelMatch}
+              gameTeams={gameTeams}
             />
           </div>
         </section>

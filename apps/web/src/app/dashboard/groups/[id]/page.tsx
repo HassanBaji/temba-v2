@@ -19,6 +19,7 @@ import { InvitesDialog } from "~/components/invites/invites-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
+import { groupMembersTabHref } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import {
@@ -60,6 +61,7 @@ import {
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { groupLookupNote, lookupInviteSentToast } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
@@ -69,12 +71,17 @@ export default function GroupHomePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    saved?: string | string[];
+  }>;
 }) {
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const tab = groupHomeTabFromQuery(tabParam);
+  const savedUserId =
+    (Array.isArray(query.saved) ? query.saved[0] : query.saved) ?? null;
   const { hasCreateAccess } = useCreateAccess();
   const router = useRouter();
   const pathname = usePathname() ?? `/dashboard/groups/${id}`;
@@ -596,6 +603,7 @@ export default function GroupHomePage({
           <TabsContent value="standing">
             <GroupStandingTab
               isMember={Boolean(data.membership)}
+              linkToPlayers={groupMemberRowsLink(data.membership)}
               leaderboard={data.standing.leaderboard}
               groupId={id}
               canShowCreateGame={canShowCreateGame}
@@ -655,6 +663,12 @@ export default function GroupHomePage({
                 communityName={data.community?.name ?? null}
               />
               <GroupMembersTab
+                groupId={id}
+                canSetLevel={data.viewerCanSetLevel}
+                savedUserId={savedUserId}
+                onDismissSaved={() =>
+                  router.replace(groupMembersTabHref(id), { scroll: false })
+                }
                 members={data.standing.leaderboard.map((entry) => ({
                   userId: entry.userId,
                   name: entry.name ?? "Member",
@@ -665,7 +679,11 @@ export default function GroupHomePage({
                   formMarks: entry.formMarks,
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
+                  level: entry.level,
+                  ratedMatchCount: entry.ratedMatchCount,
+                  levelOverride: entry.levelOverride,
                 }))}
+                linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
                 onInvite={() => setInvitesOpen(true)}
               />

@@ -8,6 +8,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 
 type DbClient = typeof db;
 
@@ -52,20 +53,24 @@ export async function joinLoosePublic(
     });
   }
 
-  const [created] = await database
-    .insert(groupMembers)
-    .values({
-      groupId: group.id,
-      userId: args.userId,
-    })
-    .returning();
+  await database.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(groupMembers)
+      .values({
+        groupId: group.id,
+        userId: args.userId,
+      })
+      .returning();
 
-  if (!created) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to join Group",
-    });
-  }
+    if (!created) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to join Group",
+      });
+    }
+
+    await notifyGroupJoined(tx, { group, joinerUserId: args.userId });
+  });
 
   return { ok: true as const, groupId: group.id };
 }

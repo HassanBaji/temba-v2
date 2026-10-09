@@ -106,7 +106,7 @@ _Avoid_: invitation, Invite, Community join request (when you mean this Group re
 
 **Group approver**:
 Who may set Require approval and decide Group join requests. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived.
-_Avoid_: Group owner, organizer (when you mean this write permission)
+_Avoid_: Group owner, organizer (when you mean this write permission), group admin
 
 **Loose Group Private**:
 A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it.
@@ -162,7 +162,7 @@ _Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred 
 
 **Preferred Position**:
 A User's standing preference for Left or right, or Either. A default for the Game seat picker, not a Position itself.
-_Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side
+_Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
@@ -175,6 +175,10 @@ _Avoid_: Owner, moderator, Operator
 **Operator**:
 A Temba staff User. Not a Community role. Operators curate Venues and Courts and decide Venue link requests.
 _Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
+
+**Level setter**:
+A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator, Organizer and Community roles.
+_Avoid_: admin, rating admin, rating editor, Operator (when you mean this)
 
 **Member**:
 A Community role with no staff powers. Community membership is required to join that Community’s Club Groups. Leaving a Community is refused while the User sits on any Team linked to that Community.
@@ -306,7 +310,15 @@ _Avoid_: fee, cost, entry fee, registration price (registration is the open/clos
 
 **Organizer**:
 Of a Group Game: that Group’s creator, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, kick registered or waitlisted entries, edit window and price per player and Game Level range, and decide Game Level range requests.
-_Avoid_: creator (when you mean this set), host, admin (when you mean this)
+_Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
+
+**Game admins**:
+Who hears about a Game's joins and leaves, and gets the admin Finished Game notice: the Organizers and the Group approvers of the Game's Group, except a Club Group creator who has left the Community, and nobody while the Community is Soft-archived. On a groupless Game, its creator. Decides who is notified only, never who may act.
+_Avoid_: Organizer (that is the write permission), game admin (lowercase, as a role), co-host, host
+
+**Finished Game**:
+A Game that is not cancelled and whose Matches are all completed or cancelled, with at least one completed. Derived, not stored. An Americano, which has no Matches, is never a Finished Game.
+_Avoid_: completed Game (completed is a Match status), ended, over, past Game
 
 **Game Level range**:
 Optional inclusive minimum and/or maximum Level band bounds (D–A) on a Game, stored as tenths. Both unset means no Level gate. Distinct from a User’s continuous Level.
@@ -332,6 +344,30 @@ _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboardin
 The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
 
+**Player profile**:
+A read-only page about one User: their padel Level, Win streaks, Preferred Position, All time stats and Last 10. Visible to that User and to every User who shares a Group or a Game with them. Distinct from You, which is the signed-in User's own page with settings.
+_Avoid_: public profile, player card, user page
+
+**Last 10**:
+A User's ten most recent completed padel Matches, across every Game format. Newest first. Walkovers are not Matches with a result and never appear.
+_Avoid_: recent games, history (when you mean this fixed window), Recent form (that is Home's strip, which excludes Americano)
+
+**Win streak**:
+Consecutive won Matches in time order. A loss or a draw ends it. The current Win streak ends at the newest Match; the best is the longest ever.
+_Avoid_: form, run, streak (bare, when a losing run is meant)
+
+**Played side**:
+The share of a User's Matches with a recorded Position that they played on the left or on the right. Derived, never declared. Distinct from Preferred Position.
+_Avoid_: Preferred Position (that is declared), backhand side, forehand side
+
+**Notification**:
+An in-app record that tells one User that something happened on a Group or Game they run, or that a Game they played on has finished. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
+_Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
+
+**Notifications page**:
+The Web App page at `/dashboard/notifications`, opened from the bell, listing the signed-in User's Notifications newest first, with a link to pending invites when there are any.
+_Avoid_: feed, inbox (when you mean this page), activity log, Home
+
 **Standing**:
 A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
@@ -349,8 +385,12 @@ The discrete skill label D–D+–C–C+–B–B+–A–PRO (PRO highest) shown 
 _Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
-UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling).
+UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling). A Level override clears Provisional.
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
+
+**Level override**:
+A Level that a Level setter set by hand, and its audit record. It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
+_Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
 A completed, non-cancelled Match that produced rating events for the Users on its two Game teams.

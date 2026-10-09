@@ -2,18 +2,21 @@
 
 import { Fragment } from "react";
 
+import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
 import { OpenSeat, SeatRow } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
 import {
+  friendlyGameCanKickPlayer,
   friendlyGameInviteSeatLabel,
   friendlyGameLineupVacantAction,
   friendlyGameOpenSeatLabel,
   friendlyGameSeatSubline,
   friendlyGameVacantSeatLabel,
 } from "@repo/domain/friendly-game-players";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -35,6 +38,10 @@ function LineupSeatRow({
   canMove,
   moving,
   onMove,
+  canKick,
+  kickPending,
+  onKick,
+  linked,
 }: {
   occupant: GameDetailsSeat | null;
   position: SeatPosition;
@@ -46,6 +53,10 @@ function LineupSeatRow({
   canMove: boolean;
   moving: boolean;
   onMove: () => void;
+  canKick: boolean;
+  kickPending: boolean;
+  onKick: (userId: string) => void;
+  linked: boolean;
 }) {
   if (vacant || !occupant) {
     const vacantAction = friendlyGameLineupVacantAction(canMove);
@@ -96,7 +107,22 @@ function LineupSeatRow({
     <SeatRow
       occupant={occupant}
       isViewer={isViewer}
+      href={linked ? playerProfilePath(occupant.userId) : undefined}
       subline={friendlyGameSeatSubline(position, occupant.levelBand)}
+      trailing={
+        canKick ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-label={`${KICK_ACTION} ${occupant.name}`}
+            disabled={kickPending}
+            onClick={() => onKick(occupant.userId)}
+          >
+            {KICK_ACTION}
+          </Button>
+        ) : undefined
+      }
     />
   );
 }
@@ -112,6 +138,10 @@ function LineupTeamColumn({
   canMove,
   moving,
   onMove,
+  canKick,
+  kickPending,
+  onKick,
+  linkToPlayers,
 }: {
   side: GameDetailsSide;
   isWinner: boolean;
@@ -123,6 +153,10 @@ function LineupTeamColumn({
   canMove: boolean;
   moving: boolean;
   onMove: (position: SeatPosition) => void;
+  canKick: (userId: string) => boolean;
+  kickPending: boolean;
+  onKick: (userId: string) => void;
+  linkToPlayers: boolean;
 }) {
   const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
   return (
@@ -147,6 +181,10 @@ function LineupTeamColumn({
           canMove={canMove}
           moving={moving}
           onMove={() => onMove("left")}
+          canKick={side.left != null && canKick(side.left.userId)}
+          kickPending={kickPending}
+          onKick={onKick}
+          linked={linkToPlayers}
         />
         <LineupSeatRow
           occupant={side.right}
@@ -159,6 +197,10 @@ function LineupTeamColumn({
           canMove={canMove}
           moving={moving}
           onMove={() => onMove("right")}
+          canKick={side.right != null && canKick(side.right.userId)}
+          kickPending={kickPending}
+          onKick={onKick}
+          linked={linkToPlayers}
         />
       </div>
     </div>
@@ -184,6 +226,11 @@ export function GameLineupSection({
   canMove,
   moving,
   onMove,
+  isOrganizer,
+  cancelled,
+  kickPending,
+  onKick,
+  linkToPlayers,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
@@ -194,6 +241,11 @@ export function GameLineupSection({
   canMove: boolean;
   moving: boolean;
   onMove: (sideIndex: number, position: SeatPosition) => void;
+  isOrganizer: boolean;
+  cancelled: boolean;
+  kickPending: boolean;
+  onKick: (userId: string) => void;
+  linkToPlayers: boolean;
 }) {
   // Final phase never shows invite affordances in this section, regardless
   // of the caller's organizer-only `canMintInvite` value (spec: "no invite
@@ -204,6 +256,12 @@ export function GameLineupSection({
     vacantSeats.some(
       (seat) => seat.sideIndex === sideIndex && seat.position === position,
     );
+  const canKick = (userId: string) =>
+    friendlyGameCanKickPlayer({
+      isOrganizer,
+      cancelled,
+      isViewer: userId === viewerUserId,
+    });
 
   return (
     <section
@@ -238,6 +296,10 @@ export function GameLineupSection({
               canMove={canMove}
               moving={moving}
               onMove={(position) => onMove(side.sideIndex, position)}
+              canKick={canKick}
+              kickPending={kickPending}
+              onKick={onKick}
+              linkToPlayers={linkToPlayers}
             />
           </Fragment>
         ))}

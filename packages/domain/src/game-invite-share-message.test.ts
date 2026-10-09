@@ -10,7 +10,7 @@ import {
 const shortUrl = "https://app.example/g/A3F8K2PQ";
 
 describe("formatGameInviteShareMessage", () => {
-  it("writes the canonical English emoji roster with Open seats and the short join URL", () => {
+  it("writes the canonical English emoji roster with each Position, Open seats and the short join URL", () => {
     const windowStart = bahrainDayFromToday(0, 19);
     const windowEnd = bahrainDayFromToday(0, 20);
     const message = formatGameInviteShareMessage({
@@ -41,12 +41,12 @@ describe("formatGameInviteShareMessage", () => {
         `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart)}`,
         "",
         "👕 Team 1",
-        "- Ada",
-        "- Open",
+        "- Left: Ada",
+        "- Right: Open",
         "",
         "👕 Team 2",
-        "- Lin",
-        "- Sam",
+        "- Left: Lin",
+        "- Right: Sam",
         "",
         "🔗 Join:",
         shortUrl,
@@ -67,7 +67,8 @@ describe("formatGameInviteShareMessage", () => {
     });
     expect(message).not.toContain("🎾");
     expect(message.startsWith("📍 Padel Club\n📅 ")).toBe(true);
-    expect(message).toContain("- Open");
+    expect(message).toContain("- Left: Open");
+    expect(message).toContain("- Right: Open");
     expect(message).toContain(shortUrl);
   });
 });

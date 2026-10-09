@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { UserAvatar } from "~/components/common/user-avatar";
 import { cn } from "~/lib/utils";
 
@@ -68,6 +70,7 @@ export function SeatRow({
   isViewer = false,
   subline,
   trailing,
+  href,
 }: {
   occupant: { name: string; image: string | null } | null;
   size?: keyof typeof SEAT_AVATAR_SIZE;
@@ -78,9 +81,11 @@ export function SeatRow({
   isViewer?: boolean;
   subline?: React.ReactNode;
   trailing?: React.ReactNode;
+  /** Links an occupied seat's avatar and name; the trailing action stays apart. */
+  href?: string;
 }) {
-  return (
-    <div data-slot="seat-row" className="flex items-center gap-3">
+  const identity = (
+    <>
       {occupant ? (
         <UserAvatar
           name={occupant.name}
@@ -103,6 +108,21 @@ export function SeatRow({
           <p className="text-muted-foreground text-meta truncate">{subline}</p>
         ) : null}
       </div>
+    </>
+  );
+
+  return (
+    <div data-slot="seat-row" className="flex items-center gap-3">
+      {occupant && href ? (
+        <Link
+          href={href}
+          className="focus-visible:ring-ring/50 flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none focus-visible:ring-[3px]"
+        >
+          {identity}
+        </Link>
+      ) : (
+        identity
+      )}
       {trailing ? <div className="shrink-0">{trailing}</div> : null}
     </div>
   );
@@ -121,6 +141,7 @@ export function SeatTile({
   label,
   onSelect,
   disabled = false,
+  href,
 }: {
   occupant: { name: string; image: string | null } | null;
   /** Shown under the avatar; defaults to the occupant's name ("You", …). */
@@ -134,6 +155,8 @@ export function SeatTile({
   /** Renders the tile as a button. */
   onSelect?: () => void;
   disabled?: boolean;
+  /** Links a taken tile. */
+  href?: string;
 }) {
   const taken = occupant != null;
   const picked = selected === true;
@@ -173,7 +196,19 @@ export function SeatTile({
 
   return (
     <div data-slot="seat-tile" className="min-w-0 flex-1">
-      {onSelect ? (
+      {taken && href ? (
+        <Link
+          href={href}
+          aria-label={label}
+          className={cn(
+            surface,
+            "outline-none transition-colors",
+            "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+          )}
+        >
+          {face}
+        </Link>
+      ) : onSelect ? (
         <button
           type="button"
           disabled={disabled}

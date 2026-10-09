@@ -22,7 +22,7 @@ import {
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 
-import { ChipRow, FieldError } from "../create-game/chips";
+import { ChipGrid, FieldError } from "../create-game/chips";
 import type { Slot } from "../home/home-model";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
@@ -123,7 +123,7 @@ function WindowForm({
       <ScrollView style={{ maxHeight: SCROLL_MAX_HEIGHT }}>
         <View style={{ gap: 12 }}>
           <Text weight="medium">Day</Text>
-          <ChipRow
+          <ChipGrid
             label="Day"
             columns={3}
             chips={choices.days.map((day) => ({
@@ -134,9 +134,9 @@ function WindowForm({
             onSelect={(day) => setDraft({ ...draft, day })}
           />
           <Text weight="medium">Start time</Text>
-          <ChipRow
+          <ChipGrid
             label="Start time"
-            columns={4}
+            columns={3}
             chips={choices.startSlots.map((slot) => ({
               value: slot,
               label: formatTimeSlotLabel(slot),
@@ -145,9 +145,9 @@ function WindowForm({
             onSelect={(startTime) => setDraft({ ...draft, startTime })}
           />
           <Text weight="medium">Finish time</Text>
-          <ChipRow
+          <ChipGrid
             label="Finish time"
-            columns={4}
+            columns={3}
             chips={choices.finishSlots.map((slot) => ({
               value: slot,
               label: formatTimeSlotLabel(slot),
@@ -254,14 +254,14 @@ function LevelForm({
   return (
     <>
       <Text weight="medium">Minimum Level</Text>
-      <ChipRow
+      <ChipGrid
         label="Minimum Level"
         chips={bands("min")}
         isSelected={(value) => value === min}
         onSelect={(value) => setMin(value)}
       />
       <Text weight="medium">Maximum Level</Text>
-      <ChipRow
+      <ChipGrid
         label="Maximum Level"
         chips={bands("max")}
         isSelected={(value) => value === max}
@@ -299,7 +299,7 @@ function CourtForm({
   return (
     <>
       <ScrollView style={{ maxHeight: SCROLL_MAX_HEIGHT }}>
-        <ChipRow
+        <ChipGrid
           label="Court"
           chips={[
             { value: NO_COURT, label: "No Court", disabled: pending },

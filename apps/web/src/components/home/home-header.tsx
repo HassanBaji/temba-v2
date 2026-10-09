@@ -1,9 +1,7 @@
 "use client";
 
-import { BellIcon } from "lucide-react";
-import Link from "next/link";
-
 import { UserAvatar } from "~/components/common/user-avatar";
+import { NotificationBell } from "~/components/notifications/notification-bell";
 import { homeStateLine } from "@repo/domain/home-state-line";
 import { Skeleton } from "~/components/ui/skeleton";
 
@@ -25,7 +23,6 @@ export function HomeHeader({
   const stateLine = ready
     ? homeStateLine(pendingInviteCount, bookedGameCount)
     : null;
-  const unread = ready && pendingInviteCount > 0;
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -49,19 +46,7 @@ export function HomeHeader({
           )}
         </div>
       </div>
-      <Link
-        href="/dashboard/invites"
-        aria-label={unread ? "Invites, unread" : "Invites"}
-        className="border-rule text-ink focus-visible:ring-ring/50 relative flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]"
-      >
-        <BellIcon className="size-5" />
-        {unread ? (
-          <span
-            aria-hidden="true"
-            className="bg-ink absolute right-1.5 top-1.5 size-1.5 rounded-full"
-          />
-        ) : null}
-      </Link>
+      <NotificationBell className="lg:hidden" />
     </div>
   );
 }

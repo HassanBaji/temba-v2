@@ -24,7 +24,6 @@
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "expo": "~57.0.26",
-    "expo-apple-authentication": "~57.0.2",
     "expo-auth-session": "~57.0.13",
     "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.20",

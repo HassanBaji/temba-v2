@@ -27,6 +27,11 @@ import {
   type GroupHomeBanner,
   type GroupJoinDoor,
 } from "@repo/domain/group-join";
+import {
+  levelOverrideCaption,
+  levelOverrideReasonLabel,
+} from "@repo/domain/level-slider";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { FormMark } from "@repo/domain/member-form-marks";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
@@ -189,6 +194,9 @@ export const MEMBERS_EMPTY_COPY = {
 };
 export const MEMBERS_NO_MATCH_COPY = "No members match that name.";
 
+export const MEMBERS_SET_LEVEL_HINT =
+  "Select a member to set their Level. Hatched Levels are still Provisional.";
+
 export type MemberRowView = {
   key: string;
   name: string;
@@ -197,30 +205,49 @@ export type MemberRowView = {
   caption: string | null;
   formMarks: FormMark[];
   level: LevelCellView;
+  levelText: string | null;
+  selectable: boolean;
   accessibilityLabel: string;
 };
+
+function levelSpokenLabel(view: LevelCellView, levelText: string | null) {
+  if (view.kind === "label") {
+    return `Level ${levelText ? `${view.label} ${levelText}` : view.label}`;
+  }
+  return view.label && levelText
+    ? `Level ${view.label} ${levelText}, still Provisional`
+    : "Level still Provisional";
+}
 
 export function memberRowView(
   entry: GroupLeaderboardEntryData,
   apiOrigin: string,
+  canSetLevel = false,
 ): MemberRowView {
   const name = entry.name ?? "Member";
-  const caption = groupMemberRoleCaption(entry);
+  const caption = [
+    groupMemberRoleCaption(entry),
+    canSetLevel && entry.levelOverride
+      ? levelOverrideCaption(entry.levelOverride)
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const level = levelCellView(entry.levelBand, entry.levelProvisional);
   return {
     key: entry.userId,
     name,
     imageUri: mediaUrl(entry.image, apiOrigin),
     isViewer: entry.isViewer,
-    caption,
+    caption: caption || null,
     formMarks: groupMemberFormMarks(entry.formMarks),
     level,
+    levelText: entry.level,
+    selectable: canSetLevel && !entry.isViewer,
     accessibilityLabel: [
       entry.isViewer ? `${name}, you` : name,
-      caption,
-      level.kind === "label"
-        ? `Level ${level.label}`
-        : "Level still Provisional",
+      caption || null,
+      levelSpokenLabel(level, entry.level),
     ]
       .filter(Boolean)
       .join(". "),
@@ -231,14 +258,59 @@ export function memberList(
   leaderboard: readonly GroupLeaderboardEntryData[],
   query: string,
   apiOrigin: string,
+  canSetLevel = false,
 ) {
-  const members = leaderboard.map((entry) => ({
-    ...memberRowView(entry, apiOrigin),
-  }));
+  const members = leaderboard.map((entry) =>
+    memberRowView(entry, apiOrigin, canSetLevel),
+  );
   const showSearch = groupHomeShowsMemberSearch(members.length);
   return {
     showSearch,
     rows: showSearch ? filterGroupMembersByName(members, query) : members,
     isEmpty: members.length === 0,
+  };
+}
+
+export type MemberSheetView = {
+  name: string;
+  summary: string;
+  letter: string | null;
+  level: string | null;
+  provisionalNote: string | null;
+  latestSet: string | null;
+};
+
+export function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] ?? name;
+}
+
+function matchCountLabel(count: number) {
+  return `${count} Rated ${count === 1 ? "Match" : "Matches"}`;
+}
+
+export function memberSheetView(
+  entry: GroupLeaderboardEntryData,
+): MemberSheetView {
+  const name = entry.name ?? "Member";
+  const override = entry.levelOverride;
+  const reason = override?.reason
+    ? `. ${levelOverrideReasonLabel(override.reason)}`
+    : "";
+  return {
+    name,
+    summary: [
+      override ? levelOverrideCaption(override) : null,
+      matchCountLabel(entry.ratedMatchCount),
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    letter: entry.levelBand
+      ? displayLabelFromStoredBand(entry.levelBand)
+      : null,
+    level: entry.level,
+    provisionalNote: entry.levelProvisional
+      ? `This Level is still Provisional. Set it by hand if you know ${firstName(name)} plays at a different Level.`
+      : null,
+    latestSet: override ? `${levelOverrideCaption(override)}${reason}` : null,
   };
 }

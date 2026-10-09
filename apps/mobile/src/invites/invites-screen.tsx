@@ -6,12 +6,11 @@ import {
   type InviteKind,
 } from "@repo/domain/invites";
 import * as Clipboard from "expo-clipboard";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import type { Slot } from "../home/home-model";
 import { Screen } from "../primitives/screen";
-import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import {
@@ -202,13 +201,6 @@ export function InvitesScreen() {
         onPasteLink={() => void pasteLink()}
         onOpenLink={openLink}
       />
-      {__DEV__ ? (
-        <Link href="/gallery-invites">
-          <Text size="meta" weight="medium">
-            Open the Invites states gallery
-          </Text>
-        </Link>
-      ) : null}
     </Screen>
   );
 }
