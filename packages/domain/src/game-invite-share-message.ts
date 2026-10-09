@@ -55,12 +55,12 @@ export function formatGameInviteShareMessage(
   const team1 = sideSeats(input.sides, 1);
   const team2 = sideSeats(input.sides, 2);
   lines.push("👕 Team 1");
-  lines.push(`- ${team1.left}`);
-  lines.push(`- ${team1.right}`);
+  lines.push(`- Left: ${team1.left}`);
+  lines.push(`- Right: ${team1.right}`);
   lines.push("");
   lines.push("👕 Team 2");
-  lines.push(`- ${team2.left}`);
-  lines.push(`- ${team2.right}`);
+  lines.push(`- Left: ${team2.left}`);
+  lines.push(`- Right: ${team2.right}`);
   lines.push("");
   lines.push("🔗 Join:");
   lines.push(input.shortUrl);
