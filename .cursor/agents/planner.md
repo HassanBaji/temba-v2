@@ -158,7 +158,7 @@ Before proposing changes:
 
 Prefer extending existing patterns over introducing new ones.
 
-**App tRPC exception:** do not plan thin assemblers plus a parallel `server/<domain>/<verb>.ts` tree. That placement is superseded. Follow `.cursor/rules/api-one-endpoint-per-file.mdc` and `.scratch/one-endpoint-per-file-routers/spec.md`. Do not use `improve-codebase-architecture` to extract endpoint-only logic out of procedure files. Extract only when the same rule is used by two or more endpoints (or by a procedure and a non-router caller). Keep Soft-archive, Game admit, Community membership, Invite doors, and Friendly Game create as shared modules.
+**App tRPC exception:** do not plan thin assemblers plus a parallel `packages/api/src/<domain>/<verb>.ts` tree. That placement is superseded. Follow `.cursor/rules/api-one-endpoint-per-file.mdc` and `.scratch/one-endpoint-per-file-routers/spec.md`. Do not use `improve-codebase-architecture` to extract endpoint-only logic out of procedure files. Extract only when the same rule is used by two or more endpoints (or by a procedure and a non-router caller). Keep Soft-archive, Game admit, Community membership, Invite doors, and Friendly Game create as shared modules.
 
 ## Ticket Quality
 

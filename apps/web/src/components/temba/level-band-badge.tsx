@@ -1,0 +1,28 @@
+import { Badge } from "~/components/ui/badge";
+import {
+  displayLabelFromStoredBand,
+  type LevelBand,
+} from "@repo/domain/level-bands";
+import { cn } from "~/lib/utils";
+
+/** Monochrome D → A ramp: lightest gray for D, black (primary) for A. */
+const BAND_GROUP_STYLES: Record<string, string> = {
+  D: "bg-gray-100 text-gray-700 border-transparent",
+  C: "bg-gray-300 text-gray-800 border-transparent",
+  B: "bg-gray-600 text-primary-foreground border-transparent",
+  A: "bg-primary text-primary-foreground border-transparent",
+};
+
+export function LevelBandBadge({ band }: { band: LevelBand }) {
+  const label = displayLabelFromStoredBand(band);
+  const group = label.charAt(0);
+  return (
+    <Badge
+      variant="outline"
+      aria-label={`Level band ${label}`}
+      className={cn(BAND_GROUP_STYLES[group])}
+    >
+      {label}
+    </Badge>
+  );
+}

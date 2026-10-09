@@ -1,0 +1,48 @@
+import { z } from "zod";
+
+import { protectedProcedure } from "#src/trpc";
+import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { type db } from "#src/db";
+import { requireGroupInviteLinkMinter } from "#src/groups/helpers/require-group-invite-link-minter";
+import { getLiveLink } from "#src/invites/doors";
+import { groupInviteLinkUrl, groupInviteShortUrl } from "#src/invites/tokens";
+
+type DbClient = typeof db;
+
+export async function getInviteLink(
+  database: DbClient,
+  args: { groupId: string; userId: string; origin: string },
+) {
+  const group = await requireGroupInviteLinkMinter(
+    database,
+    args.groupId,
+    args.userId,
+  );
+
+  const newest = await getLiveLink(database, { kind: "group", id: group.id });
+  if (!newest) {
+    return null;
+  }
+
+  return {
+    id: newest.id,
+    inviteUrl: groupInviteLinkUrl(args.origin, newest.token),
+    shortUrl:
+      "shortCode" in newest && newest.shortCode
+        ? groupInviteShortUrl(args.origin, newest.shortCode)
+        : null,
+    createdAt: newest.createdAt,
+    expiresAt: newest.expiresAt,
+  };
+}
+
+export const getInviteLinkProcedure = protectedProcedure
+  .input(z.object({ groupId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return getInviteLink(ctx.db, {
+      groupId: input.groupId,
+      userId: appUser.id,
+      origin: ctx.webOrigin,
+    });
+  });

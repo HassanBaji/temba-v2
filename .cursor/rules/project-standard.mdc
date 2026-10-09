@@ -6,7 +6,7 @@ alwaysApply: true
 
 The existing codebase is the primary source of truth.
 
-**Exception — App tRPC:** do not copy fat `api/routers/*.ts` assemblers or twin `server/<domain>/<verb>.ts` files. Follow `api-one-endpoint-per-file`.
+**Exception — App tRPC:** do not copy fat `routers/*.ts` assemblers or twin `packages/api/src/<domain>/<verb>.ts` files. Follow `api-one-endpoint-per-file`.
 
 Before creating:
 
@@ -41,7 +41,7 @@ Follow the existing folder structure.
 When adding a new feature:
 
 - Place UI components alongside similar existing components.
-- Place tRPC endpoint logic in that endpoint’s procedure file under `api/routers/<domain>/` (see `api-one-endpoint-per-file`). Do **not** put a door’s logic in a twin `server/<domain>/<verb>.ts` or a service/repository layer.
+- Place tRPC endpoint logic in that endpoint’s procedure file under `packages/api/src/routers/<domain>/` (see `api-one-endpoint-per-file`). Do **not** put a door’s logic in a twin `packages/api/src/<domain>/<verb>.ts` or a service/repository layer.
 - Shared glossary rules used by two or more doors (Soft-archive, Game admit, Community membership, Invite doors, and similar) stay in their existing App server modules.
 - Place shared types in the project's existing type locations (UI payloads: `RouterOutputs` / `RouterInputs`).
 - Do not invent new top-level directories without justification.
@@ -66,7 +66,7 @@ When adding a new feature:
 # API / Backend
 
 - Follow `api-one-endpoint-per-file`: one tRPC procedure per file; logic lives in that file; `index.ts` only composes.
-- Do **not** copy today’s fat `api/routers/*.ts` assemblers or `server/<domain>/<verb>.ts` twins as the pattern. That layout is superseded.
+- Do **not** copy today’s fat `routers/*.ts` assemblers or `packages/api/src/<domain>/<verb>.ts` twins as the pattern. That layout is superseded.
 - Validate input at the boundary (Zod on the procedure).
 - Keep database queries out of presentation/UI logic.
 - Use existing error-handling patterns.

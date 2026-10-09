@@ -1,0 +1,751 @@
+import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
+
+import {
+  communities,
+  communityMembers,
+  games,
+  groupMembers,
+  GroupTypeEnum,
+  levelOverrides,
+  MatchStatusEnum,
+  ratingEvents,
+  ratings,
+  user,
+  type GroupSportEnum,
+} from "@repo/db";
+
+import type { LevelBand } from "@repo/domain/level-bands";
+import { protectedProcedure } from "#src/trpc";
+import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
+import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { type db } from "#src/db";
+import { isStaffRole, mayCreateGameOnGroup } from "#src/games/access";
+import {
+  applyViewerLevelRangeToHubRows,
+  hubListColumns,
+  hubListWith,
+  toHubListRow,
+  viewerHubContext,
+} from "#src/games/helpers/hub-list";
+import { matchOutcome } from "@repo/domain/match-outcome";
+import {
+  outcomeForSlot,
+  scoredSetsFromMatch,
+  seatedUserSlotOnMatch,
+  slotMembers,
+  type MatchSlotMember,
+} from "@repo/domain/match-slots";
+import { groupHasGames } from "#src/groups/helpers/group-has-games";
+import { groupHasNonCreatorMembers } from "#src/groups/helpers/group-has-non-creator-members";
+import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
+import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
+import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
+import { requireGroup } from "#src/groups/helpers/require-group";
+import {
+  groupFormMarks,
+  type GroupFormMatch,
+} from "@repo/domain/member-form-marks";
+import {
+  groupMemberWinLoss,
+  type GroupWinLossMatch,
+} from "@repo/domain/member-win-loss";
+import {
+  isHomeCarouselNeedsResults,
+  type HomeCarouselCandidate,
+} from "#src/home/carousel-games";
+import {
+  filterAndSortHomeUpcomingGames,
+  gameListTime,
+  isGameLive,
+} from "#src/home/upcoming-games";
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { consult } from "#src/soft-archive";
+import {
+  sortStandingMembers,
+  standingPosition,
+} from "@repo/domain/compare-standing";
+import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+
+type DbClient = typeof db;
+
+const GROUP_GAME_HISTORY_LIMIT = 20;
+
+const gameHistoryPageInput = z.object({
+  limit: z.number().int().min(1).max(100).default(GROUP_GAME_HISTORY_LIMIT),
+  cursor: z.object({ id: z.string().uuid() }).optional(),
+});
+
+export type GroupGameHistoryPage = z.infer<typeof gameHistoryPageInput>;
+
+async function mayDeleteEmptyGroup(args: {
+  database: DbClient;
+  group: Awaited<ReturnType<typeof requireGroup>>;
+  callerId: string;
+}) {
+  if (args.group.communityId) {
+    const membership = await requireCommunityMembership(
+      args.database,
+      args.group.communityId,
+      args.callerId,
+    );
+    if (!membership || !isStaffRole(membership.role)) {
+      return false;
+    }
+  } else if (args.group.createdBy !== args.callerId) {
+    return false;
+  }
+
+  if (await groupHasGames(args.database, args.group.id)) {
+    return false;
+  }
+
+  if (
+    await groupHasNonCreatorMembers(
+      args.database,
+      args.group.id,
+      args.group.createdBy,
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/** A Match slot as the Game teams seat it — `null` before the draw. */
+type GroupSlotTeam = {
+  players: readonly {
+    position: string | null;
+    gamePlayer: {
+      userId: string | null;
+      user: { id: string; name: string; image: string | null } | null;
+    } | null;
+  }[];
+} | null;
+
+function slotUserIds(team: GroupSlotTeam): string[] {
+  const userIds: string[] = [];
+  for (const link of team?.players ?? []) {
+    const userId = link.gamePlayer?.userId;
+    if (userId) {
+      userIds.push(userId);
+    }
+  }
+  return userIds;
+}
+
+/**
+ * One row of the Games tab Played list (design 06b, spec §4.2): the slot
+ * rosters, the scored Sets, and the slot the viewer sat on — `null` when they
+ * did not play. Same fields `games.listMyMatchHistory` returns, read from the
+ * same shared slot derivation.
+ */
+export type GroupPlayedGame = {
+  id: string;
+  name: string | null;
+  venueName: string | null;
+  displayTime: Date;
+  cancelled: boolean;
+  slot1Members: MatchSlotMember[];
+  slot2Members: MatchSlotMember[];
+  scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
+  viewerSlot: 1 | 2 | null;
+  outcome: "won" | "lost" | "draw" | null;
+};
+
+type GroupGameMatch = {
+  id: string;
+  startTime: Date | null;
+  status: string | null;
+  createdAt: Date;
+  slot1GameTeam: GroupSlotTeam;
+  slot2GameTeam: GroupSlotTeam;
+  sets: readonly {
+    slot1GamesWon: number | null;
+    slot2GamesWon: number | null;
+  }[];
+};
+
+/**
+ * The Match a past Game reads as: the latest one the viewer sat on, so the
+ * row speaks about their own result, and otherwise the latest Match on the
+ * Game, so a Game they did not play in still shows both teams and the score.
+ */
+function playedMatchForViewer(
+  matches: readonly GroupGameMatch[],
+  userId: string,
+): { match: GroupGameMatch; viewerSlot: 1 | 2 | null } | null {
+  const sorted = [...matches].sort((a, b) => {
+    const left = a.startTime?.getTime() ?? a.createdAt.getTime();
+    const right = b.startTime?.getTime() ?? b.createdAt.getTime();
+    if (left !== right) {
+      return right - left;
+    }
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+  for (const match of sorted) {
+    const viewerSlot = seatedUserSlotOnMatch(
+      {
+        slot1UserIds: slotUserIds(match.slot1GameTeam),
+        slot2UserIds: slotUserIds(match.slot2GameTeam),
+      },
+      userId,
+    );
+    if (viewerSlot != null) {
+      return { match, viewerSlot };
+    }
+  }
+  const fallback = sorted[0];
+  return fallback ? { match: fallback, viewerSlot: null } : null;
+}
+
+function toGroupPlayedGame(
+  game: {
+    id: string;
+    name: string | null;
+    groupId: string | null;
+    cancelledAt: Date | null;
+    windowStart: Date | null;
+    windowEnd: Date | null;
+    createdAt: Date;
+    format: string;
+    venue: { name: string } | null;
+    matches: readonly GroupGameMatch[];
+  },
+  userId: string,
+): GroupPlayedGame {
+  const played = playedMatchForViewer(game.matches, userId);
+  const viewerSlot = played?.viewerSlot ?? null;
+  const scoredSets = played ? scoredSetsFromMatch(played.match.sets) : [];
+  // Only a completed Match is a result. A Match awaiting result confirmation
+  // (ADR-0011) still shows its score, but reads as no result — the same rule
+  // `groupFormMarks` applies to the marks on the other tabs.
+  const outcome =
+    played &&
+    viewerSlot != null &&
+    played.match.status === MatchStatusEnum.COMPLETED
+      ? outcomeForSlot(viewerSlot, matchOutcome(played.match.sets).result)
+      : null;
+
+  return {
+    id: game.id,
+    name: game.name,
+    venueName: game.venue?.name ?? null,
+    displayTime: played?.match.startTime ?? gameListTime(game),
+    cancelled: game.cancelledAt !== null,
+    slot1Members: played ? slotMembers(played.match.slot1GameTeam, userId) : [],
+    slot2Members: played ? slotMembers(played.match.slot2GameTeam, userId) : [],
+    scoredSets,
+    viewerSlot,
+    outcome,
+  };
+}
+
+export async function groupById(
+  database: DbClient,
+  args: {
+    groupId: string;
+    userId: string;
+    now?: Date;
+    gameHistory?: GroupGameHistoryPage;
+    getPublicMetadata?: () => Promise<Record<string, unknown> | undefined>;
+  },
+) {
+  const group = await requireGroup(database, args.groupId);
+
+  const membership = await database.query.groupMembers.findFirst({
+    where: and(
+      eq(groupMembers.groupId, group.id),
+      eq(groupMembers.userId, args.userId),
+    ),
+  });
+
+  let communityMembership = null;
+  let community = null;
+
+  if (group.communityId) {
+    community = await database.query.communities.findFirst({
+      where: eq(communities.id, group.communityId),
+    });
+    communityMembership = await requireCommunityMembership(
+      database,
+      group.communityId,
+      args.userId,
+    );
+  }
+
+  const isLoosePublic =
+    !group.communityId && group.type === GroupTypeEnum.PUBLIC;
+  const isLoosePrivate =
+    !group.communityId && group.type === GroupTypeEnum.PRIVATE;
+  const isClubPublic =
+    Boolean(group.communityId) && group.type === GroupTypeEnum.PUBLIC;
+  const isClubPrivate =
+    Boolean(group.communityId) && group.type === GroupTypeEnum.PRIVATE;
+  const archive = consult({
+    archivedAt: community?.archivedAt ?? null,
+  });
+  const joinMode = await groupJoinMode(database, group, args.userId);
+  const canJoinClubPublic = joinMode === "join" && isClubPublic;
+  const canJoinLoosePublic = joinMode === "join" && isLoosePublic;
+  const canJoin = joinMode === "join";
+  const canManageLookupInvites =
+    ((isLoosePublic || isLoosePrivate) && group.createdBy === args.userId) ||
+    ((isClubPublic || isClubPrivate) &&
+      !archive.freeze("host") &&
+      Boolean(communityMembership) &&
+      (isStaffRole(communityMembership?.role) ||
+        group.createdBy === args.userId));
+  const canManageInviteLinks =
+    ((isLoosePublic || isLoosePrivate) && group.createdBy === args.userId) ||
+    ((isClubPublic || isClubPrivate) &&
+      !archive.freeze("host") &&
+      isStaffRole(communityMembership?.role));
+
+  const canDelete = await mayDeleteEmptyGroup({
+    database,
+    group,
+    callerId: args.userId,
+  });
+  const canCreateGame = await mayCreateGameOnGroup(
+    database,
+    group,
+    args.userId,
+  );
+  const isApprover = await isGroupApprover(database, group, args.userId);
+  const canSetRequiresApproval =
+    isApprover && group.type === GroupTypeEnum.PUBLIC;
+  const canDecideJoinRequests = canSetRequiresApproval;
+
+  const memberRows = await database.query.groupMembers.findMany({
+    where: eq(groupMembers.groupId, group.id),
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
+  });
+
+  const memberUserIds = memberRows.map((row) => row.userId);
+
+  const standingMembers =
+    (await loadGroupStandingMembers(database, [group.id])).get(group.id) ?? [];
+  const standingByUserId = new Map(
+    standingMembers.map((member) => [member.userId, member]),
+  );
+
+  const sortedStanding = sortStandingMembers(
+    memberRows.map((row) => ({
+      userId: row.userId,
+      totalSetsWon: standingByUserId.get(row.userId)?.totalSetsWon ?? 0,
+      totalPointsWon: standingByUserId.get(row.userId)?.totalPointsWon ?? 0,
+      totalGamesPlayed: standingByUserId.get(row.userId)?.totalGamesPlayed ?? 0,
+      name: row.user.name,
+      image: row.user.image,
+      joinedAt: row.createdAt,
+    })),
+  );
+
+  const viewerStandingPosition = membership
+    ? standingPosition(sortedStanding, args.userId)
+    : null;
+
+  // "Organizer" on the Members tab: the Group creator, or — on a Club Group —
+  // a Community staff member (`.scratch/groups-redesign/spec.md` D8).
+  const staffUserIds = new Set<string>();
+  if (group.communityId && memberUserIds.length > 0) {
+    const communityRoles = await database.query.communityMembers.findMany({
+      where: and(
+        eq(communityMembers.communityId, group.communityId),
+        inArray(communityMembers.userId, memberUserIds),
+      ),
+      columns: { userId: true, role: true },
+    });
+    for (const row of communityRoles) {
+      if (isStaffRole(row.role)) {
+        staffUserIds.add(row.userId);
+      }
+    }
+  }
+
+  // Level reads `ratings` for `(member.userId, group.sport)` — unique on that
+  // pair (D5). A Group with no sport has no Rating to read, so every member
+  // falls back to the hatched Provisional placeholder.
+  const now = args.now ?? new Date();
+  const ratingByUserId = new Map<
+    string,
+    {
+      levelBand: LevelBand;
+      provisional: boolean;
+      level: string;
+      ratedMatchCount: number;
+    }
+  >();
+  if (group.sport && memberUserIds.length > 0) {
+    const ratingRows = await database.query.ratings.findMany({
+      where: and(
+        eq(ratings.sport, group.sport),
+        inArray(ratings.userId, memberUserIds),
+      ),
+    });
+    const matchCountRows = await database
+      .select({ userId: ratingEvents.userId, ratedMatchCount: count() })
+      .from(ratingEvents)
+      .where(
+        and(
+          eq(ratingEvents.sport, group.sport),
+          inArray(ratingEvents.userId, memberUserIds),
+        ),
+      )
+      .groupBy(ratingEvents.userId);
+    const ratedMatchCountByUserId = new Map(
+      matchCountRows.map((row) => [row.userId, Number(row.ratedMatchCount)]),
+    );
+    for (const row of ratingRows) {
+      const view = youRatingViewAfterIdle(row, now);
+      ratingByUserId.set(row.userId, {
+        levelBand: view.levelBand,
+        provisional: view.provisional,
+        level: view.level,
+        ratedMatchCount: ratedMatchCountByUserId.get(row.userId) ?? 0,
+      });
+    }
+  }
+
+  // One Clerk read per Group page view, and only for a member of a Group with
+  // a sport — the only viewer a Level setter can act as.
+  const viewerCanSetLevel =
+    membership !== undefined &&
+    group.sport !== null &&
+    args.getPublicMetadata !== undefined &&
+    isLevelSetterPublicMetadata(await args.getPublicMetadata());
+
+  const levelOverrideByUserId = new Map<
+    string,
+    {
+      setByName: string;
+      setByIsViewer: boolean;
+      createdAt: Date;
+      reason: (typeof levelOverrides.$inferSelect)["reason"];
+    }
+  >();
+  if (viewerCanSetLevel && group.sport && memberUserIds.length > 0) {
+    const overrideRows = await database
+      .select({
+        userId: levelOverrides.userId,
+        setByUserId: levelOverrides.setByUserId,
+        setByName: user.name,
+        createdAt: levelOverrides.createdAt,
+        reason: levelOverrides.reason,
+      })
+      .from(levelOverrides)
+      .innerJoin(user, eq(user.id, levelOverrides.setByUserId))
+      .where(
+        and(
+          eq(levelOverrides.sport, group.sport),
+          inArray(levelOverrides.userId, memberUserIds),
+        ),
+      )
+      .orderBy(desc(levelOverrides.createdAt), desc(levelOverrides.id));
+    for (const row of overrideRows) {
+      if (!levelOverrideByUserId.has(row.userId)) {
+        levelOverrideByUserId.set(row.userId, {
+          setByName: row.setByName,
+          setByIsViewer: row.setByUserId === args.userId,
+          createdAt: row.createdAt,
+          reason: row.reason,
+        });
+      }
+    }
+  }
+
+  // Upcoming / history are scoped by this Group id only (excludes null groupId).
+  // Soft-archived Communities are not filtered — members still see Games.
+  const groupGameRows = await database.query.games.findMany({
+    where: eq(games.groupId, group.id),
+    // The Scheduled cards are the Games hub's own rows, so this reads the hub
+    // column set (`#src/games/helpers/hub-list`) and hands it to the same
+    // `toHubListRow`. Matches carry their slot rosters and Sets on top, for
+    // the W-L, form-mark and Played derivations below (spec §4, §6).
+    columns: hubListColumns,
+    with: {
+      ...hubListWith,
+      matches: {
+        columns: {
+          id: true,
+          gameId: true,
+          startTime: true,
+          status: true,
+          createdAt: true,
+          slot1GameTeamId: true,
+          slot2GameTeamId: true,
+          roundNumber: true,
+          knockoutRound: true,
+          knockoutPosition: true,
+          walkoverGameTeamId: true,
+          courtId: true,
+        },
+        with: {
+          court: {
+            columns: { name: true },
+          },
+          slot1GameTeam: {
+            columns: { id: true },
+            with: {
+              players: {
+                columns: { position: true },
+                with: {
+                  gamePlayer: {
+                    columns: { userId: true },
+                    with: {
+                      user: { columns: { id: true, name: true, image: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          slot2GameTeam: {
+            columns: { id: true },
+            with: {
+              players: {
+                columns: { position: true },
+                with: {
+                  gamePlayer: {
+                    columns: { userId: true },
+                    with: {
+                      user: { columns: { id: true, name: true, image: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          sets: {
+            columns: {
+              slot1GamesWon: true,
+              slot2GamesWon: true,
+            },
+            orderBy: (table, { asc }) => [asc(table.setNumber)],
+          },
+        },
+      },
+    },
+  });
+
+  // Scheduled cards are `GameSummaryCard`, the Games hub card, so the rows it
+  // reads are built by the hub's own `toHubListRow` — one shape, not two
+  // (spec §4.1). The viewer's Level range gates `canRegister` here exactly as
+  // it does on the hub.
+  const viewer = await viewerHubContext(database, args.userId);
+  const upcomingRows = filterAndSortHomeUpcomingGames(
+    groupGameRows,
+    new Set([group.id]),
+    now,
+  );
+  const upcomingGames = await applyViewerLevelRangeToHubRows(
+    database,
+    upcomingRows.map((row) => toHubListRow(row, viewer, now)),
+    upcomingRows,
+    args.userId,
+  );
+
+  const gameHistoryCandidates = groupGameRows
+    .filter((game) => {
+      if (game.groupId === null || game.groupId !== group.id) {
+        return false;
+      }
+      return !isGameLive(game, now);
+    })
+    .sort((a, b) => {
+      const timeDelta = gameListTime(b).getTime() - gameListTime(a).getTime();
+      if (timeDelta !== 0) {
+        return timeDelta;
+      }
+      return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+    });
+  const historyCursor = args.gameHistory?.cursor;
+  const historyStart = historyCursor
+    ? gameHistoryCandidates.findIndex((game) => game.id === historyCursor.id) +
+      1
+    : 0;
+  const historyPage =
+    historyCursor && historyStart === 0
+      ? []
+      : gameHistoryCandidates.slice(
+          historyStart,
+          historyStart + (args.gameHistory?.limit ?? GROUP_GAME_HISTORY_LIMIT),
+        );
+  const gameHistory = historyPage.map((game) =>
+    toGroupPlayedGame(game, args.userId),
+  );
+
+  // W-L and form marks derive over the Matches already loaded above
+  // (`.scratch/groups-redesign/spec.md` §6.1, §6.2). A cancelled Game never
+  // becomes a result, so it is dropped before the derivations see it.
+  const winLossMatches: GroupWinLossMatch[] = [];
+  const formMatches: GroupFormMatch[] = [];
+  for (const game of groupGameRows) {
+    if (game.cancelledAt !== null) {
+      continue;
+    }
+    for (const match of game.matches) {
+      const occupants = {
+        slot1UserIds: slotUserIds(match.slot1GameTeam),
+        slot2UserIds: slotUserIds(match.slot2GameTeam),
+      };
+      winLossMatches.push({
+        ...occupants,
+        status: match.status,
+        sets: match.sets,
+      });
+      formMatches.push({
+        ...occupants,
+        status: match.status,
+        startTime: match.startTime,
+        createdAt: match.createdAt,
+        sets: match.sets,
+      });
+    }
+  }
+
+  const winLossByUserId = groupMemberWinLoss(winLossMatches, memberUserIds);
+
+  const totalGamesPlayed = groupGameRows.filter((game) => {
+    if (game.cancelledAt !== null) {
+      return false;
+    }
+    return game.matches.some(
+      (match) => match.status === MatchStatusEnum.COMPLETED,
+    );
+  }).length;
+  const viewerStanding = standingByUserId.get(args.userId);
+  const leaderboard = sortedStanding.map((entry, index) => {
+    const record = winLossByUserId.get(entry.userId) ?? { wins: 0, losses: 0 };
+    const rating = ratingByUserId.get(entry.userId) ?? null;
+    return {
+      userId: entry.userId,
+      name: entry.name,
+      image: entry.image,
+      totalSetsWon: entry.totalSetsWon,
+      totalPointsWon: entry.totalPointsWon,
+      totalGamesPlayed: entry.totalGamesPlayed,
+      position: index + 1,
+      isViewer: entry.userId === args.userId,
+      wins: record.wins,
+      losses: record.losses,
+      levelBand: rating?.levelBand ?? null,
+      levelProvisional: rating?.provisional ?? true,
+      level: rating?.level ?? null,
+      ratedMatchCount: rating?.ratedMatchCount ?? 0,
+      levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
+      formMarks: groupFormMarks(formMatches, entry.userId, now),
+      joinedAt: entry.joinedAt,
+      isOrganizer:
+        entry.userId === group.createdBy || staffUserIds.has(entry.userId),
+    };
+  });
+
+  const awaitingScoreCount = groupGameRows.filter((game) => {
+    const candidate: HomeCarouselCandidate = {
+      id: game.id,
+      groupId: game.groupId,
+      cancelledAt: game.cancelledAt,
+      windowStart: game.windowStart,
+      windowEnd: game.windowEnd,
+      createdAt: game.createdAt,
+      format: game.format,
+      matches: game.matches,
+      createdBy: game.createdBy,
+
+      viewerHasGameAdmit: false,
+      viewerIsOrganizer: false,
+      registrationMode: game.registrationMode,
+      playersAllowed: game.playersAllowed,
+      teamsAllowed: game.teamsAllowed,
+      registeredUserCount: game.players.length,
+      registeredTeamCount: game.teams.length,
+    };
+    return isHomeCarouselNeedsResults(candidate, now);
+  }).length;
+
+  return {
+    id: group.id,
+    name: group.name,
+    description: group.description,
+    imageUrl: group.imageUrl ?? null,
+    type: group.type,
+    sport: group.sport as GroupSportEnum | null,
+    communityId: group.communityId,
+    isLoose: !group.communityId,
+    totalGamesPlayed,
+    community: community
+      ? {
+          id: community.id,
+          name: community.name,
+          archivedAt: community.archivedAt,
+        }
+      : null,
+    isCommunityArchived:
+      consult({ archivedAt: community?.archivedAt ?? null }).phase ===
+      "archived",
+    createdBy: group.createdBy,
+    createdAt: group.createdAt,
+    membership: membership
+      ? {
+          id: membership.id,
+          totalGamesPlayed: viewerStanding?.totalGamesPlayed ?? 0,
+          totalSetsWon: viewerStanding?.totalSetsWon ?? 0,
+          totalPointsWon: viewerStanding?.totalPointsWon ?? 0,
+          standingPosition: viewerStandingPosition,
+        }
+      : null,
+    standing: {
+      memberCount: memberRows.length,
+      leaderboard,
+      awaitingScoreCount,
+    },
+    upcomingGames,
+    gameHistory,
+    communityMembership: communityMembership
+      ? { role: communityMembership.role }
+      : null,
+    canJoin,
+    canJoinLoosePublic,
+    canJoinClubPublic,
+    joinMode,
+    requiresApproval: group.requiresApproval,
+    canDecideJoinRequests,
+    canSetRequiresApproval,
+    canManageLookupInvites,
+    canManageInviteLinks,
+    canDelete,
+    canCreateGame,
+    canManageImage: isApprover,
+    viewerCanSetLevel,
+    memberUserIds,
+    hasInviteLink: canManageInviteLinks,
+  };
+}
+
+export const byId = protectedProcedure
+  .input(
+    z.object({
+      id: z.string().uuid(),
+      gameHistory: gameHistoryPageInput.optional(),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return groupById(ctx.db, {
+      groupId: input.id,
+      userId: appUser.id,
+      gameHistory: input.gameHistory,
+      getPublicMetadata: ctx.getPublicMetadata,
+    });
+  });

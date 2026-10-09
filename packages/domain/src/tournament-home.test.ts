@@ -1,0 +1,941 @@
+import assert from "node:assert/strict";
+import { describe, it } from "vitest";
+
+import { showsFriendlyRoster } from "./game-summary-cta";
+import {
+  isDrawnTournament,
+  poolRoundLabel,
+  roundsPlayedLabel,
+  showsDrawnTournamentSeats,
+} from "./tournament-rounds";
+import { sizeFriendlyTournament } from "./tournament-sizing";
+import {
+  COUNTS_FOR_RATING_LABEL,
+  COUNTS_FOR_RATING_YES,
+  GROUP_ROW_LABEL,
+  INVITE_ACTION_LABEL,
+  INVITE_FROM_A_GROUP_LABEL,
+  LEAVE_THE_SEAT_LABEL,
+  LEFT_SEAT_LABEL,
+  NOT_DRAWN_TRAILER,
+  OPEN_POSITION_SR_LABEL,
+  ORGANIZER_ROW_LABEL,
+  PRICE_PER_MATCH_SUFFIX,
+  PRICE_ROW_LABEL,
+  RIGHT_SEAT_LABEL,
+  SEATS_HEADING,
+  TAKE_SEAT_LABEL,
+  TEAMS_HEADING,
+  TOURNAMENT_CLOSING_LINE,
+  TOURNAMENT_DRAW_RANDOM_CLAUSE,
+  TOURNAMENT_DRAW_WHEN_FULL_COPY,
+  TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY,
+  TOURNAMENT_EYEBROW_PREFIX,
+  TOURNAMENT_YOU_ARE_IN_COPY,
+  YOU_OWE_AFTER_EACH_MATCH,
+  YOU_OWE_ROW_LABEL,
+  YOUR_ROUNDS_PREDRAW_CAPTION,
+  YOUR_TEAM_LABEL,
+  YOUR_TEAM_TAG,
+  POOLS_SEGMENT_LABEL,
+  STANDINGS_HEADING,
+  TOURNAMENT_ENDS_COPY,
+  GROUPS_THEN_KNOCKOUT_LEAD,
+  defaultStandingsPoolIndex,
+  drawnTournamentProgressLine,
+  gameDetailsChrome,
+  isTournamentStandingsView,
+  tournamentHomeJoinKind,
+  otherPoolsPlayedLabel,
+  otherPoolsPlayedSummary,
+  roundResultsHeading,
+  tournamentCollapsedTeamsLabel,
+  tournamentEyebrow,
+  tournamentFieldSummary,
+  tournamentOpenPositionSubline,
+  tournamentOrganizerName,
+  tournamentRoundCount,
+  tournamentSeatsTakenLine,
+  tournamentSeatsTakenSrLabel,
+  tournamentSizeLine,
+  tournamentStartLine,
+  tournamentStatusLine,
+  knockoutSizeLine,
+  tournamentTeamRows,
+  tournamentTeamsCountLine,
+  tournamentViewerSide,
+  type TournamentHomeSide,
+} from "./tournament-home";
+import type {
+  KnockoutViewPlace,
+  KnockoutViewRound,
+  KnockoutViewSide,
+} from "./tournament-knockout-view";
+
+const FORBIDDEN = /quarter|knockout|champion|then quarters|message|notified/iu;
+
+const ada = { userId: "ada", name: "Ada Lovelace" };
+const sofia = { userId: "sofia", name: "Sofia L" };
+const jonas = { userId: "jonas", name: "Jonas B" };
+const rashid = { userId: "rashid", name: "Rashid N" };
+const kim = { userId: "kim", name: "Kim H" };
+
+function side(
+  sideIndex: number,
+  left: TournamentHomeSide["left"],
+  right: TournamentHomeSide["right"],
+): TournamentHomeSide {
+  return { sideIndex, left, right };
+}
+
+function fullSide(sideIndex: number, leftId: string, rightId: string) {
+  return side(
+    sideIndex,
+    { userId: leftId, name: `L${sideIndex}` },
+    { userId: rightId, name: `R${sideIndex}` },
+  );
+}
+
+describe("gameDetailsChrome", () => {
+  it("is exclusive: Friendly game, Pool tournament, and the tabbed page never overlap", () => {
+    const cases: [string, number | null, string][] = [
+      ["friendly_game", null, "individual"],
+      ["friendly_game", 3, "individual"],
+      ["friendly_game", null, "team_only"],
+      ["friendly_tournament", 3, "individual"],
+      ["friendly_tournament", 3, "team_only"],
+      ["friendly_tournament", null, "individual"],
+      ["americano", 3, "individual"],
+      ["americano", null, "team_only"],
+    ];
+
+    for (const [format, poolCount, registrationMode] of cases) {
+      const friendly = showsFriendlyRoster(format, registrationMode);
+      const pool = isDrawnTournament(format, poolCount, null);
+      assert.equal(friendly && pool, false);
+      const chrome = gameDetailsChrome(
+        format,
+        poolCount,
+        null,
+        registrationMode,
+      );
+      if (friendly) {
+        assert.equal(chrome, "friendly_game");
+      } else if (pool) {
+        assert.equal(chrome, "drawn_tournament");
+      } else {
+        assert.equal(chrome, "tabs");
+      }
+    }
+  });
+
+  it("does not take Pool chrome for a legacy tournament with a null poolCount", () => {
+    assert.equal(
+      gameDetailsChrome("friendly_tournament", null, null, "individual"),
+      "tabs",
+    );
+    assert.equal(isDrawnTournament("friendly_tournament", null, null), false);
+  });
+
+  it("takes drawn tournament chrome for a Knockout only tournament with no Pools", () => {
+    assert.equal(
+      gameDetailsChrome(
+        "friendly_tournament",
+        null,
+        "knockout_only",
+        "individual",
+      ),
+      "drawn_tournament",
+    );
+  });
+
+  it("leaves Americano, team_only, and individual Friendly games off Pool chrome", () => {
+    assert.equal(gameDetailsChrome("americano", 3, null, "individual"), "tabs");
+    assert.equal(
+      gameDetailsChrome("friendly_game", null, null, "team_only"),
+      "tabs",
+    );
+    assert.equal(
+      gameDetailsChrome("friendly_game", null, null, "individual"),
+      "friendly_game",
+    );
+  });
+
+  it("takes Pool chrome for a friendly_tournament with a Pool count", () => {
+    assert.equal(
+      gameDetailsChrome("friendly_tournament", 3, null, "individual"),
+      "drawn_tournament",
+    );
+    assert.equal(
+      gameDetailsChrome("friendly_tournament", 3, null, "team_only"),
+      "drawn_tournament",
+    );
+  });
+});
+
+describe("tournamentHomeJoinKind", () => {
+  it("opens the seat Join only when individual registration can still register", () => {
+    assert.equal(tournamentHomeJoinKind("individual", true), "join");
+    assert.equal(tournamentHomeJoinKind("individual", false), null);
+  });
+
+  it("does not offer a seat Join on a Complete Teams tournament", () => {
+    assert.equal(tournamentHomeJoinKind("team_only", true), "register_team");
+    assert.equal(
+      showsDrawnTournamentSeats("friendly_tournament", 1, null, "team_only"),
+      false,
+    );
+    assert.equal(tournamentHomeJoinKind("team_only", false), null);
+  });
+});
+
+describe("tournamentFieldSummary", () => {
+  it("is empty when no Game teams exist", () => {
+    assert.deepEqual(tournamentFieldSummary([]), {
+      full: 0,
+      halfOpen: 0,
+      seatsTaken: 0,
+      seatTotal: 0,
+    });
+  });
+
+  it("counts a full field", () => {
+    assert.deepEqual(
+      tournamentFieldSummary([fullSide(1, "a", "b"), fullSide(2, "c", "d")]),
+      { full: 2, halfOpen: 0, seatsTaken: 4, seatTotal: 4 },
+    );
+  });
+
+  it("counts a field with one Half team", () => {
+    assert.deepEqual(
+      tournamentFieldSummary([
+        fullSide(1, "a", "b"),
+        side(2, ada, null),
+        side(3, null, null),
+      ]),
+      { full: 1, halfOpen: 1, seatsTaken: 3, seatTotal: 6 },
+    );
+  });
+
+  it("counts a field with two Half teams", () => {
+    assert.deepEqual(
+      tournamentFieldSummary([
+        side(1, ada, null),
+        side(2, null, kim),
+        fullSide(3, "a", "b"),
+      ]),
+      { full: 1, halfOpen: 2, seatsTaken: 4, seatTotal: 6 },
+    );
+  });
+});
+
+describe("tournamentTeamRows", () => {
+  it("does not collapse a field small enough to show in full", () => {
+    const rows = tournamentTeamRows(
+      [
+        side(1, ada, sofia),
+        side(2, jonas, null),
+        side(3, null, kim),
+        side(4, null, null),
+      ],
+      ada.userId,
+    );
+    assert.equal(rows.collapsedCount, 0);
+    assert.equal(rows.collapsed.length, 0);
+    assert.equal(rows.tail.length, 0);
+    assert.equal(rows.head.length, 4);
+    assert.equal(
+      rows.head.some((row) => row.isViewer),
+      true,
+    );
+    assert.equal(
+      rows.head.every((row) =>
+        row.hasOpenPosition
+          ? row.openPosition != null
+          : row.openPosition == null,
+      ),
+      true,
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 2)?.openPosition,
+      "right",
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 2)?.isHalfOpen,
+      true,
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 3)?.openPosition,
+      "left",
+    );
+    assert.equal(
+      rows.head.find((row) => row.sideIndex === 4)?.isHalfOpen,
+      false,
+    );
+  });
+
+  it("collapses the middle run of full Game teams and keeps the viewer in head", () => {
+    const sides: TournamentHomeSide[] = [
+      side(1, ada, sofia),
+      ...Array.from({ length: 10 }, (_, index) =>
+        fullSide(index + 2, `l${index}`, `r${index}`),
+      ),
+      side(12, rashid, null),
+      side(13, null, kim),
+    ];
+    const rows = tournamentTeamRows(sides, ada.userId);
+    assert.ok(rows.collapsedCount >= 3);
+    assert.equal(rows.collapsed.length, rows.collapsedCount);
+    assert.equal(
+      rows.head.some((row) => row.isViewer),
+      true,
+    );
+    assert.equal(
+      rows.collapsed.some((row) => row.isViewer),
+      false,
+    );
+    assert.equal(
+      rows.tail.some((row) => row.isViewer),
+      false,
+    );
+    const openRows = sides.filter(
+      (item) => item.left == null || item.right == null,
+    );
+    for (const item of openRows) {
+      const visible = [...rows.head, ...rows.tail].some(
+        (row) => row.sideIndex === item.sideIndex,
+      );
+      assert.equal(visible, true);
+      assert.equal(
+        rows.collapsed.some((row) => row.sideIndex === item.sideIndex),
+        false,
+      );
+    }
+  });
+
+  it("keeps a viewer later in the field in head rather than collapsed", () => {
+    const sides: TournamentHomeSide[] = [
+      ...Array.from({ length: 8 }, (_, index) =>
+        fullSide(index + 1, `l${index}`, `r${index}`),
+      ),
+      side(9, ada, sofia),
+      ...Array.from({ length: 4 }, (_, index) =>
+        fullSide(index + 10, `x${index}`, `y${index}`),
+      ),
+      side(14, rashid, null),
+    ];
+    const rows = tournamentTeamRows(sides, ada.userId);
+    assert.equal(
+      rows.head.some((row) => row.isViewer && row.sideIndex === 9),
+      true,
+    );
+    assert.equal(
+      rows.collapsed.some((row) => row.isViewer),
+      false,
+    );
+  });
+
+  it("never collapses a Game team with an open Position", () => {
+    const sides: TournamentHomeSide[] = [
+      ...Array.from({ length: 8 }, (_, index) =>
+        fullSide(index + 1, `l${index}`, `r${index}`),
+      ),
+      side(9, rashid, null),
+    ];
+    const rows = tournamentTeamRows(sides, "nobody");
+    assert.equal(
+      rows.collapsed.some((row) => row.hasOpenPosition),
+      false,
+    );
+    const visible = [...rows.head, ...rows.tail];
+    assert.equal(
+      visible.some((row) => row.sideIndex === 9 && row.hasOpenPosition),
+      true,
+    );
+    assert.equal(
+      visible.find((row) => row.sideIndex === 9)?.openPosition,
+      "right",
+    );
+  });
+});
+
+function teamsSectionCountLine(sides: readonly TournamentHomeSide[]) {
+  const field = tournamentFieldSummary(sides);
+  return tournamentTeamsCountLine(field.full, field.halfOpen);
+}
+
+function vacantField(teamCount: number): TournamentHomeSide[] {
+  return Array.from({ length: teamCount }, (_, index) =>
+    side(index + 1, null, null),
+  );
+}
+
+describe("tournamentTeamsCountLine", () => {
+  it("states how many Game teams are full and how many have a Position open", () => {
+    assert.equal(
+      tournamentTeamsCountLine(11, 2),
+      "11 full, 2 with a Position open",
+    );
+    assert.equal(
+      tournamentTeamsCountLine(1, 1),
+      "1 full, 1 with a Position open",
+    );
+    assert.equal(tournamentTeamsCountLine(12, 0), "12 full");
+    assert.equal(tournamentTeamsCountLine(0, 0), "");
+    assert.equal(tournamentTeamsCountLine(0, 2), "2 with a Position open");
+  });
+
+  it("does not read a 0-team tournament as a full field", () => {
+    const empty = teamsSectionCountLine([]);
+    const vacantSides = vacantField(12);
+    const vacant = teamsSectionCountLine(vacantSides);
+    const vacantFieldSummary = tournamentFieldSummary(vacantSides);
+    const vacantStatus = tournamentStatusLine({
+      seated: false,
+      seatsLeft:
+        Math.max(vacantFieldSummary.seatTotal, 24) -
+        vacantFieldSummary.seatsTaken,
+      teamCount: 12,
+      organizerName: null,
+    });
+
+    assert.equal(empty, "");
+    assert.equal(vacant, "");
+    assert.equal(vacantStatus.startsWith("No seats left."), false);
+  });
+});
+
+describe("tournamentCollapsedTeamsLabel", () => {
+  it("names the collapsed run of full Game teams", () => {
+    assert.equal(tournamentCollapsedTeamsLabel(6), "Six more full teams");
+  });
+});
+
+describe("tournamentSeatsTakenLine", () => {
+  it("matches tournamentFieldSummary counts", () => {
+    const field = tournamentFieldSummary([
+      fullSide(1, "a", "b"),
+      side(2, ada, null),
+      side(3, null, null),
+    ]);
+    assert.equal(
+      tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal),
+      "3 of 6",
+    );
+    assert.equal(
+      tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal),
+      "3 of 6 seats taken",
+    );
+  });
+});
+
+describe("tournamentOpenPositionSubline", () => {
+  it("names the open Position", () => {
+    assert.equal(tournamentOpenPositionSubline("left"), "Left seat open");
+    assert.equal(tournamentOpenPositionSubline("right"), "Right seat open");
+  });
+});
+
+describe("tournamentSizeLine", () => {
+  it("names Game teams and groups without a knockout clause", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      tournamentSizeLine(result.sizing),
+      "12 Game teams, 3 groups of 4",
+    );
+  });
+
+  it("names uneven groups in lowercase", () => {
+    const result = sizeFriendlyTournament(10, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    const line = tournamentSizeLine(result.sizing);
+    assert.match(line, /10 Game teams/);
+    assert.match(line, /groups?/u);
+    assert.equal(/\bPool\b/u.test(line), false);
+    assert.equal(/\bGroup\b/u.test(line), false);
+  });
+});
+
+describe("tournamentStatusLine", () => {
+  it("tells a seated viewer they are in and that the draw waits for a full field", () => {
+    assert.equal(
+      tournamentStatusLine({
+        seated: true,
+        seatsLeft: 5,
+        teamCount: 12,
+        organizerName: "Jonas B",
+      }),
+      `${TOURNAMENT_YOU_ARE_IN_COPY} The draw happens once 12 Game teams are full, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`,
+    );
+  });
+
+  it("tells an unseated viewer seats left, who draws the groups, and that it is random", () => {
+    const line = tournamentStatusLine({
+      seated: false,
+      seatsLeft: 5,
+      teamCount: 12,
+      organizerName: "Jonas B",
+    });
+    assert.match(line, /5 seats left/u);
+    assert.match(line, /Jonas/u);
+    assert.match(line, /groups/u);
+    assert.match(line, /random/u);
+    assert.equal(/\bPool\b/u.test(line), false);
+    assert.equal(/\bGroup\b/u.test(line), false);
+  });
+});
+
+describe("Knockout only copy", () => {
+  it("names the first Knockout round in the size line", () => {
+    assert.equal(
+      knockoutSizeLine(12),
+      "12 Game teams, knockout from the Round of 16",
+    );
+    assert.equal(
+      knockoutSizeLine(8),
+      "8 Game teams, knockout from the Quarter-finals",
+    );
+  });
+
+  it("says who draws the knockout instead of the groups", () => {
+    const unseated = tournamentStatusLine({
+      seated: false,
+      seatsLeft: 5,
+      teamCount: 12,
+      organizerName: "Jonas B",
+      knockoutOnly: true,
+    });
+    assert.match(unseated, /Jonas draws the knockout/u);
+    assert.equal(/groups?/iu.test(unseated), false);
+    const seatedFull = tournamentStatusLine({
+      seated: true,
+      seatsLeft: 0,
+      teamCount: 12,
+      organizerName: "Jonas B",
+      knockoutOnly: true,
+    });
+    assert.equal(/groups?/iu.test(seatedFull), false);
+  });
+});
+
+describe("Groups then knockout copy", () => {
+  it("ends the size line with where the knockout starts", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      tournamentSizeLine(result.sizing, 3),
+      "12 Game teams, 3 groups of 4, then quarters",
+    );
+    assert.equal(
+      tournamentSizeLine(result.sizing, 2),
+      "12 Game teams, 3 groups of 4, then semis",
+    );
+    assert.equal(
+      tournamentSizeLine(result.sizing, null),
+      "12 Game teams, 3 groups of 4",
+    );
+  });
+
+  it("says the groups lead to a knockout in the status line", () => {
+    const base = {
+      seated: false,
+      seatsLeft: 5,
+      teamCount: 12,
+      organizerName: "Jonas B",
+    };
+    assert.equal(
+      tournamentStatusLine({ ...base, thenKnockout: true }),
+      `${tournamentStatusLine(base)} ${GROUPS_THEN_KNOCKOUT_LEAD}`,
+    );
+    assert.match(
+      tournamentStatusLine({ ...base, thenKnockout: true }),
+      /Jonas draws the groups.*knockout\.$/u,
+    );
+  });
+});
+
+describe("tournament home after the draw", () => {
+  const team = (name: string) => ({
+    kind: "team" as const,
+    team: { gameTeamId: name, name, isViewer: false },
+  });
+  function round(
+    roundNumber: number,
+    name: string,
+    places: KnockoutViewPlace[],
+  ): KnockoutViewRound {
+    return { round: roundNumber, name, places };
+  }
+  function match(
+    slot1: KnockoutViewSide,
+    slot2: KnockoutViewSide,
+    settled: boolean,
+  ): KnockoutViewPlace {
+    return {
+      kind: "match",
+      matchId: null,
+      position: 1,
+      code: "Q1",
+      startTime: null,
+      courtName: null,
+      slot1,
+      slot2,
+      winner: settled ? 1 : null,
+      walkover: null,
+      settled,
+      needsDecidingSet: false,
+    };
+  }
+  const placeholder = { kind: "qualifier" as const, label: "A1" };
+
+  it("keeps the Pool Rounds played while the knockout only holds placeholders", () => {
+    const rounds = [
+      round(1, "Semi-finals", [match(placeholder, placeholder, false)]),
+      round(2, "Final", [match({ kind: "open" }, { kind: "open" }, false)]),
+    ];
+    assert.equal(
+      drawnTournamentProgressLine({
+        roundsPlayed: "Round 2 of 3 played",
+        knockout: rounds,
+      }),
+      "Round 2 of 3 played",
+    );
+    assert.equal(
+      drawnTournamentProgressLine({
+        roundsPlayed: "Round 2 of 3 played",
+        knockout: null,
+      }),
+      "Round 2 of 3 played",
+    );
+  });
+
+  it("names the Knockout round now being played once a team is in it", () => {
+    const rounds = [
+      round(1, "Semi-finals", [
+        match(team("Ada / Sam"), team("Kim / Elin"), true),
+      ]),
+      round(2, "Final", [match(team("Ada / Sam"), placeholder, false)]),
+    ];
+    assert.equal(
+      drawnTournamentProgressLine({
+        roundsPlayed: "Round 3 of 3 played",
+        knockout: rounds,
+      }),
+      "Now at the Final",
+    );
+  });
+
+  it("drops the line on a Knockout only tournament once the Final is decided", () => {
+    const rounds = [
+      round(1, "Final", [match(team("Ada / Sam"), team("Kim / Elin"), true)]),
+    ];
+    assert.equal(
+      drawnTournamentProgressLine({ roundsPlayed: null, knockout: rounds }),
+      null,
+    );
+  });
+});
+
+describe("Groups only copy does not advertise a knockout or a message", () => {
+  it("asserts size, status, and shipped strings have none of the forbidden words", () => {
+    const even = sizeFriendlyTournament(12, 3);
+    const uneven = sizeFriendlyTournament(10, 3);
+    assert.equal(even.ok && uneven.ok, true);
+    if (!even.ok || !uneven.ok) {
+      return;
+    }
+    const copy = [
+      tournamentSizeLine(even.sizing),
+      tournamentSizeLine(uneven.sizing),
+      tournamentStatusLine({
+        seated: true,
+        seatsLeft: 4,
+        teamCount: 12,
+        organizerName: "Jonas B",
+      }),
+      tournamentStatusLine({
+        seated: false,
+        seatsLeft: 5,
+        teamCount: 12,
+        organizerName: "Jonas B",
+      }),
+      tournamentStatusLine({
+        seated: false,
+        seatsLeft: 0,
+        teamCount: 12,
+        organizerName: null,
+      }),
+      tournamentEyebrow(3),
+      TOURNAMENT_CLOSING_LINE,
+      TOURNAMENT_YOU_ARE_IN_COPY,
+      TOURNAMENT_DRAW_RANDOM_CLAUSE,
+      TOURNAMENT_DRAW_WHEN_FULL_COPY,
+      TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY,
+      TOURNAMENT_EYEBROW_PREFIX,
+      YOUR_TEAM_LABEL,
+      LEFT_SEAT_LABEL,
+      RIGHT_SEAT_LABEL,
+      OPEN_POSITION_SR_LABEL,
+      ORGANIZER_ROW_LABEL,
+      GROUP_ROW_LABEL,
+      PRICE_ROW_LABEL,
+      COUNTS_FOR_RATING_LABEL,
+      COUNTS_FOR_RATING_YES,
+      YOU_OWE_ROW_LABEL,
+      YOU_OWE_AFTER_EACH_MATCH,
+      INVITE_ACTION_LABEL,
+      INVITE_FROM_A_GROUP_LABEL,
+      LEAVE_THE_SEAT_LABEL,
+      PRICE_PER_MATCH_SUFFIX,
+      TEAMS_HEADING,
+      TAKE_SEAT_LABEL,
+      YOUR_TEAM_TAG,
+      SEATS_HEADING,
+      YOUR_ROUNDS_PREDRAW_CAPTION,
+      NOT_DRAWN_TRAILER,
+    ].join("\n");
+    assert.equal(FORBIDDEN.test(copy), false);
+  });
+});
+
+describe("tournamentEyebrow", () => {
+  it("ships Friendly tournament and the Round count", () => {
+    assert.equal(tournamentEyebrow(3), "Friendly tournament, 3 Rounds");
+    assert.equal(tournamentEyebrow(1), "Friendly tournament, 1 Round");
+  });
+
+  it("names the knockout instead of counting Rounds on Knockout only", () => {
+    assert.equal(tournamentEyebrow(4, true), "Friendly tournament, knockout");
+  });
+});
+
+describe("tournamentRoundCount", () => {
+  const planned = { teamsAllowed: 12, poolCount: 3, drawPostedAt: null };
+
+  it("resolves the stored count against the planned field before the draw", () => {
+    assert.equal(
+      tournamentRoundCount({ ...planned, roundCount: null, matches: [] }),
+      3,
+    );
+    const explicit = tournamentRoundCount({
+      ...planned,
+      roundCount: 5,
+      matches: [],
+    });
+    assert.equal(explicit, 5);
+    assert.equal(
+      tournamentEyebrow(explicit ?? 0),
+      "Friendly tournament, 5 Rounds",
+    );
+  });
+
+  it("is null for a tournament without Pools", () => {
+    assert.equal(
+      tournamentRoundCount({
+        teamsAllowed: 12,
+        poolCount: null,
+        roundCount: null,
+        drawPostedAt: null,
+        matches: [],
+      }),
+      null,
+    );
+  });
+
+  it("reads the posted Matches once the draw is posted", () => {
+    const followedSmallerField = tournamentRoundCount({
+      ...planned,
+      roundCount: null,
+      drawPostedAt: new Date("2026-09-20T18:00:00Z"),
+      matches: [
+        { roundNumber: 1 },
+        { roundNumber: 2 },
+        { roundNumber: 2 },
+        { roundNumber: 1 },
+      ],
+    });
+    assert.equal(followedSmallerField, 2);
+    assert.equal(poolRoundLabel(2, followedSmallerField), "R2 of 2");
+
+    const clamped = tournamentRoundCount({
+      ...planned,
+      roundCount: 5,
+      drawPostedAt: "2026-09-20T18:00:00Z",
+      matches: [1, 2, 3, 4].map((roundNumber) => ({ roundNumber })),
+    });
+    assert.equal(clamped, 4);
+    assert.equal(
+      roundsPlayedLabel(
+        {
+          pools: [
+            {
+              matches: [
+                { roundNumber: 1, status: "completed" },
+                { roundNumber: 2, status: "scheduled" },
+              ],
+            },
+          ],
+        },
+        clamped,
+      ),
+      "Round 1 of 4 played",
+    );
+  });
+});
+
+describe("tournamentStartLine", () => {
+  it("joins the start day and Venue", () => {
+    const start = new Date(2026, 8, 4, 18, 0, 0);
+    const line = tournamentStartLine(start, "Padelhuset Bromma");
+    assert.match(line ?? "", /Starts /u);
+    assert.match(line ?? "", /Padelhuset Bromma/u);
+  });
+});
+
+describe("tournamentOrganizerName", () => {
+  it("resolves the creator from people already on the payload", () => {
+    assert.equal(
+      tournamentOrganizerName({
+        createdBy: jonas.userId,
+        people: [ada, jonas, sofia],
+      }),
+      "Jonas B",
+    );
+  });
+
+  it("is null when the creator is not on the payload", () => {
+    assert.equal(
+      tournamentOrganizerName({
+        createdBy: "missing",
+        people: [ada],
+      }),
+      null,
+    );
+  });
+});
+
+describe("tournamentViewerSide", () => {
+  it("returns the Game team the viewer sits on", () => {
+    const sides = [side(1, ada, sofia), side(2, jonas, null)];
+    assert.equal(tournamentViewerSide(sides, sofia.userId)?.sideIndex, 1);
+    assert.equal(tournamentViewerSide(sides, "nobody"), null);
+  });
+});
+
+describe("isTournamentStandingsView", () => {
+  it("is standings once the draw is posted and pre-draw while it is null", () => {
+    assert.equal(
+      isTournamentStandingsView(new Date("2026-09-20T18:00:00Z")),
+      true,
+    );
+    assert.equal(isTournamentStandingsView("2026-09-20T18:00:00Z"), true);
+    assert.equal(isTournamentStandingsView(null), false);
+    assert.equal(isTournamentStandingsView(undefined), false);
+  });
+});
+
+describe("defaultStandingsPoolIndex", () => {
+  const pools = [{ poolIndex: 1 }, { poolIndex: 2 }, { poolIndex: 3 }];
+
+  it("defaults to the viewer's Pool", () => {
+    assert.equal(defaultStandingsPoolIndex(2, pools), 2);
+  });
+
+  it("falls back to the first Pool when the viewer is in none", () => {
+    assert.equal(defaultStandingsPoolIndex(null, pools), 1);
+    assert.equal(defaultStandingsPoolIndex(undefined, pools), 1);
+    assert.equal(defaultStandingsPoolIndex(9, pools), 1);
+  });
+
+  it("is null when there are no Pools", () => {
+    assert.equal(defaultStandingsPoolIndex(1, []), null);
+  });
+});
+
+describe("otherPoolsPlayedSummary", () => {
+  const pools = [
+    {
+      poolIndex: 1,
+      label: "group 1",
+      matches: [
+        { status: "completed" },
+        { status: "completed" },
+        { status: "scheduled" },
+      ],
+    },
+    {
+      poolIndex: 2,
+      label: "group 2",
+      matches: [{ status: "completed" }, { status: "cancelled" }],
+    },
+    {
+      poolIndex: 3,
+      label: "group 3",
+      matches: [{ status: "completed" }, { status: "completed" }],
+    },
+  ];
+
+  it("names the other groups, counts their completed Matches, and moves to the next group", () => {
+    assert.deepEqual(otherPoolsPlayedSummary(1, pools), {
+      namesLine: "group 2 and group 3",
+      playedLabel: "3 Matches played",
+      nextPoolIndex: 2,
+    });
+    assert.deepEqual(otherPoolsPlayedSummary(2, pools), {
+      namesLine: "group 1 and group 3",
+      playedLabel: "4 Matches played",
+      nextPoolIndex: 3,
+    });
+    assert.deepEqual(otherPoolsPlayedSummary(3, pools), {
+      namesLine: "group 1 and group 2",
+      playedLabel: "3 Matches played",
+      nextPoolIndex: 1,
+    });
+  });
+
+  it("is null when there is no other Pool to move to", () => {
+    assert.equal(
+      otherPoolsPlayedSummary(1, [
+        { poolIndex: 1, label: "group 1", matches: [] },
+      ]),
+      null,
+    );
+  });
+});
+
+describe("standings copy", () => {
+  it("replaces the knockout line with how a Pool tournament ends", () => {
+    assert.equal(STANDINGS_HEADING, "Standings");
+    assert.equal(
+      TOURNAMENT_ENDS_COPY,
+      "Each group has a winner. There is no overall champion.",
+    );
+    assert.equal(roundResultsHeading(2), "Round 2 results");
+    assert.equal(otherPoolsPlayedLabel(1), "1 Match played");
+    assert.equal(otherPoolsPlayedLabel(4), "4 Matches played");
+    assert.equal(POOLS_SEGMENT_LABEL, "groups");
+  });
+
+  it("does not say quarter, knockout, then quarters, or Group for a Pool", () => {
+    const copy = [
+      STANDINGS_HEADING,
+      TOURNAMENT_ENDS_COPY,
+      POOLS_SEGMENT_LABEL,
+      roundResultsHeading(2),
+      otherPoolsPlayedLabel(4),
+      "group 2 and group 3",
+    ].join("\n");
+    assert.equal(/quarter|knockout|then quarters/iu.test(copy), false);
+    assert.equal(/\bGroup\b/u.test(copy), false);
+  });
+});

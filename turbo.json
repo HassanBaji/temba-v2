@@ -2,7 +2,14 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
     "DATABASE_URL",
+    "WEB_ORIGIN",
+    "AUTHORIZED_PARTIES",
+    "ACCEPT_SESSION_COOKIE",
+    "CLERK_JWT_KEY",
+    "API_ORIGIN",
     "CLERK_SECRET_KEY",
+    "CLERK_PUBLISHABLE_KEY",
+    "PORT",
     "CLERK_WEBHOOK_SIGNING_SECRET",
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
     "SKIP_ENV_VALIDATION",
@@ -11,12 +18,14 @@
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY",
     "AWS_S3_BUCKET_NAME",
-    "AWS_DEFAULT_REGION"
+    "AWS_DEFAULT_REGION",
+    "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "EXPO_PUBLIC_API_ORIGIN"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "start": {
       "dependsOn": ["^start"],
@@ -26,8 +35,12 @@
       "cache": false,
       "persistent": true
     },
-    "typecheck": {},
-    "lint": {},
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
     "test": {},
     "db:generate": {},
     "db:migrate": {},

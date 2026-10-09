@@ -1,6 +1,6 @@
 # Temba UI/UX audit — 2026-09-28
 
-Scope: every route in `apps/temba` (App Router), every shared component, and the design tokens.
+Scope: every route in `apps/web` (App Router), every shared component, and the design tokens.
 Status legend: **Open** · **Fixed** · **Skipped** (reason) · **Needs design decision**.
 Severity: **High** = broken/unreachable, a11y blocker, data loss, unconfirmed destructive action · **Medium** = inconsistency users notice, missing state, <44px primary target · **Low** = polish.
 
@@ -9,7 +9,7 @@ Status: High and Medium fixed on branch `claude/gifted-fermi-yavvxd` ([PR #122](
 ## 0. Method and limits
 
 - Four parallel code audits (primitives + chrome, Games, Groups/Communities/Teams/Venues, Home/You/auth/invites), each claim checked against source. High findings were re-verified by hand.
-- The App was run locally (`pnpm --filter temba dev`, local Postgres — the Railway `DATABASE_URL` was deliberately not used) and screenshotted with Playwright at 360 / 768 / 1024 / 1440.
+- The App was run locally (`pnpm --filter web dev`, local Postgres — the Railway `DATABASE_URL` was deliberately not used) and screenshotted with Playwright at 360 / 768 / 1024 / 1440.
 - **Limit:** this environment's network policy blocks Clerk (`api.clerk.com`, `*.clerk.accounts.dev`), so no session could be created. Signed-in screens were checked visually only through the dev fixture previews (`/dashboard/design/{home,game-details,tournament}`, which render the real Home / Game / Tournament components and the real shell). Everything else was audited from code. Screenshots: `.scratch/ui-audit/shots-2026-09/`.
 - Previous audit in `.scratch/ui-audit/*.md` predates the black/white redesign and is stale.
 

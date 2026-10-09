@@ -106,7 +106,7 @@ Review for:
 - maintainability
 - duplicated logic
 - architecture inconsistencies
-- tRPC thin assemblers or twin `server/<domain>/<verb>.ts` files for a single door (violates `api-one-endpoint-per-file`)
+- tRPC thin assemblers or twin `packages/api/src/<domain>/<verb>.ts` files for a single door (violates `api-one-endpoint-per-file`)
 - new helper/service/repository layers for endpoint-only logic
 - unnecessary complexity
 

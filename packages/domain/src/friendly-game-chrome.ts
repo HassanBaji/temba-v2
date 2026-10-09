@@ -1,0 +1,89 @@
+import { formatAbsoluteDay } from "./format-game-start";
+import { parseOptionalCoord } from "./parse-optional-coord";
+import { formatPricePerPlayerFils } from "./price-per-player";
+import type { GameViewerStatus } from "./game-summary-cta";
+
+export function friendlyGameHomeTitle(
+  groupId: string | null | undefined,
+  groupName: string | null | undefined,
+) {
+  if (!groupId) {
+    return "Pickup";
+  }
+  const name = groupName?.trim();
+  return name && name.length > 0 ? name : "Group";
+}
+
+export function friendlyGameViewerLine(status: GameViewerStatus) {
+  if (status === "in") {
+    return "You're playing";
+  }
+  if (status === "waitlisted") {
+    return "You're on the waitlist";
+  }
+  return null;
+}
+
+export function friendlyGamePriceRow(fils: number | null | undefined) {
+  const amount = formatPricePerPlayerFils(fils);
+  if (amount == null) {
+    return null;
+  }
+  return {
+    amount,
+    helper: fils != null && fils > 0 ? "Paid at the venue" : null,
+  };
+}
+
+export function friendlyGameOccupancyLabel(
+  registeredUserCount: number,
+  playersAllowed: number | null | undefined,
+) {
+  if (playersAllowed == null) {
+    return registeredUserCount === 1
+      ? "1 player"
+      : `${registeredUserCount} players`;
+  }
+  return `${registeredUserCount} of ${playersAllowed} players`;
+}
+
+export function friendlyGameOpenSpotsLabel(
+  registeredUserCount: number,
+  playersAllowed: number | null | undefined,
+) {
+  if (playersAllowed == null) {
+    return null;
+  }
+
+  const openSpots = playersAllowed - registeredUserCount;
+  return openSpots === 1 ? "1 spot left" : `${openSpots} spots left`;
+}
+
+export function friendlyGameDirectionsUrl(
+  latitude: string | null | undefined,
+  longitude: string | null | undefined,
+) {
+  if (latitude == null || longitude == null) {
+    return null;
+  }
+  const lat = parseOptionalCoord(latitude);
+  const lng = parseOptionalCoord(longitude);
+  if (lat == null || lng == null) {
+    return null;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
+
+export function friendlyGameDateDurationLine(
+  windowStart: Date | string | null | undefined,
+  durationInMinutes: number | null | undefined,
+) {
+  if (!windowStart) {
+    return null;
+  }
+  const date = formatAbsoluteDay(windowStart);
+  if (durationInMinutes == null) {
+    return date;
+  }
+  return `${date} · ${durationInMinutes} min`;
+}

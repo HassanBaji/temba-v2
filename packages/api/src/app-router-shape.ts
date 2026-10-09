@@ -1,0 +1,224 @@
+import type { inferRouterInputs } from "@trpc/server";
+
+import type { AppRouter } from "#src/root";
+
+type RouterInputs = inferRouterInputs<AppRouter>;
+
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+
+type AssertTrue<T extends true> = T;
+
+type ExpectedTopLevel =
+  | "communities"
+  | "games"
+  | "groups"
+  | "notifications"
+  | "ratings"
+  | "teams"
+  | "users"
+  | "venues";
+
+type ExpectedCommunities =
+  | "create"
+  | "byId"
+  | "listMembers"
+  | "setMemberRole"
+  | "softArchive"
+  | "unarchive"
+  | "leave"
+  | "addSport"
+  | "removeSport"
+  | "listTeamLinkRequests"
+  | "approveTeamLink"
+  | "rejectTeamLink"
+  | "mine"
+  | "requestJoin"
+  | "listJoinRequests"
+  | "approveJoinRequest"
+  | "rejectJoinRequest"
+  | "searchLookupUsers"
+  | "sendLookupInvite"
+  | "listLookupInvites"
+  | "revokeLookupInvite"
+  | "pendingLookupInvites"
+  | "acceptLookupInvite"
+  | "getInviteLink"
+  | "createInviteLink"
+  | "previewInviteLink"
+  | "acceptInviteLink"
+  | "searchLiveVenues"
+  | "requestVenueLink"
+  | "unlinkVenue";
+
+type ExpectedGames =
+  | "hello"
+  | "listMyGames"
+  | "listMyMatchHistory"
+  | "listPublicPickup"
+  | "listCreateVenues"
+  | "listCreateGroups"
+  | "create"
+  | "createTournament"
+  | "drawPools"
+  | "postPoolDraw"
+  | "undoPoolDraw"
+  | "byId"
+  | "poolTables"
+  | "register"
+  | "registerSeat"
+  | "moveSeat"
+  | "searchPartnerUsers"
+  | "listPartnerSuggestions"
+  | "registerWithPartner"
+  | "registerTeam"
+  | "mergeHalfTeams"
+  | "leave"
+  | "leaveWaitlist"
+  | "kick"
+  | "closeRegistration"
+  | "reopenRegistration"
+  | "cancel"
+  | "cancelMatch"
+  | "updateWindow"
+  | "updatePricePerPlayer"
+  | "updateLevelRange"
+  | "updateRoundCount"
+  | "requestLevelRange"
+  | "listLevelRangeRequests"
+  | "approveLevelRangeRequest"
+  | "rejectLevelRangeRequest"
+  | "updateCaps"
+  | "listCourts"
+  | "addMatch"
+  | "updateMatch"
+  | "addSet"
+  | "scoreSet"
+  | "removeSet"
+  | "completeMatch"
+  | "confirmMatchResult"
+  | "reportWrongScore"
+  | "searchLookupUsers"
+  | "sendLookupInvite"
+  | "listLookupInvites"
+  | "revokeLookupInvite"
+  | "pendingLookupInvites"
+  | "acceptLookupInvite"
+  | "getInviteLink"
+  | "createInviteLink"
+  | "inviteLinkByShortCode"
+  | "previewInviteLink"
+  | "acceptInviteLink"
+  | "getSecretMessage";
+
+type ExpectedGroups =
+  | "createClubPublic"
+  | "createClubPrivate"
+  | "createLoosePublic"
+  | "createLoosePrivate"
+  | "mineLoose"
+  | "mine"
+  | "listPublic"
+  | "byId"
+  | "joinClubPublic"
+  | "joinLoosePublic"
+  | "requestJoin"
+  | "listJoinRequests"
+  | "approveJoinRequest"
+  | "rejectJoinRequest"
+  | "setRequiresApproval"
+  | "leave"
+  | "delete"
+  | "searchLookupUsers"
+  | "sendLookupInvite"
+  | "listLookupInvites"
+  | "revokeLookupInvite"
+  | "pendingLookupInvites"
+  | "acceptLookupInvite"
+  | "getInviteLink"
+  | "createInviteLink"
+  | "inviteLinkByShortCode"
+  | "previewInviteLink"
+  | "acceptInviteLink"
+  | "uploadImage"
+  | "clearImage";
+
+type ExpectedNotifications =
+  | "list"
+  | "unreadCount"
+  | "markRead"
+  | "markAllRead";
+
+type ExpectedRatings = "me" | "selfDeclare" | "setLevel";
+
+type ExpectedTeams =
+  | "create"
+  | "mine"
+  | "pendingInvites"
+  | "byId"
+  | "searchLookupUsers"
+  | "inviteInApp"
+  | "listInAppInvites"
+  | "revokeInAppInvite"
+  | "acceptInAppInvite"
+  | "getInviteLink"
+  | "createInviteLink"
+  | "previewInviteLink"
+  | "acceptInviteLink"
+  | "requestLink"
+  | "unlink"
+  | "dissolve";
+
+type ExpectedUsers =
+  | "home"
+  | "onboardingState"
+  | "profileStats"
+  | "playerProfile"
+  | "setPreferredPosition"
+  | "completeOnboarding";
+
+type ExpectedVenues =
+  | "list"
+  | "byId"
+  | "create"
+  | "update"
+  | "addCourt"
+  | "renameCourt"
+  | "deleteCourt"
+  | "uploadLogo"
+  | "clearLogo"
+  | "softArchive"
+  | "unarchive"
+  | "listPendingLinkRequests"
+  | "approveLinkRequest"
+  | "rejectLinkRequest";
+
+type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
+type _Communities = AssertTrue<
+  Equal<keyof RouterInputs["communities"], ExpectedCommunities>
+>;
+type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
+type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
+type _Notifications = AssertTrue<
+  Equal<keyof RouterInputs["notifications"], ExpectedNotifications>
+>;
+type _Ratings = AssertTrue<
+  Equal<keyof RouterInputs["ratings"], ExpectedRatings>
+>;
+type _Teams = AssertTrue<Equal<keyof RouterInputs["teams"], ExpectedTeams>>;
+type _Users = AssertTrue<Equal<keyof RouterInputs["users"], ExpectedUsers>>;
+type _Venues = AssertTrue<Equal<keyof RouterInputs["venues"], ExpectedVenues>>;
+
+export type AppRouterShapeChecks = [
+  _TopLevel,
+  _Communities,
+  _Games,
+  _Groups,
+  _Notifications,
+  _Ratings,
+  _Teams,
+  _Users,
+  _Venues,
+];

@@ -316,6 +316,48 @@
       "when": 1790589842512,
       "tag": "0044_game_round_count",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790852296350,
+      "tag": "0045_tournament_knockout",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790855969656,
+      "tag": "0046_knockout_qualifier_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790858128322,
+      "tag": "0047_knockout_walkover",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791077646381,
+      "tag": "0048_price_per_player_fils",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791363905681,
+      "tag": "0049_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791442775605,
+      "tag": "0050_lean_the_initiative",
+      "breakpoints": true
     }
   ]
 }

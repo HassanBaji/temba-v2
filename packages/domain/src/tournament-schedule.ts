@@ -1,0 +1,324 @@
+import { productDayKey } from "./product-timezone";
+import {
+  suggestedRoundCount,
+  tournamentMatchMinutes,
+  type RoundMeets,
+} from "./tournament-sizing";
+
+export type CirclePairing<T> = {
+  roundNumber: number;
+  slot1: T;
+  slot2: T;
+};
+
+export type ScheduledPoolMatch = {
+  roundNumber: number;
+  startTime: Date;
+  endTime: Date;
+  courtId: string;
+  slot1GameTeamId: string;
+  slot2GameTeamId: string;
+};
+
+export function isOneDayTournamentWindow(start: Date, end: Date) {
+  return productDayKey(start) === productDayKey(end);
+}
+
+function addMinutes(start: Date, minutes: number) {
+  return new Date(start.getTime() + minutes * 60 * 1000);
+}
+
+export function fewWeeksRoundStarts(
+  windowStart: Date,
+  windowEnd: Date,
+  roundCount: number,
+  matchMinutes: number | null,
+): Date[] {
+  if (roundCount < 1) {
+    return [];
+  }
+  const lastStart = addMinutes(
+    windowEnd,
+    -tournamentMatchMinutes(matchMinutes),
+  );
+  const last =
+    lastStart.getTime() < windowStart.getTime() ? windowStart : lastStart;
+  if (roundCount === 1) {
+    return [windowStart];
+  }
+  const span = last.getTime() - windowStart.getTime();
+  return Array.from(
+    { length: roundCount },
+    (_, index) =>
+      new Date(
+        windowStart.getTime() + Math.round((span * index) / (roundCount - 1)),
+      ),
+  );
+}
+
+export function circleMethodPairings<T>(
+  teams: readonly T[],
+): CirclePairing<T>[] {
+  if (teams.length < 2) {
+    return [];
+  }
+  const items: (T | null)[] = [...teams];
+  if (items.length % 2 === 1) {
+    items.push(null);
+  }
+  const size = items.length;
+  const half = size / 2;
+  const rotation = [...items];
+  const pairings: CirclePairing<T>[] = [];
+  for (let round = 0; round < size - 1; round += 1) {
+    for (let index = 0; index < half; index += 1) {
+      const slot1 = rotation[index];
+      const slot2 = rotation[size - 1 - index];
+      if (slot1 != null && slot2 != null) {
+        pairings.push({
+          roundNumber: round + 1,
+          slot1,
+          slot2,
+        });
+      }
+    }
+    const last = rotation.pop();
+    if (last === undefined) {
+      continue;
+    }
+    rotation.splice(1, 0, last);
+  }
+  return pairings;
+}
+
+// Pass-aligned: Round r is position j of Pass k across every Pool, so a smaller
+// Pool sits out the tail of each Pass and no pair meets twice before all have met.
+export function poolRoundPairings<T>(
+  teams: readonly T[],
+  args: { suggestedRoundCount: number; roundCount: number },
+): CirclePairing<T>[] {
+  const suggested = args.suggestedRoundCount;
+  if (suggested < 1) {
+    return [];
+  }
+  const byPosition = new Map<number, CirclePairing<T>[]>();
+  for (const pairing of circleMethodPairings(teams)) {
+    const list = byPosition.get(pairing.roundNumber) ?? [];
+    list.push(pairing);
+    byPosition.set(pairing.roundNumber, list);
+  }
+  const pairings: CirclePairing<T>[] = [];
+  for (let roundNumber = 1; roundNumber <= args.roundCount; roundNumber += 1) {
+    const pass = Math.ceil(roundNumber / suggested);
+    const position = roundNumber - (pass - 1) * suggested;
+    const swapped = pass % 2 === 0;
+    for (const pairing of byPosition.get(position) ?? []) {
+      pairings.push({
+        roundNumber,
+        slot1: swapped ? pairing.slot2 : pairing.slot1,
+        slot2: swapped ? pairing.slot1 : pairing.slot2,
+      });
+    }
+  }
+  return pairings;
+}
+
+export type TournamentRoundSizing = {
+  roundCount: number;
+  poolMatches: number;
+  roundMatches: number[];
+  matchesPerTeamMin: number;
+  matchesPerTeamMax: number;
+  meets: RoundMeets;
+};
+
+export function sizeTournamentRounds(
+  poolSizes: readonly number[],
+  roundCount: number,
+): TournamentRoundSizing {
+  const suggestedCount = suggestedRoundCount(poolSizes);
+  let poolMatches = 0;
+  const roundMatches = Array.from({ length: Math.max(roundCount, 0) }, () => 0);
+  const matchesPerTeam: number[] = [];
+  const meetingsPerPair: number[] = [];
+  for (const size of poolSizes) {
+    const teams = Array.from({ length: size }, (_, index) => index);
+    const pairings = poolRoundPairings(teams, {
+      suggestedRoundCount: suggestedCount,
+      roundCount,
+    });
+    poolMatches += pairings.length;
+    const played = teams.map(() => 0);
+    const meetings = new Map<string, number>();
+    for (const pairing of pairings) {
+      roundMatches[pairing.roundNumber - 1] =
+        (roundMatches[pairing.roundNumber - 1] ?? 0) + 1;
+      played[pairing.slot1] = (played[pairing.slot1] ?? 0) + 1;
+      played[pairing.slot2] = (played[pairing.slot2] ?? 0) + 1;
+      const key = pairKey(pairing.slot1, pairing.slot2);
+      meetings.set(key, (meetings.get(key) ?? 0) + 1);
+    }
+    matchesPerTeam.push(...played);
+    for (let left = 0; left < size; left += 1) {
+      for (let right = left + 1; right < size; right += 1) {
+        meetingsPerPair.push(meetings.get(pairKey(left, right)) ?? 0);
+      }
+    }
+  }
+
+  return {
+    roundCount,
+    poolMatches,
+    roundMatches,
+    matchesPerTeamMin:
+      matchesPerTeam.length > 0 ? Math.min(...matchesPerTeam) : 0,
+    matchesPerTeamMax:
+      matchesPerTeam.length > 0 ? Math.max(...matchesPerTeam) : 0,
+    meets: meetsState(meetingsPerPair),
+  };
+}
+
+function pairKey(left: number, right: number) {
+  return left < right ? `${left}:${right}` : `${right}:${left}`;
+}
+
+function meetsState(meetingsPerPair: readonly number[]): RoundMeets {
+  if (meetingsPerPair.some((count) => count === 0)) {
+    return "partial";
+  }
+  if (meetingsPerPair.every((count) => count >= 2)) {
+    return "twice";
+  }
+  if (meetingsPerPair.some((count) => count >= 2)) {
+    return "somePartialSecond";
+  }
+  return "once";
+}
+
+export type ScheduledRoundItem<T> = {
+  item: T;
+  roundNumber: number;
+  startTime: Date;
+  endTime: Date;
+  courtId: string;
+};
+
+// One-day windows run Rounds back to back, a Round starting once the last has
+// cleared the Courts; longer windows spread the Round starts across the window.
+export function scheduleRoundSlots<T>(input: {
+  rounds: readonly { roundNumber: number; items: readonly T[] }[];
+  courtIds: readonly string[];
+  windowStart: Date;
+  windowEnd: Date;
+  matchMinutes: number | null;
+}): ScheduledRoundItem<T>[] {
+  if (input.courtIds.length < 1) {
+    return [];
+  }
+
+  const minutes = tournamentMatchMinutes(input.matchMinutes);
+  const rounds = [...input.rounds]
+    .filter((round) => round.items.length > 0)
+    .sort((left, right) => left.roundNumber - right.roundNumber);
+  const maxRound = rounds[rounds.length - 1]?.roundNumber ?? 0;
+  const oneDay = isOneDayTournamentWindow(input.windowStart, input.windowEnd);
+  const roundStarts = oneDay
+    ? []
+    : fewWeeksRoundStarts(
+        input.windowStart,
+        input.windowEnd,
+        maxRound,
+        input.matchMinutes,
+      );
+
+  const scheduled: ScheduledRoundItem<T>[] = [];
+  let cursor = input.windowStart;
+  for (const round of rounds) {
+    const roundStart = oneDay
+      ? cursor
+      : (roundStarts[round.roundNumber - 1] ?? cursor);
+    for (let index = 0; index < round.items.length; index += 1) {
+      const item = round.items[index];
+      if (item === undefined) {
+        continue;
+      }
+      const slot = Math.floor(index / input.courtIds.length);
+      const courtId = input.courtIds[index % input.courtIds.length];
+      if (!courtId) {
+        continue;
+      }
+      const startTime = addMinutes(roundStart, slot * minutes);
+      scheduled.push({
+        item,
+        roundNumber: round.roundNumber,
+        startTime,
+        endTime: addMinutes(startTime, minutes),
+        courtId,
+      });
+    }
+    if (oneDay) {
+      const slotsUsed = Math.ceil(round.items.length / input.courtIds.length);
+      cursor = addMinutes(roundStart, slotsUsed * minutes);
+    }
+  }
+  return scheduled;
+}
+
+export type PoolRoundPairing = {
+  slot1GameTeamId: string;
+  slot2GameTeamId: string;
+};
+
+export function poolRounds(input: {
+  pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
+  roundCount: number;
+}): { roundNumber: number; items: PoolRoundPairing[] }[] {
+  const byRound = new Map<number, PoolRoundPairing[]>();
+  const pools = [...input.pools].sort(
+    (left, right) => left.poolIndex - right.poolIndex,
+  );
+  const suggested = suggestedRoundCount(
+    pools.map((pool) => pool.gameTeamIds.length),
+  );
+  for (const pool of pools) {
+    for (const pairing of poolRoundPairings(pool.gameTeamIds, {
+      suggestedRoundCount: suggested,
+      roundCount: input.roundCount,
+    })) {
+      const list = byRound.get(pairing.roundNumber) ?? [];
+      list.push({
+        slot1GameTeamId: pairing.slot1,
+        slot2GameTeamId: pairing.slot2,
+      });
+      byRound.set(pairing.roundNumber, list);
+    }
+  }
+  return [...byRound.entries()].map(([roundNumber, items]) => ({
+    roundNumber,
+    items,
+  }));
+}
+
+export function schedulePoolMatches(input: {
+  pools: readonly { poolIndex: number; gameTeamIds: readonly string[] }[];
+  roundCount: number;
+  courtIds: readonly string[];
+  windowStart: Date;
+  windowEnd: Date;
+  matchMinutes: number | null;
+}): ScheduledPoolMatch[] {
+  return scheduleRoundSlots({
+    rounds: poolRounds(input),
+    courtIds: input.courtIds,
+    windowStart: input.windowStart,
+    windowEnd: input.windowEnd,
+    matchMinutes: input.matchMinutes,
+  }).map((scheduled) => ({
+    roundNumber: scheduled.roundNumber,
+    startTime: scheduled.startTime,
+    endTime: scheduled.endTime,
+    courtId: scheduled.courtId,
+    slot1GameTeamId: scheduled.item.slot1GameTeamId,
+    slot2GameTeamId: scheduled.item.slot2GameTeamId,
+  }));
+}

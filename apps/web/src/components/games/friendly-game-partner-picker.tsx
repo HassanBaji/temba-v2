@@ -1,0 +1,441 @@
+"use client";
+
+import { Check } from "lucide-react";
+import { useState } from "react";
+
+import { ErrorState } from "~/components/common/error-state";
+import { UserAvatar } from "~/components/common/user-avatar";
+import { LookupUserSelect } from "~/components/invites/lookup-user-select";
+import { Button } from "~/components/ui/button";
+import { Field, FieldLabel } from "~/components/ui/field";
+import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
+import { Skeleton } from "~/components/ui/skeleton";
+import {
+  formatGameCardDay,
+  formatGameClockWithoutMeridiem,
+} from "@repo/domain/format-game-start";
+import {
+  PARTNER_PICKER_COPY,
+  partnerContinueLabel,
+  partnerSeatsChip,
+  partnerSuggestionButtonLabel,
+  partnerSuggestionMetaLine,
+} from "@repo/domain/friendly-game-partner";
+import type { LevelBand } from "@repo/domain/level-bands";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { cn } from "~/lib/utils";
+import type { LookupUserSearchRow } from "@repo/api/types";
+import { api, type RouterOutputs } from "~/trpc/react";
+
+type PartnerSuggestion =
+  RouterOutputs["games"]["listPartnerSuggestions"]["playedWithBefore"][number];
+
+export type FriendlyGamePartnerPick = {
+  id: string;
+  name: string;
+  image: string | null;
+  levelBand: LevelBand | null;
+  preferredPosition: "left" | "right" | null;
+};
+
+function RecentPartnerChip({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: PartnerSuggestion;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const blocked = row.ineligible != null;
+
+  return (
+    <button
+      type="button"
+      disabled={blocked}
+      onClick={onSelect}
+      aria-pressed={blocked ? undefined : selected}
+      aria-label={partnerSuggestionButtonLabel(row)}
+      className={cn(
+        "rounded-card flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-1 py-2",
+        "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+        blocked && "hatch text-muted-foreground cursor-default",
+        !blocked && selected && "bg-wash",
+      )}
+    >
+      <span className="relative">
+        <UserAvatar
+          name={row.name}
+          image={row.image}
+          size="lg"
+          className={cn("shrink-0", blocked && "opacity-50")}
+        />
+        {!blocked && selected ? (
+          <span
+            aria-hidden="true"
+            className="bg-ink text-paper absolute -bottom-1 -right-1 flex size-[18px] items-center justify-center rounded-full"
+          >
+            <Check className="size-[10px]" strokeWidth={3} />
+          </span>
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          "text-eyebrow w-full truncate text-center leading-tight",
+          selected && !blocked ? "font-semibold" : "font-medium",
+          blocked && "text-muted-foreground",
+        )}
+      >
+        {row.name}
+      </span>
+    </button>
+  );
+}
+
+function RecentsShowcase({
+  rows,
+  selectedId,
+  onSelect,
+}: {
+  rows: PartnerSuggestion[];
+  selectedId: string | null;
+  onSelect: (row: PartnerSuggestion) => void;
+}) {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <section>
+      <div className="flex items-baseline gap-2.5 pb-2.5">
+        <h3 className="font-expanded text-title leading-tight">
+          Played with before
+        </h3>
+      </div>
+      <div className="-mx-[22px] overflow-x-auto px-[22px]">
+        <div className="flex gap-1">
+          {rows.map((row) => (
+            <RecentPartnerChip
+              key={row.id}
+              row={row}
+              selected={selectedId === row.id}
+              onSelect={() => onSelect(row)}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PartnerSuggestionRow({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: PartnerSuggestion;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const blocked = row.ineligible != null;
+
+  return (
+    <button
+      type="button"
+      disabled={blocked}
+      onClick={onSelect}
+      aria-pressed={blocked ? undefined : selected}
+      aria-label={partnerSuggestionButtonLabel(row)}
+      className={cn(
+        "flex w-full items-center gap-3 px-[18px] py-4 text-left",
+        "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+        blocked && "hatch text-muted-foreground cursor-default",
+        !blocked && selected && "bg-wash",
+        !blocked && !selected && "bg-paper",
+      )}
+    >
+      <UserAvatar
+        name={row.name}
+        image={row.image}
+        size="sm"
+        className="shrink-0"
+      />
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "text-body block truncate",
+            selected && !blocked ? "font-semibold" : "font-medium",
+            blocked && "text-muted-foreground",
+          )}
+        >
+          {row.name}
+        </span>
+        <span className="text-meta text-muted-foreground mt-0.5 block">
+          {partnerSuggestionMetaLine(row)}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-[22px] shrink-0 items-center justify-center rounded-full border",
+          blocked && "hatch border-rule",
+          !blocked && selected && "bg-ink border-ink text-paper",
+          !blocked && !selected && "border-rule",
+        )}
+      >
+        {!blocked && selected ? (
+          <Check className="size-[13px]" strokeWidth={3} />
+        ) : null}
+      </span>
+    </button>
+  );
+}
+
+function SuggestionSection({
+  title,
+  eyebrow,
+  rows,
+  selectedId,
+  onSelect,
+}: {
+  title: string;
+  eyebrow: string;
+  rows: PartnerSuggestion[];
+  selectedId: string | null;
+  onSelect: (row: PartnerSuggestion) => void;
+}) {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="pb-4">
+      <div className="flex items-baseline gap-2.5 pb-2.5">
+        <h3 className="font-expanded text-title leading-tight">{title}</h3>
+        <p className="text-muted-foreground text-meta">{eyebrow}</p>
+      </div>
+      <div className="border-rule rounded-card overflow-hidden border">
+        {rows.map((row, index) => (
+          <div
+            key={row.id}
+            className={index > 0 ? "border-rule border-t" : undefined}
+          >
+            <PartnerSuggestionRow
+              row={row}
+              selected={selectedId === row.id}
+              onSelect={() => onSelect(row)}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RecentsSkeleton() {
+  return (
+    <div aria-hidden="true" className="flex gap-1">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div
+          key={index}
+          className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-1 py-2"
+        >
+          <Skeleton className="size-10 rounded-full" />
+          <Skeleton className="h-3 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SuggestionRowsSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="border-rule rounded-card overflow-hidden border"
+    >
+      {Array.from({ length: 3 }, (_, index) => (
+        <div
+          key={index}
+          className="border-rule flex items-center gap-3 border-t px-[18px] py-4 first:border-t-0"
+        >
+          <Skeleton className="size-6 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-32 max-w-full" />
+            <Skeleton className="h-3 w-44 max-w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function FriendlyGamePartnerPicker({
+  gameId,
+  vacantSeatCount,
+  windowStart,
+  venueName,
+  groupName,
+  pricePerPlayerFils,
+  selectedPartner,
+  onSelectedPartnerChange,
+  onBack,
+  onClose,
+  onContinue,
+  notice,
+}: {
+  gameId: string;
+  vacantSeatCount: number;
+  windowStart?: Date | string | null;
+  venueName?: string | null;
+  groupName?: string | null;
+  pricePerPlayerFils?: number | null;
+  selectedPartner: FriendlyGamePartnerPick | null;
+  onSelectedPartnerChange: (partner: FriendlyGamePartnerPick | null) => void;
+  onBack?: () => void;
+  onClose: () => void;
+  onContinue: () => void;
+  notice?: string | null;
+}) {
+  const [query, setQuery] = useState("");
+  const [searchSelected, setSearchSelected] = useState<LookupUserSearchRow[]>(
+    [],
+  );
+
+  const suggestions = api.games.listPartnerSuggestions.useQuery({ gameId });
+  const partnerSearch = api.games.searchPartnerUsers.useQuery(
+    { gameId, query },
+    { enabled: true },
+  );
+
+  const start =
+    windowStart == null
+      ? null
+      : windowStart instanceof Date
+        ? windowStart
+        : new Date(windowStart);
+  const clock = start ? formatGameClockWithoutMeridiem(start) : null;
+  const day = start ? formatGameCardDay(start) : null;
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
+  const seatsChip = partnerSeatsChip(vacantSeatCount);
+
+  function pickSuggestion(row: PartnerSuggestion) {
+    if (row.ineligible) {
+      return;
+    }
+    setSearchSelected([]);
+    setQuery("");
+    onSelectedPartnerChange({
+      id: row.id,
+      name: row.name,
+      image: row.image,
+      levelBand: row.levelBand,
+      preferredPosition: row.preferredPosition,
+    });
+  }
+
+  function pickSearch(next: LookupUserSearchRow[]) {
+    setSearchSelected(next);
+    const row = next[0];
+    onSelectedPartnerChange(
+      row
+        ? {
+            id: row.id,
+            name: row.name,
+            image: null,
+            levelBand: null,
+            preferredPosition: null,
+          }
+        : null,
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="border-rule shrink-0 px-[22px] pt-2">
+        <div className="flex items-center justify-between">
+          {onBack ? (
+            <BackButton variant="boxed" onClick={onBack} />
+          ) : (
+            <CloseButton variant="boxed" onClick={onClose} />
+          )}
+          <p className="text-muted-foreground text-meta">{seatsChip}</p>
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px]">
+        <div className="border-rule mt-6 shrink-0">
+          <h2 className="font-expanded text-h1-lg leading-none tracking-[-0.03em]">
+            {PARTNER_PICKER_COPY.title}
+          </h2>
+          <p className="text-meta mt-2 leading-relaxed">
+            {PARTNER_PICKER_COPY.description}
+          </p>
+        </div>
+
+        {suggestions.isLoading ? (
+          <div aria-busy="true">
+            <span className="sr-only">Loading partner suggestions</span>
+            <RecentsSkeleton />
+          </div>
+        ) : suggestions.error ? (
+          <ErrorState
+            title="Suggestions could not be loaded"
+            message={suggestions.error.message}
+            headingLevel={3}
+            className="py-4"
+            onRetry={() => {
+              void suggestions.refetch();
+            }}
+          />
+        ) : (
+          <RecentsShowcase
+            rows={suggestions.data?.playedWithBefore ?? []}
+            selectedId={selectedPartner?.id ?? null}
+            onSelect={pickSuggestion}
+          />
+        )}
+
+        <Field>
+          <FieldLabel htmlFor="partner-picker-search">Search</FieldLabel>
+          <LookupUserSelect
+            id="partner-picker-search"
+            query={query}
+            onQueryChange={setQuery}
+            options={partnerSearch.data}
+            selected={searchSelected}
+            onSelectedChange={pickSearch}
+            selection="single"
+            pending={partnerSearch.isFetching}
+            placeholder="Search Users"
+          />
+        </Field>
+
+        {suggestions.isLoading ? <SuggestionRowsSkeleton /> : null}
+        <SuggestionSection
+          title="From your groups"
+          eyebrow={groupName?.trim() ?? ""}
+          rows={suggestions.data?.fromYourGroups ?? []}
+          selectedId={selectedPartner?.id ?? null}
+          onSelect={pickSuggestion}
+        />
+      </div>
+
+      <div className="border-rule bg-background mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+        <Button
+          type="button"
+          size="lg"
+          className="w-full"
+          disabled={!selectedPartner}
+          onClick={onContinue}
+        >
+          {partnerContinueLabel(selectedPartner?.name ?? null)}
+        </Button>
+        <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
+          {PARTNER_PICKER_COPY.footnote}
+        </p>
+      </div>
+    </div>
+  );
+}
