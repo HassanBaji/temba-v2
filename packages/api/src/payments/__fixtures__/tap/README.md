@@ -1,0 +1,1 @@
+These fixtures are hand-built from Tap's public documentation (developers.tap.company: create a charge, webhook hashstring, create a refund, list refunds). They are not recordings. Replace them with test-mode captures once Tap test keys exist (spec Q17); the adapter tests must keep passing unchanged against real shapes.

@@ -20,6 +20,7 @@ const app = createApp({
   }),
   webOrigin: env.WEB_ORIGIN,
   webhookSigningSecret: env.CLERK_WEBHOOK_SIGNING_SECRET,
+  paymentReturnUrl: env.PAYMENT_RETURN_URL,
 });
 
 const server = env.API_ENABLED

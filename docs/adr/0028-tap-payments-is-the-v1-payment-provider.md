@@ -1,6 +1,6 @@
 # Tap Payments is the v1 payment provider, charged immediately, behind the PaymentProvider boundary
 
-**Status:** accepted. The boundary, the manual adapter and the payment jobs are in place; the Tap adapter is added by its own ticket.
+**Status:** accepted. The boundary, the manual adapter and the payment jobs are in place; the Tap adapter is `packages/api/src/payments/tap.ts`, tested against the fixtures in `packages/api/src/payments/__fixtures__/tap/` (hand-built from Tap's documentation until test-mode captures replace them).
 
 Tap Payments takes a Customer's money for a Booking. It is Bahrain-native, settles in BHD with three decimals (fils map exactly), takes cards and BENEFIT on one hosted page, has a Charges API (create with redirect and 3DS, retrieve, a webhook `post.url` with a signed `hashstring`) and a Refunds API, and needs no SDK: `@repo/api` calls it with plain `fetch`, and the hosted redirect works in Expo through the in-app browser.
 
