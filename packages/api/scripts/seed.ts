@@ -327,6 +327,7 @@ async function seedVenues() {
       const court = await addCourt(db, {
         venueId: created.id,
         name: courtName,
+        actor: { userId: "seed", publicMetadata: { operator: true } },
       });
       courtIds.push(court.id);
     }

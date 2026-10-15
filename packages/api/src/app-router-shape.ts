@@ -184,6 +184,7 @@ type ExpectedVenues =
   | "byId"
   | "create"
   | "update"
+  | "updateDetails"
   | "addCourt"
   | "renameCourt"
   | "deleteCourt"

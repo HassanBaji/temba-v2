@@ -4,19 +4,26 @@ import { z } from "zod";
 
 import { courts } from "@repo/db";
 
-import { operatorProcedure } from "#src/trpc";
+import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { protectedProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import {
   courtNameTaken,
   duplicateCourtMessage,
 } from "#src/venues/helpers/court-name-taken";
+import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
 type DbClient = typeof db;
 
+type Actor = {
+  userId: string;
+  publicMetadata: Record<string, unknown> | undefined;
+};
+
 export async function renameCourt(
   database: DbClient,
-  args: { courtId: string; name: string },
+  args: { courtId: string; name: string; actor: Actor },
 ) {
   const existing = await database.query.courts.findFirst({
     where: eq(courts.id, args.courtId),
@@ -26,6 +33,11 @@ export async function renameCourt(
   if (!existing) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Court not found" });
   }
+
+  await requireVenueManager(database, {
+    venueId: existing.venueId,
+    ...args.actor,
+  });
 
   if (
     await courtNameTaken(database, existing.venueId, args.name, existing.id)
@@ -71,7 +83,7 @@ export async function renameCourt(
   }
 }
 
-export const renameCourtProcedure = operatorProcedure
+export const renameCourtProcedure = protectedProcedure
   .input(
     z.object({
       id: z.string().uuid(),
@@ -79,8 +91,13 @@ export const renameCourtProcedure = operatorProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
     return renameCourt(ctx.db, {
       courtId: input.id,
       name: input.name,
+      actor: {
+        userId: appUser.id,
+        publicMetadata: await ctx.getPublicMetadata(),
+      },
     });
   });

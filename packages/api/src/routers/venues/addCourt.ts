@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { courts } from "@repo/db";
 
-import { operatorProcedure } from "#src/trpc";
+import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { protectedProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import {
@@ -11,14 +12,24 @@ import {
   duplicateCourtMessage,
 } from "#src/venues/helpers/court-name-taken";
 import { requireVenue } from "#src/venues/helpers/require-venue";
+import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
 type DbClient = typeof db;
 
+type Actor = {
+  userId: string;
+  publicMetadata: Record<string, unknown> | undefined;
+};
+
 export async function addCourt(
   database: DbClient,
-  args: { venueId: string; name: string },
+  args: { venueId: string; name: string; actor: Actor },
 ) {
   await requireVenue(database, args.venueId);
+  await requireVenueManager(database, {
+    venueId: args.venueId,
+    ...args.actor,
+  });
 
   if (await courtNameTaken(database, args.venueId, args.name)) {
     throw new TRPCError({
@@ -61,7 +72,7 @@ export async function addCourt(
   }
 }
 
-export const addCourtProcedure = operatorProcedure
+export const addCourtProcedure = protectedProcedure
   .input(
     z.object({
       venueId: z.string().uuid(),
@@ -69,8 +80,13 @@ export const addCourtProcedure = operatorProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
     return addCourt(ctx.db, {
       venueId: input.venueId,
       name: input.name,
+      actor: {
+        userId: appUser.id,
+        publicMetadata: await ctx.getPublicMetadata(),
+      },
     });
   });

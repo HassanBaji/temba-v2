@@ -18,6 +18,7 @@ import { searchManagerUsersProcedure as searchManagerUsers } from "./searchManag
 import { softArchiveProcedure as softArchive } from "./softArchive";
 import { unarchiveProcedure as unarchive } from "./unarchive";
 import { update } from "./update";
+import { updateDetails } from "./updateDetails";
 import { uploadLogoProcedure as uploadLogo } from "./uploadLogo";
 
 export const venuesRouter = createTRPCRouter({
@@ -30,6 +31,7 @@ export const venuesRouter = createTRPCRouter({
   byId,
   create,
   update,
+  updateDetails,
   addCourt,
   renameCourt,
   deleteCourt,
