@@ -368,6 +368,14 @@ _Avoid_: form, run, streak (bare, when a losing run is meant)
 The share of a User's Matches with a recorded Position that they played on the left or on the right. Derived, never declared. Distinct from Preferred Position.
 _Avoid_: Preferred Position (that is declared), backhand side, forehand side
 
+**Job**:
+A unit of background work run by the Job queue (Graphile Worker on Postgres) inside the API App, such as expiring a Booking hold or creating a Tap charge. Enqueued in the same database transaction as the change that needs it, so it exists only if that change commits. A Job that fails permanently stays in the queue tables with its last error.
+_Avoid_: task (that is Graphile's name for a handler), cron job (when a one-off is meant), queue message
+
+**Job key**:
+The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enqueueing the same Job key again replaces or keeps the pending Job instead of adding a second one, and the key lets a Job be removed before it runs.
+_Avoid_: job id, dedupe key (that is the Notification column)
+
 **Notification**:
 An in-app record that tells one User that something happened on a Group or Game they run, or that a Game they played on has finished. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)

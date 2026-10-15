@@ -1,6 +1,13 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+function booleanFlag(defaultValue: boolean) {
+  return z
+    .enum(["true", "false"])
+    .default(defaultValue ? "true" : "false")
+    .transform((value) => value === "true");
+}
+
 export const env = createEnv({
   server: {
     PORT: z.coerce.number().int().positive().default(4000),
@@ -20,6 +27,9 @@ export const env = createEnv({
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
     AWS_S3_BUCKET_NAME: z.string().min(1),
     AWS_DEFAULT_REGION: z.string().min(1),
+    WORKER_ENABLED: booleanFlag(true),
+    API_ENABLED: booleanFlag(true),
+    WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

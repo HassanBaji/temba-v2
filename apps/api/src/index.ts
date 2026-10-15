@@ -4,6 +4,7 @@ import { db } from "@repo/db";
 import { createApp } from "./app";
 import { clerkAuthenticator } from "./context";
 import { env } from "./env";
+import { startWorker } from "./worker";
 
 const app = createApp({
   db,
@@ -21,6 +22,21 @@ const app = createApp({
   webhookSigningSecret: env.CLERK_WEBHOOK_SIGNING_SECRET,
 });
 
-serve({ fetch: app.fetch, port: env.PORT }, ({ port }) => {
-  console.log(`API listening on :${port}`);
+const server = env.API_ENABLED
+  ? serve({ fetch: app.fetch, port: env.PORT }, ({ port }) => {
+      console.log(`API listening on :${port}`);
+    })
+  : undefined;
+
+const worker = env.WORKER_ENABLED
+  ? await startWorker({
+      databaseUrl: env.DATABASE_URL,
+      concurrency: env.WORKER_CONCURRENCY,
+    })
+  : undefined;
+
+process.once("SIGTERM", () => {
+  server?.close();
+  void worker?.stop().finally(() => process.exit(0));
+  if (!worker) process.exit(0);
 });

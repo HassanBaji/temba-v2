@@ -18,5 +18,9 @@
     "overrides": {
       "drizzle-orm": "0.41.0"
     }
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1"
   }
 }
