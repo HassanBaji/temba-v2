@@ -1,13 +1,21 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { z } from "zod";
 
-import { venueManagers, venues } from "@repo/db";
+import {
+  venueClosures,
+  venueManagers,
+  venueOpeningHours,
+  venues,
+} from "@repo/db";
 import type { DbClient } from "@repo/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
+
+const CLOSURE_WINDOW_DAYS = 90;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export async function managedVenueById(
   database: DbClient,
@@ -38,6 +46,7 @@ export async function managedVenueById(
       durationOptionsMinutes: true,
       bookingHorizonDays: true,
       minLeadMinutes: true,
+      cancellationPolicy: true,
       archivedAt: true,
       createdAt: true,
       updatedAt: true,
@@ -63,15 +72,45 @@ export async function managedVenueById(
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
 
+  const openingHours = await database
+    .select({
+      id: venueOpeningHours.id,
+      weekday: venueOpeningHours.weekday,
+      opensAtMinutes: venueOpeningHours.opensAtMinutes,
+      closesAtMinutes: venueOpeningHours.closesAtMinutes,
+    })
+    .from(venueOpeningHours)
+    .where(eq(venueOpeningHours.venueId, venue.id))
+    .orderBy(
+      asc(venueOpeningHours.weekday),
+      asc(venueOpeningHours.opensAtMinutes),
+    );
+
+  const closureHorizon = new Date(
+    Date.now() + CLOSURE_WINDOW_DAYS * MS_PER_DAY,
+  );
+  const closures = await database
+    .select({
+      id: venueClosures.id,
+      courtId: venueClosures.courtId,
+      startsAt: venueClosures.startsAt,
+      endsAt: venueClosures.endsAt,
+      reason: venueClosures.reason,
+    })
+    .from(venueClosures)
+    .where(
+      and(
+        eq(venueClosures.venueId, venue.id),
+        gte(venueClosures.endsAt, new Date()),
+        lte(venueClosures.startsAt, closureHorizon),
+      ),
+    )
+    .orderBy(asc(venueClosures.startsAt));
+
   return {
     ...venue,
-    cancellationPolicy: {
-      tiers: [{ hoursBefore: 24, refundPercent: 100 }],
-      lateRefundPercent: 0,
-      customerCancelUntilMinutes: 0,
-    },
-    openingHours: [],
-    closures: [],
+    openingHours,
+    closures,
     pricingRules: [],
     managers: managerRows.map((row) => ({
       id: row.id,

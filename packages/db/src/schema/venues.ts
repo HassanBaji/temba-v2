@@ -4,6 +4,7 @@ import {
   check,
   decimal,
   integer,
+  jsonb,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -13,7 +14,15 @@ import {
 
 import { courts } from "./courts";
 import { communities } from "./communities";
+import { venueClosures } from "./venue-closures";
 import { venueManagers } from "./venue-managers";
+import { venueOpeningHours } from "./venue-opening-hours";
+
+type VenueCancellationPolicy = {
+  tiers: { hoursBefore: number; refundPercent: number }[];
+  lateRefundPercent: number;
+  customerCancelUntilMinutes: number;
+};
 
 /**
  * Venue is the evolved leftover courts table (same id space). Game.venueId,
@@ -42,6 +51,12 @@ export const venues = pgTable(
     minLeadMinutes: integer("min_lead_minutes").notNull().default(60),
     description: varchar("description", { length: 1000 }),
     bookingNotes: varchar("booking_notes", { length: 1000 }),
+    cancellationPolicy: jsonb("cancellation_policy")
+      .$type<VenueCancellationPolicy>()
+      .notNull()
+      .default(
+        sql`'{"tiers":[{"hoursBefore":24,"refundPercent":100}],"lateRefundPercent":0,"customerCancelUntilMinutes":0}'::jsonb`,
+      ),
     archivedAt: timestamp("archived_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -72,4 +87,6 @@ export const venueRelations = relations(venues, ({ many }) => ({
   courts: many(courts),
   communities: many(communities),
   managers: many(venueManagers),
+  openingHours: many(venueOpeningHours),
+  closures: many(venueClosures),
 }));

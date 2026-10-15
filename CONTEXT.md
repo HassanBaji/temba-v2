@@ -180,6 +180,22 @@ _Avoid_: Admin (that is a Community role), system admin, platform admin, superad
 A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Web App. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
 _Avoid_: facility owner, venue admin, Owner (that is a Community role), Admin, Operator, staff
 
+**Opening hours**:
+The windows in which a Venue's Courts can be booked, per weekday in the product timezone, as minutes from midnight. A weekday may have several non-overlapping windows; none means closed. A window belongs to the weekday it opened on and may run to 06:00 the next day. Times sit on the Venue's slot grid.
+_Avoid_: schedule, availability (that is derived from Opening hours, Closures and Bookings), business hours
+
+**Closure**:
+A period when a whole Venue, or one Court, cannot be booked, set by a Venue manager (maintenance, a private event). It never cancels Bookings by itself; the manager sees which Bookings fall inside and decides.
+_Avoid_: blackout, holiday, block
+
+**Accepting bookings**:
+The single Venue setting that lists the Venue for Customers and opens the Customer Booking doors. Off by default; it cannot be turned on for a Soft-archived Venue or one with no Court.
+_Avoid_: bookable (that is the derived state of a Venue on a given day), published, open
+
+**Cancellation policy**:
+A Venue's refund terms for a cancelled Booking: up to five tiers of hours before the start with a refund percent each, a late refund percent after the last tier, and the cut-off after which a Customer can no longer cancel in the app. A Booking keeps the policy it was made under. A Venue that cancels always refunds in full.
+_Avoid_: refund rules, cancellation fee, terms
+
 **Manage area**:
 The Web App section under `/dashboard/manage` where a Venue manager runs a Venue. The sidebar shows it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area, which curates the catalog.
 _Avoid_: admin panel, backoffice, facility dashboard

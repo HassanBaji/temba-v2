@@ -199,7 +199,12 @@ type ExpectedVenues =
   | "managedById"
   | "addManager"
   | "removeManager"
-  | "searchManagerUsers";
+  | "searchManagerUsers"
+  | "setOpeningHours"
+  | "addClosure"
+  | "removeClosure"
+  | "updateBookingSettings"
+  | "updateCancellationPolicy";
 
 type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
 type _Communities = AssertTrue<

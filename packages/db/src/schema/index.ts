@@ -6,6 +6,8 @@ export * from "./level-overrides";
 export * from "./verification";
 export * from "./venues";
 export * from "./venue-managers";
+export * from "./venue-opening-hours";
+export * from "./venue-closures";
 export * from "./courts";
 export * from "./coach";
 export * from "./coaching-session";

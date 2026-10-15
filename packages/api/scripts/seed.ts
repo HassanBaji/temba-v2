@@ -75,7 +75,10 @@ import { addCourt } from "#src/routers/venues/addCourt";
 import { approveLinkRequest as approveVenueLinkRequest } from "#src/routers/venues/approveLinkRequest";
 import { createVenue } from "#src/routers/venues/create";
 import { rejectLinkRequest as rejectVenueLinkRequest } from "#src/routers/venues/rejectLinkRequest";
+import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
 import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive";
+import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
+import { updateCancellationPolicy } from "#src/routers/venues/updateCancellationPolicy";
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
 
@@ -340,6 +343,42 @@ async function seedVenues() {
     "Court 3",
     "Court 4",
   ]);
+  const operator = { userId: "seed", publicMetadata: { operator: true } };
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    await setOpeningHours(db, {
+      venueId: central.id,
+      weekday,
+      windows:
+        weekday === 5
+          ? []
+          : [
+              { opensAtMinutes: 8 * 60, closesAtMinutes: 14 * 60 },
+              { opensAtMinutes: 16 * 60, closesAtMinutes: 23 * 60 },
+            ],
+      actor: operator,
+    });
+  }
+  await updateCancellationPolicy(db, {
+    venueId: central.id,
+    policy: {
+      tiers: [
+        { hoursBefore: 48, refundPercent: 100 },
+        { hoursBefore: 12, refundPercent: 50 },
+      ],
+      lateRefundPercent: 0,
+      customerCancelUntilMinutes: 60,
+    },
+    actor: operator,
+  });
+  await updateBookingSettings(db, {
+    venueId: central.id,
+    acceptingBookings: true,
+    durationOptionsMinutes: [60, 90, 120],
+    bookingHorizonDays: 21,
+    description: "Four indoor padel courts in central Lisbon.",
+    bookingNotes: "Reception is on the first floor.",
+    actor: operator,
+  });
   const riverside = await venue("Riverside Padel", "Lisbon", "PT", [
     "Panoramic",
     "Court B",
