@@ -15,6 +15,7 @@
 import { eq, inArray, sql } from "drizzle-orm";
 
 import {
+  bookings,
   communityMemberInvites,
   gameTeamPlayers,
   games,
@@ -29,6 +30,9 @@ import {
 } from "@repo/db";
 
 import { db } from "#src/db";
+
+import { cancelMyBooking } from "#src/routers/bookings/cancel";
+import { createBooking } from "#src/routers/bookings/create";
 
 import { approveTeamLink } from "#src/routers/communities/approveTeamLink";
 import { createCommunity } from "#src/routers/communities/create";
@@ -82,6 +86,7 @@ import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings
 import { updateCancellationPolicy } from "#src/routers/venues/updateCancellationPolicy";
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
+import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
 
@@ -413,6 +418,91 @@ async function seedVenues() {
   await softArchiveVenue(db, { venueId: oldTown.id });
 
   return { central, riverside, harbour, oldTown };
+}
+
+// ---------------------------------------------------------------------------
+// Bookings
+// ---------------------------------------------------------------------------
+
+async function seedBookings(u: Users, v: Venues) {
+  const FRIDAY = 5;
+  const now = new Date();
+
+  const hourOn = (dayOffset: number, hour: number) => {
+    let offset = dayOffset;
+    const weekdayOf = (days: number) => {
+      const { year, month, day } = zonedParts(addProductDays(now, days));
+      return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    };
+    while (dayOffset > 0 && weekdayOf(offset) === FRIDAY) offset += 1;
+    return new Date(
+      addProductDays(now, offset).getTime() + hour * 60 * 60 * 1000,
+    );
+  };
+
+  const [court1, court2] = v.central.courtIds;
+  const venue = await db.query.venues.findFirst({
+    where: eq(venues.id, v.central.id),
+    columns: { cancellationPolicy: true },
+  });
+  if (!court1 || !court2 || !venue) throw new Error("Central Venue missing");
+
+  const book = (
+    userKey: string,
+    courtId: string,
+    dayOffset: number,
+    hour: number,
+    durationMinutes: number,
+  ) =>
+    createBooking(db, {
+      venueId: v.central.id,
+      courtId,
+      userId: u[userKey]!.id,
+      startsAt: hourOn(dayOffset, hour),
+      durationMinutes,
+      now,
+    });
+
+  await book("me", court1, 2, 18, 60);
+  await book("yusuf", court2, 2, 17, 90);
+  const paid = await book("lina", court1, 3, 9, 60);
+  await db
+    .update(bookings)
+    .set({ paymentStatus: "paid" })
+    .where(eq(bookings.id, paid.booking.id));
+  const dropped = await book("omar", court2, 4, 18, 60);
+  await cancelMyBooking(db, {
+    bookingId: dropped.booking.id,
+    userId: u.omar!.id,
+    now,
+  });
+
+  const past = (
+    userKey: string,
+    courtId: string,
+    dayOffset: number,
+    hour: number,
+    status: "confirmed" | "no_show",
+    paymentStatus: "paid" | "pending",
+  ) =>
+    db.insert(bookings).values({
+      venueId: v.central.id,
+      courtId,
+      userId: u[userKey]!.id,
+      startsAt: hourOn(dayOffset, hour),
+      endsAt: hourOn(dayOffset, hour + 1),
+      status,
+      noShowAt: status === "no_show" ? hourOn(dayOffset, hour + 1) : null,
+      source: "app",
+      priceFils: 16_000,
+      cancellationPolicy: venue.cancellationPolicy,
+      paymentStatus,
+      createdByUserId: u[userKey]!.id,
+    });
+
+  await past("me", court1, -5, 18, "confirmed", "paid");
+  await past("maya", court2, -2, 18, "confirmed", "paid");
+  await past("tom", court1, -3, 19, "no_show", "pending");
 }
 
 // ---------------------------------------------------------------------------
@@ -1437,6 +1527,7 @@ async function main() {
   const g = await step("groups", () => seedGroups(u, c));
   await step("teams", () => seedTeams(u, c));
   await step("games", () => seedGames(u, g, v));
+  await step("bookings", () => seedBookings(u, v));
 
   const counts = await db.execute<{ table: string; rows: number }>(sql`
     select 'users' as table, count(*)::int as rows from ${user}

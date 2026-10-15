@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, gt, lt } from "drizzle-orm";
 import { z } from "zod";
 
-import { courts, venueClosures } from "@repo/db";
+import { bookings, courts, venueClosures } from "@repo/db";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { occupyingBookings } from "#src/bookings/occupying";
 import { protectedProcedure } from "#src/trpc";
 import { requireVenue } from "#src/venues/helpers/require-venue";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
@@ -24,6 +25,7 @@ export async function addClosure(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    now?: Date;
   },
 ) {
   await requireVenue(database, args.venueId);
@@ -80,7 +82,20 @@ export async function addClosure(
     });
   }
 
-  const affectedBookingIds: string[] = [];
+  const affected = await database
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.venueId, args.venueId),
+        courtId ? eq(bookings.courtId, courtId) : undefined,
+        occupyingBookings(args.now ?? new Date()),
+        lt(bookings.startsAt, args.endsAt),
+        gt(bookings.endsAt, args.startsAt),
+      ),
+    )
+    .orderBy(asc(bookings.startsAt), asc(bookings.id));
+  const affectedBookingIds = affected.map((row) => row.id);
 
   return { ...created, affectedBookingIds };
 }

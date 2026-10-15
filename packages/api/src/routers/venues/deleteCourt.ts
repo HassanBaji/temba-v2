@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 
-import { courts } from "@repo/db";
+import { bookings, courts } from "@repo/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { occupyingBookings } from "#src/bookings/occupying";
 import { protectedProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
@@ -18,7 +19,7 @@ type Actor = {
 
 export async function deleteCourt(
   database: DbClient,
-  args: { courtId: string; actor: Actor },
+  args: { courtId: string; actor: Actor; now?: Date },
 ) {
   const existing = await database.query.courts.findFirst({
     where: eq(courts.id, args.courtId),
@@ -34,8 +35,35 @@ export async function deleteCourt(
     ...args.actor,
   });
 
-  // The Booking guard goes here: refuse while the Court has an occupying
-  // Booking with endsAt > now ("Cancel its Bookings first").
+  const [upcoming] = await database
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.courtId, args.courtId),
+        gt(bookings.endsAt, args.now ?? new Date()),
+        occupyingBookings(args.now ?? new Date()),
+      ),
+    )
+    .limit(1);
+  if (upcoming) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Cancel its Bookings first",
+    });
+  }
+
+  const [anyBooking] = await database
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(eq(bookings.courtId, args.courtId))
+    .limit(1);
+  if (anyBooking) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "This Court has Booking history and cannot be deleted",
+    });
+  }
 
   await database.delete(courts).where(eq(courts.id, args.courtId));
   return { id: existing.id };

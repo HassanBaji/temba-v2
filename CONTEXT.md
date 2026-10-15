@@ -200,6 +200,22 @@ _Avoid_: bookable (that is the derived state of a Venue on a given day), publish
 A Venue's refund terms for a cancelled Booking: up to five tiers of hours before the start with a refund percent each, a late refund percent after the last tier, and the cut-off after which a Customer can no longer cancel in the app. A Booking keeps the policy it was made under. A Venue that cancels always refunds in full.
 _Avoid_: refund rules, cancellation fee, terms
 
+**Booking**:
+One Court reserved for one interval by one Customer, at a price and under a Cancellation policy fixed when it was made. It occupies the Court while it is confirmed, or pending payment with a live hold; cancelled, no-show and expired Bookings never block. Distinct from a Game: a Game is the event, a Booking is the Court.
+_Avoid_: reservation, slot (that is the offer, not the reservation), Game, session, order
+
+**Slot**:
+One Court, one start on the Venue's grid, one duration and one price, offered to a Customer. Derived from Opening hours, Closures, Pricing rules and occupying Bookings; never stored.
+_Avoid_: Booking (that is the reservation), Position, Match slot, time slot (as an entity), window (that is a Game's registration window)
+
+**Customer**:
+A User as seen from one Venue: someone who holds or has held a Booking there. Derived from User and Bookings, never a separate record. Needs no Community or Group membership.
+_Avoid_: client, member (that is a Community role), player (when you mean this view), account
+
+**No-show**:
+A confirmed Booking whose start has passed and that a Venue manager marked as not used. Terminal: no refund, and the payment status is left as it was.
+_Avoid_: missed booking, absent, forfeited
+
 **Manage area**:
 The Web App section under `/dashboard/manage` where a Venue manager runs a Venue. The sidebar shows it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area, which curates the catalog.
 _Avoid_: admin panel, backoffice, facility dashboard

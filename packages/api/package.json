@@ -44,6 +44,11 @@
       "types": "./dist/invites/doors/utils/index.d.ts",
       "default": "./src/invites/doors/utils/index.ts"
     },
+    "#src/routers/bookings": {
+      "temba-source": "./src/routers/bookings/index.ts",
+      "types": "./dist/routers/bookings/index.d.ts",
+      "default": "./src/routers/bookings/index.ts"
+    },
     "#src/routers/communities": {
       "temba-source": "./src/routers/communities/index.ts",
       "types": "./dist/routers/communities/index.d.ts",

@@ -12,6 +12,7 @@ type Equal<A, B> =
 type AssertTrue<T extends true> = T;
 
 type ExpectedTopLevel =
+  | "bookings"
   | "communities"
   | "games"
   | "groups"
@@ -20,6 +21,15 @@ type ExpectedTopLevel =
   | "teams"
   | "users"
   | "venues";
+
+type ExpectedBookings =
+  | "listBookableVenues"
+  | "venueForBooking"
+  | "venueAvailability"
+  | "create"
+  | "listMine"
+  | "byId"
+  | "cancel";
 
 type ExpectedCommunities =
   | "create"
@@ -208,6 +218,9 @@ type ExpectedVenues =
   | "updateCancellationPolicy";
 
 type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
+type _Bookings = AssertTrue<
+  Equal<keyof RouterInputs["bookings"], ExpectedBookings>
+>;
 type _Communities = AssertTrue<
   Equal<keyof RouterInputs["communities"], ExpectedCommunities>
 >;
@@ -224,6 +237,7 @@ type _Users = AssertTrue<Equal<keyof RouterInputs["users"], ExpectedUsers>>;
 type _Venues = AssertTrue<Equal<keyof RouterInputs["venues"], ExpectedVenues>>;
 
 export type AppRouterShapeChecks = [
+  _Bookings,
   _TopLevel,
   _Communities,
   _Games,
