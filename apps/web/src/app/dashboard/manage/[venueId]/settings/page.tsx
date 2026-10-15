@@ -10,6 +10,7 @@ import { ClosuresTab } from "./closures-tab";
 import { CourtsTab } from "./courts-tab";
 import { DetailsTab } from "./details-tab";
 import { OpeningHoursTab } from "./opening-hours-tab";
+import { PricingTab } from "./pricing-tab";
 
 export default function ManageSettingsPage({
   params,
@@ -25,6 +26,7 @@ export default function ManageSettingsPage({
         <TabsTrigger value="courts">Courts</TabsTrigger>
         <TabsTrigger value="hours">Opening hours</TabsTrigger>
         <TabsTrigger value="closures">Closures</TabsTrigger>
+        <TabsTrigger value="pricing">Pricing</TabsTrigger>
         <TabsTrigger value="cancellation">Cancellation policy</TabsTrigger>
         <TabsTrigger value="booking">Booking settings</TabsTrigger>
       </TabsList>
@@ -39,6 +41,9 @@ export default function ManageSettingsPage({
       </TabsContent>
       <TabsContent value="closures" className="space-y-6">
         <ClosuresTab venueId={venueId} />
+      </TabsContent>
+      <TabsContent value="pricing" className="space-y-6">
+        <PricingTab venueId={venueId} />
       </TabsContent>
       <TabsContent value="cancellation" className="space-y-6">
         <CancellationPolicyTab venueId={venueId} />

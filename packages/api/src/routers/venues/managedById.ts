@@ -6,6 +6,7 @@ import {
   venueClosures,
   venueManagers,
   venueOpeningHours,
+  venuePricingRules,
   venues,
 } from "@repo/db";
 import type { DbClient } from "@repo/db";
@@ -107,11 +108,28 @@ export async function managedVenueById(
     )
     .orderBy(asc(venueClosures.startsAt));
 
+  const pricingRules = await database
+    .select({
+      id: venuePricingRules.id,
+      courtId: venuePricingRules.courtId,
+      weekdays: venuePricingRules.weekdays,
+      startMinutes: venuePricingRules.startMinutes,
+      endMinutes: venuePricingRules.endMinutes,
+      hourlyRateFils: venuePricingRules.hourlyRateFils,
+      label: venuePricingRules.label,
+    })
+    .from(venuePricingRules)
+    .where(eq(venuePricingRules.venueId, venue.id))
+    .orderBy(
+      asc(venuePricingRules.startMinutes),
+      asc(venuePricingRules.createdAt),
+    );
+
   return {
     ...venue,
     openingHours,
     closures,
-    pricingRules: [],
+    pricingRules,
     managers: managerRows.map((row) => ({
       id: row.id,
       userId: row.userId,

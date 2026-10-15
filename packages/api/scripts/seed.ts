@@ -76,6 +76,7 @@ import { approveLinkRequest as approveVenueLinkRequest } from "#src/routers/venu
 import { createVenue } from "#src/routers/venues/create";
 import { rejectLinkRequest as rejectVenueLinkRequest } from "#src/routers/venues/rejectLinkRequest";
 import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
+import { setPricingRules } from "#src/routers/venues/setPricingRules";
 import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive";
 import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
 import { updateCancellationPolicy } from "#src/routers/venues/updateCancellationPolicy";
@@ -358,6 +359,26 @@ async function seedVenues() {
       actor: operator,
     });
   }
+  await setPricingRules(db, {
+    venueId: central.id,
+    rules: [
+      {
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        startMinutes: 0,
+        endMinutes: 17 * 60,
+        hourlyRateFils: 10_000,
+        label: "Off-peak",
+      },
+      {
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        startMinutes: 17 * 60,
+        endMinutes: 24 * 60,
+        hourlyRateFils: 16_000,
+        label: "Peak",
+      },
+    ],
+    actor: operator,
+  });
   await updateCancellationPolicy(db, {
     venueId: central.id,
     policy: {

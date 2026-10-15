@@ -8,6 +8,7 @@ export * from "./venues";
 export * from "./venue-managers";
 export * from "./venue-opening-hours";
 export * from "./venue-closures";
+export * from "./venue-pricing-rules";
 export * from "./courts";
 export * from "./coach";
 export * from "./coaching-session";

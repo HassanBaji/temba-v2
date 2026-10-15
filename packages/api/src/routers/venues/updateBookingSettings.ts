@@ -2,7 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { count, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { courts, venueOpeningHours, venues } from "@repo/db";
+import {
+  courts,
+  venueOpeningHours,
+  venuePricingRules,
+  venues,
+} from "@repo/db";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -138,6 +143,25 @@ export async function updateBookingSettings(
       ) {
         badRequest(
           `Opening hours are not on the ${slotMinutes}-minute grid. Adjust them first.`,
+        );
+      }
+
+      const rules = await tx
+        .select({
+          startMinutes: venuePricingRules.startMinutes,
+          endMinutes: venuePricingRules.endMinutes,
+        })
+        .from(venuePricingRules)
+        .where(eq(venuePricingRules.venueId, args.venueId));
+      if (
+        rules.some(
+          (rule) =>
+            rule.startMinutes % slotMinutes !== 0 ||
+            rule.endMinutes % slotMinutes !== 0,
+        )
+      ) {
+        badRequest(
+          `Pricing rules are not on the ${slotMinutes}-minute grid. Adjust them first.`,
         );
       }
     }

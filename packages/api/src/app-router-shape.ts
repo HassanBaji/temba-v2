@@ -201,6 +201,7 @@ type ExpectedVenues =
   | "removeManager"
   | "searchManagerUsers"
   | "setOpeningHours"
+  | "setPricingRules"
   | "addClosure"
   | "removeClosure"
   | "updateBookingSettings"
