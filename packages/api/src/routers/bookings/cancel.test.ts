@@ -1,14 +1,19 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { bookings, venues } from "@repo/db";
+import { bookingPayments, bookings, venues } from "@repo/db";
 
 import { cancelBooking } from "#src/bookings/cancel";
 import {
   NOW,
   VENUE_PHONE,
   at,
+  chargedBooking,
+  expectLedgerConsistent,
   insertBooking,
+  jobNames,
+  recordJobs,
+  useFakeProvider,
   withBookableVenue,
 } from "#src/bookings/booking.test-support";
 import { cancelMyBooking } from "#src/routers/bookings/cancel";
@@ -23,6 +28,8 @@ const policy = {
 };
 
 describe("bookings.cancel", () => {
+  recordJobs();
+
   it("cancels while the app cut-off allows and records the refund per the snapshot", async () => {
     await withBookableVenue(async (db, f) => {
       const paid = await insertBooking(db, f, {
@@ -217,6 +224,8 @@ describe("bookings.cancel", () => {
 });
 
 describe("cancelBooking (shared)", () => {
+  recordJobs();
+
   it("refunds a Venue cancel in full whatever the policy says, and refuses a second cancel", async () => {
     await withBookableVenue(async (db, f) => {
       const row = await insertBooking(db, f, {
@@ -253,6 +262,118 @@ describe("cancelBooking (shared)", () => {
           now: NOW,
         }),
       ).rejects.toThrow("already changed");
+    });
+  });
+});
+
+describe("cancel and the Payment ledger", () => {
+  const jobs = recordJobs();
+  useFakeProvider();
+
+  async function confirmedTapBooking(
+    db: Parameters<typeof chargedBooking>[0],
+    f: Parameters<typeof chargedBooking>[1],
+  ) {
+    const { booking, payment } = await chargedBooking(db, f);
+    await db
+      .update(bookingPayments)
+      .set({ status: "paid", settledAt: NOW })
+      .where(eq(bookingPayments.id, payment.id));
+    await db
+      .update(bookings)
+      .set({ status: "confirmed", holdExpiresAt: null, paymentStatus: "paid" })
+      .where(eq(bookings.id, booking.id));
+    jobs.clear();
+    return { booking, payment };
+  }
+
+  it("queues a provider refund for the policy amount on a Customer cancel and removes the hold job", async () => {
+    await withBookableVenue(async (db, f) => {
+      const { booking, payment } = await confirmedTapBooking(db, f);
+      await db
+        .update(bookings)
+        .set({
+          startsAt: at(6, 20),
+          endsAt: at(6, 21),
+          cancellationPolicy: policy,
+        })
+        .where(eq(bookings.id, booking.id));
+
+      const result = await cancelMyBooking(db, {
+        bookingId: booking.id,
+        userId: f.customer,
+        now: NOW,
+      });
+      expect(result.refundDueFils).toBe(booking.priceFils / 2);
+      expect(jobs.removed).toEqual([`booking:expire:${booking.id}`]);
+      expect(jobNames(jobs)).toEqual(["payment.refund"]);
+      expect(jobs.added[0]?.payload).toEqual({
+        paymentId: payment.id,
+        amountFils: booking.priceFils / 2,
+        reason: "customer_cancel",
+        requestedByUserId: f.customer,
+        refundKey: `cancel:${booking.id}`,
+      });
+      await expectLedgerConsistent(db, booking.id);
+    });
+  });
+
+  it("refunds the full amount on a Venue cancel whatever the policy says", async () => {
+    await withBookableVenue(async (db, f) => {
+      const { booking, payment } = await confirmedTapBooking(db, f);
+      await cancelBooking(db, {
+        booking: {
+          ...booking,
+          status: "confirmed",
+          cancellationPolicy: policy,
+        },
+        cancelledBy: "venue",
+        actorUserId: f.manager,
+        now: NOW,
+      });
+      expect(jobs.added[0]?.payload).toMatchObject({
+        paymentId: payment.id,
+        amountFils: booking.priceFils,
+        reason: "venue_cancel",
+      });
+    });
+  });
+
+  it("leaves the ledger paid with a refund due for a manual Payment", async () => {
+    await withBookableVenue(async (db, f) => {
+      const paid = await insertBooking(db, f, {
+        startsAt: at(9, 18),
+        endsAt: at(9, 19),
+        paymentStatus: "paid",
+        cancellationPolicy: policy,
+      });
+      const result = await cancelMyBooking(db, {
+        bookingId: paid.id,
+        userId: f.customer,
+        now: NOW,
+      });
+      expect(result.refundDueFils).toBe(paid.priceFils);
+      expect(jobs.added.filter((job) => job.name === "payment.refund")).toEqual(
+        [],
+      );
+      const [row] = await db.select().from(bookingPayments);
+      expect(row).toMatchObject({ status: "paid", refundedFils: 0 });
+      await expectLedgerConsistent(db, paid.id);
+    });
+  });
+
+  it("removes the hold job and takes no refund for a pending_payment Booking", async () => {
+    await withBookableVenue(async (db, f) => {
+      const { booking } = await chargedBooking(db, f);
+      jobs.clear();
+      const result = await cancelMyBooking(db, {
+        bookingId: booking.id,
+        userId: f.customer,
+        now: NOW,
+      });
+      expect(result).toMatchObject({ status: "cancelled", refundDueFils: 0 });
+      expect(jobs.removed).toEqual([`booking:expire:${booking.id}`]);
+      expect(jobs.added).toEqual([]);
     });
   });
 });

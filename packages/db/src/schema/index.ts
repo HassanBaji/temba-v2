@@ -11,6 +11,8 @@ export * from "./venue-closures";
 export * from "./venue-pricing-rules";
 export * from "./booking-enums";
 export * from "./bookings";
+export * from "./booking-payments";
+export * from "./payment-webhook-deliveries";
 export * from "./courts";
 export * from "./coach";
 export * from "./coaching-session";

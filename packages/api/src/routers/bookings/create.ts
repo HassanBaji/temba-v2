@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { bookings } from "@repo/db";
+import { bookings, user } from "@repo/db";
+import { paymentHoldExpiresAt } from "@repo/domain/booking-payment";
 import { SLOT_REFUSAL_MESSAGES } from "@repo/domain/booking-copy";
 import { evaluateSlot } from "@repo/domain/booking-slots";
 import { eq } from "drizzle-orm";
@@ -13,7 +14,11 @@ import {
   requireBookableVenue,
 } from "#src/bookings/availability";
 import { customerBookingColumns } from "#src/bookings/customer-columns";
+import { confirmHeldBooking, openPayment } from "#src/bookings/payments";
 import { reserveBooking } from "#src/bookings/reserve";
+import { enqueue, enqueueAt } from "#src/jobs/enqueue";
+import { createChargeJob, expireHoldJob } from "#src/jobs/specs";
+import { paymentProvider } from "#src/payments/index";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -32,6 +37,7 @@ export async function createBooking(
   },
 ) {
   const now = args.now ?? new Date();
+  const provider = paymentProvider();
 
   return database.transaction(async (tx) => {
     const context = requireBookableVenue(
@@ -57,6 +63,7 @@ export async function createBooking(
       });
     }
 
+    const holdExpiresAt = paymentHoldExpiresAt(now);
     const bookingId = await reserveBooking(tx, {
       now,
       values: {
@@ -67,7 +74,8 @@ export async function createBooking(
         endsAt: new Date(
           args.startsAt.getTime() + args.durationMinutes * MS_PER_MINUTE,
         ),
-        status: "confirmed",
+        status: "pending_payment",
+        holdExpiresAt,
         source: "app",
         priceFils: check.priceFils,
         cancellationPolicy: context.venue.cancellationPolicy,
@@ -75,6 +83,39 @@ export async function createBooking(
         createdByUserId: args.userId,
       },
     });
+
+    const payment = await openPayment(tx, {
+      bookingId,
+      provider: provider.id,
+      amountFils: check.priceFils,
+      now,
+    });
+    await enqueueAt(tx, expireHoldJob(bookingId), holdExpiresAt);
+
+    let paymentKind: "deferred" | "preparing" = "preparing";
+    if (provider.id === "manual") {
+      const [customer] = await tx
+        .select({ name: user.name })
+        .from(user)
+        .where(eq(user.id, args.userId));
+      const begun = await provider.begin({
+        paymentId: payment.id,
+        bookingId,
+        amountFils: check.priceFils,
+        customer: { userId: args.userId, name: customer?.name ?? "Customer" },
+        returnUrl: "",
+      });
+      if (begun.kind !== "deferred") {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create Booking",
+        });
+      }
+      await confirmHeldBooking(tx, { bookingId, now });
+      paymentKind = "deferred";
+    } else {
+      await enqueue(tx, createChargeJob(payment.id));
+    }
 
     const [booking] = await tx
       .select(customerBookingColumns)
@@ -87,7 +128,7 @@ export async function createBooking(
       });
     }
 
-    return { booking, payment: { kind: "deferred" as const } };
+    return { booking, payment: { kind: paymentKind } };
   });
 }
 

@@ -29,7 +29,12 @@ type ExpectedBookings =
   | "create"
   | "listMine"
   | "byId"
-  | "cancel";
+  | "cancel"
+  | "paymentState"
+  | "confirmPayment"
+  | "retryPayment"
+  | "settlePayment"
+  | "recordRefund";
 
 type ExpectedCommunities =
   | "create"

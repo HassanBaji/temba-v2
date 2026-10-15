@@ -8,6 +8,10 @@ import {
   type RefundPolicy,
 } from "@repo/domain/booking-refund";
 
+import { refundableFils, refundablePayment } from "#src/bookings/payments";
+import { removeJob, enqueue } from "#src/jobs/enqueue";
+import { expireHoldKey, refundJob } from "#src/jobs/specs";
+
 type DbOrTx = DbClient | DbTx;
 
 const FULL_REFUND: RefundPolicy = {
@@ -21,14 +25,15 @@ export type CancellableBooking = {
   startsAt: Date;
   priceFils: number;
   status: "pending_payment" | "confirmed" | "cancelled" | "no_show" | "expired";
-  paymentStatus: (typeof bookings.$inferSelect)["paymentStatus"];
   cancellationPolicy: RefundPolicy;
 };
 
 /**
  * The refund arithmetic and the status move shared by the Customer and Venue
  * cancel doors. A Venue cancel refunds in full whatever the policy says; a
- * Booking still pending payment has taken no money, so nothing is due.
+ * Booking still pending payment has taken no money, so nothing is due. A
+ * payment taken online is refunded by a job; a manual one is left on the
+ * ledger for the manager, with `refundDueFils` written on the Booking.
  */
 export async function cancelBooking(
   database: DbOrTx,
@@ -42,6 +47,8 @@ export async function cancelBooking(
 ) {
   const { booking, now } = args;
 
+  const payment = await refundablePayment(database, booking.id);
+
   const refund =
     booking.status === "pending_payment"
       ? { refundDueFils: 0, cancellationChargeFils: 0 }
@@ -53,7 +60,7 @@ export async function cancelBooking(
           startsAt: booking.startsAt,
           now,
           priceFils: booking.priceFils,
-          paidFils: booking.paymentStatus === "paid" ? booking.priceFils : 0,
+          paidFils: payment ? refundableFils(payment) : 0,
         });
 
   const [cancelled] = await database
@@ -81,6 +88,21 @@ export async function cancelBooking(
       code: "CONFLICT",
       message: "This Booking was already changed",
     });
+  }
+
+  await removeJob(database, expireHoldKey(booking.id));
+  if (payment?.provider === "tap" && refund.refundDueFils > 0) {
+    await enqueue(
+      database,
+      refundJob({
+        paymentId: payment.id,
+        amountFils: refund.refundDueFils,
+        reason:
+          args.cancelledBy === "venue" ? "venue_cancel" : "customer_cancel",
+        requestedByUserId: args.actorUserId,
+        refundKey: `cancel:${booking.id}`,
+      }),
+    );
   }
 
   return refund;

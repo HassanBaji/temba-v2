@@ -81,7 +81,15 @@ describe("wrapHandler", () => {
 
 describe("task list", () => {
   it("registers booking.reconcile on a 15 minute cron", () => {
-    expect(Object.keys(createTaskList(db))).toEqual(["booking.reconcile"]);
+    expect(Object.keys(createTaskList(db)).sort()).toEqual([
+      "booking.confirmed",
+      "booking.expire-hold",
+      "booking.reconcile",
+      "payment.create-charge",
+      "payment.poll-charge",
+      "payment.process-webhook",
+      "payment.refund",
+    ]);
     expect(crontab).toContain("*/15 * * * * booking.reconcile");
   });
 });

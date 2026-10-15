@@ -2,11 +2,23 @@ import type { JobHelpers, TaskList } from "graphile-worker";
 
 import { db as defaultDb, type Db } from "@repo/db";
 
+import * as bookingConfirmed from "./handlers/booking.confirmed";
+import * as bookingExpireHold from "./handlers/booking.expire-hold";
 import * as bookingReconcile from "./handlers/booking.reconcile";
+import * as paymentCreateCharge from "./handlers/payment.create-charge";
+import * as paymentPollCharge from "./handlers/payment.poll-charge";
+import * as paymentProcessWebhook from "./handlers/payment.process-webhook";
+import * as paymentRefund from "./handlers/payment.refund";
 import type { JobHandler } from "./handler";
 
 const handlers: Record<string, JobHandler> = {
   [bookingReconcile.jobName]: bookingReconcile,
+  [bookingConfirmed.jobName]: bookingConfirmed,
+  [bookingExpireHold.jobName]: bookingExpireHold,
+  [paymentCreateCharge.jobName]: paymentCreateCharge,
+  [paymentPollCharge.jobName]: paymentPollCharge,
+  [paymentProcessWebhook.jobName]: paymentProcessWebhook,
+  [paymentRefund.jobName]: paymentRefund,
 };
 
 export const crontab = [bookingReconcile.crontabLine].join("\n");

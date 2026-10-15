@@ -1,14 +1,21 @@
 import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { bookings, venueClosures, venues } from "@repo/db";
+import { bookingPayments, bookings, venueClosures, venues } from "@repo/db";
 
 import {
   NOW,
   at,
+  createHeldBooking,
+  expectLedgerConsistent,
   insertBooking,
+  jobNames,
+  recordJobs,
+  useFakeProvider,
   withBookableVenue,
 } from "#src/bookings/booking.test-support";
+import { confirmPayment } from "#src/routers/bookings/confirmPayment";
+import { retryPayment } from "#src/routers/bookings/retryPayment";
 import { reserveBooking } from "#src/bookings/reserve";
 import { createBooking } from "#src/routers/bookings/create";
 
@@ -16,6 +23,8 @@ const rejects = (promise: Promise<unknown>, message: string | RegExp) =>
   expect(promise).rejects.toThrow(message);
 
 describe("bookings.create", () => {
+  const jobs = recordJobs();
+
   it("confirms the Booking in one step with a pending payment and the Venue's price", async () => {
     await withBookableVenue(async (db, f) => {
       const result = await createBooking(db, {
@@ -348,6 +357,140 @@ describe("bookings.create", () => {
           reserveBooking(tx, { values, now: NOW }),
           "That slot was just taken",
         );
+      });
+    });
+  });
+});
+
+describe("bookings.create payment flow", () => {
+  const jobs = recordJobs();
+
+  describe("with the manual provider", () => {
+    it("confirms at once with one pending manual Payment and records the hold and confirmed jobs", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { booking, payment } = await createHeldBooking(db, f);
+        expect(payment).toEqual({ kind: "deferred" });
+        expect(booking).toMatchObject({
+          status: "confirmed",
+          holdExpiresAt: null,
+          paymentStatus: "pending",
+        });
+        const rows = await db.select().from(bookingPayments);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+          provider: "manual",
+          status: "pending",
+          amountFils: booking.priceFils,
+        });
+        expect(jobNames(jobs).sort()).toEqual([
+          "booking.confirmed",
+          "booking.expire-hold",
+        ]);
+        const hold = jobs.added.find(
+          (job) => job.name === "booking.expire-hold",
+        );
+        expect(hold?.runAt).toEqual(new Date(NOW.getTime() + 10 * 60_000));
+        expect(hold?.mode).toBe("preserve_run_at");
+        await expectLedgerConsistent(db, booking.id);
+      });
+    });
+
+    it("refuses confirmPayment and retryPayment", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { booking } = await createHeldBooking(db, f);
+        const args = { bookingId: booking.id, userId: f.customer, now: NOW };
+        await expect(confirmPayment(db, args)).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+        });
+        await expect(retryPayment(db, args)).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+        });
+      });
+    });
+  });
+
+  describe("with a hosted-redirect provider", () => {
+    const provider = useFakeProvider();
+
+    it("holds the Slot as pending_payment for ten minutes and queues the charge", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { booking, payment } = await createHeldBooking(db, f);
+        expect(payment).toEqual({ kind: "preparing" });
+        expect(booking).toMatchObject({
+          status: "pending_payment",
+          holdExpiresAt: new Date(NOW.getTime() + 10 * 60_000),
+          paymentStatus: "pending",
+        });
+        expect(jobNames(jobs).sort()).toEqual([
+          "booking.expire-hold",
+          "payment.create-charge",
+        ]);
+        expect(provider.fake.beginCalls).toHaveLength(0);
+
+        await expect(
+          createHeldBooking(db, f, { userId: f.other }),
+        ).rejects.toMatchObject({ code: "CONFLICT" });
+        await expectLedgerConsistent(db, booking.id);
+      });
+    });
+
+    it("leaves the Customer able to retry after a failed charge", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { booking } = await createHeldBooking(db, f);
+        const [first] = await db.select().from(bookingPayments);
+        await db
+          .update(bookingPayments)
+          .set({ status: "failed", failureReason: "Card declined" })
+          .where(eq(bookingPayments.id, first!.id));
+        await db
+          .update(bookings)
+          .set({ paymentStatus: "failed" })
+          .where(eq(bookings.id, booking.id));
+
+        jobs.clear();
+        const later = new Date(NOW.getTime() + 60_000);
+        const retried = await retryPayment(db, {
+          bookingId: booking.id,
+          userId: f.customer,
+          now: later,
+        });
+        expect(retried).toEqual({ payment: { kind: "preparing" } });
+        expect(await db.select().from(bookingPayments)).toHaveLength(2);
+        expect(jobNames(jobs)).toEqual(["payment.create-charge"]);
+        await expectLedgerConsistent(db, booking.id);
+
+        await expect(
+          retryPayment(db, {
+            bookingId: booking.id,
+            userId: f.customer,
+            now: later,
+          }),
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      });
+    });
+
+    it("refuses a retry from someone else or after the hold lapsed", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { booking } = await createHeldBooking(db, f);
+        const [first] = await db.select().from(bookingPayments);
+        await db
+          .update(bookingPayments)
+          .set({ status: "failed" })
+          .where(eq(bookingPayments.id, first!.id));
+        await expect(
+          retryPayment(db, {
+            bookingId: booking.id,
+            userId: f.other,
+            now: NOW,
+          }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+        await expect(
+          retryPayment(db, {
+            bookingId: booking.id,
+            userId: f.customer,
+            now: new Date(NOW.getTime() + 11 * 60_000),
+          }),
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
       });
     });
   });

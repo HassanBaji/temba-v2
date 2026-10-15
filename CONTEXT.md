@@ -201,7 +201,7 @@ A Venue's refund terms for a cancelled Booking: up to five tiers of hours before
 _Avoid_: refund rules, cancellation fee, terms
 
 **Booking**:
-One Court reserved for one interval by one Customer, at a price and under a Cancellation policy fixed when it was made. It occupies the Court while it is confirmed, or pending payment with a live hold; cancelled, no-show and expired Bookings never block. Distinct from a Game: a Game is the event, a Booking is the Court.
+One Court reserved for one interval by one Customer, at a price and under a Cancellation policy fixed when it was made. A Customer's Booking is pending payment for at most ten minutes, then confirmed once the charge is captured or payment is deferred to the Venue; it occupies the Court while confirmed, or pending payment with a live hold. It may become cancelled, no-show or expired, and those never block. Distinct from a Game: a Game is the event, a Booking is the Court.
 _Avoid_: reservation, slot (that is the offer, not the reservation), Game, session, order
 
 **Slot**:
@@ -213,8 +213,16 @@ A User as seen from one Venue: someone who holds or has held a Booking there. De
 _Avoid_: client, member (that is a Community role), player (when you mean this view), account
 
 **No-show**:
-A confirmed Booking whose start has passed and that a Venue manager marked as not used. Terminal: no refund, and the payment status is left as it was.
+A confirmed Booking whose start has passed and that a Venue manager marked as not used. Terminal: no refund, and the payment status is left as it was (a paid no-show stays paid; an unpaid one stays pending).
 _Avoid_: missed booking, absent, forfeited
+
+**Payment**:
+One attempt to collect a Booking's price through a payment provider or by hand at the Venue, with its refund. Pending, paid, failed, refunded, partially refunded or waived; never held, since Temba charges immediately. The Booking's payment status summarises its Payments: the latest attempt that did not fail, or failed when every attempt failed.
+_Avoid_: transaction, charge (that is one kind of Payment movement), invoice, Price per player, payment status (that is the Booking's summary, not the row)
+
+**Payment provider**:
+The outside service that takes a Customer's money for a Booking, behind one adapter in the API Package. Tap Payments in v1 (ADR-0028), charging immediately in BHD by card or BENEFIT. "Manual" is the adapter that collects nothing and lets a Venue manager settle by hand.
+_Avoid_: gateway, PSP, Tap (bare, when you mean the boundary rather than the vendor), Clerk (that is identity)
 
 **Manage area**:
 The Web App section under `/dashboard/manage` where a Venue manager runs a Venue. The sidebar shows it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area, which curates the catalog.

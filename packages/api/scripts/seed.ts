@@ -31,6 +31,8 @@ import {
 
 import { db } from "#src/db";
 
+import { settlePayment } from "#src/bookings/payments";
+import { setJobSink } from "#src/jobs/enqueue";
 import { cancelMyBooking } from "#src/routers/bookings/cancel";
 import { createBooking } from "#src/routers/bookings/create";
 
@@ -425,6 +427,9 @@ async function seedVenues() {
 // ---------------------------------------------------------------------------
 
 async function seedBookings(u: Users, v: Venues) {
+  // The graphile_worker schema only exists once the API worker has booted.
+  setJobSink({ add: () => Promise.resolve(), remove: () => Promise.resolve() });
+
   const FRIDAY = 5;
   const now = new Date();
 
@@ -466,10 +471,14 @@ async function seedBookings(u: Users, v: Venues) {
   await book("me", court1, 2, 18, 60);
   await book("yusuf", court2, 2, 17, 90);
   const paid = await book("lina", court1, 3, 9, 60);
-  await db
-    .update(bookings)
-    .set({ paymentStatus: "paid" })
-    .where(eq(bookings.id, paid.booking.id));
+  await settlePayment(db, {
+    bookingId: paid.booking.id,
+    outcome: "paid",
+    method: "cash",
+    actorUserId: u.me!.id,
+    amountFils: paid.booking.priceFils,
+    now,
+  });
   const dropped = await book("omar", court2, 4, 18, 60);
   await cancelMyBooking(db, {
     bookingId: dropped.booking.id,
@@ -477,28 +486,41 @@ async function seedBookings(u: Users, v: Venues) {
     now,
   });
 
-  const past = (
+  const past = async (
     userKey: string,
     courtId: string,
     dayOffset: number,
     hour: number,
     status: "confirmed" | "no_show",
     paymentStatus: "paid" | "pending",
-  ) =>
-    db.insert(bookings).values({
-      venueId: v.central.id,
-      courtId,
-      userId: u[userKey]!.id,
-      startsAt: hourOn(dayOffset, hour),
-      endsAt: hourOn(dayOffset, hour + 1),
-      status,
-      noShowAt: status === "no_show" ? hourOn(dayOffset, hour + 1) : null,
-      source: "app",
-      priceFils: 16_000,
-      cancellationPolicy: venue.cancellationPolicy,
-      paymentStatus,
-      createdByUserId: u[userKey]!.id,
-    });
+  ) => {
+    const [row] = await db
+      .insert(bookings)
+      .values({
+        venueId: v.central.id,
+        courtId,
+        userId: u[userKey]!.id,
+        startsAt: hourOn(dayOffset, hour),
+        endsAt: hourOn(dayOffset, hour + 1),
+        status,
+        noShowAt: status === "no_show" ? hourOn(dayOffset, hour + 1) : null,
+        source: "app",
+        priceFils: 16_000,
+        cancellationPolicy: venue.cancellationPolicy,
+        createdByUserId: u[userKey]!.id,
+      })
+      .returning({ id: bookings.id });
+    if (paymentStatus === "paid") {
+      await settlePayment(db, {
+        bookingId: row!.id,
+        outcome: "paid",
+        method: "card",
+        actorUserId: u[userKey]!.id,
+        amountFils: 16_000,
+        now,
+      });
+    }
+  };
 
   await past("me", court1, -5, 18, "confirmed", "paid");
   await past("maya", court2, -2, 18, "confirmed", "paid");
