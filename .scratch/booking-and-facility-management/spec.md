@@ -1,6 +1,6 @@
 Status: decisions taken on payment (immediate charge, Tap Payments), the job queue (Graphile Worker), Booking Games, cancellation policy, late-cancellation charges, Guests, non-members and the grid (section 8); awaiting the design import (section 7), chiefly the mobile payment screen (7.9)
 
-Tickets: not yet created in Linear. Section 9 lists them for the user to create in order.
+Tickets: created in Linear as TEM-355 … TEM-371 (the table in section 9 maps each to its id). Blocking edges are native Linear relations.
 
 Design source: a Claude Design project ("Booking flow.dc.html" plus "support.js", https://claude.ai/design/p/fea56e1b-5966-4cbb-981f-15fe74a0c7fc). It could not be fetched while this spec was written. When imported, place it at `.scratch/design/booking-flow/Booking flow.dc.html` and `.scratch/design/booking-flow/support.js` (the same shape as `.scratch/design/register-with-partner/`), then resolve section 7 and update the "Design source" line with the artboard ids.
 
@@ -631,27 +631,27 @@ Resolve each item against the imported `.dc.html` once it is in `.scratch/design
 
 ## 9. Tickets
 
-Vertical slices in implementation order. Each is sized for one implementer in one context. "Design" says whether the ticket waits for section 7. Create them in Linear in this order so `blocks` relations can be set; link this spec at the top of each. Ticket titles follow the existing numbering style ("N. Title").
+Vertical slices in implementation order. Each is sized for one implementer in one context. "Design" says whether the ticket waits for section 7. They were created in Linear in this order with `blocks` relations; each links this spec at the top. Ticket titles follow the existing numbering style ("N. Title").
 
-| # | Title | Blocked by | Design |
-| --- | --- | --- | --- |
-| 1 | Venue manager role and the Manage area shell | — | not blocked |
-| 2 | Venue managers edit Venue details and Courts | 1 | not blocked |
-| 3 | Opening hours, Closures, Booking settings and the Cancellation policy | 1 | not blocked |
-| 4 | Pricing rules and the pure Booking price | 3 | not blocked |
-| 5 | Bookings table, Slot availability and the Customer Booking doors | 4 | not blocked |
-| 6 | Job queue foundation: Graphile Worker in the API App, handlers in the API Package | — (independent of 1–5) | not blocked |
-| 7 | Payment ledger, the provider boundary, the manual adapter and the payment jobs | 5, 6 | not blocked |
-| 8 | Manage area Bookings calendar and list | 7 | not blocked (7.11 may refine) |
-| 9 | Manager creates, edits, cancels and marks no-show | 8 | not blocked |
-| 10 | Customers list and Customer profile | 9 | not blocked |
-| 11 | Venue reports | 9 | not blocked |
-| 12 | Mobile: browse Venues and see availability | 5 | design-blocked (7.1–7.4, 7.10, 7.12, 7.14) |
-| 13 | Mobile: confirm a Booking with the payment step, My bookings and Booking details | 7, 12 | design-blocked (7.5–7.7, 7.9, 7.14) |
-| 14 | Booking notifications as jobs | 7, 9 | not blocked |
-| 15 | Unrated Games | — (independent of 1–14) | not blocked |
-| 16 | Booking Game: create a groupless unrated Game from a Booking | 5, 13, 15 | API not blocked; mobile step design-blocked (7.8) |
-| 17 | Tap Payments adapter, webhook route, return landing and refunds | 7, Q17 keys | API not blocked; mobile payment screen design-blocked (7.9) |
+| # | Linear | Title | Blocked by | Design |
+| --- | --- | --- | --- | --- |
+| 1 | TEM-355 | Venue manager role and the Manage area shell | — | not blocked |
+| 2 | TEM-358 | Venue managers edit Venue details and Courts | 1 | not blocked |
+| 3 | TEM-359 | Opening hours, Closures, Booking settings and the Cancellation policy | 1 | not blocked |
+| 4 | TEM-360 | Pricing rules and the pure Booking price | 3 | not blocked |
+| 5 | TEM-361 | Bookings table, Slot availability and the Customer Booking doors | 4 | not blocked |
+| 6 | TEM-356 | Job queue foundation: Graphile Worker in the API App, handlers in the API Package | — (independent of 1–5) | not blocked |
+| 7 | TEM-362 | Payment ledger, the provider boundary, the manual adapter and the payment jobs | 5, 6 | not blocked |
+| 8 | TEM-364 | Manage area Bookings calendar and list | 7 | not blocked (7.11 may refine) |
+| 9 | TEM-367 | Manager creates, edits, cancels and marks no-show | 8 | not blocked |
+| 10 | TEM-368 | Customers list and Customer profile | 9 | not blocked |
+| 11 | TEM-369 | Venue reports | 9 | not blocked |
+| 12 | TEM-363 | Mobile: browse Venues and see availability | 5 | design-blocked (7.1–7.4, 7.10, 7.12, 7.14) |
+| 13 | TEM-365 | Mobile: confirm a Booking with the payment step, My bookings and Booking details | 7, 12 | design-blocked (7.5–7.7, 7.9, 7.14) |
+| 14 | TEM-370 | Booking notifications as jobs | 7, 9 | not blocked |
+| 15 | TEM-357 | Unrated Games | — (independent of 1–14) | not blocked |
+| 16 | TEM-371 | Booking Game: create a groupless unrated Game from a Booking | 5, 13, 15 | API not blocked; mobile step design-blocked (7.8) |
+| 17 | TEM-366 | Tap Payments adapter, webhook route, return landing and refunds | 7, Q17 keys | API not blocked; mobile payment screen design-blocked (7.9) |
 
 ### Ticket 1. Venue manager role and the Manage area shell
 
