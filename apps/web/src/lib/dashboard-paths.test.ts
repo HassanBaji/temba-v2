@@ -24,6 +24,11 @@ describe("titleFromPath", () => {
     assert.equal(titleFromPath("/dashboard/you/extra"), "Profile");
   });
 
+  it("titles the Manage area", () => {
+    assert.equal(titleFromPath("/dashboard/manage"), "Manage");
+    assert.equal(titleFromPath("/dashboard/manage/abc/bookings"), "Manage");
+  });
+
   it("keeps Create Game for the single create route", () => {
     assert.equal(titleFromPath("/dashboard/games/new"), "Create Game");
   });
@@ -44,6 +49,15 @@ describe("detailBackHref", () => {
 
   it("returns Home for the Notifications page", () => {
     assert.equal(detailBackHref("/dashboard/notifications"), "/dashboard");
+  });
+
+  it("returns to the Manage list from a managed Venue", () => {
+    assert.equal(detailBackHref("/dashboard/manage"), undefined);
+    assert.equal(detailBackHref("/dashboard/manage/abc"), "/dashboard/manage");
+    assert.equal(
+      detailBackHref("/dashboard/manage/abc/settings"),
+      "/dashboard/manage",
+    );
   });
 
   it("leaves the Invites page without a back target", () => {

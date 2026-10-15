@@ -5,6 +5,7 @@ export * from "./ratings";
 export * from "./level-overrides";
 export * from "./verification";
 export * from "./venues";
+export * from "./venue-managers";
 export * from "./courts";
 export * from "./coach";
 export * from "./coaching-session";

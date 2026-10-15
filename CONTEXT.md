@@ -176,6 +176,14 @@ _Avoid_: Owner, moderator, Operator
 A Temba staff User. Not a Community role. Operators curate Venues and Courts and decide Venue link requests.
 _Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
 
+**Venue manager**:
+A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Web App. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
+_Avoid_: facility owner, venue admin, Owner (that is a Community role), Admin, Operator, staff
+
+**Manage area**:
+The Web App section under `/dashboard/manage` where a Venue manager runs a Venue. The sidebar shows it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area, which curates the catalog.
+_Avoid_: admin panel, backoffice, facility dashboard
+
 **Level setter**:
 A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator, Organizer and Community roles.
 _Avoid_: admin, rating admin, rating editor, Operator (when you mean this)

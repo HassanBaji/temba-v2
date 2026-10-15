@@ -193,7 +193,12 @@ type ExpectedVenues =
   | "unarchive"
   | "listPendingLinkRequests"
   | "approveLinkRequest"
-  | "rejectLinkRequest";
+  | "rejectLinkRequest"
+  | "listManaged"
+  | "managedById"
+  | "addManager"
+  | "removeManager"
+  | "searchManagerUsers";
 
 type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
 type _Communities = AssertTrue<

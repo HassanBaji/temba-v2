@@ -6,6 +6,7 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import {
   Building2,
   CalendarDays,
+  ClipboardList,
   House,
   Mail,
   MapPin,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { useCreateAccess } from "~/components/create-access-gate";
+import { api } from "~/trpc/react";
 import { NavMain } from "~/components/nav-main";
 import {
   Sidebar,
@@ -64,6 +66,12 @@ const venuesNav = {
   icon: MapPin,
 };
 
+const manageNav = {
+  title: "Manage",
+  url: "/dashboard/manage",
+  icon: ClipboardList,
+};
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const { isLoaded, hasCreateAccess } = useCreateAccess();
@@ -72,7 +80,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     (item) =>
       item.url !== "/dashboard/communities" || (isLoaded && hasCreateAccess),
   );
-  const navItems = isOperator ? [...items, venuesNav] : items;
+  const managed = api.venues.listManaged.useQuery();
+  const managesVenue = (managed.data?.length ?? 0) > 0;
+  const navItems = [
+    ...items,
+    ...(managesVenue ? [manageNav] : []),
+    ...(isOperator ? [venuesNav] : []),
+  ];
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>

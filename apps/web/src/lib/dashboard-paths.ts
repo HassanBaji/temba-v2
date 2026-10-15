@@ -33,6 +33,9 @@ export function titleFromPath(pathname: string) {
   if (pathname.startsWith("/dashboard/notifications")) {
     return "Notifications";
   }
+  if (pathname.startsWith("/dashboard/manage")) {
+    return "Manage";
+  }
   if (pathname.startsWith("/dashboard/groups/new")) {
     return "Create Group";
   }
@@ -109,6 +112,9 @@ export function detailBackHref(
   const playerMatches = PLAYER_MATCHES.exec(pathname);
   if (playerMatches?.[1]) {
     return playerProfilePath(playerMatches[1]);
+  }
+  if (/^\/dashboard\/manage\/[^/]+/.test(pathname)) {
+    return "/dashboard/manage";
   }
   if (/^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/groups";
