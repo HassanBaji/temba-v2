@@ -5,6 +5,7 @@ import { cancelProcedure as cancel } from "./cancel";
 import { confirmPaymentProcedure as confirmPayment } from "./confirmPayment";
 import { createProcedure as create } from "./create";
 import { listBookableVenuesProcedure as listBookableVenues } from "./listBookableVenues";
+import { listForVenueProcedure as listForVenue } from "./listForVenue";
 import { listMineProcedure as listMine } from "./listMine";
 import { paymentStateProcedure as paymentState } from "./paymentState";
 import { recordRefundProcedure as recordRefund } from "./recordRefund";
@@ -19,6 +20,7 @@ export const bookingsRouter = createTRPCRouter({
   venueAvailability,
   create,
   listMine,
+  listForVenue,
   byId,
   cancel,
   paymentState,

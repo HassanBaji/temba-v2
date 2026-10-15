@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { bookings, courts, games, venues } from "@repo/db";
+import { bookings, courts, games, user, venues } from "@repo/db";
 import {
   bookingStatusLabel,
   describeNextRefundStep,
@@ -18,6 +18,11 @@ import { isOccupyingBooking } from "@repo/domain/booking-slots";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  listPayments,
+  refundableFils,
+  refundablePayment,
+} from "#src/bookings/payments";
 import { protectedProcedure } from "#src/trpc";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
@@ -46,13 +51,15 @@ export async function bookingById(
   }
 
   const isHolder = booking.userId === args.actor.userId;
-  if (!isHolder) {
-    try {
-      await requireVenueManager(database, {
-        venueId: booking.venueId,
-        ...args.actor,
-      });
-    } catch {
+  let isManager = false;
+  try {
+    await requireVenueManager(database, {
+      venueId: booking.venueId,
+      ...args.actor,
+    });
+    isManager = true;
+  } catch {
+    if (!isHolder) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "You can't view this Booking",
@@ -80,6 +87,37 @@ export async function bookingById(
         .from(games)
         .where(eq(games.id, booking.gameId))
     : [];
+
+  const [holderUser] =
+    isManager && booking.userId
+      ? await database
+          .select({ id: user.id, name: user.name, image: user.image })
+          .from(user)
+          .where(eq(user.id, booking.userId))
+      : [];
+  const payments = isManager ? await listPayments(database, booking.id) : [];
+  const actorIds = [
+    ...new Set(
+      payments.flatMap((payment) =>
+        [payment.settledByUserId, payment.refundedByUserId].filter(
+          (id): id is string => id !== null,
+        ),
+      ),
+    ),
+  ];
+  const actorNames = new Map(
+    actorIds.length > 0
+      ? (
+          await database
+            .select({ id: user.id, name: user.name })
+            .from(user)
+            .where(inArray(user.id, actorIds))
+        ).map((row) => [row.id, row.name] as const)
+      : [],
+  );
+  const refundSource = isManager
+    ? await refundablePayment(database, booking.id)
+    : null;
 
   const policy = booking.cancellationPolicy;
   const active = isOccupyingBooking(booking, now);
@@ -114,6 +152,35 @@ export async function bookingById(
     court: court!,
     cancellationPolicy: policy,
     cancellationPolicyLines: describeCancellationPolicy(policy),
+    manager: isManager
+      ? {
+          holder: holderUser
+            ? {
+                kind: "user" as const,
+                userId: holderUser.id,
+                name: holderUser.name,
+                image: holderUser.image,
+              }
+            : {
+                kind: "guest" as const,
+                name: booking.guestName ?? "",
+                phone: booking.guestPhone ?? "",
+              },
+          managerNotes: booking.managerNotes,
+          noShowAt: booking.noShowAt,
+          createdAt: booking.createdAt,
+          payments: payments.map((payment) => ({
+            ...payment,
+            settledByName: payment.settledByUserId
+              ? (actorNames.get(payment.settledByUserId) ?? null)
+              : null,
+            refundedByName: payment.refundedByUserId
+              ? (actorNames.get(payment.refundedByUserId) ?? null)
+              : null,
+          })),
+          refundableFils: refundSource ? refundableFils(refundSource) : 0,
+        }
+      : null,
     canCreateGame:
       isHolder &&
       booking.status === "confirmed" &&

@@ -1,4 +1,7 @@
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+
+import { bookingPayments } from "@repo/db";
 
 import { refundPercentAt } from "@repo/domain/booking-refund";
 
@@ -137,6 +140,35 @@ describe("bookings.byId", () => {
         expect(view.canCreateGame).toBe(false);
         expect(view.cancel.allowed).toBe(false);
       }
+    });
+  });
+
+  it("gives a manager the holder, the ledger and the refundable maximum, and a holder none of it", async () => {
+    await withBookableVenue(async (db, f) => {
+      const booking = await insertBooking(db, f, { paymentStatus: "paid" });
+      await db
+        .update(bookingPayments)
+        .set({ refundedFils: 2_500, status: "partially_refunded" })
+        .where(eq(bookingPayments.bookingId, booking.id));
+
+      const asManager = await bookingById(db, {
+        bookingId: booking.id,
+        actor: { userId: f.manager, publicMetadata: undefined },
+        now: NOW,
+      });
+      expect(asManager.manager?.holder).toMatchObject({
+        kind: "user",
+        name: "Customer",
+      });
+      expect(asManager.manager?.payments).toHaveLength(1);
+      expect(asManager.manager?.refundableFils).toBe(7_500);
+
+      const asHolder = await bookingById(db, {
+        bookingId: booking.id,
+        actor: { userId: f.customer, publicMetadata: undefined },
+        now: NOW,
+      });
+      expect(asHolder.manager).toBeNull();
     });
   });
 });
