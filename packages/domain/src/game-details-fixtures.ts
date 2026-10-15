@@ -22,6 +22,7 @@ export type GameDetailsFixture = Pick<
   | "matches"
   | "phase"
   | "matchResultConfirmation"
+  | "rated"
   | "ratingImpact"
 >;
 
@@ -131,6 +132,7 @@ function baseFixture(args: {
     matches: args.matches,
     phase: args.phase,
     matchResultConfirmation: args.matchResultConfirmation,
+    rated: true,
     ratingImpact: args.ratingImpact,
   };
 }

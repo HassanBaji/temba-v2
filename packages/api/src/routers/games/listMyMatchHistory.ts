@@ -32,6 +32,7 @@ export type MatchHistoryRow = {
   /** Slot the signed-in User sat on, so cards can read scores as us-vs-them. */
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
+  rated: boolean;
 };
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -106,6 +107,7 @@ export async function listMyMatchHistoryRows(
           windowStart: true,
           windowEnd: true,
           createdAt: true,
+          rated: true,
         },
         with: {
           group: {
@@ -261,6 +263,7 @@ export async function listMyMatchHistoryRows(
         scoredSets: scoredSetsFromMatch(chosen.match.sets),
         viewerSlot: chosen.userSlot,
         outcome: chosen.outcome,
+        rated: game.rated,
       });
     }
   }

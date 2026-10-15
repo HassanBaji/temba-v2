@@ -1,5 +1,7 @@
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
+export const UNRATED_LABEL = "Unrated";
+
 export type RatingImpactChangeDirection = "up" | "down" | "flat";
 
 /** Absolute Level change, one decimal, sign-free (the arrow glyph carries sign). */

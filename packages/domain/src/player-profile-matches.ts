@@ -1,4 +1,5 @@
 import { formatDayMonth } from "./format-game-start";
+import { UNRATED_LABEL } from "./game-rating-impact";
 import { formatLevel } from "./level";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { shortPlayerName } from "./player-name";
@@ -42,6 +43,7 @@ export type PlayerMatchInput = {
   playedAt: Date | string;
   outcome: MatchOutcome;
   game: PlayerMatchGame;
+  rated: boolean;
   ownerSlot: 1 | 2;
   slot1: PlayerMatchPlayer[];
   slot2: PlayerMatchPlayer[];
@@ -58,6 +60,7 @@ export type PlayerMatchRowView = {
   meta: string;
   sets: string[];
   delta: string | null;
+  unrated: boolean;
   accessibilityLabel: string;
 };
 
@@ -170,6 +173,7 @@ export function playerMatchRowView(
     kind,
     sets.join(" "),
     match.rating ? deltaWords(match.rating.levelChange) : null,
+    match.rated ? null : UNRATED_LABEL,
   ];
 
   return {
@@ -180,6 +184,7 @@ export function playerMatchRowView(
     meta: `${formatDayMonth(match.playedAt, { weekday: "short" })}, ${kind}`,
     sets,
     delta: match.rating ? levelChangeLabel(match.rating.levelChange) : null,
+    unrated: !match.rated,
     accessibilityLabel: spoken.filter((part) => part).join(", "),
   };
 }

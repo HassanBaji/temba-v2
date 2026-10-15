@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ResultMark } from "~/components/temba/result-mark";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import type { PlayerMatchRowView } from "@repo/domain/player-profile-matches";
 import { cn } from "~/lib/utils";
 
@@ -31,7 +32,11 @@ function RowContent({
             <span key={index}>{set}</span>
           ))}
         </span>
-        {row.delta ? (
+        {row.unrated ? (
+          <span className="text-meta text-muted-foreground block">
+            {UNRATED_LABEL}
+          </span>
+        ) : row.delta ? (
           <span className="text-meta text-muted-foreground block">
             {row.delta}
           </span>

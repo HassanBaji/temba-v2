@@ -163,6 +163,7 @@ function lastMatch(
     playedAt: new Date(`${day}T17:00:00.000Z`),
     outcome,
     game,
+    rated: true,
     ownerSlot: 1,
     slot1: [ELIN_PLAYER, JONAS],
     slot2: [SOFIA, ADAM],

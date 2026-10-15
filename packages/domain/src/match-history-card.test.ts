@@ -32,9 +32,24 @@ function row(overrides: Partial<HistoryRowInput> = {}): HistoryRowInput {
     ],
     viewerSlot: 1,
     outcome: "won",
+    rated: true,
     ...overrides,
   };
 }
+
+describe("matchHistoryCardModel unrated mark", () => {
+  it("leaves a rated Match unmarked", () => {
+    const model = matchHistoryCardModel(row());
+    assert.equal(model.unrated, false);
+    assert.ok(!model.meta.includes("Unrated"));
+  });
+
+  it("marks an unrated Match in the meta line", () => {
+    const model = matchHistoryCardModel(row({ rated: false }));
+    assert.equal(model.unrated, true);
+    assert.ok(model.meta.endsWith(" · Unrated"));
+  });
+});
 
 describe("viewerSets", () => {
   it("reads scores off the viewer's slot", () => {

@@ -409,5 +409,9 @@ A Level that a Level setter set by hand, and its audit record. It replaces the R
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match that produced rating events for the Users on its two Game teams.
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams. A Match on an Unrated Game is never a Rated Match.
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
+
+**Unrated Game**:
+A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. Match result confirmation still applies. Stored as `games.rated = false`; no door sets it yet.
+_Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice

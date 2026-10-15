@@ -1,3 +1,4 @@
+import { UNRATED_LABEL } from "./game-rating-impact";
 import { formatRelativeDay } from "./format-game-start";
 import { shortPlayerName } from "./player-name";
 
@@ -18,6 +19,7 @@ export type HistoryRowInput = {
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
+  rated: boolean;
 };
 
 export const HISTORY_PAGE_SIZE = 20;
@@ -84,9 +86,11 @@ export function historyMeta(row: HistoryRowInput) {
   });
   const venueName = row.venue.name.trim();
   const gameName = row.name?.trim();
-  return gameName && gameName !== venueName
-    ? `${dayLabel}, ${venueName} · ${gameName}`
-    : `${dayLabel}, ${venueName}`;
+  const base =
+    gameName && gameName !== venueName
+      ? `${dayLabel}, ${venueName} · ${gameName}`
+      : `${dayLabel}, ${venueName}`;
+  return row.rated ? base : `${base} · ${UNRATED_LABEL}`;
 }
 
 export type HistoryTeamRow = {
@@ -106,6 +110,7 @@ export type MatchHistoryCardModel = {
   setColumns: number;
   tally: { won: number; lost: number };
   meta: string;
+  unrated: boolean;
   groupName: string | undefined;
   teams: HistoryTeamRow[];
 };
@@ -156,6 +161,7 @@ export function matchHistoryCardModel(
     setColumns: sets.length,
     tally: setTally(sets),
     meta: historyMeta(row),
+    unrated: !row.rated,
     groupName: row.groupName?.trim() ? row.groupName.trim() : undefined,
     teams: lost ? [theirs, mine] : [mine, theirs],
   };
