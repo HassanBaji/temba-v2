@@ -15,7 +15,7 @@ import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
-import { VenueManagersSection } from "~/components/manage/venue-managers-section";
+import { VenueManagersSection } from "~/components/venues/venue-managers-section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
