@@ -22,7 +22,7 @@ import { HeroCard } from "./hero-card";
 import { LevelRequestCard } from "./level-request-card";
 import { LineupCard } from "./lineup-card";
 import { OrganizerCard, type OrganizerHandlers } from "./organizer-card";
-import { RatingImpactCard } from "./rating-impact-card";
+import { RatingImpactCard, UnratedCard } from "./rating-impact-card";
 import { ScoreCard } from "./score-card";
 
 const SECTION_GAP = 16;
@@ -116,6 +116,7 @@ export function GameDetailsContent({
           onConfirm={handlers.onConfirm}
         />
       ) : null}
+      {phase === "final" && !game.rated ? <UnratedCard /> : null}
       {phase === "final" && game.ratingImpact ? (
         <RatingImpactCard ratingImpact={game.ratingImpact} />
       ) : null}

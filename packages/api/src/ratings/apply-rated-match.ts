@@ -14,6 +14,7 @@ import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { type GameRow } from "#src/games/access";
 import { type ClassicGlicko } from "@repo/domain/glicko2";
+import { gameRates } from "@repo/domain/game-rating-eligibility";
 import {
   initialRatingFromChoice,
   type LevelBand,
@@ -205,7 +206,7 @@ async function persistRatedUser(args: {
 
 /**
  * Rate the four Users on a completed Match. Skips when the Match is not a
- * Rated Match (cancelled Game, missing sides, not four Users). Idempotent per
+ * Rated Match (cancelled or Unrated Game, missing sides, not four Users). Idempotent per
  * User+Match. Idle RD inflation runs per User from lastRatedAt before
  * composites and the Glicko step.
  */
@@ -221,9 +222,9 @@ export async function applyRatedMatch(
 
   const liveGame = await database.query.games.findFirst({
     where: eq(games.id, game.id),
-    columns: { cancelledAt: true, groupId: true, sport: true },
+    columns: { cancelledAt: true, groupId: true, sport: true, rated: true },
   });
-  if (!liveGame || liveGame.cancelledAt) {
+  if (!liveGame || !gameRates(liveGame)) {
     return;
   }
 

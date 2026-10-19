@@ -107,6 +107,7 @@ export type FriendlyGameDetails = {
   sides: FriendlyGameDetailsSide[];
   phase: FriendlyGameCtaPhase | null;
   matchResultConfirmation: FriendlyGameDetailsConfirmation | null;
+  rated: boolean;
   ratingImpact: FriendlyGameDetailsRatingImpact | null;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;
 };

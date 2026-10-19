@@ -1,4 +1,5 @@
 import { colors, sizes, spacing } from "@repo/design-tokens";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import type { PlayerMatchRowView } from "@repo/domain/player-profile-matches";
 import { Pressable, View, type ViewStyle } from "react-native";
 
@@ -49,7 +50,11 @@ export function PlayerMatchRow({
             </Text>
           ))}
         </View>
-        {row.delta ? (
+        {row.unrated ? (
+          <Text size="meta" tone="muted">
+            {UNRATED_LABEL}
+          </Text>
+        ) : row.delta ? (
           <Text size="meta" tone="muted">
             {row.delta}
           </Text>

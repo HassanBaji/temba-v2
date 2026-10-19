@@ -119,6 +119,7 @@ function historyRow(args: {
     scoredSets: args.scoredSets,
     viewerSlot: args.viewerSlot,
     outcome: args.outcome,
+    rated: true,
   };
 }
 

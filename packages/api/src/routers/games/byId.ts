@@ -498,13 +498,15 @@ export async function gameById(
     };
 
     if (phase === "final") {
-      const viewerRatingEvent = await database.query.ratingEvents.findFirst({
-        where: and(
-          eq(ratingEvents.matchId, friendlyMatch.id),
-          eq(ratingEvents.userId, args.userId),
-        ),
-        columns: { muBefore: true, muAfter: true, phiAfter: true },
-      });
+      const viewerRatingEvent = game.rated
+        ? await database.query.ratingEvents.findFirst({
+            where: and(
+              eq(ratingEvents.matchId, friendlyMatch.id),
+              eq(ratingEvents.userId, args.userId),
+            ),
+            columns: { muBefore: true, muAfter: true, phiAfter: true },
+          })
+        : undefined;
       if (viewerRatingEvent) {
         const beforeLevel = levelFromMu(viewerRatingEvent.muBefore);
         const afterLevel = levelFromMu(viewerRatingEvent.muAfter);
@@ -548,6 +550,7 @@ export async function gameById(
     registrationMode: game.registrationMode,
     allowSoloRegister: game.allowSoloRegister,
     isPublic: game.isPublic,
+    rated: game.rated,
     groupId: game.groupId,
     groupName: group?.name ?? null,
     venueId: game.venueId,

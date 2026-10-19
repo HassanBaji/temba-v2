@@ -26,7 +26,10 @@ import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameLineupSection } from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
-import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-block";
+import {
+  GameRatingImpactBlock,
+  GameUnratedBlock,
+} from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHome } from "~/components/games/tournament-home";
@@ -1183,6 +1186,9 @@ export default function GameHomePage({
                   }
                 />
               </div>
+            ) : null}
+            {data.phase === "final" && !data.rated ? (
+              <GameUnratedBlock />
             ) : null}
             {data.phase === "final" && data.ratingImpact ? (
               <GameRatingImpactBlock ratingImpact={data.ratingImpact} />

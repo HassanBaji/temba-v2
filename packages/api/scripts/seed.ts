@@ -15,6 +15,7 @@
 import { eq, inArray, sql } from "drizzle-orm";
 
 import {
+  bookings,
   communityMemberInvites,
   gameTeamPlayers,
   games,
@@ -29,6 +30,11 @@ import {
 } from "@repo/db";
 
 import { db } from "#src/db";
+
+import { settlePayment } from "#src/bookings/payments";
+import { setJobSink } from "#src/jobs/enqueue";
+import { cancelMyBooking } from "#src/routers/bookings/cancel";
+import { createBooking } from "#src/routers/bookings/create";
 
 import { approveTeamLink } from "#src/routers/communities/approveTeamLink";
 import { createCommunity } from "#src/routers/communities/create";
@@ -75,9 +81,14 @@ import { addCourt } from "#src/routers/venues/addCourt";
 import { approveLinkRequest as approveVenueLinkRequest } from "#src/routers/venues/approveLinkRequest";
 import { createVenue } from "#src/routers/venues/create";
 import { rejectLinkRequest as rejectVenueLinkRequest } from "#src/routers/venues/rejectLinkRequest";
+import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
+import { setPricingRules } from "#src/routers/venues/setPricingRules";
 import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive";
+import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
+import { updateCancellationPolicy } from "#src/routers/venues/updateCancellationPolicy";
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
+import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
 
@@ -327,6 +338,7 @@ async function seedVenues() {
       const court = await addCourt(db, {
         venueId: created.id,
         name: courtName,
+        actor: { userId: "seed", publicMetadata: { operator: true } },
       });
       courtIds.push(court.id);
     }
@@ -339,6 +351,62 @@ async function seedVenues() {
     "Court 3",
     "Court 4",
   ]);
+  const operator = { userId: "seed", publicMetadata: { operator: true } };
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    await setOpeningHours(db, {
+      venueId: central.id,
+      weekday,
+      windows:
+        weekday === 5
+          ? []
+          : [
+              { opensAtMinutes: 8 * 60, closesAtMinutes: 14 * 60 },
+              { opensAtMinutes: 16 * 60, closesAtMinutes: 23 * 60 },
+            ],
+      actor: operator,
+    });
+  }
+  await setPricingRules(db, {
+    venueId: central.id,
+    rules: [
+      {
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        startMinutes: 0,
+        endMinutes: 17 * 60,
+        hourlyRateFils: 10_000,
+        label: "Off-peak",
+      },
+      {
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        startMinutes: 17 * 60,
+        endMinutes: 24 * 60,
+        hourlyRateFils: 16_000,
+        label: "Peak",
+      },
+    ],
+    actor: operator,
+  });
+  await updateCancellationPolicy(db, {
+    venueId: central.id,
+    policy: {
+      tiers: [
+        { hoursBefore: 48, refundPercent: 100 },
+        { hoursBefore: 12, refundPercent: 50 },
+      ],
+      lateRefundPercent: 0,
+      customerCancelUntilMinutes: 60,
+    },
+    actor: operator,
+  });
+  await updateBookingSettings(db, {
+    venueId: central.id,
+    acceptingBookings: true,
+    durationOptionsMinutes: [60, 90, 120],
+    bookingHorizonDays: 21,
+    description: "Four indoor padel courts in central Lisbon.",
+    bookingNotes: "Reception is on the first floor.",
+    actor: operator,
+  });
   const riverside = await venue("Riverside Padel", "Lisbon", "PT", [
     "Panoramic",
     "Court B",
@@ -352,6 +420,111 @@ async function seedVenues() {
   await softArchiveVenue(db, { venueId: oldTown.id });
 
   return { central, riverside, harbour, oldTown };
+}
+
+// ---------------------------------------------------------------------------
+// Bookings
+// ---------------------------------------------------------------------------
+
+async function seedBookings(u: Users, v: Venues) {
+  // The graphile_worker schema only exists once the API worker has booted.
+  setJobSink({ add: () => Promise.resolve(), remove: () => Promise.resolve() });
+
+  const FRIDAY = 5;
+  const now = new Date();
+
+  const hourOn = (dayOffset: number, hour: number) => {
+    let offset = dayOffset;
+    const weekdayOf = (days: number) => {
+      const { year, month, day } = zonedParts(addProductDays(now, days));
+      return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    };
+    while (dayOffset > 0 && weekdayOf(offset) === FRIDAY) offset += 1;
+    return new Date(
+      addProductDays(now, offset).getTime() + hour * 60 * 60 * 1000,
+    );
+  };
+
+  const [court1, court2] = v.central.courtIds;
+  const venue = await db.query.venues.findFirst({
+    where: eq(venues.id, v.central.id),
+    columns: { cancellationPolicy: true },
+  });
+  if (!court1 || !court2 || !venue) throw new Error("Central Venue missing");
+
+  const book = (
+    userKey: string,
+    courtId: string,
+    dayOffset: number,
+    hour: number,
+    durationMinutes: number,
+  ) =>
+    createBooking(db, {
+      venueId: v.central.id,
+      courtId,
+      userId: u[userKey]!.id,
+      startsAt: hourOn(dayOffset, hour),
+      durationMinutes,
+      now,
+    });
+
+  await book("me", court1, 2, 18, 60);
+  await book("yusuf", court2, 2, 17, 90);
+  const paid = await book("lina", court1, 3, 9, 60);
+  await settlePayment(db, {
+    bookingId: paid.booking.id,
+    outcome: "paid",
+    method: "cash",
+    actorUserId: u.me!.id,
+    amountFils: paid.booking.priceFils,
+    now,
+  });
+  const dropped = await book("omar", court2, 4, 18, 60);
+  await cancelMyBooking(db, {
+    bookingId: dropped.booking.id,
+    userId: u.omar!.id,
+    now,
+  });
+
+  const past = async (
+    userKey: string,
+    courtId: string,
+    dayOffset: number,
+    hour: number,
+    status: "confirmed" | "no_show",
+    paymentStatus: "paid" | "pending",
+  ) => {
+    const [row] = await db
+      .insert(bookings)
+      .values({
+        venueId: v.central.id,
+        courtId,
+        userId: u[userKey]!.id,
+        startsAt: hourOn(dayOffset, hour),
+        endsAt: hourOn(dayOffset, hour + 1),
+        status,
+        noShowAt: status === "no_show" ? hourOn(dayOffset, hour + 1) : null,
+        source: "app",
+        priceFils: 16_000,
+        cancellationPolicy: venue.cancellationPolicy,
+        createdByUserId: u[userKey]!.id,
+      })
+      .returning({ id: bookings.id });
+    if (paymentStatus === "paid") {
+      await settlePayment(db, {
+        bookingId: row!.id,
+        outcome: "paid",
+        method: "card",
+        actorUserId: u[userKey]!.id,
+        amountFils: 16_000,
+        now,
+      });
+    }
+  };
+
+  await past("me", court1, -5, 18, "confirmed", "paid");
+  await past("maya", court2, -2, 18, "confirmed", "paid");
+  await past("tom", court1, -3, 19, "no_show", "pending");
 }
 
 // ---------------------------------------------------------------------------
@@ -1376,6 +1549,7 @@ async function main() {
   const g = await step("groups", () => seedGroups(u, c));
   await step("teams", () => seedTeams(u, c));
   await step("games", () => seedGames(u, g, v));
+  await step("bookings", () => seedBookings(u, v));
 
   const counts = await db.execute<{ table: string; rows: number }>(sql`
     select 'users' as table, count(*)::int as rows from ${user}

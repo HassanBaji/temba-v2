@@ -358,6 +358,48 @@
       "when": 1791442775605,
       "tag": "0050_lean_the_initiative",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792065113546,
+      "tag": "0051_narrow_medusa",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792070015876,
+      "tag": "0052_omniscient_cardiac",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792074150428,
+      "tag": "0053_lying_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792076664380,
+      "tag": "0054_amazing_black_crow",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792078881277,
+      "tag": "0055_ancient_black_cat",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792082434468,
+      "tag": "0056_lowly_maggott",
+      "breakpoints": true
     }
   ]
 }

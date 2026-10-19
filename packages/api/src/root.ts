@@ -1,3 +1,4 @@
+import { bookingsRouter } from "#src/routers/bookings";
 import { communitiesRouter } from "#src/routers/communities";
 import { gamesRouter } from "#src/routers/games";
 import { groupsRouter } from "#src/routers/groups";
@@ -14,6 +15,7 @@ import { createCallerFactory, createTRPCRouter } from "#src/trpc";
  * All routers added in /routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
+  bookings: bookingsRouter,
   communities: communitiesRouter,
   games: gamesRouter,
   groups: groupsRouter,

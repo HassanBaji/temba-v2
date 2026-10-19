@@ -176,6 +176,58 @@ _Avoid_: Owner, moderator, Operator
 A Temba staff User. Not a Community role. Operators curate Venues and Courts and decide Venue link requests.
 _Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
 
+**Venue manager**:
+A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Venue console. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
+_Avoid_: facility owner, venue admin, Owner (that is a Community role), Admin, Operator, staff
+
+**Opening hours**:
+The windows in which a Venue's Courts can be booked, per weekday in the product timezone, as minutes from midnight. A weekday may have several non-overlapping windows; none means closed. A window belongs to the weekday it opened on and may run to 06:00 the next day. Times sit on the Venue's slot grid.
+_Avoid_: schedule, availability (that is derived from Opening hours, Closures and Bookings), business hours
+
+**Closure**:
+A period when a whole Venue, or one Court, cannot be booked, set by a Venue manager (maintenance, a private event). It never cancels Bookings by itself; the manager sees which Bookings fall inside and decides.
+_Avoid_: blackout, holiday, block
+
+**Pricing rule**:
+An hourly rate in fils for a set of weekdays and a time range, for every Court or for one Court. A Court rule beats a Venue-wide rule. Rules on one scope never overlap, and a window that runs past midnight prices on the weekday it opened. The price of a Booking is fixed from the rules at the moment it is made; a time no rule covers cannot be booked. A Venue-wide rule for every weekday, 00:00–24:00 is the base rate.
+_Avoid_: tariff, rate card, price list, Price per player (that is a Game field), fee
+
+**Accepting bookings**:
+The single Venue setting that lists the Venue for Customers and opens the Customer Booking doors. Off by default; it cannot be turned on for a Soft-archived Venue or one with no Court.
+_Avoid_: bookable (that is the derived state of a Venue on a given day), published, open
+
+**Cancellation policy**:
+A Venue's refund terms for a cancelled Booking: up to five tiers of hours before the start with a refund percent each, a late refund percent after the last tier, and the cut-off after which a Customer can no longer cancel in the app. A Booking keeps the policy it was made under. A Venue that cancels always refunds in full.
+_Avoid_: refund rules, cancellation fee, terms
+
+**Booking**:
+One Court reserved for one interval by one Customer, at a price and under a Cancellation policy fixed when it was made. A Customer's Booking is pending payment for at most ten minutes, then confirmed once the charge is captured or payment is deferred to the Venue; it occupies the Court while confirmed, or pending payment with a live hold. It may become cancelled, no-show or expired, and those never block. Distinct from a Game: a Game is the event, a Booking is the Court.
+_Avoid_: reservation, slot (that is the offer, not the reservation), Game, session, order
+
+**Slot**:
+One Court, one start on the Venue's grid, one duration and one price, offered to a Customer. Derived from Opening hours, Closures, Pricing rules and occupying Bookings; never stored.
+_Avoid_: Booking (that is the reservation), Position, Match slot, time slot (as an entity), window (that is a Game's registration window)
+
+**Customer**:
+A User as seen from one Venue: someone who holds or has held a Booking there. Derived from User and Bookings, never a separate record. Needs no Community or Group membership.
+_Avoid_: client, member (that is a Community role), player (when you mean this view), account
+
+**No-show**:
+A confirmed Booking whose start has passed and that a Venue manager marked as not used. Terminal: no refund, and the payment status is left as it was (a paid no-show stays paid; an unpaid one stays pending).
+_Avoid_: missed booking, absent, forfeited
+
+**Payment**:
+One attempt to collect a Booking's price through a payment provider or by hand at the Venue, with its refund. Pending, paid, failed, refunded, partially refunded or waived; never held, since Temba charges immediately. The Booking's payment status summarises its Payments: the latest attempt that did not fail, or failed when every attempt failed.
+_Avoid_: transaction, charge (that is one kind of Payment movement), invoice, Price per player, payment status (that is the Booking's summary, not the row)
+
+**Payment provider**:
+The outside service that takes a Customer's money for a Booking, behind one adapter in the API Package. Tap Payments in v1 (ADR-0028), charging immediately in BHD by card or BENEFIT. "Manual" is the adapter that collects nothing and lets a Venue manager settle by hand.
+_Avoid_: gateway, PSP, Tap (bare, when you mean the boundary rather than the vendor), Clerk (that is identity)
+
+**Venue console**:
+The web App (`apps/console`) where a Venue manager runs a Venue: Schedule, Bookings, Courts & pricing, Hours & closures, Customers, Staff & roles, Reports, Payouts and Venue details, one Venue at a time with a switcher. It signs in with the same Temba account and calls the same API as the Web App. The Web App's sidebar links to it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area in the Web App, which curates the catalog. ADR-0031.
+_Avoid_: Manage area (the name of the same section while it lived in the Web App), admin panel, admin dashboard, backoffice, facility dashboard
+
 **Level setter**:
 A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator, Organizer and Community roles.
 _Avoid_: admin, rating admin, rating editor, Operator (when you mean this)
@@ -360,6 +412,14 @@ _Avoid_: form, run, streak (bare, when a losing run is meant)
 The share of a User's Matches with a recorded Position that they played on the left or on the right. Derived, never declared. Distinct from Preferred Position.
 _Avoid_: Preferred Position (that is declared), backhand side, forehand side
 
+**Job**:
+A unit of background work run by the Job queue (Graphile Worker on Postgres) inside the API App, such as expiring a Booking hold or creating a Tap charge. Enqueued in the same database transaction as the change that needs it, so it exists only if that change commits. A Job that fails permanently stays in the queue tables with its last error.
+_Avoid_: task (that is Graphile's name for a handler), cron job (when a one-off is meant), queue message
+
+**Job key**:
+The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enqueueing the same Job key again replaces or keeps the pending Job instead of adding a second one, and the key lets a Job be removed before it runs.
+_Avoid_: job id, dedupe key (that is the Notification column)
+
 **Notification**:
 An in-app record that tells one User that something happened on a Group or Game they run, or that a Game they played on has finished. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
@@ -393,5 +453,9 @@ A Level that a Level setter set by hand, and its audit record. It replaces the R
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match that produced rating events for the Users on its two Game teams.
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams. A Match on an Unrated Game is never a Rated Match.
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
+
+**Unrated Game**:
+A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. Match result confirmation still applies. Stored as `games.rated = false`; no door sets it yet.
+_Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice

@@ -43,6 +43,7 @@ export const games = pgTable("games", {
     .notNull()
     .references(() => venues.id, { onDelete: "restrict" }),
   isPublic: boolean("is_public").notNull().default(false),
+  rated: boolean("rated").notNull().default(true),
   windowStart: timestamp("window_start"),
   windowEnd: timestamp("window_end"),
   playersAllowed: integer("players_allowed"),

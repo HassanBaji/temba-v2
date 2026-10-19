@@ -99,4 +99,5 @@ export type HubHistoryRow = {
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
+  rated: boolean;
 };

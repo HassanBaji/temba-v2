@@ -19,6 +19,7 @@ export type CompletedMatchForStats = {
   createdAt: Date;
   displayTime: Date;
   userSlot: 1 | 2;
+  rated: boolean;
   sets: readonly MatchSetScore[];
   slot1Players: readonly CompletedMatchSlotPlayer[];
   slot2Players: readonly CompletedMatchSlotPlayer[];

@@ -6,6 +6,7 @@ import {
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
   ratingImpactView,
+  UNRATED_LABEL,
 } from "./game-rating-impact";
 
 describe("ratingImpactChangeMagnitude", () => {
@@ -124,5 +125,11 @@ describe("ratingImpactView", () => {
       }).sentence,
       /About 3 more rated games/,
     );
+  });
+});
+
+describe("UNRATED_LABEL", () => {
+  it("is the user-facing word for an Unrated Game", () => {
+    assert.equal(UNRATED_LABEL, "Unrated");
   });
 });
