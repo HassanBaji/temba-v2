@@ -177,7 +177,7 @@ A Temba staff User. Not a Community role. Operators curate Venues and Courts and
 _Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
 
 **Venue manager**:
-A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Web App. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
+A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Venue console. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
 _Avoid_: facility owner, venue admin, Owner (that is a Community role), Admin, Operator, staff
 
 **Opening hours**:
@@ -224,9 +224,9 @@ _Avoid_: transaction, charge (that is one kind of Payment movement), invoice, Pr
 The outside service that takes a Customer's money for a Booking, behind one adapter in the API Package. Tap Payments in v1 (ADR-0028), charging immediately in BHD by card or BENEFIT. "Manual" is the adapter that collects nothing and lets a Venue manager settle by hand.
 _Avoid_: gateway, PSP, Tap (bare, when you mean the boundary rather than the vendor), Clerk (that is identity)
 
-**Manage area**:
-The Web App section under `/dashboard/manage` where a Venue manager runs a Venue. The sidebar shows it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area, which curates the catalog.
-_Avoid_: admin panel, backoffice, facility dashboard
+**Venue console**:
+The web App (`apps/console`) where a Venue manager runs a Venue: Schedule, Bookings, Courts & pricing, Hours & closures, Customers, Staff & roles, Reports, Payouts and Venue details, one Venue at a time with a switcher. It signs in with the same Temba account and calls the same API as the Web App. The Web App's sidebar links to it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area in the Web App, which curates the catalog. ADR-0031.
+_Avoid_: Manage area (the name of the same section while it lived in the Web App), admin panel, admin dashboard, backoffice, facility dashboard
 
 **Level setter**:
 A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator, Organizer and Community roles.
