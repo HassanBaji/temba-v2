@@ -249,15 +249,6 @@ export function StepFooter({
             : "Create Game";
     return (
       <>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={label}
-            size="lg"
-            pending={pending}
-            disabled={next !== null}
-            onPress={onContinue}
-          />
-        </View>
         <View style={{ width: CANCEL_WIDTH }}>
           <Button
             label="Cancel"
@@ -265,6 +256,15 @@ export function StepFooter({
             size="lg"
             disabled={pending}
             onPress={onCancel}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={label}
+            size="lg"
+            pending={pending}
+            disabled={next !== null}
+            onPress={onContinue}
           />
         </View>
       </>
