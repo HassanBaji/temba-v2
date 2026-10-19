@@ -1,0 +1,194 @@
+import {
+  formatGameClockWithoutMeridiem,
+  formatWeekday,
+} from "@repo/domain/format-game-start";
+import {
+  addProductDays,
+  productDayKey,
+  zonedDateTimeToInstant,
+  zonedParts,
+} from "@repo/domain/product-timezone";
+
+const MS_PER_MINUTE = 60_000;
+const MINUTES_PER_DAY = 24 * 60;
+
+export type OpeningWindow = { opensAtMinutes: number; closesAtMinutes: number };
+
+export type AvailabilityCourt = {
+  id: string;
+  name: string;
+  slots: {
+    startsAt: Date;
+    durations: { minutes: number; priceFils: number }[];
+  }[];
+};
+
+export type StripDay = {
+  key: string;
+  weekday: string;
+  dayOfMonth: number;
+};
+
+/** The days a Customer may book, today first. */
+export function dayStrip(now: Date, horizonDays: number): StripDay[] {
+  return Array.from({ length: Math.max(horizonDays, 0) }, (_, offset) => {
+    const midnight = addProductDays(now, offset);
+    return {
+      key: productDayKey(midnight),
+      weekday: offset === 0 ? "Today" : formatWeekday(midnight, "short"),
+      dayOfMonth: zonedParts(midnight).day,
+    };
+  });
+}
+
+export function midnightOf(dayKey: string): Date {
+  const [year, month, day] = dayKey.split("-").map(Number);
+  return zonedDateTimeToInstant({
+    year: year ?? Number.NaN,
+    month: month ?? Number.NaN,
+    day: day ?? Number.NaN,
+  });
+}
+
+export function weekdayOf(dayKey: string): number {
+  const [year, month, day] = dayKey.split("-").map(Number);
+  return new Date(
+    Date.UTC(year ?? Number.NaN, (month ?? Number.NaN) - 1, day ?? Number.NaN),
+  ).getUTCDay();
+}
+
+export type StartTime = {
+  startsAt: Date;
+  label: string;
+  freeCourts: number;
+};
+
+export type StartTimeGroup = { label: string; times: StartTime[] };
+
+function meridiem(startsAt: Date) {
+  return zonedParts(startsAt).hour < 12 ? "AM" : "PM";
+}
+
+/**
+ * Every start on the Venue's grid for the day that is not already too soon,
+ * grouped into runs of AM and PM so "6:00" is never ambiguous. A start no
+ * Court can take is kept with `freeCourts: 0`, which the screen strikes out.
+ */
+export function startTimeGroups(args: {
+  dayKey: string;
+  windows: readonly OpeningWindow[];
+  slotMinutes: number;
+  shortestMinutes: number;
+  minLeadMinutes: number;
+  courts: readonly AvailabilityCourt[];
+  now: Date;
+}): StartTimeGroup[] {
+  const midnight = midnightOf(args.dayKey);
+  const earliest = args.now.getTime() + args.minLeadMinutes * MS_PER_MINUTE;
+  const freeByStart = new Map<number, number>();
+  for (const court of args.courts) {
+    for (const slot of court.slots) {
+      const at = slot.startsAt.getTime();
+      freeByStart.set(at, (freeByStart.get(at) ?? 0) + 1);
+    }
+  }
+
+  const starts = new Set<number>();
+  for (const window of args.windows) {
+    for (
+      let minute = window.opensAtMinutes;
+      minute + args.shortestMinutes <= window.closesAtMinutes;
+      minute += args.slotMinutes
+    ) {
+      const at = midnight.getTime() + minute * MS_PER_MINUTE;
+      if (at >= earliest) {
+        starts.add(at);
+      }
+    }
+  }
+
+  const groups: StartTimeGroup[] = [];
+  for (const at of [...starts].sort((a, b) => a - b)) {
+    const startsAt = new Date(at);
+    const afterMidnight =
+      at >= midnight.getTime() + MINUTES_PER_DAY * MS_PER_MINUTE;
+    const label = afterMidnight ? "After midnight" : meridiem(startsAt);
+    const time = {
+      startsAt,
+      label: formatGameClockWithoutMeridiem(startsAt),
+      freeCourts: freeByStart.get(at) ?? 0,
+    };
+    const last = groups.at(-1);
+    if (last?.label === label) {
+      last.times.push(time);
+    } else {
+      groups.push({ label, times: [time] });
+    }
+  }
+  return groups;
+}
+
+export type DurationChoice = {
+  minutes: number;
+  freeCourts: number;
+  endsAt: Date;
+};
+
+export function durationChoices(args: {
+  startsAt: Date;
+  options: readonly number[];
+  courts: readonly AvailabilityCourt[];
+}): DurationChoice[] {
+  const at = args.startsAt.getTime();
+  return args.options.map((minutes) => ({
+    minutes,
+    endsAt: new Date(at + minutes * MS_PER_MINUTE),
+    freeCourts: args.courts.filter((court) =>
+      court.slots.some(
+        (slot) =>
+          slot.startsAt.getTime() === at &&
+          slot.durations.some((duration) => duration.minutes === minutes),
+      ),
+    ).length,
+  }));
+}
+
+export type CourtChoice = {
+  id: string;
+  name: string;
+  priceFils: number | null;
+};
+
+/** Every Court of the Venue, priced when it is free for this start and length. */
+export function courtChoices(args: {
+  startsAt: Date;
+  minutes: number;
+  venueCourts: readonly { id: string; name: string }[];
+  courts: readonly AvailabilityCourt[];
+}): CourtChoice[] {
+  const at = args.startsAt.getTime();
+  return args.venueCourts.map((court) => {
+    const slot = args.courts
+      .find((entry) => entry.id === court.id)
+      ?.slots.find((entry) => entry.startsAt.getTime() === at);
+    const duration = slot?.durations.find(
+      (entry) => entry.minutes === args.minutes,
+    );
+    return {
+      id: court.id,
+      name: court.name,
+      priceFils: duration?.priceFils ?? null,
+    };
+  });
+}
+
+/** Keeps the current choice while it stays offered, else the first offered one. */
+export function keepOrFirst<T>(
+  current: T | null,
+  offered: readonly T[],
+): T | null {
+  if (current !== null && offered.includes(current)) {
+    return current;
+  }
+  return offered[0] ?? null;
+}

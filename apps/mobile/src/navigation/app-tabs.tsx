@@ -1,7 +1,13 @@
 import { useUser } from "@clerk/expo";
 import { colors, sizes } from "@repo/design-tokens";
 import { Tabs, useSegments } from "expo-router";
-import { Building2, CircleUser, House, Users } from "lucide-react-native";
+import {
+  Building2,
+  CalendarCheck,
+  CircleUser,
+  House,
+  Users,
+} from "lucide-react-native";
 import type { ComponentType } from "react";
 import type { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +26,7 @@ type TabIcon = ComponentType<{
 const ICONS: Record<TabSlot, TabIcon> = {
   home: House,
   games: FieldIcon,
+  book: CalendarCheck,
   groups: Users,
   communities: Building2,
   profile: CircleUser,
@@ -28,6 +35,7 @@ const ICONS: Record<TabSlot, TabIcon> = {
 const ROUTES: Record<TabSlot, string> = {
   home: "(home)",
   games: "games",
+  book: "book",
   groups: "groups",
   communities: "communities",
   profile: "profile",
