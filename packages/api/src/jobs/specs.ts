@@ -8,7 +8,7 @@ export const JOB = {
   refund: "payment.refund",
   confirmed: "booking.confirmed",
   notification: "notification.booking",
-  reconcile: "booking.reconcile",
+  reconcile: "booking:reconcile",
 } as const;
 
 export const MAX_ATTEMPTS = {

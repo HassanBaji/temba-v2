@@ -1,4 +1,4 @@
-import type { JobHelpers } from "graphile-worker";
+import { parseCrontab, type JobHelpers } from "graphile-worker";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
@@ -80,16 +80,22 @@ describe("wrapHandler", () => {
 });
 
 describe("task list", () => {
-  it("registers booking.reconcile on a 15 minute cron", () => {
+  it("registers booking:reconcile on a 15 minute cron", () => {
     expect(Object.keys(createTaskList(db)).sort()).toEqual([
       "booking.confirmed",
       "booking.expire-hold",
-      "booking.reconcile",
+      "booking:reconcile",
       "payment.create-charge",
       "payment.poll-charge",
       "payment.process-webhook",
       "payment.refund",
     ]);
-    expect(crontab).toContain("*/15 * * * * booking.reconcile");
+    expect(crontab).toContain("*/15 * * * * booking:reconcile");
+  });
+
+  it("parses as a graphile-worker crontab", () => {
+    expect(parseCrontab(crontab).map((item) => item.task)).toEqual([
+      "booking:reconcile",
+    ]);
   });
 });
