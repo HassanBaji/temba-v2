@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import { ErrorState } from "~/components/common/error-state";
-import { Section } from "~/components/layout/section";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";

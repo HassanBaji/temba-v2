@@ -21,8 +21,8 @@ import { api } from "~/trpc/react";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 
-import { bookingTimeLabel } from "./booking-block";
-import { addDays, clampRange } from "./booking-model";
+import { bookingTimeLabel } from "./booking-list-model";
+import { addDays, clampRange } from "./booking-list-model";
 import { holderName } from "./booking-types";
 import { PaymentBadge } from "./payment-badge";
 

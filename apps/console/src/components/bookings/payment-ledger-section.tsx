@@ -3,11 +3,9 @@
 import * as React from "react";
 import { toast } from "sonner";
 
-import { Section } from "~/components/layout/section";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 import {
   formatDayMonth,
@@ -18,7 +16,7 @@ import {
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
 
-import { refundDisplay, settleActions } from "./booking-model";
+import { refundDisplay, settleActions } from "./booking-ledger-model";
 import type { BookingView } from "./booking-types";
 import { PaymentBadge } from "./payment-badge";
 
