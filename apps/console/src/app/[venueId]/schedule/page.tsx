@@ -1,13 +1,5 @@
-import { ConsolePage } from "~/components/console/console-page";
-import { PageHeader } from "~/components/console/page-header";
+import { ScheduleScreen } from "~/components/schedule/schedule-screen";
 
 export default function Page() {
-  return (
-    <ConsolePage>
-      <PageHeader
-        title="Schedule"
-        description="This section arrives with its screen ticket."
-      />
-    </ConsolePage>
-  );
+  return <ScheduleScreen />;
 }
