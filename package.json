@@ -8,7 +8,10 @@
     "build:web": "turbo run build --filter=web",
     "build:api": "turbo run build --filter=api",
     "start:web": "turbo run start --filter=web",
-    "start:api": "turbo run start --filter=api"
+    "start:api": "turbo run start --filter=api",
+    "dev:console": "turbo run dev --filter=console --filter=api",
+    "build:console": "turbo run build --filter=console",
+    "start:console": "turbo run start --filter=console"
   },
   "dependencies": {
     "turbo": "^2.10.11"

@@ -17,6 +17,7 @@ const parsedEnv = createEnv({
     DATABASE_URL: z.string().url(),
     WEB_ORIGIN: z.string().url(),
     AUTHORIZED_PARTIES: z.string().optional(),
+    CONSOLE_ORIGIN: z.string().url().optional(),
     ACCEPT_SESSION_COOKIE: z
       .enum(["true", "false"])
       .default("false")

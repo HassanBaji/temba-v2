@@ -15,8 +15,9 @@ const app = createApp({
     acceptSessionCookie: env.ACCEPT_SESSION_COOKIE,
     authorizedParties: [
       env.WEB_ORIGIN,
+      env.CONSOLE_ORIGIN,
       ...(env.AUTHORIZED_PARTIES?.split(",").map((o) => o.trim()) ?? []),
-    ].filter(Boolean),
+    ].filter((origin): origin is string => Boolean(origin)),
   }),
   webOrigin: env.WEB_ORIGIN,
   webhookSigningSecret: env.CLERK_WEBHOOK_SIGNING_SECRET,
