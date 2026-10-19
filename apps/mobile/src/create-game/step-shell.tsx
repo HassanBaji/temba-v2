@@ -60,7 +60,7 @@ export function StepShell({
   );
 }
 
-function useLightStatusBar() {
+export function useLightStatusBar() {
   useFocusEffect(
     useCallback(() => {
       setStatusBarStyle("light");
