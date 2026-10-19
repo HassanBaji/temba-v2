@@ -1,3 +1,5 @@
+import type { PaymentStatus } from "@repo/domain/booking-payment";
+import { isOccupyingBooking } from "@repo/domain/booking-slots";
 import {
   addProductDays,
   productDayKey,
@@ -5,6 +7,7 @@ import {
 } from "@repo/domain/product-timezone";
 
 const MS_PER_MINUTE = 60_000;
+const MINUTES_PER_DAY = 24 * 60;
 const DEFAULT_OPEN_MINUTES = 8 * 60;
 const DEFAULT_CLOSE_MINUTES = 22 * 60;
 
@@ -160,9 +163,205 @@ export function closuresForCourt(
   );
 }
 
+function minuteInDay(minute: number): number {
+  return ((minute % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+}
+
 export function formatClock(minute: number): string {
-  const inDay = ((minute % 1440) + 1440) % 1440;
+  const inDay = minuteInDay(minute);
   return `${String(Math.floor(inDay / 60)).padStart(2, "0")}:${String(inDay % 60).padStart(2, "0")}`;
+}
+
+/** The time axis clock: `2:00 PM` with the meridiem, `3:00` without. */
+export function formatAxisClock(
+  minute: number,
+  style: "meridiem" | "bare" = "bare",
+): string {
+  const inDay = minuteInDay(minute);
+  const hours = Math.floor(inDay / 60);
+  const clock = `${((hours + 11) % 12) + 1}:${String(inDay % 60).padStart(2, "0")}`;
+  return style === "meridiem" ? `${clock} ${hours < 12 ? "AM" : "PM"}` : clock;
+}
+
+/**
+ * The whole hours inside the grid, labelled like the design: the first mark
+ * and each noon or midnight carry the meridiem, the rest are bare.
+ */
+export function hourMarks(grid: { startMinute: number; endMinute: number }) {
+  const marks: { minute: number; label: string }[] = [];
+  const first = Math.ceil(grid.startMinute / 60) * 60;
+  for (let minute = first; minute < grid.endMinute; minute += 60) {
+    const meridiem = marks.length === 0 || minuteInDay(minute) % 720 === 0;
+    marks.push({
+      minute,
+      label: formatAxisClock(minute, meridiem ? "meridiem" : "bare"),
+    });
+  }
+  return marks;
+}
+
+/** Minutes from the grid top to `now`, or null when `now` is outside the grid. */
+export function nowOffset(
+  grid: { startMinute: number; endMinute: number },
+  day: string,
+  now: Date,
+): number | null {
+  const minute = minutesFromDayStart(day, now);
+  if (minute < grid.startMinute || minute > grid.endMinute) {
+    return null;
+  }
+  return minute - grid.startMinute;
+}
+
+export function closureTimeLabel(
+  placed: PlacedInterval,
+  grid: { startMinute: number; endMinute: number },
+): string {
+  const coversStart = placed.startMinute <= grid.startMinute;
+  const coversEnd = placed.endMinute >= grid.endMinute;
+  if (coversStart && coversEnd) {
+    return "All day";
+  }
+  if (coversEnd) {
+    return `From ${formatAxisClock(placed.startMinute, "meridiem")}`;
+  }
+  return `Until ${formatAxisClock(placed.endMinute, "meridiem")}`;
+}
+
+export type BookingStatus =
+  | "pending_payment"
+  | "confirmed"
+  | "cancelled"
+  | "no_show"
+  | "expired";
+
+export type BlockTone = "ink" | "outline" | "muted";
+
+/**
+ * The block colour language: ink for an app Booking still to come, outline
+ * for one the Venue made by hand, muted once it has ended.
+ */
+export function blockTone(
+  booking: { source: "app" | "venue"; endsAt: Date },
+  now: Date,
+): BlockTone {
+  if (booking.endsAt.getTime() <= now.getTime()) {
+    return "muted";
+  }
+  return booking.source === "venue" ? "outline" : "ink";
+}
+
+export function durationMinutes(interval: {
+  startsAt: Date;
+  endsAt: Date;
+}): number {
+  return Math.round(
+    (interval.endsAt.getTime() - interval.startsAt.getTime()) / MS_PER_MINUTE,
+  );
+}
+
+const PAYMENT_WORDS: Record<PaymentStatus, string> = {
+  pending: "unpaid",
+  paid: "paid",
+  failed: "payment failed",
+  refunded: "refunded",
+  partially_refunded: "partly refunded",
+  waived: "waived",
+};
+
+/** The block's second line: `90 min, paid`. */
+export function blockDetailLine(booking: {
+  startsAt: Date;
+  endsAt: Date;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+}): string {
+  const minutes = `${durationMinutes(booking)} min`;
+  switch (booking.status) {
+    case "pending_payment":
+      return `${minutes}, awaiting payment`;
+    case "no_show":
+      return `${minutes}, no-show`;
+    case "cancelled":
+      return `${minutes}, cancelled`;
+    case "expired":
+      return `${minutes}, expired`;
+    default:
+      return `${minutes}, ${PAYMENT_WORDS[booking.paymentStatus]}`;
+  }
+}
+
+export function openMinutes(windows: GridWindow[]): number {
+  return windows.reduce(
+    (sum, window) => sum + (window.closesAtMinutes - window.opensAtMinutes),
+    0,
+  );
+}
+
+/** How many of an interval's minutes fall inside the Opening hours. */
+export function clippedOpenMinutes(
+  windows: GridWindow[],
+  interval: PlacedInterval,
+): number {
+  return windows.reduce((sum, window) => {
+    const start = Math.max(interval.startMinute, window.opensAtMinutes);
+    const end = Math.min(interval.endMinute, window.closesAtMinutes);
+    return sum + Math.max(0, end - start);
+  }, 0);
+}
+
+export type StatBooking = GridBooking & {
+  status: BookingStatus;
+  holdExpiresAt: Date | null;
+  paymentStatus: PaymentStatus;
+  priceFils: number;
+};
+
+export type ScheduleStats = {
+  bookings: number;
+  occupiedPercent: number | null;
+  takenFils: number;
+};
+
+/**
+ * The stat line for the shown days: Bookings on them, occupying Booking
+ * minutes over open Court minutes, and the sum paid. A Booking that spans
+ * midnight counts once.
+ */
+export function scheduleStats(args: {
+  days: { day: string; windows: GridWindow[] }[];
+  bookings: StatBooking[];
+  courtCount: number;
+  now: Date;
+}): ScheduleStats {
+  const shown = args.bookings.filter((booking) =>
+    args.days.some((entry) => overlapsDay(entry.day, booking)),
+  );
+
+  let occupied = 0;
+  let open = 0;
+  for (const entry of args.days) {
+    open += openMinutes(entry.windows) * args.courtCount;
+    for (const booking of shown) {
+      if (
+        overlapsDay(entry.day, booking) &&
+        isOccupyingBooking(booking, args.now)
+      ) {
+        occupied += clippedOpenMinutes(
+          entry.windows,
+          placeInterval(entry.day, booking),
+        );
+      }
+    }
+  }
+
+  return {
+    bookings: shown.length,
+    occupiedPercent: open > 0 ? Math.round((occupied / open) * 100) : null,
+    takenFils: shown
+      .filter((booking) => booking.paymentStatus === "paid")
+      .reduce((sum, booking) => sum + booking.priceFils, 0),
+  };
 }
 
 /** Clamps a requested range so the door never refuses it for being too long. */

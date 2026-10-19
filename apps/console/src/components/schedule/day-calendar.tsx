@@ -1,26 +1,42 @@
-import { Hatch } from "~/components/ui/hatch";
-import { cn } from "~/lib/utils";
+"use client";
+
+import { LayoutGrid } from "lucide-react";
+
+import { EmptyState } from "~/components/common/empty-state";
+import { formatGameClock } from "@repo/domain/format-game-start";
 
 import { BookingBlock } from "./booking-block";
 import {
   buildDayGrid,
+  closureTimeLabel,
   closuresForCourt,
-  formatClock,
+  hourMarks,
+  nowOffset,
   overlapsDay,
   placeInterval,
   rowSpan,
 } from "./booking-model";
 import type { VenueBookings } from "./booking-types";
 
-const ROW_HEIGHT = 40;
+/** One minute is one pixel, so a 30-minute step is the design's 30px row. */
+const AXIS_WIDTH = 56;
+const COLUMN_GAP = 6;
+const HEADER_HEIGHT = 48;
+const COURT_MIN_WIDTH = 120;
+const BLOCK_INSET = 2;
+const DENSE_BLOCK_HEIGHT = 44;
 
 export function DayCalendar({
   day,
+  now,
   data,
+  selectedId,
   onSelect,
 }: {
   day: string;
+  now: Date;
   data: VenueBookings;
+  selectedId: string | null;
   onSelect: (bookingId: string) => void;
 }) {
   const { grid, bookings } = data;
@@ -32,93 +48,121 @@ export function DayCalendar({
     windows,
     bookings: todays,
   });
+  const height = layout.endMinute - layout.startMinute;
+  const marks = hourMarks(layout);
+  const nowTop = nowOffset(layout, day, now);
+  const columns = `${AXIS_WIDTH}px repeat(${grid.courts.length}, minmax(${COURT_MIN_WIDTH}px, 1fr))`;
 
   if (grid.courts.length === 0) {
     return (
-      <p className="text-body text-muted-foreground">
-        This Venue has no Courts yet.
-      </p>
+      <EmptyState
+        icon={LayoutGrid}
+        title="No Courts yet"
+        description="Add a Court under Courts & pricing to see the day grid."
+      />
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 pr-7">
+      <div
+        className="border-rule bg-paper sticky top-0 z-20 grid border-b"
+        style={{
+          gridTemplateColumns: columns,
+          columnGap: COLUMN_GAP,
+          height: HEADER_HEIGHT,
+        }}
+      >
+        <div />
+        {grid.courts.map((court) => (
+          <div
+            key={court.id}
+            className="flex min-w-0 items-center px-2.5 text-[13px] font-semibold"
+          >
+            <span className="truncate">{court.name}</span>
+          </div>
+        ))}
+      </div>
+
       {windows.length === 0 ? (
-        <p className="text-body text-muted-foreground">
+        <p className="text-muted-foreground px-2.5 pt-3 text-[13px]">
           The Venue is closed this day.
         </p>
       ) : null}
-      <div className="border-border overflow-x-auto rounded-lg border">
+
+      <div className="pb-6 pt-2">
         <div
-          className="grid min-w-max"
+          className="relative grid"
           style={{
-            gridTemplateColumns: `4rem repeat(${grid.courts.length}, minmax(10rem, 1fr))`,
+            gridTemplateColumns: columns,
+            columnGap: COLUMN_GAP,
+            height,
           }}
         >
-          <div className="border-border bg-background sticky left-0 z-10 border-b" />
-          {grid.courts.map((court) => (
-            <div
-              key={court.id}
-              className="text-body border-border border-b border-l px-2 py-2 font-semibold"
-            >
-              {court.name}
-            </div>
-          ))}
-
-          <div
-            className="bg-background sticky left-0 z-10"
-            style={{ height: layout.rows.length * ROW_HEIGHT }}
-          >
-            {layout.rows.map((row) => (
-              <div
-                key={row.minute}
-                className="text-eyebrow text-muted-foreground px-2 pt-1"
-                style={{ height: ROW_HEIGHT }}
+          <div className="relative">
+            {marks.map((mark) => (
+              <span
+                key={mark.minute}
+                className="text-dim absolute left-0 -translate-y-1/2 text-[11px] tabular-nums"
+                style={{ top: mark.minute - layout.startMinute }}
               >
-                {formatClock(row.minute)}
-              </div>
+                {mark.label}
+              </span>
             ))}
           </div>
 
-          {grid.courts.map((court) => (
+          {marks.map((mark) => (
             <div
-              key={court.id}
-              className="border-border relative border-l"
-              style={{ height: layout.rows.length * ROW_HEIGHT }}
-            >
-              {layout.rows.map((row) => (
-                <div
-                  key={row.minute}
-                  data-open={row.open}
-                  className={cn(
-                    "border-border border-t",
-                    row.open ? "" : "bg-secondary/60",
-                  )}
-                  style={{ height: ROW_HEIGHT }}
-                />
-              ))}
+              key={mark.minute}
+              aria-hidden="true"
+              className="border-rule pointer-events-none absolute right-0 border-t"
+              style={{
+                left: AXIS_WIDTH + COLUMN_GAP,
+                top: mark.minute - layout.startMinute,
+              }}
+            />
+          ))}
+
+          {grid.courts.map((court) => (
+            <div key={court.id} className="relative min-w-0">
+              {layout.rows
+                .filter((row) => !row.open)
+                .map((row) => (
+                  <div
+                    key={row.minute}
+                    aria-hidden="true"
+                    className="bg-wash absolute inset-x-0"
+                    style={{
+                      top: row.minute - layout.startMinute,
+                      height: grid.slotMinutes,
+                    }}
+                  />
+                ))}
+
               {closuresForCourt(grid.closures, court.id, day).map((closure) => {
-                const span = rowSpan(
-                  layout,
-                  grid.slotMinutes,
-                  placeInterval(day, closure),
-                );
+                const placed = placeInterval(day, closure);
+                const span = rowSpan(layout, grid.slotMinutes, placed);
                 return span ? (
                   <div
                     key={closure.id}
-                    className="border-border absolute inset-x-0 overflow-hidden border-y"
+                    className="hatch rounded-block text-muted-foreground absolute inset-x-0 overflow-hidden px-2.5 py-2 text-xs leading-4"
                     style={{
-                      top: span.top * ROW_HEIGHT,
-                      height: span.height * ROW_HEIGHT,
+                      top: span.top * grid.slotMinutes + BLOCK_INSET,
+                      height: span.height * grid.slotMinutes - BLOCK_INSET * 2,
                     }}
                   >
-                    <Hatch className="absolute inset-0" />
-                    <span className="text-eyebrow bg-background relative m-1 inline-block px-1">
-                      {closure.reason?.trim() ? closure.reason : "Closed"}
-                    </span>
+                    <div className="text-ink truncate font-semibold">
+                      {closure.reason?.trim()
+                        ? `Closed, ${closure.reason.trim()}`
+                        : "Closed"}
+                    </div>
+                    <div className="truncate">
+                      {closureTimeLabel(placed, layout)}
+                    </div>
                   </div>
                 ) : null;
               })}
+
               {todays
                 .filter((booking) => booking.courtId === court.id)
                 .map((booking) => {
@@ -127,21 +171,43 @@ export function DayCalendar({
                     grid.slotMinutes,
                     placeInterval(day, booking),
                   );
-                  return span ? (
+                  if (!span) {
+                    return null;
+                  }
+                  const blockHeight =
+                    span.height * grid.slotMinutes - BLOCK_INSET * 2;
+                  return (
                     <BookingBlock
                       key={booking.id}
                       booking={booking}
+                      now={now}
+                      layout={
+                        blockHeight < DENSE_BLOCK_HEIGHT ? "dense" : "day"
+                      }
+                      selected={booking.id === selectedId}
                       onSelect={onSelect}
-                      className="absolute inset-x-1 z-[1]"
+                      className="absolute inset-x-0 z-[1]"
                       style={{
-                        top: span.top * ROW_HEIGHT + 2,
-                        height: span.height * ROW_HEIGHT - 4,
+                        top: span.top * grid.slotMinutes + BLOCK_INSET,
+                        height: blockHeight,
                       }}
                     />
-                  ) : null;
+                  );
                 })}
             </div>
           ))}
+
+          {nowTop !== null ? (
+            <div
+              aria-hidden="true"
+              className="border-ink pointer-events-none absolute right-0 z-10 border-t-2"
+              style={{ left: AXIS_WIDTH + COLUMN_GAP, top: nowTop }}
+            >
+              <span className="bg-ink text-paper absolute -top-[18px] right-0 rounded-[4px] px-[5px] py-0.5 font-mono text-[10px]">
+                {formatGameClock(now)}
+              </span>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
