@@ -1,13 +1,5 @@
-import { ConsolePage } from "~/components/console/console-page";
-import { PageHeader } from "~/components/console/page-header";
+import { HoursClosuresScreen } from "~/components/hours/hours-closures-screen";
 
 export default function Page() {
-  return (
-    <ConsolePage>
-      <PageHeader
-        title="Hours & closures"
-        description="This section arrives with its screen ticket."
-      />
-    </ConsolePage>
-  );
+  return <HoursClosuresScreen />;
 }
