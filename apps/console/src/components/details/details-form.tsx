@@ -4,8 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
-import { EntityImageField } from "~/components/common/entity-image-field";
-import { Section } from "~/components/layout/section";
+import { EntityImageField } from "~/components/details/entity-image-field";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -20,7 +19,7 @@ import {
   focusFormFailure,
   globalFormErrorMessage,
   toastGlobalFormError,
-} from "~/lib/form-mutation-error";
+} from "~/components/details/form-mutation-error";
 import { api } from "~/trpc/react";
 import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 
