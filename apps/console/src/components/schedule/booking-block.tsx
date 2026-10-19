@@ -3,7 +3,6 @@ import { cn } from "~/lib/utils";
 import { formatGameClock } from "@repo/domain/format-game-start";
 
 import { holderName, type VenueBooking } from "./booking-types";
-import { PaymentBadge } from "./payment-badge";
 
 export function bookingTimeLabel(booking: VenueBooking) {
   return `${formatGameClock(booking.startsAt)}–${formatGameClock(booking.endsAt)}`;
