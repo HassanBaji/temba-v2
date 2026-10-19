@@ -1,4 +1,3 @@
-import { useUser } from "@clerk/expo";
 import { colors, sizes } from "@repo/design-tokens";
 import { Tabs, useSegments } from "expo-router";
 import {
@@ -42,10 +41,9 @@ const ROUTES: Record<TabSlot, string> = {
 };
 
 export function AppTabs() {
-  const { user } = useUser();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
-  const tabs = visibleTabs(user?.publicMetadata.groupCreator === true);
+  const tabs = visibleTabs();
   const shown = new Set(tabs.map((tab) => tab.slot));
 
   return (
