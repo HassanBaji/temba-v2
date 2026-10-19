@@ -1,191 +1,136 @@
 "use client";
 
+import { CalendarDays, Search } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
-import { CalendarDays } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { Badge } from "~/components/ui/badge";
-import { Field, FieldLabel } from "~/components/ui/field";
-import { Input } from "~/components/ui/input";
+import { SegmentedControl } from "~/components/console/segmented-control";
 import { Skeleton } from "~/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
+import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
-import { formatDayMonth } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import { productDayKey } from "@repo/domain/product-timezone";
+import { cn } from "~/lib/utils";
 
-import { bookingTimeLabel } from "./booking-list-model";
-import { addDays, clampRange } from "./booking-list-model";
-import { holderName } from "./booking-types";
+import {
+  countLabel,
+  durationLabel,
+  inScope,
+  matchesSearch,
+  SCOPE_OPTIONS,
+  scopeQuery,
+  sourceLabel,
+  whenLabel,
+  type ListScope,
+} from "./booking-list-model";
+import { BookingMonogram } from "./booking-monogram";
+import { BookingRowMenu } from "./booking-row-menu";
+import { holderName, type VenueBooking } from "./booking-types";
+import { FilterSelect } from "./filter-select";
 import { PaymentBadge } from "./payment-badge";
 
-const MAX_DAYS = 31;
-
-const STATUS_OPTIONS = [
-  { value: "confirmed", label: "Confirmed" },
-  { value: "pending_payment", label: "Awaiting payment" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "no_show", label: "No-show" },
-  { value: "expired", label: "Expired" },
-] as const;
-
-const PAYMENT_OPTIONS = [
-  { value: "pending", label: "Pending" },
-  { value: "paid", label: "Paid" },
-  { value: "failed", label: "Failed" },
-  { value: "partially_refunded", label: "Partially refunded" },
-  { value: "refunded", label: "Refunded" },
-  { value: "waived", label: "Waived" },
-] as const;
-
 const SOURCE_OPTIONS = [
-  { value: "app", label: "Booked in the app" },
-  { value: "venue", label: "Made by the Venue" },
+  { value: "", label: "Any source" },
+  { value: "app", label: "App" },
+  { value: "venue", label: "Manual" },
 ] as const;
 
-const selectClass =
-  "border-input text-body h-10 rounded-md border bg-transparent px-3";
+const COLUMNS = ["When", "Customer", "Court", "Game", "Source", "Payment"];
+
+const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN;
 
 export function BookingsList({
   venueId,
-  today,
-  onSelect,
+  courts,
 }: {
   venueId: string;
-  today: string;
-  onSelect: (bookingId: string) => void;
+  courts: readonly { id: string; name: string }[];
 }) {
-  const [from, setFrom] = React.useState(today);
-  const [to, setTo] = React.useState(addDays(today, 13));
+  const router = useRouter();
+  const now = React.useMemo(() => new Date(), []);
+  const today = React.useMemo(() => productDayKey(now), [now]);
+  const [scope, setScope] = React.useState<ListScope>("upcoming");
+  const [search, setSearch] = React.useState("");
   const [courtId, setCourtId] = React.useState("");
-  const [status, setStatus] = React.useState("");
-  const [paymentStatus, setPaymentStatus] = React.useState("");
   const [source, setSource] = React.useState("");
 
-  const venue = api.venues.managedById.useQuery({ venueId });
-  const validRange = from !== "" && to !== "" && to >= from;
-  const effectiveTo = validRange ? clampRange(from, to, MAX_DAYS) : to;
-  const list = api.bookings.listForVenue.useQuery(
-    {
-      venueId,
-      from,
-      to: effectiveTo,
-      courtId: courtId || undefined,
-      status: status
-        ? [status as (typeof STATUS_OPTIONS)[number]["value"]]
-        : undefined,
-      paymentStatus: paymentStatus
-        ? [paymentStatus as (typeof PAYMENT_OPTIONS)[number]["value"]]
-        : undefined,
-      source: source ? [source as "app" | "venue"] : undefined,
-    },
-    { enabled: validRange },
-  );
+  const query = scopeQuery(scope, today);
+  const list = api.bookings.listForVenue.useQuery({
+    venueId,
+    from: query.from,
+    to: query.to,
+    status: query.status,
+    courtId: courtId || undefined,
+    source: source ? [source as "app" | "venue"] : undefined,
+  });
+
+  const rows = React.useMemo(() => {
+    const all = list.data?.bookings ?? [];
+    const scoped = all.filter((booking) => inScope(booking, scope, now));
+    const ordered =
+      scope === "upcoming"
+        ? scoped
+        : [...scoped].sort(
+            (a, b) => b.startsAt.getTime() - a.startsAt.getTime(),
+          );
+    return ordered.filter((booking) => matchesSearch(booking, search));
+  }, [list.data, scope, now, search]);
+
+  const courtOptions = [
+    { value: "", label: "All courts" },
+    ...courts.map((court) => ({ value: court.id, label: court.name })),
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Field>
-          <FieldLabel htmlFor="list-from">From</FieldLabel>
-          <Input
-            id="list-from"
-            type="date"
-            value={from}
-            onChange={(event) => setFrom(event.target.value)}
+    <div className="flex flex-col gap-[18px]">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <label className="border-border bg-paper rounded-control text-muted-foreground focus-within:ring-ring/50 flex h-10 w-[280px] items-center gap-2.5 border px-3 focus-within:ring-[3px]">
+          <Search aria-hidden="true" className="size-[15px] shrink-0" />
+          <input
+            type="search"
+            aria-label="Search Bookings"
+            placeholder="Name, phone or booking ref"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="text-foreground placeholder:text-muted-foreground h-full w-full min-w-0 bg-transparent text-[13px] outline-none"
           />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="list-to">To</FieldLabel>
-          <Input
-            id="list-to"
-            type="date"
-            value={to}
-            onChange={(event) => setTo(event.target.value)}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="list-court">Court</FieldLabel>
-          <select
-            id="list-court"
-            className={selectClass}
-            value={courtId}
-            onChange={(event) => setCourtId(event.target.value)}
-          >
-            <option value="">All Courts</option>
-            {(venue.data?.courts ?? []).map((court) => (
-              <option key={court.id} value={court.id}>
-                {court.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="list-status">Status</FieldLabel>
-          <select
-            id="list-status"
-            className={selectClass}
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            <option value="">Any except expired</option>
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="list-payment">Payment</FieldLabel>
-          <select
-            id="list-payment"
-            className={selectClass}
-            value={paymentStatus}
-            onChange={(event) => setPaymentStatus(event.target.value)}
-          >
-            <option value="">Any payment</option>
-            {PAYMENT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="list-source">Source</FieldLabel>
-          <select
-            id="list-source"
-            className={selectClass}
-            value={source}
-            onChange={(event) => setSource(event.target.value)}
-          >
-            <option value="">Any source</option>
-            {SOURCE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+        </label>
+        <SegmentedControl
+          label="Which Bookings"
+          value={scope}
+          options={SCOPE_OPTIONS}
+          onChange={setScope}
+        />
+        <FilterSelect
+          label="Court"
+          value={courtId}
+          onChange={setCourtId}
+          options={courtOptions}
+        />
+        <FilterSelect
+          label="Source"
+          value={source}
+          onChange={setSource}
+          options={SOURCE_OPTIONS}
+        />
+        {list.data ? (
+          <span className="text-muted-foreground ml-auto text-[13px]">
+            {countLabel(scope, rows.length)}
+          </span>
+        ) : null}
       </div>
-      {validRange && effectiveTo !== to ? (
-        <p className="text-body text-muted-foreground">
-          Showing the first {MAX_DAYS} days of this range.
-        </p>
-      ) : null}
-      {!validRange ? (
-        <p role="alert" className="text-body text-muted-foreground">
-          Choose a start day and an end day on or after it.
-        </p>
-      ) : list.isLoading ? (
-        <Skeleton className="h-48 w-full" />
+
+      {list.isLoading ? (
+        <TableFrame>
+          <tbody>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <SkeletonRow key={index} />
+            ))}
+          </tbody>
+        </TableFrame>
       ) : list.error ? (
         <ErrorState
           title="Bookings could not be loaded"
@@ -194,63 +139,196 @@ export function BookingsList({
             void list.refetch();
           }}
         />
-      ) : list.data?.bookings.length === 0 ? (
+      ) : rows.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
-          title="No Bookings match"
-          description="Change the dates or filters to see more."
+          title={
+            search.trim() ? "No Bookings match" : "Nothing on the books here"
+          }
+          description={
+            search.trim()
+              ? "Try another name, phone or booking reference."
+              : "Change the court, source or period to see more."
+          }
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>When</TableHead>
-              <TableHead>Court</TableHead>
-              <TableHead>Holder</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {list.data?.bookings.map((booking) => (
-              <TableRow key={booking.id}>
-                <TableCell>
-                  <button
-                    type="button"
-                    className="text-left underline-offset-4 hover:underline"
-                    onClick={() => onSelect(booking.id)}
-                  >
-                    {formatDayMonth(booking.startsAt, { weekday: "short" })}
-                    {" · "}
-                    {bookingTimeLabel(booking)}
-                  </button>
-                </TableCell>
-                <TableCell>{booking.courtName}</TableCell>
-                <TableCell>
-                  {holderName(booking.holder)}
-                  {booking.source === "venue" ? (
-                    <span className="text-muted-foreground"> · Venue</span>
-                  ) : null}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" size="sm">
-                    {booking.status === "pending_payment"
-                      ? "Awaiting payment"
-                      : booking.statusLabel}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <PaymentBadge status={booking.paymentStatus} />
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatBookingPriceFils(booking.priceFils)}
-                </TableCell>
-              </TableRow>
+        <TableFrame>
+          <tbody>
+            {rows.map((booking) => (
+              <BookingRow
+                key={booking.id}
+                venueId={venueId}
+                booking={booking}
+                now={now}
+                onOpen={() => router.push(bookingPath(venueId, booking.id))}
+              />
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </TableFrame>
       )}
     </div>
+  );
+}
+
+function TableFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-border rounded-card overflow-hidden border">
+      <table className="w-full table-fixed border-collapse text-[13px]">
+        <colgroup>
+          <col className="w-[132px]" />
+          <col />
+          <col className="w-[100px]" />
+          <col className="w-[14%]" />
+          <col className="w-[100px]" />
+          <col className="w-[130px]" />
+          <col className="w-[100px]" />
+          <col className="w-[52px]" />
+        </colgroup>
+        <thead>
+          <tr className="border-border border-b">
+            {COLUMNS.map((column) => (
+              <th
+                key={column}
+                scope="col"
+                className="eyebrow-mono px-[18px] py-3 text-left font-normal"
+              >
+                {column}
+              </th>
+            ))}
+            <th
+              scope="col"
+              className="eyebrow-mono px-[18px] py-3 text-right font-normal"
+            >
+              Amount
+            </th>
+            <th scope="col" className="px-[18px] py-3">
+              <span className="sr-only">Actions</span>
+            </th>
+          </tr>
+        </thead>
+        {children}
+      </table>
+    </div>
+  );
+}
+
+const cellClass = "px-[18px] py-3.5 align-middle";
+
+function BookingRow({
+  venueId,
+  booking,
+  now,
+  onOpen,
+}: {
+  venueId: string;
+  booking: VenueBooking;
+  now: Date;
+  onOpen: () => void;
+}) {
+  const holder = booking.holder;
+  const pending = booking.status === "pending_payment";
+  return (
+    <tr
+      onClick={onOpen}
+      className={cn(
+        "border-border hover:bg-wash cursor-pointer border-b transition-colors last:border-b-0",
+        booking.status === "cancelled" || booking.status === "expired"
+          ? "text-muted-foreground"
+          : null,
+      )}
+    >
+      <td className={cn(cellClass, "pl-[18px]")}>
+        <Link
+          href={bookingPath(venueId, booking.id)}
+          onClick={(event) => event.stopPropagation()}
+          className="focus-visible:ring-ring/50 block rounded-sm font-semibold outline-none focus-visible:ring-[3px]"
+        >
+          {whenLabel(booking.startsAt, now)}
+        </Link>
+        <span className="text-muted-foreground block">
+          {durationLabel(booking.startsAt, booking.endsAt)}
+          {pending ? " · awaiting payment" : null}
+        </span>
+      </td>
+      <td className={cellClass}>
+        <span className="flex items-center gap-2.5">
+          <BookingMonogram holder={holder} />
+          <span className="min-w-0">
+            <span className="block truncate">{holderName(holder)}</span>
+            {holder.kind === "guest" && holder.phone ? (
+              <span className="text-muted-foreground block truncate">
+                {holder.phone}
+              </span>
+            ) : null}
+          </span>
+        </span>
+      </td>
+      <td className={cn(cellClass, "truncate")}>{booking.courtName}</td>
+      <td className={cellClass}>
+        {booking.gameId ? (
+          webOrigin ? (
+            <a
+              href={`${webOrigin}/dashboard/games/${booking.gameId}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(event) => event.stopPropagation()}
+              className="underline-offset-4 hover:underline"
+            >
+              Game
+            </a>
+          ) : (
+            "Game"
+          )
+        ) : (
+          <span className="text-muted-foreground/70">None</span>
+        )}
+      </td>
+      <td className={cellClass}>{sourceLabel(booking.source)}</td>
+      <td className={cellClass}>
+        <PaymentBadge status={booking.paymentStatus} />
+      </td>
+      <td className={cn(cellClass, "text-right tabular-nums")}>
+        {formatBookingPriceFils(booking.priceFils)}
+      </td>
+      <td className={cn(cellClass, "pr-3")}>
+        <BookingRowMenu venueId={venueId} booking={booking} />
+      </td>
+    </tr>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="border-border border-b last:border-b-0" aria-hidden="true">
+      <td className={cellClass}>
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="mt-1.5 h-3 w-12" />
+      </td>
+      <td className={cellClass}>
+        <span className="flex items-center gap-2.5">
+          <Skeleton className="size-7 rounded-[7px]" />
+          <span>
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="mt-1.5 h-3 w-24" />
+          </span>
+        </span>
+      </td>
+      <td className={cellClass}>
+        <Skeleton className="h-4 w-14" />
+      </td>
+      <td className={cellClass}>
+        <Skeleton className="h-4 w-20" />
+      </td>
+      <td className={cellClass}>
+        <Skeleton className="h-4 w-10" />
+      </td>
+      <td className={cellClass}>
+        <Skeleton className="h-4 w-14" />
+      </td>
+      <td className={cellClass}>
+        <Skeleton className="ml-auto h-4 w-16" />
+      </td>
+      <td className={cellClass} />
+    </tr>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
 import { BookingDetails } from "~/components/bookings/booking-details";
+import { ConsolePage } from "~/components/console/console-page";
+import { venuePath } from "~/lib/console-paths";
 
-export default function ManageBookingPage({
+export default function BookingPage({
   params,
 }: {
   params: Promise<{ venueId: string; bookingId: string }>;
@@ -14,15 +16,15 @@ export default function ManageBookingPage({
   const { venueId, bookingId } = use(params);
 
   return (
-    <div className="space-y-4">
+    <ConsolePage className="gap-4">
       <Link
-        href={`/dashboard/manage/${venueId}/bookings`}
-        className="text-body inline-flex items-center gap-1 underline-offset-4 hover:underline"
+        href={venuePath(venueId, "bookings")}
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 inline-flex w-fit items-center gap-1.5 rounded-sm text-[13px] outline-none transition-colors focus-visible:ring-[3px]"
       >
-        <ChevronLeft className="size-4" />
+        <ArrowLeft aria-hidden="true" className="size-3.5" />
         Bookings
       </Link>
       <BookingDetails bookingId={bookingId} />
-    </div>
+    </ConsolePage>
   );
 }

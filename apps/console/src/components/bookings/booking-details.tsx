@@ -1,9 +1,14 @@
 "use client";
 
-import Link from "next/link";
+import { ExternalLink } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
-import { Badge } from "~/components/ui/badge";
+import {
+  ConsoleCard,
+  ConsoleCardHeader,
+} from "~/components/console/console-card";
+import { PageHeader } from "~/components/console/page-header";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import {
@@ -12,8 +17,17 @@ import {
 } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 
-import type { BookingView } from "./booking-types";
+import {
+  bookingTitle,
+  durationLabel,
+  sourceLabel,
+  timeRangeLabel,
+} from "./booking-list-model";
+import { BookingMonogram } from "./booking-monogram";
+import { holderName, type BookingView } from "./booking-types";
 import { PaymentLedgerSection } from "./payment-ledger-section";
+
+const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN;
 
 function when(value: Date) {
   return `${formatDayMonth(value, { weekday: "short" })}, ${formatGameClock(value)}`;
@@ -24,10 +38,15 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
 
   if (booking.isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-2/3" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-40 w-full" />
+      <div aria-busy="true" aria-live="polite" className="flex flex-col gap-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-2/3 max-w-md" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Skeleton className="rounded-card h-72" />
+          <Skeleton className="rounded-card h-72" />
+        </div>
       </div>
     );
   }
@@ -56,78 +75,119 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
   }
 
   return (
-    <div className="space-y-6">
-      <BookingSummary booking={data} />
-      <PaymentLedgerSection booking={data} />
-      <AuditTrail booking={data} />
+    <div className="flex flex-col gap-[22px]">
+      <PageHeader
+        title={bookingTitle(data)}
+        description={`${holderName(data.manager.holder)} · ${statusText(data)}`}
+      />
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="flex flex-col gap-5">
+          <BookingFacts booking={data} />
+          <GameCard booking={data} />
+        </div>
+        <div className="flex flex-col gap-5">
+          <PaymentLedgerSection booking={data} />
+          <AuditTrail booking={data} />
+        </div>
+      </div>
     </div>
   );
 }
 
-function BookingSummary({ booking }: { booking: BookingView }) {
+function statusText(booking: BookingView) {
+  if (booking.status === "pending_payment") {
+    return booking.holdExpiresAt
+      ? `Awaiting payment, held until ${formatGameClock(booking.holdExpiresAt)}`
+      : "Awaiting payment";
+  }
+  return booking.statusLabel;
+}
+
+function BookingFacts({ booking }: { booking: BookingView }) {
   const manager = booking.manager!;
   const holder = manager.holder;
   return (
-    <Section
-      title={holder.name || "Customer"}
-      description={
-        holder.kind === "guest" ? `Guest · ${holder.phone}` : "Customer"
-      }
-      action={<Badge variant="outline">{booking.statusLabel}</Badge>}
-    >
-      <dl className="text-body grid gap-x-6 gap-y-2 sm:grid-cols-2">
-        <Fact label="Court" value={booking.court.name} />
-        <Fact
-          label="When"
-          value={`${when(booking.startsAt)}–${formatGameClock(booking.endsAt)}`}
-        />
-        <Fact label="Price" value={formatBookingPriceFils(booking.priceFils)} />
-        <Fact
-          label="Source"
-          value={
-            booking.source === "venue"
-              ? "Made by the Venue"
-              : "Booked in the app"
-          }
-        />
-        {booking.status === "pending_payment" && booking.holdExpiresAt ? (
-          <Fact label="Held until" value={when(booking.holdExpiresAt)} />
-        ) : null}
+    <ConsoleCard>
+      <ConsoleCardHeader title="Booking" />
+      <dl className="divide-border divide-y text-[13px]">
+        <Fact label="Customer">
+          <span className="flex items-center gap-2.5">
+            <BookingMonogram holder={holder} />
+            <span className="min-w-0">
+              <span className="block truncate">{holderName(holder)}</span>
+              <span className="text-muted-foreground block truncate">
+                {holder.kind === "guest"
+                  ? holder.phone || "Guest"
+                  : "Temba account"}
+              </span>
+            </span>
+          </span>
+        </Fact>
+        <Fact label="Court">{booking.court.name}</Fact>
+        <Fact label="Time">
+          {formatDayMonth(booking.startsAt, { weekday: "short", year: true })},{" "}
+          {timeRangeLabel(booking.startsAt, booking.endsAt)}
+        </Fact>
+        <Fact label="Duration">
+          {durationLabel(booking.startsAt, booking.endsAt)}
+        </Fact>
+        <Fact label="Price">
+          <span className="tabular-nums">
+            {formatBookingPriceFils(booking.priceFils)}
+          </span>
+        </Fact>
+        <Fact label="Source">{sourceLabel(booking.source)}</Fact>
+        <Fact label="Status">{statusText(booking)}</Fact>
         {manager.managerNotes ? (
-          <Fact label="Notes" value={manager.managerNotes} />
+          <Fact label="Notes">{manager.managerNotes}</Fact>
         ) : null}
-        {booking.game ? (
-          <div>
-            <dt className="text-muted-foreground">Game</dt>
-            <dd>
-              <Link
-                href={`/dashboard/games/${booking.game.id}`}
-                className="underline underline-offset-4"
-              >
-                {booking.game.name ?? "Open Game"}
-              </Link>
-            </dd>
-          </div>
-        ) : null}
+        <Fact label="Cancellation policy">
+          <ul className="text-muted-foreground space-y-0.5">
+            {booking.cancellationPolicyLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </Fact>
       </dl>
-      <div className="space-y-1">
-        <p className="text-body font-semibold">Cancellation policy</p>
-        <ul className="text-body text-muted-foreground list-disc pl-5">
-          {booking.cancellationPolicyLines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      </div>
-    </Section>
+    </ConsoleCard>
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div>
+    <div className="grid grid-cols-[132px_1fr] gap-4 px-5 py-3">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd>{value}</dd>
+      <dd className="min-w-0">{children}</dd>
     </div>
+  );
+}
+
+function GameCard({ booking }: { booking: BookingView }) {
+  const game = booking.game;
+  return (
+    <ConsoleCard>
+      <ConsoleCardHeader title="Game" />
+      <div className="px-5 py-4 text-[13px]">
+        {game ? (
+          <div className="flex items-center justify-between gap-4">
+            <span className="min-w-0 truncate">{game.name ?? "Open Game"}</span>
+            {webOrigin ? (
+              <a
+                href={`${webOrigin}/dashboard/games/${game.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1.5 underline-offset-4 hover:underline"
+              >
+                Open in Temba
+                <ExternalLink aria-hidden="true" className="size-3.5" />
+              </a>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">No Game is attached.</p>
+        )}
+      </div>
+    </ConsoleCard>
   );
 }
 
@@ -162,15 +222,21 @@ function AuditTrail({ booking }: { booking: BookingView }) {
   entries.sort((a, b) => a.at.getTime() - b.at.getTime());
 
   return (
-    <Section title="History">
-      <ul className="text-body space-y-1">
+    <ConsoleCard>
+      <ConsoleCardHeader title="History" />
+      <ol className="divide-border divide-y text-[13px]">
         {entries.map((entry) => (
-          <li key={`${entry.at.getTime()}-${entry.text}`}>
-            <span className="text-muted-foreground">{when(entry.at)}</span>{" "}
-            {entry.text}
+          <li
+            key={`${entry.at.getTime()}-${entry.text}`}
+            className="grid grid-cols-[132px_1fr] gap-4 px-5 py-3"
+          >
+            <span className="text-muted-foreground tabular-nums">
+              {when(entry.at)}
+            </span>
+            <span>{entry.text}</span>
           </li>
         ))}
-      </ul>
-    </Section>
+      </ol>
+    </ConsoleCard>
   );
 }
