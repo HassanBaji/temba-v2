@@ -3,23 +3,12 @@ import { describe, expect, it } from "vitest";
 import { tabBarHidden, visibleTabs } from "./tab-list";
 
 describe("visibleTabs", () => {
-  it("shows Home, Games, Book, Groups and Profile without the Group creator flag", () => {
-    expect(visibleTabs(false).map((tab) => tab.title)).toEqual([
+  it("shows Home, Games, Book, Groups and Profile, without Communities", () => {
+    expect(visibleTabs().map((tab) => tab.title)).toEqual([
       "Home",
       "Games",
       "Book",
       "Groups",
-      "Profile",
-    ]);
-  });
-
-  it("puts Communities before Profile with the Group creator flag", () => {
-    expect(visibleTabs(true).map((tab) => tab.title)).toEqual([
-      "Home",
-      "Games",
-      "Book",
-      "Groups",
-      "Communities",
       "Profile",
     ]);
   });

@@ -13,14 +13,11 @@ const TABS: TabEntry[] = [
   { slot: "games", title: "Games" },
   { slot: "book", title: "Book" },
   { slot: "groups", title: "Groups" },
-  { slot: "communities", title: "Communities" },
   { slot: "profile", title: "Profile" },
 ];
 
-export function visibleTabs(isGroupCreator: boolean): TabEntry[] {
-  return isGroupCreator
-    ? TABS
-    : TABS.filter((tab) => tab.slot !== "communities");
+export function visibleTabs(): TabEntry[] {
+  return TABS;
 }
 
 export function tabBarHidden(segments: readonly string[]): boolean {
