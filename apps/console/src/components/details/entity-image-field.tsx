@@ -12,6 +12,7 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import { cn } from "~/lib/utils";
 import {
   ENTITY_IMAGE_ACCEPT,
   ENTITY_IMAGE_HELP,
@@ -19,10 +20,12 @@ import {
   type EntityImageNoun,
 } from "@repo/domain/entity-image-file";
 
+import { controlClass, labelClass } from "./details-styles";
+
 /**
  * One image or logo picker. With `file` it holds a pick until the form
- * submits (Group create); without it the parent uploads each valid pick at
- * once and passes `pending` while it does (Venue logo).
+ * submits; without it the parent uploads each valid pick at once and passes
+ * `pending` while it does (Venue logo).
  */
 export function EntityImageField({
   id,
@@ -63,8 +66,10 @@ export function EntityImageField({
   const shownImage = previewUrl ?? currentImageUrl ?? null;
 
   return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <Field data-invalid={error ? true : undefined}>
+      <FieldLabel htmlFor={id} className={labelClass}>
+        {label}
+      </FieldLabel>
       {shownImage ? (
         <div className="flex min-w-0 items-center gap-3">
           <EntityMonogram
@@ -79,6 +84,7 @@ export function EntityImageField({
             <Button
               type="button"
               variant="outline"
+              className={cn(controlClass, "hover:bg-wash px-3.5 text-[13px]")}
               disabled={disabled}
               onClick={() => {
                 onError(null);
@@ -95,6 +101,7 @@ export function EntityImageField({
         type="file"
         accept={ENTITY_IMAGE_ACCEPT}
         disabled={disabled || pending}
+        className={cn(controlClass, "text-meta file:text-meta")}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : `${id}-help`}
         onChange={(event) => {
@@ -112,7 +119,9 @@ export function EntityImageField({
           onFileChange(next);
         }}
       />
-      <FieldDescription id={`${id}-help`}>{ENTITY_IMAGE_HELP}</FieldDescription>
+      <FieldDescription id={`${id}-help`} className="text-xs">
+        {ENTITY_IMAGE_HELP}
+      </FieldDescription>
       <p
         role="status"
         className="text-meta text-muted-foreground flex items-center gap-2 empty:hidden"

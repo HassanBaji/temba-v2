@@ -4,60 +4,68 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
-import { EntityImageField } from "~/components/details/entity-image-field";
-import { Button } from "~/components/ui/button";
+import { ConsoleCard } from "~/components/console/console-card";
 import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "~/components/ui/field";
+  useManagedVenue,
+  type ManagedVenue,
+} from "~/components/console/managed-venue-context";
+import { Button } from "~/components/ui/button";
+import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
+import { entityImageUploadInput } from "@repo/domain/entity-image-file";
+
+import { controlClass, labelClass, textareaClass } from "./details-styles";
+import { EntityImageField } from "./entity-image-field";
 import {
   fieldErrorMessage,
   focusFormFailure,
   globalFormErrorMessage,
   toastGlobalFormError,
-} from "~/components/details/form-mutation-error";
-import { api } from "~/trpc/react";
-import { entityImageUploadInput } from "@repo/domain/entity-image-file";
+} from "./form-mutation-error";
 
-export function DetailsTab({ venueId }: { venueId: string }) {
+const FIELD_IDS = {
+  phone: "venue-phone",
+  website: "venue-website",
+  description: "venue-description",
+  bookingNotes: "venue-booking-notes",
+};
+
+export function DetailsForm() {
+  const venue = useManagedVenue();
+  return <DetailsFormFields key={venue.id} venue={venue} />;
+}
+
+function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
+  const venueId = venue.id;
   const utils = api.useUtils();
-  const venue = api.venues.managedById.useQuery({ venueId });
-  const [phone, setPhone] = React.useState("");
-  const [website, setWebsite] = React.useState("");
-  const [hydratedId, setHydratedId] = React.useState<string | null>(null);
+  const [phone, setPhone] = React.useState(venue.phone ?? "");
+  const [website, setWebsite] = React.useState(venue.website ?? "");
+  const [description, setDescription] = React.useState(venue.description ?? "");
+  const [bookingNotes, setBookingNotes] = React.useState(
+    venue.bookingNotes ?? "",
+  );
   const [logoError, setLogoError] = React.useState<string | null>(null);
   const [clearLogoOpen, setClearLogoOpen] = React.useState(false);
   const summaryRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (!venue.data || hydratedId === venue.data.id) {
-      return;
-    }
-    setPhone(venue.data.phone ?? "");
-    setWebsite(venue.data.website ?? "");
-    setHydratedId(venue.data.id);
-  }, [venue.data, hydratedId]);
 
   const refresh = async () => {
     await utils.venues.managedById.invalidate({ venueId });
   };
 
   const updateDetails = api.venues.updateDetails.useMutation({
-    onSuccess: async () => {
-      toast.success("Details saved");
-      await refresh();
-    },
     onError: (error) => {
       toastGlobalFormError(error);
-      focusFormFailure(
-        error,
-        { phone: "venue-phone", website: "venue-website" },
-        summaryRef.current,
-      );
+      focusFormFailure(error, FIELD_IDS, summaryRef.current);
+    },
+  });
+
+  const updateText = api.venues.updateBookingSettings.useMutation({
+    onError: (error) => {
+      toastGlobalFormError(error);
+      focusFormFailure(error, FIELD_IDS, summaryRef.current);
     },
   });
 
@@ -80,12 +88,21 @@ export function DetailsTab({ venueId }: { venueId: string }) {
     },
   });
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const saving = updateDetails.isPending || updateText.isPending;
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (updateDetails.isPending) {
+    if (saving) {
       return;
     }
-    updateDetails.mutate({ venueId, phone, website });
+    const results = await Promise.allSettled([
+      updateDetails.mutateAsync({ venueId, phone, website }),
+      updateText.mutateAsync({ venueId, description, bookingNotes }),
+    ]);
+    if (results.every((result) => result.status === "fulfilled")) {
+      toast.success("Details saved");
+    }
+    await refresh();
   }
 
   function onLogoPicked(file: File | null) {
@@ -101,99 +118,150 @@ export function DetailsTab({ venueId }: { venueId: string }) {
       });
   }
 
-  const logoImageUrl = venue.data?.logoImageUrl ?? null;
+  const formError =
+    globalFormErrorMessage(updateDetails.error) ??
+    globalFormErrorMessage(updateText.error);
+
+  const phoneError = fieldErrorMessage(updateDetails.error, "phone");
+  const websiteError = fieldErrorMessage(updateDetails.error, "website");
+  const descriptionError = fieldErrorMessage(updateText.error, "description");
+  const notesError = fieldErrorMessage(updateText.error, "bookingNotes");
+
+  const logoImageUrl = venue.logoImageUrl ?? null;
 
   return (
-    <>
-      <Section
-        title="Details"
-        description="Contact details shown for this Venue. Name, city and country are managed by an Operator."
+    <ConsoleCard className="max-w-[760px]">
+      <form
+        onSubmit={(event) => {
+          void onSubmit(event);
+        }}
+        noValidate
       >
-        <form onSubmit={onSubmit} className="space-y-6">
-          <FormErrorSummary
-            ref={summaryRef}
-            message={globalFormErrorMessage(updateDetails.error)}
-          />
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="venue-phone">Phone</FieldLabel>
+        <div className="border-border space-y-5 border-b px-6 py-5">
+          <FormErrorSummary ref={summaryRef} message={formError} />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field data-invalid={phoneError ? true : undefined}>
+              <FieldLabel htmlFor={FIELD_IDS.phone} className={labelClass}>
+                Phone
+              </FieldLabel>
               <Input
-                id="venue-phone"
+                id={FIELD_IDS.phone}
                 type="tel"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 maxLength={255}
-                aria-invalid={
-                  fieldErrorMessage(updateDetails.error, "phone")
-                    ? true
-                    : undefined
-                }
+                className={controlClass}
+                aria-invalid={phoneError ? true : undefined}
                 aria-describedby={
-                  fieldErrorMessage(updateDetails.error, "phone")
-                    ? "venue-phone-error"
-                    : undefined
+                  phoneError ? `${FIELD_IDS.phone}-error` : undefined
                 }
               />
-              <FieldError id="venue-phone-error">
-                {fieldErrorMessage(updateDetails.error, "phone")}
+              <FieldError id={`${FIELD_IDS.phone}-error`}>
+                {phoneError}
               </FieldError>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="venue-website">Website</FieldLabel>
+            <Field data-invalid={websiteError ? true : undefined}>
+              <FieldLabel htmlFor={FIELD_IDS.website} className={labelClass}>
+                Website
+              </FieldLabel>
               <Input
-                id="venue-website"
+                id={FIELD_IDS.website}
                 value={website}
                 onChange={(event) => setWebsite(event.target.value)}
                 maxLength={255}
-                aria-invalid={
-                  fieldErrorMessage(updateDetails.error, "website")
-                    ? true
-                    : undefined
-                }
+                className={controlClass}
+                aria-invalid={websiteError ? true : undefined}
                 aria-describedby={
-                  fieldErrorMessage(updateDetails.error, "website")
-                    ? "venue-website-error"
-                    : undefined
+                  websiteError ? `${FIELD_IDS.website}-error` : undefined
                 }
               />
-              <FieldError id="venue-website-error">
-                {fieldErrorMessage(updateDetails.error, "website")}
+              <FieldError id={`${FIELD_IDS.website}-error`}>
+                {websiteError}
               </FieldError>
             </Field>
-          </FieldGroup>
+          </div>
+          <Field data-invalid={descriptionError ? true : undefined}>
+            <FieldLabel htmlFor={FIELD_IDS.description} className={labelClass}>
+              Description
+            </FieldLabel>
+            <textarea
+              id={FIELD_IDS.description}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={1000}
+              rows={3}
+              className={textareaClass}
+              aria-invalid={descriptionError ? true : undefined}
+              aria-describedby={
+                descriptionError ? `${FIELD_IDS.description}-error` : undefined
+              }
+            />
+            <FieldError id={`${FIELD_IDS.description}-error`}>
+              {descriptionError}
+            </FieldError>
+          </Field>
+          <Field data-invalid={notesError ? true : undefined}>
+            <FieldLabel htmlFor={FIELD_IDS.bookingNotes} className={labelClass}>
+              Booking notes
+            </FieldLabel>
+            <textarea
+              id={FIELD_IDS.bookingNotes}
+              value={bookingNotes}
+              onChange={(event) => setBookingNotes(event.target.value)}
+              maxLength={1000}
+              rows={3}
+              placeholder="Shown to players when they book: parking, entrance, what to bring."
+              className={textareaClass}
+              aria-invalid={notesError ? true : undefined}
+              aria-describedby={
+                notesError ? `${FIELD_IDS.bookingNotes}-error` : undefined
+              }
+            />
+            <FieldError id={`${FIELD_IDS.bookingNotes}-error`}>
+              {notesError}
+            </FieldError>
+          </Field>
+        </div>
+
+        <div className="border-border space-y-4 border-b px-6 py-5">
+          <EntityImageField
+            id="venue-logo"
+            label="Logo"
+            noun="Logo"
+            currentImageUrl={logoImageUrl}
+            error={logoError}
+            disabled={clearLogo.isPending}
+            pending={uploadLogo.isPending}
+            onFileChange={onLogoPicked}
+            onError={setLogoError}
+          />
+          {logoImageUrl ? (
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(controlClass, "hover:bg-wash px-3.5 text-[13px]")}
+              disabled={clearLogo.isPending || uploadLogo.isPending}
+              onClick={() => setClearLogoOpen(true)}
+            >
+              Clear logo
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between gap-4 px-6 py-4">
+          <p className="text-muted-foreground text-xs">
+            Name, city and country are managed by an Operator.
+          </p>
           <Button
             type="submit"
-            className="min-h-11"
-            disabled={updateDetails.isPending || !venue.data}
+            className={cn(controlClass, "px-4")}
+            pending={saving}
+            pendingLabel="Saving…"
           >
-            {updateDetails.isPending ? "Saving…" : "Save"}
+            Save
           </Button>
-        </form>
-      </Section>
-
-      <Section title="Logo">
-        <EntityImageField
-          id="venue-logo"
-          label="Upload logo"
-          noun="Logo"
-          currentImageUrl={logoImageUrl}
-          error={logoError}
-          disabled={clearLogo.isPending}
-          pending={uploadLogo.isPending}
-          onFileChange={onLogoPicked}
-          onError={setLogoError}
-        />
-        {logoImageUrl ? (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={clearLogo.isPending || uploadLogo.isPending}
-            onClick={() => setClearLogoOpen(true)}
-          >
-            Clear logo
-          </Button>
-        ) : null}
-      </Section>
+        </div>
+      </form>
 
       <ConfirmDialog
         open={clearLogoOpen}
@@ -206,6 +274,6 @@ export function DetailsTab({ venueId }: { venueId: string }) {
           await clearLogo.mutateAsync({ venueId });
         }}
       />
-    </>
+    </ConsoleCard>
   );
 }
