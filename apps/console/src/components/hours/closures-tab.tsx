@@ -1,71 +1,104 @@
 "use client";
 
+import { MoreHorizontal, Plus } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
-import { RowList } from "~/components/common/row-list";
-import { Section } from "~/components/layout/section";
+import {
+  ConsoleCard,
+  ConsoleCardHeader,
+} from "~/components/console/console-card";
+import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { Button } from "~/components/ui/button";
-import { Field, FieldLabel } from "~/components/ui/field";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { Hatch } from "~/components/ui/hatch";
 import { Input } from "~/components/ui/input";
-import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
-import { formatGameStart } from "@repo/domain/format-game-start";
+import { cn } from "~/lib/utils";
 import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 
+import { controlClass, linkButtonClass, outlineButtonClass } from "./classes";
+import {
+  closureStatus,
+  closureTitle,
+  describeClosureWindow,
+} from "./closures-model";
+import { toastMutationError } from "./mutation-error";
 import { NativeSelect } from "./native-select";
 import { productDateTimeInputToInstant } from "./opening-hours-model";
 
-export function ClosuresTab({ venueId }: { venueId: string }) {
+const FORM_ID = "new-closure-form";
+
+export function ClosuresCard() {
+  const venue = useManagedVenue();
   const utils = api.useUtils();
-  const venue = api.venues.managedById.useQuery({ venueId });
   const [courtId, setCourtId] = React.useState("");
+  const [reason, setReason] = React.useState("");
   const [startsAt, setStartsAt] = React.useState("");
   const [endsAt, setEndsAt] = React.useState("");
-  const [reason, setReason] = React.useState("");
   const [conflicts, setConflicts] = React.useState<string[] | null>(null);
   const [removeId, setRemoveId] = React.useState<string | null>(null);
+  const now = new Date();
 
   const addClosure = api.venues.addClosure.useMutation({
     onSuccess: async (created) => {
       toast.success("Closure added");
+      setReason("");
       setStartsAt("");
       setEndsAt("");
-      setReason("");
       setConflicts(
-        created.affectedBookingIds.length > 0 ? created.affectedBookingIds : null,
+        created.affectedBookingIds.length > 0
+          ? created.affectedBookingIds
+          : null,
       );
-      await utils.venues.managedById.invalidate({ venueId });
+      await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
-    onError: (error) => toastGlobalFormError(error),
+    onError: toastMutationError,
   });
 
   const removeClosure = api.venues.removeClosure.useMutation({
     onSuccess: async () => {
       toast.success("Closure removed");
-      await utils.venues.managedById.invalidate({ venueId });
+      await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
   });
 
-  const courts = venue.data?.courts ?? [];
-  const closures = [...(venue.data?.closures ?? [])].sort(
-    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+  const closures = [...venue.closures].sort(
+    (a, b) => a.startsAt.getTime() - b.startsAt.getTime(),
   );
+  const removing = closures.find((closure) => closure.id === removeId);
+
+  function scopeLabel(closureCourtId: string | null) {
+    return closureCourtId
+      ? (venue.courts.find((court) => court.id === closureCourtId)?.name ??
+          "Court")
+      : "All courts";
+  }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (addClosure.isPending) {
       return;
     }
-    const start = productDateTimeInputToInstant(startsAt, zonedDateTimeToInstant);
+    const start = productDateTimeInputToInstant(
+      startsAt,
+      zonedDateTimeToInstant,
+    );
     const end = productDateTimeInputToInstant(endsAt, zonedDateTimeToInstant);
     if (!start || !end) {
       toast.error("Choose when the Closure starts and ends");
       return;
     }
     addClosure.mutate({
-      venueId,
+      venueId: venue.id,
       courtId: courtId || null,
       startsAt: start,
       endsAt: end,
@@ -74,140 +107,205 @@ export function ClosuresTab({ venueId }: { venueId: string }) {
   }
 
   return (
-    <>
-      <Section
+    <ConsoleCard className="flex flex-col overflow-hidden">
+      <ConsoleCardHeader
         title="Closures"
-        description="Block the whole Venue or a single Court for a period, such as maintenance or a private event. Times are in Bahrain time."
-      >
-        <form onSubmit={onSubmit} className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="closure-scope">Applies to</FieldLabel>
-              <NativeSelect
-                id="closure-scope"
-                value={courtId}
-                onChange={(event) => setCourtId(event.target.value)}
-              >
-                <option value="">Whole Venue</option>
-                {courts.map((court) => (
-                  <option key={court.id} value={court.id}>
-                    {court.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="closure-reason">Reason</FieldLabel>
-              <Input
-                id="closure-reason"
-                value={reason}
-                maxLength={255}
-                onChange={(event) => setReason(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="closure-starts">Starts</FieldLabel>
-              <Input
-                id="closure-starts"
-                type="datetime-local"
-                required
-                value={startsAt}
-                onChange={(event) => setStartsAt(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="closure-ends">Ends</FieldLabel>
-              <Input
-                id="closure-ends"
-                type="datetime-local"
-                required
-                value={endsAt}
-                onChange={(event) => setEndsAt(event.target.value)}
-              />
-            </Field>
-          </div>
-          <Button type="submit" disabled={addClosure.isPending || !venue.data}>
-            {addClosure.isPending ? "Adding…" : "Add Closure"}
+        action={
+          <Button
+            type="submit"
+            form={FORM_ID}
+            variant="outline"
+            className={cn(
+              outlineButtonClass,
+              "rounded-block h-[34px] min-h-[34px] gap-1.5 px-3",
+            )}
+            pending={addClosure.isPending}
+            pendingLabel="Adding…"
+          >
+            <Plus aria-hidden="true" className="size-[13px]" />
+            Add closure
           </Button>
-        </form>
+        }
+      />
 
-        {conflicts ? (
-          <div role="alert" className="border-border space-y-2 rounded-md border p-4">
-            <p className="text-body font-semibold">
-              {conflicts.length} Booking{conflicts.length === 1 ? "" : "s"} fall
-              inside this Closure
-            </p>
-            <p className="text-body text-muted-foreground">
-              They stay confirmed until you cancel them from the Bookings page.
-            </p>
-            <ul className="text-body list-disc pl-5">
-              {conflicts.map((id) => (
-                <li key={id}>{id}</li>
-              ))}
-            </ul>
-            <Button type="button" variant="outline" onClick={() => setConflicts(null)}>
-              Dismiss
-            </Button>
-          </div>
-        ) : null}
-
-        {closures.length === 0 ? (
-          <p className="text-body text-muted-foreground">
-            No upcoming Closures in the next 90 days.
-          </p>
-        ) : (
-          <RowList>
-            {closures.map((closure) => {
-              const court = courts.find((item) => item.id === closure.courtId);
-              return (
-                <li
-                  key={closure.id}
-                  className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-body font-semibold">
-                      {court ? court.name : "Whole Venue"}
-                    </p>
-                    <p className="text-body text-muted-foreground">
-                      {formatGameStart(closure.startsAt)} to{" "}
-                      {formatGameStart(closure.endsAt)}
-                      {closure.reason ? ` · ${closure.reason}` : ""}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={removeClosure.isPending}
-                    aria-label={`Remove Closure starting ${formatGameStart(closure.startsAt)}`}
-                    onClick={() => setRemoveId(closure.id)}
+      {closures.length === 0 ? (
+        <p className="border-border text-muted-foreground text-meta border-b px-5 py-4">
+          No Closures in the next 90 days.
+        </p>
+      ) : (
+        <ul className="divide-border divide-y">
+          {closures.map((closure) => {
+            const title = closureTitle(
+              scopeLabel(closure.courtId),
+              closure.reason,
+            );
+            const status = closureStatus(closure.startsAt, now);
+            return (
+              <li
+                key={closure.id}
+                className="text-meta flex items-center gap-3.5 px-5 py-3.5"
+              >
+                <Hatch className="rounded-block size-[38px] shrink-0" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{title}</span>
+                  <span className="text-muted-foreground block">
+                    {describeClosureWindow(
+                      closure.startsAt,
+                      closure.endsAt,
+                      now,
+                    )}
+                  </span>
+                </span>
+                {status === "active" ? (
+                  <span className="bg-ink text-paper rounded-xs px-2 py-[3px] text-[11px]">
+                    Active
+                  </span>
+                ) : (
+                  <span className="border-border text-muted-foreground rounded-xs border px-[7px] py-0.5 text-[11px]">
+                    Scheduled
+                  </span>
+                )}
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`${title} actions`}
+                      className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block -mr-2"
+                    >
+                      <MoreHorizontal aria-hidden="true" className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="rounded-block border-border min-w-40 shadow-none"
                   >
-                    Remove
-                  </Button>
-                </li>
-              );
-            })}
-          </RowList>
-        )}
-      </Section>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="text-meta cursor-pointer"
+                      onSelect={() => setRemoveId(closure.id)}
+                    >
+                      Remove closure
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {conflicts ? (
+        <div
+          role="alert"
+          className="border-border flex flex-col gap-2 border-t px-5 py-4"
+        >
+          <p className="text-meta font-semibold">
+            {conflicts.length} Booking{conflicts.length === 1 ? "" : "s"} fall
+            inside this Closure
+          </p>
+          <p className="text-muted-foreground text-eyebrow">
+            They stay confirmed until you cancel them from the Bookings page.
+          </p>
+          <ul className="text-meta flex flex-col gap-1">
+            {conflicts.map((id) => (
+              <li key={id}>
+                <Link
+                  href={bookingPath(venue.id, id)}
+                  className="underline underline-offset-2"
+                >
+                  Booking {id.slice(0, 8)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className={cn(linkButtonClass, "self-start")}
+            onClick={() => setConflicts(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      <form
+        id={FORM_ID}
+        onSubmit={onSubmit}
+        className="border-border flex flex-col gap-2.5 border-t px-5 py-[18px]"
+      >
+        <p className="text-muted-foreground text-eyebrow">New closure</p>
+        <div className="grid grid-cols-2 gap-2">
+          <NativeSelect
+            aria-label="Closure applies to"
+            className="h-[38px]"
+            value={courtId}
+            onChange={(event) => setCourtId(event.target.value)}
+          >
+            <option value="">All courts</option>
+            {venue.courts.map((court) => (
+              <option key={court.id} value={court.id}>
+                {court.name}
+              </option>
+            ))}
+          </NativeSelect>
+          <Input
+            aria-label="Reason"
+            placeholder="Reason"
+            className={cn(controlClass, "h-[38px] min-h-[38px]")}
+            value={reason}
+            maxLength={255}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            aria-label="From"
+            type="datetime-local"
+            required
+            className={cn(controlClass, "h-[38px] min-h-[38px]")}
+            value={startsAt}
+            onChange={(event) => setStartsAt(event.target.value)}
+          />
+          <Input
+            aria-label="To"
+            type="datetime-local"
+            required
+            min={startsAt || undefined}
+            className={cn(controlClass, "h-[38px] min-h-[38px]")}
+            value={endsAt}
+            onChange={(event) => setEndsAt(event.target.value)}
+          />
+        </div>
+        <p className="text-muted-foreground text-eyebrow leading-normal">
+          Times are in Bahrain time. Existing bookings inside the window are
+          listed once the closure is added; they stay confirmed until you cancel
+          them from the Bookings page.
+        </p>
+      </form>
 
       <ConfirmDialog
-        open={removeId !== null}
+        open={removing !== undefined}
         onOpenChange={(open) => {
           if (!open) {
             setRemoveId(null);
           }
         }}
-        title="Remove this Closure?"
-        description="The time becomes bookable again."
-        confirmLabel="Remove Closure"
+        title="Remove this closure?"
+        description={
+          removing
+            ? `${closureTitle(scopeLabel(removing.courtId), removing.reason)}, ${describeClosureWindow(removing.startsAt, removing.endsAt, now)}. The time becomes bookable again.`
+            : undefined
+        }
+        confirmLabel="Remove closure"
         pending={removeClosure.isPending}
         onConfirm={async () => {
-          if (!removeId) {
-            return;
+          if (removing) {
+            await removeClosure.mutateAsync({ closureId: removing.id });
           }
-          await removeClosure.mutateAsync({ closureId: removeId });
         }}
       />
-    </>
+    </ConsoleCard>
   );
 }

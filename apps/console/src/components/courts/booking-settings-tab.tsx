@@ -3,50 +3,122 @@
 import * as React from "react";
 import { toast } from "sonner";
 
-import { Section } from "~/components/layout/section";
+import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
-import { Field, FieldLabel } from "~/components/ui/field";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
-import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
+import { cn } from "~/lib/utils";
 
+import { describeHorizon, describeLeadTime } from "./booking-rules-model";
+import {
+  controlClass,
+  dialogClass,
+  inkButtonClass,
+  linkButtonClass,
+  outlineButtonClass,
+} from "./classes";
+import { toastMutationError } from "./mutation-error";
 import { NativeSelect } from "./native-select";
 
 const DURATION_CHOICES = [30, 60, 90, 120, 150, 180, 210, 240];
 
-export function BookingSettingsTab({ venueId }: { venueId: string }) {
+function RuleLine({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="text-meta flex items-center justify-between gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right">{children}</span>
+    </div>
+  );
+}
+
+function AcceptingSwitch({
+  checked,
+  pending,
+  onChange,
+}: {
+  checked: boolean;
+  pending: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label="Accepting bookings"
+      aria-busy={pending || undefined}
+      disabled={pending}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "focus-visible:ring-ring/50 relative h-5 w-9 shrink-0 rounded-full border transition-colors focus-visible:ring-[3px] disabled:opacity-50",
+        checked ? "bg-ink border-ink" : "bg-paper border-input",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute left-[3px] top-[3px] size-3 rounded-full transition-transform",
+          checked ? "bg-paper translate-x-4" : "bg-ink",
+        )}
+      />
+    </button>
+  );
+}
+
+function BookingSettingsDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const venue = useManagedVenue();
   const utils = api.useUtils();
-  const venue = api.venues.managedById.useQuery({ venueId });
-  const [accepting, setAccepting] = React.useState(false);
-  const [slotMinutes, setSlotMinutes] = React.useState(30);
-  const [durations, setDurations] = React.useState<number[]>([60, 90]);
-  const [horizon, setHorizon] = React.useState("14");
-  const [lead, setLead] = React.useState("60");
-  const [description, setDescription] = React.useState("");
-  const [notes, setNotes] = React.useState("");
-  const [hydratedAt, setHydratedAt] = React.useState<number | null>(null);
+  const [slotMinutes, setSlotMinutes] = React.useState(venue.slotMinutes);
+  const [durations, setDurations] = React.useState<number[]>(
+    venue.durationOptionsMinutes,
+  );
+  const [horizon, setHorizon] = React.useState(
+    String(venue.bookingHorizonDays),
+  );
+  const [lead, setLead] = React.useState(String(venue.minLeadMinutes));
+  const [description, setDescription] = React.useState(venue.description ?? "");
+  const [notes, setNotes] = React.useState(venue.bookingNotes ?? "");
 
   React.useEffect(() => {
-    if (!venue.data || venue.dataUpdatedAt === hydratedAt) {
-      return;
+    if (open) {
+      setSlotMinutes(venue.slotMinutes);
+      setDurations(venue.durationOptionsMinutes);
+      setHorizon(String(venue.bookingHorizonDays));
+      setLead(String(venue.minLeadMinutes));
+      setDescription(venue.description ?? "");
+      setNotes(venue.bookingNotes ?? "");
     }
-    setAccepting(venue.data.acceptingBookings);
-    setSlotMinutes(venue.data.slotMinutes);
-    setDurations(venue.data.durationOptionsMinutes);
-    setHorizon(String(venue.data.bookingHorizonDays));
-    setLead(String(venue.data.minLeadMinutes));
-    setDescription(venue.data.description ?? "");
-    setNotes(venue.data.bookingNotes ?? "");
-    setHydratedAt(venue.dataUpdatedAt);
-  }, [venue.data, venue.dataUpdatedAt, hydratedAt]);
+  }, [open, venue]);
 
   const update = api.venues.updateBookingSettings.useMutation({
     onSuccess: async () => {
-      toast.success("Booking settings saved");
-      await utils.venues.managedById.invalidate({ venueId });
+      toast.success("Booking rules saved");
+      onOpenChange(false);
+      await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
-    onError: (error) => toastGlobalFormError(error),
+    onError: toastMutationError,
   });
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -55,8 +127,7 @@ export function BookingSettingsTab({ venueId }: { venueId: string }) {
       return;
     }
     update.mutate({
-      venueId,
-      acceptingBookings: accepting,
+      venueId: venue.id,
       slotMinutes,
       durationOptionsMinutes: durations,
       bookingHorizonDays: Number(horizon),
@@ -67,108 +138,211 @@ export function BookingSettingsTab({ venueId }: { venueId: string }) {
   }
 
   return (
-    <Section
-      title="Booking settings"
-      description="Control whether Customers can book this Venue and how."
+    <Dialog
+      open={open}
+      onOpenChange={(next) => (update.isPending ? null : onOpenChange(next))}
     >
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Checkbox
-            id="accepting-bookings"
-            checked={accepting}
-            onCheckedChange={(checked) => setAccepting(checked === true)}
-          />
-          <label htmlFor="accepting-bookings" className="text-body font-semibold">
-            Accepting bookings
-          </label>
-        </div>
+      <DialogContent className={cn(dialogClass, "sm:max-w-md")}>
+        <form className="contents" onSubmit={onSubmit}>
+          <DialogHeader>
+            <DialogTitle>Booking rules</DialogTitle>
+            <DialogDescription>
+              What players can pick when they book. Changes apply to new
+              Bookings only.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field>
-            <FieldLabel htmlFor="slot-minutes">Slot length</FieldLabel>
-            <NativeSelect
-              id="slot-minutes"
-              value={slotMinutes}
-              onChange={(event) => setSlotMinutes(Number(event.target.value))}
-            >
-              <option value={30}>30 minutes</option>
-              <option value={60}>60 minutes</option>
-            </NativeSelect>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="booking-horizon">Book up to (days ahead)</FieldLabel>
-            <Input
-              id="booking-horizon"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={90}
-              value={horizon}
-              onChange={(event) => setHorizon(event.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="min-lead">Earliest booking before start (minutes)</FieldLabel>
-            <Input
-              id="min-lead"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={1440}
-              value={lead}
-              onChange={(event) => setLead(event.target.value)}
-            />
-          </Field>
-        </div>
-
-        <fieldset className="space-y-2">
-          <legend className="text-body font-semibold">Durations Customers can book</legend>
-          <div className="flex flex-wrap gap-4">
-            {DURATION_CHOICES.map((minutes) => (
-              <div key={minutes} className="flex items-center gap-2">
-                <Checkbox
-                  id={`duration-${minutes}`}
-                  checked={durations.includes(minutes)}
-                  disabled={minutes % slotMinutes !== 0}
-                  onCheckedChange={(checked) =>
-                    setDurations((current) =>
-                      checked === true
-                        ? [...current, minutes].sort((a, b) => a - b)
-                        : current.filter((value) => value !== minutes),
-                    )
-                  }
-                />
-                <label htmlFor={`duration-${minutes}`} className="text-body">
-                  {minutes} min
-                </label>
-              </div>
-            ))}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="slot-minutes" className="text-meta">
+                Start steps
+              </Label>
+              <NativeSelect
+                id="slot-minutes"
+                value={slotMinutes}
+                onChange={(event) => setSlotMinutes(Number(event.target.value))}
+              >
+                <option value={30}>Every 30 min</option>
+                <option value={60}>Every 60 min</option>
+              </NativeSelect>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="booking-horizon" className="text-meta">
+                Book ahead (days)
+              </Label>
+              <Input
+                id="booking-horizon"
+                className={controlClass}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={90}
+                required
+                value={horizon}
+                onChange={(event) => setHorizon(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="min-lead" className="text-meta">
+                Last minute (min)
+              </Label>
+              <Input
+                id="min-lead"
+                className={controlClass}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={1440}
+                required
+                value={lead}
+                onChange={(event) => setLead(event.target.value)}
+              />
+            </div>
           </div>
-        </fieldset>
 
-        <Field>
-          <FieldLabel htmlFor="venue-description">Description</FieldLabel>
-          <Input
-            id="venue-description"
-            value={description}
-            maxLength={1000}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="booking-notes">Notes shown when booking</FieldLabel>
-          <Input
-            id="booking-notes"
-            value={notes}
-            maxLength={1000}
-            onChange={(event) => setNotes(event.target.value)}
-          />
-        </Field>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-meta mb-2 font-medium">Durations</legend>
+            <div className="grid grid-cols-4 gap-2">
+              {DURATION_CHOICES.map((minutes) => {
+                const offGrid = minutes % slotMinutes !== 0;
+                return (
+                  <label
+                    key={minutes}
+                    className={cn(
+                      "text-meta flex items-center gap-2",
+                      offGrid && "text-muted-foreground",
+                    )}
+                  >
+                    <Checkbox
+                      checked={durations.includes(minutes)}
+                      disabled={offGrid}
+                      className="rounded-xs"
+                      onCheckedChange={(checked) =>
+                        setDurations((current) =>
+                          checked === true
+                            ? [...current, minutes].sort((a, b) => a - b)
+                            : current.filter((value) => value !== minutes),
+                        )
+                      }
+                    />
+                    {minutes} min
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
 
-        <Button type="submit" className="min-h-11" disabled={update.isPending || !venue.data}>
-          {update.isPending ? "Saving…" : "Save"}
-        </Button>
-      </form>
-    </Section>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="venue-description" className="text-meta">
+              Description
+            </Label>
+            <Input
+              id="venue-description"
+              className={controlClass}
+              value={description}
+              maxLength={1000}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="booking-notes" className="text-meta">
+              Notes shown when booking
+            </Label>
+            <Input
+              id="booking-notes"
+              className={controlClass}
+              value={notes}
+              maxLength={1000}
+              onChange={(event) => setNotes(event.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className={outlineButtonClass}
+              disabled={update.isPending}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className={inkButtonClass}
+              disabled={durations.length === 0}
+              pending={update.isPending}
+              pendingLabel="Saving…"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function BookingRulesCard() {
+  const venue = useManagedVenue();
+  const utils = api.useUtils();
+  const [editing, setEditing] = React.useState(false);
+
+  const toggleAccepting = api.venues.updateBookingSettings.useMutation({
+    onSuccess: async (updated) => {
+      toast.success(
+        updated.acceptingBookings ? "Accepting bookings" : "Bookings paused",
+      );
+      await utils.venues.managedById.invalidate({ venueId: venue.id });
+    },
+    onError: toastMutationError,
+  });
+
+  return (
+    <section className="border-border rounded-card flex flex-col gap-3 border px-5 py-[18px]">
+      <header className="flex items-center justify-between gap-4">
+        <h2 className="text-body font-semibold">Booking rules</h2>
+        <button
+          type="button"
+          className={linkButtonClass}
+          onClick={() => setEditing(true)}
+        >
+          Edit
+        </button>
+      </header>
+      <RuleLine label="Durations">
+        <span className="flex gap-1.5">
+          {venue.durationOptionsMinutes.map((minutes) => (
+            <span
+              key={minutes}
+              className="border-ink rounded-xs border px-2 py-[3px]"
+            >
+              {minutes}
+            </span>
+          ))}
+        </span>
+      </RuleLine>
+      <RuleLine label="Start steps">Every {venue.slotMinutes} min</RuleLine>
+      <RuleLine label="Book ahead">
+        {describeHorizon(venue.bookingHorizonDays)}
+      </RuleLine>
+      <RuleLine label="Last minute">
+        {describeLeadTime(venue.minLeadMinutes)}
+      </RuleLine>
+      <div className="border-border text-meta flex items-center justify-between gap-4 border-t pt-3">
+        <span className="font-medium">Accepting bookings</span>
+        <AcceptingSwitch
+          checked={venue.acceptingBookings}
+          pending={toggleAccepting.isPending}
+          onChange={(next) =>
+            toggleAccepting.mutate({
+              venueId: venue.id,
+              acceptingBookings: next,
+            })
+          }
+        />
+      </div>
+      <BookingSettingsDialog open={editing} onOpenChange={setEditing} />
+    </section>
   );
 }

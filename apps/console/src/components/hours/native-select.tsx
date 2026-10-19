@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { cn } from "~/lib/utils";
 
+/** A 36px hairline select at the design's block radius; native so long time lists stay keyboardable. */
 export function NativeSelect({
   className,
   ...props
@@ -9,7 +10,7 @@ export function NativeSelect({
   return (
     <select
       className={cn(
-        "border-input text-body focus-visible:border-ring focus-visible:ring-ring/50 h-10 rounded-md border bg-transparent px-3 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        "border-border text-meta rounded-block focus-visible:border-ink h-9 w-full border bg-transparent px-2.5 outline-none disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}

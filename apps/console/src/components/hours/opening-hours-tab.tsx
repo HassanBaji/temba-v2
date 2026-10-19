@@ -1,20 +1,28 @@
 "use client";
 
+import { X } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
-import { RowList } from "~/components/common/row-list";
-import { Section } from "~/components/layout/section";
+import {
+  ConsoleCard,
+  ConsoleCardHeader,
+} from "~/components/console/console-card";
+import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { Button } from "~/components/ui/button";
-import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
+import { cn } from "~/lib/utils";
 
+import { inkButtonClass, linkButtonClass } from "./classes";
+import { toastMutationError } from "./mutation-error";
 import { NativeSelect } from "./native-select";
 import {
   type HoursWindow,
   WEEKDAY_NAMES,
   WEEKDAY_ORDER,
   formatMinutes,
+  formatOpenHours,
+  hoursAreEqual,
   nextWindowAfter,
   timeOptions,
   windowsProblem,
@@ -22,144 +30,132 @@ import {
 
 type Drafts = Record<number, HoursWindow[]>;
 
-export function OpeningHoursTab({ venueId }: { venueId: string }) {
+const rowGrid = "grid grid-cols-[90px_1fr_1fr_80px] items-center gap-3";
+
+function draftsFromHours(
+  hours: { weekday: number; opensAtMinutes: number; closesAtMinutes: number }[],
+): Drafts {
+  const drafts: Drafts = {};
+  for (const weekday of WEEKDAY_ORDER) {
+    drafts[weekday] = hours
+      .filter((window) => window.weekday === weekday)
+      .map(({ opensAtMinutes, closesAtMinutes }) => ({
+        opensAtMinutes,
+        closesAtMinutes,
+      }));
+  }
+  return drafts;
+}
+
+export function WeeklyHoursCard() {
+  const venue = useManagedVenue();
   const utils = api.useUtils();
-  const venue = api.venues.managedById.useQuery({ venueId });
-  const [drafts, setDrafts] = React.useState<Drafts>({});
-  const [hydratedAt, setHydratedAt] = React.useState<number | null>(null);
+  const saved = React.useMemo(
+    () => draftsFromHours(venue.openingHours),
+    [venue.openingHours],
+  );
+  const [drafts, setDrafts] = React.useState<Drafts>(saved);
+  const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
-    if (!venue.data || venue.dataUpdatedAt === hydratedAt) {
-      return;
-    }
-    const next: Drafts = {};
-    for (const weekday of WEEKDAY_ORDER) {
-      next[weekday] = venue.data.openingHours
-        .filter((window) => window.weekday === weekday)
-        .map(({ opensAtMinutes, closesAtMinutes }) => ({
-          opensAtMinutes,
-          closesAtMinutes,
-        }));
-    }
-    setDrafts(next);
-    setHydratedAt(venue.dataUpdatedAt);
-  }, [venue.data, venue.dataUpdatedAt, hydratedAt]);
+    setDrafts(saved);
+  }, [saved]);
 
   const setOpeningHours = api.venues.setOpeningHours.useMutation({
-    onError: (error) => toastGlobalFormError(error),
+    onError: toastMutationError,
   });
 
-  const slotMinutes = venue.data?.slotMinutes ?? 30;
+  const slotMinutes = venue.slotMinutes;
   const options = React.useMemo(() => timeOptions(slotMinutes), [slotMinutes]);
-  const [savingWeekday, setSavingWeekday] = React.useState<number | null>(null);
+  const changedWeekdays = WEEKDAY_ORDER.filter(
+    (weekday) => !hoursAreEqual(drafts[weekday] ?? [], saved[weekday] ?? []),
+  );
+  const problems = Object.fromEntries(
+    WEEKDAY_ORDER.map((weekday) => [
+      weekday,
+      windowsProblem(drafts[weekday] ?? [], slotMinutes),
+    ]),
+  ) as Record<number, string | null>;
+  const hasProblem = Object.values(problems).some(Boolean);
+
+  function setWindows(weekday: number, windows: HoursWindow[]) {
+    setDrafts((current) => ({ ...current, [weekday]: windows }));
+  }
 
   function updateWindow(
     weekday: number,
     index: number,
     patch: Partial<HoursWindow>,
   ) {
-    setDrafts((current) => ({
-      ...current,
-      [weekday]: (current[weekday] ?? []).map((window, i) =>
+    setWindows(
+      weekday,
+      (drafts[weekday] ?? []).map((window, i) =>
         i === index ? { ...window, ...patch } : window,
       ),
-    }));
+    );
   }
 
-  async function saveDay(weekday: number) {
-    setSavingWeekday(weekday);
+  async function saveAll() {
+    setSaving(true);
     try {
-      await setOpeningHours.mutateAsync({
-        venueId,
-        weekday,
-        windows: drafts[weekday] ?? [],
-      });
-      toast.success(`${WEEKDAY_NAMES[weekday]} saved`);
-      await utils.venues.managedById.invalidate({ venueId });
-    } catch {
-      // the mutation's onError already reported it
-    } finally {
-      setSavingWeekday(null);
-    }
-  }
-
-  async function copyToAllDays(source: number) {
-    const windows = drafts[source] ?? [];
-    setSavingWeekday(source);
-    try {
-      for (const weekday of WEEKDAY_ORDER) {
-        await setOpeningHours.mutateAsync({ venueId, weekday, windows });
+      for (const weekday of changedWeekdays) {
+        await setOpeningHours.mutateAsync({
+          venueId: venue.id,
+          weekday,
+          windows: drafts[weekday] ?? [],
+        });
       }
-      toast.success(`${WEEKDAY_NAMES[source]} hours copied to every day`);
-      await utils.venues.managedById.invalidate({ venueId });
+      toast.success("Hours saved");
+      await utils.venues.managedById.invalidate({ venueId: venue.id });
     } catch {
       // the mutation's onError already reported it
     } finally {
-      setSavingWeekday(null);
+      setSaving(false);
     }
   }
 
   return (
-    <Section
-      title="Opening hours"
-      description={`Add one or more windows per day. A day with no windows is closed. Times follow the ${slotMinutes}-minute Booking grid and may run to 06:00 the next day.`}
-    >
-      <RowList>
+    <ConsoleCard className="flex flex-col overflow-hidden">
+      <ConsoleCardHeader title="Weekly hours" />
+      <ul className="divide-border divide-y">
         {WEEKDAY_ORDER.map((weekday) => {
           const windows = drafts[weekday] ?? [];
-          const problem = windowsProblem(windows, slotMinutes);
-          const busy = savingWeekday !== null;
           const name = WEEKDAY_NAMES[weekday];
+          const problem = problems[weekday];
           return (
-            <li key={weekday} className="space-y-3 px-4 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-body font-semibold">{name}</h3>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy || !venue.data}
-                    onClick={() =>
-                      setDrafts((current) => ({
-                        ...current,
-                        [weekday]: [
-                          ...windows,
-                          nextWindowAfter(windows, slotMinutes),
-                        ],
-                      }))
-                    }
-                  >
-                    Add window
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy || Boolean(problem) || !venue.data}
-                    aria-label={`Copy ${name} to all days`}
-                    onClick={() => void copyToAllDays(weekday)}
-                  >
-                    Copy to all days
-                  </Button>
-                  <Button
-                    type="button"
-                    disabled={busy || Boolean(problem) || !venue.data}
-                    pending={savingWeekday === weekday}
-                    pendingLabel="Saving…"
-                    aria-label={`Save ${name}`}
-                    onClick={() => void saveDay(weekday)}
-                  >
-                    Save
-                  </Button>
-                </div>
-              </div>
+            <li key={weekday} className="px-5 py-3">
               {windows.length === 0 ? (
-                <p className="text-body text-muted-foreground">Closed</p>
+                <div className={rowGrid}>
+                  <span className="text-meta">{name}</span>
+                  <span className="text-muted-foreground text-meta col-span-2 flex items-center gap-3">
+                    Closed
+                    <button
+                      type="button"
+                      className={linkButtonClass}
+                      disabled={saving}
+                      onClick={() =>
+                        setWindows(weekday, [
+                          nextWindowAfter(windows, slotMinutes),
+                        ])
+                      }
+                    >
+                      Add window
+                    </button>
+                  </span>
+                  <span className="text-muted-foreground text-meta text-right">
+                    —
+                  </span>
+                </div>
               ) : (
-                <ul className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {windows.map((window, index) => (
-                    <li key={index} className="flex flex-wrap items-center gap-2">
+                    <div key={index} className={rowGrid}>
+                      <span className="text-meta">
+                        {index === 0 ? name : ""}
+                      </span>
                       <NativeSelect
                         aria-label={`${name} window ${index + 1} opens`}
+                        disabled={saving}
                         value={window.opensAtMinutes}
                         onChange={(event) =>
                           updateWindow(weekday, index, {
@@ -173,49 +169,110 @@ export function OpeningHoursTab({ venueId }: { venueId: string }) {
                           </option>
                         ))}
                       </NativeSelect>
-                      <span className="text-muted-foreground">to</span>
-                      <NativeSelect
-                        aria-label={`${name} window ${index + 1} closes`}
-                        value={window.closesAtMinutes}
-                        onChange={(event) =>
-                          updateWindow(weekday, index, {
-                            closesAtMinutes: Number(event.target.value),
-                          })
-                        }
-                      >
-                        {options.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={busy}
-                        aria-label={`Remove ${name} window ${index + 1} (${formatMinutes(window.opensAtMinutes)} to ${formatMinutes(window.closesAtMinutes)})`}
-                        onClick={() =>
-                          setDrafts((current) => ({
-                            ...current,
-                            [weekday]: windows.filter((_, i) => i !== index),
-                          }))
-                        }
-                      >
-                        Remove
-                      </Button>
-                    </li>
+                      <span className="flex items-center gap-1.5">
+                        <NativeSelect
+                          aria-label={`${name} window ${index + 1} closes`}
+                          disabled={saving}
+                          value={window.closesAtMinutes}
+                          onChange={(event) =>
+                            updateWindow(weekday, index, {
+                              closesAtMinutes: Number(event.target.value),
+                            })
+                          }
+                        >
+                          {options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block -mr-2 shrink-0"
+                          disabled={saving}
+                          aria-label={`Remove ${name} window ${index + 1} (${formatMinutes(window.opensAtMinutes)} to ${formatMinutes(window.closesAtMinutes)})`}
+                          onClick={() =>
+                            setWindows(
+                              weekday,
+                              windows.filter((_, i) => i !== index),
+                            )
+                          }
+                        >
+                          <X aria-hidden="true" className="size-3.5" />
+                        </Button>
+                      </span>
+                      <span className="text-muted-foreground text-meta text-right">
+                        {index === 0 ? formatOpenHours(windows) : ""}
+                      </span>
+                    </div>
                   ))}
-                </ul>
+                  <div className={cn(rowGrid, "text-eyebrow")}>
+                    <span />
+                    <span className="col-span-2 flex items-center gap-3">
+                      <button
+                        type="button"
+                        className={linkButtonClass}
+                        disabled={saving}
+                        onClick={() =>
+                          setWindows(weekday, [
+                            ...windows,
+                            nextWindowAfter(windows, slotMinutes),
+                          ])
+                        }
+                      >
+                        Add window
+                      </button>
+                      <button
+                        type="button"
+                        className={linkButtonClass}
+                        disabled={saving || Boolean(problem)}
+                        aria-label={`Copy ${name} to every day`}
+                        onClick={() =>
+                          setDrafts((current) =>
+                            Object.fromEntries(
+                              WEEKDAY_ORDER.map((day) => [
+                                day,
+                                day === weekday
+                                  ? (current[day] ?? [])
+                                  : windows.map((window) => ({ ...window })),
+                              ]),
+                            ),
+                          )
+                        }
+                      >
+                        Copy to every day
+                      </button>
+                    </span>
+                    <span />
+                  </div>
+                </div>
               )}
               {problem ? (
-                <p role="alert" className="text-body text-destructive">
+                <p role="alert" className="text-destructive text-meta mt-2">
                   {problem}
                 </p>
               ) : null}
             </li>
           );
         })}
-      </RowList>
-    </Section>
+      </ul>
+      <footer className="border-border mt-auto flex items-center justify-between gap-4 border-t px-5 py-3.5">
+        <p className="text-muted-foreground text-eyebrow">
+          Changes apply to new bookings only.
+        </p>
+        <Button
+          type="button"
+          className={cn(inkButtonClass, "text-meta h-[38px] min-h-[38px]")}
+          disabled={changedWeekdays.length === 0 || hasProblem || saving}
+          pending={saving}
+          pendingLabel="Saving…"
+          onClick={() => void saveAll()}
+        >
+          Save hours
+        </Button>
+      </footer>
+    </ConsoleCard>
   );
 }

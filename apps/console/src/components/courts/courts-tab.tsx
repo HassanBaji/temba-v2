@@ -1,70 +1,267 @@
 "use client";
 
+import { MoreHorizontal } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
-import { RowList } from "~/components/common/row-list";
-import { Section } from "~/components/layout/section";
+import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { Button } from "~/components/ui/button";
-import { Field, FieldError, FieldLabel } from "~/components/ui/field";
-import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
 import {
-  fieldErrorMessage,
-  focusFormFailure,
-  globalFormErrorMessage,
-  toastGlobalFormError,
-} from "~/lib/form-mutation-error";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { Hatch } from "~/components/ui/hatch";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
+import { cn } from "~/lib/utils";
 import { courtRenameIsDirty } from "@repo/domain/court-rename";
 
-export function CourtsTab({ venueId }: { venueId: string }) {
-  const utils = api.useUtils();
-  const venue = api.venues.managedById.useQuery({ venueId });
-  const [newCourtName, setNewCourtName] = React.useState("");
-  const [courtNames, setCourtNames] = React.useState<Record<string, string>>(
-    {},
+import {
+  controlClass,
+  dialogClass,
+  inkButtonClass,
+  outlineButtonClass,
+} from "./classes";
+import {
+  closedUntilLabel,
+  courtAvailability,
+  type CourtAvailability,
+} from "./court-status-model";
+import { mutationErrorMessage } from "./mutation-error";
+
+function AvailabilityBadge({
+  availability,
+  now,
+}: {
+  availability: CourtAvailability;
+  now: Date;
+}) {
+  if (availability.kind === "closed") {
+    return (
+      <span className="bg-ink text-paper rounded-xs px-2 py-[3px] text-[11px]">
+        {closedUntilLabel(availability.until, now)}
+      </span>
+    );
+  }
+  return (
+    <span className="border-border text-muted-foreground rounded-xs border px-[7px] py-0.5 text-[11px]">
+      {availability.kind === "bookable" ? "Bookable" : "Not bookable"}
+    </span>
   );
-  const [deleteCourtId, setDeleteCourtId] = React.useState<string | null>(null);
-  const summaryRef = React.useRef<HTMLDivElement>(null);
+}
+
+function CourtNameDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  initialName,
+  confirmLabel,
+  pending,
+  error,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  initialName: string;
+  confirmLabel: string;
+  pending: boolean;
+  error: string | null;
+  onSubmit: (name: string) => void;
+}) {
+  const [name, setName] = React.useState(initialName);
 
   React.useEffect(() => {
-    if (!venue.data) {
-      return;
+    if (open) {
+      setName(initialName);
     }
-    setCourtNames((current) => {
-      const next: Record<string, string> = {};
-      for (const court of venue.data.courts) {
-        next[court.id] = current[court.id] ?? court.name;
-      }
-      return next;
-    });
-  }, [venue.data]);
+  }, [open, initialName]);
 
-  const refresh = async () => {
-    await utils.venues.managedById.invalidate({ venueId });
-  };
+  const dirty =
+    initialName === ""
+      ? name.trim().length > 0
+      : courtRenameIsDirty(name, initialName);
 
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => (pending ? null : onOpenChange(next))}
+    >
+      <DialogContent className={cn(dialogClass, "sm:max-w-sm")}>
+        <form
+          className="contents"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!pending && dirty) {
+              onSubmit(name.trim());
+            }
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="court-name" className="text-meta">
+              Court name
+            </Label>
+            <Input
+              id="court-name"
+              className={controlClass}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={255}
+              required
+              autoFocus
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "court-name-error" : undefined}
+            />
+            {error ? (
+              <p
+                id="court-name-error"
+                role="alert"
+                className="text-destructive text-meta"
+              >
+                {error}
+              </p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className={outlineButtonClass}
+              disabled={pending}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className={inkButtonClass}
+              disabled={!dirty}
+              pending={pending}
+              pendingLabel={`${confirmLabel}…`}
+            >
+              {confirmLabel}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AddCourtDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const venue = useManagedVenue();
+  const utils = api.useUtils();
   const addCourt = api.venues.addCourt.useMutation({
     onSuccess: async () => {
       toast.success("Court added");
-      setNewCourtName("");
-      await refresh();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-      focusFormFailure(error, { name: "new-court-name" }, summaryRef.current);
+      onOpenChange(false);
+      await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
   });
+
+  return (
+    <CourtNameDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          addCourt.reset();
+        }
+        onOpenChange(next);
+      }}
+      title="Add court"
+      description="Players see this name when they pick a Court."
+      initialName=""
+      confirmLabel="Add court"
+      pending={addCourt.isPending}
+      error={addCourt.error ? mutationErrorMessage(addCourt.error) : null}
+      onSubmit={(name) => addCourt.mutate({ venueId: venue.id, name })}
+    />
+  );
+}
+
+function CourtMenu({
+  courtName,
+  onRename,
+  onDelete,
+}: {
+  courtName: string;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`${courtName} actions`}
+          className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block"
+        >
+          <MoreHorizontal aria-hidden="true" className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="rounded-block border-border min-w-40 shadow-none"
+      >
+        <DropdownMenuItem
+          className="text-meta cursor-pointer"
+          onSelect={onRename}
+        >
+          Rename
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          className="text-meta cursor-pointer"
+          onSelect={onDelete}
+        >
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function CourtCards() {
+  const venue = useManagedVenue();
+  const utils = api.useUtils();
+  const [renameId, setRenameId] = React.useState<string | null>(null);
+  const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const now = new Date();
+
+  const refresh = () =>
+    utils.venues.managedById.invalidate({ venueId: venue.id });
 
   const renameCourt = api.venues.renameCourt.useMutation({
     onSuccess: async () => {
       toast.success("Court renamed");
+      setRenameId(null);
       await refresh();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
     },
   });
 
@@ -75,151 +272,96 @@ export function CourtsTab({ venueId }: { venueId: string }) {
     },
   });
 
-  function onAddCourt(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (addCourt.isPending) {
-      return;
-    }
-    addCourt.mutate({ venueId, name: newCourtName });
-  }
+  const renaming = venue.courts.find((court) => court.id === renameId);
+  const deleting = venue.courts.find((court) => court.id === deleteId);
 
-  const courts = venue.data?.courts ?? [];
-  const deleteCourtName =
-    courts.find((court) => court.id === deleteCourtId)?.name ?? "Court";
+  if (venue.courts.length === 0) {
+    return (
+      <div className="border-border rounded-card flex flex-col items-center gap-2 border px-6 py-10 text-center">
+        <Hatch className="rounded-control block h-[84px] w-full max-w-[220px]" />
+        <p className="mt-2 text-base font-semibold">No Courts yet</p>
+        <p className="text-muted-foreground text-meta">
+          Add a Court to start taking Bookings.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
-      <Section
-        title="Courts"
-        description="Each Court on this Venue needs its own name."
-      >
-        <form onSubmit={onAddCourt} className="space-y-3">
-          <FormErrorSummary
-            ref={summaryRef}
-            message={globalFormErrorMessage(addCourt.error)}
-          />
-          <Field>
-            <FieldLabel htmlFor="new-court-name">Court name</FieldLabel>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-              <Input
-                id="new-court-name"
-                className="min-w-48 flex-1"
-                value={newCourtName}
-                onChange={(event) => setNewCourtName(event.target.value)}
-                required
-                maxLength={255}
-                aria-invalid={
-                  fieldErrorMessage(addCourt.error, "name") ? true : undefined
-                }
-                aria-describedby={
-                  fieldErrorMessage(addCourt.error, "name")
-                    ? "new-court-name-error"
-                    : undefined
-                }
-              />
-              <Button type="submit" disabled={addCourt.isPending}>
-                {addCourt.isPending ? "Adding…" : "Add Court"}
-              </Button>
-            </div>
-            <FieldError id="new-court-name-error">
-              {fieldErrorMessage(addCourt.error, "name")}
-            </FieldError>
-          </Field>
-        </form>
+      <ul className="grid grid-cols-4 gap-3.5">
+        {venue.courts.map((court) => {
+          const availability = courtAvailability({
+            courtId: court.id,
+            closures: venue.closures,
+            acceptingBookings: venue.acceptingBookings,
+            now,
+          });
+          return (
+            <li
+              key={court.id}
+              className={cn(
+                "rounded-card flex flex-col gap-3 border p-[18px]",
+                availability.kind === "closed" ? "border-ink" : "border-border",
+              )}
+            >
+              <Hatch className="rounded-control block h-[84px] w-full" />
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-base font-semibold">
+                  {court.name}
+                </span>
+                <AvailabilityBadge availability={availability} now={now} />
+                <CourtMenu
+                  courtName={court.name}
+                  onRename={() => {
+                    renameCourt.reset();
+                    setRenameId(court.id);
+                  }}
+                  onDelete={() => setDeleteId(court.id)}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
 
-        {courts.length === 0 ? (
-          <p className="text-body text-muted-foreground">
-            No Courts yet. Add one to start taking Bookings.
-          </p>
-        ) : (
-          <RowList>
-            {courts.map((court) => {
-              const draft = courtNames[court.id] ?? court.name;
-              const renaming =
-                renameCourt.isPending && renameCourt.variables?.id === court.id;
-              const renameError =
-                renameCourt.error && renameCourt.variables?.id === court.id
-                  ? fieldErrorMessage(renameCourt.error, "name")
-                  : undefined;
-              return (
-                <li
-                  key={court.id}
-                  className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-end"
-                >
-                  <Field className="min-w-0 flex-1">
-                    <FieldLabel htmlFor={`court-name-${court.id}`}>
-                      Court name
-                    </FieldLabel>
-                    <Input
-                      id={`court-name-${court.id}`}
-                      value={draft}
-                      onChange={(event) =>
-                        setCourtNames((current) => ({
-                          ...current,
-                          [court.id]: event.target.value,
-                        }))
-                      }
-                      maxLength={255}
-                      required
-                      aria-invalid={renameError ? true : undefined}
-                      aria-describedby={
-                        renameError ? `court-name-${court.id}-error` : undefined
-                      }
-                    />
-                    <FieldError id={`court-name-${court.id}-error`}>
-                      {renameError}
-                    </FieldError>
-                  </Field>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      aria-label={`Rename ${court.name}`}
-                      disabled={
-                        !courtRenameIsDirty(draft, court.name) ||
-                        renameCourt.isPending
-                      }
-                      pending={renaming}
-                      pendingLabel="Renaming…"
-                      onClick={() =>
-                        renameCourt.mutate({ id: court.id, name: draft })
-                      }
-                    >
-                      Rename
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      aria-label={`Delete ${court.name}`}
-                      disabled={deleteCourt.isPending}
-                      onClick={() => setDeleteCourtId(court.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </RowList>
-        )}
-      </Section>
-
-      <ConfirmDialog
-        open={deleteCourtId !== null}
+      <CourtNameDialog
+        open={renaming !== undefined}
         onOpenChange={(open) => {
           if (!open) {
-            setDeleteCourtId(null);
+            setRenameId(null);
           }
         }}
-        title={`Delete ${deleteCourtName}?`}
-        description="This cannot be undone."
-        confirmLabel="Delete Court"
+        title={`Rename ${renaming?.name ?? "Court"}`}
+        description="The new name shows on every upcoming Booking."
+        initialName={renaming?.name ?? ""}
+        confirmLabel="Rename"
+        pending={renameCourt.isPending}
+        error={
+          renameCourt.error ? mutationErrorMessage(renameCourt.error) : null
+        }
+        onSubmit={(name) => {
+          if (renaming) {
+            renameCourt.mutate({ id: renaming.id, name });
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleting !== undefined}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteId(null);
+          }
+        }}
+        title={`Delete ${deleting?.name ?? "Court"}?`}
+        description="A Court with Bookings cannot be deleted. This cannot be undone."
+        confirmLabel="Delete court"
         pending={deleteCourt.isPending}
         onConfirm={async () => {
-          if (!deleteCourtId) {
-            return;
+          if (deleting) {
+            await deleteCourt.mutateAsync({ id: deleting.id });
           }
-          await deleteCourt.mutateAsync({ id: deleteCourtId });
         }}
       />
     </>

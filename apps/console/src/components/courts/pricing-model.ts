@@ -152,3 +152,76 @@ export function draftsToInput(
   }
   return { ok: true, rules };
 }
+
+export const MAX_END_MINUTES = 1800;
+
+export const WEEKDAY_SHORT = [
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+] as const;
+
+/** `7:00 AM`, `11:30 PM`; minutes past midnight wrap onto the next day's clock. */
+export function formatClock(minutes: number) {
+  const inDay = ((minutes % 1440) + 1440) % 1440;
+  const hour24 = Math.floor(inDay / 60);
+  const minute = inDay % 60;
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${hour24 < 12 ? "AM" : "PM"}`;
+}
+
+export function formatTimeWindow(startMinutes: number, endMinutes: number) {
+  return `${formatClock(startMinutes)} to ${formatClock(endMinutes)}`;
+}
+
+export function rateTimeOptions(slotMinutes: number) {
+  const options: { value: number; label: string }[] = [];
+  for (let minutes = 0; minutes <= MAX_END_MINUTES; minutes += slotMinutes) {
+    options.push({ value: minutes, label: formatClock(minutes) });
+  }
+  return options;
+}
+
+function circularRunStart(days: number[]): number | null {
+  const set = new Set(days);
+  for (const start of days) {
+    let covered = true;
+    for (let offset = 0; offset < days.length; offset += 1) {
+      if (!set.has((start + offset) % 7)) {
+        covered = false;
+        break;
+      }
+    }
+    if (covered) {
+      return start;
+    }
+  }
+  return null;
+}
+
+/** `All days`, `Sun to Thu`, `Thu, Fri`: the design's DAYS column. */
+export function describeWeekdays(weekdays: number[]) {
+  const days = [...new Set(weekdays)].sort((a, b) => a - b);
+  if (days.length === 0) {
+    return "No days";
+  }
+  if (days.length === 7) {
+    return "All days";
+  }
+  const start = circularRunStart(days);
+  if (start !== null && days.length >= 3) {
+    const end = (start + days.length - 1) % 7;
+    return `${WEEKDAY_SHORT[start]} to ${WEEKDAY_SHORT[end]}`;
+  }
+  const ordered =
+    start === null ? days : days.map((_, index) => (start + index) % 7);
+  return ordered.map((day) => WEEKDAY_SHORT[day]!).join(", ");
+}
+
+export function draftsAreEqual(a: PricingRuleDraft[], b: PricingRuleDraft[]) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
