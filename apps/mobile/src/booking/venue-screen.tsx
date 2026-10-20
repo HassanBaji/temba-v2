@@ -20,6 +20,8 @@ import { checkoutPath, relativeDay } from "./booking-model";
 import { ChipGrid, ChipTile } from "./chip-grid";
 import {
   dayStrip,
+  durationChoices,
+  keepOrFirst,
   startTimeGroups,
   weekdayOf,
   type StartTime,
@@ -31,6 +33,7 @@ type BookingVenue = RouterOutputs["bookings"]["venueForBooking"];
 
 const BANNER_HEIGHT = 200;
 const DAY_TILE_WIDTH = 62;
+const DURATION_COLUMNS = 3;
 const TIME_COLUMNS = 5;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -39,6 +42,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
   const now = useNow();
   const [refreshing, setRefreshing] = useState(false);
   const [dayKey, setDayKey] = useState<string | null>(null);
+  const [pickedMinutes, setPickedMinutes] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
 
   const venue = api.bookings.venueForBooking.useQuery(
@@ -88,15 +92,29 @@ export function VenueScreen({ venueId }: { venueId: string }) {
   }
 
   const data = venue.data;
+  const durations = availability.data
+    ? durationChoices({
+        options: data.durationOptionsMinutes,
+        courts: availability.data.courts,
+      })
+    : data.durationOptionsMinutes.map((minutes) => ({
+        minutes,
+        offered: true,
+      }));
+  const minutes =
+    keepOrFirst(
+      pickedMinutes,
+      durations.filter((entry) => entry.offered).map((entry) => entry.minutes),
+    ) ?? keepOrFirst(pickedMinutes, data.durationOptionsMinutes);
   const groups =
-    day && availability.data
+    day && availability.data && minutes !== null
       ? startTimeGroups({
           dayKey: day,
           windows:
             data.openingHours.find((entry) => entry.weekday === weekdayOf(day))
               ?.windows ?? [],
           slotMinutes: data.slotMinutes,
-          shortestMinutes: Math.min(...data.durationOptionsMinutes),
+          minutes,
           minLeadMinutes: data.minLeadMinutes,
           courts: availability.data.courts,
           now,
@@ -120,9 +138,12 @@ export function VenueScreen({ venueId }: { venueId: string }) {
       footer={
         <Footer
           chosen={chosen}
+          minutes={minutes}
           now={now}
           onContinue={() =>
-            chosen && router.push(checkoutPath(venueId, chosen.startsAt))
+            chosen &&
+            minutes !== null &&
+            router.push(checkoutPath(venueId, chosen.startsAt, minutes))
           }
         />
       }
@@ -191,6 +212,21 @@ export function VenueScreen({ venueId }: { venueId: string }) {
       </View>
 
       <View style={{ gap: 12 }}>
+        <SectionHeading title="Duration" />
+        <ChipGrid columns={DURATION_COLUMNS}>
+          {durations.map((entry) => (
+            <ChipTile
+              key={entry.minutes}
+              label={`${entry.minutes} min`}
+              struck={!entry.offered}
+              selected={entry.minutes === minutes}
+              onPress={() => setPickedMinutes(entry.minutes)}
+            />
+          ))}
+        </ChipGrid>
+      </View>
+
+      <View style={{ gap: 12 }}>
         <SectionHeading title="Start time" />
         {availability.error ? (
           <Notice
@@ -204,7 +240,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
         ) : times.length === 0 ? (
           <Notice
             title="Nothing to book on this day"
-            description="The venue is closed or every time has passed. Pick another day."
+            description="The venue is closed or every time has passed. Pick another day or duration."
           />
         ) : (
           <>
@@ -234,7 +270,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
             ))}
             {times.some((time) => time.freeCourts === 0) ? (
               <Text size="meta" tone="muted">
-                Struck times have no court free.
+                {`Struck times have no court free for ${minutes} min.`}
               </Text>
             ) : null}
           </>
@@ -300,10 +336,12 @@ function Banner({ venue }: { venue: BookingVenue }) {
 
 function Footer({
   chosen,
+  minutes,
   now,
   onContinue,
 }: {
   chosen: StartTime | null;
+  minutes: number | null;
   now: Date;
   onContinue: () => void;
 }) {
@@ -315,7 +353,7 @@ function Footer({
         </Text>
         <Text size="meta" weight="semibold" numberOfLines={1}>
           {chosen
-            ? `${formatGameClock(chosen.startsAt)}, ${courtCountLabel(chosen.freeCourts)} free`
+            ? `${formatGameClock(chosen.startsAt)}, ${minutes} min, ${courtCountLabel(chosen.freeCourts)} free`
             : "Pick a start time"}
         </Text>
       </View>
