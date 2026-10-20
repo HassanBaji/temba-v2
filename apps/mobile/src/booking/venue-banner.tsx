@@ -1,4 +1,5 @@
 import { colors } from "@repo/design-tokens";
+import { type VenueBannerImage } from "@repo/domain/venue-photos";
 import { useState } from "react";
 import { Image, View } from "react-native";
 
@@ -8,19 +9,19 @@ import { Hatch } from "../primitives/hatch";
 
 const LOGO_RATIO = 0.6;
 
-/** The Venue's logo on a wash, or hatch while the Venue has none. */
+/** A Venue photo edge to edge, the logo on a wash, or hatch while the Venue has neither. */
 export function VenueBanner({
-  logoImageUrl,
+  image,
   height,
   children,
 }: {
-  logoImageUrl: string | null;
+  image: VenueBannerImage;
   height: number;
   children?: React.ReactNode;
 }) {
-  const [failed, setFailed] = useState(false);
-  const uri = mediaUrl(logoImageUrl, apiOrigin);
-  const showLogo = uri !== null && !failed;
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  const uri = image.kind === "none" ? null : mediaUrl(image.url, apiOrigin);
+  const shown = uri !== null && uri !== failedUri ? uri : null;
 
   return (
     <View
@@ -32,12 +33,20 @@ export function VenueBanner({
         overflow: "hidden",
       }}
     >
-      {showLogo ? (
+      {shown && image.kind === "photo" ? (
         <Image
           accessibilityIgnoresInvertColors
-          source={{ uri }}
+          source={{ uri: shown }}
+          resizeMode="cover"
+          onError={() => setFailedUri(shown)}
+          style={{ position: "absolute", width: "100%", height: "100%" }}
+        />
+      ) : shown ? (
+        <Image
+          accessibilityIgnoresInvertColors
+          source={{ uri: shown }}
           resizeMode="contain"
-          onError={() => setFailed(true)}
+          onError={() => setFailedUri(shown)}
           style={{ width: "60%", height: height * LOGO_RATIO }}
         />
       ) : (

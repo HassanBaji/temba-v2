@@ -39,6 +39,7 @@ import { TRPC_BODY_LIMIT_BYTES } from "./routes/trpc";
 
 const GROUP_ID = "22222222-2222-4222-8222-222222222222";
 const VENUE_ID = "33333333-3333-4333-8333-333333333333";
+const PHOTO_ID = "44444444-4444-4444-8444-444444444444";
 
 let testDb: Awaited<ReturnType<typeof createPgliteDb>>;
 
@@ -179,6 +180,12 @@ describe("Invite links", () => {
 describe.each([
   ["group-images", GROUP_ID, "image", "group-images/" + GROUP_ID + "/image"],
   ["venue-logos", VENUE_ID, "logo", null],
+  [
+    "venue-photos",
+    VENUE_ID,
+    PHOTO_ID,
+    "venue-photos/" + VENUE_ID + "/" + PHOTO_ID,
+  ],
 ])("media %s", (folder, id, leaf, key) => {
   const path = (value: string) => `/api/media/${folder}/${value}/${leaf}`;
 
@@ -220,6 +227,15 @@ describe.each([
     expect(response.status).toBe(502);
     expect(await response.text()).toBe("");
   });
+});
+
+it("returns 404 for a Venue photo id that is not a UUID", async () => {
+  getS3Object.mockReset();
+  const response = await appFor(null).request(
+    `/api/media/venue-photos/${VENUE_ID}/not-a-uuid`,
+  );
+  expect(response.status).toBe(404);
+  expect(getS3Object).not.toHaveBeenCalled();
 });
 
 describe("webhook", () => {

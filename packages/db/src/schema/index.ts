@@ -9,6 +9,7 @@ export * from "./venue-managers";
 export * from "./venue-opening-hours";
 export * from "./venue-closures";
 export * from "./venue-pricing-rules";
+export * from "./venue-photos";
 export * from "./booking-enums";
 export * from "./bookings";
 export * from "./booking-payments";

@@ -10,6 +10,7 @@ import {
   isBookableVenue,
   loadVenueSlotContext,
 } from "#src/bookings/availability";
+import { venuePhotoUrlOrNull } from "#src/storage/venue-photos";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -34,6 +35,8 @@ export async function venueForBooking(
       phone: true,
       website: true,
       logoImageUrl: true,
+      coverPhotoId: true,
+      detailPhotoId: true,
       latitude: true,
       longitude: true,
       description: true,
@@ -45,6 +48,7 @@ export async function venueForBooking(
     throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
   }
 
+  const { coverPhotoId, detailPhotoId, ...details } = venue;
   const { settings } = context.input;
   const openingHours = Array.from({ length: 7 }, (_, weekday) => ({
     weekday,
@@ -58,7 +62,9 @@ export async function venueForBooking(
   }));
 
   return {
-    ...venue,
+    ...details,
+    coverImageUrl: venuePhotoUrlOrNull(venue.id, coverPhotoId),
+    detailImageUrl: venuePhotoUrlOrNull(venue.id, detailPhotoId),
     courts: context.courts,
     openingHours,
     slotMinutes: settings.slotMinutes,
