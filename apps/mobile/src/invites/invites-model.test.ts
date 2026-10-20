@@ -97,7 +97,7 @@ describe("share messages", () => {
       shortLink,
     );
     expect(roster).toContain("Padel Hub");
-    expect(roster).toContain("- Ada");
+    expect(roster).toContain("- Left: Ada");
     expect(roster.endsWith("https://temba.example/g/AbCd1234")).toBe(true);
   });
 });
