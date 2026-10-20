@@ -14,6 +14,8 @@ import {
   useFakeProvider,
   withBookableVenue,
 } from "#src/bookings/booking.test-support";
+import { setPaymentProvider } from "#src/payments/index";
+import { manualProvider } from "#src/payments/manual";
 import { getPaymentState } from "#src/routers/bookings/paymentState";
 
 import { handle } from "./payment.create-charge";
@@ -108,6 +110,22 @@ describe("payment.create-charge", () => {
         }),
       ).toMatchObject({ kind: "failed", reason: "Card not supported" });
       await expectLedgerConsistent(db, booking.id);
+    });
+  });
+
+  it("throws when this worker uses a different provider than the Payment", async () => {
+    await withBookableVenue(async (db, f) => {
+      await createHeldBooking(db, f);
+      const [payment] = await db.select().from(bookingPayments);
+      setPaymentProvider(manualProvider);
+
+      await expect(
+        handle(asDb(db), { paymentId: payment!.id }, undefined, NOW),
+      ).rejects.toThrow("is for tap but this worker uses manual");
+      expect(await db.query.bookingPayments.findFirst()).toMatchObject({
+        status: "pending",
+        providerReference: null,
+      });
     });
   });
 
