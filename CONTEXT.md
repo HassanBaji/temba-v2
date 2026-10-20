@@ -180,6 +180,10 @@ _Avoid_: Admin (that is a Community role), system admin, platform admin, superad
 A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Venue console. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
 _Avoid_: facility owner, venue admin, Owner (that is a Community role), Admin, Operator, staff
 
+**Venue photo**:
+A picture of a Venue that a Venue manager uploads from the Venue console, up to ten per Venue. One is the **Main photo**, which fronts the Venue's card in the App's Venue list; one is the **Details photo**, at the top of the Venue screen. They may be the same photo. With no Venue photo, the App shows the Venue logo.
+_Avoid_: court image (Courts have no photos), cover, banner, gallery, hero
+
 **Opening hours**:
 The windows in which a Venue's Courts can be booked, per weekday in the product timezone, as minutes from midnight. A weekday may have several non-overlapping windows; none means closed. A window belongs to the weekday it opened on and may run to 06:00 the next day. Times sit on the Venue's slot grid.
 _Avoid_: schedule, availability (that is derived from Opening hours, Closures and Bookings), business hours
@@ -225,7 +229,7 @@ The outside service that takes a Customer's money for a Booking, behind one adap
 _Avoid_: gateway, PSP, Tap (bare, when you mean the boundary rather than the vendor), Clerk (that is identity)
 
 **Payment method**:
-How a Customer pays one Booking, picked at checkout: card, BENEFIT, BenefitPay or Apple Pay through Tap, or pay at the Venue. The online methods are the ones switched on for the Tap merchant account; pay at the Venue is offered unless the Venue refuses it (ADR-0032).
+How a Customer pays one Booking, picked at checkout: card, BENEFIT, BenefitPay or Apple Pay through Tap, or pay at the Venue. The online methods are the ones switched on for the Tap merchant account; pay at the Venue is offered unless the Venue refuses it (ADR-0033).
 _Avoid_: payment mode (that is the older single answer), source (that is Tap's word for one hosted page)
 
 **Venue console**:

@@ -69,16 +69,24 @@ function meridiem(startsAt: Date) {
   return zonedParts(startsAt).hour < 12 ? "AM" : "PM";
 }
 
+function takesLength(
+  slot: AvailabilityCourt["slots"][number],
+  minutes: number,
+) {
+  return slot.durations.some((duration) => duration.minutes === minutes);
+}
+
 /**
- * Every start on the Venue's grid for the day that is not already too soon,
- * grouped into runs of AM and PM so "6:00" is never ambiguous. A start no
- * Court can take is kept with `freeCourts: 0`, which the screen strikes out.
+ * Every start on the Venue's grid for the day that is not already too soon
+ * and leaves room for `minutes` before closing, grouped into runs of AM and
+ * PM so "6:00" is never ambiguous. A start no Court can take for that length
+ * is kept with `freeCourts: 0`, which the screen strikes out.
  */
 export function startTimeGroups(args: {
   dayKey: string;
   windows: readonly OpeningWindow[];
   slotMinutes: number;
-  shortestMinutes: number;
+  minutes: number;
   minLeadMinutes: number;
   courts: readonly AvailabilityCourt[];
   now: Date;
@@ -88,6 +96,9 @@ export function startTimeGroups(args: {
   const freeByStart = new Map<number, number>();
   for (const court of args.courts) {
     for (const slot of court.slots) {
+      if (!takesLength(slot, args.minutes)) {
+        continue;
+      }
       const at = slot.startsAt.getTime();
       freeByStart.set(at, (freeByStart.get(at) ?? 0) + 1);
     }
@@ -97,7 +108,7 @@ export function startTimeGroups(args: {
   for (const window of args.windows) {
     for (
       let minute = window.opensAtMinutes;
-      minute + args.shortestMinutes <= window.closesAtMinutes;
+      minute + args.minutes <= window.closesAtMinutes;
       minute += args.slotMinutes
     ) {
       const at = midnight.getTime() + minute * MS_PER_MINUTE;
@@ -128,28 +139,18 @@ export function startTimeGroups(args: {
   return groups;
 }
 
-export type DurationChoice = {
-  minutes: number;
-  freeCourts: number;
-  endsAt: Date;
-};
+export type DurationChoice = { minutes: number; offered: boolean };
 
+/** Each length the Venue sells, offered when some Court takes it at some start of the day. */
 export function durationChoices(args: {
-  startsAt: Date;
   options: readonly number[];
   courts: readonly AvailabilityCourt[];
 }): DurationChoice[] {
-  const at = args.startsAt.getTime();
   return args.options.map((minutes) => ({
     minutes,
-    endsAt: new Date(at + minutes * MS_PER_MINUTE),
-    freeCourts: args.courts.filter((court) =>
-      court.slots.some(
-        (slot) =>
-          slot.startsAt.getTime() === at &&
-          slot.durations.some((duration) => duration.minutes === minutes),
-      ),
-    ).length,
+    offered: args.courts.some((court) =>
+      court.slots.some((slot) => takesLength(slot, minutes)),
+    ),
   }));
 }
 

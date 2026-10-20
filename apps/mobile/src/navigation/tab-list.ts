@@ -29,9 +29,5 @@ export function tabBarHidden(segments: readonly string[]): boolean {
   if (book === -1) {
     return false;
   }
-  const area = segments[book + 1];
-  return (
-    area === "bookings" ||
-    (area === "venues" && segments[book + 2] !== undefined)
-  );
+  return segments[book + 2] !== undefined;
 }

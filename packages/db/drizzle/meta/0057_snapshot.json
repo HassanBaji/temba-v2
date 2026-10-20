@@ -1,5 +1,5 @@
 {
-  "id": "ee3e3a1e-b459-4cf8-a4cf-b0f3ddb9e97c",
+  "id": "f1f9393a-5f33-4635-8015-e07805177726",
   "prevId": "79bd8ad1-51b0-4f31-b61a-b210baa0dbb3",
   "version": "7",
   "dialect": "postgresql",
@@ -883,6 +883,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "cover_photo_id": {
+          "name": "cover_photo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail_photo_id": {
+          "name": "detail_photo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "accepting_bookings": {
           "name": "accepting_bookings",
           "type": "boolean",
@@ -917,13 +929,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 60
-        },
-        "pay_at_venue_allowed": {
-          "name": "pay_at_venue_allowed",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "description": {
           "name": "description",
@@ -994,7 +999,34 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "venues_cover_photo_id_venue_photos_id_fk": {
+          "name": "venues_cover_photo_id_venue_photos_id_fk",
+          "tableFrom": "venues",
+          "tableTo": "venue_photos",
+          "columnsFrom": [
+            "cover_photo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "venues_detail_photo_id_venue_photos_id_fk": {
+          "name": "venues_detail_photo_id_venue_photos_id_fk",
+          "tableFrom": "venues",
+          "tableTo": "venue_photos",
+          "columnsFrom": [
+            "detail_photo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1501,6 +1533,75 @@
           "value": "\"venue_pricing_rules\".\"hourly_rate_fils\" >= 0 and \"venue_pricing_rules\".\"hourly_rate_fils\" <= 1000000000"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.venue_photos": {
+      "name": "venue_photos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "venue_id": {
+          "name": "venue_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "venue_photos_venue_id_created_at_idx": {
+          "name": "venue_photos_venue_id_created_at_idx",
+          "columns": [
+            {
+              "expression": "venue_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "venue_photos_venue_id_venues_id_fk": {
+          "name": "venue_photos_venue_id_venues_id_fk",
+          "tableFrom": "venue_photos",
+          "tableTo": "venues",
+          "columnsFrom": [
+            "venue_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.bookings": {
@@ -6868,9 +6969,7 @@
         "cash",
         "card",
         "benefit",
-        "transfer",
-        "benefitpay",
-        "apple_pay"
+        "transfer"
       ]
     },
     "public.payment_provider": {

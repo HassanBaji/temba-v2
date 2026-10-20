@@ -1,5 +1,6 @@
 import { getGroupImageObject } from "@repo/api/storage/group-images";
 import { getVenueLogoObject } from "@repo/api/storage/venue-logos";
+import { getVenuePhotoObject } from "@repo/api/storage/venue-photos";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -10,14 +11,14 @@ const noStore = { "Cache-Control": "no-store" };
 type StoredObject = { bytes: Uint8Array; contentType: string };
 
 async function streamObject(
-  id: string,
-  load: (id: string) => Promise<StoredObject | null>,
+  ids: string[],
+  load: () => Promise<StoredObject | null>,
 ) {
-  if (!uuid.safeParse(id).success) {
+  if (ids.some((id) => !uuid.safeParse(id).success)) {
     return new Response(null, { status: 404, headers: noStore });
   }
   try {
-    const object = await load(id);
+    const object = await load();
     if (!object) {
       return new Response(null, { status: 404, headers: noStore });
     }
@@ -35,9 +36,17 @@ async function streamObject(
 }
 
 export const mediaRoute = new Hono()
-  .get("/api/media/group-images/:groupId/image", (c) =>
-    streamObject(c.req.param("groupId"), getGroupImageObject),
-  )
-  .get("/api/media/venue-logos/:venueId/logo", (c) =>
-    streamObject(c.req.param("venueId"), getVenueLogoObject),
-  );
+  .get("/api/media/group-images/:groupId/image", (c) => {
+    const groupId = c.req.param("groupId");
+    return streamObject([groupId], () => getGroupImageObject(groupId));
+  })
+  .get("/api/media/venue-logos/:venueId/logo", (c) => {
+    const venueId = c.req.param("venueId");
+    return streamObject([venueId], () => getVenueLogoObject(venueId));
+  })
+  .get("/api/media/venue-photos/:venueId/:photoId", (c) => {
+    const { venueId, photoId } = c.req.param();
+    return streamObject([venueId, photoId], () =>
+      getVenuePhotoObject(venueId, photoId),
+    );
+  });

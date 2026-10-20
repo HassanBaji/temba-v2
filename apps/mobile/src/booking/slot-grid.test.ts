@@ -72,7 +72,7 @@ describe("startTimeGroups", () => {
   const base = {
     dayKey: "2026-10-15",
     slotMinutes: 60,
-    shortestMinutes: 60,
+    minutes: 60,
     minLeadMinutes: 60,
     courts: COURTS,
     now: NOW,
@@ -96,10 +96,26 @@ describe("startTimeGroups", () => {
     ]);
   });
 
-  it("never offers a start too close to closing for the shortest length", () => {
+  it("counts only the Courts that take the chosen length", () => {
     const groups = startTimeGroups({
       ...base,
-      shortestMinutes: 90,
+      minutes: 90,
+      windows: [{ opensAtMinutes: 15 * 60, closesAtMinutes: 21 * 60 }],
+    });
+    expect(
+      groups[0]?.times.map((time) => [time.label, time.freeCourts]),
+    ).toEqual([
+      ["4:00", 0],
+      ["5:00", 0],
+      ["6:00", 1],
+      ["7:00", 0],
+    ]);
+  });
+
+  it("never offers a start too close to closing for the chosen length", () => {
+    const groups = startTimeGroups({
+      ...base,
+      minutes: 90,
       windows: [{ opensAtMinutes: 18 * 60, closesAtMinutes: 20 * 60 }],
     });
     expect(groups[0]?.times.map((time) => time.label)).toEqual(["6:00"]);
@@ -129,20 +145,16 @@ describe("startTimeGroups", () => {
 });
 
 describe("durationChoices", () => {
-  it("counts the Courts that take each length at the start", () => {
+  it("offers a length when some Court takes it at some start of the day", () => {
     const choices = durationChoices({
-      startsAt: at("2026-10-15T18:00:00"),
       options: [60, 90, 120],
       courts: COURTS,
     });
-    expect(
-      choices.map((choice) => [choice.minutes, choice.freeCourts]),
-    ).toEqual([
-      [60, 2],
-      [90, 1],
-      [120, 0],
+    expect(choices).toEqual([
+      { minutes: 60, offered: true },
+      { minutes: 90, offered: true },
+      { minutes: 120, offered: false },
     ]);
-    expect(choices[1]?.endsAt).toEqual(at("2026-10-15T19:30:00"));
   });
 });
 

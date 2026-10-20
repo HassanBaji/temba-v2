@@ -14,6 +14,7 @@ import type { DbClient } from "@repo/db";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { paymentProvider } from "#src/payments/index";
 import { protectedProcedure } from "#src/trpc";
+import { venuePhotoUrl, venuePhotoUrlOrNull } from "#src/storage/venue-photos";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
 const CLOSURE_WINDOW_DAYS = 90;
@@ -41,6 +42,8 @@ export async function managedVenueById(
       phone: true,
       website: true,
       logoImageUrl: true,
+      coverPhotoId: true,
+      detailPhotoId: true,
       description: true,
       bookingNotes: true,
       acceptingBookings: true,
@@ -58,6 +61,10 @@ export async function managedVenueById(
       courts: {
         columns: { id: true, name: true, createdAt: true, updatedAt: true },
         orderBy: (table, { asc }) => [asc(table.createdAt)],
+      },
+      photos: {
+        columns: { id: true, createdAt: true },
+        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
       },
     },
   });
@@ -130,6 +137,12 @@ export async function managedVenueById(
   return {
     ...venue,
     onlinePaymentAvailable: paymentProvider().id !== "manual",
+    photos: venue.photos.map((photo) => ({
+      ...photo,
+      imageUrl: venuePhotoUrl(venue.id, photo.id),
+    })),
+    coverImageUrl: venuePhotoUrlOrNull(venue.id, venue.coverPhotoId),
+    detailImageUrl: venuePhotoUrlOrNull(venue.id, venue.detailPhotoId),
     openingHours,
     closures,
     pricingRules,

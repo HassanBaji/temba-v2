@@ -144,7 +144,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
           onAction={() =>
             venueId
               ? router.replace(venuePath(venueId))
-              : router.replace("/book")
+              : router.dismissTo("/book")
           }
         />
       )}

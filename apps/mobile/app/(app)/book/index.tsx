@@ -1,5 +1,5 @@
-import { MyBookingsScreen } from "../../../src/booking/my-bookings-screen";
+import { VenuesScreen } from "../../../src/booking/venues-screen";
 
 export default function Book() {
-  return <MyBookingsScreen />;
+  return <VenuesScreen />;
 }

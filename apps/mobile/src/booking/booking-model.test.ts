@@ -6,6 +6,8 @@ import {
   bookingRef,
   cancelConsequence,
   checkoutMethods,
+  checkoutPath,
+  endsAfter,
   payButtonLabel,
   paymentStatusLine,
   placeLine,
@@ -26,6 +28,18 @@ describe("booking references and paths", () => {
 
   it("matches the payment return deep link", () => {
     expect(bookingPath("abc")).toBe("/book/bookings/abc");
+  });
+
+  it("carries the start and the length to checkout", () => {
+    expect(checkoutPath("v1", at("2026-10-15T18:00:00"), 90)).toBe(
+      "/book/venues/v1/checkout?startsAt=2026-10-15T15%3A00%3A00.000Z&minutes=90",
+    );
+  });
+
+  it("ends a length after the start", () => {
+    expect(endsAfter(at("2026-10-15T18:00:00"), 90)).toEqual(
+      at("2026-10-15T19:30:00"),
+    );
   });
 });
 

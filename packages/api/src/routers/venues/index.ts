@@ -8,6 +8,7 @@ import { byId } from "./byId";
 import { clearLogoProcedure as clearLogo } from "./clearLogo";
 import { create } from "./create";
 import { deleteCourtProcedure as deleteCourt } from "./deleteCourt";
+import { deletePhotoProcedure as deletePhoto } from "./deletePhoto";
 import { list } from "./list";
 import { listManagedProcedure as listManaged } from "./listManaged";
 import { listPendingLinkRequestsProcedure as listPendingLinkRequests } from "./listPendingLinkRequests";
@@ -17,6 +18,7 @@ import { removeManagerProcedure as removeManager } from "./removeManager";
 import { removeClosureProcedure as removeClosure } from "./removeClosure";
 import { renameCourtProcedure as renameCourt } from "./renameCourt";
 import { searchManagerUsersProcedure as searchManagerUsers } from "./searchManagerUsers";
+import { setDisplayPhotosProcedure as setDisplayPhotos } from "./setDisplayPhotos";
 import { setOpeningHoursProcedure as setOpeningHours } from "./setOpeningHours";
 import { setPricingRulesProcedure as setPricingRules } from "./setPricingRules";
 import { softArchiveProcedure as softArchive } from "./softArchive";
@@ -26,6 +28,7 @@ import { updateBookingSettingsProcedure as updateBookingSettings } from "./updat
 import { updateCancellationPolicyProcedure as updateCancellationPolicy } from "./updateCancellationPolicy";
 import { updateDetails } from "./updateDetails";
 import { uploadLogoProcedure as uploadLogo } from "./uploadLogo";
+import { uploadPhotoProcedure as uploadPhoto } from "./uploadPhoto";
 
 export const venuesRouter = createTRPCRouter({
   list,
@@ -49,6 +52,9 @@ export const venuesRouter = createTRPCRouter({
   deleteCourt,
   uploadLogo,
   clearLogo,
+  uploadPhoto,
+  deletePhoto,
+  setDisplayPhotos,
   softArchive,
   unarchive,
   listPendingLinkRequests,
