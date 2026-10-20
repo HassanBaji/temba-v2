@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "~/components/console/page-header";
 import { SegmentedControl } from "~/components/console/segmented-control";
 import { inkButtonClass } from "~/components/courts/classes";
+import { VenueLogoField } from "~/components/details/venue-logo-field";
 import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
@@ -240,7 +241,7 @@ export function PhotosScreen() {
     <ConsolePage className="gap-[26px]">
       <PageHeader
         title="Photos"
-        description="Photos of your courts for the Temba App. Pick a main picture for the venue list and a details picture for the top of your venue page."
+        description="Photos of your courts and your logo for the Temba App. Pick a main picture for the venue list and a details picture for the top of your venue page. Your logo sits beside your venue name."
         action={
           <Button
             type="button"
@@ -268,61 +269,77 @@ export function PhotosScreen() {
         }}
       />
       <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-start gap-[22px]">
-        <ConsoleCard>
-          <ConsoleCardHeader
-            title="Photo library"
-            action={
-              <span className="text-meta text-muted-foreground">
-                {venue.photos.length} of {VENUE_PHOTO_LIMIT}
-              </span>
-            }
-          />
-          <div className="flex flex-col gap-4 px-5 py-5">
-            {venue.photos.length === 0 && uploading === 0 ? (
-              <div className="rounded-block relative flex min-h-[180px] flex-col items-center justify-center gap-1 px-6 text-center">
-                <Hatch className="rounded-block absolute inset-0" />
-                <p className="bg-paper relative px-2 text-sm font-semibold">
-                  No photos yet
+        <div className="flex min-w-0 flex-col gap-[22px]">
+          <ConsoleCard>
+            <ConsoleCardHeader
+              title="Photo library"
+              action={
+                <span className="text-meta text-muted-foreground">
+                  {venue.photos.length} of {VENUE_PHOTO_LIMIT}
+                </span>
+              }
+            />
+            <div className="flex flex-col gap-4 px-5 py-5">
+              {venue.photos.length === 0 && uploading === 0 ? (
+                <div className="rounded-block relative flex min-h-[180px] flex-col items-center justify-center gap-1 px-6 text-center">
+                  <Hatch className="rounded-block absolute inset-0" />
+                  <p className="bg-paper relative px-2 text-sm font-semibold">
+                    No photos yet
+                  </p>
+                  <p className="bg-paper text-meta text-muted-foreground relative max-w-sm px-2">
+                    Upload photos of your courts. The first one becomes both the
+                    main and the details picture until you pick others.
+                  </p>
+                </div>
+              ) : (
+                <ul
+                  aria-label="Venue photos"
+                  className="grid grid-cols-2 gap-3 xl:grid-cols-3"
+                >
+                  {venue.photos.map((photo, index) => (
+                    <PhotoTile
+                      key={photo.id}
+                      photo={photo}
+                      index={index}
+                      isCover={photo.id === venue.coverPhotoId}
+                      isDetail={photo.id === venue.detailPhotoId}
+                      busy={busy}
+                      onCover={() => pick("coverPhotoId", photo.id)}
+                      onDetail={() => pick("detailPhotoId", photo.id)}
+                      onDelete={() => setDeleting(photo)}
+                    />
+                  ))}
+                  {Array.from({ length: uploading }, (_, index) => (
+                    <UploadingTile key={`uploading-${index}`} />
+                  ))}
+                </ul>
+              )}
+              {uploadError ? (
+                <p role="alert" className="text-destructive text-meta">
+                  {uploadError}
                 </p>
-                <p className="bg-paper text-meta text-muted-foreground relative max-w-sm px-2">
-                  Upload photos of your courts. The first one becomes both the
-                  main and the details picture until you pick others.
-                </p>
-              </div>
-            ) : (
-              <ul
-                aria-label="Venue photos"
-                className="grid grid-cols-2 gap-3 xl:grid-cols-3"
-              >
-                {venue.photos.map((photo, index) => (
-                  <PhotoTile
-                    key={photo.id}
-                    photo={photo}
-                    index={index}
-                    isCover={photo.id === venue.coverPhotoId}
-                    isDetail={photo.id === venue.detailPhotoId}
-                    busy={busy}
-                    onCover={() => pick("coverPhotoId", photo.id)}
-                    onDetail={() => pick("detailPhotoId", photo.id)}
-                    onDelete={() => setDeleting(photo)}
-                  />
-                ))}
-                {Array.from({ length: uploading }, (_, index) => (
-                  <UploadingTile key={`uploading-${index}`} />
-                ))}
-              </ul>
-            )}
-            {uploadError ? (
-              <p role="alert" className="text-destructive text-meta">
-                {uploadError}
+              ) : null}
+              <p className="text-muted-foreground text-xs">
+                JPEG, PNG or WebP. Large photos are resized before upload.
+                Landscape photos fill the App&apos;s banners best.
               </p>
-            ) : null}
-            <p className="text-muted-foreground text-xs">
-              JPEG, PNG or WebP. Large photos are resized before upload.
-              Landscape photos fill the App&apos;s banners best.
-            </p>
-          </div>
-        </ConsoleCard>
+            </div>
+          </ConsoleCard>
+
+          <ConsoleCard>
+            <ConsoleCardHeader title="Logo" />
+            <div className="flex flex-col gap-4 px-5 py-5">
+              <VenueLogoField
+                venueId={venueId}
+                logoImageUrl={venue.logoImageUrl ?? null}
+              />
+              <p className="text-muted-foreground text-xs">
+                Square logos read best. Players see it beside your venue name,
+                and in the banner while you have no photos.
+              </p>
+            </div>
+          </ConsoleCard>
+        </div>
 
         <ConsoleCard className="sticky top-6 overflow-hidden">
           <ConsoleCardHeader
