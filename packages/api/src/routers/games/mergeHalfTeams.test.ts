@@ -65,8 +65,12 @@ async function insertFourTeamTournament(
   venueId: string,
 ) {
   const group = await insertGroup(database, createdBy);
-  const windowStart = new Date("2026-09-20T18:00:00");
-  const windowEnd = new Date("2026-10-11T19:00:00");
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() + 14);
+  windowStart.setHours(18, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + 21);
+  windowEnd.setHours(19, 0, 0, 0);
   const created = await createTournament(database, {
     createdBy,
     name: "Autumn Friendly",

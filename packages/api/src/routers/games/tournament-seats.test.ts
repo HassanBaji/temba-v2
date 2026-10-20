@@ -108,8 +108,12 @@ async function insertTwelveTeamTournament(
   },
 ) {
   const group = await insertGroup(database, args.createdBy);
-  const windowStart = new Date("2026-09-20T18:00:00");
-  const windowEnd = new Date("2026-10-11T19:00:00");
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() + 14);
+  windowStart.setHours(18, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + 21);
+  windowEnd.setHours(19, 0, 0, 0);
   const created = await createTournament(database, {
     createdBy: args.createdBy,
     name: "Autumn Friendly",
@@ -662,6 +666,7 @@ describe("Complete Teams tournament field", () => {
       const owner = await insertUser(db, "owner-teams@example.com");
       const venue = await insertVenue(db);
       const group = await insertGroup(db, owner.id);
+      const windowStart = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
       const [created] = await db
         .insert(games)
         .values({
@@ -676,8 +681,8 @@ describe("Complete Teams tournament field", () => {
           teamsAllowed: 4,
           playersAllowed: 8,
           sport: GameSportEnum.PADEL,
-          windowStart: new Date("2026-09-21T13:00:00"),
-          windowEnd: new Date("2026-09-21T15:00:00"),
+          windowStart,
+          windowEnd: new Date(windowStart.getTime() + 2 * 60 * 60 * 1000),
         })
         .returning({ id: games.id });
       if (!created) {
