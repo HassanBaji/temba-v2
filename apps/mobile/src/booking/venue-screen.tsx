@@ -3,7 +3,7 @@ import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { venuePageImage } from "@repo/domain/venue-photos";
 import { useRouter } from "expo-router";
-import { ArrowRight } from "lucide-react-native";
+import { ArrowRight, Info } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,12 +15,12 @@ import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
-import { ScreenHeader } from "../primitives/screen-header";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { api, type RouterOutputs } from "../trpc/react";
 import { DetailRow, Notice, Pill, SectionHeading } from "./booking-parts";
-import { checkoutPath, relativeDay } from "./booking-model";
+import { checkoutPath, relativeDay, venueDetailsPath } from "./booking-model";
 import { ChipGrid, ChipTile } from "./chip-grid";
 import {
   dayStrip,
@@ -31,7 +31,7 @@ import {
   type StartTime,
 } from "./slot-grid";
 import { VenueBanner } from "./venue-banner";
-import { courtCountLabel, hoursLabel, openToLabel } from "./venues-model";
+import { courtCountLabel, openToLabel } from "./venues-model";
 
 type BookingVenue = RouterOutputs["bookings"]["venueForBooking"];
 
@@ -39,7 +39,6 @@ const BANNER_HEIGHT = 200;
 const DAY_TILE_WIDTH = 62;
 const DURATION_COLUMNS = 3;
 const TIME_COLUMNS = 5;
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function VenueScreen({ venueId }: { venueId: string }) {
   const router = useRouter();
@@ -138,7 +137,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
     <Screen
       refreshing={refreshing}
       onRefresh={onRefresh}
-      header={<Banner venue={data} />}
+      header={<Banner venue={data} venueId={venueId} />}
       footer={
         <Footer
           chosen={chosen}
@@ -310,28 +309,13 @@ export function VenueScreen({ venueId }: { venueId: string }) {
             </Text>
           </DetailRow>
         ) : null}
-        <DetailRow label="Opening hours">
-          {data.openingHours.map((entry) => (
-            <Text
-              key={entry.weekday}
-              size="meta"
-              style={{ textAlign: "right" }}
-            >
-              {`${WEEKDAYS[entry.weekday]}  ${hoursLabel(entry.windows)}`}
-            </Text>
-          ))}
-        </DetailRow>
-        {data.phone ? (
-          <DetailRow label="Venue">
-            <Text size="meta">{data.phone}</Text>
-          </DetailRow>
-        ) : null}
       </View>
     </Screen>
   );
 }
 
-function Banner({ venue }: { venue: BookingVenue }) {
+function Banner({ venue, venueId }: { venue: BookingVenue; venueId: string }) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   return (
     <VenueBanner
@@ -346,7 +330,18 @@ function Banner({ venue }: { venue: BookingVenue }) {
           right: spacing.surface,
         }}
       >
-        <ScreenHeader nav="back" fallback="/book" />
+        <ScreenHeader
+          nav="back"
+          fallback="/book"
+          actions={
+            <HeaderIconButton
+              framed
+              icon={Info}
+              accessibilityLabel="Venue details"
+              onPress={() => router.push(venueDetailsPath(venueId))}
+            />
+          }
+        />
       </View>
     </VenueBanner>
   );
