@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { View } from "react-native";
 
+import { CachedImage } from "./cached-image";
 import { hairline } from "./hairline-width";
 import { initialsFor } from "./initials";
 import { useTonePalette } from "./surface-context";
@@ -37,8 +38,8 @@ export function Avatar({ name, uri, size = "default" }: AvatarProps) {
       }}
     >
       {uri && !failed ? (
-        <Image
-          source={{ uri }}
+        <CachedImage
+          uri={uri}
           style={{ width: dimension, height: dimension }}
           onError={() => setFailed(true)}
         />

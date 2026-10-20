@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
-import { deleteS3Object, getS3Object, putS3Object } from "#src/storage/s3";
+import { deleteS3Object, putS3Object } from "#src/storage/s3";
 import {
   detectVenueLogoContentType,
   VENUE_LOGO_CONTENT_TYPES,
@@ -79,20 +79,6 @@ export async function uploadVenuePhotoObject(input: {
       message: "Failed to upload Venue photo",
     });
   }
-}
-
-export async function getVenuePhotoObject(
-  venueId: string,
-  photoId: string,
-): Promise<{ bytes: Uint8Array; contentType: string } | null> {
-  const object = await getS3Object(venuePhotoObjectPath(venueId, photoId));
-  if (!object) {
-    return null;
-  }
-  return {
-    bytes: object.body,
-    contentType: object.contentType ?? "application/octet-stream",
-  };
 }
 
 export async function removeVenuePhotoObject(

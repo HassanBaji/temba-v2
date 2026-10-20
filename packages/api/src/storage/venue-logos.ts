@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
-import { deleteS3Object, getS3Object, putS3Object } from "#src/storage/s3";
+import { deleteS3Object, putS3Object } from "#src/storage/s3";
 
 export const VENUE_LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -108,20 +108,6 @@ export async function uploadVenueLogoObject(input: {
   }
 
   return `/api/media/venue-logos/${input.venueId}/logo?v=${Date.now()}`;
-}
-
-export async function getVenueLogoObject(venueId: string): Promise<{
-  bytes: Uint8Array;
-  contentType: string;
-} | null> {
-  const object = await getS3Object(venueLogoObjectPath(venueId));
-  if (!object) {
-    return null;
-  }
-  return {
-    bytes: object.body,
-    contentType: object.contentType ?? "application/octet-stream",
-  };
 }
 
 export async function removeVenueLogoObject(venueId: string): Promise<void> {

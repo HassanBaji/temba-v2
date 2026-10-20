@@ -1,15 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { putS3Object, getS3Object, deleteS3Object } = vi.hoisted(() => ({
+const { putS3Object, deleteS3Object } = vi.hoisted(() => ({
   putS3Object: vi.fn(),
-  getS3Object: vi.fn(),
   deleteS3Object: vi.fn(),
 }));
 
 vi.mock("#src/storage/s3", () => ({
   putS3Object,
-  getS3Object,
   deleteS3Object,
 }));
 
@@ -17,7 +15,6 @@ import {
   assertGroupImageType,
   decodeGroupImageBase64,
   detectGroupImageContentType,
-  getGroupImageObject,
   GROUP_IMAGE_MAX_BYTES,
   removeGroupImageObject,
   uploadGroupImageObject,
@@ -224,29 +221,5 @@ describe("removeGroupImageObject", () => {
         expect(error.message).not.toMatch(/NoSuchBucket|credentials/i);
       }
     }
-  });
-});
-
-describe("getGroupImageObject", () => {
-  beforeEach(() => {
-    getS3Object.mockReset();
-  });
-
-  it("returns bytes and content type for a stored image", async () => {
-    getS3Object.mockResolvedValue({
-      body: PNG_BYTES,
-      contentType: "image/png",
-    });
-
-    await expect(getGroupImageObject(GROUP_ID)).resolves.toEqual({
-      bytes: PNG_BYTES,
-      contentType: "image/png",
-    });
-    expect(getS3Object).toHaveBeenCalledWith(`group-images/${GROUP_ID}/image`);
-  });
-
-  it("returns null when the object is missing", async () => {
-    getS3Object.mockResolvedValue(null);
-    await expect(getGroupImageObject(GROUP_ID)).resolves.toBe(null);
   });
 });
