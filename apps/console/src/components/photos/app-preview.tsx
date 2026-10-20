@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import type { ManagedVenue } from "~/components/console/managed-venue-context";
 import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
+import { initials } from "@repo/domain/initials";
 import {
   venueCardImage,
   venuePageImage,
@@ -25,6 +26,7 @@ export type AppPreviewScreen = "list" | "page";
 const PHONE_WIDTH = 375;
 const CARD_BANNER_HEIGHT = 120;
 const PAGE_BANNER_HEIGHT = 200;
+const LOGO_SIZE = 40;
 
 function Banner({
   image,
@@ -63,6 +65,25 @@ function Banner({
   );
 }
 
+/** The mobile Avatar: the logo in a hairline circle, else the Venue's initials. */
+function VenueLogo({ venue }: { venue: ManagedVenue }) {
+  return (
+    <span
+      className="border-border bg-wash flex shrink-0 items-center justify-center overflow-hidden rounded-full border"
+      style={{ width: LOGO_SIZE, height: LOGO_SIZE }}
+    >
+      {venue.logoImageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- previews the exact bytes the App loads
+        <img src={venue.logoImageUrl} alt="" className="size-full" />
+      ) : (
+        <span className="text-eyebrow font-semibold">
+          {initials(venue.name)}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function Pill({ children }: { children: ReactNode }) {
   return (
     <span className="border-border text-meta rounded-md border px-2.5 py-[5px]">
@@ -95,20 +116,23 @@ function VenueListPreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
             {openToLabel(windows)}
           </span>
         </Banner>
-        <div className="border-border flex flex-col gap-1 border-t p-[18px]">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-lead truncate font-semibold">{venue.name}</p>
-            {price ? (
-              <p className="text-meta shrink-0">
-                <span className="text-muted-foreground">from </span>
-                <span className="font-semibold">{price}</span>
-                <span className="text-muted-foreground">/h</span>
-              </p>
-            ) : null}
+        <div className="border-border flex items-center gap-3 border-t p-[18px]">
+          <VenueLogo venue={venue} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-lead truncate font-semibold">{venue.name}</p>
+              {price ? (
+                <p className="text-meta shrink-0">
+                  <span className="text-muted-foreground">from </span>
+                  <span className="font-semibold">{price}</span>
+                  <span className="text-muted-foreground">/h</span>
+                </p>
+              ) : null}
+            </div>
+            <p className="text-meta text-muted-foreground truncate">
+              {`${venue.city} / ${courtCountLabel(venue.courts.length)}`}
+            </p>
           </div>
-          <p className="text-meta text-muted-foreground truncate">
-            {`${venue.city} / ${courtCountLabel(venue.courts.length)}`}
-          </p>
         </div>
       </div>
       <Hatch className="block h-[120px] rounded-[16px] opacity-60" />
@@ -127,10 +151,15 @@ function VenuePagePreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
         </span>
       </Banner>
       <div className="flex flex-col gap-3 px-[22px] pb-6 pt-5">
-        <p className="font-expanded text-h1">{venue.name}</p>
-        <p className="text-meta text-muted-foreground">
-          {[venue.city, venue.country].filter(Boolean).join(", ")}
-        </p>
+        <div className="flex items-center gap-3">
+          <VenueLogo venue={venue} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <p className="font-expanded text-h1">{venue.name}</p>
+            <p className="text-meta text-muted-foreground">
+              {[venue.city, venue.country].filter(Boolean).join(", ")}
+            </p>
+          </div>
+        </div>
         {venue.description ? (
           <p className="text-meta line-clamp-4">{venue.description}</p>
         ) : null}
@@ -151,7 +180,7 @@ function VenuePagePreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
   );
 }
 
-/** A phone-sized mock of where the main and details photos show in the mobile App. */
+/** A phone-sized mock of where the main and details photos and the logo show in the mobile App. */
 export function AppPreview({
   venue,
   screen,

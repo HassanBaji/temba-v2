@@ -5,7 +5,10 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { apiOrigin } from "../lib/api-origin-runtime";
+import { mediaUrl } from "../lib/media-url";
 import { slotOf } from "../lib/slot-of";
+import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
@@ -167,42 +170,51 @@ function VenueCard({
         <View
           style={{
             padding: spacing.compact,
-            gap: 4,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
             borderTopWidth: hairline,
             borderTopColor: colors.rule,
           }}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "baseline",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <Text
-              size="lead"
-              weight="semibold"
-              numberOfLines={1}
-              style={{ flexShrink: 1 }}
+          <Avatar
+            name={venue.name}
+            uri={mediaUrl(venue.logoImageUrl, apiOrigin)}
+            size="lg"
+          />
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
             >
-              {venue.name}
-            </Text>
-            <Text size="meta">
-              <Text size="meta" tone="muted">
-                from{" "}
+              <Text
+                size="lead"
+                weight="semibold"
+                numberOfLines={1}
+                style={{ flexShrink: 1 }}
+              >
+                {venue.name}
               </Text>
-              <Text size="meta" weight="semibold">
-                {price}
+              <Text size="meta">
+                <Text size="meta" tone="muted">
+                  from{" "}
+                </Text>
+                <Text size="meta" weight="semibold">
+                  {price}
+                </Text>
+                <Text size="meta" tone="muted">
+                  /h
+                </Text>
               </Text>
-              <Text size="meta" tone="muted">
-                /h
-              </Text>
+            </View>
+            <Text size="meta" tone="muted" numberOfLines={1}>
+              {`${venue.city} / ${courtCountLabel(venue.courtCount)}`}
             </Text>
           </View>
-          <Text size="meta" tone="muted" numberOfLines={1}>
-            {`${venue.city} / ${courtCountLabel(venue.courtCount)}`}
-          </Text>
         </View>
       </Surface>
     </Pressable>

@@ -9,6 +9,9 @@ import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNow } from "../games/use-now";
+import { apiOrigin } from "../lib/api-origin-runtime";
+import { mediaUrl } from "../lib/media-url";
+import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
@@ -150,12 +153,26 @@ export function VenueScreen({ venueId }: { venueId: string }) {
       }
     >
       <View style={{ gap: 12 }}>
-        <Text size="h1" width="expanded" accessibilityRole="header">
-          {data.name}
-        </Text>
-        <Text size="meta" tone="muted">
-          {[data.city, data.country].filter(Boolean).join(", ")}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Avatar
+              name={data.name}
+              uri={mediaUrl(data.logoImageUrl, apiOrigin)}
+              size="lg"
+            />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <Text size="h1" width="expanded" accessibilityRole="header">
+              {data.name}
+            </Text>
+            <Text size="meta" tone="muted">
+              {[data.city, data.country].filter(Boolean).join(", ")}
+            </Text>
+          </View>
+        </View>
         {data.description ? <Text size="meta">{data.description}</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Pill label={courtCountLabel(data.courts.length)} />
