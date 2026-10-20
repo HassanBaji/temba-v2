@@ -10,6 +10,8 @@ import {
   isBookableVenue,
   loadVenueSlotContext,
 } from "#src/bookings/availability";
+import { bookingPaymentMethods } from "#src/bookings/payment-methods";
+import { paymentProvider } from "#src/payments/index";
 import { venuePhotoUrlOrNull } from "#src/storage/venue-photos";
 import { protectedProcedure } from "#src/trpc";
 
@@ -61,6 +63,11 @@ export async function venueForBooking(
       })),
   }));
 
+  const methods = bookingPaymentMethods({
+    provider: paymentProvider(),
+    payAtVenueAllowed: context.venue.payAtVenueAllowed,
+  });
+
   return {
     ...details,
     coverImageUrl: venuePhotoUrlOrNull(venue.id, coverPhotoId),
@@ -74,7 +81,11 @@ export async function venueForBooking(
     cancellationPolicyLines: describeCancellationPolicy(
       venue.cancellationPolicy,
     ),
-    payment: { mode: "at_venue" as "at_venue" | "online" },
+    payment: {
+      mode:
+        methods[0] === "at_venue" ? ("at_venue" as const) : ("online" as const),
+      methods,
+    },
   };
 }
 

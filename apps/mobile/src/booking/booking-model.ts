@@ -1,6 +1,7 @@
 import { describeNextRefundStep } from "@repo/domain/booking-copy";
 import {
   paymentStatusLabel,
+  type BookingPaymentMethod,
   type PaymentStatus,
 } from "@repo/domain/booking-payment";
 import { nextRefundStep, type RefundPolicy } from "@repo/domain/booking-refund";
@@ -100,25 +101,53 @@ export function bookedHeadline(
 }
 
 export function payButtonLabel(
-  mode: PaymentMode,
+  method: BookingPaymentMethod,
   courtName: string,
   priceFils: number,
 ): string {
-  return mode === "online"
-    ? `Pay ${formatBookingPriceFils(priceFils)}`
-    : `Book ${courtName}`;
+  return method === "at_venue"
+    ? `Book ${courtName}`
+    : `Pay ${formatBookingPriceFils(priceFils)}`;
 }
 
-export function paymentMethod(mode: PaymentMode): {
+const PAYMENT_METHOD_COPY: Record<
+  BookingPaymentMethod,
+  { title: string; detail: string }
+> = {
+  card: { title: "Card", detail: "Visa, Mastercard or Amex" },
+  benefit: { title: "BENEFIT", detail: "Bahraini debit card and PIN" },
+  benefitpay: {
+    title: "BenefitPay",
+    detail: "Approve in the app or scan a QR",
+  },
+  apple_pay: { title: "Apple Pay", detail: "Confirm with Face ID or Touch ID" },
+  at_venue: {
+    title: "Pay at the venue",
+    detail: "Settle at the desk when you arrive",
+  },
+};
+
+export function paymentMethod(method: BookingPaymentMethod): {
   title: string;
   detail: string;
 } {
-  return mode === "online"
-    ? { title: "Card or BenefitPay", detail: "On a secure payment page" }
-    : {
-        title: "Pay at the venue",
-        detail: "Settle at the desk when you arrive",
-      };
+  return PAYMENT_METHOD_COPY[method];
+}
+
+/**
+ * The checkout's choices on this device. Apple Pay needs an Apple device, and
+ * an API without the methods list offers its one mode.
+ */
+export function checkoutMethods(
+  payment: { mode: PaymentMode; methods?: readonly BookingPaymentMethod[] },
+  platform: string,
+): BookingPaymentMethod[] {
+  const methods = payment.methods ?? [
+    payment.mode === "online" ? "card" : "at_venue",
+  ];
+  return methods.filter(
+    (method) => method !== "apple_pay" || platform === "ios",
+  );
 }
 
 /** "Full refund until Tue 18:00, then 50% refund", else the policy's first line. */

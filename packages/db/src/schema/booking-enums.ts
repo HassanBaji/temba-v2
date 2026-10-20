@@ -31,6 +31,8 @@ export const paymentMethod = pgEnum("payment_method", [
   "card",
   "benefit",
   "transfer",
+  "benefitpay",
+  "apple_pay",
 ]);
 
 export const paymentStatus = pgEnum("payment_status", [

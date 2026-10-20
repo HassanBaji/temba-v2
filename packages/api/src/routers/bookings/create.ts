@@ -2,7 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { bookings, user } from "@repo/db";
-import { paymentHoldExpiresAt } from "@repo/domain/booking-payment";
+import {
+  ONLINE_PAYMENT_METHODS,
+  paymentHoldExpiresAt,
+  type BookingPaymentMethod,
+} from "@repo/domain/booking-payment";
 import { SLOT_REFUSAL_MESSAGES } from "@repo/domain/booking-copy";
 import { evaluateSlot } from "@repo/domain/booking-slots";
 import { eq } from "drizzle-orm";
@@ -14,11 +18,13 @@ import {
   requireBookableVenue,
 } from "#src/bookings/availability";
 import { customerBookingColumns } from "#src/bookings/customer-columns";
+import { bookingPaymentMethods } from "#src/bookings/payment-methods";
 import { confirmHeldBooking, openPayment } from "#src/bookings/payments";
 import { reserveBooking } from "#src/bookings/reserve";
 import { enqueue, enqueueAt } from "#src/jobs/enqueue";
 import { createChargeJob, expireHoldJob } from "#src/jobs/specs";
 import { paymentProvider } from "#src/payments/index";
+import { manualProvider } from "#src/payments/manual";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -32,12 +38,13 @@ export async function createBooking(
     courtId: string;
     startsAt: Date;
     durationMinutes: number;
+    paymentMethod?: BookingPaymentMethod;
     userId: string;
     now?: Date;
   },
 ) {
   const now = args.now ?? new Date();
-  const provider = paymentProvider();
+  const onlineProvider = paymentProvider();
 
   return database.transaction(async (tx) => {
     const context = requireBookableVenue(
@@ -50,6 +57,22 @@ export async function createBooking(
         message: "That Court does not belong to this Venue",
       });
     }
+
+    const methods = bookingPaymentMethods({
+      provider: onlineProvider,
+      payAtVenueAllowed: context.venue.payAtVenueAllowed,
+    });
+    const method = args.paymentMethod ?? methods[0];
+    if (!methods.includes(method)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
+          method === "at_venue"
+            ? "This Venue takes payment online only"
+            : "That way to pay is not available",
+      });
+    }
+    const provider = method === "at_venue" ? manualProvider : onlineProvider;
 
     const check = evaluateSlot(context.input, {
       courtId: args.courtId,
@@ -87,6 +110,7 @@ export async function createBooking(
     const payment = await openPayment(tx, {
       bookingId,
       provider: provider.id,
+      method: method === "at_venue" ? undefined : method,
       amountFils: check.priceFils,
       now,
     });
@@ -139,6 +163,7 @@ export const createProcedure = protectedProcedure
       courtId: z.string().uuid(),
       startsAt: z.date(),
       durationMinutes: z.number().int().positive(),
+      paymentMethod: z.enum([...ONLINE_PAYMENT_METHODS, "at_venue"]).optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {

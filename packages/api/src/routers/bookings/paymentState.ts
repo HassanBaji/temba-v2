@@ -33,6 +33,7 @@ export async function getPaymentState(
   const payment = await latestPayment(database, args.bookingId);
   return {
     ...paymentStateFor(booking, payment, args.now ?? new Date()),
+    method: payment?.method ?? null,
     holdExpiresAt: booking.holdExpiresAt,
   };
 }

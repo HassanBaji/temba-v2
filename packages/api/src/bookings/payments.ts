@@ -5,6 +5,7 @@ import { bookingPayments, bookings } from "@repo/db";
 import type { DbClient, DbTx } from "@repo/db";
 import {
   summarisePaymentStatus,
+  type OnlinePaymentMethod,
   type PaymentProviderId,
 } from "@repo/domain/booking-payment";
 
@@ -89,6 +90,7 @@ export async function openPayment(
   args: {
     bookingId: string;
     provider: PaymentProviderId;
+    method?: OnlinePaymentMethod;
     amountFils: number;
     now: Date;
   },
@@ -98,6 +100,7 @@ export async function openPayment(
     .values({
       bookingId: args.bookingId,
       provider: args.provider,
+      method: args.method,
       amountFils: args.amountFils,
       createdAt: args.now,
       updatedAt: args.now,

@@ -3,6 +3,7 @@ import type { JobHelpers } from "graphile-worker";
 import { z } from "zod";
 
 import { bookingPayments, bookings, user, type Db } from "@repo/db";
+import { isOnlinePaymentMethod } from "@repo/domain/booking-payment";
 
 import { failPayment } from "#src/bookings/payments";
 import { enqueueAt } from "#src/jobs/enqueue";
@@ -64,6 +65,9 @@ export async function handle(
         paymentId: payment.id,
         bookingId: booking.id,
         amountFils: payment.amountFils,
+        method: isOnlinePaymentMethod(payment.method)
+          ? payment.method
+          : undefined,
         customer: {
           userId: booking.userId,
           name: customer?.name ?? "Customer",

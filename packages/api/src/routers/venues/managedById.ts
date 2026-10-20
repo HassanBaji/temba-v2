@@ -12,6 +12,7 @@ import {
 import type { DbClient } from "@repo/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { paymentProvider } from "#src/payments/index";
 import { protectedProcedure } from "#src/trpc";
 import { venuePhotoUrl, venuePhotoUrlOrNull } from "#src/storage/venue-photos";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
@@ -50,6 +51,7 @@ export async function managedVenueById(
       durationOptionsMinutes: true,
       bookingHorizonDays: true,
       minLeadMinutes: true,
+      payAtVenueAllowed: true,
       cancellationPolicy: true,
       archivedAt: true,
       createdAt: true,
@@ -134,6 +136,7 @@ export async function managedVenueById(
 
   return {
     ...venue,
+    onlinePaymentAvailable: paymentProvider().id !== "manual",
     photos: venue.photos.map((photo) => ({
       ...photo,
       imageUrl: venuePhotoUrl(venue.id, photo.id),

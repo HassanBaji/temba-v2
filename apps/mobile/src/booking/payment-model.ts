@@ -1,4 +1,8 @@
-import type { PaymentState } from "@repo/domain/booking-payment";
+import {
+  isOnlinePaymentMethod,
+  type OnlinePaymentMethod,
+  type PaymentState,
+} from "@repo/domain/booking-payment";
 
 export const PAYMENT_POLL_MS = 2000;
 
@@ -41,6 +45,22 @@ export function paymentView(state: PaymentState): PaymentView {
     case "deferred":
       return { kind: "done" };
   }
+}
+
+const PAGE_HINTS: Record<OnlinePaymentMethod, string> = {
+  card: "Enter your card on the payment page, then come back here.",
+  benefit:
+    "Enter your BENEFIT card and PIN on the payment page, then come back here.",
+  benefitpay:
+    "Approve in the BenefitPay app or scan the QR code, then come back here.",
+  apple_pay: "Confirm with Apple Pay on the payment page, then come back here.",
+};
+
+/** What to do on the hosted page for the method the Customer picked. */
+export function paymentPageHint(method: string | null | undefined): string {
+  return isOnlinePaymentMethod(method)
+    ? PAGE_HINTS[method]
+    : "Finish paying on the payment page, then come back here.";
 }
 
 export function shouldPoll(state: PaymentState | undefined): boolean {

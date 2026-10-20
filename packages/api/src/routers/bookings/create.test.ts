@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { bookingPayments, bookings, venueClosures, venues } from "@repo/db";
@@ -395,6 +395,29 @@ describe("bookings.create payment flow", () => {
       });
     });
 
+    it("books at the Venue even when the Venue refuses it, since nothing charges online", async () => {
+      await withBookableVenue(async (db, f) => {
+        await db
+          .update(venues)
+          .set({ payAtVenueAllowed: false })
+          .where(eq(venues.id, f.venueId));
+        const { payment } = await createHeldBooking(db, f);
+        expect(payment).toEqual({ kind: "deferred" });
+      });
+    });
+
+    it("refuses an online payment", async () => {
+      await withBookableVenue(async (db, f) => {
+        await expect(
+          createHeldBooking(db, f, { paymentMethod: "card" }),
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: "That way to pay is not available",
+        });
+        expect(await db.select().from(bookings)).toHaveLength(0);
+      });
+    });
+
     it("refuses confirmPayment and retryPayment", async () => {
       await withBookableVenue(async (db, f) => {
         const { booking } = await createHeldBooking(db, f);
@@ -434,6 +457,73 @@ describe("bookings.create payment flow", () => {
       });
     });
 
+    it("confirms at once with a manual Payment when the Customer pays at the Venue", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { booking, payment } = await createHeldBooking(db, f, {
+          paymentMethod: "at_venue",
+        });
+        expect(payment).toEqual({ kind: "deferred" });
+        expect(booking).toMatchObject({
+          status: "confirmed",
+          holdExpiresAt: null,
+          paymentStatus: "pending",
+        });
+        const rows = await db.select().from(bookingPayments);
+        expect(rows).toMatchObject([{ provider: "manual", status: "pending" }]);
+        expect(jobNames(jobs).sort()).toEqual([
+          "booking.confirmed",
+          "booking.expire-hold",
+        ]);
+        expect(provider.fake.beginCalls).toHaveLength(0);
+        await expect(
+          confirmPayment(db, {
+            bookingId: booking.id,
+            userId: f.customer,
+            now: NOW,
+          }),
+        ).resolves.toMatchObject({ status: "confirmed" });
+        await expectLedgerConsistent(db, booking.id);
+      });
+    });
+
+    it("keeps the Customer's online method on the Payment for the charge", async () => {
+      await withBookableVenue(async (db, f) => {
+        await createHeldBooking(db, f, { paymentMethod: "benefitpay" });
+        const rows = await db.select().from(bookingPayments);
+        expect(rows).toMatchObject([
+          { provider: "tap", method: "benefitpay", status: "pending" },
+        ]);
+      });
+    });
+
+    it("refuses an online method the merchant has not switched on", async () => {
+      await withBookableVenue(async (db, f) => {
+        await expect(
+          createHeldBooking(db, f, { paymentMethod: "apple_pay" }),
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: "That way to pay is not available",
+        });
+      });
+    });
+
+    it("refuses paying at the Venue when the Venue takes payment online only", async () => {
+      await withBookableVenue(async (db, f) => {
+        await db
+          .update(venues)
+          .set({ payAtVenueAllowed: false })
+          .where(eq(venues.id, f.venueId));
+        await expect(
+          createHeldBooking(db, f, { paymentMethod: "at_venue" }),
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: "This Venue takes payment online only",
+        });
+        const { payment } = await createHeldBooking(db, f);
+        expect(payment).toEqual({ kind: "preparing" });
+      });
+    });
+
     it("leaves the Customer able to retry after a failed charge", async () => {
       await withBookableVenue(async (db, f) => {
         const { booking } = await createHeldBooking(db, f);
@@ -466,6 +556,52 @@ describe("bookings.create payment flow", () => {
             now: later,
           }),
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      });
+    });
+
+    it("retries with the same method, or another the merchant offers", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { booking } = await createHeldBooking(db, f, {
+          paymentMethod: "benefitpay",
+        });
+        const fail = async () => {
+          const [latest] = await db
+            .select()
+            .from(bookingPayments)
+            .orderBy(desc(bookingPayments.createdAt))
+            .limit(1);
+          await db
+            .update(bookingPayments)
+            .set({ status: "failed" })
+            .where(eq(bookingPayments.id, latest!.id));
+        };
+        const args = { bookingId: booking.id, userId: f.customer };
+
+        await fail();
+        await retryPayment(db, { ...args, now: at(5, 12, 1) });
+        await fail();
+        await expect(
+          retryPayment(db, {
+            ...args,
+            paymentMethod: "apple_pay",
+            now: at(5, 12, 2),
+          }),
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+        await retryPayment(db, {
+          ...args,
+          paymentMethod: "card",
+          now: at(5, 12, 3),
+        });
+
+        const methods = await db
+          .select({ method: bookingPayments.method })
+          .from(bookingPayments)
+          .orderBy(asc(bookingPayments.createdAt));
+        expect(methods.map((row) => row.method)).toEqual([
+          "benefitpay",
+          "benefitpay",
+          "card",
+        ]);
       });
     });
 

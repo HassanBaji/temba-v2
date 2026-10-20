@@ -17,6 +17,7 @@ import { bookingPath, venuePath } from "./booking-model";
 import {
   PAYMENT_POLL_MS,
   holdCountdown,
+  paymentPageHint,
   paymentView,
   shouldPoll,
 } from "./payment-model";
@@ -117,7 +118,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
           <Text size="meta" tone="muted">
             {view?.kind === "waiting"
               ? view.description
-              : "Pay by card or BenefitPay, then come back here."}
+              : paymentPageHint(state.data?.method)}
           </Text>
           {view?.kind === "open" ? (
             <Button

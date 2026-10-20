@@ -1,15 +1,17 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { colors } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDayKey } from "@repo/domain/product-timezone";
 import { useRouter } from "expo-router";
-import { Check, CreditCard, Store } from "lucide-react-native";
+import type { BookingPaymentMethod } from "@repo/domain/booking-payment";
+import { CreditCard, Smartphone, Store } from "lucide-react-native";
 import { useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 
 import { FormErrorSummary } from "../auth/form-error-summary";
 import { useNow } from "../games/use-now";
 import { Button } from "../primitives/button";
+import { ChoiceCard } from "../primitives/choice-card";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -21,6 +23,7 @@ import { api } from "../trpc/react";
 import { BookingHero, Notice, SectionHeading } from "./booking-parts";
 import {
   bookingPath,
+  checkoutMethods,
   endsAfter,
   payButtonLabel,
   paymentMethod,
@@ -31,6 +34,14 @@ import {
 } from "./booking-model";
 import { ChipGrid, ChipTile } from "./chip-grid";
 import { courtChoices, keepOrFirst } from "./slot-grid";
+
+const METHOD_ICONS = {
+  card: CreditCard,
+  benefit: CreditCard,
+  benefitpay: Smartphone,
+  apple_pay: Smartphone,
+  at_venue: Store,
+} satisfies Record<BookingPaymentMethod, unknown>;
 
 const COURT_COLUMNS = 4;
 
@@ -54,6 +65,9 @@ export function CheckoutScreen({
     minutes > 0;
   const day = validStart ? productDayKey(startsAt) : "";
   const [pickedCourt, setPickedCourt] = useState<string | null>(null);
+  const [pickedMethod, setPickedMethod] = useState<BookingPaymentMethod | null>(
+    null,
+  );
   const [formMessage, setFormMessage] = useState<string | null>(null);
 
   const venue = api.bookings.venueForBooking.useQuery({ venueId });
@@ -129,7 +143,8 @@ export function CheckoutScreen({
   );
   const court = courts.find((entry) => entry.id === courtId) ?? null;
   const freeCount = courts.filter((entry) => entry.priceFils !== null).length;
-  const method = paymentMethod(data.payment.mode);
+  const methods = checkoutMethods(data.payment, Platform.OS);
+  const chosenMethod = keepOrFirst(pickedMethod, methods) ?? "at_venue";
   const terms = refundTerms(
     data.cancellationPolicy,
     data.cancellationPolicyLines,
@@ -154,11 +169,7 @@ export function CheckoutScreen({
           <Button
             label={
               ready
-                ? payButtonLabel(
-                    data.payment.mode,
-                    court.name,
-                    court.priceFils ?? 0,
-                  )
+                ? payButtonLabel(chosenMethod, court.name, court.priceFils ?? 0)
                 : "No court free at this time"
             }
             size="lg"
@@ -174,6 +185,7 @@ export function CheckoutScreen({
                 courtId: court.id,
                 startsAt,
                 durationMinutes: minutes,
+                paymentMethod: chosenMethod,
               });
             }}
           />
@@ -212,33 +224,21 @@ export function CheckoutScreen({
 
       <View style={{ gap: 12 }}>
         <SectionHeading title="Pay with" />
-        <Surface
-          padded={false}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 12,
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-          }}
-        >
-          {data.payment.mode === "online" ? (
-            <CreditCard size={sizes.iconAction} color={colors.ink} />
-          ) : (
-            <Store size={sizes.iconAction} color={colors.ink} />
-          )}
-          <View style={{ flex: 1 }}>
-            <Text weight="medium">{method.title}</Text>
-            <Text size="meta" tone="muted">
-              {method.detail}
-            </Text>
-          </View>
-          <Check
-            size={sizes.iconAction}
-            color={colors.ink}
-            accessibilityLabel="Selected"
-          />
-        </Surface>
+        {methods.map((method) => {
+          const copy = paymentMethod(method);
+          return (
+            <ChoiceCard
+              key={method}
+              role="radio"
+              variant="card"
+              selected={method === chosenMethod}
+              title={copy.title}
+              description={copy.detail}
+              leading={METHOD_ICONS[method]}
+              onPress={() => setPickedMethod(method)}
+            />
+          );
+        })}
       </View>
 
       {ready ? (

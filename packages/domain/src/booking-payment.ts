@@ -10,6 +10,27 @@ export type PaymentStatus =
 
 export type PaymentProviderId = "manual" | "tap";
 
+/** The ways Tap can take a Customer's money online, each its own hosted page. */
+export const ONLINE_PAYMENT_METHODS = [
+  "card",
+  "benefit",
+  "benefitpay",
+  "apple_pay",
+] as const;
+
+export type OnlinePaymentMethod = (typeof ONLINE_PAYMENT_METHODS)[number];
+
+/** What a Customer picks at checkout: one online method, or pay at the Venue. */
+export type BookingPaymentMethod = OnlinePaymentMethod | "at_venue";
+
+export function isOnlinePaymentMethod(
+  method: string | null | undefined,
+): method is OnlinePaymentMethod {
+  return (
+    ONLINE_PAYMENT_METHODS as readonly (string | null | undefined)[]
+  ).includes(method);
+}
+
 const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   pending: "Pending",
   paid: "Paid",

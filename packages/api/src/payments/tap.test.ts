@@ -4,7 +4,11 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { paymentProvider, resetPaymentProvider } from "./index";
+import {
+  onlinePaymentMethods,
+  paymentProvider,
+  resetPaymentProvider,
+} from "./index";
 import { createTapProvider, tapHashstring } from "./tap";
 
 const SECRET = "sk_test_secret";
@@ -87,6 +91,26 @@ describe("tap begin", () => {
     });
   });
 
+  it.each([
+    ["card", "src_card"],
+    ["benefit", "src_bh.benefit"],
+    ["benefitpay", "src_benefitpay"],
+    ["apple_pay", "src_apple_pay"],
+  ] as const)("opens the hosted page for %s only", async (method, source) => {
+    const { tap, calls } = provider([
+      { body: fixture("charge-initiated.json") },
+    ]);
+    await tap.begin({
+      paymentId: "pay_1",
+      bookingId: "b1",
+      amountFils: 12_500,
+      method,
+      customer,
+      returnUrl: "https://api.example/payments/return?bookingId=b1",
+    });
+    expect(calls[0]?.body).toMatchObject({ source: { id: source } });
+  });
+
   it("returns failed on a rejected request and throws on a server error", async () => {
     const rejected = provider([{ status: 400, body: "{}" }]);
     await expect(
@@ -134,6 +158,24 @@ describe("tap retrieve", () => {
       url: "https://api.tap.company/v2/charges/chg_1",
       method: "GET",
     });
+  });
+
+  it.each([
+    ["src_benefitpay", "benefitpay"],
+    ["src_apple_pay", "apple_pay"],
+    ["src_bh.benefit", "benefit"],
+  ])("names the method a %s charge was paid with", async (id, method) => {
+    const captured = JSON.parse(fixture("charge-captured.json"));
+    const { tap } = provider([
+      {
+        body: JSON.stringify({
+          ...captured,
+          source: { ...captured.source, id },
+        }),
+      },
+    ]);
+    const state = await tap.retrieve({ reference: "chg_1" });
+    expect(state.method).toBe(method);
   });
 
   it("carries the decline reason", async () => {
@@ -277,6 +319,7 @@ describe("tap refund", () => {
 
 describe("paymentProvider selection", () => {
   afterEach(() => {
+    delete process.env.TAP_PAYMENT_METHODS;
     delete process.env.PAYMENT_PROVIDER;
     delete process.env.TAP_SECRET_KEY;
     delete process.env.API_PUBLIC_URL;
@@ -289,5 +332,11 @@ describe("paymentProvider selection", () => {
     process.env.TAP_SECRET_KEY = SECRET;
     process.env.API_PUBLIC_URL = "https://api.example";
     expect(paymentProvider().id).toBe("tap");
+  });
+
+  it("offers the Tap methods the merchant lists, else card and both BENEFIT ways", () => {
+    expect(onlinePaymentMethods()).toEqual(["card", "benefit", "benefitpay"]);
+    process.env.TAP_PAYMENT_METHODS = "benefitpay, apple_pay,card,bogus,card";
+    expect(onlinePaymentMethods()).toEqual(["benefitpay", "apple_pay", "card"]);
   });
 });

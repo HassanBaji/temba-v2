@@ -59,6 +59,15 @@ describe("payment.create-charge", () => {
     });
   });
 
+  it("asks the provider for the method the Customer picked", async () => {
+    await withBookableVenue(async (db, f) => {
+      await createHeldBooking(db, f, { paymentMethod: "benefit" });
+      const [payment] = await db.select().from(bookingPayments);
+      await handle(asDb(db), { paymentId: payment!.id }, undefined, NOW);
+      expect(provider.fake.beginCalls[0]?.method).toBe("benefit");
+    });
+  });
+
   it("creates one charge when run twice for one Payment", async () => {
     await withBookableVenue(async (db, f) => {
       await createHeldBooking(db, f);
