@@ -39,7 +39,7 @@ export function BookedScreen({ bookingId }: { bookingId: string }) {
         <ScreenHeader
           nav="close"
           fallback="/book"
-          onNav={() => router.replace("/book")}
+          onNav={() => router.dismissTo("/book")}
         />
         {booking.data ? (
           <Confirmation booking={booking.data} />
@@ -63,7 +63,7 @@ export function BookedScreen({ bookingId }: { bookingId: string }) {
             label="Done"
             size="lg"
             variant="outline-inverse"
-            onPress={() => router.replace("/book")}
+            onPress={() => router.dismissTo("/book")}
           />
         </View>
       </ScrollView>

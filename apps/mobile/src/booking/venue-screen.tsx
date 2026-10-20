@@ -69,7 +69,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
   if (!venue.data) {
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback="/book/venues" />
+        <ScreenHeader nav="back" fallback="/book" />
         {venue.error ? (
           <Notice
             title={
@@ -329,7 +329,7 @@ function Banner({ venue }: { venue: BookingVenue }) {
           right: spacing.surface,
         }}
       >
-        <ScreenHeader nav="back" fallback="/book/venues" />
+        <ScreenHeader nav="back" fallback="/book" />
       </View>
     </VenueBanner>
   );
