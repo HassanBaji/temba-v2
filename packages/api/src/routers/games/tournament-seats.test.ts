@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   GameFormatEnum,
@@ -141,6 +141,15 @@ function occupantUserId(
 }
 
 describe("Friendly tournament seats at 12 Game teams", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("shows 12 sides, occupancy, and Round window before anyone joins", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -656,6 +665,15 @@ describe("Friendly tournament seats at 12 Game teams", () => {
 });
 
 describe("Complete Teams tournament field", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("lists vacant Game team sides so the Teams list is not empty", async () => {
     const { db, close } = await createPgliteDb();
     try {
