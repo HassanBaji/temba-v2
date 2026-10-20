@@ -27,6 +27,7 @@ describe("bookings.paymentState", () => {
         });
       expect(await state()).toEqual({
         kind: "preparing",
+        method: "card",
         holdExpiresAt: booking.holdExpiresAt,
       });
     });
