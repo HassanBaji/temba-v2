@@ -21,6 +21,7 @@ import { api } from "../trpc/react";
 import { BookingHero, Notice, SectionHeading } from "./booking-parts";
 import {
   bookingPath,
+  endsAfter,
   payButtonLabel,
   paymentMethod,
   refundTerms,
@@ -29,26 +30,29 @@ import {
   whenLine,
 } from "./booking-model";
 import { ChipGrid, ChipTile } from "./chip-grid";
-import { courtChoices, durationChoices, keepOrFirst } from "./slot-grid";
+import { courtChoices, keepOrFirst } from "./slot-grid";
 
 const COURT_COLUMNS = 4;
-const DURATION_COLUMNS = 3;
 
 export function CheckoutScreen({
   venueId,
   startsAtIso,
+  durationMinutes: minutes,
 }: {
   venueId: string;
   startsAtIso: string;
+  durationMinutes: number;
 }) {
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
   const now = useNow();
   const startsAt = new Date(startsAtIso);
-  const validStart = !Number.isNaN(startsAt.getTime());
+  const validStart =
+    !Number.isNaN(startsAt.getTime()) &&
+    Number.isInteger(minutes) &&
+    minutes > 0;
   const day = validStart ? productDayKey(startsAt) : "";
-  const [pickedMinutes, setPickedMinutes] = useState<number | null>(null);
   const [pickedCourt, setPickedCourt] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
 
@@ -113,27 +117,12 @@ export function CheckoutScreen({
   }
 
   const data = venue.data;
-  const durations = durationChoices({
+  const courts = courtChoices({
     startsAt,
-    options: data.durationOptionsMinutes,
+    minutes,
+    venueCourts: data.courts,
     courts: availability.data.courts,
   });
-  const minutes = keepOrFirst(
-    pickedMinutes,
-    durations
-      .filter((entry) => entry.freeCourts > 0)
-      .map((entry) => entry.minutes),
-  );
-  const duration = durations.find((entry) => entry.minutes === minutes) ?? null;
-  const courts =
-    minutes === null
-      ? []
-      : courtChoices({
-          startsAt,
-          minutes,
-          venueCourts: data.courts,
-          courts: availability.data.courts,
-        });
   const courtId = keepOrFirst(
     pickedCourt,
     courts.filter((court) => court.priceFils !== null).map((court) => court.id),
@@ -147,7 +136,7 @@ export function CheckoutScreen({
     startsAt,
     now,
   );
-  const ready = court !== null && minutes !== null;
+  const ready = court !== null;
 
   return (
     <Screen
@@ -155,8 +144,8 @@ export function CheckoutScreen({
         <BookingHero
           eyebrow={data.name}
           time={formatGameClock(startsAt)}
-          until={duration ? untilLabel(duration.endsAt) : ""}
-          subtitle={whenLine(startsAt, minutes ?? 0, now)}
+          until={untilLabel(endsAfter(startsAt, minutes))}
+          subtitle={whenLine(startsAt, minutes, now)}
           fallback={venuePath(venueId)}
         />
       }
@@ -192,10 +181,10 @@ export function CheckoutScreen({
       }
     >
       <FormErrorSummary message={formMessage} />
-      {minutes === null ? (
+      {freeCount === 0 ? (
         <Notice
           title="This time was just taken"
-          description="No court is free at this time any more. Pick another time."
+          description={`No court is free for ${minutes} min at this time any more. Pick another time.`}
           actionLabel="Pick another time"
           onAction={() => router.back()}
         />
@@ -216,24 +205,6 @@ export function CheckoutScreen({
               struck={entry.priceFils === null}
               selected={entry.id === courtId}
               onPress={() => setPickedCourt(entry.id)}
-            />
-          ))}
-        </ChipGrid>
-      </View>
-
-      <View style={{ gap: 12 }}>
-        <SectionHeading
-          title="Duration"
-          meta={duration ? `Ends ${formatGameClock(duration.endsAt)}` : null}
-        />
-        <ChipGrid columns={DURATION_COLUMNS}>
-          {durations.map((entry) => (
-            <ChipTile
-              key={entry.minutes}
-              label={`${entry.minutes} min`}
-              struck={entry.freeCourts === 0}
-              selected={entry.minutes === minutes}
-              onPress={() => setPickedMinutes(entry.minutes)}
             />
           ))}
         </ChipGrid>

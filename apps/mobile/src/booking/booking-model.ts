@@ -24,13 +24,21 @@ export function venuePath(venueId: string) {
   return `/book/venues/${venueId}` as const;
 }
 
-export function checkoutPath(venueId: string, startsAt: Date) {
-  return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}`;
+export function checkoutPath(
+  venueId: string,
+  startsAt: Date,
+  durationMinutes: number,
+) {
+  return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}&minutes=${durationMinutes}`;
 }
 
 /** A short reference a Customer can read out at the desk. */
 export function bookingRef(bookingId: string): string {
   return bookingId.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+export function endsAfter(startsAt: Date, minutes: number): Date {
+  return new Date(startsAt.getTime() + minutes * MS_PER_MINUTE);
 }
 
 export function minutesBetween(startsAt: Date, endsAt: Date): number {
