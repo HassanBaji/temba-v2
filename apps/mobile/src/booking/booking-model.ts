@@ -25,6 +25,10 @@ export function venuePath(venueId: string) {
   return `/book/venues/${venueId}` as const;
 }
 
+export function venueDetailsPath(venueId: string) {
+  return `/book/venues/${venueId}/details` as const;
+}
+
 export function checkoutPath(
   venueId: string,
   startsAt: Date,
