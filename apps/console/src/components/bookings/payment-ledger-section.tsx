@@ -36,7 +36,15 @@ function when(value: Date) {
   return `${formatDayMonth(value)}, ${formatGameClock(value)}`;
 }
 
+const ONLINE_METHOD_LABELS = {
+  benefitpay: "BenefitPay",
+  apple_pay: "Apple Pay",
+} as const;
+
 function methodLabel(method: LedgerRow["method"]) {
+  if (method === "benefitpay" || method === "apple_pay") {
+    return ONLINE_METHOD_LABELS[method];
+  }
   return MANUAL_METHODS.find((entry) => entry.value === method)?.label ?? null;
 }
 

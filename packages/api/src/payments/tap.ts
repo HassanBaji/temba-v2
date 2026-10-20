@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import type { OnlinePaymentMethod } from "@repo/domain/booking-payment";
+
 import type {
   ChargeState,
   PaymentProvider,
@@ -11,6 +13,15 @@ const TAP_API = "https://api.tap.company/v2";
 const CURRENCY = "BHD";
 const REFUND_PAGE_LIMIT = 50;
 const REFUND_MAX_PAGES = 10;
+
+/** Tap's hosted-page source for each method; no method shows every enabled one. */
+export const TAP_SOURCES: Record<OnlinePaymentMethod, string> = {
+  card: "src_card",
+  benefit: "src_bh.benefit",
+  benefitpay: "src_benefitpay",
+  apple_pay: "src_apple_pay",
+};
+const ALL_SOURCES = "src_all";
 
 type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -26,7 +37,7 @@ type TapCharge = {
   currency?: string;
   status?: string;
   response?: { message?: string };
-  source?: { payment_method?: string; payment_type?: string };
+  source?: { id?: string; payment_method?: string; payment_type?: string };
   transaction?: { url?: string; created?: string | number };
   reference?: { gateway?: string; payment?: string };
 };
@@ -66,20 +77,34 @@ function chargeState(charge: TapCharge): ChargeState {
     : FAILED.has(providerStatus)
       ? "failed"
       : "pending";
-  const source = `${charge.source?.payment_method ?? ""} ${
-    charge.source?.payment_type ?? ""
-  }`.toUpperCase();
   return {
     status,
     providerStatus,
-    method:
-      status === "paid"
-        ? source.includes("BENEFIT")
-          ? "benefit"
-          : "card"
-        : undefined,
+    method: status === "paid" ? paidMethod(charge) : undefined,
     reason: status === "failed" ? charge.response?.message : undefined,
   };
+}
+
+function paidMethod(charge: TapCharge): OnlinePaymentMethod {
+  const bySource = Object.entries(TAP_SOURCES).find(
+    ([, source]) => source === charge.source?.id,
+  );
+  if (bySource) {
+    return bySource[0] as OnlinePaymentMethod;
+  }
+  const described = `${charge.source?.payment_method ?? ""} ${
+    charge.source?.payment_type ?? ""
+  }`.toUpperCase();
+  if (described.includes("BENEFITPAY")) {
+    return "benefitpay";
+  }
+  if (described.includes("BENEFIT")) {
+    return "benefit";
+  }
+  if (described.includes("APPLE")) {
+    return "apple_pay";
+  }
+  return "card";
 }
 
 export function tapHashstring(charge: TapCharge, secretKey: string): string {
@@ -166,7 +191,7 @@ export function createTapProvider(config: TapConfig): PaymentProvider {
           first_name: args.customer.name,
           ...(args.customer.email ? { email: args.customer.email } : {}),
         },
-        source: { id: "src_all" },
+        source: { id: args.method ? TAP_SOURCES[args.method] : ALL_SOURCES },
         redirect: { url: args.returnUrl },
         post: { url: config.webhookUrl },
         reference: { transaction: args.paymentId, order: args.bookingId },

@@ -33,6 +33,13 @@ const parsedEnv = createEnv({
     PAYMENT_PROVIDER: z.enum(["manual", "tap"]).default("manual"),
     TAP_SECRET_KEY: z.string().min(1).optional(),
     TAP_PUBLIC_KEY: z.string().min(1).optional(),
+    TAP_PAYMENT_METHODS: z
+      .string()
+      .regex(
+        /^\s*(card|benefit|benefitpay|apple_pay)(\s*,\s*(card|benefit|benefitpay|apple_pay))*\s*$/,
+        "List card, benefit, benefitpay or apple_pay, comma separated",
+      )
+      .optional(),
     PAYMENT_RETURN_URL: z.string().min(1).default("temba://book/bookings"),
     API_PUBLIC_URL: z.string().url().optional(),
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),

@@ -13,7 +13,10 @@ import {
   venues,
 } from "@repo/db";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
-import { summarisePaymentStatus } from "@repo/domain/booking-payment";
+import {
+  summarisePaymentStatus,
+  type BookingPaymentMethod,
+} from "@repo/domain/booking-payment";
 import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 
 import { handle as createCharge } from "#src/jobs/handlers/payment.create-charge";
@@ -220,6 +223,7 @@ export function createHeldBooking(
     userId?: string;
     day?: number;
     hour?: number;
+    paymentMethod?: BookingPaymentMethod;
   } = {},
 ) {
   return createBooking(asDb(database), {
@@ -227,6 +231,7 @@ export function createHeldBooking(
     courtId: patch.courtId ?? fixture.court1,
     startsAt: at(patch.day ?? 7, patch.hour ?? 18),
     durationMinutes: 60,
+    paymentMethod: patch.paymentMethod,
     userId: patch.userId ?? fixture.customer,
     now: NOW,
   });

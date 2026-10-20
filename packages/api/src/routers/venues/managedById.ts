@@ -12,6 +12,7 @@ import {
 import type { DbClient } from "@repo/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { paymentProvider } from "#src/payments/index";
 import { protectedProcedure } from "#src/trpc";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
@@ -47,6 +48,7 @@ export async function managedVenueById(
       durationOptionsMinutes: true,
       bookingHorizonDays: true,
       minLeadMinutes: true,
+      payAtVenueAllowed: true,
       cancellationPolicy: true,
       archivedAt: true,
       createdAt: true,
@@ -127,6 +129,7 @@ export async function managedVenueById(
 
   return {
     ...venue,
+    onlinePaymentAvailable: paymentProvider().id !== "manual",
     openingHours,
     closures,
     pricingRules,

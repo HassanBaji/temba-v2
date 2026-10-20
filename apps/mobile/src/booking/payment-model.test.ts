@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { holdCountdown, paymentView, shouldPoll } from "./payment-model";
+import {
+  holdCountdown,
+  paymentPageHint,
+  paymentView,
+  shouldPoll,
+} from "./payment-model";
 
 describe("paymentView", () => {
   it("waits while the charge is prepared or checked", () => {
@@ -56,5 +61,20 @@ describe("holdCountdown", () => {
   it("is null without a hold or once it lapsed", () => {
     expect(holdCountdown(null, now)).toBeNull();
     expect(holdCountdown(new Date("2026-10-15T11:59:59Z"), now)).toBeNull();
+  });
+});
+
+describe("paymentPageHint", () => {
+  it("tells the Customer what the page for their method asks", () => {
+    expect(paymentPageHint("benefitpay")).toBe(
+      "Approve in the BenefitPay app or scan the QR code, then come back here.",
+    );
+    expect(paymentPageHint("card")).toMatch(/Enter your card/);
+  });
+
+  it("falls back to the page in general without a known method", () => {
+    expect(paymentPageHint(null)).toBe(
+      "Finish paying on the payment page, then come back here.",
+    );
   });
 });

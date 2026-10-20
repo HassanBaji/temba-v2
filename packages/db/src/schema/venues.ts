@@ -49,6 +49,7 @@ export const venues = pgTable(
       .default(sql`'{60,90}'::integer[]`),
     bookingHorizonDays: integer("booking_horizon_days").notNull().default(14),
     minLeadMinutes: integer("min_lead_minutes").notNull().default(60),
+    payAtVenueAllowed: boolean("pay_at_venue_allowed").notNull().default(true),
     description: varchar("description", { length: 1000 }),
     bookingNotes: varchar("booking_notes", { length: 1000 }),
     cancellationPolicy: jsonb("cancellation_policy")

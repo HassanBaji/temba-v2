@@ -2,12 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { count, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  courts,
-  venueOpeningHours,
-  venuePricingRules,
-  venues,
-} from "@repo/db";
+import { courts, venueOpeningHours, venuePricingRules, venues } from "@repo/db";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -31,6 +26,7 @@ type Settings = {
   durationOptionsMinutes?: number[];
   bookingHorizonDays?: number;
   minLeadMinutes?: number;
+  payAtVenueAllowed?: boolean;
   description?: string | null;
   bookingNotes?: string | null;
 };
@@ -197,6 +193,9 @@ export async function updateBookingSettings(
         ...(args.minLeadMinutes !== undefined
           ? { minLeadMinutes: args.minLeadMinutes }
           : {}),
+        ...(args.payAtVenueAllowed !== undefined
+          ? { payAtVenueAllowed: args.payAtVenueAllowed }
+          : {}),
         ...(args.description !== undefined
           ? { description: args.description }
           : {}),
@@ -213,6 +212,7 @@ export async function updateBookingSettings(
         durationOptionsMinutes: venues.durationOptionsMinutes,
         bookingHorizonDays: venues.bookingHorizonDays,
         minLeadMinutes: venues.minLeadMinutes,
+        payAtVenueAllowed: venues.payAtVenueAllowed,
         description: venues.description,
         bookingNotes: venues.bookingNotes,
         updatedAt: venues.updatedAt,
@@ -238,6 +238,7 @@ export const updateBookingSettingsProcedure = protectedProcedure
       durationOptionsMinutes: z.array(z.number().int()).max(12).optional(),
       bookingHorizonDays: z.number().int().optional(),
       minLeadMinutes: z.number().int().optional(),
+      payAtVenueAllowed: z.boolean().optional(),
       description: optionalText,
       bookingNotes: optionalText,
     }),

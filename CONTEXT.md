@@ -224,6 +224,10 @@ _Avoid_: transaction, charge (that is one kind of Payment movement), invoice, Pr
 The outside service that takes a Customer's money for a Booking, behind one adapter in the API Package. Tap Payments in v1 (ADR-0028), charging immediately in BHD by card or BENEFIT. "Manual" is the adapter that collects nothing and lets a Venue manager settle by hand.
 _Avoid_: gateway, PSP, Tap (bare, when you mean the boundary rather than the vendor), Clerk (that is identity)
 
+**Payment method**:
+How a Customer pays one Booking, picked at checkout: card, BENEFIT, BenefitPay or Apple Pay through Tap, or pay at the Venue. The online methods are the ones switched on for the Tap merchant account; pay at the Venue is offered unless the Venue refuses it (ADR-0032).
+_Avoid_: payment mode (that is the older single answer), source (that is Tap's word for one hosted page)
+
 **Venue console**:
 The web App (`apps/console`) where a Venue manager runs a Venue: Schedule, Bookings, Courts & pricing, Hours & closures, Customers, Staff & roles, Reports, Payouts and Venue details, one Venue at a time with a switcher. It signs in with the same Temba account and calls the same API as the Web App. The Web App's sidebar links to it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area in the Web App, which curates the catalog. ADR-0031.
 _Avoid_: Manage area (the name of the same section while it lived in the Web App), admin panel, admin dashboard, backoffice, facility dashboard

@@ -23,6 +23,7 @@ export type VenueSlotContext = {
     phone: string | null;
     archivedAt: Date | null;
     acceptingBookings: boolean;
+    payAtVenueAllowed: boolean;
     cancellationPolicy: (typeof venues.$inferSelect)["cancellationPolicy"];
   };
   courts: { id: string; name: string }[];
@@ -104,6 +105,7 @@ export async function loadVenueSlotContext(
       phone: venue.phone,
       archivedAt: venue.archivedAt,
       acceptingBookings: venue.acceptingBookings,
+      payAtVenueAllowed: venue.payAtVenueAllowed,
       cancellationPolicy: venue.cancellationPolicy,
     },
     courts: courtRows,

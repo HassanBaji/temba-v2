@@ -1,3 +1,5 @@
+import type { OnlinePaymentMethod } from "@repo/domain/booking-payment";
+
 export type PaymentBegin =
   | { kind: "deferred" }
   | { kind: "redirect"; reference: string; redirectUrl: string }
@@ -6,7 +8,7 @@ export type PaymentBegin =
 export type ChargeState = {
   status: "pending" | "paid" | "failed";
   providerStatus: string;
-  method?: "card" | "benefit";
+  method?: OnlinePaymentMethod;
   reason?: string;
 };
 
@@ -24,6 +26,7 @@ export interface PaymentProvider {
     paymentId: string;
     bookingId: string;
     amountFils: number;
+    method?: OnlinePaymentMethod;
     customer: { userId: string; name: string; email?: string; phone?: string };
     returnUrl: string;
   }): Promise<PaymentBegin>;

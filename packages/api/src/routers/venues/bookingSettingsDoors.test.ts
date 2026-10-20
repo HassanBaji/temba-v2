@@ -383,6 +383,29 @@ describe("updateBookingSettings", () => {
       expect(off.acceptingBookings).toBe(false);
     }));
 
+  it("saves whether Customers may pay at the Venue and reads it back", () =>
+    withDb(async (db, s) => {
+      const before = await managedVenueById(db, {
+        venueId: s.mine,
+        ...s.manager,
+      });
+      expect(before).toMatchObject({
+        payAtVenueAllowed: true,
+        onlinePaymentAvailable: false,
+      });
+      const updated = await updateBookingSettings(db, {
+        venueId: s.mine,
+        payAtVenueAllowed: false,
+        actor: s.manager,
+      });
+      expect(updated.payAtVenueAllowed).toBe(false);
+      const after = await managedVenueById(db, {
+        venueId: s.mine,
+        ...s.manager,
+      });
+      expect(after.payAtVenueAllowed).toBe(false);
+    }));
+
   it("refuses accepting bookings on a Soft-archived Venue", () =>
     withDb(async (db, s) => {
       await db.insert(courts).values({ venueId: s.mine, name: "Court 1" });

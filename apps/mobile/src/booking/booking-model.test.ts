@@ -5,6 +5,7 @@ import {
   bookingPath,
   bookingRef,
   cancelConsequence,
+  checkoutMethods,
   payButtonLabel,
   paymentStatusLine,
   placeLine,
@@ -82,7 +83,43 @@ describe("payButtonLabel", () => {
   });
 
   it("shows the amount when paid online", () => {
-    expect(payButtonLabel("online", "Court 2", 18000)).toBe("Pay 18.000 BD");
+    expect(payButtonLabel("benefitpay", "Court 2", 18000)).toBe(
+      "Pay 18.000 BD",
+    );
+  });
+});
+
+describe("checkoutMethods", () => {
+  const methods = [
+    "card",
+    "benefit",
+    "benefitpay",
+    "apple_pay",
+    "at_venue",
+  ] as const;
+
+  it("offers every method the Venue takes, in order, on iOS", () => {
+    expect(checkoutMethods({ mode: "online", methods }, "ios")).toEqual([
+      "card",
+      "benefit",
+      "benefitpay",
+      "apple_pay",
+      "at_venue",
+    ]);
+  });
+
+  it("leaves Apple Pay out off Apple devices", () => {
+    expect(checkoutMethods({ mode: "online", methods }, "android")).toEqual([
+      "card",
+      "benefit",
+      "benefitpay",
+      "at_venue",
+    ]);
+  });
+
+  it("falls back to the one mode when the API sends no list", () => {
+    expect(checkoutMethods({ mode: "at_venue" }, "ios")).toEqual(["at_venue"]);
+    expect(checkoutMethods({ mode: "online" }, "ios")).toEqual(["card"]);
   });
 });
 

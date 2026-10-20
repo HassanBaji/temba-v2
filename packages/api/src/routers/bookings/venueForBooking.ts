@@ -10,6 +10,7 @@ import {
   isBookableVenue,
   loadVenueSlotContext,
 } from "#src/bookings/availability";
+import { bookingPaymentMethods } from "#src/bookings/payment-methods";
 import { paymentProvider } from "#src/payments/index";
 import { protectedProcedure } from "#src/trpc";
 
@@ -58,6 +59,11 @@ export async function venueForBooking(
       })),
   }));
 
+  const methods = bookingPaymentMethods({
+    provider: paymentProvider(),
+    payAtVenueAllowed: context.venue.payAtVenueAllowed,
+  });
+
   return {
     ...venue,
     courts: context.courts,
@@ -71,9 +77,8 @@ export async function venueForBooking(
     ),
     payment: {
       mode:
-        paymentProvider().id === "manual"
-          ? ("at_venue" as const)
-          : ("online" as const),
+        methods[0] === "at_venue" ? ("at_venue" as const) : ("online" as const),
+      methods,
     },
   };
 }

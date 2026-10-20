@@ -123,7 +123,7 @@ describe("bookings.venueForBooking", () => {
         slotMinutes: 30,
         durationOptionsMinutes: [60, 90],
         bookingHorizonDays: 14,
-        payment: { mode: "at_venue" },
+        payment: { mode: "at_venue", methods: ["at_venue"] },
       });
       expect(venue.courts.map((court) => court.name)).toEqual([
         "Court 1",
@@ -164,13 +164,33 @@ describe("bookings.venueForBooking", () => {
   describe("with a hosted-redirect provider", () => {
     useFakeProvider();
 
-    it("asks for payment online, as bookings.create will", async () => {
+    it("offers payment online first, then at the Venue", async () => {
       await withBookableVenue(async (db, f) => {
         const venue = await venueForBooking(db, {
           venueId: f.venueId,
           now: NOW,
         });
-        expect(venue.payment).toEqual({ mode: "online" });
+        expect(venue.payment).toEqual({
+          mode: "online",
+          methods: ["card", "benefit", "benefitpay", "at_venue"],
+        });
+      });
+    });
+
+    it("offers online only when the Venue refuses payment at the Venue", async () => {
+      await withBookableVenue(async (db, f) => {
+        await db
+          .update(venues)
+          .set({ payAtVenueAllowed: false })
+          .where(eq(venues.id, f.venueId));
+        const venue = await venueForBooking(db, {
+          venueId: f.venueId,
+          now: NOW,
+        });
+        expect(venue.payment).toEqual({
+          mode: "online",
+          methods: ["card", "benefit", "benefitpay"],
+        });
       });
     });
   });

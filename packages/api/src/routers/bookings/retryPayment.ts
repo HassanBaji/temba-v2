@@ -3,20 +3,30 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookings } from "@repo/db";
+import {
+  ONLINE_PAYMENT_METHODS,
+  isOnlinePaymentMethod,
+  type OnlinePaymentMethod,
+} from "@repo/domain/booking-payment";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { latestPayment, openPayment } from "#src/bookings/payments";
 import { enqueue } from "#src/jobs/enqueue";
 import { createChargeJob } from "#src/jobs/specs";
-import { paymentProvider } from "#src/payments/index";
+import { onlinePaymentMethods, paymentProvider } from "#src/payments/index";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
 
 export async function retryPayment(
   database: DbClient,
-  args: { bookingId: string; userId: string; now?: Date },
+  args: {
+    bookingId: string;
+    userId: string;
+    paymentMethod?: OnlinePaymentMethod;
+    now?: Date;
+  },
 ) {
   const now = args.now ?? new Date();
   const provider = paymentProvider();
@@ -60,9 +70,20 @@ export async function retryPayment(
       });
     }
 
+    const method =
+      args.paymentMethod ??
+      (isOnlinePaymentMethod(latest.method) ? latest.method : undefined);
+    if (method && !onlinePaymentMethods().includes(method)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "That way to pay is not available",
+      });
+    }
+
     const payment = await openPayment(tx, {
       bookingId: booking.id,
       provider: provider.id,
+      method,
       amountFils: booking.priceFils,
       now,
     });
@@ -72,11 +93,17 @@ export async function retryPayment(
 }
 
 export const retryPaymentProcedure = protectedProcedure
-  .input(z.object({ bookingId: z.string().uuid() }))
+  .input(
+    z.object({
+      bookingId: z.string().uuid(),
+      paymentMethod: z.enum(ONLINE_PAYMENT_METHODS).optional(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
     return retryPayment(ctx.db, {
       bookingId: input.bookingId,
+      paymentMethod: input.paymentMethod,
       userId: appUser.id,
     });
   });

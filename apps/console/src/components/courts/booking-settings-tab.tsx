@@ -47,11 +47,13 @@ function RuleLine({
   );
 }
 
-function AcceptingSwitch({
+function SettingSwitch({
+  label,
   checked,
   pending,
   onChange,
 }: {
+  label: string;
   checked: boolean;
   pending: boolean;
   onChange: (next: boolean) => void;
@@ -61,7 +63,7 @@ function AcceptingSwitch({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label="Accepting bookings"
+      aria-label={label}
       aria-busy={pending || undefined}
       disabled={pending}
       onClick={() => onChange(!checked)}
@@ -298,6 +300,18 @@ export function BookingRulesCard() {
     onError: toastMutationError,
   });
 
+  const togglePayAtVenue = api.venues.updateBookingSettings.useMutation({
+    onSuccess: async (updated) => {
+      toast.success(
+        updated.payAtVenueAllowed
+          ? "Players can pay at the venue"
+          : "Players pay online when they book",
+      );
+      await utils.venues.managedById.invalidate({ venueId: venue.id });
+    },
+    onError: toastMutationError,
+  });
+
   return (
     <section className="border-border rounded-card flex flex-col gap-3 border px-5 py-[18px]">
       <header className="flex items-center justify-between gap-4">
@@ -331,13 +345,35 @@ export function BookingRulesCard() {
       </RuleLine>
       <div className="border-border text-meta flex items-center justify-between gap-4 border-t pt-3">
         <span className="font-medium">Accepting bookings</span>
-        <AcceptingSwitch
+        <SettingSwitch
+          label="Accepting bookings"
           checked={venue.acceptingBookings}
           pending={toggleAccepting.isPending}
           onChange={(next) =>
             toggleAccepting.mutate({
               venueId: venue.id,
               acceptingBookings: next,
+            })
+          }
+        />
+      </div>
+      <div className="text-meta flex items-center justify-between gap-4">
+        <span className="flex flex-col gap-0.5">
+          <span className="font-medium">Pay at the venue</span>
+          <span className="text-muted-foreground">
+            {venue.onlinePaymentAvailable
+              ? "Let players book now and pay at the desk."
+              : "Online payment is not on yet, so players pay at the desk."}
+          </span>
+        </span>
+        <SettingSwitch
+          label="Pay at the venue"
+          checked={venue.payAtVenueAllowed}
+          pending={togglePayAtVenue.isPending}
+          onChange={(next) =>
+            togglePayAtVenue.mutate({
+              venueId: venue.id,
+              payAtVenueAllowed: next,
             })
           }
         />
