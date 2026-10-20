@@ -2,11 +2,14 @@
 
 import { X } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { settleActions } from "~/components/bookings/booking-ledger-model";
+import { MarkPaidDialog } from "~/components/bookings/payment-dialogs";
 import { bookingPath } from "~/lib/console-paths";
+import { api } from "~/trpc/react";
 import { paymentStatusLabel } from "@repo/domain/booking-payment";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
@@ -26,6 +29,17 @@ export function BookingPanel({
 }) {
   const settled =
     booking.status !== "pending_payment" && booking.status !== "cancelled";
+  const [markingPaid, setMarkingPaid] = useState(false);
+  const markPaidRef = useRef<HTMLButtonElement | null>(null);
+  const mayPay = booking.status === "confirmed" || booking.status === "no_show";
+  const view = api.bookings.byId.useQuery(
+    { bookingId: booking.id },
+    { enabled: mayPay },
+  );
+  const manager = view.data?.manager ?? null;
+  const canPay = manager
+    ? settleActions(booking.status, manager.payments).pay
+    : false;
 
   return (
     <aside
@@ -79,7 +93,18 @@ export function BookingPanel({
         ) : null}
       </dl>
 
-      <div className="border-rule mt-auto border-t px-[22px] py-[18px]">
+      <div className="border-rule mt-auto flex flex-col gap-2 border-t px-[22px] py-[18px]">
+        {canPay ? (
+          <Button
+            ref={markPaidRef}
+            type="button"
+            variant="outline"
+            className="rounded-control h-10 min-h-10 w-full text-sm font-semibold shadow-none"
+            onClick={() => setMarkingPaid(true)}
+          >
+            Mark as paid
+          </Button>
+        ) : null}
         <Button
           asChild
           className="rounded-control h-10 min-h-10 w-full text-sm font-semibold"
@@ -87,6 +112,14 @@ export function BookingPanel({
           <Link href={bookingPath(venueId, booking.id)}>Open booking</Link>
         </Button>
       </div>
+
+      <MarkPaidDialog
+        open={markingPaid}
+        onOpenChange={setMarkingPaid}
+        bookingId={booking.id}
+        priceFils={booking.priceFils}
+        restoreFocusRef={markPaidRef}
+      />
     </aside>
   );
 }
