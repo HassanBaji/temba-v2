@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   decimal,
@@ -17,6 +18,7 @@ import { communities } from "./communities";
 import { venueClosures } from "./venue-closures";
 import { venueManagers } from "./venue-managers";
 import { venueOpeningHours } from "./venue-opening-hours";
+import { venuePhotos } from "./venue-photos";
 
 type VenueCancellationPolicy = {
   tiers: { hoursBefore: number; refundPercent: number }[];
@@ -41,6 +43,14 @@ export const venues = pgTable(
     phone: varchar("phone", { length: 255 }),
     website: varchar("website", { length: 255 }),
     logoImageUrl: varchar("logo_image_url", { length: 255 }),
+    coverPhotoId: uuid("cover_photo_id").references(
+      (): AnyPgColumn => venuePhotos.id,
+      { onDelete: "set null" },
+    ),
+    detailPhotoId: uuid("detail_photo_id").references(
+      (): AnyPgColumn => venuePhotos.id,
+      { onDelete: "set null" },
+    ),
     acceptingBookings: boolean("accepting_bookings").notNull().default(false),
     slotMinutes: integer("slot_minutes").notNull().default(30),
     durationOptionsMinutes: integer("duration_options_minutes")
@@ -89,4 +99,5 @@ export const venueRelations = relations(venues, ({ many }) => ({
   managers: many(venueManagers),
   openingHours: many(venueOpeningHours),
   closures: many(venueClosures),
+  photos: many(venuePhotos),
 }));

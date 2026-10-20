@@ -1,5 +1,6 @@
 import { colors, radii, spacing } from "@repo/design-tokens";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import { venueCardImage } from "@repo/domain/venue-photos";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -130,7 +131,7 @@ function VenueCard({
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
       <Surface padded={false} style={{ overflow: "hidden" }}>
-        <VenueBanner logoImageUrl={venue.logoImageUrl} height={BANNER_HEIGHT}>
+        <VenueBanner image={venueCardImage(venue)} height={BANNER_HEIGHT}>
           <View
             style={{
               position: "absolute",

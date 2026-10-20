@@ -1,6 +1,7 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { formatGameClock } from "@repo/domain/format-game-start";
+import { venuePageImage } from "@repo/domain/venue-photos";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -317,7 +318,7 @@ function Banner({ venue }: { venue: BookingVenue }) {
   const insets = useSafeAreaInsets();
   return (
     <VenueBanner
-      logoImageUrl={venue.logoImageUrl}
+      image={venuePageImage(venue)}
       height={BANNER_HEIGHT + insets.top}
     >
       <View

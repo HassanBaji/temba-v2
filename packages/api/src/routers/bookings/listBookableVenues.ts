@@ -5,6 +5,7 @@ import { courts, venueOpeningHours, venuePricingRules, venues } from "@repo/db";
 import { zonedParts } from "@repo/domain/product-timezone";
 import { type db } from "#src/db";
 
+import { venuePhotoUrlOrNull } from "#src/storage/venue-photos";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -23,6 +24,7 @@ export async function listBookableVenues(
       city: venues.city,
       country: venues.country,
       logoImageUrl: venues.logoImageUrl,
+      coverPhotoId: venues.coverPhotoId,
     })
     .from(venues)
     .where(
@@ -76,7 +78,7 @@ export async function listBookableVenues(
   );
   const lowestRate = new Map(lowestRates.map((row) => [row.venueId, row.rate]));
 
-  return candidates.flatMap((venue) => {
+  return candidates.flatMap(({ coverPhotoId, ...venue }) => {
     const count = courtCount.get(venue.id) ?? 0;
     const fromHourlyRateFils = lowestRate.get(venue.id);
     if (count === 0 || fromHourlyRateFils === undefined) {
@@ -85,6 +87,7 @@ export async function listBookableVenues(
     return [
       {
         ...venue,
+        coverImageUrl: venuePhotoUrlOrNull(venue.id, coverPhotoId),
         courtCount: count,
         fromHourlyRateFils,
         todayOpen: hours

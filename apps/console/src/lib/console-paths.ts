@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarDays,
   Clock,
+  Images,
   LayoutGrid,
   List,
   Shield,
@@ -20,6 +21,7 @@ export const CONSOLE_SEGMENTS = [
   "staff",
   "reports",
   "payouts",
+  "photos",
   "details",
 ] as const;
 
@@ -31,7 +33,7 @@ export type ConsoleNavItem = {
   icon: LucideIcon;
 };
 
-/** Sidebar order follows the design (A1 to A8); Venue details is the console's own addition. */
+/** Sidebar order follows the design (A1 to A8); Photos and Venue details are the console's own additions. */
 export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
   { segment: "schedule", label: "Schedule", icon: CalendarDays },
   { segment: "bookings", label: "Bookings", icon: List },
@@ -41,6 +43,7 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
   { segment: "staff", label: "Staff & roles", icon: Shield },
   { segment: "reports", label: "Reports", icon: BarChart3 },
   { segment: "payouts", label: "Payouts", icon: Wallet },
+  { segment: "photos", label: "Photos", icon: Images },
   { segment: "details", label: "Venue details", icon: Building2 },
 ];
 
