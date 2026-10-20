@@ -10,6 +10,7 @@ import {
   isBookableVenue,
   loadVenueSlotContext,
 } from "#src/bookings/availability";
+import { paymentProvider } from "#src/payments/index";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -68,7 +69,12 @@ export async function venueForBooking(
     cancellationPolicyLines: describeCancellationPolicy(
       venue.cancellationPolicy,
     ),
-    payment: { mode: "at_venue" as "at_venue" | "online" },
+    payment: {
+      mode:
+        paymentProvider().id === "manual"
+          ? ("at_venue" as const)
+          : ("online" as const),
+    },
   };
 }
 

@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import { courts, venueOpeningHours, venuePricingRules, venues } from "@repo/db";
 
-import { NOW, withBookableVenue } from "#src/bookings/booking.test-support";
+import {
+  NOW,
+  useFakeProvider,
+  withBookableVenue,
+} from "#src/bookings/booking.test-support";
 import { listBookableVenues } from "#src/routers/bookings/listBookableVenues";
 import { venueForBooking } from "#src/routers/bookings/venueForBooking";
 
@@ -154,6 +158,20 @@ describe("bookings.venueForBooking", () => {
           now: NOW,
         }),
       ).rejects.toThrow("Venue not found");
+    });
+  });
+
+  describe("with a hosted-redirect provider", () => {
+    useFakeProvider();
+
+    it("asks for payment online, as bookings.create will", async () => {
+      await withBookableVenue(async (db, f) => {
+        const venue = await venueForBooking(db, {
+          venueId: f.venueId,
+          now: NOW,
+        });
+        expect(venue.payment).toEqual({ mode: "online" });
+      });
     });
   });
 });
