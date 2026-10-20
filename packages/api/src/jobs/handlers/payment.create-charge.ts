@@ -60,7 +60,14 @@ export async function handle(
         .from(user)
         .where(eq(user.id, booking.userId));
 
+      // A worker configured for another provider would otherwise finish the
+      // job without a charge and leave the Customer on "Preparing payment".
       const provider = paymentProvider();
+      if (provider.id !== payment.provider) {
+        throw new Error(
+          `Payment ${payment.id} is for ${payment.provider} but this worker uses ${provider.id}`,
+        );
+      }
       const begun = await provider.begin({
         paymentId: payment.id,
         bookingId: booking.id,
