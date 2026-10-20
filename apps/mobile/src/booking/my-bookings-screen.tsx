@@ -2,7 +2,6 @@ import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { useRouter } from "expo-router";
-import { Plus } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -80,21 +79,11 @@ export function MyBookingsScreen() {
         ? `${bookingPath(item.id)}/payment`
         : bookingPath(item.id),
     );
-  const book = () => router.push("/book/venues");
+  const book = () => router.dismissTo("/book");
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh} onNearEnd={loadMore}>
-      <ScreenHeader
-        title="My bookings"
-        actions={
-          <Button
-            label="Book"
-            size="sm"
-            icon={<Plus size={sizes.iconRow} color={colors.paper} />}
-            onPress={book}
-          />
-        }
-      >
+      <ScreenHeader title="My bookings" nav="back" fallback="/book">
         <Tabs
           tab={tab}
           onChange={setTab}

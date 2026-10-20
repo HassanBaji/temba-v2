@@ -60,7 +60,17 @@ export function VenuesScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <ScreenHeader title="Book a court" nav="back" fallback="/book">
+      <ScreenHeader
+        title="Book a court"
+        actions={
+          <Button
+            label="My bookings"
+            size="sm"
+            variant="outline"
+            onPress={() => router.push("/book/bookings")}
+          />
+        }
+      >
         <View style={{ gap: 12 }}>
           <SearchField
             value={query}

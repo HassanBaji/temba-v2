@@ -96,7 +96,7 @@ export function BookingDetailScreen({
   if (!booking.data) {
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback="/book" />
+        <ScreenHeader nav="back" fallback="/book/bookings" />
         {booking.error ? (
           <Notice
             title="Booking could not be loaded"
@@ -136,7 +136,7 @@ export function BookingDetailScreen({
             data.court.name,
             now,
           )}
-          fallback="/book"
+          fallback="/book/bookings"
         >
           <View style={{ flexDirection: "row", gap: 8 }}>
             {phone ? (
