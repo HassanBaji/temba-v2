@@ -1,10 +1,11 @@
 import { colors } from "@repo/design-tokens";
 import { type VenueBannerImage } from "@repo/domain/venue-photos";
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { View } from "react-native";
 
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { mediaUrl } from "../lib/media-url";
+import { CachedImage } from "../primitives/cached-image";
 import { Hatch } from "../primitives/hatch";
 
 const LOGO_RATIO = 0.6;
@@ -34,18 +35,18 @@ export function VenueBanner({
       }}
     >
       {shown && image.kind === "photo" ? (
-        <Image
+        <CachedImage
           accessibilityIgnoresInvertColors
-          source={{ uri: shown }}
-          resizeMode="cover"
+          uri={shown}
+          contentFit="cover"
           onError={() => setFailedUri(shown)}
           style={{ position: "absolute", width: "100%", height: "100%" }}
         />
       ) : shown ? (
-        <Image
+        <CachedImage
           accessibilityIgnoresInvertColors
-          source={{ uri: shown }}
-          resizeMode="contain"
+          uri={shown}
+          contentFit="contain"
           onError={() => setFailedUri(shown)}
           style={{ width: "60%", height: height * LOGO_RATIO }}
         />

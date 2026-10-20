@@ -7,7 +7,6 @@ const { putS3Object, deleteS3Object } = vi.hoisted(() => ({
 
 vi.mock("#src/storage/s3", () => ({
   putS3Object,
-  getS3Object: vi.fn(),
   deleteS3Object,
 }));
 

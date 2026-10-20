@@ -11,7 +11,6 @@ const isProtectedRoute = createRouteMatcher([
 const isDesignPreview = createRouteMatcher(["/dashboard/design(.*)"]);
 const isAuthRoute = createRouteMatcher(["/login(.*)", "/signup(.*)"]);
 const isWebhookRoute = createRouteMatcher(["/api/webhooks(.*)"]);
-const isMediaRoute = createRouteMatcher(["/api/media(.*)"]);
 
 /**
  * Continue, carrying the requested path plus search on `x-temba-pathname`.
@@ -30,7 +29,7 @@ function nextWithPathname(req: NextRequest) {
 }
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isWebhookRoute(req) || isMediaRoute(req)) {
+  if (isWebhookRoute(req)) {
     return NextResponse.next();
   }
 

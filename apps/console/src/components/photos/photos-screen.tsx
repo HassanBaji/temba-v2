@@ -93,7 +93,7 @@ function PhotoTile({
   return (
     <li className="border-border rounded-block overflow-hidden border">
       <div className="bg-wash relative aspect-[4/3]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- media is streamed by the API App, not the Next image optimizer */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- photos load from presigned bucket URLs, not the Next image optimizer */}
         <img
           src={photo.imageUrl}
           alt={`Venue photo ${index + 1}`}

@@ -1,17 +1,8 @@
 import { groupMembers, groups, user } from "@repo/db/schema";
 import { createPgliteDb } from "@repo/db/testing";
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const { getS3Object, testDbRef } = vi.hoisted(() => ({
-  getS3Object: vi.fn(),
+const { testDbRef } = vi.hoisted(() => ({
   testDbRef: {
     current: undefined as
       | Awaited<ReturnType<typeof import("@repo/db/testing").createPgliteDb>>
@@ -20,7 +11,6 @@ const { getS3Object, testDbRef } = vi.hoisted(() => ({
 }));
 
 vi.mock("@repo/api/storage/s3", () => ({
-  getS3Object,
   putS3Object: vi.fn(),
   deleteS3Object: vi.fn(),
 }));
@@ -36,10 +26,6 @@ vi.mock("@repo/api/auth/resolve-app-user", () => ({
 
 import { createApp } from "./app";
 import { TRPC_BODY_LIMIT_BYTES } from "./routes/trpc";
-
-const GROUP_ID = "22222222-2222-4222-8222-222222222222";
-const VENUE_ID = "33333333-3333-4333-8333-333333333333";
-const PHOTO_ID = "44444444-4444-4444-8444-444444444444";
 
 let testDb: Awaited<ReturnType<typeof createPgliteDb>>;
 
@@ -130,13 +116,11 @@ describe("tRPC route", () => {
 
 describe("users router", () => {
   it("answers users.home for a seeded User", async () => {
-    await testDb.db
-      .insert(user)
-      .values({
-        name: "Home",
-        email: "home@example.com",
-        clerkId: "user_home",
-      });
+    await testDb.db.insert(user).values({
+      name: "Home",
+      email: "home@example.com",
+      clerkId: "user_home",
+    });
 
     const response = await appFor("user_home").request("/api/trpc/users.home");
 
@@ -175,67 +159,6 @@ describe("Invite links", () => {
       /^http:\/\/localhost:3000\//,
     );
   });
-});
-
-describe.each([
-  ["group-images", GROUP_ID, "image", "group-images/" + GROUP_ID + "/image"],
-  ["venue-logos", VENUE_ID, "logo", null],
-  [
-    "venue-photos",
-    VENUE_ID,
-    PHOTO_ID,
-    "venue-photos/" + VENUE_ID + "/" + PHOTO_ID,
-  ],
-])("media %s", (folder, id, leaf, key) => {
-  const path = (value: string) => `/api/media/${folder}/${value}/${leaf}`;
-
-  beforeEach(() => {
-    getS3Object.mockReset();
-  });
-
-  it("returns 404 for an id that is not a UUID", async () => {
-    const response = await appFor(null).request(path("not-a-uuid"));
-    expect(response.status).toBe(404);
-    expect(getS3Object).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 for an unknown id", async () => {
-    getS3Object.mockResolvedValue(null);
-    const response = await appFor(null).request(path(id));
-    expect(response.status).toBe(404);
-    expect(response.headers.get("Cache-Control")).toBe("no-store");
-    if (key) expect(getS3Object).toHaveBeenCalledWith(key);
-  });
-
-  it("streams a known object with a long cache header", async () => {
-    const png = Uint8Array.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d,
-    ]);
-    getS3Object.mockResolvedValue({ body: png, contentType: "image/png" });
-    const response = await appFor(null).request(path(id));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("image/png");
-    expect(response.headers.get("Cache-Control")).toBe(
-      "public, max-age=31536000, immutable",
-    );
-    expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from(png));
-  });
-
-  it("returns 502 without provider details when storage fails", async () => {
-    getS3Object.mockRejectedValue(new Error("bad credentials"));
-    const response = await appFor(null).request(path(id));
-    expect(response.status).toBe(502);
-    expect(await response.text()).toBe("");
-  });
-});
-
-it("returns 404 for a Venue photo id that is not a UUID", async () => {
-  getS3Object.mockReset();
-  const response = await appFor(null).request(
-    `/api/media/venue-photos/${VENUE_ID}/not-a-uuid`,
-  );
-  expect(response.status).toBe(404);
-  expect(getS3Object).not.toHaveBeenCalled();
 });
 
 describe("webhook", () => {

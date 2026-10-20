@@ -14,6 +14,7 @@ import { ZodError } from "zod";
 import { requireLevelSetter } from "#src/auth/require-level-setter";
 import { requireOperator } from "#src/auth/require-operator";
 import { type db } from "#src/db";
+import { signMediaUrls } from "#src/storage/media-urls";
 
 export type PublicMetadata = Record<string, unknown>;
 
@@ -105,13 +106,27 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 });
 
 /**
+ * Rows store media as `/api/media/...` paths. Clients load images straight from the bucket, so
+ * every output leaves with those paths swapped for presigned bucket URLs (ADR-0034).
+ */
+const mediaUrlMiddleware = t.middleware(async ({ next }) => {
+  const result = await next();
+  if (!result.ok) {
+    return result;
+  }
+  return { ...result, data: await signMediaUrls(result.data) };
+});
+
+const baseProcedure = t.procedure.use(timingMiddleware).use(mediaUrlMiddleware);
+
+/**
  * Public (unauthenticated) procedure
  *
  * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = baseProcedure;
 
 /**
  * Protected (authenticated) procedure
@@ -121,18 +136,16 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure
-  .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.userId) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return next({
-      ctx: {
-        userId: ctx.userId,
-      },
-    });
+export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
+  if (!ctx.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return next({
+    ctx: {
+      userId: ctx.userId,
+    },
   });
+});
 
 /**
  * Operator procedure
