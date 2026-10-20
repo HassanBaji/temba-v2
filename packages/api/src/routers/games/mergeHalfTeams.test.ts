@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   gameTeamPlayers,
@@ -114,6 +114,15 @@ async function expectRefused(
 }
 
 describe("mergeHalfTeams", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("merges two opposite-Position Half teams into one ad-hoc Game team", async () => {
     const { db, close } = await createPgliteDb();
     try {
