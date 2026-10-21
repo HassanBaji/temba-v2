@@ -1,12 +1,14 @@
 "use client";
 
 import { keepPreviousData } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { ConsolePage } from "~/components/console/console-page";
 import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { SegmentedControl } from "~/components/console/segmented-control";
+import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -16,6 +18,8 @@ import { productDayKey } from "@repo/domain/product-timezone";
 import { addDays, dayStart, scheduleStats, weekDays } from "./booking-model";
 import { BookingPanel } from "./booking-panel";
 import { DayCalendar } from "./day-calendar";
+import type { NewBookingDraft } from "./new-booking-model";
+import { NewBookingPanel } from "./new-booking-panel";
 import { DateStepper, ScheduleLegend } from "./schedule-header";
 import { ScheduleStatLine } from "./schedule-stats";
 import { WeekCalendar } from "./week-calendar";
@@ -45,6 +49,35 @@ export function ScheduleScreen() {
   const [view, setView] = useState<View>("day");
   const [day, setDay] = useState(() => productDayKey(new Date()));
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<NewBookingDraft | null>(null);
+  const [pickedFromGrid, setPickedFromGrid] = useState(false);
+  const canBook = venue.archivedAt === null && venue.courts.length > 0;
+
+  function startDraft(patch: Partial<NewBookingDraft>, fromGrid: boolean) {
+    setSelectedId(null);
+    setPickedFromGrid(fromGrid);
+    setDraft((current) => ({
+      holder: { kind: "none" },
+      courtId: venue.courts[0]?.id ?? "",
+      day,
+      startMinute: null,
+      durationMinutes: venue.durationOptionsMinutes.includes(90)
+        ? 90
+        : (venue.durationOptionsMinutes[0] ?? 60),
+      priceInput: null,
+      payment: "later",
+      method: "cash",
+      reference: "",
+      notes: "",
+      ...current,
+      ...patch,
+    }));
+  }
+
+  function selectBooking(bookingId: string) {
+    setDraft(null);
+    setSelectedId(bookingId);
+  }
 
   const week = weekDays(day);
   const range =
@@ -100,6 +133,16 @@ export function ScheduleScreen() {
           label="Calendar view"
         />
         <ScheduleLegend />
+        {canBook ? (
+          <Button
+            type="button"
+            className="rounded-control h-10 min-h-10 shrink-0 gap-2 px-4 text-sm font-semibold"
+            onClick={() => startDraft({}, false)}
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            New booking
+          </Button>
+        ) : null}
       </header>
 
       <div className="px-7 pt-3.5">
@@ -134,7 +177,22 @@ export function ScheduleScreen() {
               now={now}
               data={data}
               selectedId={selectedId}
-              onSelect={setSelectedId}
+              onSelect={selectBooking}
+              draft={
+                draft?.day === day && draft.startMinute !== null
+                  ? {
+                      courtId: draft.courtId,
+                      startMinute: draft.startMinute,
+                      durationMinutes: draft.durationMinutes,
+                    }
+                  : null
+              }
+              onPickCell={
+                canBook
+                  ? (courtId, startMinute) =>
+                      startDraft({ courtId, day, startMinute }, true)
+                  : undefined
+              }
             />
           ) : (
             <WeekCalendar
@@ -143,7 +201,7 @@ export function ScheduleScreen() {
               now={now}
               data={data}
               selectedId={selectedId}
-              onSelect={setSelectedId}
+              onSelect={selectBooking}
               onOpenDay={(next) => {
                 setDay(next);
                 setView("day");
@@ -151,7 +209,20 @@ export function ScheduleScreen() {
             />
           )}
         </div>
-        {selected ? (
+        {draft ? (
+          <NewBookingPanel
+            venue={venue}
+            draft={draft}
+            pickedFromGrid={pickedFromGrid}
+            onChange={setDraft}
+            onClose={() => setDraft(null)}
+            onCreated={(bookingId) => {
+              setDraft(null);
+              setDay(draft.day);
+              setSelectedId(bookingId);
+            }}
+          />
+        ) : selected ? (
           <BookingPanel
             venueId={venue.id}
             booking={selected}

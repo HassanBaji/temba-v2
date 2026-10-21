@@ -1,8 +1,10 @@
 "use client";
 
 import { LayoutGrid } from "lucide-react";
+import type { MouseEvent } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { cn } from "~/lib/utils";
 import { formatGameClock } from "@repo/domain/format-game-start";
 
 import { BookingBlock } from "./booking-block";
@@ -10,6 +12,8 @@ import {
   buildDayGrid,
   closureTimeLabel,
   closuresForCourt,
+  dayStart,
+  formatAxisClock,
   hourMarks,
   nowOffset,
   overlapsDay,
@@ -25,6 +29,13 @@ const HEADER_HEIGHT = 48;
 const COURT_MIN_WIDTH = 120;
 const BLOCK_INSET = 2;
 const DENSE_BLOCK_HEIGHT = 44;
+const MS_PER_MINUTE = 60_000;
+
+export type DraftPlacement = {
+  courtId: string;
+  startMinute: number;
+  durationMinutes: number;
+};
 
 export function DayCalendar({
   day,
@@ -32,12 +43,17 @@ export function DayCalendar({
   data,
   selectedId,
   onSelect,
+  draft,
+  onPickCell,
 }: {
   day: string;
   now: Date;
   data: VenueBookings;
   selectedId: string | null;
   onSelect: (bookingId: string) => void;
+  draft?: DraftPlacement | null;
+  /** A click on open, empty grid time that has not ended. */
+  onPickCell?: (courtId: string, startMinute: number) => void;
 }) {
   const { grid, bookings } = data;
   const windows = grid.days.find((entry) => entry.day === day)?.windows ?? [];
@@ -51,6 +67,30 @@ export function DayCalendar({
   const height = layout.endMinute - layout.startMinute;
   const marks = hourMarks(layout);
   const nowTop = nowOffset(layout, day, now);
+  const draftSpan = draft
+    ? rowSpan(layout, grid.slotMinutes, {
+        startMinute: draft.startMinute,
+        endMinute: draft.startMinute + draft.durationMinutes,
+      })
+    : null;
+
+  function pickCell(courtId: string, event: MouseEvent<HTMLDivElement>) {
+    if (!onPickCell || event.target !== event.currentTarget) {
+      return;
+    }
+    const offset =
+      event.clientY - event.currentTarget.getBoundingClientRect().top;
+    const minute =
+      layout.startMinute +
+      Math.floor(offset / grid.slotMinutes) * grid.slotMinutes;
+    const endsAt =
+      dayStart(day).getTime() + (minute + grid.slotMinutes) * MS_PER_MINUTE;
+    if (endsAt <= now.getTime()) {
+      return;
+    }
+    onPickCell(courtId, minute);
+  }
+
   const columns = `${AXIS_WIDTH}px repeat(${grid.courts.length}, minmax(${COURT_MIN_WIDTH}px, 1fr))`;
 
   if (grid.courts.length === 0) {
@@ -124,7 +164,13 @@ export function DayCalendar({
           ))}
 
           {grid.courts.map((court) => (
-            <div key={court.id} className="relative min-w-0">
+            // The header's New booking button is the keyboard path; a click
+            // on the grid only saves picking the Court and start.
+            <div
+              key={court.id}
+              className={cn("relative min-w-0", onPickCell && "cursor-pointer")}
+              onClick={(event) => pickCell(court.id, event)}
+            >
               {layout.rows
                 .filter((row) => !row.open)
                 .map((row) => (
@@ -194,6 +240,27 @@ export function DayCalendar({
                     />
                   );
                 })}
+
+              {draft?.courtId === court.id && draftSpan ? (
+                <div
+                  aria-hidden="true"
+                  className="border-ink bg-wash rounded-block pointer-events-none absolute inset-x-0 z-[2] overflow-hidden border-2 border-dashed px-2.5 py-2 text-xs leading-4"
+                  style={{
+                    top: draftSpan.top * grid.slotMinutes + BLOCK_INSET,
+                    height:
+                      draftSpan.height * grid.slotMinutes - BLOCK_INSET * 2,
+                  }}
+                >
+                  <div className="truncate font-semibold">New booking</div>
+                  <div className="text-muted-foreground truncate">
+                    {formatAxisClock(draft.startMinute, "meridiem")} to{" "}
+                    {formatAxisClock(
+                      draft.startMinute + draft.durationMinutes,
+                      "meridiem",
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ))}
 
