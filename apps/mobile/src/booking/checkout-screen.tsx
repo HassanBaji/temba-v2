@@ -32,7 +32,6 @@ import {
   venuePath,
   whenLine,
 } from "./booking-model";
-import { ChipGrid, ChipTile } from "./chip-grid";
 import { courtChoices, keepOrFirst } from "./slot-grid";
 
 const METHOD_ICONS = {
@@ -43,16 +42,16 @@ const METHOD_ICONS = {
   at_venue: Store,
 } satisfies Record<BookingPaymentMethod, unknown>;
 
-const COURT_COLUMNS = 4;
-
 export function CheckoutScreen({
   venueId,
   startsAtIso,
   durationMinutes: minutes,
+  courtId,
 }: {
   venueId: string;
   startsAtIso: string;
   durationMinutes: number;
+  courtId: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -64,7 +63,6 @@ export function CheckoutScreen({
     Number.isInteger(minutes) &&
     minutes > 0;
   const day = validStart ? productDayKey(startsAt) : "";
-  const [pickedCourt, setPickedCourt] = useState<string | null>(null);
   const [pickedMethod, setPickedMethod] = useState<BookingPaymentMethod | null>(
     null,
   );
@@ -137,12 +135,10 @@ export function CheckoutScreen({
     venueCourts: data.courts,
     courts: availability.data.courts,
   });
-  const courtId = keepOrFirst(
-    pickedCourt,
-    courts.filter((court) => court.priceFils !== null).map((court) => court.id),
-  );
-  const court = courts.find((entry) => entry.id === courtId) ?? null;
-  const freeCount = courts.filter((entry) => entry.priceFils !== null).length;
+  const court =
+    courts.find((entry) => entry.id === courtId && entry.priceFils !== null) ??
+    null;
+  const courtName = courts.find((entry) => entry.id === courtId)?.name;
   const methods = checkoutMethods(data.payment, Platform.OS);
   const chosenMethod = keepOrFirst(pickedMethod, methods) ?? "at_venue";
   const terms = refundTerms(
@@ -160,7 +156,9 @@ export function CheckoutScreen({
           eyebrow={data.name}
           time={formatGameClock(startsAt)}
           until={untilLabel(endsAfter(startsAt, minutes))}
-          subtitle={whenLine(startsAt, minutes, now)}
+          subtitle={[whenLine(startsAt, minutes, now), courtName]
+            .filter(Boolean)
+            .join(" / ")}
           fallback={venuePath(venueId)}
         />
       }
@@ -170,7 +168,7 @@ export function CheckoutScreen({
             label={
               ready
                 ? payButtonLabel(chosenMethod, court.name, court.priceFils ?? 0)
-                : "No court free at this time"
+                : "Court not free at this time"
             }
             size="lg"
             disabled={!ready}
@@ -193,34 +191,18 @@ export function CheckoutScreen({
       }
     >
       <FormErrorSummary message={formMessage} />
-      {freeCount === 0 ? (
+      {ready ? null : (
         <Notice
-          title="This time was just taken"
-          description={`No court is free for ${minutes} min at this time any more. Pick another time.`}
-          actionLabel="Pick another time"
+          title={
+            courtName
+              ? `${courtName} was just taken`
+              : "This court was not found"
+          }
+          description={`It is not free for ${minutes} min at this time any more. Pick another court or time.`}
+          actionLabel="Pick again"
           onAction={() => router.back()}
         />
-      ) : null}
-
-      <View style={{ gap: 12 }}>
-        <SectionHeading title="Court" meta={`${freeCount} free at this time`} />
-        <ChipGrid columns={COURT_COLUMNS}>
-          {courts.map((entry) => (
-            <ChipTile
-              key={entry.id}
-              label={entry.name}
-              sublabel={
-                entry.priceFils === null
-                  ? "Taken"
-                  : formatBookingPriceFils(entry.priceFils)
-              }
-              struck={entry.priceFils === null}
-              selected={entry.id === courtId}
-              onPress={() => setPickedCourt(entry.id)}
-            />
-          ))}
-        </ChipGrid>
-      </View>
+      )}
 
       <View style={{ gap: 12 }}>
         <SectionHeading title="Pay with" />
