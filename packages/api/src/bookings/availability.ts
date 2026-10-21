@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, ne } from "drizzle-orm";
 
 import {
   bookings,
@@ -32,12 +32,14 @@ export type VenueSlotContext = {
 
 /**
  * Everything the pure Slot rules need for one Venue: the one read behind the
- * availability door and the Booking create check.
+ * availability door and the Booking create and move checks. A Booking being
+ * moved is left out of the occupying Bookings so it does not block itself.
  */
 export async function loadVenueSlotContext(
   database: DbOrTx,
   venueId: string,
   now: Date,
+  options: { excludeBookingId?: string } = {},
 ): Promise<VenueSlotContext | null> {
   const venue = await database.query.venues.findFirst({
     where: eq(venues.id, venueId),
@@ -94,6 +96,9 @@ export async function loadVenueSlotContext(
           eq(bookings.venueId, venueId),
           gt(bookings.endsAt, now),
           occupyingBookings(now),
+          options.excludeBookingId
+            ? ne(bookings.id, options.excludeBookingId)
+            : undefined,
         ),
       ),
   ]);

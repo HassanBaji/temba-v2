@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import {
@@ -9,6 +9,7 @@ import {
   ConsoleCardHeader,
 } from "~/components/console/console-card";
 import { PageHeader } from "~/components/console/page-header";
+import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import {
@@ -23,6 +24,10 @@ import {
   sourceLabel,
   timeRangeLabel,
 } from "./booking-list-model";
+import {
+  BookingActionDialogs,
+  type BookingAction,
+} from "./booking-action-dialogs";
 import { BookingMonogram } from "./booking-monogram";
 import { holderName, type BookingView } from "./booking-types";
 import { PaymentLedgerSection } from "./payment-ledger-section";
@@ -79,6 +84,7 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
       <PageHeader
         title={bookingTitle(data)}
         description={`${holderName(data.manager.holder)} · ${statusText(data)}`}
+        action={<BookingActions booking={data} />}
       />
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <div className="flex flex-col gap-5">
@@ -91,6 +97,49 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+const ACTION_LABELS: Record<BookingAction, string> = {
+  edit: "Edit",
+  noShow: "Mark no-show",
+  cancel: "Cancel booking",
+};
+
+function BookingActions({ booking }: { booking: BookingView }) {
+  const [action, setAction] = useState<BookingAction | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const allowed = booking.manager!.actions;
+  const available = (["edit", "noShow", "cancel"] as const).filter(
+    (key) => allowed[key],
+  );
+  if (available.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {available.map((key) => (
+        <Button
+          key={key}
+          type="button"
+          variant="outline"
+          className="rounded-control h-10 min-h-10 text-sm font-semibold shadow-none"
+          onClick={(event) => {
+            triggerRef.current = event.currentTarget;
+            setAction(key);
+          }}
+        >
+          {ACTION_LABELS[key]}
+        </Button>
+      ))}
+      <BookingActionDialogs
+        booking={booking}
+        action={action}
+        onActionChange={setAction}
+        restoreFocusRef={triggerRef}
+      />
+    </>
   );
 }
 

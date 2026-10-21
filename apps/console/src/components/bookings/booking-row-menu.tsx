@@ -15,12 +15,16 @@ import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 
+import {
+  BookingActionDialogs,
+  type BookingAction,
+} from "./booking-action-dialogs";
 import { settleActions } from "./booking-ledger-model";
 import type { VenueBooking } from "./booking-types";
 import { MarkPaidDialog, RefundDialog } from "./payment-dialogs";
 import { usePaymentMutations } from "./payment-mutations";
 
-type Dialog = "paid" | "waive" | "refund" | null;
+type Dialog = "paid" | "waive" | "refund" | BookingAction | null;
 
 /**
  * The list row carries no ledger, so the menu reads the Booking when it opens
@@ -40,6 +44,7 @@ export function BookingRowMenu({
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
   const mayAct =
     booking.status === "confirmed" ||
+    booking.status === "pending_payment" ||
     booking.status === "no_show" ||
     booking.paymentStatus === "paid" ||
     booking.paymentStatus === "partially_refunded";
@@ -54,6 +59,11 @@ export function BookingRowMenu({
     ? settleActions(booking.status, manager.payments)
     : { pay: false, waive: false, fail: false };
   const refundable = manager?.refundableFils ?? 0;
+  const allowed = manager?.actions ?? {
+    edit: false,
+    cancel: false,
+    noShow: false,
+  };
 
   return (
     <span className="contents" onClick={(event) => event.stopPropagation()}>
@@ -93,6 +103,21 @@ export function BookingRowMenu({
               Record refund
             </ActionMenuItem>
           ) : null}
+          {allowed.edit ? (
+            <ActionMenuItem onSelect={() => setDialog("edit")}>
+              Edit
+            </ActionMenuItem>
+          ) : null}
+          {allowed.noShow ? (
+            <ActionMenuItem onSelect={() => setDialog("noShow")}>
+              Mark no-show
+            </ActionMenuItem>
+          ) : null}
+          {allowed.cancel ? (
+            <ActionMenuItem onSelect={() => setDialog("cancel")}>
+              Cancel booking
+            </ActionMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -126,6 +151,18 @@ export function BookingRowMenu({
         refundableFils={refundable}
         restoreFocusRef={triggerRef}
       />
+      {view.data ? (
+        <BookingActionDialogs
+          booking={view.data}
+          action={
+            dialog === "edit" || dialog === "cancel" || dialog === "noShow"
+              ? dialog
+              : null
+          }
+          onActionChange={setDialog}
+          restoreFocusRef={triggerRef}
+        />
+      ) : null}
     </span>
   );
 }

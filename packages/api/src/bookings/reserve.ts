@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, gt, lt, sql } from "drizzle-orm";
+import { and, eq, gt, lt, ne, sql } from "drizzle-orm";
 
 import { bookings } from "@repo/db";
 import type { DbClient, DbTx } from "@repo/db";
@@ -11,16 +11,21 @@ type DbOrTx = DbClient | DbTx;
 /**
  * The no-double-booking step (ADR-0026). Call it inside a transaction: the
  * advisory lock is held to commit, so a second reservation for the same Court
- * waits, then sees this row in its overlap query.
+ * waits, then sees the first in its overlap query. A Booking being moved
+ * passes its own id so it does not clash with itself.
  */
-export async function reserveBooking(
+export async function requireFreeCourt(
   database: DbOrTx,
-  args: { values: typeof bookings.$inferInsert; now: Date },
+  args: {
+    courtId: string;
+    startsAt: Date;
+    endsAt: Date;
+    now: Date;
+    excludeBookingId?: string;
+  },
 ) {
-  const { values, now } = args;
-
   await database.execute(
-    sql`select pg_advisory_xact_lock(hashtext(${values.courtId}::text))`,
+    sql`select pg_advisory_xact_lock(hashtext(${args.courtId}::text))`,
   );
 
   const [clash] = await database
@@ -28,10 +33,13 @@ export async function reserveBooking(
     .from(bookings)
     .where(
       and(
-        eq(bookings.courtId, values.courtId),
-        occupyingBookings(now),
-        lt(bookings.startsAt, values.endsAt),
-        gt(bookings.endsAt, values.startsAt),
+        eq(bookings.courtId, args.courtId),
+        occupyingBookings(args.now),
+        lt(bookings.startsAt, args.endsAt),
+        gt(bookings.endsAt, args.startsAt),
+        args.excludeBookingId
+          ? ne(bookings.id, args.excludeBookingId)
+          : undefined,
       ),
     )
     .limit(1);
@@ -41,6 +49,19 @@ export async function reserveBooking(
       message: "That slot was just taken",
     });
   }
+}
+
+export async function reserveBooking(
+  database: DbOrTx,
+  args: { values: typeof bookings.$inferInsert; now: Date },
+) {
+  const { values, now } = args;
+  await requireFreeCourt(database, {
+    courtId: values.courtId,
+    startsAt: values.startsAt,
+    endsAt: values.endsAt,
+    now,
+  });
 
   const [inserted] = await database.insert(bookings).values(values).returning();
   if (!inserted) {

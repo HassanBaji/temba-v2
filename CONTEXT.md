@@ -201,7 +201,7 @@ The single Venue setting that lists the Venue for Customers and opens the Custom
 _Avoid_: bookable (that is the derived state of a Venue on a given day), published, open
 
 **Cancellation policy**:
-A Venue's refund terms for a cancelled Booking: up to five tiers of hours before the start with a refund percent each, a late refund percent after the last tier, and the cut-off after which a Customer can no longer cancel in the app. A Booking keeps the policy it was made under. A Venue that cancels always refunds in full.
+A Venue's refund terms for a cancelled Booking: up to five tiers of hours before the start with a refund percent each, a late refund percent after the last tier, and the cut-off after which a Customer can no longer cancel in the app. A Booking keeps the policy it was made under. A Venue that cancels always refunds in full; a Venue manager who cancels because the Customer asked applies the policy, without the Customer's cut-off.
 _Avoid_: refund rules, cancellation fee, terms
 
 **Booking**:

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 
-import { bookings } from "@repo/db";
+import { bookings, games } from "@repo/db";
 import type { DbClient, DbTx } from "@repo/db";
 import {
   refundForCancellation,
@@ -9,6 +9,7 @@ import {
 } from "@repo/domain/booking-refund";
 
 import { refundableFils, refundablePayment } from "#src/bookings/payments";
+import { cancelGameRecord } from "#src/games/helpers/cancel-game-record";
 import { removeJob, enqueue } from "#src/jobs/enqueue";
 import { expireHoldKey, refundJob } from "#src/jobs/specs";
 
@@ -28,18 +29,43 @@ export type CancellableBooking = {
   cancellationPolicy: RefundPolicy;
 };
 
+export type CancelledBy = "customer" | "venue";
+
+/**
+ * A Venue cancel refunds in full whatever the policy says; a Booking still
+ * pending payment has taken no money, so nothing is due.
+ */
+export function cancellationRefund(args: {
+  booking: CancellableBooking;
+  cancelledBy: CancelledBy;
+  paidFils: number;
+  now: Date;
+}) {
+  const { booking } = args;
+  if (booking.status === "pending_payment") {
+    return { refundDueFils: 0, cancellationChargeFils: 0 };
+  }
+  return refundForCancellation({
+    policy:
+      args.cancelledBy === "venue" ? FULL_REFUND : booking.cancellationPolicy,
+    startsAt: booking.startsAt,
+    now: args.now,
+    priceFils: booking.priceFils,
+    paidFils: args.paidFils,
+  });
+}
+
 /**
  * The refund arithmetic and the status move shared by the Customer and Venue
- * cancel doors. A Venue cancel refunds in full whatever the policy says; a
- * Booking still pending payment has taken no money, so nothing is due. A
- * payment taken online is refunded by a job; a manual one is left on the
- * ledger for the manager, with `refundDueFils` written on the Booking.
+ * cancel doors. A payment taken online is refunded by a job; a manual one is left on the
+ * ledger for the manager, with `refundDueFils` written on the Booking. A live
+ * Game on the Booking is cancelled with it.
  */
 export async function cancelBooking(
   database: DbOrTx,
   args: {
     booking: CancellableBooking;
-    cancelledBy: "customer" | "venue";
+    cancelledBy: CancelledBy;
     actorUserId: string;
     reason?: string | null;
     now: Date;
@@ -49,19 +75,12 @@ export async function cancelBooking(
 
   const payment = await refundablePayment(database, booking.id);
 
-  const refund =
-    booking.status === "pending_payment"
-      ? { refundDueFils: 0, cancellationChargeFils: 0 }
-      : refundForCancellation({
-          policy:
-            args.cancelledBy === "venue"
-              ? FULL_REFUND
-              : booking.cancellationPolicy,
-          startsAt: booking.startsAt,
-          now,
-          priceFils: booking.priceFils,
-          paidFils: payment ? refundableFils(payment) : 0,
-        });
+  const refund = cancellationRefund({
+    booking,
+    cancelledBy: args.cancelledBy,
+    paidFils: payment ? refundableFils(payment) : 0,
+    now,
+  });
 
   const [cancelled] = await database
     .update(bookings)
@@ -88,6 +107,15 @@ export async function cancelBooking(
       code: "CONFLICT",
       message: "This Booking was already changed",
     });
+  }
+
+  if (cancelled.gameId) {
+    const game = await database.query.games.findFirst({
+      where: eq(games.id, cancelled.gameId),
+    });
+    if (game && !game.cancelledAt) {
+      await cancelGameRecord(database, game);
+    }
   }
 
   await removeJob(database, expireHoldKey(booking.id));
