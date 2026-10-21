@@ -7,6 +7,7 @@ import {
   minutesLabel,
   openToLabel,
   sortVenues,
+  venueListMinHeight,
   venuesEmptyCopy,
 } from "./venues-model";
 
@@ -86,5 +87,29 @@ describe("copy", () => {
   it("tells an empty catalog from an empty search", () => {
     expect(venuesEmptyCopy("").title).toBe("No venues to book yet");
     expect(venuesEmptyCopy("zz").title).toBe("No venue matches");
+  });
+});
+
+describe("venueListMinHeight", () => {
+  it("fills the space under the pinned filter bar", () => {
+    expect(
+      venueListMinHeight({
+        viewportHeight: 700,
+        filterBarHeight: 150,
+        gap: 24,
+        paddingBottom: 58,
+      }),
+    ).toBe(468);
+  });
+
+  it("never goes below zero before the screen is measured", () => {
+    expect(
+      venueListMinHeight({
+        viewportHeight: 0,
+        filterBarHeight: 150,
+        gap: 24,
+        paddingBottom: 58,
+      }),
+    ).toBe(0);
   });
 });

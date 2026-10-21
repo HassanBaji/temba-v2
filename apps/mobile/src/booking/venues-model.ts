@@ -93,3 +93,22 @@ export function venuesEmptyCopy(query: string): {
         description: "Venues show here once they open bookings on Temba.",
       };
 }
+
+/**
+ * The venue list is at least as tall as the space left under the pinned
+ * filter bar, so the bar can always scroll up to the top, however few
+ * venues match.
+ */
+export function venueListMinHeight({
+  viewportHeight,
+  filterBarHeight,
+  gap,
+  paddingBottom,
+}: {
+  viewportHeight: number;
+  filterBarHeight: number;
+  gap: number;
+  paddingBottom: number;
+}): number {
+  return Math.max(0, viewportHeight - filterBarHeight - gap - paddingBottom);
+}

@@ -4,6 +4,8 @@ import {
   bookedHeadline,
   bookingPath,
   bookingRef,
+  bookingRowPath,
+  bookingsFallback,
   cancelConsequence,
   checkoutMethods,
   checkoutPath,
@@ -28,6 +30,32 @@ describe("booking references and paths", () => {
 
   it("matches the payment return deep link", () => {
     expect(bookingPath("abc")).toBe("/book/bookings/abc");
+  });
+
+  it("opens a Booking in the stack of the tab that listed it", () => {
+    const confirmed = { id: "abc", status: "confirmed" };
+    expect(bookingRowPath(["(app)", "book"], confirmed)).toBe(
+      "/book/bookings/abc",
+    );
+    expect(bookingRowPath(["(app)", "profile", "bookings"], confirmed)).toBe(
+      "/profile/bookings/abc",
+    );
+  });
+
+  it("sends an unpaid Booking to payment in Book from either tab", () => {
+    const unpaid = { id: "abc", status: "pending_payment" };
+    expect(bookingRowPath(["(app)", "profile", "bookings"], unpaid)).toBe(
+      "/book/bookings/abc/payment",
+    );
+  });
+
+  it("falls back to the list that opened the Booking", () => {
+    expect(bookingsFallback(["(app)", "book", "bookings", "[bookingId]"])).toBe(
+      "/book",
+    );
+    expect(
+      bookingsFallback(["(app)", "profile", "bookings", "[bookingId]"]),
+    ).toBe("/profile/bookings");
   });
 
   it("carries the start and the length to checkout", () => {
