@@ -141,11 +141,14 @@ export type CreateFriendlyDb = DbClient | DbTx;
 export type CreateFriendlyGameInput = {
   createdBy: string;
   name?: string | null;
-  groupId: string;
+  /** Null only for a Booking Game. */
+  groupId: string | null;
   venueId: string;
   courtId?: string | null;
   windowStart: Date;
   windowEnd: Date;
+  /** Omitted = rated. False only for a Booking Game. */
+  rated?: boolean;
   /** Null / omitted = unset. 0 = free. Positive = fils per User occupying a seat. */
   pricePerPlayerFils?: number | null;
   /** Null / omitted = that bound unset. 0 = Level 0.0. */

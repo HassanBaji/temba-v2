@@ -74,7 +74,7 @@ export async function createFriendlyGame(
 ): Promise<CreateFriendlyGameResult> {
   await backfillFriendlySetShells(database);
   await assertGameCreateVenueAndCourt(writeDb(database), {
-    groupId: input.groupId,
+    groupId: input.groupId ?? undefined,
     venueId: input.venueId,
     courtId: input.courtId,
   });
@@ -104,6 +104,7 @@ export async function createFriendlyGame(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        rated: input.rated ?? true,
         createdBy: input.createdBy,
       })
       .returning();

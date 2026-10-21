@@ -3,9 +3,9 @@ import {
   CREATE_FLOW_STEP_COUNT,
   type CreateFlowStep,
 } from "@repo/domain/create-game-flow";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, type Href } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
-import { ArrowRight, Trophy, Users } from "lucide-react-native";
+import { ArrowRight, Lock, Trophy, Users } from "lucide-react-native";
 import { Fragment, useCallback } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,13 +27,14 @@ import { continueBlocked, type CreateState } from "./create-model";
 const PROGRESS_HEIGHT = 3;
 const HEADER_PADDING_BOTTOM = 20;
 const CANCEL_WIDTH = 104;
-const CONTEXT_ICONS = { users: Users, trophy: Trophy } as const;
+const CONTEXT_ICONS = { users: Users, trophy: Trophy, lock: Lock } as const;
 
 export type StepShellProps = {
   step: CreateFlowStep | null;
   header: StepHeaderText;
   onBack?: () => void;
   footer?: React.ReactNode;
+  fallback?: Href;
   refreshing?: boolean;
   onRefresh?: () => void;
   children: React.ReactNode;
@@ -44,6 +45,7 @@ export function StepShell({
   header,
   onBack,
   footer,
+  fallback = "/games",
   refreshing,
   onRefresh,
   children,
@@ -52,7 +54,14 @@ export function StepShell({
     <Screen
       refreshing={refreshing}
       onRefresh={onRefresh}
-      header={<StepHeader step={step} header={header} onBack={onBack} />}
+      header={
+        <StepHeader
+          step={step}
+          header={header}
+          onBack={onBack}
+          fallback={fallback}
+        />
+      }
       footer={footer}
     >
       {children}
@@ -73,10 +82,12 @@ function StepHeader({
   step,
   header,
   onBack,
+  fallback,
 }: {
   step: CreateFlowStep | null;
   header: StepHeaderText;
   onBack?: () => void;
+  fallback: Href;
 }) {
   const insets = useSafeAreaInsets();
   useLightStatusBar();
@@ -100,7 +111,7 @@ function StepHeader({
     >
       <ScreenHeader
         nav={back ? "back" : "close"}
-        fallback="/games"
+        fallback={fallback}
         onNav={back ? onBack : undefined}
         actions={stepLabel}
       >

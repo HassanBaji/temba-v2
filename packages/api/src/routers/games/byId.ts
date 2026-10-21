@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import {
   MatchStatusEnum,
+  bookings,
+  courts,
   gameCourts,
   gamePlayers,
   gameTeams,
@@ -261,6 +263,18 @@ export async function gameById(
       logoImageUrl: true,
     },
   });
+
+  const [booking] = await database
+    .select({
+      id: bookings.id,
+      userId: bookings.userId,
+      startsAt: bookings.startsAt,
+      endsAt: bookings.endsAt,
+      courtName: courts.name,
+    })
+    .from(bookings)
+    .innerJoin(courts, eq(courts.id, bookings.courtId))
+    .where(eq(bookings.gameId, game.id));
 
   const memberships = await database.query.teamMembers.findMany({
     where: eq(teamMembers.userId, args.userId),
@@ -563,6 +577,15 @@ export async function gameById(
           longitude: venue.longitude,
           archivedAt: venue.archivedAt,
           logoImageUrl: venue.logoImageUrl,
+        }
+      : null,
+    booking: booking
+      ? {
+          id: booking.id,
+          courtName: booking.courtName,
+          startsAt: booking.startsAt,
+          endsAt: booking.endsAt,
+          heldByViewer: booking.userId === args.userId,
         }
       : null,
     windowStart: game.windowStart,

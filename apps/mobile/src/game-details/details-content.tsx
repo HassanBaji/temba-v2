@@ -16,6 +16,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useNow } from "../games/use-now";
 import { ActionsFooter } from "./actions-footer";
+import { BookedCard } from "./booked-card";
 import { BottomBar, type BottomBarHandlers } from "./bottom-bar";
 import type { setsToSave } from "./details-model";
 import { HeroCard } from "./hero-card";
@@ -73,6 +74,7 @@ export function GameDetailsContent({
         </Surface>
       ) : null}
       {heroInput ? <HeroCard input={heroInput} now={now} /> : null}
+      {game.booking ? <BookedCard booking={game.booking} /> : null}
       {game.joinFrozen && !game.cancelledAt ? (
         <Surface style={{ gap: 4 }}>
           <Text size="lead" weight="semibold" accessibilityRole="header">

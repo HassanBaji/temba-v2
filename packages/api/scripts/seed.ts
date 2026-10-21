@@ -35,6 +35,7 @@ import { settlePayment } from "#src/bookings/payments";
 import { setJobSink } from "#src/jobs/enqueue";
 import { cancelMyBooking } from "#src/routers/bookings/cancel";
 import { createBooking } from "#src/routers/bookings/create";
+import { createBookingGame } from "#src/routers/bookings/createGame";
 
 import { approveTeamLink } from "#src/routers/communities/approveTeamLink";
 import { createCommunity } from "#src/routers/communities/create";
@@ -469,7 +470,26 @@ async function seedBookings(u: Users, v: Venues) {
     });
 
   await book("me", court1, 2, 18, 60);
-  await book("yusuf", court2, 2, 17, 90);
+  const yusufs = await createBooking(db, {
+    venueId: v.central.id,
+    courtId: court2,
+    userId: u.yusuf!.id,
+    startsAt: hourOn(2, 17),
+    durationMinutes: 90,
+    paymentMethod: "at_venue",
+    now,
+  });
+  const bookingGame = await createBookingGame(db, {
+    bookingId: yusufs.booking.id,
+    userId: u.yusuf!.id,
+    pricePerPlayerFils: Math.ceil(yusufs.booking.priceFils / 4),
+    now,
+  });
+  await sendGameLookupInvite(db, {
+    gameId: bookingGame.gameId,
+    userId: u.yusuf!.id,
+    userIds: [u.me!.id],
+  });
   const paid = await book("lina", court1, 3, 9, 60);
   await settlePayment(db, {
     bookingId: paid.booking.id,

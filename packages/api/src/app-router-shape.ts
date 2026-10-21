@@ -37,6 +37,7 @@ type ExpectedBookings =
   | "cancelForVenue"
   | "markNoShow"
   | "cancel"
+  | "createGame"
   | "paymentState"
   | "confirmPayment"
   | "retryPayment"

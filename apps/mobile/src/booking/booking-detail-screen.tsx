@@ -4,6 +4,7 @@ import {
   formatGameClock,
   formatGameStart,
 } from "@repo/domain/format-game-start";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments } from "expo-router";
 import { Phone, Share2 } from "lucide-react-native";
@@ -23,6 +24,7 @@ import { useToast } from "../primitives/toast";
 import { api, type RouterOutputs } from "../trpc/react";
 import { BookingHero, DetailRow, Notice } from "./booking-parts";
 import {
+  bookingGamePath,
   bookingPath,
   bookingRef,
   bookingsFallback,
@@ -183,6 +185,12 @@ export function BookingDetailScreen({
         onFinishPayment={() => router.push(`${bookingPath(data.id)}/payment`)}
       />
 
+      <GameBlock
+        booking={data}
+        onCreate={() => router.push(bookingGamePath(data.id))}
+        onOpen={(gameId) => router.push(gamePath(gameId))}
+      />
+
       <Surface padded={false} style={{ paddingHorizontal: 16 }}>
         <DetailRow
           label={`Court, ${minutesBetween(data.startsAt, data.endsAt)} min`}
@@ -223,16 +231,6 @@ export function BookingDetailScreen({
             ))
           )}
         </DetailRow>
-        {data.game ? (
-          <DetailRow label="Game">
-            <Button
-              label={data.game.name ?? "Open game"}
-              variant="outline"
-              size="sm"
-              onPress={() => router.push(gamePath(data.game!.id))}
-            />
-          </DetailRow>
-        ) : null}
         {phone ? (
           <DetailRow label="Venue">
             <Text size="meta">{phone}</Text>
@@ -259,6 +257,64 @@ export function BookingDetailScreen({
         onClose={() => setConfirming(false)}
       />
     </Screen>
+  );
+}
+
+function GameBlock({
+  booking,
+  onCreate,
+  onOpen,
+}: {
+  booking: Booking;
+  onCreate: () => void;
+  onOpen: (gameId: string) => void;
+}) {
+  const game = booking.game;
+  if (game && !game.cancelledAt) {
+    return (
+      <Surface style={{ gap: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <View style={{ flexShrink: 1, gap: 2 }}>
+            <Text size="eyebrow" mono uppercase tone="muted">
+              Game
+            </Text>
+            <Text weight="semibold">{game.name ?? "Your game"}</Text>
+          </View>
+          <Text size="meta" tone="muted">
+            {UNRATED_LABEL}
+          </Text>
+        </View>
+        <Button
+          label="Open game"
+          variant="outline"
+          onPress={() => onOpen(game.id)}
+        />
+      </Surface>
+    );
+  }
+  if (!booking.canCreateGame) {
+    return null;
+  }
+  return (
+    <Surface style={{ gap: 12 }}>
+      <View style={{ gap: 4 }}>
+        <Text size="title" weight="bold" width="expanded">
+          Who is playing?
+        </Text>
+        <Text size="meta" tone="muted">
+          {game
+            ? "Your game was cancelled. The court is still yours, so you can set up a new one."
+            : "Turn the booking into a game and Temba handles seats, invites and the score."}
+        </Text>
+      </View>
+      <Button label="Create a game for this booking" onPress={onCreate} />
+    </Surface>
   );
 }
 
