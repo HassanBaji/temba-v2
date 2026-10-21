@@ -31,6 +31,7 @@ import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 
+import { useNow } from "../games/use-now";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
@@ -53,8 +54,10 @@ import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import {
   GameDetailsBar,
   GameDetailsContent,
+  gameHeroModel,
   type DetailsHandlers,
 } from "./details-content";
+import { GameHero } from "./game-hero";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
 import {
@@ -109,6 +112,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
   const segments = useSegments();
   const toast = useToast();
   const utils = api.useUtils();
+  const now = useNow();
   const [refreshing, setRefreshing] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -619,11 +623,26 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     onOpenPlayer,
   };
 
+  const hero = gameHeroModel(details, now);
+
   return (
     <View style={{ flex: 1 }}>
-      <Screen refreshing={refreshing} onRefresh={onRefresh}>
-        {header}
-        {inviteEntry}
+      <Screen
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        statusBarTone={hero?.tone ?? "paper"}
+        header={
+          hero ? (
+            <GameHero model={hero} fallback="/games" actions={inviteEntry} />
+          ) : undefined
+        }
+      >
+        {hero ? null : (
+          <>
+            {header}
+            {inviteEntry}
+          </>
+        )}
         <GameDetailsContent
           game={details}
           handlers={handlers}

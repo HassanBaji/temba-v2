@@ -37,8 +37,7 @@ export function BookingHero({
       style={{
         paddingTop: spacing.compact,
         paddingBottom: HERO_PADDING_BOTTOM,
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
+        borderRadius: 0,
       }}
     >
       <ScreenHeader

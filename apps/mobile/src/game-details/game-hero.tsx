@@ -1,13 +1,17 @@
-import {
-  friendlyGameHeroModel,
-  type FriendlyGameHeroInput,
-} from "@repo/domain/friendly-game-hero";
+import { spacing } from "@repo/design-tokens";
+import type { FriendlyGameHeroModel } from "@repo/domain/friendly-game-hero";
+import type { Href } from "expo-router";
 import { View } from "react-native";
 
+import { useLightStatusBar } from "../create-game/step-shell";
+import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { FigurePair } from "./figure-pair";
+
+const HERO_PADDING_BOTTOM = 22;
 
 function TopLine({ left, right }: { left: string; right: string | null }) {
   return (
@@ -31,32 +35,52 @@ function TopLine({ left, right }: { left: string; right: string | null }) {
   );
 }
 
-export function HeroCard({
-  input,
-  now,
+function LightStatusBar() {
+  useLightStatusBar();
+  return null;
+}
+
+/** The full-bleed header of Game details: back, actions, then the Game. */
+export function GameHero({
+  model,
+  fallback,
+  actions,
 }: {
-  input: FriendlyGameHeroInput;
-  now: Date;
+  model: FriendlyGameHeroModel;
+  fallback: Href;
+  actions?: React.ReactNode;
 }) {
-  const model = friendlyGameHeroModel(input, now);
+  return (
+    <Surface
+      tone={model.tone}
+      style={{
+        paddingTop: spacing.compact,
+        paddingBottom: HERO_PADDING_BOTTOM,
+        borderRadius: 0,
+        borderWidth: 0,
+        borderBottomWidth: model.tone === "paper" ? hairline : 0,
+      }}
+    >
+      {model.tone === "ink" ? <LightStatusBar /> : null}
+      <ScreenHeader nav="back" fallback={fallback} actions={actions}>
+        <HeroBody model={model} />
+      </ScreenHeader>
+    </Surface>
+  );
+}
 
-  if (!model) {
-    return null;
-  }
-
+function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
   if (model.kind === "time_unset") {
     return (
-      <Surface tone={model.tone}>
-        <Text size="meta" tone="muted">
-          Time unset
-        </Text>
-      </Surface>
+      <Text size="meta" tone="muted">
+        Time unset
+      </Text>
     );
   }
 
   if (model.kind === "final") {
     return (
-      <Surface tone={model.tone} style={{ gap: 12 }}>
+      <View style={{ gap: 12 }}>
         <TopLine left={model.dateLabel} right={model.tag} />
         {model.verdict && model.verdictWord ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -87,12 +111,12 @@ export function HeroCard({
           ) : null}
         </View>
         <FigurePair figures={model.figures} />
-      </Surface>
+      </View>
     );
   }
 
   return (
-    <Surface tone={model.tone} style={{ gap: 12 }}>
+    <View style={{ gap: 12 }}>
       <TopLine left={model.leftLabel} right={model.statusLabel} />
       {model.partnerName ? (
         <View style={{ gap: 8 }}>
@@ -126,6 +150,6 @@ export function HeroCard({
         </Text>
       ) : null}
       <FigurePair figures={model.figures} />
-    </Surface>
+    </View>
   );
 }
