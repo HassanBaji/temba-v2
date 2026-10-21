@@ -8,7 +8,6 @@ import { setStatusBarStyle } from "expo-status-bar";
 import { ArrowRight, Lock, Trophy, Users } from "lucide-react-native";
 import { Fragment, useCallback } from "react";
 import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "../primitives/button";
 import { MountFill } from "../primitives/mount-fill";
@@ -54,6 +53,7 @@ export function StepShell({
     <Screen
       refreshing={refreshing}
       onRefresh={onRefresh}
+      statusBarTone="ink"
       header={
         <StepHeader
           step={step}
@@ -89,7 +89,6 @@ function StepHeader({
   onBack?: () => void;
   fallback: Href;
 }) {
-  const insets = useSafeAreaInsets();
   useLightStatusBar();
   const back = step !== null && step > 1 && onBack;
   const stepLabel =
@@ -103,7 +102,7 @@ function StepHeader({
     <Surface
       tone="ink"
       style={{
-        paddingTop: insets.top + spacing.surface,
+        paddingTop: spacing.surface,
         paddingBottom: HEADER_PADDING_BOTTOM,
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,

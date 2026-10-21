@@ -31,12 +31,16 @@ export function BookedScreen({ bookingId }: { bookingId: string }) {
   useLightStatusBar();
 
   return (
-    <Surface tone="ink" padded={false} style={{ flex: 1, borderRadius: 0 }}>
+    <Surface
+      tone="ink"
+      padded={false}
+      style={{ flex: 1, borderRadius: 0, paddingTop: insets.top }}
+    >
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
           gap: spacing.section,
-          paddingTop: insets.top + spacing.compact,
+          paddingTop: spacing.compact,
           paddingBottom: insets.bottom + spacing.surface,
           paddingHorizontal: spacing.surface,
         }}

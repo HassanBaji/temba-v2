@@ -129,6 +129,7 @@ export function BookingDetailScreen({
     <Screen
       refreshing={refreshing}
       onRefresh={onRefresh}
+      statusBarTone="ink"
       header={
         <BookingHero
           eyebrow={bookingRef(data.id)}
