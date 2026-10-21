@@ -7,19 +7,20 @@ import {
   type FriendlyGameFooterAction,
 } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
-import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
+import {
+  friendlyGameHeroInput,
+  friendlyGameHeroModel,
+} from "@repo/domain/friendly-game-hero";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
 import { View } from "react-native";
 
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { useNow } from "../games/use-now";
 import { ActionsFooter } from "./actions-footer";
 import { BookedCard } from "./booked-card";
 import { BottomBar, type BottomBarHandlers } from "./bottom-bar";
 import type { setsToSave } from "./details-model";
-import { HeroCard } from "./hero-card";
 import { LevelRequestCard } from "./level-request-card";
 import { LineupCard } from "./lineup-card";
 import { OrganizerCard, type OrganizerHandlers } from "./organizer-card";
@@ -56,9 +57,7 @@ export function GameDetailsContent({
   handlers: DetailsHandlers;
   organizer?: DetailsOrganizer | null;
 }) {
-  const now = useNow();
   const plan = friendlyGameDetailsPlan(game);
-  const heroInput = friendlyGameHeroInput(game);
   const levelCard = levelRangeRequestCard(game);
   const { phase } = game;
   const { firstMatch } = plan;
@@ -73,7 +72,6 @@ export function GameDetailsContent({
           </Text>
         </Surface>
       ) : null}
-      {heroInput ? <HeroCard input={heroInput} now={now} /> : null}
       {game.booking ? <BookedCard booking={game.booking} /> : null}
       {game.joinFrozen && !game.cancelledAt ? (
         <Surface style={{ gap: 4 }}>
@@ -140,6 +138,11 @@ export function GameDetailsContent({
       ) : null}
     </View>
   );
+}
+
+export function gameHeroModel(game: FriendlyGameDetails, now: Date) {
+  const input = friendlyGameHeroInput(game);
+  return input ? friendlyGameHeroModel(input, now) : null;
 }
 
 export function GameDetailsBar({
