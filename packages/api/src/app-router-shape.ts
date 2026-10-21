@@ -32,6 +32,7 @@ type ExpectedBookings =
   | "byId"
   | "createForVenue"
   | "searchCustomers"
+  | "listCustomers"
   | "update"
   | "cancelForVenue"
   | "markNoShow"
