@@ -53,8 +53,9 @@ export function checkoutPath(
   venueId: string,
   startsAt: Date,
   durationMinutes: number,
+  courtId: string,
 ) {
-  return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}&minutes=${durationMinutes}`;
+  return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}&minutes=${durationMinutes}&courtId=${encodeURIComponent(courtId)}`;
 }
 
 /** A short reference a Customer can read out at the desk. */

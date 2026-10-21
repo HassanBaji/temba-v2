@@ -1,6 +1,7 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { formatGameClock } from "@repo/domain/format-game-start";
+import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { venuePageImage } from "@repo/domain/venue-photos";
 import { useRouter } from "expo-router";
 import { ArrowRight, Info } from "lucide-react-native";
@@ -23,11 +24,13 @@ import { DetailRow, Notice, Pill, SectionHeading } from "./booking-parts";
 import { checkoutPath, relativeDay, venueDetailsPath } from "./booking-model";
 import { ChipGrid, ChipTile } from "./chip-grid";
 import {
+  courtChoices,
   dayStrip,
   durationChoices,
   keepOrFirst,
   startTimeGroups,
   weekdayOf,
+  type CourtChoice,
   type StartTime,
 } from "./slot-grid";
 import { VenueBanner } from "./venue-banner";
@@ -39,6 +42,7 @@ const BANNER_HEIGHT = 200;
 const DAY_TILE_WIDTH = 62;
 const DURATION_COLUMNS = 3;
 const TIME_COLUMNS = 5;
+const COURT_COLUMNS = 3;
 
 export function VenueScreen({ venueId }: { venueId: string }) {
   const router = useRouter();
@@ -47,6 +51,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [pickedMinutes, setPickedMinutes] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [pickedCourt, setPickedCourt] = useState<string | null>(null);
 
   const venue = api.bookings.venueForBooking.useQuery(
     { venueId },
@@ -128,6 +133,20 @@ export function VenueScreen({ venueId }: { venueId: string }) {
     times.find(
       (time) => time.startsAt.getTime() === selected && time.freeCourts > 0,
     ) ?? null;
+  const courts =
+    chosen && availability.data && minutes !== null
+      ? courtChoices({
+          startsAt: chosen.startsAt,
+          minutes,
+          venueCourts: data.courts,
+          courts: availability.data.courts,
+        })
+      : [];
+  const courtId = keepOrFirst(
+    pickedCourt,
+    courts.filter((court) => court.priceFils !== null).map((court) => court.id),
+  );
+  const court = courts.find((entry) => entry.id === courtId) ?? null;
   const todayWindows =
     data.openingHours.find(
       (entry) => days[0] && entry.weekday === weekdayOf(days[0].key),
@@ -141,12 +160,16 @@ export function VenueScreen({ venueId }: { venueId: string }) {
       footer={
         <Footer
           chosen={chosen}
+          court={court}
           minutes={minutes}
           now={now}
           onContinue={() =>
             chosen &&
+            court &&
             minutes !== null &&
-            router.push(checkoutPath(venueId, chosen.startsAt, minutes))
+            router.push(
+              checkoutPath(venueId, chosen.startsAt, minutes, court.id),
+            )
           }
         />
       }
@@ -294,6 +317,44 @@ export function VenueScreen({ venueId }: { venueId: string }) {
         )}
       </View>
 
+      {times.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          <SectionHeading
+            title="Court"
+            meta={
+              chosen
+                ? `${courtCountLabel(chosen.freeCourts)} free at ${formatGameClock(chosen.startsAt)}`
+                : null
+            }
+          />
+          {chosen ? (
+            <>
+              <ChipGrid columns={COURT_COLUMNS}>
+                {courts.map((entry) => (
+                  <ChipTile
+                    key={entry.id}
+                    label={entry.name}
+                    sublabel={courtSublabel(entry)}
+                    struck={entry.priceFils === null}
+                    selected={entry.id === courtId}
+                    onPress={() => setPickedCourt(entry.id)}
+                  />
+                ))}
+              </ChipGrid>
+              {courts.some((entry) => entry.fullyBooked) ? (
+                <Text size="meta" tone="muted">
+                  {`Fully booked courts have no time free for ${minutes} min on this day.`}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <Text size="meta" tone="muted">
+              Pick a start time to see which courts are free.
+            </Text>
+          )}
+        </View>
+      ) : null}
+
       <View>
         <DetailRow label="Cancellation" first>
           {data.cancellationPolicyLines.map((line) => (
@@ -347,13 +408,22 @@ function Banner({ venue, venueId }: { venue: BookingVenue; venueId: string }) {
   );
 }
 
+function courtSublabel(court: CourtChoice) {
+  if (court.priceFils !== null) {
+    return formatBookingPriceFils(court.priceFils);
+  }
+  return court.fullyBooked ? "Fully booked" : "Taken";
+}
+
 function Footer({
   chosen,
+  court,
   minutes,
   now,
   onContinue,
 }: {
   chosen: StartTime | null;
+  court: CourtChoice | null;
   minutes: number | null;
   now: Date;
   onContinue: () => void;
@@ -366,14 +436,14 @@ function Footer({
         </Text>
         <Text size="meta" weight="semibold" numberOfLines={1}>
           {chosen
-            ? `${formatGameClock(chosen.startsAt)}, ${minutes} min, ${courtCountLabel(chosen.freeCourts)} free`
+            ? `${formatGameClock(chosen.startsAt)}, ${minutes} min${court ? `, ${court.name}` : ""}`
             : "Pick a start time"}
         </Text>
       </View>
       <Button
         label="Continue"
         size="lg"
-        disabled={!chosen}
+        disabled={!chosen || !court}
         icon={<ArrowRight size={sizes.iconAction} color={colors.paper} />}
         iconPlacement="trailing"
         onPress={onContinue}

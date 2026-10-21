@@ -171,9 +171,33 @@ describe("courtChoices", () => {
       courts: COURTS,
     });
     expect(choices).toEqual([
-      { id: "c1", name: "Court 1", priceFils: 12000 },
-      { id: "c2", name: "Court 2", priceFils: null },
-      { id: "c3", name: "Court 3", priceFils: null },
+      { id: "c1", name: "Court 1", priceFils: 12000, fullyBooked: false },
+      { id: "c2", name: "Court 2", priceFils: null, fullyBooked: true },
+      { id: "c3", name: "Court 3", priceFils: null, fullyBooked: true },
+    ]);
+  });
+
+  it("tells a Court taken at this time from one with nothing left that day", () => {
+    const choices = courtChoices({
+      startsAt: at("2026-10-15T19:00:00"),
+      minutes: 60,
+      venueCourts: [
+        { id: "c1", name: "Court 1" },
+        { id: "c2", name: "Court 2" },
+        { id: "c3", name: "Court 3" },
+      ],
+      courts: COURTS,
+    });
+    expect(
+      choices.map((choice) => [
+        choice.id,
+        choice.priceFils,
+        choice.fullyBooked,
+      ]),
+    ).toEqual([
+      ["c1", 10000, false],
+      ["c2", null, false],
+      ["c3", null, true],
     ]);
   });
 });

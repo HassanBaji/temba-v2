@@ -158,9 +158,14 @@ export type CourtChoice = {
   id: string;
   name: string;
   priceFils: number | null;
+  fullyBooked: boolean;
 };
 
-/** Every Court of the Venue, priced when it is free for this start and length. */
+/**
+ * Every Court of the Venue, priced when it is free for this start and length.
+ * A Court with no start left that day for the length is `fullyBooked`, so the
+ * screen can tell "taken at this time" from "nothing left today".
+ */
 export function courtChoices(args: {
   startsAt: Date;
   minutes: number;
@@ -169,16 +174,16 @@ export function courtChoices(args: {
 }): CourtChoice[] {
   const at = args.startsAt.getTime();
   return args.venueCourts.map((court) => {
-    const slot = args.courts
-      .find((entry) => entry.id === court.id)
-      ?.slots.find((entry) => entry.startsAt.getTime() === at);
-    const duration = slot?.durations.find(
-      (entry) => entry.minutes === args.minutes,
-    );
+    const slots =
+      args.courts.find((entry) => entry.id === court.id)?.slots ?? [];
+    const duration = slots
+      .find((entry) => entry.startsAt.getTime() === at)
+      ?.durations.find((entry) => entry.minutes === args.minutes);
     return {
       id: court.id,
       name: court.name,
       priceFils: duration?.priceFils ?? null,
+      fullyBooked: !slots.some((slot) => takesLength(slot, args.minutes)),
     };
   });
 }

@@ -58,9 +58,9 @@ describe("booking references and paths", () => {
     ).toBe("/profile/bookings");
   });
 
-  it("carries the start and the length to checkout", () => {
-    expect(checkoutPath("v1", at("2026-10-15T18:00:00"), 90)).toBe(
-      "/book/venues/v1/checkout?startsAt=2026-10-15T15%3A00%3A00.000Z&minutes=90",
+  it("carries the start, the length and the Court to checkout", () => {
+    expect(checkoutPath("v1", at("2026-10-15T18:00:00"), 90, "c2")).toBe(
+      "/book/venues/v1/checkout?startsAt=2026-10-15T15%3A00%3A00.000Z&minutes=90&courtId=c2",
     );
   });
 
