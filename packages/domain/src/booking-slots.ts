@@ -50,6 +50,7 @@ export type SlotRefusal =
   | "off_grid"
   | "too_soon"
   | "too_far"
+  | "ended"
   | "outside_hours"
   | "closure"
   | "no_price"
@@ -65,6 +66,11 @@ export type DaySlot = {
 };
 
 export type CourtDaySlots = { courtId: string; slots: DaySlot[] };
+
+/** Customers book under the Venue's duration options, lead and horizon; managers do not. */
+export type SlotLimits = "customer" | "manager";
+
+export const MANAGER_MAX_DURATION_MINUTES = 240;
 
 const MS_PER_MINUTE = 60_000;
 
@@ -117,9 +123,23 @@ function fitsAnOpeningWindow(
   });
 }
 
+/** Any multiple of the grid step up to four hours. */
+export function managerDurationOptions(slotMinutes: number): number[] {
+  const options: number[] = [];
+  for (
+    let minutes = slotMinutes;
+    minutes <= MANAGER_MAX_DURATION_MINUTES;
+    minutes += slotMinutes
+  ) {
+    options.push(minutes);
+  }
+  return options;
+}
+
 export function evaluateSlot(
   input: SlotInput,
   candidate: { courtId: string; startsAt: Date; durationMinutes: number },
+  limits: SlotLimits = "customer",
 ): SlotCheck {
   const { settings, now } = input;
   const interval = {
@@ -129,7 +149,11 @@ export function evaluateSlot(
     ),
   };
 
-  if (!settings.durationOptionsMinutes.includes(candidate.durationMinutes)) {
+  const durations =
+    limits === "customer"
+      ? settings.durationOptionsMinutes
+      : managerDurationOptions(settings.slotMinutes);
+  if (!durations.includes(candidate.durationMinutes)) {
     return { ok: false, reason: "bad_duration" };
   }
 
@@ -142,17 +166,23 @@ export function evaluateSlot(
     return { ok: false, reason: "off_grid" };
   }
 
-  if (
-    interval.startsAt.getTime() <
-    now.getTime() + settings.minLeadMinutes * MS_PER_MINUTE
-  ) {
-    return { ok: false, reason: "too_soon" };
-  }
-  if (
-    interval.startsAt.getTime() >=
-    addProductDays(now, settings.bookingHorizonDays).getTime()
-  ) {
-    return { ok: false, reason: "too_far" };
+  if (limits === "manager") {
+    if (interval.endsAt.getTime() <= now.getTime()) {
+      return { ok: false, reason: "ended" };
+    }
+  } else {
+    if (
+      interval.startsAt.getTime() <
+      now.getTime() + settings.minLeadMinutes * MS_PER_MINUTE
+    ) {
+      return { ok: false, reason: "too_soon" };
+    }
+    if (
+      interval.startsAt.getTime() >=
+      addProductDays(now, settings.bookingHorizonDays).getTime()
+    ) {
+      return { ok: false, reason: "too_far" };
+    }
   }
 
   if (!fitsAnOpeningWindow(input.openingHours, interval)) {

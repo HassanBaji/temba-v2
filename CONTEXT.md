@@ -205,7 +205,7 @@ A Venue's refund terms for a cancelled Booking: up to five tiers of hours before
 _Avoid_: refund rules, cancellation fee, terms
 
 **Booking**:
-One Court reserved for one interval by one Customer, at a price and under a Cancellation policy fixed when it was made. A Customer's Booking is pending payment for at most ten minutes, then confirmed once the charge is captured or payment is deferred to the Venue; it occupies the Court while confirmed, or pending payment with a live hold. It may become cancelled, no-show or expired, and those never block. Distinct from a Game: a Game is the event, a Booking is the Court.
+One Court reserved for one interval by one Customer or Guest, at a price and under a Cancellation policy fixed when it was made. A Venue manager may make one from the Venue console: it is confirmed at once with a Payment to settle at the Venue, ignores the Customer's lead and horizon, and may carry a typed price. A Customer's Booking is pending payment for at most ten minutes, then confirmed once the charge is captured or payment is deferred to the Venue; it occupies the Court while confirmed, or pending payment with a live hold. It may become cancelled, no-show or expired, and those never block. Distinct from a Game: a Game is the event, a Booking is the Court.
 _Avoid_: reservation, slot (that is the offer, not the reservation), Game, session, order
 
 **Slot**:
@@ -215,6 +215,10 @@ _Avoid_: Booking (that is the reservation), Position, Match slot, time slot (as 
 **Customer**:
 A User as seen from one Venue: someone who holds or has held a Booking there. Derived from User and Bookings, never a separate record. Needs no Community or Group membership.
 _Avoid_: client, member (that is a Community role), player (when you mean this view), account
+
+**Guest**:
+A person without a Temba account recorded on a Booking by name and phone by a Venue manager. A Guest Booking has no Customer and never a Game; a Venue's Guests are matched by phone.
+_Avoid_: walk-in (as the name of the entity), offline customer, anonymous User
 
 **No-show**:
 A confirmed Booking whose start has passed and that a Venue manager marked as not used. Terminal: no refund, and the payment status is left as it was (a paid no-show stays paid; an unpaid one stays pending).

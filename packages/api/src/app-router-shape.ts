@@ -30,6 +30,8 @@ type ExpectedBookings =
   | "listMine"
   | "listForVenue"
   | "byId"
+  | "createForVenue"
+  | "searchCustomers"
   | "cancel"
   | "paymentState"
   | "confirmPayment"

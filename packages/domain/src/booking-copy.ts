@@ -26,6 +26,7 @@ export const SLOT_REFUSAL_MESSAGES: Record<SlotRefusal, string> = {
   off_grid: "That start time is not on this Venue's booking grid",
   too_soon: "That time is too soon to book",
   too_far: "That day is too far ahead to book",
+  ended: "That time has already passed",
   outside_hours: "The Venue is not open at that time",
   closure: "That time is unavailable",
   no_price: "That time cannot be booked",

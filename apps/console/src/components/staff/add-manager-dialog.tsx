@@ -13,19 +13,11 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
+import { useDebouncedValue } from "~/hooks/use-debounced-value";
 import { api } from "~/trpc/react";
 
 import { PersonMonogram } from "./person-monogram";
 import { candidateManagers, type ManagerPerson } from "./staff-model";
-
-function useDebouncedValue(value: string, delayMs: number) {
-  const [debounced, setDebounced] = React.useState(value);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-  return debounced;
-}
 
 export function AddManagerDialog({
   venueId,

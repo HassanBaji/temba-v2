@@ -4,6 +4,7 @@ import type { PricingRuleInput } from "./booking-price";
 import {
   evaluateSlot,
   isOccupyingBooking,
+  managerDurationOptions,
   slotsForDay,
   type SlotBooking,
   type SlotInput,
@@ -300,6 +301,67 @@ describe("evaluateSlot", () => {
     });
     expect(evaluateSlot(value, candidate(at(8, 1))).ok).toBe(true);
     expect(evaluateSlot(value, candidate(at(8, 1, 30))).ok).toBe(false);
+  });
+});
+
+describe("evaluateSlot under manager limits", () => {
+  const candidate = (startsAt: Date, durationMinutes = 60) => ({
+    courtId: COURT_A,
+    startsAt,
+    durationMinutes,
+  });
+
+  it("ignores the lead and the horizon", () => {
+    const value = input({ now: at(7, 8, 30) });
+    expect(evaluateSlot(value, candidate(at(7, 9)), "manager").ok).toBe(true);
+    expect(
+      evaluateSlot(
+        input({
+          now: at(7, 8, 30),
+          openingHours: ALL_DAYS.map((weekday) => ({
+            weekday,
+            opensAtMinutes: 8 * 60,
+            closesAtMinutes: 12 * 60,
+          })),
+        }),
+        candidate(at(7 + 30, 9)),
+        "manager",
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("accepts a slot already under way and refuses one that has ended", () => {
+    const value = input({ now: at(7, 9, 30) });
+    expect(evaluateSlot(value, candidate(at(7, 9)), "manager").ok).toBe(true);
+    expect(evaluateSlot(value, candidate(at(7, 8, 30)), "manager")).toEqual({
+      ok: false,
+      reason: "ended",
+    });
+  });
+
+  it("takes any multiple of the grid step up to four hours", () => {
+    expect(evaluateSlot(input(), candidate(at(7, 8), 150), "manager")).toEqual({
+      ok: true,
+      priceFils: 25_000,
+    });
+    expect(evaluateSlot(input(), candidate(at(7, 8), 45), "manager")).toEqual({
+      ok: false,
+      reason: "bad_duration",
+    });
+    expect(managerDurationOptions(60)).toEqual([60, 120, 180, 240]);
+  });
+
+  it("still refuses Closures, unpriced and taken time", () => {
+    expect(
+      evaluateSlot(
+        input({ bookings: [booking({})] }),
+        candidate(at(7, 9)),
+        "manager",
+      ),
+    ).toEqual({ ok: false, reason: "taken" });
+    expect(
+      evaluateSlot(input({ rules: [] }), candidate(at(7, 9)), "manager"),
+    ).toEqual({ ok: false, reason: "no_price" });
   });
 });
 
