@@ -14,10 +14,12 @@ import {
   refundForCancellation,
   refundPercentAt,
 } from "@repo/domain/booking-refund";
+import { managerBookingActions } from "@repo/domain/booking-manager-actions";
 import { isOccupyingBooking } from "@repo/domain/booking-slots";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { cancellationRefund } from "#src/bookings/cancel";
 import {
   listPayments,
   refundableFils,
@@ -74,6 +76,7 @@ export async function bookingById(
       city: venues.city,
       phone: venues.phone,
       logoImageUrl: venues.logoImageUrl,
+      archivedAt: venues.archivedAt,
     })
     .from(venues)
     .where(eq(venues.id, booking.venueId));
@@ -130,6 +133,13 @@ export async function bookingById(
     paidFils,
   });
   const step = nextRefundStep(policy, booking.startsAt, now);
+  const refundIfCancelled = (cancelledBy: "venue" | "customer") =>
+    cancellationRefund({
+      booking,
+      cancelledBy,
+      paidFils: refundSource ? refundableFils(refundSource) : 0,
+      now,
+    }).refundDueFils;
 
   return {
     id: booking.id,
@@ -148,7 +158,13 @@ export async function bookingById(
     cancelReason: booking.cancelReason,
     gameId: booking.gameId,
     game: game ?? null,
-    venue: venue!,
+    venue: {
+      id: venue!.id,
+      name: venue!.name,
+      city: venue!.city,
+      phone: venue!.phone,
+      logoImageUrl: venue!.logoImageUrl,
+    },
     court: court!,
     cancellationPolicy: policy,
     cancellationPolicyLines: describeCancellationPolicy(policy),
@@ -179,6 +195,15 @@ export async function bookingById(
               : null,
           })),
           refundableFils: refundSource ? refundableFils(refundSource) : 0,
+          actions: managerBookingActions(
+            booking,
+            venue!.archivedAt !== null,
+            now,
+          ),
+          refundIfCancelled: {
+            venue: refundIfCancelled("venue"),
+            customer: refundIfCancelled("customer"),
+          },
         }
       : null,
     canCreateGame:

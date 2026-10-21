@@ -6,6 +6,10 @@ import { useRef, useState, type ReactNode } from "react";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import {
+  BookingActionDialogs,
+  type BookingAction,
+} from "~/components/bookings/booking-action-dialogs";
 import { settleActions } from "~/components/bookings/booking-ledger-model";
 import { MarkPaidDialog } from "~/components/bookings/payment-dialogs";
 import { bookingPath } from "~/lib/console-paths";
@@ -31,15 +35,14 @@ export function BookingPanel({
     booking.status !== "pending_payment" && booking.status !== "cancelled";
   const [markingPaid, setMarkingPaid] = useState(false);
   const markPaidRef = useRef<HTMLButtonElement | null>(null);
-  const mayPay = booking.status === "confirmed" || booking.status === "no_show";
-  const view = api.bookings.byId.useQuery(
-    { bookingId: booking.id },
-    { enabled: mayPay },
-  );
+  const [action, setAction] = useState<BookingAction | null>(null);
+  const actionRef = useRef<HTMLButtonElement | null>(null);
+  const view = api.bookings.byId.useQuery({ bookingId: booking.id });
   const manager = view.data?.manager ?? null;
   const canPay = manager
     ? settleActions(booking.status, manager.payments).pay
     : false;
+  const allowed = manager?.actions;
 
   return (
     <aside
@@ -105,6 +108,32 @@ export function BookingPanel({
             Mark as paid
           </Button>
         ) : null}
+        {allowed?.edit || allowed?.noShow || allowed?.cancel ? (
+          <div className="flex gap-2">
+            {(
+              [
+                ["edit", "Edit"],
+                ["noShow", "No-show"],
+                ["cancel", "Cancel"],
+              ] as const
+            )
+              .filter(([key]) => allowed[key])
+              .map(([key, label]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  variant="outline"
+                  className="rounded-control h-10 min-h-10 flex-1 text-sm font-semibold shadow-none"
+                  onClick={(event) => {
+                    actionRef.current = event.currentTarget;
+                    setAction(key);
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+          </div>
+        ) : null}
         <Button
           asChild
           className="rounded-control h-10 min-h-10 w-full text-sm font-semibold"
@@ -120,6 +149,14 @@ export function BookingPanel({
         priceFils={booking.priceFils}
         restoreFocusRef={markPaidRef}
       />
+      {view.data ? (
+        <BookingActionDialogs
+          booking={view.data}
+          action={action}
+          onActionChange={setAction}
+          restoreFocusRef={actionRef}
+        />
+      ) : null}
     </aside>
   );
 }
