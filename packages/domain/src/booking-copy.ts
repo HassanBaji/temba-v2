@@ -1,4 +1,5 @@
 import type { RefundStep } from "./booking-refund";
+import { formatGameClock } from "./format-game-start";
 import { PRODUCT_TIMEZONE } from "./product-timezone";
 import type { SlotRefusal } from "./booking-slots";
 
@@ -65,4 +66,13 @@ export function describeNextRefundStep(step: RefundStep | null): string | null {
   }
   const when = stepFormatter.format(step.deadline).replace(",", "");
   return `${refundWords(step.currentPercent)} until ${when}, then ${refundWords(step.nextPercent).toLowerCase()}`;
+}
+
+/** The line Game details shows for a Booking Game: "Court 2, 7:00 PM to 8:30 PM". */
+export function bookedCourtLine(booking: {
+  courtName: string;
+  startsAt: Date;
+  endsAt: Date;
+}): string {
+  return `${booking.courtName}, ${formatGameClock(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`;
 }

@@ -86,7 +86,11 @@ export async function bookingById(
     .where(eq(courts.id, booking.courtId));
   const [game] = booking.gameId
     ? await database
-        .select({ id: games.id, name: games.name })
+        .select({
+          id: games.id,
+          name: games.name,
+          cancelledAt: games.cancelledAt,
+        })
         .from(games)
         .where(eq(games.id, booking.gameId))
     : [];
@@ -122,6 +126,7 @@ export async function bookingById(
     ? await refundablePayment(database, booking.id)
     : null;
 
+  const hasLiveGame = game?.cancelledAt === null;
   const policy = booking.cancellationPolicy;
   const active = isOccupyingBooking(booking, now);
   const paidFils = booking.paymentStatus === "paid" ? booking.priceFils : 0;
@@ -210,7 +215,7 @@ export async function bookingById(
       isHolder &&
       booking.status === "confirmed" &&
       booking.endsAt.getTime() > now.getTime() &&
-      booking.gameId === null,
+      !hasLiveGame,
     cancel: {
       allowed:
         isHolder &&

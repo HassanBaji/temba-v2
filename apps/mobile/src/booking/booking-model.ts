@@ -21,6 +21,10 @@ export function bookingPath(bookingId: string) {
   return `/book/bookings/${bookingId}` as const;
 }
 
+export function bookingGamePath(bookingId: string) {
+  return `${bookingPath(bookingId)}/game` as const;
+}
+
 /**
  * A Booking opened from Profile stays in the Profile stack, so the tab bar
  * does not switch and Back returns to the list. Payment always runs in Book.

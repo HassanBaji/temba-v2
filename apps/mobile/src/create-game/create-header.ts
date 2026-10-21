@@ -19,7 +19,7 @@ import {
 import type { CreateState } from "./create-model";
 import { matchCountLabel } from "./create-summary";
 
-export type HeaderContextIcon = "users" | "trophy";
+export type HeaderContextIcon = "users" | "trophy" | "lock";
 
 export type KickoffHero = {
   value: string;

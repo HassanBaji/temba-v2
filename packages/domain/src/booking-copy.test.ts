@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bookedCourtLine,
   bookingStatusLabel,
   cancelWindowClosedMessage,
   describeNextRefundStep,
@@ -50,5 +51,26 @@ describe("booking copy", () => {
       "Full refund until Wed 19:00, then 50% refund",
     );
     expect(describeNextRefundStep(null)).toBeNull();
+  });
+
+  it("writes the Booked line in the product timezone", () => {
+    expect(
+      bookedCourtLine({
+        courtName: "Court 2",
+        startsAt: zonedDateTimeToInstant({
+          year: 2030,
+          month: 1,
+          day: 10,
+          hour: 19,
+        }),
+        endsAt: zonedDateTimeToInstant({
+          year: 2030,
+          month: 1,
+          day: 10,
+          hour: 20,
+          minute: 30,
+        }),
+      }),
+    ).toBe("Court 2, 7:00 PM to 8:30 PM");
   });
 });

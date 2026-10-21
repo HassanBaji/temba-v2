@@ -22,6 +22,7 @@ import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-she
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
+import { GameBookedBlock } from "~/components/games/game-booked-block";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameLineupSection } from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
@@ -1140,6 +1141,7 @@ export default function GameHomePage({
           // card changed, and the organiser actions footer is the only place
           // on the page a destructive/editing action renders.
           <div className="space-y-6">
+            {data.booking ? <GameBookedBlock booking={data.booking} /> : null}
             <GameLineupSection
               sides={data.sides}
               viewerUserId={data.viewerUserId}
