@@ -7,7 +7,6 @@ import { useRouter } from "expo-router";
 import { ArrowRight, Info } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNow } from "../games/use-now";
 import { apiOrigin } from "../lib/api-origin-runtime";
@@ -377,16 +376,12 @@ export function VenueScreen({ venueId }: { venueId: string }) {
 
 function Banner({ venue, venueId }: { venue: BookingVenue; venueId: string }) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   return (
-    <VenueBanner
-      image={venuePageImage(venue)}
-      height={BANNER_HEIGHT + insets.top}
-    >
+    <VenueBanner image={venuePageImage(venue)} height={BANNER_HEIGHT}>
       <View
         style={{
           position: "absolute",
-          top: insets.top + spacing.compact - 6,
+          top: spacing.compact - 6,
           left: spacing.surface,
           right: spacing.surface,
         }}

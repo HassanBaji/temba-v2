@@ -1,7 +1,6 @@
 import { colors, radii, spacing } from "@repo/design-tokens";
 import type { Href } from "expo-router";
 import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import { Button } from "../primitives/button";
@@ -30,14 +29,13 @@ export function BookingHero({
   onNav?: () => void;
   children?: React.ReactNode;
 }) {
-  const insets = useSafeAreaInsets();
   useLightStatusBar();
 
   return (
     <Surface
       tone="ink"
       style={{
-        paddingTop: insets.top + spacing.compact,
+        paddingTop: spacing.compact,
         paddingBottom: HERO_PADDING_BOTTOM,
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,

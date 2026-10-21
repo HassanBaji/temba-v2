@@ -19,6 +19,8 @@ export type ScreenProps = {
   onViewportHeight?: (height: number) => void;
   header?: React.ReactNode;
   footer?: React.ReactNode;
+  /** Fill of the fixed band behind the status bar; match an ink `header`. */
+  statusBarTone?: "paper" | "ink";
 };
 
 const FOOTER_PADDING_Y = 14;
@@ -33,6 +35,7 @@ export function Screen({
   onViewportHeight,
   header,
   footer,
+  statusBarTone = "paper",
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const registry = useMemo(
@@ -45,17 +48,13 @@ export function Screen({
     [],
   );
 
-  // A pinned child sticks to the top of the scroll view, so the scroll view
-  // starts below the status bar instead of padding its content past it.
+  // The scroll view starts below the status bar, so scrolled content never
+  // shows behind the notch or the Dynamic Island.
   const sticky = stickyIndex !== undefined && !header;
   const content = {
     gap: spacing.section,
     paddingHorizontal: spacing.surface,
-    paddingTop: header
-      ? spacing.section
-      : sticky
-        ? spacing.surface
-        : insets.top + spacing.surface,
+    paddingTop: header ? spacing.section : spacing.surface,
     paddingBottom: footer ? spacing.section : insets.bottom + spacing.section,
   };
   const body = header ? (
@@ -72,12 +71,13 @@ export function Screen({
       <View
         style={{
           flex: 1,
-          backgroundColor: colors.paper,
-          paddingTop: sticky ? insets.top : 0,
+          backgroundColor: colors[statusBarTone],
+          paddingTop: insets.top,
         }}
       >
         {scroll ? (
           <ScrollView
+            style={{ backgroundColor: colors.paper }}
             contentContainerStyle={header ? undefined : content}
             keyboardShouldPersistTaps="handled"
             stickyHeaderIndices={sticky ? [stickyIndex] : undefined}
@@ -117,9 +117,13 @@ export function Screen({
             {body}
           </ScrollView>
         ) : header ? (
-          <View style={{ flex: 1 }}>{body}</View>
+          <View style={{ flex: 1, backgroundColor: colors.paper }}>
+            {body}
+          </View>
         ) : (
-          <View style={[{ flex: 1 }, content]}>{children}</View>
+          <View style={[{ flex: 1, backgroundColor: colors.paper }, content]}>
+            {children}
+          </View>
         )}
         {footer ? (
           <View

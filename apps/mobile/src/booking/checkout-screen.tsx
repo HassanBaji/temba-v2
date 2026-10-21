@@ -151,6 +151,7 @@ export function CheckoutScreen({
 
   return (
     <Screen
+      statusBarTone="ink"
       header={
         <BookingHero
           eyebrow={data.name}
