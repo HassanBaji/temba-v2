@@ -1,21 +1,25 @@
-import { Users } from "lucide-react";
+"use client";
 
-import { EmptyState } from "~/components/common/empty-state";
+import { use } from "react";
+
 import { ConsolePage } from "~/components/console/console-page";
 import { PageHeader } from "~/components/console/page-header";
+import { CustomersList } from "~/components/customers/customers-list";
 
-export default function Page() {
+export default function CustomersPage({
+  params,
+}: {
+  params: Promise<{ venueId: string }>;
+}) {
+  const { venueId } = use(params);
+
   return (
     <ConsolePage>
       <PageHeader
         title="Customers"
-        description="Everyone who has booked here. Temba players link to their profile; walk-ins are yours only."
+        description="Everyone who has booked here, in the app or at the desk. Guests are yours only."
       />
-      <EmptyState
-        icon={Users}
-        title="No Customers list yet"
-        description="Customers arrive with the Customers list ticket (TEM-368)."
-      />
+      <CustomersList venueId={venueId} />
     </ConsolePage>
   );
 }
