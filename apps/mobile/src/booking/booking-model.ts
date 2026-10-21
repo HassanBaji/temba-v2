@@ -21,6 +21,26 @@ export function bookingPath(bookingId: string) {
   return `/book/bookings/${bookingId}` as const;
 }
 
+/**
+ * A Booking opened from Profile stays in the Profile stack, so the tab bar
+ * does not switch and Back returns to the list. Payment always runs in Book.
+ */
+export function bookingRowPath(
+  segments: readonly string[],
+  booking: { id: string; status: string },
+) {
+  if (booking.status === "pending_payment") {
+    return `${bookingPath(booking.id)}/payment`;
+  }
+  return segments.includes("profile")
+    ? `/profile/bookings/${booking.id}`
+    : bookingPath(booking.id);
+}
+
+export function bookingsFallback(segments: readonly string[]) {
+  return segments.includes("profile") ? "/profile/bookings" : "/book";
+}
+
 export function venuePath(venueId: string) {
   return `/book/venues/${venueId}` as const;
 }

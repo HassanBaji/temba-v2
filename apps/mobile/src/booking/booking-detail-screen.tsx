@@ -5,7 +5,7 @@ import {
   formatGameStart,
 } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import { Phone, Share2 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Share, View } from "react-native";
@@ -25,6 +25,7 @@ import { BookingHero, DetailRow, Notice } from "./booking-parts";
 import {
   bookingPath,
   bookingRef,
+  bookingsFallback,
   cancelConsequence,
   minutesBetween,
   paymentStatusLine,
@@ -43,6 +44,7 @@ export function BookingDetailScreen({
   returned: boolean;
 }) {
   const router = useRouter();
+  const segments = useSegments();
   const toast = useToast();
   const utils = api.useUtils();
   const now = useNow();
@@ -96,7 +98,7 @@ export function BookingDetailScreen({
   if (!booking.data) {
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback="/book/bookings" />
+        <ScreenHeader nav="back" fallback={bookingsFallback(segments)} />
         {booking.error ? (
           <Notice
             title="Booking could not be loaded"
@@ -136,7 +138,7 @@ export function BookingDetailScreen({
             data.court.name,
             now,
           )}
-          fallback="/book/bookings"
+          fallback={bookingsFallback(segments)}
         >
           <View style={{ flexDirection: "row", gap: 8 }}>
             {phone ? (

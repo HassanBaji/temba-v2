@@ -35,8 +35,11 @@ describe("tabBarHidden", () => {
     );
   });
 
-  it("keeps the tab bar on the Venues list and My bookings", () => {
+  it("keeps the tab bar on the Book screen and My bookings in Profile", () => {
     expect(tabBarHidden(["(app)", "book"])).toBe(false);
-    expect(tabBarHidden(["(app)", "book", "bookings"])).toBe(false);
+    expect(tabBarHidden(["(app)", "profile", "bookings"])).toBe(false);
+    expect(tabBarHidden(["(app)", "profile", "bookings", "[bookingId]"])).toBe(
+      false,
+    );
   });
 });

@@ -14,6 +14,9 @@ export type ScreenProps = {
   refreshing?: boolean;
   onRefresh?: () => void;
   onNearEnd?: () => void;
+  /** Index among `children` of the one child that pins to the top on scroll. */
+  stickyIndex?: number;
+  onViewportHeight?: (height: number) => void;
   header?: React.ReactNode;
   footer?: React.ReactNode;
 };
@@ -26,6 +29,8 @@ export function Screen({
   refreshing = false,
   onRefresh,
   onNearEnd,
+  stickyIndex,
+  onViewportHeight,
   header,
   footer,
 }: ScreenProps) {
@@ -40,10 +45,17 @@ export function Screen({
     [],
   );
 
+  // A pinned child sticks to the top of the scroll view, so the scroll view
+  // starts below the status bar instead of padding its content past it.
+  const sticky = stickyIndex !== undefined && !header;
   const content = {
     gap: spacing.section,
     paddingHorizontal: spacing.surface,
-    paddingTop: header ? spacing.section : insets.top + spacing.surface,
+    paddingTop: header
+      ? spacing.section
+      : sticky
+        ? spacing.surface
+        : insets.top + spacing.surface,
     paddingBottom: footer ? spacing.section : insets.bottom + spacing.section,
   };
   const body = header ? (
@@ -57,11 +69,24 @@ export function Screen({
 
   return (
     <InkRegistryContext.Provider value={registry}>
-      <View style={{ flex: 1, backgroundColor: colors.paper }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.paper,
+          paddingTop: sticky ? insets.top : 0,
+        }}
+      >
         {scroll ? (
           <ScrollView
             contentContainerStyle={header ? undefined : content}
             keyboardShouldPersistTaps="handled"
+            stickyHeaderIndices={sticky ? [stickyIndex] : undefined}
+            onLayout={
+              onViewportHeight
+                ? ({ nativeEvent }) =>
+                    onViewportHeight(nativeEvent.layout.height)
+                : undefined
+            }
             automaticallyAdjustKeyboardInsets
             scrollEventThrottle={onNearEnd ? 100 : undefined}
             onScroll={
