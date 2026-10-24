@@ -192,7 +192,8 @@ type ExpectedTeams =
   | "acceptInviteLink"
   | "requestLink"
   | "unlink"
-  | "dissolve";
+  | "dissolve"
+  | "leave";
 
 type ExpectedUsers =
   | "home"

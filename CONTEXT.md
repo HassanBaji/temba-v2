@@ -145,8 +145,12 @@ The allow-list of sports a Community offers (padel, football, or both). Each Gro
 _Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
 
 **Team**:
-A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending Lookup invite or live Invite link for the second seat). Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval, and either member may unlink.
-_Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
+A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval once complete, and any member may unlink. A football Team has a creator and no captain: other members may leave, the creator dissolves. Dropping below complete does not unlink a Team.
+_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain
+
+**Team roster rule**:
+The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty-five, complete at five, pairs not unique.
+_Avoid_: team size (bare), squad size, captain rule
 
 **Club Team**:
 A Team currently linked to a Community.

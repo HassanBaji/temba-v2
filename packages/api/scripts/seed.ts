@@ -933,10 +933,14 @@ async function seedGroups(u: Users, c: Communities) {
 // ---------------------------------------------------------------------------
 
 async function seedTeams(u: Users, c: Communities) {
-  const make = async (ownerKey: string, name: string | undefined) =>
+  const make = async (
+    ownerKey: string,
+    name: string | undefined,
+    sport: "padel" | "football" = "padel",
+  ) =>
     createTeam(db, {
       name,
-      sport: "padel",
+      sport,
       userId: u[ownerKey]!.id,
       userName: u[ownerKey]!.name,
     });
@@ -992,7 +996,16 @@ async function seedTeams(u: Users, c: Communities) {
     userId: u.yusuf!.id,
   });
 
-  return { smash, netRunners, lobs, duo, rally };
+  const squad = await make("tom", "Sunday Seven", "football");
+  for (const memberKey of ["emma", "jonas", "aisha", "marco", "hana"]) {
+    const squadInvite = await invite(squad.id, "tom", memberKey);
+    await acceptInAppInvite(db, {
+      inviteId: squadInvite.id,
+      userId: u[memberKey]!.id,
+    });
+  }
+
+  return { smash, netRunners, lobs, duo, rally, squad };
 }
 
 // ---------------------------------------------------------------------------
