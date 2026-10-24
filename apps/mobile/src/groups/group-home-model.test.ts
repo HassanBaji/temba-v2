@@ -8,6 +8,7 @@ import {
   memberList,
   memberSheetView,
   playedRowView,
+  standingNoResultsCopy,
   standingRowView,
   standingStats,
 } from "./group-home-model";
@@ -75,6 +76,18 @@ describe("groupBanner", () => {
 
   it("is absent for a plain Loose Group", () => {
     expect(groupBanner(home.member)).toBeNull();
+  });
+});
+
+describe("standingNoResultsCopy", () => {
+  it("keeps the first-result copy for a Verified Group", () => {
+    expect(standingNoResultsCopy(true).title).toBe(
+      "Standings appear after the first result",
+    );
+  });
+
+  it("explains that Games in a Group that is not Verified are Unrated", () => {
+    expect(standingNoResultsCopy(false).description).toMatch(/Unrated/);
   });
 });
 

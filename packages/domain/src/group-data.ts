@@ -89,6 +89,7 @@ export type GroupHomeData = {
   canManageLookupInvites: boolean;
   canManageInviteLinks: boolean;
   requiresApproval: boolean;
+  verified: boolean;
   canSetRequiresApproval: boolean;
   canDecideJoinRequests: boolean;
   canManageImage: boolean;
