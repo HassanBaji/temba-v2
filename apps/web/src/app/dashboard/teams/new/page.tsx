@@ -14,9 +14,11 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldTitle,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import { SportPicker } from "~/components/temba/sport-picker";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -29,17 +31,20 @@ import {
   TEAM_CREATE_LABEL,
   TEAM_NAME_HINT,
   TEAM_NAME_LABEL,
-  teamNameInput,
+  TEAM_SPORT_LABEL,
+  teamCreateInput,
 } from "@repo/domain/teams";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
-const FIELD_IDS = { name: "team-name" };
+const FIELD_IDS = { name: "team-name", sport: "team-sport" };
 
 export default function NewTeamPage() {
   const router = useRouter();
   const utils = api.useUtils();
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
+  const [sport, setSport] = React.useState<Sport>(DEFAULT_SPORT);
 
   const createTeam = api.teams.create.useMutation({
     onSuccess: async (team) => {
@@ -60,10 +65,7 @@ export default function NewTeamPage() {
     if (createTeam.isPending) {
       return;
     }
-    createTeam.mutate({
-      name: teamNameInput(name),
-      sport: "padel",
-    });
+    createTeam.mutate(teamCreateInput({ name, sport }));
   }
 
   return (
@@ -78,6 +80,16 @@ export default function NewTeamPage() {
             message={globalFormErrorMessage(createTeam.error)}
           />
           <FieldGroup>
+            <Field>
+              <FieldTitle id="team-sport-label">{TEAM_SPORT_LABEL}</FieldTitle>
+              <SportPicker
+                id={FIELD_IDS.sport}
+                labelledBy="team-sport-label"
+                value={sport}
+                onChange={setSport}
+                disabled={createTeam.isPending}
+              />
+            </Field>
             <Field>
               <FieldLabel htmlFor="team-name">{TEAM_NAME_LABEL}</FieldLabel>
               <Input

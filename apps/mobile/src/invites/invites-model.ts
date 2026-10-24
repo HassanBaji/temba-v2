@@ -1,7 +1,7 @@
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import { TEAM_INVITE_PARTNER_LABEL } from "@repo/domain/teams";
+import { teamInviteLabel } from "@repo/domain/teams";
 import type { RouterOutputs } from "@repo/api/types";
 import type {
   InviteKind,
@@ -173,8 +173,8 @@ export function inviteModes(door: {
   return modes;
 }
 
-export function inviteSheetTitle(kind: InviteDoorKind) {
-  return kind === "team" ? TEAM_INVITE_PARTNER_LABEL : "Invite players";
+export function inviteSheetTitle(kind: InviteDoorKind, teamSquad = false) {
+  return kind === "team" ? teamInviteLabel(teamSquad) : "Invite players";
 }
 
 export function openSeatCount(sides: GameShareContext["sides"]) {
