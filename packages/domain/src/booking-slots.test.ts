@@ -170,7 +170,7 @@ describe("slotsForDay", () => {
     ).toBeLessThan(free);
   });
 
-  it("offers only the durations the Venue lists and prices them from the rules", () => {
+  it("offers only the durations the Venue lists and prices them at the start's rule", () => {
     const value = input({
       settings: {
         slotMinutes: 60,
@@ -195,7 +195,7 @@ describe("slotsForDay", () => {
     });
     expect(day(value)[0]).toEqual({
       startsAt: at(7, 8),
-      durations: [{ minutes: 120, priceFils: 20_000 }],
+      durations: [{ minutes: 120, priceFils: 16_000 }],
     });
   });
 

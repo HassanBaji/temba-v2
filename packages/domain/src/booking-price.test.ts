@@ -35,19 +35,36 @@ describe("priceForInterval", () => {
     ).toEqual({ fils: 10_000 });
   });
 
-  it("prices a 90-minute interval spanning off-peak into peak pro-rata and rounds to fils", () => {
+  it("prices a 90-minute interval and rounds to fils", () => {
+    // 90 minutes at 10001/h = 15001.5
+    expect(
+      priceForInterval([rule({ hourlyRateFils: 10_001 })], {
+        courtId: COURT_A,
+        startsAt: at(7, 10),
+        endsAt: at(7, 11, 30),
+      }),
+    ).toEqual({ fils: 15_002 });
+  });
+
+  it("prices the whole interval at the rate of the band it starts in", () => {
     const rules = [
-      rule({ startMinutes: 0, endMinutes: 17 * 60, hourlyRateFils: 10_001 }),
-      rule({ startMinutes: 17 * 60, endMinutes: 1440, hourlyRateFils: 16_003 }),
+      rule({ startMinutes: 0, endMinutes: 17 * 60, hourlyRateFils: 10_000 }),
+      rule({ startMinutes: 17 * 60, endMinutes: 1440, hourlyRateFils: 16_000 }),
     ];
-    // 30 minutes at 10001/h + 60 minutes at 16003/h = 5000.5 + 16003 = 21003.5
     expect(
       priceForInterval(rules, {
         courtId: COURT_A,
         startsAt: at(7, 16, 30),
         endsAt: at(7, 18),
       }),
-    ).toEqual({ fils: 21_004 });
+    ).toEqual({ fils: 15_000 });
+    expect(
+      priceForInterval(rules, {
+        courtId: COURT_A,
+        startsAt: at(7, 17),
+        endsAt: at(7, 18, 30),
+      }),
+    ).toEqual({ fils: 24_000 });
   });
 
   it("lets a Court rule override a Venue rule for that Court only", () => {
@@ -64,7 +81,7 @@ describe("priceForInterval", () => {
     });
   });
 
-  it("falls back to the Venue rule for minutes a Court rule does not cover", () => {
+  it("falls back to the Venue rule when no Court rule covers the start", () => {
     const rules = [
       rule({ hourlyRateFils: 10_000 }),
       rule({
@@ -80,7 +97,14 @@ describe("priceForInterval", () => {
         startsAt: at(7, 10, 30),
         endsAt: at(7, 11, 30),
       }),
-    ).toEqual({ fils: 15_000 });
+    ).toEqual({ fils: 10_000 });
+    expect(
+      priceForInterval(rules, {
+        courtId: COURT_A,
+        startsAt: at(7, 11, 30),
+        endsAt: at(7, 12, 30),
+      }),
+    ).toEqual({ fils: 20_000 });
   });
 
   it("ignores another Court's rules", () => {
@@ -93,13 +117,24 @@ describe("priceForInterval", () => {
     ).toEqual({ uncovered: true });
   });
 
-  it("returns uncovered when any minute has no rule", () => {
+  it("prices an interval that runs past the end of its band", () => {
     const rules = [rule({ startMinutes: 8 * 60, endMinutes: 12 * 60 })];
     expect(
       priceForInterval(rules, {
         courtId: COURT_A,
         startsAt: at(7, 11, 30),
         endsAt: at(7, 12, 30),
+      }),
+    ).toEqual({ fils: 10_000 });
+  });
+
+  it("returns uncovered when no rule covers the start", () => {
+    const rules = [rule({ startMinutes: 8 * 60, endMinutes: 12 * 60 })];
+    expect(
+      priceForInterval(rules, {
+        courtId: COURT_A,
+        startsAt: at(7, 12),
+        endsAt: at(7, 13),
       }),
     ).toEqual({ uncovered: true });
   });
@@ -152,7 +187,7 @@ describe("priceForInterval", () => {
     ).toEqual({ uncovered: true });
   });
 
-  it("prices across midnight between two days using each day's rule", () => {
+  it("prices across midnight at the rule of the day it starts on", () => {
     const rules = [
       rule({ weekdays: [0], hourlyRateFils: 10_000 }),
       rule({ weekdays: [1], hourlyRateFils: 20_000 }),
@@ -163,7 +198,7 @@ describe("priceForInterval", () => {
         startsAt: at(6, 23),
         endsAt: at(7, 1),
       }),
-    ).toEqual({ fils: 30_000 });
+    ).toEqual({ fils: 20_000 });
   });
 });
 

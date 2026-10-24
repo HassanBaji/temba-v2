@@ -71,12 +71,15 @@ describe("startOptions", () => {
 });
 
 describe("quotedPriceFils", () => {
-  it("prices across a rate change", () => {
-    expect(quotedPriceFils(rules, draft())).toBe(10_000 + 6_000);
+  it("prices the whole Booking at the rate it starts in", () => {
+    expect(quotedPriceFils(rules, draft())).toBe(15_000);
+    expect(quotedPriceFils(rules, draft({ startMinute: 21 * 60 }))).toBe(
+      18_000,
+    );
   });
 
-  it("is null when a minute is not covered or no start is picked", () => {
-    expect(quotedPriceFils(rules, draft({ startMinute: 21 * 60 }))).toBeNull();
+  it("is null when no rule covers the start or no start is picked", () => {
+    expect(quotedPriceFils(rules, draft({ startMinute: 22 * 60 }))).toBeNull();
     expect(quotedPriceFils(rules, draft({ startMinute: null }))).toBeNull();
   });
 });

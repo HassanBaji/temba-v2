@@ -31,9 +31,9 @@ function covers(rule: PricingRuleInput, weekday: number, minuteOfDay: number) {
 }
 
 /**
- * A window that runs past midnight prices on the weekday it opened on. The
- * product timezone has no daylight saving, so the wall clock advances one
- * minute per minute from the interval's start.
+ * The rule covering the start time prices the whole interval, even when the
+ * interval runs into another rule's window or past every rule's end. A window
+ * that runs past midnight prices on the weekday it opened on.
  */
 export function priceForInterval(
   rules: readonly PricingRuleInput[],
@@ -46,28 +46,25 @@ export function priceForInterval(
     return { uncovered: true };
   }
 
-  const courtRules = rules.filter((rule) => rule.courtId === interval.courtId);
-  const venueRules = rules.filter((rule) => rule.courtId === null);
-
   const start = zonedParts(interval.startsAt);
-  const startWeekday = new Date(
+  const weekday = new Date(
     Date.UTC(start.year, start.month - 1, start.day),
   ).getUTCDay();
-  const startMinuteOfDay = start.hour * 60 + start.minute;
+  const minuteOfDay = start.hour * 60 + start.minute;
+  const startCovers = (rule: PricingRuleInput) =>
+    covers(rule, weekday, minuteOfDay);
 
-  let rateMinutes = 0;
-  for (let offset = 0; offset < minutes; offset += 1) {
-    const elapsed = startMinuteOfDay + offset;
-    const weekday = (startWeekday + Math.floor(elapsed / MINUTES_PER_DAY)) % 7;
-    const minuteOfDay = elapsed % MINUTES_PER_DAY;
-    const rule =
-      courtRules.find((candidate) => covers(candidate, weekday, minuteOfDay)) ??
-      venueRules.find((candidate) => covers(candidate, weekday, minuteOfDay));
-    if (!rule) {
-      return { uncovered: true };
-    }
-    rateMinutes += rule.hourlyRateFils;
+  const rule =
+    rules.find(
+      (candidate) =>
+        candidate.courtId === interval.courtId && startCovers(candidate),
+    ) ??
+    rules.find(
+      (candidate) => candidate.courtId === null && startCovers(candidate),
+    );
+  if (!rule) {
+    return { uncovered: true };
   }
 
-  return { fils: Math.round(rateMinutes / 60) };
+  return { fils: Math.round((rule.hourlyRateFils * minutes) / 60) };
 }

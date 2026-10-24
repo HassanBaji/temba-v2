@@ -64,7 +64,7 @@ export function draftStartsAt(day: string, startMinute: number): Date {
   return new Date(dayStart(day).getTime() + startMinute * MS_PER_MINUTE);
 }
 
-/** The price the rules give the draft's interval, or null when a minute is not covered. */
+/** The price the rules give the draft's interval, or null when no rule covers its start. */
 export function quotedPriceFils(
   rules: readonly PricingRuleInput[],
   draft: Pick<

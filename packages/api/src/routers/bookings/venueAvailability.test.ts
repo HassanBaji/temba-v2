@@ -61,7 +61,7 @@ describe("bookings.venueAvailability", () => {
         ).toEqual({ fils: priceFils });
       }
       expect(slot.durations.map((d) => d.minutes)).toEqual([60, 90]);
-      expect(slot.durations[0]?.priceFils).toBe(13_000);
+      expect(slot.durations[0]?.priceFils).toBe(10_000);
     });
   });
 
