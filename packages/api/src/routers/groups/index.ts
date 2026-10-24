@@ -24,6 +24,7 @@ import { listPublicProcedure as listPublic } from "./listPublic";
 import { mineProcedure as mine } from "./mine";
 import { mineLooseProcedure as mineLoose } from "./mineLoose";
 import { pendingLinkRequestsProcedure as pendingLinkRequests } from "./pendingLinkRequests";
+import { unlinkFromVenueProcedure as unlinkFromVenue } from "./unlinkFromVenue";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
@@ -72,4 +73,5 @@ export const groupsRouter = createTRPCRouter({
   pendingLinkRequests,
   acceptLinkRequest,
   declineLinkRequest,
+  unlinkFromVenue,
 });

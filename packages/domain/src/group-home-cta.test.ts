@@ -154,6 +154,26 @@ describe("groupHomeNextJoinableGame", () => {
 });
 
 describe("groupHomeOverflowItems", () => {
+  it("offers leaving the Venue Community only when allowed", () => {
+    const base = {
+      family: { kind: "none" as const },
+      hasCommunity: false,
+      hasCreateAccess: false,
+      canShowCreateGame: false,
+      isLoosePublic: false,
+      canManageInvites: false,
+      canManageImage: false,
+      hasImage: false,
+      isMember: true,
+      canDelete: false,
+    };
+    assert.deepEqual(groupHomeOverflowItems(base), ["leave"]);
+    assert.deepEqual(
+      groupHomeOverflowItems({ ...base, canLeaveVenueCommunity: true }),
+      ["leave_venue_community", "leave"],
+    );
+  });
+
   it("hides overflow when nothing is available", () => {
     assert.deepEqual(
       groupHomeOverflowItems({

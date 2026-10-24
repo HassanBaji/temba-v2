@@ -73,6 +73,29 @@ export async function listCommunityGroups(
     memberCounts.map((row) => [row.groupId, Number(row.memberCount)]),
   );
 
+  const approvedGroupIds = new Set(
+    clubGroups.length > 0
+      ? (
+          await database
+            .select({ groupId: groupLinkRequests.groupId })
+            .from(groupLinkRequests)
+            .where(
+              and(
+                eq(groupLinkRequests.venueId, venue.id),
+                eq(
+                  groupLinkRequests.status,
+                  GroupLinkRequestStatusEnum.APPROVED,
+                ),
+                inArray(
+                  groupLinkRequests.groupId,
+                  clubGroups.map((group) => group.id),
+                ),
+              ),
+            )
+        ).map((row) => row.groupId)
+      : [],
+  );
+
   const requestColumns = {
     id: true,
     status: true,
@@ -115,6 +138,8 @@ export async function listCommunityGroups(
     groups: clubGroups.map((group) => ({
       ...group,
       memberCount: memberCountByGroupId.get(group.id) ?? 0,
+      canUnlink:
+        community?.archivedAt == null && approvedGroupIds.has(group.id),
     })),
     pendingRequests: pending,
     declinedRequests: declined,

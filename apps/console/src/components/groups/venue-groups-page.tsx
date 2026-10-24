@@ -4,6 +4,12 @@ import { Plus, Users } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import {
+  GROUP_UNLINK_ACTION_LABEL,
+  VENUE_UNLINK_GROUP_TOAST,
+  venueUnlinkGroupConfirm,
+} from "@repo/domain/group-link-request";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
@@ -30,6 +36,10 @@ export function VenueGroupsPage() {
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [linkOpen, setLinkOpen] = React.useState(false);
+  const [unlinkTarget, setUnlinkTarget] = React.useState<{
+    id: string;
+    name: string | null;
+  } | null>(null);
   const data = api.venues.listCommunityGroups.useQuery({ venueId: venue.id });
 
   const cancel = api.venues.cancelGroupLinkRequest.useMutation({
@@ -43,6 +53,21 @@ export function VenueGroupsPage() {
       void data.refetch();
     },
   });
+
+  const unlink = api.venues.unlinkGroup.useMutation({
+    onSuccess: async () => {
+      toast.success(VENUE_UNLINK_GROUP_TOAST);
+      await utils.venues.listCommunityGroups.invalidate({ venueId: venue.id });
+      await utils.venues.searchLinkableGroups.invalidate();
+    },
+    onError: () => {
+      void data.refetch();
+    },
+  });
+
+  const unlinkConfirm = unlinkTarget
+    ? venueUnlinkGroupConfirm(unlinkTarget.name)
+    : null;
 
   const archived = data.data?.venue.archived ?? false;
 
@@ -100,7 +125,27 @@ export function VenueGroupsPage() {
                     }
                     title={group.name ?? "Untitled Group"}
                     meta={memberLabel(group.memberCount)}
-                    trailing={<Badge variant="secondary">Verified</Badge>}
+                    trailing={
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Verified</Badge>
+                        {group.canUnlink ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-label={`Unlink ${group.name ?? "Untitled Group"}`}
+                            onClick={() =>
+                              setUnlinkTarget({
+                                id: group.id,
+                                name: group.name,
+                              })
+                            }
+                          >
+                            {GROUP_UNLINK_ACTION_LABEL}
+                          </Button>
+                        ) : null}
+                      </div>
+                    }
                   />
                 ))}
               </RowList>
@@ -178,6 +223,30 @@ export function VenueGroupsPage() {
             </ConsoleCard>
           ) : null}
         </div>
+      ) : null}
+
+      {unlinkConfirm ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setUnlinkTarget(null);
+            }
+          }}
+          title={unlinkConfirm.title}
+          description={unlinkConfirm.description}
+          confirmLabel={unlinkConfirm.confirmLabel}
+          cancelLabel={unlinkConfirm.cancelLabel}
+          pending={unlink.isPending}
+          onConfirm={async () => {
+            if (unlinkTarget) {
+              await unlink.mutateAsync({
+                venueId: venue.id,
+                groupId: unlinkTarget.id,
+              });
+            }
+          }}
+        />
       ) : null}
 
       <LinkGroupSheet

@@ -243,6 +243,7 @@ export function createGroupFixtures(now = new Date()) {
     viewerCanSetLevel: false,
     venueCommunity: null,
     pendingLinkRequestCount: 0,
+    canUnlinkFromVenue: false,
   };
 
   const creator: GroupHomeData = {

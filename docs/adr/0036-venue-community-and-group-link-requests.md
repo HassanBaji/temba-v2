@@ -12,10 +12,11 @@ A Venue manager can vouch for a Group by bringing it into the Venue's own Commun
 - **Accept is one transaction.** It locks the Venue row with `SELECT … FOR UPDATE`, re-checks that the request is pending, the Group is Loose, the caller is the Group creator and the Venue is live, then finds or creates the Venue Community, adds the Group's sport, admits every Group member as a Community Member through the shared `admit` module, sets `groups.community_id`, revokes pending Lookup invites to Users who are not Community Members, approves the request and cancels the Group's other pending requests.
 - **A Club Group of a Venue Community is a Verified Group.** `groupIsVerified` derives it from the Community, so nothing is stored and no later write is needed to remove it.
 - **Standard Club Group rules apply afterwards, with no special cases.** Outsiders can only send a request to join, the Group creator can no longer mint Invite links, and new Games are locked to the Venue.
+- **Either side can unlink.** A Venue manager (`venues.unlinkGroup`) or the Group creator (`groups.unlinkFromVenue`) sets `groups.community_id` back to null through the shared `unlinkGroupFromVenueCommunity`. Type, members, Group creator, Community memberships, pending Group join requests, open Lookup invites and every existing Game's `rated`, `isPublic` and Venue are kept. Only a Group with an `approved` Group link request for that Venue can be unlinked, so a Club Group made inside the Venue Community stays. Unlink is refused while the Venue Community is Soft-archived, because its Club Groups stay attached. The Group stays Verified only if `verified_at` is set.
 
 ## Supersedes ADR-0004
 
-ADR-0004 said a Group's parent is chosen at create time and is immutable. The parent can now change exactly through accepting a Group link request, and through nothing else. A later change adds the reverse (unlinking a Group from its Venue Community).
+ADR-0004 said a Group's parent is chosen at create time and is immutable. The parent can now change exactly through accepting a Group link request and through unlinking a Group from its Venue Community, and through nothing else.
 
 Audit of code that reads `groups.community_id`: invite links and Lookup invites store the Group id and read the Community when they are accepted; notifications resolve approvers when sent; Standing, ratings weight and Game Venue lock read the Group's Community on every call. Nothing caches the Community id.
 

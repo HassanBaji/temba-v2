@@ -23,6 +23,7 @@ export type GroupHomeOverflowItem =
   | "manage_invites"
   | "change_image"
   | "remove_image"
+  | "leave_venue_community"
   | "leave"
   | "delete";
 
@@ -37,6 +38,7 @@ export type GroupHomeOverflowInput = {
   hasImage: boolean;
   isMember: boolean;
   canDelete: boolean;
+  canLeaveVenueCommunity?: boolean;
 };
 
 export function groupHomeCanShowCreateGame(input: { canCreateGame: boolean }) {
@@ -173,6 +175,9 @@ export function groupHomeOverflowItems(
     if (input.hasImage) {
       items.push("remove_image");
     }
+  }
+  if (input.canLeaveVenueCommunity) {
+    items.push("leave_venue_community");
   }
   if (input.isMember) {
     items.push("leave");

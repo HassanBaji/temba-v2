@@ -92,6 +92,7 @@ export type GroupHomeData = {
   verified: boolean;
   venueCommunity: { venueId: string; venueName: string } | null;
   pendingLinkRequestCount: number | null;
+  canUnlinkFromVenue: boolean;
   canSetRequiresApproval: boolean;
   canDecideJoinRequests: boolean;
   canManageImage: boolean;

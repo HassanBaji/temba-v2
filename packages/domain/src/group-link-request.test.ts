@@ -5,8 +5,11 @@ import {
   groupLinkRequestAcceptedToast,
   groupLinkRequestBannerText,
   groupLinkRequestDeclineConfirm,
+  groupLeaveVenueActionLabel,
+  groupLeaveVenueConfirm,
   groupLinkRequestRowTitle,
   groupPartOfVenueLine,
+  venueUnlinkGroupConfirm,
 } from "./group-link-request";
 
 describe("group link request copy", () => {
@@ -47,5 +50,25 @@ describe("group link request copy", () => {
 
   it("part-of line", () => {
     expect(groupPartOfVenueLine("Padel Hub")).toBe("Part of Padel Hub");
+  });
+});
+
+describe("leaving a Venue Community copy", () => {
+  it("names the Venue and warns that new Games are Unrated", () => {
+    expect(groupLeaveVenueActionLabel("Smash Club")).toBe(
+      "Leave Smash Club’s Community",
+    );
+    const confirm = groupLeaveVenueConfirm("Tuesday Crew", "Smash Club");
+    expect(confirm.title).toBe("Leave Smash Club’s Community?");
+    expect(confirm.description).toContain("Tuesday Crew");
+    expect(confirm.description).toContain("Unrated");
+    expect(confirm.description).toContain("Operator");
+  });
+
+  it("falls back to a generic Group name on the manager confirm", () => {
+    expect(venueUnlinkGroupConfirm(null).title).toBe("Unlink this Group?");
+    expect(venueUnlinkGroupConfirm("Tuesday Crew").description).toContain(
+      "Unrated",
+    );
   });
 });

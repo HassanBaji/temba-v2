@@ -171,7 +171,8 @@ type ExpectedGroups =
   | "listForOperator"
   | "pendingLinkRequests"
   | "acceptLinkRequest"
-  | "declineLinkRequest";
+  | "declineLinkRequest"
+  | "unlinkFromVenue";
 
 type ExpectedNotifications =
   | "list"
@@ -228,6 +229,7 @@ type ExpectedVenues =
   | "searchLinkableGroups"
   | "sendGroupLinkRequest"
   | "cancelGroupLinkRequest"
+  | "unlinkGroup"
   | "approveLinkRequest"
   | "rejectLinkRequest"
   | "listManaged"

@@ -70,6 +70,7 @@ import {
   standingPosition,
 } from "@repo/domain/compare-standing";
 import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { mayUnlinkFromVenueCommunity } from "#src/venue-community/unlink-group";
 
 type DbClient = typeof db;
 
@@ -305,6 +306,10 @@ export async function groupById(
             )
         )[0]?.value ?? 0)
       : null;
+
+  const canUnlinkFromVenue =
+    group.createdBy === args.userId &&
+    (await mayUnlinkFromVenueCommunity(database, group));
 
   const isLoosePublic =
     !group.communityId && group.type === GroupTypeEnum.PUBLIC;
@@ -756,6 +761,7 @@ export async function groupById(
       ? { venueId: venueCommunityVenue.id, venueName: venueCommunityVenue.name }
       : null,
     pendingLinkRequestCount,
+    canUnlinkFromVenue,
     canDecideJoinRequests,
     canSetRequiresApproval,
     canManageLookupInvites,

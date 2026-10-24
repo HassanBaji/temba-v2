@@ -5,6 +5,7 @@ import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import {
   GROUP_LINK_REQUEST_ACCEPT_LABEL,
   GROUP_LINK_REQUEST_DECLINE_LABEL,
+  groupLeaveVenueActionLabel,
   groupLinkRequestBannerText,
   groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
@@ -63,6 +64,7 @@ export type GroupHomeViewProps = {
   joinPending: boolean;
   onJoin: (door: GroupJoinDoor) => void;
   onLeave: () => void;
+  onLeaveVenue: () => void;
   onInvite: () => void;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
@@ -180,6 +182,17 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         <Text size="meta" tone="muted">
           {groupPartOfVenueLine(data.venueCommunity.venueName)}
         </Text>
+      ) : null}
+
+      {data.canUnlinkFromVenue && data.venueCommunity ? (
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={groupLeaveVenueActionLabel(data.venueCommunity.venueName)}
+            size="sm"
+            variant="outline"
+            onPress={props.onLeaveVenue}
+          />
+        </View>
       ) : null}
 
       {props.venueRequests.map((request) => (

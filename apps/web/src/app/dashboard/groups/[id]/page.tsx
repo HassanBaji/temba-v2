@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  groupLeaveVenueConfirm,
+  groupLeftVenueToast,
   groupLinkRequestBannerText,
   groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
@@ -95,6 +97,7 @@ export default function GroupHomePage({
   const desktopMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveVenueOpen, setLeaveVenueOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [removeImageOpen, setRemoveImageOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
@@ -232,6 +235,22 @@ export default function GroupHomePage({
         await utils.communities.byId.invalidate({ id: result.communityId });
         await utils.communities.mine.invalidate();
       }
+    },
+  });
+
+  const unlinkFromVenue = api.groups.unlinkFromVenue.useMutation({
+    onSuccess: async () => {
+      toast.success(
+        groupLeftVenueToast(
+          group.data?.venueCommunity?.venueName ?? "the Venue",
+        ),
+      );
+      await Promise.all([
+        utils.groups.byId.invalidate({ id }),
+        utils.groups.mine.invalidate(),
+        utils.groups.mineLoose.invalidate(),
+        utils.communities.mine.invalidate(),
+      ]);
     },
   });
 
@@ -472,6 +491,7 @@ export default function GroupHomePage({
 
   const data = group.data;
   const groupName = data.name ?? "Group";
+  const venueName = data.venueCommunity?.venueName ?? "the Venue";
   const canShowCreateGame = groupHomeCanShowCreateGame({
     canCreateGame: data.canCreateGame,
   });
@@ -499,8 +519,10 @@ export default function GroupHomePage({
     hasImage: Boolean(data.imageUrl),
     isMember: data.membership != null,
     canDelete: data.canDelete,
+    canLeaveVenueCommunity: data.canUnlinkFromVenue,
   });
   const leaveConfirm = groupLeaveConfirm(groupName);
+  const leaveVenueConfirm = groupLeaveVenueConfirm(groupName, venueName);
   const deleteConfirm = groupDeleteConfirm(groupName);
   const removeImageConfirm = groupRemoveImageConfirm(groupName);
   const restoreFocusRef =
@@ -512,6 +534,7 @@ export default function GroupHomePage({
       groupId={id}
       communityId={data.community?.id ?? null}
       communityName={data.community?.name ?? null}
+      venueName={data.venueCommunity?.venueName ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
       }
@@ -529,6 +552,10 @@ export default function GroupHomePage({
       onRemoveImage={() => {
         setRestoreFocus(which);
         setRemoveImageOpen(true);
+      }}
+      onLeaveVenueCommunity={() => {
+        setRestoreFocus(which);
+        setLeaveVenueOpen(true);
       }}
       onLeave={() => {
         setRestoreFocus(which);
@@ -730,6 +757,23 @@ export default function GroupHomePage({
         restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {
           await leaveGroup.mutateAsync({ groupId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={leaveVenueOpen}
+        onOpenChange={setLeaveVenueOpen}
+        title={leaveVenueConfirm.title}
+        description={[
+          leaveVenueConfirm.description,
+          ...leaveVenueConfirm.consequences,
+        ].join(" ")}
+        confirmLabel={leaveVenueConfirm.confirmLabel}
+        cancelLabel={leaveVenueConfirm.cancelLabel}
+        pending={unlinkFromVenue.isPending}
+        restoreFocusRef={restoreFocusRef}
+        onConfirm={async () => {
+          await unlinkFromVenue.mutateAsync({ groupId: id });
         }}
       />
 

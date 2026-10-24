@@ -22,6 +22,7 @@ import { renameCourtProcedure as renameCourt } from "./renameCourt";
 import { searchLinkableGroupsProcedure as searchLinkableGroups } from "./searchLinkableGroups";
 import { searchManagerUsersProcedure as searchManagerUsers } from "./searchManagerUsers";
 import { sendGroupLinkRequestProcedure as sendGroupLinkRequest } from "./sendGroupLinkRequest";
+import { unlinkGroupProcedure as unlinkGroup } from "./unlinkGroup";
 import { setDisplayPhotosProcedure as setDisplayPhotos } from "./setDisplayPhotos";
 import { setOpeningHoursProcedure as setOpeningHours } from "./setOpeningHours";
 import { setPricingRulesProcedure as setPricingRules } from "./setPricingRules";
@@ -68,4 +69,5 @@ export const venuesRouter = createTRPCRouter({
   searchLinkableGroups,
   sendGroupLinkRequest,
   cancelGroupLinkRequest,
+  unlinkGroup,
 });

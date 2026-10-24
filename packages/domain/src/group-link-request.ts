@@ -60,3 +60,45 @@ export function groupLinkRequestDeclineConfirm(venueName: string) {
 export function groupPartOfVenueLine(venueName: string) {
   return `Part of ${venueName}`;
 }
+
+export const GROUP_UNLINK_ACTION_LABEL = "Unlink";
+
+export function groupLeaveVenueActionLabel(venueName: string) {
+  return `Leave ${venueName}’s Community`;
+}
+
+export function groupLeaveVenueConfirm(
+  groupName: string | null,
+  venueName: string,
+) {
+  const name = groupName ?? "this Group";
+  return {
+    title: `Leave ${venueName}’s Community?`,
+    description: `${name} becomes a Loose Group again. New Games will be Unrated unless an Operator has verified the Group.`,
+    confirmLabel: "Leave Community",
+    cancelLabel: "Stay",
+    pendingLabel: "Leaving…",
+    consequences: [
+      "Members, past Games and results stay as they are.",
+      "Members stay in the Community until they leave it themselves.",
+      "New Games can be held at any Venue.",
+      "You can make Invite links again.",
+    ],
+  };
+}
+
+export function groupLeftVenueToast(venueName: string) {
+  return `Left ${venueName}’s Community`;
+}
+
+export function venueUnlinkGroupConfirm(groupName: string | null) {
+  const name = groupName ?? "this Group";
+  return {
+    title: `Unlink ${name}?`,
+    description: `${name} leaves your Venue's Community and becomes a Loose Group. New Games will be Unrated unless an Operator has verified it. Past Games and members stay as they are.`,
+    confirmLabel: "Unlink Group",
+    cancelLabel: "Keep linked",
+  };
+}
+
+export const VENUE_UNLINK_GROUP_TOAST = "Group unlinked";

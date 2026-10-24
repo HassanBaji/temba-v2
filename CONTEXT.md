@@ -65,11 +65,11 @@ A Group that may host Rated Games and public Games: one an Operator verified, on
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
-A Group that belongs to a Community. A Loose Group becomes a Club Group when its Group link request is accepted.
+A Group that belongs to a Community. A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue Community.
 _Avoid_: subgroup, channel, nested group
 
 **Loose Group**:
-A Group that does not belong to a Community. It stops being Loose when its Group link request is accepted.
+A Group that does not belong to a Community. It stops being Loose when its Group link request is accepted, and is Loose again once it is unlinked from that Venue Community.
 _Avoid_: orphan, standalone group, free group
 
 **Community Public**:
