@@ -847,6 +847,11 @@ describe("where helpers", () => {
     assert.deepEqual(next.courtIds, []);
   });
 
+  it("clears a public choice when the Group changes", () => {
+    const next = changeCreateGroup({ ...picked, isPublic: true }, "g2");
+    assert.equal(next.isPublic, false);
+  });
+
   it("clears the Courts only when the Venue actually changes", () => {
     assert.equal(changeCreateVenue(picked, "v1"), picked);
     const next = changeCreateVenue(picked, "v2");

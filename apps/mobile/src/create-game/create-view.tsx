@@ -140,6 +140,7 @@ export function CreateView(props: CreateViewProps) {
     (group) => group.id === draft.groupId,
   );
   const groupName = selectedGroup ? groupLabel(selectedGroup) : null;
+  const groupVerified = selectedGroup?.verified ?? false;
   const pickerData = picker?.status === "ready" ? picker.value : null;
   const venue = pickerData?.venues.find((item) => item.id === draft.venueId);
   const courtNames =
@@ -219,12 +220,14 @@ export function CreateView(props: CreateViewProps) {
           <TournamentDetailsStep
             {...step}
             groupName={groupName}
+            groupVerified={groupVerified}
             picker={pickerData}
           />
         ) : (
           <GameDetailsStep
             {...step}
             groupName={groupName}
+            groupVerified={groupVerified}
             picker={pickerData}
           />
         )

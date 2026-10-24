@@ -50,6 +50,9 @@ export function CreateGameScreen({
     undefined,
     REFETCH_ON_FOREGROUND,
   );
+  const groupVerified =
+    groups.data?.find((group) => group.id === state.draft.groupId)?.verified ??
+    false;
   const picker = api.games.listCreateVenues.useQuery(
     { groupId: state.draft.groupId },
     { ...REFETCH_ON_FOREGROUND, enabled: Boolean(state.draft.groupId) },
@@ -144,7 +147,7 @@ export function CreateGameScreen({
       }
       return;
     }
-    const result = submitRequest(state, now);
+    const result = submitRequest(state, now, groupVerified);
     if (!result.ok) {
       setClientErrors(result.errors);
       if (result.step !== state.step) {
@@ -166,6 +169,7 @@ export function CreateGameScreen({
     picker.isLoading,
     picker.data,
     groupFieldError,
+    groupVerified,
     createTournament,
     createGame,
   ]);

@@ -28,7 +28,7 @@ describe("create game fixtures", () => {
       "tournamentReview",
     ] as const) {
       assert.ok(
-        validateFriendlyTournamentSubmit(withDay(drafts[key]), NOW).ok,
+        validateFriendlyTournamentSubmit(withDay(drafts[key]), NOW, true).ok,
         key,
       );
     }

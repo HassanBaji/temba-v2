@@ -889,7 +889,14 @@ export function changeCreateGroup(
   draft: CreateGameDraft,
   groupId: string,
 ): CreateGameDraft {
-  return { ...draft, groupId, venueId: "", courtId: "none", courtIds: [] };
+  return {
+    ...draft,
+    groupId,
+    venueId: "",
+    courtId: "none",
+    courtIds: [],
+    isPublic: false,
+  };
 }
 
 export function changeCreateVenue(
@@ -921,6 +928,7 @@ export type CreateGroupOption = {
   id: string;
   name: string | null;
   communityName: string | null;
+  verified: boolean;
 };
 
 export type CreateVenuePicker = {
