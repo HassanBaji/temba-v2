@@ -17,8 +17,43 @@ import {
   type GameRow,
 } from "#src/games/access";
 import { highestOccupiedSideIndex } from "#src/games/seats";
+import {
+  footballPlayersAllowedBounds,
+  isFootballGame,
+} from "@repo/domain/game-shape";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function updateFootballPlayersAllowed(
+  database: DbClient,
+  game: GameRow,
+  playersAllowed: number | undefined,
+) {
+  if (playersAllowed == null || game.sideSize == null) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Set players allowed",
+    });
+  }
+  const bounds = footballPlayersAllowedBounds(game.sideSize);
+  if (playersAllowed < bounds.min || playersAllowed > bounds.max) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+    });
+  }
+  const userCount = await registeredUserCount(database, game.id);
+  if (playersAllowed < userCount) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Cannot lower cap below the current registered count",
+    });
+  }
+  await database
+    .update(games)
+    .set({ playersAllowed, updatedAt: new Date() })
+    .where(eq(games.id, game.id));
+}
 
 async function updateGameCapsOnGame(
   database: DbClient,
@@ -30,6 +65,10 @@ async function updateGameCapsOnGame(
       code: "BAD_REQUEST",
       message: "Cannot edit a cancelled Game",
     });
+  }
+  if (isFootballGame(game) && game.format === "friendly_game") {
+    await updateFootballPlayersAllowed(database, game, input.playersAllowed);
+    return;
   }
   if (game.format === "friendly_game") {
     throw new TRPCError({

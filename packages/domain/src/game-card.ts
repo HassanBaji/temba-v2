@@ -9,6 +9,7 @@ import {
   type GameSummaryCtaInput,
 } from "./game-summary-cta";
 import { gameOccupancy } from "./game-occupancy";
+import { isRosterRegistrationGame } from "./game-shape";
 
 export type CardSeatPosition = "left" | "right";
 
@@ -139,9 +140,14 @@ export function hubGameCardPlan<T extends HubCardGame>(
 
 export type HubWaitlistJoinCall = "register" | "registerSeat";
 
-/** Americano waitlists through `register`; every other format takes a seat door. */
-export function hubWaitlistJoinCall(format: string): HubWaitlistJoinCall {
-  return format === "americano" ? "register" : "registerSeat";
+/** A Roster registration Game joins through `register`; every other Game takes a seat door. */
+export function hubWaitlistJoinCall(
+  format: string,
+  sport?: string | null,
+): HubWaitlistJoinCall {
+  return isRosterRegistrationGame({ format, sport })
+    ? "register"
+    : "registerSeat";
 }
 
 export function hubRegisterToast(waitlisted: boolean) {

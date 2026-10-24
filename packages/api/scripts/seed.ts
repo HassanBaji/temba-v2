@@ -902,6 +902,17 @@ async function seedGroups(u: Users, c: Communities) {
   });
   await joinClubPublic(db, { groupId: portoOpen.id, userId: u.marco!.id });
 
+  // Loose Group Public for football; its Games are rosters.
+  const fiveASide = await createLoosePublic(db, {
+    name: "Sunday Five-a-side",
+    description: "Pickup football on pitches. Come as you are.",
+    sport: "football",
+    userId: u.tom!.id,
+  });
+  for (const key of ["me", "omar", "maya", "diego", "ben", "jonas"]) {
+    await joinLoosePublic(db, { groupId: fiveASide.id, userId: u[key]!.id });
+  }
+
   // Loose Group Private that Sam has a pending Lookup invite to.
   const secret = await createLoosePrivate(db, {
     name: "Thursday Doubles",
@@ -924,6 +935,7 @@ async function seedGroups(u: Users, c: Communities) {
     beach,
     earlyBirds,
     portoOpen,
+    fiveASide,
     secret,
   };
 }
@@ -1402,6 +1414,26 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     start: at(3, 9),
   });
   await cancelGame(db, { gameId: cancelled.id, userId: u.me!.id });
+
+  // --- Football Game: a roster, no seats ---
+  const pitchGame = await createGame(db, {
+    createdBy: u.tom!.id,
+    name: "Sunday five-a-side",
+    groupId: g.fiveASide.id,
+    isPublic: false,
+    format: "friendly_game",
+    registrationMode: "individual",
+    sideSize: 5,
+    playersAllowed: 12,
+    windowStart: at(5, 19),
+    windowEnd: at(5, 20),
+    venueId: v.pitches.id,
+    courtId: v.pitches.courtIds[0]!,
+    pricePerPlayerFils: 3000,
+  });
+  for (const key of ["tom", "me", "omar", "maya", "diego", "ben", "jonas"]) {
+    await register(db, { gameId: pitchGame.id, userId: u[key]!.id });
+  }
 
   // --- Americano ---
   const americano = await createGame(db, {

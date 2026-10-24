@@ -3,6 +3,8 @@ import { eq, inArray } from "drizzle-orm";
 
 import { courts, venues } from "@repo/db";
 
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+
 import { type db } from "#src/db";
 import { loadGameCreateVenueContext } from "#src/games/helpers/load-game-create-venue-context";
 import { consult } from "#src/soft-archive";
@@ -17,6 +19,7 @@ export async function assertGameCreateVenueAndCourt(
     venueId: string;
     courtId: string | null | undefined;
     courtIds?: string[];
+    sport?: Sport;
   },
 ) {
   const context = await loadGameCreateVenueContext(database, input.groupId);
@@ -93,7 +96,7 @@ export async function assertGameCreateVenueAndCourt(
   const uniqueCourtIds = [...new Set(courtIds)];
   const found = await database.query.courts.findMany({
     where: inArray(courts.id, uniqueCourtIds),
-    columns: { id: true, venueId: true },
+    columns: { id: true, venueId: true, sport: true },
   });
   if (found.length !== uniqueCourtIds.length) {
     throw new TRPCError({
@@ -105,6 +108,16 @@ export async function assertGameCreateVenueAndCourt(
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Court must belong to the selected Venue",
+    });
+  }
+  const sport = input.sport ?? DEFAULT_SPORT;
+  if (found.some((court) => court.sport !== sport)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        sport === "football"
+          ? "Pick a football pitch"
+          : "Court must be a padel Court",
     });
   }
 }

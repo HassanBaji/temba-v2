@@ -215,8 +215,7 @@ export async function bookingById(
       isHolder &&
       booking.status === "confirmed" &&
       booking.endsAt.getTime() > now.getTime() &&
-      !hasLiveGame &&
-      court!.sport === "padel",
+      !hasLiveGame,
     cancel: {
       allowed:
         isHolder &&

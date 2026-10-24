@@ -17,7 +17,10 @@ import {
   assertMayCreateGameOnGroup,
 } from "#src/games/access";
 import { assertGameCreateVenueAndCourt } from "#src/games/assert-game-create-venue-and-court";
-import { createFriendlyGame } from "#src/games/create-friendly";
+import {
+  createFootballGame,
+  createFriendlyGame,
+} from "#src/games/create-friendly";
 import { requireGroup } from "#src/games/helpers/require-group";
 import type { CreateGameInput } from "#src/games/utils";
 import {
@@ -25,7 +28,9 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
+import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
+import { sportOrDefault } from "@repo/domain/sport";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -45,6 +50,7 @@ export const createGameInputSchema = z
     registrationMode: registrationModeSchema,
     playersAllowed: z.number().int().optional(),
     teamsAllowed: z.number().int().optional(),
+    sideSize: z.number().int().optional(),
     windowStart: z.coerce.date(),
     windowEnd: z.coerce.date(),
     venueId: z.string().uuid({ message: "Pick a Venue" }),
@@ -152,12 +158,48 @@ export const createGameInputSchema = z
     }
   });
 
+async function createFootballGameOnGroup(
+  database: DbClient,
+  input: CreateGameInput,
+) {
+  if (input.format !== "friendly_game") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Football Games are Friendly games",
+    });
+  }
+  if (input.levelMinTenths != null || input.levelMaxTenths != null) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Football Games have no Level range",
+    });
+  }
+  const sideSize = input.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
+  const created = await createFootballGame(database, {
+    createdBy: input.createdBy,
+    name: input.name,
+    groupId: input.groupId,
+    venueId: input.venueId,
+    courtId: input.courtId,
+    windowStart: input.windowStart,
+    windowEnd: input.windowEnd,
+    pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+    sideSize,
+    playersAllowed: input.playersAllowed ?? 2 * sideSize,
+  });
+  return { id: created.game.id, matchId: null as string | null };
+}
+
 export async function createGame(database: DbClient, input: CreateGameInput) {
   const group = await requireGroup(database, input.groupId);
   await assertMayCreateGameOnGroup(database, group, input.createdBy);
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";
+
+  if (sportOrDefault(group.sport) === "football") {
+    return createFootballGameOnGroup(database, input);
+  }
 
   if (!isAmericano && !isTournament) {
     const created = await createFriendlyGame(database, {

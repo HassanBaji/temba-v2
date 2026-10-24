@@ -57,6 +57,7 @@ import {
   sitsOnCompletedMatch,
   type SeatOccupant,
 } from "#src/games/seats";
+import { isRosterRegistrationGame } from "@repo/domain/game-shape";
 import { bothSlotsFilled } from "#src/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "#src/games/both-slotted-teams-complete";
 import {
@@ -557,6 +558,12 @@ export async function gameById(
     }
   }
 
+  const registeredPlayers = playerRows.flatMap((row) =>
+    row.user
+      ? [{ id: row.user.id, name: row.user.name, image: row.user.image }]
+      : [],
+  );
+
   return {
     id: game.id,
     name: game.name,
@@ -726,17 +733,15 @@ export async function gameById(
     ratingImpact,
     canReportWrongScore,
     unseatedPlayers,
-    registeredPlayers: playerRows.flatMap((row) =>
-      row.user
-        ? [
-            {
-              id: row.user.id,
-              name: row.user.name,
-              image: row.user.image,
-            },
-          ]
-        : [],
-    ),
+    registeredPlayers,
+    sideSize: game.sideSize,
+    roster: isRosterRegistrationGame(game)
+      ? {
+          users: registeredPlayers,
+          count: userCount,
+          cap: game.playersAllowed,
+        }
+      : null,
     recordedCourts: recordedCourtRows
       .flatMap((row) =>
         row.court ? [{ id: row.court.id, name: row.court.name }] : [],

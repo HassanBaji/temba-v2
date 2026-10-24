@@ -428,6 +428,13 @@
       "when": 1792875827364,
       "tag": "0060_team_roster_invite_budget",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792881473523,
+      "tag": "0061_football_game_side_size",
+      "breakpoints": true
     }
   ]
 }

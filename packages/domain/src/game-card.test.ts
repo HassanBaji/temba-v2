@@ -127,6 +127,11 @@ describe("hubWaitlistJoinCall", () => {
     assert.equal(hubWaitlistJoinCall("friendly_game"), "registerSeat");
     assert.equal(hubWaitlistJoinCall("friendly_tournament"), "registerSeat");
   });
+
+  it("registers a football Friendly game and seats a padel one", () => {
+    assert.equal(hubWaitlistJoinCall("friendly_game", "football"), "register");
+    assert.equal(hubWaitlistJoinCall("friendly_game", "padel"), "registerSeat");
+  });
 });
 
 describe("hubRegisterToast", () => {

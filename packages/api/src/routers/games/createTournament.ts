@@ -16,6 +16,7 @@ import {
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
+import { sportOrDefault } from "@repo/domain/sport";
 import {
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
@@ -245,6 +246,12 @@ export async function createTournament(
   }
 
   const group = await requireGroup(database, input.groupId);
+  if (sportOrDefault(group.sport) === "football") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Football Games are Friendly games",
+    });
+  }
   await assertMayCreateGameOnGroup(database, group, input.createdBy);
   await assertGameCreateVenueAndCourt(database, {
     groupId: input.groupId,

@@ -8,6 +8,8 @@ import type {
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
 
+import type { Sport } from "@repo/domain/sport";
+
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
 
 export type MatchRow = typeof matches.$inferSelect;
@@ -133,7 +135,7 @@ export type GameCreateVenueOption = {
   city: string;
   country: string;
   archivedAt: Date | null;
-  courts: { id: string; name: string }[];
+  courts: { id: string; name: string; sport: Sport }[];
 };
 
 export type CreateFriendlyDb = DbClient | DbTx;
@@ -156,6 +158,20 @@ export type CreateFriendlyGameInput = {
   levelMaxTenths?: number | null;
 };
 
+export type CreateFootballGameInput = {
+  createdBy: string;
+  name?: string | null;
+  /** Null only for a Booking Game. */
+  groupId: string | null;
+  venueId: string;
+  courtId?: string | null;
+  windowStart: Date;
+  windowEnd: Date;
+  pricePerPlayerFils?: number | null;
+  sideSize: number;
+  playersAllowed: number;
+};
+
 export type CreateFriendlyGameResult = {
   game: typeof games.$inferSelect;
   matchId: string;
@@ -170,6 +186,7 @@ export type CreateGameInput = {
   registrationMode: "individual" | "team_only";
   playersAllowed?: number;
   teamsAllowed?: number;
+  sideSize?: number;
   windowStart: Date;
   windowEnd: Date;
   venueId: string;

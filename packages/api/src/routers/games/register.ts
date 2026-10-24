@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { isRosterRegistrationGame } from "@repo/domain/game-shape";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -20,10 +21,10 @@ export async function register(
   const game = await requireGame(database, args.gameId);
   const now = new Date();
 
-  if (game.format !== "americano") {
+  if (!isRosterRegistrationGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Register as yourself on an Americano",
+      message: "Register as yourself on an Americano or a football Game",
     });
   }
   if (game.registrationMode !== "individual") {

@@ -53,3 +53,7 @@ export function publicGroupSportFilterInput(
 }
 
 export const DEFAULT_SPORT: Sport = "padel";
+
+export function sportOrDefault(value: string | null | undefined): Sport {
+  return isSport(value) ? value : DEFAULT_SPORT;
+}

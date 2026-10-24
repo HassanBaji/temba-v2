@@ -434,7 +434,7 @@ export default function GamesHubPage({
   }
 
   function onJoinWaitlist(game: HubGame) {
-    if (hubWaitlistJoinCall(game.format) === "register") {
+    if (hubWaitlistJoinCall(game.format, game.sport) === "register") {
       register.mutate({ gameId: game.id });
       return;
     }
