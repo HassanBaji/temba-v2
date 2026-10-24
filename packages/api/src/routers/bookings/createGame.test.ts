@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { bookings, games, matches } from "@repo/db";
+import { bookings, courts, games, matches } from "@repo/db";
 
 import {
   NOW,
@@ -191,6 +191,31 @@ describe("bookings.createGame", () => {
       });
       await expect(create(past.id)).rejects.toThrow("already ended");
 
+      expect(await db.select({ id: games.id }).from(games)).toHaveLength(0);
+    });
+  });
+
+  it("refuses a Booking on a football Court and reports canCreateGame false", async () => {
+    await withBookableVenue(async (db, f) => {
+      await db
+        .update(courts)
+        .set({ sport: "football" })
+        .where(eq(courts.id, f.court2));
+      const booking = await insertBooking(db, f, { courtId: f.court2 });
+      await expect(
+        createBookingGame(asDb(db), {
+          bookingId: booking.id,
+          userId: f.customer,
+          now: NOW,
+        }),
+      ).rejects.toThrow("Football Games arrive in a later release");
+      const view = await bookingById(asDb(db), {
+        bookingId: booking.id,
+        actor: { userId: f.customer, publicMetadata: undefined },
+        now: NOW,
+      });
+      expect(view.canCreateGame).toBe(false);
+      expect(view.court.sport).toBe("football");
       expect(await db.select({ id: games.id }).from(games)).toHaveLength(0);
     });
   });

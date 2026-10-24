@@ -195,3 +195,98 @@ describe("bookings.venueForBooking", () => {
     });
   });
 });
+
+describe("bookings.listBookableVenues by sport", () => {
+  it("counts and prices only the sport's Courts, and omits Venues without any", async () => {
+    await withBookableVenue(async (db, f) => {
+      await db.delete(venuePricingRules);
+      await db.insert(venuePricingRules).values([
+        {
+          venueId: f.venueId,
+          weekdays: [0, 1, 2, 3, 4, 5, 6],
+          startMinutes: 0,
+          endMinutes: 1440,
+          hourlyRateFils: 10_000,
+          courtId: f.court1,
+        },
+        {
+          venueId: f.venueId,
+          weekdays: [0, 1, 2, 3, 4, 5, 6],
+          startMinutes: 0,
+          endMinutes: 1440,
+          hourlyRateFils: 6_000,
+          courtId: f.court2,
+        },
+      ]);
+      await db
+        .update(courts)
+        .set({ sport: "football" })
+        .where(eq(courts.id, f.court2));
+
+      const beforeSport = await listBookableVenues(db, { now: NOW });
+      expect(beforeSport[0]).toMatchObject({
+        courtCount: 2,
+        fromHourlyRateFils: 6_000,
+      });
+
+      const football = await listBookableVenues(db, {
+        sport: "football",
+        now: NOW,
+      });
+      expect(football).toHaveLength(1);
+      expect(football[0]).toMatchObject({
+        courtCount: 1,
+        fromHourlyRateFils: 6_000,
+      });
+
+      const padel = await listBookableVenues(db, { sport: "padel", now: NOW });
+      expect(padel[0]).toMatchObject({
+        courtCount: 1,
+        fromHourlyRateFils: 10_000,
+      });
+    });
+  });
+
+  it("omits a padel-only Venue under football and counts Venue-wide rules", async () => {
+    await withBookableVenue(async (db, f) => {
+      expect(
+        await listBookableVenues(db, { sport: "football", now: NOW }),
+      ).toEqual([]);
+
+      await db
+        .update(courts)
+        .set({ sport: "football" })
+        .where(eq(courts.id, f.court1));
+      const football = await listBookableVenues(db, {
+        sport: "football",
+        now: NOW,
+      });
+      expect(football.map((venue) => venue.id)).toEqual([f.venueId]);
+      expect(football[0]).toMatchObject({
+        courtCount: 1,
+        fromHourlyRateFils: 10_000,
+      });
+    });
+  });
+
+  it("omits a Venue whose only pitch has no covering rule", async () => {
+    await withBookableVenue(async (db, f) => {
+      await db.delete(venuePricingRules);
+      await db.insert(venuePricingRules).values({
+        venueId: f.venueId,
+        weekdays: [0],
+        startMinutes: 0,
+        endMinutes: 1440,
+        hourlyRateFils: 7_000,
+        courtId: f.court1,
+      });
+      await db
+        .update(courts)
+        .set({ sport: "football" })
+        .where(eq(courts.id, f.court2));
+      expect(
+        await listBookableVenues(db, { sport: "football", now: NOW }),
+      ).toEqual([]);
+    });
+  });
+});

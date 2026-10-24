@@ -15,6 +15,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { api, type RouterOutputs } from "../trpc/react";
+import { FOOTBALL_GAMES_COMING } from "./book-sport";
 import {
   bookedHeadline,
   bookingGamePath,
@@ -81,6 +82,11 @@ export function BookedScreen({ bookingId }: { bookingId: string }) {
           </View>
         ) : (
           <View style={{ gap: 10 }}>
+            {booking.data?.court.sport === "football" ? (
+              <Text size="meta" tone="muted" style={{ textAlign: "center" }}>
+                {FOOTBALL_GAMES_COMING}
+              </Text>
+            ) : null}
             <Button
               label="View booking"
               size="lg"

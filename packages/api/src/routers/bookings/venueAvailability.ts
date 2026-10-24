@@ -7,6 +7,8 @@ import {
   productDaysBetween,
   zonedDateTimeToInstant,
 } from "@repo/domain/product-timezone";
+import type { Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 import { type db } from "#src/db";
 
 import {
@@ -21,7 +23,7 @@ const dayKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
 export async function venueAvailability(
   database: DbClient,
-  args: { venueId: string; day: string; now?: Date },
+  args: { venueId: string; day: string; sport?: Sport; now?: Date },
 ) {
   const now = args.now ?? new Date();
   const context = await loadVenueSlotContext(database, args.venueId, now);
@@ -46,11 +48,14 @@ export async function venueAvailability(
     });
   }
 
-  const names = new Map(context.courts.map((court) => [court.id, court.name]));
+  const shown = context.courts.filter(
+    (court) => !args.sport || court.sport === args.sport,
+  );
+  const names = new Map(shown.map((court) => [court.id, court.name]));
   return {
     day: args.day,
     courts: slotsForDay(context.input, args.day)
-      .filter((court) => court.slots.length > 0)
+      .filter((court) => names.has(court.courtId) && court.slots.length > 0)
       .map((court) => ({
         id: court.courtId,
         name: names.get(court.courtId) ?? "",
@@ -60,5 +65,11 @@ export async function venueAvailability(
 }
 
 export const venueAvailabilityProcedure = protectedProcedure
-  .input(z.object({ venueId: z.string().uuid(), day: dayKey }))
+  .input(
+    z.object({
+      venueId: z.string().uuid(),
+      day: dayKey,
+      sport: sportSchema.optional(),
+    }),
+  )
   .query(async ({ ctx, input }) => venueAvailability(ctx.db, input));

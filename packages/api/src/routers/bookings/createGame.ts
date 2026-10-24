@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { bookings, games } from "@repo/db";
+import { bookings, courts, games } from "@repo/db";
 import {
   LEVEL_RANGE_INVERTED_MESSAGE,
   LEVEL_TENTHS_MAX,
@@ -91,6 +91,16 @@ export async function createBookingGame(
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "This Booking has already ended",
+      });
+    }
+    const court = await tx.query.courts.findFirst({
+      where: eq(courts.id, booking.courtId),
+      columns: { sport: true },
+    });
+    if (court?.sport === "football") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Football Games arrive in a later release",
       });
     }
     if (booking.gameId) {

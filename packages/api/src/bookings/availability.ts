@@ -11,6 +11,7 @@ import {
 } from "@repo/db";
 import type { DbClient, DbTx } from "@repo/db";
 import type { SlotInput } from "@repo/domain/booking-slots";
+import type { Sport } from "@repo/domain/sport";
 
 import { occupyingBookings } from "#src/bookings/occupying";
 
@@ -26,7 +27,7 @@ export type VenueSlotContext = {
     payAtVenueAllowed: boolean;
     cancellationPolicy: (typeof venues.$inferSelect)["cancellationPolicy"];
   };
-  courts: { id: string; name: string }[];
+  courts: { id: string; name: string; sport: Sport }[];
   input: SlotInput;
 };
 
@@ -50,7 +51,7 @@ export async function loadVenueSlotContext(
 
   const [courtRows, hours, closures, rules, occupying] = await Promise.all([
     database
-      .select({ id: courts.id, name: courts.name })
+      .select({ id: courts.id, name: courts.name, sport: courts.sport })
       .from(courts)
       .where(eq(courts.venueId, venueId))
       .orderBy(asc(courts.name), asc(courts.id)),

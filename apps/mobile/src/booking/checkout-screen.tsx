@@ -1,3 +1,5 @@
+import { courtFace } from "@repo/domain/court-sport-copy";
+import type { Sport } from "@repo/domain/sport";
 import { colors } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
@@ -32,6 +34,7 @@ import {
   venuePath,
   whenLine,
 } from "./booking-model";
+import { courtNounTitle } from "./book-sport";
 import { courtChoices, keepOrFirst } from "./slot-grid";
 
 const METHOD_ICONS = {
@@ -47,11 +50,13 @@ export function CheckoutScreen({
   startsAtIso,
   durationMinutes: minutes,
   courtId,
+  sport,
 }: {
   venueId: string;
   startsAtIso: string;
   durationMinutes: number;
   courtId: string;
+  sport: Sport;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -70,7 +75,7 @@ export function CheckoutScreen({
 
   const venue = api.bookings.venueForBooking.useQuery({ venueId });
   const availability = api.bookings.venueAvailability.useQuery(
-    { venueId, day },
+    { venueId, day, sport },
     { enabled: validStart },
   );
 
@@ -101,7 +106,7 @@ export function CheckoutScreen({
     const error = venue.error ?? availability.error;
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback={venuePath(venueId)} />
+        <ScreenHeader nav="back" fallback={venuePath(venueId, sport)} />
         {!validStart ? (
           <Notice
             title="That time is not valid"
@@ -132,7 +137,7 @@ export function CheckoutScreen({
   const courts = courtChoices({
     startsAt,
     minutes,
-    venueCourts: data.courts,
+    venueCourts: data.courts.filter((entry) => entry.sport === sport),
     courts: availability.data.courts,
   });
   const court =
@@ -160,7 +165,7 @@ export function CheckoutScreen({
           subtitle={[whenLine(startsAt, minutes, now), courtName]
             .filter(Boolean)
             .join(" / ")}
-          fallback={venuePath(venueId)}
+          fallback={venuePath(venueId, sport)}
         />
       }
       footer={
@@ -169,7 +174,7 @@ export function CheckoutScreen({
             label={
               ready
                 ? payButtonLabel(chosenMethod, court.name, court.priceFils ?? 0)
-                : "Court not free at this time"
+                : `${courtNounTitle(sport)} not free at this time`
             }
             size="lg"
             disabled={!ready}
@@ -197,9 +202,9 @@ export function CheckoutScreen({
           title={
             courtName
               ? `${courtName} was just taken`
-              : "This court was not found"
+              : `This ${courtFace(sport)} was not found`
           }
-          description={`It is not free for ${minutes} min at this time any more. Pick another court or time.`}
+          description={`It is not free for ${minutes} min at this time any more. Pick another ${courtFace(sport)} or time.`}
           actionLabel="Pick again"
           onAction={() => router.back()}
         />

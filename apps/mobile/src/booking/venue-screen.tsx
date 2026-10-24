@@ -1,3 +1,4 @@
+import type { Sport } from "@repo/domain/sport";
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { formatGameClock } from "@repo/domain/format-game-start";
@@ -35,6 +36,7 @@ import {
 } from "./slot-grid";
 import { VenueBanner } from "./venue-banner";
 import { courtCountLabel, openToLabel } from "./venues-model";
+import { courtCoachCopy, courtPlural, courtStepTitle } from "./book-sport";
 
 type BookingVenue = RouterOutputs["bookings"]["venueForBooking"];
 
@@ -44,7 +46,13 @@ const DURATION_COLUMNS = 3;
 const TIME_COLUMNS = 5;
 const COURT_COLUMNS = 3;
 
-export function VenueScreen({ venueId }: { venueId: string }) {
+export function VenueScreen({
+  venueId,
+  sport,
+}: {
+  venueId: string;
+  sport: Sport;
+}) {
   const router = useRouter();
   const now = useNow();
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +68,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
   const days = venue.data ? dayStrip(now, venue.data.bookingHorizonDays) : [];
   const day = dayKey ?? days[0]?.key ?? null;
   const availability = api.bookings.venueAvailability.useQuery(
-    { venueId, day: day ?? "" },
+    { venueId, day: day ?? "", sport },
     { enabled: day !== null, refetchOnWindowFocus: "always" },
   );
 
@@ -100,6 +108,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
   }
 
   const data = venue.data;
+  const sportCourts = data.courts.filter((entry) => entry.sport === sport);
   const durations = availability.data
     ? durationChoices({
         options: data.durationOptionsMinutes,
@@ -138,7 +147,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
       ? courtChoices({
           startsAt: chosen.startsAt,
           minutes,
-          venueCourts: data.courts,
+          venueCourts: sportCourts,
           courts: availability.data.courts,
         })
       : [];
@@ -169,7 +178,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
             court &&
             minutes !== null &&
             router.push(
-              checkoutPath(venueId, chosen.startsAt, minutes, court.id),
+              checkoutPath(venueId, chosen.startsAt, minutes, court.id, sport),
             )
           }
         />
@@ -198,7 +207,7 @@ export function VenueScreen({ venueId }: { venueId: string }) {
         </View>
         {data.description ? <Text size="meta">{data.description}</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Pill label={courtCountLabel(data.courts.length)} />
+          <Pill label={courtCountLabel(sportCourts.length, sport)} />
           <Pill label={openToLabel(todayWindows)} />
         </View>
       </View>
@@ -321,10 +330,10 @@ export function VenueScreen({ venueId }: { venueId: string }) {
       {times.length > 0 ? (
         <View style={{ gap: 12 }}>
           <SectionHeading
-            title="Court"
+            title={courtStepTitle(sport)}
             meta={
               chosen
-                ? `${courtCountLabel(chosen.freeCourts)} free at ${formatGameClock(chosen.startsAt)}`
+                ? `${courtCountLabel(chosen.freeCourts, sport)} free at ${formatGameClock(chosen.startsAt)}`
                 : null
             }
           />
@@ -344,13 +353,13 @@ export function VenueScreen({ venueId }: { venueId: string }) {
               </ChipGrid>
               {courts.some((entry) => entry.fullyBooked) ? (
                 <Text size="meta" tone="muted">
-                  {`Fully booked courts have no time free for ${minutes} min on this day.`}
+                  {`Fully booked ${courtPlural(sport)} have no time free for ${minutes} min on this day.`}
                 </Text>
               ) : null}
             </>
           ) : (
             <Text size="meta" tone="muted">
-              Pick a start time to see which courts are free.
+              {courtCoachCopy(sport)}
             </Text>
           )}
         </View>

@@ -1,8 +1,10 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors, radii, spacing } from "@repo/design-tokens";
+import { SPORTS, type Sport } from "@repo/domain/sport";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { venueCardImage } from "@repo/domain/venue-photos";
 import { useRouter, useSegments } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,6 +12,7 @@ import { useNow } from "../games/use-now";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { mediaUrl } from "../lib/media-url";
 import { slotOf } from "../lib/slot-of";
+import { SportChoiceRow } from "../lib/sport-choice-row";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
@@ -24,6 +27,7 @@ import { api, type RouterOutputs } from "../trpc/react";
 import { BookingRowCard, NextBooking, type BookingItem } from "./booking-cards";
 import { Notice } from "./booking-parts";
 import { bookingRowPath, venuePath } from "./booking-model";
+import { bookTitle, readBookSport, writeBookSport } from "./book-sport";
 import { VenueBanner } from "./venue-banner";
 import {
   VENUE_SORTS,
@@ -49,12 +53,30 @@ export function VenuesScreen() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<VenueSort>("name");
+  const [sport, setSport] = useState<Sport>("padel");
   const [refreshing, setRefreshing] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [filterBarHeight, setFilterBarHeight] = useState(0);
   const insets = useSafeAreaInsets();
+  const chosen = useRef(false);
+  useEffect(() => {
+    let live = true;
+    void readBookSport(AsyncStorage).then((stored) => {
+      if (live && !chosen.current) {
+        setSport(stored);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const chooseSport = useCallback((next: Sport) => {
+    chosen.current = true;
+    setSport(next);
+    void writeBookSport(AsyncStorage, next);
+  }, []);
   const venues = api.bookings.listBookableVenues.useQuery(
-    {},
+    { sport },
     { refetchOnWindowFocus: "always" },
   );
   const upcoming = api.bookings.listMine.useQuery(
@@ -110,8 +132,14 @@ export function VenuesScreen() {
         {/* The sticky wrapper takes over this View's style, so the gap lives one level down. */}
         <View style={{ gap: 12 }}>
           <Text size="title" weight="semibold" accessibilityRole="header">
-            Book a court
+            {bookTitle(sport)}
           </Text>
+          <SportChoiceRow
+            sports={SPORTS}
+            value={sport}
+            onSelect={chooseSport}
+            disabled={false}
+          />
           <SearchField
             value={query}
             onChangeText={setQuery}
@@ -148,14 +176,15 @@ export function VenuesScreen() {
             onAction={() => void onRefresh()}
           />
         ) : shown.length === 0 ? (
-          <Notice {...venuesEmptyCopy(query)} />
+          <Notice {...venuesEmptyCopy(query, sport)} />
         ) : (
           <View style={{ gap: LIST_GAP }}>
             {shown.map((venue) => (
               <VenueCard
                 key={venue.id}
                 venue={venue}
-                onPress={() => router.push(venuePath(venue.id))}
+                sport={sport}
+                onPress={() => router.push(venuePath(venue.id, sport))}
               />
             ))}
           </View>
@@ -228,9 +257,11 @@ function UpcomingBookings({
 
 function VenueCard({
   venue,
+  sport,
   onPress,
 }: {
   venue: BookableVenue;
+  sport: Sport;
   onPress: () => void;
 }) {
   const open = venue.todayOpen.length > 0;
@@ -312,7 +343,7 @@ function VenueCard({
               </Text>
             </View>
             <Text size="meta" tone="muted" numberOfLines={1}>
-              {`${venue.city} / ${courtCountLabel(venue.courtCount)}`}
+              {`${venue.city} / ${courtCountLabel(venue.courtCount, sport)}`}
             </Text>
           </View>
         </View>
