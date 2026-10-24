@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  GROUP_LINK_REQUEST_ACCEPT_LABEL,
+  GROUP_LINK_REQUEST_DECLINE_LABEL,
+  GROUP_LINK_REQUEST_DECLINED_TOAST,
+  groupLinkRequestAcceptConfirm,
+  groupLinkRequestAcceptedToast,
+  groupLinkRequestDeclineConfirm,
+} from "@repo/domain/group-link-request";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -24,7 +32,11 @@ export function VenueLinkRequestActions({
   const utils = api.useUtils();
   const [acceptOpen, setAcceptOpen] = React.useState(false);
   const [declineOpen, setDeclineOpen] = React.useState(false);
-  const groupName = request.groupName ?? "this Group";
+  const acceptConfirm = groupLinkRequestAcceptConfirm(
+    request.groupName,
+    request.venueName,
+  );
+  const declineConfirm = groupLinkRequestDeclineConfirm(request.venueName);
 
   async function refresh() {
     await Promise.all([
@@ -38,7 +50,9 @@ export function VenueLinkRequestActions({
 
   const accept = api.groups.acceptLinkRequest.useMutation({
     onSuccess: async () => {
-      toast.success(`${groupName} is now part of ${request.venueName}`);
+      toast.success(
+        groupLinkRequestAcceptedToast(request.groupName, request.venueName),
+      );
       setAcceptOpen(false);
       await refresh();
     },
@@ -50,7 +64,7 @@ export function VenueLinkRequestActions({
 
   const decline = api.groups.declineLinkRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Request declined");
+      toast.success(GROUP_LINK_REQUEST_DECLINED_TOAST);
       setDeclineOpen(false);
       await refresh();
     },
@@ -69,14 +83,14 @@ export function VenueLinkRequestActions({
           aria-label={`Decline the request from ${request.venueName}`}
           onClick={() => setDeclineOpen(true)}
         >
-          Decline
+          {GROUP_LINK_REQUEST_DECLINE_LABEL}
         </Button>
         <Button
           type="button"
           aria-label={`Review the request from ${request.venueName}`}
           onClick={() => setAcceptOpen(true)}
         >
-          Accept
+          {GROUP_LINK_REQUEST_ACCEPT_LABEL}
         </Button>
       </div>
 
@@ -90,27 +104,15 @@ export function VenueLinkRequestActions({
       >
         <ResponsiveDialogContent showCloseButton={false}>
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>
-              Add {groupName} to {request.venueName}&rsquo;s Community?
-            </ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{acceptConfirm.title}</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              {groupName} becomes a Club Group. Here is what changes.
+              {acceptConfirm.description}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <ul className="text-body text-muted-foreground list-disc space-y-1.5 pl-5">
-            <li>Everyone in the Group becomes a Community Member.</li>
-            <li>
-              New people can&rsquo;t join directly. They send a request instead.
-            </li>
-            <li>
-              You can&rsquo;t make Invite links any more. You can still invite
-              existing Community Members.
-            </li>
-            <li>New Games are held at {request.venueName}.</li>
-            <li>
-              The Group is Verified, so it can host Rated Games and Games open
-              to anyone with the link.
-            </li>
+            {acceptConfirm.consequences.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
           </ul>
           <ResponsiveDialogFooter>
             <Button
@@ -120,16 +122,16 @@ export function VenueLinkRequestActions({
               disabled={accept.isPending}
               onClick={() => setAcceptOpen(false)}
             >
-              Not now
+              {acceptConfirm.cancelLabel}
             </Button>
             <Button
               type="button"
               className="min-h-11"
               pending={accept.isPending}
-              pendingLabel="Adding…"
+              pendingLabel={acceptConfirm.pendingLabel}
               onClick={() => accept.mutate({ requestId: request.id })}
             >
-              Add Group
+              {acceptConfirm.confirmLabel}
             </Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>
@@ -138,10 +140,10 @@ export function VenueLinkRequestActions({
       <ConfirmDialog
         open={declineOpen}
         onOpenChange={setDeclineOpen}
-        title={`Decline ${request.venueName}'s request?`}
-        description={`${request.venueName} will see that you declined. They can send a new request later.`}
-        confirmLabel="Decline request"
-        cancelLabel="Keep request"
+        title={declineConfirm.title}
+        description={declineConfirm.description}
+        confirmLabel={declineConfirm.confirmLabel}
+        cancelLabel={declineConfirm.cancelLabel}
         variant="default"
         pending={decline.isPending}
         onConfirm={async () => {

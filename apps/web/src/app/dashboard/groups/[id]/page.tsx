@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  groupLinkRequestBannerText,
+  groupPartOfVenueLine,
+} from "@repo/domain/group-link-request";
 import { notFound, usePathname, useRouter } from "next/navigation";
 import { use, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
@@ -553,7 +557,7 @@ export default function GroupHomePage({
         className="bg-muted flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 md:p-5"
       >
         <p className="text-body min-w-0 flex-1">
-          {request.venueName} wants to add this Group to its Community.
+          {groupLinkRequestBannerText(request.venueName)}
         </p>
         <VenueLinkRequestActions request={request} />
       </section>
@@ -600,7 +604,7 @@ export default function GroupHomePage({
           {venueRequestBanners}
           {data.venueCommunity ? (
             <p className="text-body text-muted-foreground">
-              Part of {data.venueCommunity.venueName}
+              {groupPartOfVenueLine(data.venueCommunity.venueName)}
             </p>
           ) : null}
           {banners}

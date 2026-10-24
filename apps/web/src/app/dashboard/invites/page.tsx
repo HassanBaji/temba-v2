@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  GROUP_LINK_REQUEST_ROW_META,
+  VENUE_REQUESTS_TITLE,
+  groupLinkRequestRowTitle,
+} from "@repo/domain/group-link-request";
 import { Inbox } from "lucide-react";
 import { toast } from "sonner";
 
@@ -261,15 +266,18 @@ export default function InvitesPage() {
             id="venue-requests-heading"
             className="text-title font-semibold tracking-[-0.01em]"
           >
-            Venue requests
+            {VENUE_REQUESTS_TITLE}
           </h2>
           <RowList>
             {venueRequestRows.map((request) => (
               <ListRow
                 key={request.id}
                 leading={<EntityMonogram name={request.venueName} size="lg" />}
-                title={`${request.venueName} wants to add ${request.groupName ?? "your Group"} to its Community`}
-                meta="Only you can decide, as the Group creator."
+                title={groupLinkRequestRowTitle(
+                  request.venueName,
+                  request.groupName,
+                )}
+                meta={GROUP_LINK_REQUEST_ROW_META}
                 stackTrailing
                 trailing={<VenueLinkRequestActions request={request} />}
               />

@@ -44,6 +44,7 @@ import {
 } from "./set-level-model";
 import { useGroupAdmin } from "./use-group-admin";
 import { useGroupJoin } from "./use-group-join";
+import { useGroupLinkRequest } from "./use-group-link-request";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -74,6 +75,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     { id: groupId },
     REFETCH_ON_FOREGROUND,
   );
+  const linkRequest = useGroupLinkRequest();
+  const linkRequests = api.groups.pendingLinkRequests.useQuery(undefined, {
+    enabled: (group.data?.pendingLinkRequestCount ?? 0) > 0,
+  });
   const { join: joinGroup, pendingGroupId } = useGroupJoin();
   const { join: joinGame, pendingGameId } = useGameJoin();
 
@@ -232,9 +237,20 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
               onConfirm: admin.deleteGroup,
             }),
         }}
-        confirm={confirm}
-        confirmPending={leave.isPending || admin.deletePending}
-        onCloseConfirm={() => setConfirm(null)}
+        venueRequests={(linkRequests.data ?? []).filter(
+          (request) => request.groupId === groupId,
+        )}
+        venueRequestPendingId={linkRequest.pendingRequestId}
+        onAcceptVenueRequest={linkRequest.askAccept}
+        onDeclineVenueRequest={linkRequest.askDecline}
+        confirm={linkRequest.confirm ?? confirm}
+        confirmPending={
+          leave.isPending || admin.deletePending || linkRequest.confirmPending
+        }
+        onCloseConfirm={() => {
+          setConfirm(null);
+          linkRequest.closeConfirm();
+        }}
         memberQuery={memberQuery}
         onMemberQueryChange={setMemberQuery}
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}

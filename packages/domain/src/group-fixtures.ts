@@ -241,6 +241,8 @@ export function createGroupFixtures(now = new Date()) {
     canManageImage: false,
     canDelete: false,
     viewerCanSetLevel: false,
+    venueCommunity: null,
+    pendingLinkRequestCount: 0,
   };
 
   const creator: GroupHomeData = {
