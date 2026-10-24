@@ -193,7 +193,7 @@ A period when a whole Venue, or one Court, cannot be booked, set by a Venue mana
 _Avoid_: blackout, holiday, block
 
 **Pricing rule**:
-An hourly rate in fils for a set of weekdays and a time range, for every Court or for one Court. A Court rule beats a Venue-wide rule. Rules on one scope never overlap, and a window that runs past midnight prices on the weekday it opened. The price of a Booking is fixed from the rules at the moment it is made; a time no rule covers cannot be booked. A Venue-wide rule for every weekday, 00:00–24:00 is the base rate.
+An hourly rate in fils for a set of weekdays and a time range, for every Court or for one Court. A Court rule beats a Venue-wide rule. Rules on one scope never overlap, and a window that runs past midnight prices on the weekday it opened. The rule covering a Booking's start time prices its whole length; the price is fixed at the moment the Booking is made, and a start no rule covers cannot be booked. A Venue-wide rule for every weekday, 00:00–24:00 is the base rate.
 _Avoid_: tariff, rate card, price list, Price per player (that is a Game field), fee
 
 **Accepting bookings**:

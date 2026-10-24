@@ -390,8 +390,8 @@ export function RateCard() {
 
       <footer className="border-border mt-auto flex items-center justify-between gap-4 border-t px-5 py-3.5">
         <p className="text-muted-foreground text-eyebrow">
-          Each minute is charged at the band it falls in, so a 90-minute Booking
-          that crosses two bands pays each for its minutes. Prices in
+          A Booking is charged at the band its start time falls in, for its
+          whole length, even when it runs into the next band. Prices in
           {" " + PRICE_PER_PLAYER_CURRENCY}, fils kept.
         </p>
         {drafts.length > 0 || dirty ? (

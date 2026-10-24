@@ -14,7 +14,7 @@ Refunds are computed by one pure function set in `@repo/domain/booking-refund`: 
 
 Money is whole fils, the unit of Price per player. A Venue's `venue_pricing_rules` hold an hourly rate for a set of weekdays and a time window, Venue-wide or for one Court, capped at `PRICE_PER_PLAYER_MAX_FILS`. `venues.setPricingRules` replaces the whole set in one transaction, checks every time lies on the Venue's slot grid and refuses overlaps per scope. Overlap is checked on a circular week, so a window running past midnight (up to 06:00 the next day) conflicts with the next weekday's rule. `venues.updateBookingSettings` refuses a new slot grid while a rule is off it.
 
-The price comes from one pure function, `@repo/domain/booking-price`. `priceForInterval` walks the interval a minute at a time; each minute takes the Court's rule if one covers it, otherwise the Venue-wide rule, and a minute covered by neither makes the whole interval `uncovered`. Rates add up per minute and are divided by 60 once, rounded to the nearest fils. A window past midnight belongs to the weekday it opened on. The walk assumes the product timezone has no daylight saving.
+The price comes from one pure function, `@repo/domain/booking-price`. `priceForInterval` prices the whole interval at the rule that covers its start time: the Court's rule if one covers it, otherwise the Venue-wide rule, and a start covered by neither makes the interval `uncovered`. The rest of the interval does not matter, so a Booking that runs into a dearer band, or past the end of every band, keeps the rate it started on. The hourly rate times the minutes, divided by 60, is rounded to the nearest fils. A window past midnight belongs to the weekday it opened on.
 
 The computed price is written onto the Booking as `priceFils` when it is made. Editing rules later never reprices an existing Booking.
 
@@ -24,7 +24,7 @@ The computed price is written onto the Booking as `priceFils` when it is made. E
 2. A separate policy table with versions. Rejected: the snapshot on the Booking already gives the history that matters, and a Venue has exactly one current policy.
 3. Reading the Venue's current policy at cancel time. Rejected: a Customer would accept one set of terms and be cancelled under another.
 4. Repricing existing Bookings when a rule changes. Rejected: the Customer agreed to a price, and refunds are computed from it.
-5. Rounding each rule segment separately. Rejected: a Booking across a rate boundary could drift by a fils from its pro-rata price.
+5. Charging each minute at the rule it falls in. Replaced by the start-time rule: Venues quote a Booking by when it starts, and a pro-rata price across two bands read as an error to managers and Customers.
 
 ## Consequences
 
