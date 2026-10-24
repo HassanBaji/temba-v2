@@ -1,8 +1,20 @@
-import type { DbClient, DbTx, groups } from "@repo/db";
+import { eq } from "drizzle-orm";
+
+import { communities, type DbClient, type DbTx, type groups } from "@repo/db";
 
 export async function groupIsVerified(
-  _database: DbClient | DbTx,
-  group: Pick<typeof groups.$inferSelect, "verifiedAt">,
+  database: DbClient | DbTx,
+  group: Pick<typeof groups.$inferSelect, "verifiedAt" | "communityId">,
 ): Promise<boolean> {
-  return group.verifiedAt !== null;
+  if (group.verifiedAt !== null) {
+    return true;
+  }
+  if (!group.communityId) {
+    return false;
+  }
+  const community = await database.query.communities.findFirst({
+    where: eq(communities.id, group.communityId),
+    columns: { isVenueCommunity: true },
+  });
+  return community?.isVenueCommunity === true;
 }

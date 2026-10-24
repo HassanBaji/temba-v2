@@ -1,6 +1,7 @@
 import { createTRPCRouter } from "#src/trpc";
 
 import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLink";
+import { acceptLinkRequestProcedure as acceptLinkRequest } from "./acceptLinkRequest";
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
 import { approveJoinRequestProcedure as approveJoinRequest } from "./approveJoinRequest";
 import { byId } from "./byId";
@@ -10,6 +11,7 @@ import { createClubPublicProcedure as createClubPublic } from "./createClubPubli
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { createLoosePrivateProcedure as createLoosePrivate } from "./createLoosePrivate";
 import { createLoosePublicProcedure as createLoosePublic } from "./createLoosePublic";
+import { declineLinkRequestProcedure as declineLinkRequest } from "./declineLinkRequest";
 import { deleteProcedure } from "./delete";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { joinClubPublicProcedure as joinClubPublic } from "./joinClubPublic";
@@ -21,6 +23,7 @@ import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInv
 import { listPublicProcedure as listPublic } from "./listPublic";
 import { mineProcedure as mine } from "./mine";
 import { mineLooseProcedure as mineLoose } from "./mineLoose";
+import { pendingLinkRequestsProcedure as pendingLinkRequests } from "./pendingLinkRequests";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
@@ -66,4 +69,7 @@ export const groupsRouter = createTRPCRouter({
   clearImage,
   setVerified,
   listForOperator,
+  pendingLinkRequests,
+  acceptLinkRequest,
+  declineLinkRequest,
 });

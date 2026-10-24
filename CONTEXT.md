@@ -61,15 +61,15 @@ A set of people who play Games of one sport. Every Group is either a Club Group 
 _Avoid_: Community, Team, lobby, channel
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, or one created by a User with Group creator access. Every other Group's new Games are Unrated and private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`.
+A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group of a Venue Community. Every other Group's new Games are Unrated and private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; membership of a Venue Community is derived, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
-A Group that belongs to a Community.
+A Group that belongs to a Community. A Loose Group becomes a Club Group when its Group link request is accepted.
 _Avoid_: subgroup, channel, nested group
 
 **Loose Group**:
-A Group that does not belong to a Community.
+A Group that does not belong to a Community. It stops being Loose when its Group link request is accepted.
 _Avoid_: orphan, standalone group, free group
 
 **Community Public**:
@@ -133,8 +133,16 @@ Lookup invite and Invite link as the two live invitation channels onto a Communi
 _Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door)
 
 **Venue link**:
-A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. Distinct from Invite link and from a Team’s Community link.
+A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. A Venue Community’s Venue link is set when it is created, without a Venue link request, and cannot be unlinked. Distinct from Invite link and from a Team’s Community link.
 _Avoid_: Invite link, membership, join, Club Team
+
+**Venue Community**:
+The one Community a Venue owns. It is created when the first Group link request to that Venue is accepted, and it carries a Venue link to that Venue that cannot be unlinked. It is Private, and the Venue manager who sent the first accepted request is its creator and Owner. Its Club Groups are Verified Groups. A Venue has at most one Venue Community; other Communities may still hold a Venue link to the same Venue.
+_Avoid_: venue club, default Community (in product copy), home Community
+
+**Group link request**:
+A Venue manager’s request that a Loose Group Public join that Venue’s Venue Community. The Group creator accepts or declines it; the Venue manager may cancel it while pending. Accepting turns the Loose Group into a Club Group of the Venue Community. Distinct from a Group join request (a User asking to join a Group), a Venue link request (a Community asking for a Venue) and a Team link request.
+_Avoid_: Group join request, Venue link, invite (when you mean this request), Group transfer
 
 **Venue link request**:
 A request by a Community Owner or Admin to associate that Community with an existing Venue. An Operator approves or rejects it. Distinct from a User’s Community join request.

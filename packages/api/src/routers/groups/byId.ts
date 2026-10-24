@@ -1,10 +1,12 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   communities,
   communityMembers,
   games,
+  groupLinkRequests,
+  GroupLinkRequestStatusEnum,
   groupMembers,
   GroupTypeEnum,
   levelOverrides,
@@ -12,6 +14,7 @@ import {
   ratingEvents,
   ratings,
   user,
+  venues,
   type GroupSportEnum,
 } from "@repo/db";
 
@@ -275,6 +278,33 @@ export async function groupById(
       args.userId,
     );
   }
+
+  const venueCommunityVenue =
+    community?.isVenueCommunity && community.venueId
+      ? await database.query.venues.findFirst({
+          where: eq(venues.id, community.venueId),
+          columns: { id: true, name: true },
+        })
+      : undefined;
+  const pendingLinkRequestCount =
+    !group.communityId && group.createdBy === args.userId
+      ? ((
+          await database
+            .select({ value: count() })
+            .from(groupLinkRequests)
+            .innerJoin(venues, eq(venues.id, groupLinkRequests.venueId))
+            .where(
+              and(
+                eq(groupLinkRequests.groupId, group.id),
+                eq(
+                  groupLinkRequests.status,
+                  GroupLinkRequestStatusEnum.PENDING,
+                ),
+                isNull(venues.archivedAt),
+              ),
+            )
+        )[0]?.value ?? 0)
+      : null;
 
   const isLoosePublic =
     !group.communityId && group.type === GroupTypeEnum.PUBLIC;
@@ -722,6 +752,10 @@ export async function groupById(
     joinMode,
     requiresApproval: group.requiresApproval,
     verified: await groupIsVerified(database, group),
+    venueCommunity: venueCommunityVenue
+      ? { venueId: venueCommunityVenue.id, venueName: venueCommunityVenue.name }
+      : null,
+    pendingLinkRequestCount,
     canDecideJoinRequests,
     canSetRequiresApproval,
     canManageLookupInvites,

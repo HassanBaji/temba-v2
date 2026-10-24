@@ -103,6 +103,8 @@ export default function OperatorGroupsPage() {
                 setVerified.isPending &&
                 setVerified.variables?.groupId === group.id;
               const verified = group.verificationSource === "operator";
+              const viaVenueCommunity =
+                group.verificationSource === "venue_community";
               return (
                 <ListRow
                   key={group.id}
@@ -119,7 +121,13 @@ export default function OperatorGroupsPage() {
                       {verified ? (
                         <Badge variant="secondary">Verified</Badge>
                       ) : null}
-                      {verified ? (
+                      {viaVenueCommunity ? (
+                        <Badge variant="secondary">
+                          Verified by Venue Community:{" "}
+                          {group.venueCommunityVenueName}
+                        </Badge>
+                      ) : null}
+                      {viaVenueCommunity ? null : verified ? (
                         <Button
                           variant="outline"
                           size="sm"

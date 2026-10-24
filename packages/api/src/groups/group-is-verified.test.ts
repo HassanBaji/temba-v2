@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { groups, user, venues } from "@repo/db/schema";
+import { communities, groups, user, venues } from "@repo/db/schema";
 
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { createGame } from "#src/routers/games/create";
@@ -34,7 +34,7 @@ async function insertVenue(database: TestDatabase) {
 
 async function insertGroup(
   database: TestDatabase,
-  args: { createdBy: string; verifiedAt?: Date },
+  args: { createdBy: string; verifiedAt?: Date; communityId?: string },
 ) {
   const [row] = await database
     .insert(groups)
@@ -42,6 +42,7 @@ async function insertGroup(
       name: `Group ${crypto.randomUUID()}`,
       createdBy: args.createdBy,
       verifiedAt: args.verifiedAt,
+      communityId: args.communityId,
     })
     .returning();
   if (!row) {
@@ -98,6 +99,46 @@ describe("groupIsVerified", () => {
 
       expect(await groupIsVerified(db, verified)).toBe(true);
       expect(await groupIsVerified(db, unverified)).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("is true for a Club Group of a Venue Community, not of an ordinary Venue-linked Community", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "venue-community@example.com");
+      const venue = await insertVenue(db);
+      const [venueCommunity] = await db
+        .insert(communities)
+        .values({
+          name: "Venue Community",
+          createdBy: owner.id,
+          venueId: venue.id,
+          isVenueCommunity: true,
+        })
+        .returning();
+      const [ordinary] = await db
+        .insert(communities)
+        .values({ name: "Ordinary", createdBy: owner.id, venueId: venue.id })
+        .returning();
+      if (!venueCommunity || !ordinary) {
+        throw new Error("Failed to insert communities");
+      }
+
+      const linked = await insertGroup(db, {
+        createdBy: owner.id,
+        communityId: venueCommunity.id,
+      });
+      const ordinaryClub = await insertGroup(db, {
+        createdBy: owner.id,
+        communityId: ordinary.id,
+      });
+      const loose = await insertGroup(db, { createdBy: owner.id });
+
+      expect(await groupIsVerified(db, linked)).toBe(true);
+      expect(await groupIsVerified(db, ordinaryClub)).toBe(false);
+      expect(await groupIsVerified(db, loose)).toBe(false);
     } finally {
       await close();
     }

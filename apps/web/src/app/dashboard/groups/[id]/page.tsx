@@ -9,6 +9,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
+import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
@@ -102,6 +103,10 @@ export default function GroupHomePage({
   );
 
   const group = api.groups.byId.useQuery({ id });
+  const pendingLinkRequests = api.groups.pendingLinkRequests.useQuery(
+    undefined,
+    { enabled: (group.data?.pendingLinkRequestCount ?? 0) > 0 },
+  );
 
   const lookupInvites = api.groups.listLookupInvites.useQuery(
     { groupId: id },
@@ -541,6 +546,20 @@ export default function GroupHomePage({
     communityName: data.community?.name ?? null,
     joinMode: data.joinMode,
   });
+  const venueRequestBanners = (pendingLinkRequests.data ?? [])
+    .filter((request) => request.groupId === id)
+    .map((request) => (
+      <section
+        key={request.id}
+        role="status"
+        className="bg-muted flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 md:p-5"
+      >
+        <p className="text-body min-w-0 flex-1">
+          {request.venueName} wants to add this Group to its Community.
+        </p>
+        <VenueLinkRequestActions request={request} />
+      </section>
+    ));
   const banners = bannerCopy ? (
     bannerCopy.heading ? (
       <SoftArchiveBanner headingLevel={2} heading={bannerCopy.heading}>
@@ -580,6 +599,12 @@ export default function GroupHomePage({
         />
 
         <div className="space-y-6 pt-6">
+          {venueRequestBanners}
+          {data.venueCommunity ? (
+            <p className="text-body text-muted-foreground">
+              Part of {data.venueCommunity.venueName}
+            </p>
+          ) : null}
           {banners}
 
           {ctaFamily.kind === "join_group" ? (

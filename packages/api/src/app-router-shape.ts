@@ -168,7 +168,10 @@ type ExpectedGroups =
   | "uploadImage"
   | "clearImage"
   | "setVerified"
-  | "listForOperator";
+  | "listForOperator"
+  | "pendingLinkRequests"
+  | "acceptLinkRequest"
+  | "declineLinkRequest";
 
 type ExpectedNotifications =
   | "list"
@@ -221,6 +224,10 @@ type ExpectedVenues =
   | "softArchive"
   | "unarchive"
   | "listPendingLinkRequests"
+  | "listCommunityGroups"
+  | "searchLinkableGroups"
+  | "sendGroupLinkRequest"
+  | "cancelGroupLinkRequest"
   | "approveLinkRequest"
   | "rejectLinkRequest"
   | "listManaged"
