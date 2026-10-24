@@ -179,6 +179,7 @@ describe("groupById Games tab", () => {
         groupId: group.id,
         userId: viewer.id,
       });
+      expect(detail.verified).toBe(false);
       const row = detail.upcomingGames.find((item) => item.id === game.id);
       expect(row).toMatchObject({
         // The fields `GameSummaryCard` reads, as `games.listMyGames` returns

@@ -143,7 +143,11 @@ async function seedPostedTournament(
   const courtB = await insertCourt(database, venue.id, "Court 2");
   const [group] = await database
     .insert(groups)
-    .values({ name: `Group ${prefix}`, createdBy: owner.id })
+    .values({
+      verifiedAt: new Date(),
+      name: `Group ${prefix}`,
+      createdBy: owner.id,
+    })
     .returning({ id: groups.id });
   if (!group) {
     throw new Error("Failed to insert group");
@@ -655,7 +659,11 @@ describe("listPoolTables", () => {
       const venue = await insertVenue(db);
       const [group] = await db
         .insert(groups)
-        .values({ name: "Legacy Group", createdBy: owner.id })
+        .values({
+          verifiedAt: new Date(),
+          name: "Legacy Group",
+          createdBy: owner.id,
+        })
         .returning({ id: groups.id });
       if (!group) {
         throw new Error("Failed to insert group");

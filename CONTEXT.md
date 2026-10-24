@@ -60,6 +60,10 @@ _Avoid_: Venue, pitch, field, club (when you mean this entity)
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
 _Avoid_: Community, Team, lobby, channel
 
+**Verified Group**:
+A Group that may host Rated Games and public Games: one an Operator verified, or one created by a User with Group creator access. Every other Group's new Games are Unrated and private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`.
+_Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
+
 **Club Group**:
 A Group that belongs to a Community.
 _Avoid_: subgroup, channel, nested group
@@ -261,7 +265,7 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Match**:
@@ -473,5 +477,5 @@ A completed, non-cancelled Match on a Game that rates, which produced rating eve
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. Today only a Booking Game. Match result confirmation still applies. Stored as `games.rated = false`; only `bookings.createGame` sets it.
+A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, or any Game created on a Group that was not a Verified Group at create. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice

@@ -414,6 +414,13 @@
       "when": 1792496229744,
       "tag": "0058_venue_payment_methods",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792866990556,
+      "tag": "0059_living_clint_barton",
+      "breakpoints": true
     }
   ]
 }

@@ -106,6 +106,7 @@ async function insertClub(database: TestDatabase) {
   const [group] = await database
     .insert(groups)
     .values({
+      verifiedAt: new Date(),
       name: "Finish Squad",
       type: GroupTypeEnum.PUBLIC,
       createdBy: creator,

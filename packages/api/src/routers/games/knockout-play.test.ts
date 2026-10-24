@@ -105,7 +105,11 @@ async function seedPostedKnockout(database: TestDatabase, prefix: string) {
     .returning({ id: courts.id });
   const [group] = await database
     .insert(groups)
-    .values({ name: `Group ${prefix}`, createdBy: owner.id })
+    .values({
+      verifiedAt: new Date(),
+      name: `Group ${prefix}`,
+      createdBy: owner.id,
+    })
     .returning({ id: groups.id });
   if (!group) {
     throw new Error("Failed to insert group");

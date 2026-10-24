@@ -65,7 +65,11 @@ async function insertCourt(
 async function insertGroup(database: TestDatabase, createdBy: string) {
   const [row] = await database
     .insert(groups)
-    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .values({
+      verifiedAt: new Date(),
+      name: `Group ${crypto.randomUUID()}`,
+      createdBy,
+    })
     .returning({ id: groups.id });
   if (!row) {
     throw new Error("Failed to insert group");

@@ -74,6 +74,7 @@ async function insertGroup(
   const [row] = await database
     .insert(groups)
     .values({
+      verifiedAt: new Date(),
       name: `Group ${crypto.randomUUID()}`,
       createdBy: args.createdBy,
       communityId: args.communityId,

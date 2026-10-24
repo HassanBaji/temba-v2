@@ -43,6 +43,10 @@ export const groups = pgTable("groups", {
   createdBy: uuid("created_by")
     .references(() => user.id, { onDelete: "cascade" })
     .notNull(),
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: uuid("verified_by").references(() => user.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

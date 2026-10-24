@@ -36,6 +36,7 @@ import {
   slotMembers,
   type MatchSlotMember,
 } from "@repo/domain/match-slots";
+import { groupIsVerified } from "#src/groups/group-is-verified";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "#src/groups/helpers/group-has-non-creator-members";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
@@ -720,6 +721,7 @@ export async function groupById(
     canJoinClubPublic,
     joinMode,
     requiresApproval: group.requiresApproval,
+    verified: await groupIsVerified(database, group),
     canDecideJoinRequests,
     canSetRequiresApproval,
     canManageLookupInvites,
