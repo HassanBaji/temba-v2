@@ -73,6 +73,7 @@ export function GameDetailsContent({
         </Surface>
       ) : null}
       {game.booking ? <BookedCard booking={game.booking} /> : null}
+      {!game.rated && !game.booking ? <UnratedCard /> : null}
       {game.joinFrozen && !game.cancelledAt ? (
         <Surface style={{ gap: 4 }}>
           <Text size="lead" weight="semibold" accessibilityRole="header">
@@ -116,7 +117,6 @@ export function GameDetailsContent({
           onConfirm={handlers.onConfirm}
         />
       ) : null}
-      {phase === "final" && !game.rated ? <UnratedCard /> : null}
       {phase === "final" && game.ratingImpact ? (
         <RatingImpactCard ratingImpact={game.ratingImpact} />
       ) : null}

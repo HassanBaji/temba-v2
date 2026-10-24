@@ -203,6 +203,7 @@ function GamesHubTabPanel({
             showPartnerJoin={showPartnerJoin}
             roundLabel={poolRoundLabel(game.roundNumber, game.roundCount)}
             courtName={game.courtName}
+            rated={game.rated}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
             }}

@@ -2,6 +2,7 @@ import { spacing } from "@repo/design-tokens";
 import type { FriendlyGameDetailsRatingImpact } from "@repo/domain/friendly-game-details";
 import {
   ratingImpactView,
+  UNRATED_GAME_LINE,
   UNRATED_LABEL,
 } from "@repo/domain/game-rating-impact";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react-native";
@@ -72,7 +73,9 @@ export function RatingImpactCard({
 export function UnratedCard() {
   return (
     <Card title={UNRATED_LABEL}>
-      <Hairline />
+      <Text size="meta" tone="muted">
+        {UNRATED_GAME_LINE}
+      </Text>
     </Card>
   );
 }

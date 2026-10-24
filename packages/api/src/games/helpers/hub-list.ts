@@ -49,6 +49,7 @@ export const hubListColumns = {
   id: true,
   name: true,
   isPublic: true,
+  rated: true,
   groupId: true,
   venueId: true,
   windowStart: true,
@@ -169,6 +170,7 @@ export type HubQueryRow = {
   id: string;
   name: string | null;
   isPublic: boolean;
+  rated: boolean;
   groupId: string | null;
   venueId: string;
   windowStart: Date | null;
@@ -532,6 +534,7 @@ export function toHubListRow(
     registrationMode: row.registrationMode,
     sport: row.sport,
     isPublic: row.isPublic,
+    rated: row.rated,
     groupId: row.groupId,
     groupName: row.group?.name ?? null,
     startTime: gameListTime(candidate),

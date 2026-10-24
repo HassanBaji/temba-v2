@@ -9,6 +9,7 @@ import {
   type CardSeatPosition,
 } from "@repo/domain/game-card";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { spotsOpenLabel } from "@repo/domain/game-occupancy";
 import {
   gameCardActionLabel,
@@ -138,19 +139,26 @@ export function GameCard({
         <Text size="meta" tone="muted" weight="medium">
           {dayLabel}
         </Text>
-        {cancelled ? (
-          <Text size="meta" weight="semibold">
-            Cancelled
-          </Text>
-        ) : hasOpenCount ? (
-          <Text
-            size="meta"
-            tone="muted"
-            weight={openSpots > 0 ? "semibold" : "regular"}
-          >
-            {spotsOpenLabel(openSpots)}
-          </Text>
-        ) : null}
+        <View style={{ flexDirection: "row", columnGap: 12 }}>
+          {!game.rated ? (
+            <Text size="meta" weight="semibold">
+              {UNRATED_LABEL}
+            </Text>
+          ) : null}
+          {cancelled ? (
+            <Text size="meta" weight="semibold">
+              Cancelled
+            </Text>
+          ) : hasOpenCount ? (
+            <Text
+              size="meta"
+              tone="muted"
+              weight={openSpots > 0 ? "semibold" : "regular"}
+            >
+              {spotsOpenLabel(openSpots)}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       <View
