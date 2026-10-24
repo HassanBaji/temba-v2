@@ -24,8 +24,11 @@ export type SheetProps = {
   visible: boolean;
   onClose: () => void;
   title?: string;
+  subtitle?: string | null;
   action?: React.ReactNode;
   tall?: boolean;
+  /** Pinned under the scrolling body of a tall sheet. */
+  footer?: React.ReactNode;
   keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
   children: React.ReactNode;
 };
@@ -34,8 +37,10 @@ export function Sheet({
   visible,
   onClose,
   title,
+  subtitle,
   action,
   tall = false,
+  footer,
   keyboardShouldPersistTaps,
   children,
 }: SheetProps) {
@@ -79,13 +84,13 @@ export function Sheet({
             {tall ? <Grabber /> : null}
             {tall || action ? (
               <View style={{ flex: tall ? 1 : undefined, gap: TITLE_GAP }}>
-                <TitleRow title={title} action={action} />
+                <TitleRow title={title} subtitle={subtitle} action={action} />
                 {tall ? (
                   <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={{
                       gap: TITLE_GAP,
-                      paddingBottom: bottomPadding,
+                      paddingBottom: footer ? spacing.surface : bottomPadding,
                     }}
                     keyboardShouldPersistTaps={keyboardShouldPersistTaps}
                     automaticallyAdjustKeyboardInsets
@@ -95,6 +100,18 @@ export function Sheet({
                 ) : (
                   children
                 )}
+                {tall && footer ? (
+                  <View
+                    style={{
+                      borderTopWidth: hairline,
+                      borderColor: colors.rule,
+                      paddingTop: spacing.compact,
+                      paddingBottom: bottomPadding,
+                    }}
+                  >
+                    {footer}
+                  </View>
+                ) : null}
               </View>
             ) : (
               <Section title={title}>{children}</Section>
@@ -126,31 +143,43 @@ function Grabber() {
 
 function TitleRow({
   title,
+  subtitle,
   action,
 }: {
   title?: string;
+  subtitle?: string | null;
   action?: React.ReactNode;
 }) {
+  const heading = title ? (
+    <Text
+      size="title"
+      width="expanded"
+      accessibilityRole="header"
+      style={{ flexShrink: 1 }}
+    >
+      {title}
+    </Text>
+  ) : (
+    <View />
+  );
   return (
     <View
       style={{
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: subtitle ? "flex-start" : "center",
         justifyContent: "space-between",
         gap: TITLE_GAP,
       }}
     >
-      {title ? (
-        <Text
-          size="title"
-          width="expanded"
-          accessibilityRole="header"
-          style={{ flexShrink: 1 }}
-        >
-          {title}
-        </Text>
+      {subtitle ? (
+        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+          {heading}
+          <Text size="meta" tone="muted">
+            {subtitle}
+          </Text>
+        </View>
       ) : (
-        <View />
+        heading
       )}
       {action}
     </View>

@@ -18,6 +18,7 @@ export type ScreenProps = {
   stickyIndex?: number;
   onViewportHeight?: (height: number) => void;
   header?: React.ReactNode;
+  bleedHeader?: boolean;
   footer?: React.ReactNode;
   /** Fill of the fixed band behind the status bar; match an ink `header`. */
   statusBarTone?: "paper" | "ink";
@@ -34,6 +35,7 @@ export function Screen({
   stickyIndex,
   onViewportHeight,
   header,
+  bleedHeader = false,
   footer,
   statusBarTone = "paper",
 }: ScreenProps) {
@@ -72,7 +74,7 @@ export function Screen({
         style={{
           flex: 1,
           backgroundColor: colors[statusBarTone],
-          paddingTop: insets.top,
+          paddingTop: bleedHeader && header ? 0 : insets.top,
         }}
       >
         {scroll ? (
