@@ -1,4 +1,3 @@
-import { useUser } from "@clerk/expo";
 import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
 import {
   HISTORY_PAGE_SIZE,
@@ -24,12 +23,10 @@ import { useGameJoin } from "./use-game-join";
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function GamesScreen() {
-  const { user } = useUser();
   const router = useRouter();
   const [tab, setTab] = useState<GamesTab>("my-games");
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const hasCreateAccess = user?.publicMetadata.groupCreator === true;
 
   const myGames = api.games.listMyGames.useQuery(
     undefined,
@@ -82,7 +79,6 @@ export function GamesScreen() {
         }
         pendingGameId={pendingGameId}
         pickerGame={pickerGame}
-        hasCreateAccess={hasCreateAccess}
         onOpenPicker={setPickerGame}
         onOpen={(gameId) => router.push(gamePath(gameId))}
         onJoinSeat={(gameId, sideIndex, position) =>

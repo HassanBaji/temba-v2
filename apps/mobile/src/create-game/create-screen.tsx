@@ -1,4 +1,3 @@
-import { useUser } from "@clerk/expo";
 import { parseCreateFlowType } from "@repo/domain/create-game-flow";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useReducer, useState } from "react";
@@ -34,7 +33,6 @@ export function CreateGameScreen({
 }) {
   const router = useRouter();
   const toast = useToast();
-  const { isLoaded, user } = useUser();
   const utils = api.useUtils();
   const [now, setNow] = useState(() => new Date());
   const [state, rawDispatch] = useReducer(createReducer, undefined, () =>
@@ -198,21 +196,6 @@ export function CreateGameScreen({
       setRefreshing(false);
     }
   }, [groups, picker, state.draft.groupId]);
-
-  if (isLoaded && user?.publicMetadata.groupCreator !== true) {
-    return (
-      <StepShell step={null} header={CREATE_ENTRY_HEADER}>
-        <Surface style={{ gap: 8 }} accessibilityRole="alert">
-          <Text size="lead" weight="semibold">
-            Creating Games is not available for your account yet
-          </Text>
-          <Text size="meta" tone="muted">
-            Ask a Group organizer to add you, or join a Game from the Games tab.
-          </Text>
-        </Surface>
-      </StepShell>
-    );
-  }
 
   const groupError = clientErrors.groupId ?? groupFieldError;
   const errors: FieldErrors = {

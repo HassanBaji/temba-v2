@@ -10,7 +10,6 @@ import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
-import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import {
   PendingInvitesSection,
@@ -21,7 +20,6 @@ import { FormStrip } from "~/components/temba/form-strip";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { entityListIsEmpty } from "@repo/domain/entity-list-empty";
 import {
   groupNextGameWeekday,
   groupRowMetaLine,
@@ -231,7 +229,6 @@ export default function GroupsIndexPage({
     enabled: tab === "public",
   });
   const invites = api.groups.pendingLookupInvites.useQuery();
-  const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
 
   function setTab(next: string) {
@@ -300,26 +297,12 @@ export default function GroupsIndexPage({
 
   const groupRows = groups.data ?? [];
   const showGroups = groupRows.length > 0;
-  const showEmpty =
-    entityListIsEmpty({
-      list: {
-        isLoading: groups.isLoading,
-        error: groups.error,
-        count: groupRows.length,
-      },
-      invites: {
-        isLoading: invites.isLoading,
-        count: invites.data?.length ?? 0,
-      },
-    }) && !hasCreateAccess;
 
   return (
     <DashboardShell
       title="Groups"
       action={
-        hasCreateAccess ? (
-          <PageCreateAction href="/dashboard/groups/new" label="Create Group" />
-        ) : undefined
+        <PageCreateAction href="/dashboard/groups/new" label="Create Group" />
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
@@ -359,15 +342,7 @@ export default function GroupsIndexPage({
               }}
             />
 
-            {hasCreateAccess ? <StartAGroupCard /> : null}
-
-            {showEmpty ? (
-              <EmptyState
-                icon={Users}
-                title="No Groups yet"
-                description="Groups are where you play and where your Standing lives."
-              />
-            ) : null}
+            <StartAGroupCard />
           </div>
         </TabsContent>
 

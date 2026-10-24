@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { useCreateAccess } from "~/components/create-access-gate";
 import { HomeSeatRow } from "~/components/home/home-seat-row";
 import { Button } from "~/components/ui/button";
 import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
@@ -111,12 +110,8 @@ export function HomeNextGame({
 }
 
 export function HomeNoGames() {
-  const { hasCreateAccess } = useCreateAccess();
-  const createGroups = api.games.listCreateGroups.useQuery(undefined, {
-    enabled: hasCreateAccess,
-  });
+  const createGroups = api.games.listCreateGroups.useQuery();
   const createAction = homeNoGamesCreateAction({
-    hasCreateAccess,
     createGroupCount: createGroups.data?.length,
   });
 

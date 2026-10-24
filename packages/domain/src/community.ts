@@ -315,11 +315,10 @@ export type CommunityHomeActions = {
 
 export function communityHomeActions(
   data: CommunityHomeData,
-  hasCreateAccess: boolean,
 ): CommunityHomeActions {
   return {
     canInvite: communityCanInvite(data),
-    canCreateClubGroup: hasCreateAccess && data.canCreateClubGroup,
+    canCreateClubGroup: data.canCreateClubGroup,
     canUnarchive: data.canUnarchive,
     canLeave: communityIsMember(data),
     canSoftArchive: data.canSoftArchive,
@@ -550,7 +549,7 @@ export function communityLiveVenueRow(venue: CommunityLiveVenueData) {
 
 export const COMMUNITY_CREATE_NOT_AVAILABLE = {
   title: "Creating is limited",
-  description: "New Communities, Groups, and Games are set up by Temba staff.",
+  description: "New Communities are set up by Temba staff.",
 };
 
 export function communityTabLabel(tab: CommunityHomeTab, requestCount: number) {

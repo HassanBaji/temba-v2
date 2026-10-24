@@ -67,7 +67,6 @@ export type HomeFixture = {
   gamesWon: number;
   gamesLost: number;
   standing: HomeStandingRow[];
-  hasCreateAccess: boolean;
   createGroupCount: number;
 };
 
@@ -191,7 +190,6 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 3,
     gamesLost: 2,
     standing,
-    hasCreateAccess: false,
     createGroupCount: 1,
   };
 
@@ -232,7 +230,6 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 11,
     gamesLost: 6,
     standing,
-    hasCreateAccess: true,
     createGroupCount: 1,
   };
 
@@ -263,7 +260,6 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 0,
     gamesLost: 0,
     standing: [],
-    hasCreateAccess: true,
     createGroupCount: 1,
   };
 

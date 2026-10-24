@@ -10,7 +10,6 @@ export type GroupHomeCtaFamily =
 export type GroupHomeCtaInput = {
   canJoin: boolean;
   nextJoinableGameId: string | null;
-  hasCreateAccess: boolean;
   canCreateGame: boolean;
   canManageLookupInvites: boolean;
   canManageInviteLinks: boolean;
@@ -40,11 +39,8 @@ export type GroupHomeOverflowInput = {
   canDelete: boolean;
 };
 
-export function groupHomeCanShowCreateGame(input: {
-  hasCreateAccess: boolean;
-  canCreateGame: boolean;
-}) {
-  return input.hasCreateAccess && input.canCreateGame;
+export function groupHomeCanShowCreateGame(input: { canCreateGame: boolean }) {
+  return input.canCreateGame;
 }
 
 export function groupHomeCanManageInvites(input: {

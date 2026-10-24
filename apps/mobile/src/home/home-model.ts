@@ -167,7 +167,6 @@ export function homeModelFromFixture(fixture: HomeFixture): HomeModel {
     },
     standing: fixture.standing,
     noGamesAction: homeNoGamesCreateAction({
-      hasCreateAccess: fixture.hasCreateAccess,
       createGroupCount: fixture.createGroupCount,
     }),
   };

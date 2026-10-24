@@ -34,7 +34,6 @@ export type GamesViewProps = {
   historyLoadMoreFailed?: string | null;
   pendingGameId: string | null;
   pickerGame: HubGameRow | null;
-  hasCreateAccess: boolean;
   onOpenPicker: (game: HubGameRow | null) => void;
   onOpen: (gameId: string) => void;
   onJoinSeat: (
@@ -156,13 +155,11 @@ export function GamesView(props: GamesViewProps) {
       <ScreenHeader
         title="Games"
         actions={
-          props.hasCreateAccess ? (
-            <HeaderIconButton
-              icon={Plus}
-              accessibilityLabel="Create Game"
-              onPress={props.onCreate}
-            />
-          ) : null
+          <HeaderIconButton
+            icon={Plus}
+            accessibilityLabel="Create Game"
+            onPress={props.onCreate}
+          />
         }
       />
       <TabButtons
@@ -201,11 +198,7 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
     return (
       <Empty
         {...myGamesEmptyCopy()}
-        action={
-          props.hasCreateAccess ? (
-            <Button label="Create Game" onPress={props.onCreate} />
-          ) : undefined
-        }
+        action={<Button label="Create Game" onPress={props.onCreate} />}
       />
     );
   }

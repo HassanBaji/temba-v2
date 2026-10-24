@@ -469,7 +469,6 @@ export default function GroupHomePage({
   const data = group.data;
   const groupName = data.name ?? "Group";
   const canShowCreateGame = groupHomeCanShowCreateGame({
-    hasCreateAccess,
     canCreateGame: data.canCreateGame,
   });
   const canManageInvites = groupHomeCanManageInvites({
@@ -481,7 +480,6 @@ export default function GroupHomePage({
     nextJoinableGameId:
       groupHomeNextJoinableGame(data.upcomingGames, Boolean(data.membership))
         ?.id ?? null,
-    hasCreateAccess,
     canCreateGame: data.canCreateGame,
     canManageLookupInvites: data.canManageLookupInvites,
     canManageInviteLinks: data.canManageInviteLinks,

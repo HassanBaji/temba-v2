@@ -39,7 +39,6 @@ export type GroupsViewProps = {
   onOpen: (groupId: string) => void;
   onJoin: (groupId: string, door: GroupJoinDoor) => void;
   onRetry: () => void;
-  hasCreateAccess: boolean;
   onCreate: () => void;
 };
 
@@ -332,13 +331,11 @@ export function GroupsView(props: GroupsViewProps) {
       <ScreenHeader
         title="Groups"
         actions={
-          props.hasCreateAccess ? (
-            <HeaderIconButton
-              icon={Plus}
-              accessibilityLabel="Create Group"
-              onPress={props.onCreate}
-            />
-          ) : null
+          <HeaderIconButton
+            icon={Plus}
+            accessibilityLabel="Create Group"
+            onPress={props.onCreate}
+          />
         }
       />
       <TabButtons tab={props.tab} onTabChange={props.onTabChange} />

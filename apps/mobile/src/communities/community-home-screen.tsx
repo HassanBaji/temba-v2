@@ -1,4 +1,3 @@
-import { useUser } from "@clerk/expo";
 import {
   COMMUNITY_ARCHIVED_TOAST,
   COMMUNITY_ERROR_TITLE,
@@ -51,11 +50,9 @@ import { CommunityHomeView } from "./community-home-view";
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function CommunityHomeScreen({ communityId }: { communityId: string }) {
-  const { user } = useUser();
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
-  const hasCreateAccess = user?.publicMetadata.groupCreator === true;
   const [tab, setTab] = useState<CommunityHomeTab>("groups");
   const [refreshing, setRefreshing] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -292,7 +289,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
     );
   }
 
-  const actions = communityHomeActions(data, hasCreateAccess);
+  const actions = communityHomeActions(data);
   const mutating = (pending: boolean, id: string | undefined) =>
     pending ? (id ?? null) : null;
 
@@ -301,7 +298,6 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
       <CommunityHomeView
         data={data}
         apiOrigin={apiOrigin}
-        hasCreateAccess={hasCreateAccess}
         tab={tab}
         onTabChange={setTab}
         requestCount={communityRequestCount({
