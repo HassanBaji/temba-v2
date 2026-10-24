@@ -53,8 +53,12 @@ A physical facility: one addressable site with a name, location, and Courts. Not
 _Avoid_: club (that is the avoided synonym for Community), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
 
 **Court**:
-A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment.
-_Avoid_: Venue, pitch, field, club (when you mean this entity)
+A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment. A Court has one **Court sport**. A Match or Booking Court must have the Game’s or the Customer’s sport.
+_Avoid_: Venue, pitch (as the entity name; football product copy may say pitch), field, club (when you mean this entity)
+
+**Court sport**:
+The one sport a Court is for: padel or football. A Venue offers a sport when at least one of its Courts has it. Set by a Venue manager or Operator; changing it never changes a Booking. Product copy calls a football Court a pitch; the entity is still a Court.
+_Avoid_: Venue sport, Venue sports (there is no Venue-level list), pitch (as the entity name), field
 
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.

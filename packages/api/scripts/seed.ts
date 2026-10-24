@@ -90,6 +90,7 @@ import { updateCancellationPolicy } from "#src/routers/venues/updateCancellation
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
 import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
+import type { Sport } from "@repo/domain/sport";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
 
@@ -332,6 +333,7 @@ async function seedVenues() {
     city: string,
     country: string,
     courtNames: string[],
+    sport: Sport = "padel",
   ) => {
     const created = await createVenue(db, { name, city, country });
     const courtIds: string[] = [];
@@ -339,6 +341,7 @@ async function seedVenues() {
       const court = await addCourt(db, {
         venueId: created.id,
         name: courtName,
+        sport,
         actor: { userId: "seed", publicMetadata: { operator: true } },
       });
       courtIds.push(court.id);
@@ -417,10 +420,45 @@ async function seedVenues() {
     "Court 2",
     "Court 3",
   ]);
+  const pitches = await venue(
+    "Matchday Pitches",
+    "Lisbon",
+    "PT",
+    ["Pitch A", "Pitch B"],
+    "football",
+  );
+  const pitchHours = [{ opensAtMinutes: 8 * 60, closesAtMinutes: 23 * 60 }];
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    await setOpeningHours(db, {
+      venueId: pitches.id,
+      weekday,
+      windows: pitchHours,
+      actor: operator,
+    });
+  }
+  await setPricingRules(db, {
+    venueId: pitches.id,
+    rules: pitches.courtIds.map((courtId) => ({
+      courtId,
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      startMinutes: 0,
+      endMinutes: 24 * 60,
+      hourlyRateFils: 30_000,
+      label: "All day",
+    })),
+    actor: operator,
+  });
+  await updateBookingSettings(db, {
+    venueId: pitches.id,
+    acceptingBookings: true,
+    durationOptionsMinutes: [60, 90],
+    bookingHorizonDays: 21,
+    actor: operator,
+  });
   const oldTown = await venue("Old Town Arena", "Lisbon", "PT", ["Court 1"]);
   await softArchiveVenue(db, { venueId: oldTown.id });
 
-  return { central, riverside, harbour, oldTown };
+  return { central, riverside, harbour, pitches, oldTown };
 }
 
 // ---------------------------------------------------------------------------

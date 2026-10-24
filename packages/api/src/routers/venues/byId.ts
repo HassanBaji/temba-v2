@@ -29,6 +29,7 @@ export async function venueById(database: DbClient, args: { venueId: string }) {
         columns: {
           id: true,
           name: true,
+          sport: true,
           createdAt: true,
           updatedAt: true,
         },

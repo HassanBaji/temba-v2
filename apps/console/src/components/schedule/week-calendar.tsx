@@ -2,6 +2,7 @@
 
 import { LayoutGrid } from "lucide-react";
 
+import { CourtSportBadge } from "~/components/courts/court-sport-badge";
 import { EmptyState } from "~/components/common/empty-state";
 import { cn } from "~/lib/utils";
 import { formatDayMonth } from "@repo/domain/format-game-start";
@@ -91,6 +92,7 @@ export function WeekCalendar({
           >
             <div className="border-rule flex min-w-0 items-start border-b px-2.5 py-2.5 text-[13px] font-semibold">
               <span className="truncate">{court.name}</span>
+              <CourtSportBadge sport={court.sport} className="ml-2" />
             </div>
             {days.map((entry) => {
               const closures = closuresForCourt(grid.closures, court.id, entry);

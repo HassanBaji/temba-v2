@@ -210,6 +210,7 @@ type ExpectedVenues =
   | "updateDetails"
   | "addCourt"
   | "renameCourt"
+  | "setCourtSport"
   | "deleteCourt"
   | "uploadLogo"
   | "clearLogo"

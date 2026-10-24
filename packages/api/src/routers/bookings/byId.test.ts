@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { bookingPayments } from "@repo/db";
+import { bookingPayments, bookings } from "@repo/db";
 
 import { refundPercentAt } from "@repo/domain/booking-refund";
 
@@ -12,6 +12,7 @@ import {
   withBookableVenue,
 } from "#src/bookings/booking.test-support";
 import { bookingById } from "#src/routers/bookings/byId";
+import { setCourtSport } from "#src/routers/venues/setCourtSport";
 
 const policy = {
   tiers: [
@@ -23,6 +24,46 @@ const policy = {
 };
 
 describe("bookings.byId", () => {
+  it("carries the Court sport and survives a sport change untouched", async () => {
+    await withBookableVenue(async (db, f) => {
+      const booking = await insertBooking(db, f, {
+        startsAt: at(8, 18),
+        endsAt: at(8, 19),
+        priceFils: 10_000,
+        paymentStatus: "paid",
+        cancellationPolicy: policy,
+      });
+      const holder = { userId: f.customer, publicMetadata: undefined };
+      const before = await db.query.bookings.findFirst({
+        where: eq(bookings.id, booking.id),
+      });
+
+      const padel = await bookingById(db, {
+        bookingId: booking.id,
+        actor: holder,
+        now: NOW,
+      });
+      expect(padel.court.sport).toBe("padel");
+
+      await setCourtSport(db, {
+        courtId: booking.courtId,
+        sport: "football",
+        actor: { userId: "operator", publicMetadata: { operator: true } },
+      });
+
+      const football = await bookingById(db, {
+        bookingId: booking.id,
+        actor: holder,
+        now: NOW,
+      });
+      expect(football.court.sport).toBe("football");
+      const after = await db.query.bookings.findFirst({
+        where: eq(bookings.id, booking.id),
+      });
+      expect(after).toEqual(before);
+    });
+  });
+
   it("reports the live cancel consequence consistent with booking-refund", async () => {
     await withBookableVenue(async (db, f) => {
       const booking = await insertBooking(db, f, {

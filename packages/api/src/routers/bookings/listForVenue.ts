@@ -123,7 +123,7 @@ export async function listBookingsForVenue(
 
   const [courtRows, hours, closureRows, bookingRows] = await Promise.all([
     database
-      .select({ id: courts.id, name: courts.name })
+      .select({ id: courts.id, name: courts.name, sport: courts.sport })
       .from(courts)
       .where(eq(courts.venueId, args.venueId))
       .orderBy(asc(courts.name), asc(courts.id)),
@@ -158,6 +158,7 @@ export async function listBookingsForVenue(
         id: bookings.id,
         courtId: bookings.courtId,
         courtName: courts.name,
+        courtSport: courts.sport,
         startsAt: bookings.startsAt,
         endsAt: bookings.endsAt,
         status: bookings.status,
@@ -209,6 +210,7 @@ export async function listBookingsForVenue(
       id: row.id,
       courtId: row.courtId,
       courtName: row.courtName,
+      courtSport: row.courtSport,
       startsAt: row.startsAt,
       endsAt: row.endsAt,
       status: row.status,

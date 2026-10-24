@@ -73,6 +73,7 @@ export async function listMyBookings(
       venueName: venues.name,
       courtId: courts.id,
       courtName: courts.name,
+      courtSport: courts.sport,
     })
     .from(bookings)
     .innerJoin(venues, eq(venues.id, bookings.venueId))
@@ -98,7 +99,7 @@ export async function listMyBookings(
       priceFils: row.priceFils,
       gameId: row.gameId,
       venue: { id: row.venueId, name: row.venueName },
-      court: { id: row.courtId, name: row.courtName },
+      court: { id: row.courtId, name: row.courtName, sport: row.courtSport },
     })),
     nextCursor:
       rows.length > limit && last

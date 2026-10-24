@@ -27,6 +27,8 @@ import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { courtRenameIsDirty } from "@repo/domain/court-rename";
+import { COURT_SPORT_LABELS } from "@repo/domain/court-sport-copy";
+import { SPORTS, type Sport } from "@repo/domain/sport";
 
 import {
   controlClass,
@@ -39,7 +41,9 @@ import {
   courtAvailability,
   type CourtAvailability,
 } from "./court-status-model";
+import { CourtSportBadge } from "./court-sport-badge";
 import { mutationErrorMessage } from "./mutation-error";
+import { NativeSelect } from "./native-select";
 
 function AvailabilityBadge({
   availability,
@@ -68,6 +72,7 @@ function CourtNameDialog({
   title,
   description,
   initialName,
+  withSport,
   confirmLabel,
   pending,
   error,
@@ -78,16 +83,19 @@ function CourtNameDialog({
   title: string;
   description: string;
   initialName: string;
+  withSport?: boolean;
   confirmLabel: string;
   pending: boolean;
   error: string | null;
-  onSubmit: (name: string) => void;
+  onSubmit: (name: string, sport: Sport) => void;
 }) {
   const [name, setName] = React.useState(initialName);
+  const [sport, setSport] = React.useState<Sport>("padel");
 
   React.useEffect(() => {
     if (open) {
       setName(initialName);
+      setSport("padel");
     }
   }, [open, initialName]);
 
@@ -107,7 +115,7 @@ function CourtNameDialog({
           onSubmit={(event) => {
             event.preventDefault();
             if (!pending && dirty) {
-              onSubmit(name.trim());
+              onSubmit(name.trim(), sport);
             }
           }}
         >
@@ -140,6 +148,24 @@ function CourtNameDialog({
               </p>
             ) : null}
           </div>
+          {withSport ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="court-sport" className="text-meta">
+                Sport
+              </Label>
+              <NativeSelect
+                id="court-sport"
+                value={sport}
+                onChange={(event) => setSport(event.target.value as Sport)}
+              >
+                {SPORTS.map((value) => (
+                  <option key={value} value={value}>
+                    {COURT_SPORT_LABELS[value]}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+          ) : null}
           <DialogFooter>
             <Button
               type="button"
@@ -195,10 +221,13 @@ export function AddCourtDialog({
       title="Add court"
       description="Players see this name when they pick a Court."
       initialName=""
+      withSport
       confirmLabel="Add court"
       pending={addCourt.isPending}
       error={addCourt.error ? mutationErrorMessage(addCourt.error) : null}
-      onSubmit={(name) => addCourt.mutate({ venueId: venue.id, name })}
+      onSubmit={(name, sport) =>
+        addCourt.mutate({ venueId: venue.id, name, sport })
+      }
     />
   );
 }
@@ -265,6 +294,14 @@ export function CourtCards() {
     },
   });
 
+  const setCourtSport = api.venues.setCourtSport.useMutation({
+    onSuccess: async () => {
+      toast.success("Sport updated");
+      await refresh();
+    },
+    onError: (error) => toast.error(mutationErrorMessage(error)),
+  });
+
   const deleteCourt = api.venues.deleteCourt.useMutation({
     onSuccess: async () => {
       toast.success("Court deleted");
@@ -310,6 +347,7 @@ export function CourtCards() {
                 <span className="min-w-0 flex-1 truncate text-base font-semibold">
                   {court.name}
                 </span>
+                <CourtSportBadge sport={court.sport} />
                 <AvailabilityBadge availability={availability} now={now} />
                 <CourtMenu
                   courtName={court.name}
@@ -320,6 +358,23 @@ export function CourtCards() {
                   onDelete={() => setDeleteId(court.id)}
                 />
               </div>
+              <NativeSelect
+                aria-label={`${court.name} sport`}
+                value={court.sport}
+                disabled={setCourtSport.isPending}
+                onChange={(event) =>
+                  setCourtSport.mutate({
+                    id: court.id,
+                    sport: event.target.value as Sport,
+                  })
+                }
+              >
+                {SPORTS.map((value) => (
+                  <option key={value} value={value}>
+                    {COURT_SPORT_LABELS[value]}
+                  </option>
+                ))}
+              </NativeSelect>
             </li>
           );
         })}

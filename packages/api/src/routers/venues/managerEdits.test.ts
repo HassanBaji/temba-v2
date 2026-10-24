@@ -17,6 +17,7 @@ import { addCourt } from "#src/routers/venues/addCourt";
 import { clearLogo } from "#src/routers/venues/clearLogo";
 import { deleteCourt } from "#src/routers/venues/deleteCourt";
 import { renameCourt } from "#src/routers/venues/renameCourt";
+import { setCourtSport } from "#src/routers/venues/setCourtSport";
 import { updateVenueDetails } from "#src/routers/venues/updateDetails";
 import { uploadLogo } from "#src/routers/venues/uploadLogo";
 
@@ -225,6 +226,85 @@ describe("venues.updateDetails", () => {
         "venueId",
         "website",
       ]);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("Court sport", () => {
+  it("defaults a new Court to padel and accepts football", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const s = await seed(db);
+      const padel = await addCourt(db, {
+        venueId: s.mine,
+        name: "Court 1",
+        actor: s.manager,
+      });
+      const pitch = await addCourt(db, {
+        venueId: s.mine,
+        name: "Pitch 1",
+        sport: "football",
+        actor: s.manager,
+      });
+      expect(padel.sport).toBe("padel");
+      expect(pitch.sport).toBe("football");
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets a manager and an Operator set a Court sport, idempotently", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const s = await seed(db);
+      const court = await addCourt(db, {
+        venueId: s.mine,
+        name: "Court 1",
+        actor: s.manager,
+      });
+      const first = await setCourtSport(db, {
+        courtId: court.id,
+        sport: "football",
+        actor: s.manager,
+      });
+      const again = await setCourtSport(db, {
+        courtId: court.id,
+        sport: "football",
+        actor: s.manager,
+      });
+      expect(first.sport).toBe("football");
+      expect(again.sport).toBe("football");
+      const byOperator = await setCourtSport(db, {
+        courtId: s.theirCourt,
+        sport: "football",
+        actor: s.operator,
+      });
+      expect(byOperator.sport).toBe("football");
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a User who does not manage the Venue", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const s = await seed(db);
+      await expect(
+        setCourtSport(db, {
+          courtId: s.theirCourt,
+          sport: "football",
+          actor: s.manager,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        setCourtSport(db, {
+          courtId: s.theirCourt,
+          sport: "football",
+          actor: s.stranger,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     } finally {
       await close();
     }

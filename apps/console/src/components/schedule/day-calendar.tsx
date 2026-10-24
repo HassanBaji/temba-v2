@@ -3,6 +3,7 @@
 import { LayoutGrid } from "lucide-react";
 import type { MouseEvent } from "react";
 
+import { CourtSportBadge } from "~/components/courts/court-sport-badge";
 import { EmptyState } from "~/components/common/empty-state";
 import { cn } from "~/lib/utils";
 import { formatGameClock } from "@repo/domain/format-game-start";
@@ -120,6 +121,7 @@ export function DayCalendar({
             className="flex min-w-0 items-center px-2.5 text-[13px] font-semibold"
           >
             <span className="truncate">{court.name}</span>
+            <CourtSportBadge sport={court.sport} className="ml-2" />
           </div>
         ))}
       </div>

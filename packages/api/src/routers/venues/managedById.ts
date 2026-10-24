@@ -59,7 +59,13 @@ export async function managedVenueById(
     },
     with: {
       courts: {
-        columns: { id: true, name: true, createdAt: true, updatedAt: true },
+        columns: {
+          id: true,
+          name: true,
+          sport: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: (table, { asc }) => [asc(table.createdAt)],
       },
       photos: {

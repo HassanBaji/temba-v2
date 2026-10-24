@@ -18,6 +18,7 @@ import { removeManagerProcedure as removeManager } from "./removeManager";
 import { removeClosureProcedure as removeClosure } from "./removeClosure";
 import { renameCourtProcedure as renameCourt } from "./renameCourt";
 import { searchManagerUsersProcedure as searchManagerUsers } from "./searchManagerUsers";
+import { setCourtSportProcedure as setCourtSport } from "./setCourtSport";
 import { setDisplayPhotosProcedure as setDisplayPhotos } from "./setDisplayPhotos";
 import { setOpeningHoursProcedure as setOpeningHours } from "./setOpeningHours";
 import { setPricingRulesProcedure as setPricingRules } from "./setPricingRules";
@@ -49,6 +50,7 @@ export const venuesRouter = createTRPCRouter({
   removeClosure,
   addCourt,
   renameCourt,
+  setCourtSport,
   deleteCourt,
   uploadLogo,
   clearLogo,

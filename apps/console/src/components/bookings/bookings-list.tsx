@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { CourtSportBadge } from "~/components/courts/court-sport-badge";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { SegmentedControl } from "~/components/console/segmented-control";
@@ -263,7 +264,12 @@ function BookingRow({
           </span>
         </span>
       </td>
-      <td className={cn(cellClass, "truncate")}>{booking.courtName}</td>
+      <td className={cellClass}>
+        <span className="flex items-center gap-2">
+          <span className="truncate">{booking.courtName}</span>
+          <CourtSportBadge sport={booking.courtSport} />
+        </span>
+      </td>
       <td className={cellClass}>
         {booking.gameId ? (
           webOrigin ? (
