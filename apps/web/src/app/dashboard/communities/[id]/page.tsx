@@ -19,6 +19,7 @@ import { CommunityHomeChrome } from "~/components/communities/community-home-chr
 import { CommunityHomeSkeleton } from "~/components/communities/community-home-skeleton";
 import { CommunityLinkVenueDialog } from "~/components/communities/community-link-venue-dialog";
 import { CommunityMembersTab } from "~/components/communities/community-members-tab";
+import { CommunitySportsBlock } from "~/components/communities/community-sports-block";
 import { CommunityRequestsTab } from "~/components/communities/community-requests-tab";
 import { CommunityTeamsTab } from "~/components/communities/community-teams-tab";
 import { CommunityVenueBlock } from "~/components/communities/community-venue-block";
@@ -57,6 +58,11 @@ import {
   communityHomeTabFromQuery,
   communityHomeTabQuery,
 } from "@repo/domain/community-home-tab";
+import {
+  COMMUNITY_SPORT_ADDED_TOAST,
+  COMMUNITY_SPORT_REMOVED_TOAST,
+} from "@repo/domain/community-sports";
+import type { Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { lookupInviteSentToast } from "@repo/domain/invites";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -237,6 +243,30 @@ export default function CommunityHomePage({
       toast.success(COMMUNITY_VENUE_UNLINKED_TOAST);
       await utils.communities.byId.invalidate({ id });
     },
+  });
+
+  const [pendingSport, setPendingSport] = useState<Sport | null>(null);
+
+  const addSport = api.communities.addSport.useMutation({
+    onSuccess: async () => {
+      toast.success(COMMUNITY_SPORT_ADDED_TOAST);
+      await utils.communities.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+    onSettled: () => setPendingSport(null),
+  });
+
+  const removeSport = api.communities.removeSport.useMutation({
+    onSuccess: async () => {
+      toast.success(COMMUNITY_SPORT_REMOVED_TOAST);
+      await utils.communities.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+    onSettled: () => setPendingSport(null),
   });
 
   const createClubPublic = api.groups.createClubPublic.useMutation({
@@ -461,6 +491,22 @@ export default function CommunityHomePage({
     />
   ) : null;
 
+  const sportsBlock = isMember ? (
+    <CommunitySportsBlock
+      sports={data.sports}
+      canManage={data.canManageSports}
+      pendingSport={pendingSport}
+      onAdd={(sport) => {
+        setPendingSport(sport);
+        addSport.mutate({ communityId: id, sport });
+      }}
+      onRemove={(sport) => {
+        setPendingSport(sport);
+        removeSport.mutate({ communityId: id, sport });
+      }}
+    />
+  ) : null;
+
   return (
     <DashboardShell
       title={communityName}
@@ -510,7 +556,12 @@ export default function CommunityHomePage({
 
           <TabsContent value="groups">
             <CommunityGroupsTab
-              venue={venueBlock}
+              venue={
+                <>
+                  {venueBlock}
+                  {sportsBlock}
+                </>
+              }
               groups={data.groups}
               canCreateClubGroup={canShowCreateClubGroup}
               onCreate={() => setCreateGroupOpen(true)}
@@ -680,16 +731,17 @@ export default function CommunityHomePage({
         <CommunityCreateGroupDialog
           open={createGroupOpen}
           onOpenChange={setCreateGroupOpen}
+          communitySports={data.sports}
           pending={createClubPending}
           error={createClubPublic.error ?? createClubPrivate.error}
-          onCreatePublic={(name, requiresApproval, image) => {
+          onCreatePublic={(name, sport, requiresApproval, image) => {
             void (async () => {
               try {
                 createClubPrivate.reset();
                 const group = await createClubPublic.mutateAsync({
                   communityId: id,
                   name,
-                  sport: "padel",
+                  sport,
                   requiresApproval,
                 });
                 await finishClubGroupCreate(
@@ -702,14 +754,14 @@ export default function CommunityHomePage({
               }
             })();
           }}
-          onCreatePrivate={(name, image) => {
+          onCreatePrivate={(name, sport, image) => {
             void (async () => {
               try {
                 createClubPublic.reset();
                 const group = await createClubPrivate.mutateAsync({
                   communityId: id,
                   name,
-                  sport: "padel",
+                  sport,
                 });
                 await finishClubGroupCreate(
                   group,

@@ -11,8 +11,10 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldTitle,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { SportPicker } from "~/components/temba/sport-picker";
 import { Input } from "~/components/ui/input";
 import {
   Select,
@@ -28,6 +30,7 @@ import {
   type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -36,6 +39,7 @@ import {
 
 export type GroupCreateValues = {
   name: string;
+  sport: Sport;
   type: GroupCreateType;
   requiresApproval: boolean;
   image: File | null;
@@ -59,12 +63,14 @@ export function GroupCreateForm({
   const copy = GROUP_CREATE_COPY[context];
   const ids = {
     name: `${idPrefix}-name`,
+    sport: `${idPrefix}-sport`,
     type: `${idPrefix}-type`,
     approval: `${idPrefix}-requires-approval`,
     image: `${idPrefix}-image`,
   };
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
+  const [sport, setSport] = React.useState<Sport>(DEFAULT_SPORT);
   const [type, setType] = React.useState<GroupCreateType>("public");
   const [requiresApproval, setRequiresApproval] = React.useState(false);
   const [image, setImage] = React.useState<File | null>(null);
@@ -93,6 +99,7 @@ export function GroupCreateForm({
     }
     onSubmit({
       name: trimmed,
+      sport,
       type,
       requiresApproval: groupCreateRequiresApproval(type, requiresApproval),
       image,
@@ -118,6 +125,17 @@ export function GroupCreateForm({
             aria-describedby={nameError ? `${ids.name}-error` : undefined}
           />
           <FieldError id={`${ids.name}-error`}>{nameError}</FieldError>
+        </Field>
+
+        <Field>
+          <FieldTitle id={`${ids.sport}-label`}>Sport</FieldTitle>
+          <SportPicker
+            id={ids.sport}
+            labelledBy={`${ids.sport}-label`}
+            value={sport}
+            onChange={setSport}
+            disabled={pending}
+          />
         </Field>
 
         <Field>

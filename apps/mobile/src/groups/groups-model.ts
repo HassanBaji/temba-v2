@@ -14,6 +14,7 @@ import {
   groupNextGameWeekday,
   groupRowMetaLine,
 } from "@repo/domain/groups-list";
+import { sportLabel } from "@repo/domain/sport";
 import { memberCountLabel } from "@repo/domain/member-count-label";
 import type { FormMark } from "@repo/domain/member-form-marks";
 
@@ -70,6 +71,8 @@ export type PublicGroupRowView = {
   joinDisabled: boolean;
   joinOutlined: boolean;
   door: GroupJoinDoor | null;
+  sport: string | null;
+  sportLabel: string | null;
 };
 
 export function publicGroupRowView(
@@ -91,6 +94,8 @@ export function publicGroupRowView(
     joinDisabled: groupJoinDisabled(row.joinMode, pending),
     joinOutlined: row.joinMode !== "join",
     door: publicGroupJoinDoor(row),
+    sport: row.sport,
+    sportLabel: sportLabel(row.sport),
   };
 }
 

@@ -85,7 +85,7 @@ A planned App list of live Community Public clubs. Not a shipped surface. Distin
 _Avoid_: Group directory, marketplace, feed
 
 **Public Groups list**:
-An App list of live Public padel Groups the User is not in: Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row offers Join or Request to join.
+An App list of live Public Groups of any sport the User is not in, filterable by sport (All, Padel or Football): Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row shows its sport and offers Join or Request to join.
 _Avoid_: Directory, Group directory, marketplace, feed
 
 **Club Group Public**:

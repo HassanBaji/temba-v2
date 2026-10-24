@@ -103,7 +103,7 @@ export const COMMUNITY_START_CLUB_GROUP_COPY = {
 };
 
 export const COMMUNITY_CREATE_CLUB_GROUP_DESCRIPTION =
-  "A padel Group inside this Community.";
+  "A Group inside this Community.";
 
 export const COMMUNITY_NO_GROUPS_EMPTY = {
   title: "No Groups yet",

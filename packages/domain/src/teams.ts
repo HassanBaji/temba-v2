@@ -11,7 +11,7 @@ export const TEAMS_EMPTY_COPY = {
 };
 export const TEAM_CREATE_LABEL = "Create Team";
 export const TEAM_CREATE_DESCRIPTION =
-  "Start an unattached padel partnership. You become the first member and can invite a partner later.";
+  "Start an unattached Team. You become the first member and can invite a partner later.";
 export const TEAM_NAME_LABEL = "Name (optional)";
 export const TEAM_NAME_HINT =
   "If you leave this blank, the Team home uses member names.";

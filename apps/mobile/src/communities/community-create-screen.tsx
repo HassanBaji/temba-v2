@@ -4,6 +4,8 @@ import {
   COMMUNITY_CREATE_COPY,
   COMMUNITY_CREATE_NOT_AVAILABLE,
 } from "@repo/domain/community";
+import { toggleCommunitySport } from "@repo/domain/community-sports";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import type { CommunityVisibility } from "@repo/domain/community-chrome";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -25,6 +27,7 @@ export function CommunityCreateScreen() {
   const utils = api.useUtils();
   const [name, setName] = useState("");
   const [type, setType] = useState<CommunityVisibility>("public");
+  const [sports, setSports] = useState<Sport[]>([DEFAULT_SPORT]);
   const [nameError, setNameError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -47,12 +50,12 @@ export function CommunityCreateScreen() {
   });
 
   function submit() {
-    if (create.isPending) {
+    if (create.isPending || sports.length === 0) {
       return;
     }
     setNameError(null);
     setFormError(null);
-    create.mutate({ name, type, sports: ["padel"] });
+    create.mutate({ name, type, sports });
   }
 
   if (isLoaded && user?.publicMetadata.groupCreator !== true) {
@@ -84,6 +87,10 @@ export function CommunityCreateScreen() {
         formError={formError}
         type={type}
         onTypeChange={setType}
+        sports={sports}
+        onToggleSport={(sport) =>
+          setSports((current) => toggleCommunitySport(current, sport))
+        }
         pending={create.isPending}
         onSubmit={submit}
         onCancel={() => router.back()}

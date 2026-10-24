@@ -1,3 +1,5 @@
+import { sportLabel } from "./sport";
+
 export type HomeStandingRow = {
   groupId: string;
   groupName: string | null;
@@ -13,18 +15,6 @@ export type HomeStandingRowView = {
   rank: string;
   ofCount: string;
 };
-
-const SPORT_LABELS: Record<string, string> = {
-  padel: "Padel",
-  football: "Football",
-};
-
-function sportLabel(sport: string | null): string | null {
-  if (sport == null || sport.trim() === "") {
-    return null;
-  }
-  return SPORT_LABELS[sport] ?? sport;
-}
 
 export function homeStandingRowView(row: HomeStandingRow): HomeStandingRowView {
   return {

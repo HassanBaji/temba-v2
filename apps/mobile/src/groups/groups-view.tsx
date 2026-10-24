@@ -1,13 +1,20 @@
-import { sizes, spacing } from "@repo/design-tokens";
+import { colors, sizes, spacing } from "@repo/design-tokens";
 import type {
   GroupMineRowData,
   GroupPublicRowData,
 } from "@repo/domain/group-data";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
+import {
+  PUBLIC_GROUP_SPORT_FILTERS,
+  publicGroupSportFilterLabel,
+  type PublicGroupSportFilter,
+} from "@repo/domain/sport";
 import { Plus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import type { Slot } from "../home/home-model";
+import { ChoiceRow } from "../lib/choice-row";
+import { SportGlyph } from "../lib/sport-glyph";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { FormSlot } from "../primitives/form-slot";
@@ -32,6 +39,8 @@ const MARK_WIDTH = 28;
 export type GroupsViewProps = {
   tab: GroupsTab;
   onTabChange: (tab: GroupsTab) => void;
+  sportFilter: PublicGroupSportFilter;
+  onSportFilterChange: (filter: PublicGroupSportFilter) => void;
   mine: Slot<GroupMineRowData[]>;
   publicGroups: Slot<GroupPublicRowData[]>;
   apiOrigin: string;
@@ -215,7 +224,7 @@ function PublicGroupRow({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={[row.name, row.subtitle, row.meta]
+        accessibilityLabel={[row.name, row.subtitle, row.meta, row.sportLabel]
           .filter(Boolean)
           .join(", ")}
         onPress={() => onOpen(row.id)}
@@ -242,6 +251,16 @@ function PublicGroupRow({
           <Text size="meta" tone="muted" numberOfLines={2}>
             {row.meta}
           </Text>
+          {row.sportLabel ? (
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <SportGlyph sport={row.sport} color={colors.ink} size={14} />
+              <Text size="eyebrow" tone="muted" mono uppercase>
+                {row.sportLabel}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </Pressable>
       <Button
@@ -285,6 +304,23 @@ function MineList(props: GroupsViewProps) {
         </View>
       ))}
     </Surface>
+  );
+}
+
+function SportFilter(
+  props: Pick<GroupsViewProps, "sportFilter" | "onSportFilterChange">,
+) {
+  return (
+    <ChoiceRow
+      label="Filter by sport"
+      choices={PUBLIC_GROUP_SPORT_FILTERS.map((filter) => ({
+        value: filter,
+        label: publicGroupSportFilterLabel(filter),
+      }))}
+      value={props.sportFilter}
+      onSelect={props.onSportFilterChange}
+      disabled={false}
+    />
   );
 }
 
@@ -345,7 +381,13 @@ export function GroupsView(props: GroupsViewProps) {
       {props.tab === "mine" ? (
         <MineList {...props} />
       ) : (
-        <PublicList {...props} />
+        <>
+          <SportFilter
+            sportFilter={props.sportFilter}
+            onSportFilterChange={props.onSportFilterChange}
+          />
+          <PublicList {...props} />
+        </>
       )}
     </View>
   );

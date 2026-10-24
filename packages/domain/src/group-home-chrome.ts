@@ -2,18 +2,10 @@ import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { formatDayMonth, formatMonth } from "./format-game-start";
 import { memberCountLabel } from "./member-count-label";
 import { shortPlayerName } from "./player-name";
-
-const SPORT_LABELS: Record<string, string> = {
-  padel: "Padel",
-  football: "Football",
-};
+import { sportLabel } from "./sport";
 
 export function groupHomeSportLabel(sport: string | null | undefined) {
-  const value = sport?.trim();
-  if (!value) {
-    return null;
-  }
-  return SPORT_LABELS[value] ?? value;
+  return sportLabel(sport);
 }
 
 function seasonSinceMonth(createdAt: Date | string | null | undefined) {

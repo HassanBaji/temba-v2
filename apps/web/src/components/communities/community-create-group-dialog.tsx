@@ -23,7 +23,10 @@ import {
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import { SportPicker } from "~/components/temba/sport-picker";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
+import { clubGroupSportChoice } from "@repo/domain/community-sports";
+import type { Sport } from "@repo/domain/sport";
 import { entityImageFileError } from "@repo/domain/entity-image-file";
 import {
   GROUP_CREATE_COPY,
@@ -45,6 +48,7 @@ const COPY = GROUP_CREATE_COPY.club;
 const FIELD_IDS = {
   name: "club-group-name",
   type: "club-group-type",
+  sport: "club-group-sport",
   approval: "club-group-requires-approval",
   image: "club-group-image",
 };
@@ -55,20 +59,25 @@ const TYPE_OPTIONS: { value: GroupCreateType; label: string }[] = [
 ];
 
 function ClubGroupForm({
+  communitySports,
   pending,
   error,
   onCreatePublic,
   onCreatePrivate,
 }: {
+  communitySports: readonly string[];
   pending: boolean;
   error: CreateError;
   onCreatePublic: (
     name: string,
+    sport: Sport,
     requiresApproval: boolean,
     image: File | null,
   ) => void;
-  onCreatePrivate: (name: string, image: File | null) => void;
+  onCreatePrivate: (name: string, sport: Sport, image: File | null) => void;
 }) {
+  const sportChoice = clubGroupSportChoice(communitySports);
+  const [sport, setSport] = React.useState<Sport>(sportChoice.defaultSport);
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<GroupCreateType>("public");
@@ -117,10 +126,10 @@ function ClubGroupForm({
       }
     }
     if (type === "private") {
-      onCreatePrivate(trimmed, image);
+      onCreatePrivate(trimmed, sport, image);
       return;
     }
-    onCreatePublic(trimmed, requiresApproval, image);
+    onCreatePublic(trimmed, sport, requiresApproval, image);
   }
 
   return (
@@ -143,6 +152,20 @@ function ClubGroupForm({
           />
           <FieldError id={`${FIELD_IDS.name}-error`}>{nameError}</FieldError>
         </Field>
+
+        {sportChoice.showPicker ? (
+          <Field>
+            <FieldTitle id={`${FIELD_IDS.sport}-label`}>Sport</FieldTitle>
+            <SportPicker
+              id={FIELD_IDS.sport}
+              labelledBy={`${FIELD_IDS.sport}-label`}
+              value={sport}
+              onChange={setSport}
+              sports={sportChoice.sports}
+              disabled={pending}
+            />
+          </Field>
+        ) : null}
 
         <Field>
           <FieldTitle id={`${FIELD_IDS.type}-label`}>Type</FieldTitle>
@@ -212,6 +235,7 @@ function ClubGroupForm({
 export function CommunityCreateGroupDialog({
   open,
   onOpenChange,
+  communitySports,
   pending,
   error,
   onCreatePublic,
@@ -219,14 +243,16 @@ export function CommunityCreateGroupDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  communitySports: readonly string[];
   pending: boolean;
   error?: CreateError;
   onCreatePublic: (
     name: string,
+    sport: Sport,
     requiresApproval: boolean,
     image: File | null,
   ) => void;
-  onCreatePrivate: (name: string, image: File | null) => void;
+  onCreatePrivate: (name: string, sport: Sport, image: File | null) => void;
 }) {
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -234,12 +260,13 @@ export function CommunityCreateGroupDialog({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>Create Club Group</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            A padel Group inside this Community.
+            A Group inside this Community.
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <div className="px-4 pb-4 md:px-0 md:pb-0">
           <ClubGroupForm
+            communitySports={communitySports}
             pending={pending}
             error={error ?? null}
             onCreatePublic={onCreatePublic}

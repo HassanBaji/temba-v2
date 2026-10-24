@@ -44,6 +44,16 @@ describe("publicGroupRowView", () => {
     });
   });
 
+  it("carries the sport word for the row", () => {
+    expect(publicGroupRowView(open!, null, ORIGIN)).toMatchObject({
+      sport: "padel",
+      sportLabel: "Padel",
+    });
+    expect(publicGroupRowView(requested!, null, ORIGIN).sportLabel).toBe(
+      "Football",
+    );
+  });
+
   it("offers Request to join when approval is required", () => {
     const row = publicGroupRowView(approval!, null, ORIGIN);
     expect(row).toMatchObject({

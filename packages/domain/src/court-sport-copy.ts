@@ -1,9 +1,6 @@
-import type { Sport } from "./sport";
+import { SPORT_LABELS, type Sport } from "./sport";
 
-export const COURT_SPORT_LABELS: Record<Sport, string> = {
-  padel: "Padel",
-  football: "Football",
-};
+export const COURT_SPORT_LABELS = SPORT_LABELS;
 
 export function courtFace(sport: Sport): "court" | "pitch" {
   return sport === "football" ? "pitch" : "court";

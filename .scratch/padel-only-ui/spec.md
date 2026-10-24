@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: superseded by .scratch/football/spec.md (decisions D9–D11 show the sport controls this spec hid; slice B, TEM-382)
 
 ## Problem Statement
 

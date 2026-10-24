@@ -7,6 +7,8 @@ import {
   groupCreateRequiresApproval,
   type GroupCreateType,
 } from "@repo/domain/group-create";
+import { clubGroupSportChoice } from "@repo/domain/community-sports";
+import { DEFAULT_SPORT, SPORTS, type Sport } from "@repo/domain/sport";
 import { GROUP_CREATED_WITHOUT_IMAGE_TOAST } from "@repo/domain/entity-image-file";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -33,12 +35,26 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
   const utils = api.useUtils();
   const [name, setName] = useState("");
   const [type, setType] = useState<GroupCreateType>("public");
+  const [pickedSport, setPickedSport] = useState<Sport | null>(null);
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const community = api.communities.byId.useQuery(
+    { id: communityId ?? "" },
+    { enabled: Boolean(communityId) },
+  );
+  const sportChoice =
+    context === "club"
+      ? clubGroupSportChoice(community.data?.sports ?? [])
+      : { sports: SPORTS, showPicker: true, defaultSport: DEFAULT_SPORT };
+  const sport =
+    pickedSport && sportChoice.sports.includes(pickedSport)
+      ? pickedSport
+      : sportChoice.defaultSport;
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation();
   const createLoosePrivate = api.groups.createLoosePrivate.useMutation();
@@ -48,7 +64,7 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
 
   async function createGroup(trimmed: string) {
     const door = groupCreateDoor(context, type);
-    const base = { name: trimmed, sport: "padel" as const };
+    const base = { name: trimmed, sport };
     const approval = groupCreateRequiresApproval(type, requiresApproval);
     switch (door) {
       case "createLoosePublic":
@@ -84,7 +100,7 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
 
   async function submit() {
     const trimmed = name.trim();
-    if (submitting || !trimmed) {
+    if (submitting || !trimmed || (context === "club" && !community.data)) {
       return;
     }
     setNameError(null);
@@ -173,6 +189,10 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
         onNameChange={setName}
         nameError={nameError}
         formError={formError}
+        sports={sportChoice.sports}
+        showSportPicker={sportChoice.showPicker}
+        sport={sport}
+        onSportChange={setPickedSport}
         type={type}
         onTypeChange={(next) => {
           setType(next);

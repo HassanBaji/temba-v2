@@ -5,9 +5,15 @@ import {
   communityTypeHelp,
 } from "@repo/domain/community";
 import type { CommunityVisibility } from "@repo/domain/community-chrome";
+import {
+  COMMUNITY_CREATE_SPORTS_HELP,
+  COMMUNITY_CREATE_SPORTS_LABEL,
+} from "@repo/domain/community-sports";
+import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
 import { ChoiceRow } from "../lib/choice-row";
+import { SportToggleRow } from "../lib/sport-toggle-row";
 import { Button } from "../primitives/button";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
@@ -21,6 +27,8 @@ export type CommunityCreateViewProps = {
   formError: string | null;
   type: CommunityVisibility;
   onTypeChange: (type: CommunityVisibility) => void;
+  sports: readonly Sport[];
+  onToggleSport: (sport: Sport) => void;
   pending: boolean;
   onSubmit: () => void;
   onCancel: () => void;
@@ -71,10 +79,22 @@ export function CommunityCreateView(props: CommunityCreateViewProps) {
           {communityTypeHelp(props.type)}
         </Text>
       </View>
+      <View style={{ gap: 6 }}>
+        <Text weight="medium">{COMMUNITY_CREATE_SPORTS_LABEL}</Text>
+        <SportToggleRow
+          value={props.sports}
+          onToggle={props.onToggleSport}
+          disabled={props.pending}
+        />
+        <Text size="meta" tone="muted">
+          {COMMUNITY_CREATE_SPORTS_HELP}
+        </Text>
+      </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
           label={COMMUNITY_CREATE_COPY.submit}
           pending={props.pending}
+          disabled={props.sports.length === 0}
           onPress={props.onSubmit}
         />
         <Button

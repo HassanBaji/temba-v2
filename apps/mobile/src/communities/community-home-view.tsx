@@ -46,6 +46,10 @@ import {
   type CommunityRequestsViewProps,
 } from "./community-requests-view";
 import {
+  CommunitySportsBlock,
+  type CommunitySportsViewProps,
+} from "./community-sports-view";
+import {
   CommunityVenueBlock,
   VenueLinkSheet,
   type VenueLinkSheetProps,
@@ -83,6 +87,10 @@ export type CommunityHomeViewProps = {
     "apiOrigin" | "canManageJoinRequests" | "canManageTeamLinks"
   >;
   venueSheet: VenueLinkSheetProps;
+  sportsBlock: Pick<
+    CommunitySportsViewProps,
+    "pendingSport" | "onAdd" | "onRemove"
+  >;
 };
 
 function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
@@ -95,6 +103,13 @@ function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
           apiOrigin={props.apiOrigin}
           onLink={props.onLinkVenue}
           onUnlink={props.onUnlinkVenue}
+        />
+      ) : null}
+      {communityIsMember(data) ? (
+        <CommunitySportsBlock
+          sports={data.sports}
+          canManage={data.canManageSports}
+          {...props.sportsBlock}
         />
       ) : null}
       {data.groups.length === 0 ? (
