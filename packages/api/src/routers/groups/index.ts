@@ -16,6 +16,7 @@ import { joinClubPublicProcedure as joinClubPublic } from "./joinClubPublic";
 import { joinLoosePublicProcedure as joinLoosePublic } from "./joinLoosePublic";
 import { leave } from "./leave";
 import { listJoinRequestsProcedure as listJoinRequests } from "./listJoinRequests";
+import { listForOperatorProcedure as listForOperator } from "./listForOperator";
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
 import { listPublicProcedure as listPublic } from "./listPublic";
 import { mineProcedure as mine } from "./mine";
@@ -28,6 +29,7 @@ import { requestJoinProcedure as requestJoin } from "./requestJoin";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
+import { setVerifiedProcedure as setVerified } from "./setVerified";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
 
@@ -62,4 +64,6 @@ export const groupsRouter = createTRPCRouter({
   acceptInviteLink,
   uploadImage,
   clearImage,
+  setVerified,
+  listForOperator,
 });

@@ -166,7 +166,9 @@ type ExpectedGroups =
   | "previewInviteLink"
   | "acceptInviteLink"
   | "uploadImage"
-  | "clearImage";
+  | "clearImage"
+  | "setVerified"
+  | "listForOperator";
 
 type ExpectedNotifications =
   | "list"
