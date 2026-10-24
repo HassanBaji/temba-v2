@@ -64,6 +64,7 @@ function HomeColumn({
       {nextGame ? (
         <HomeNextGame
           id={nextGame.id}
+          rated={nextGame.rated}
           phase={nextGame.phase}
           venueName={nextGame.venueName}
           courtLabel={nextGame.courtLabel}

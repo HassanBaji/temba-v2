@@ -7,6 +7,7 @@ import { tournamentOrganizerView } from "@repo/domain/tournament-organizer";
 import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import { View } from "react-native";
 
+import { UnratedCard } from "../game-details/rating-impact-card";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { OrganizerCard, type OrganizerCardHandlers } from "./organizer-card";
@@ -64,6 +65,7 @@ export function TournamentContent({
           </Text>
         </Surface>
       ) : null}
+      {game.rated ? null : <UnratedCard />}
       {view.drawn ? (
         <StandingsView
           game={game}

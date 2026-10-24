@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { HomeSeatRow } from "~/components/home/home-seat-row";
 import { Button } from "~/components/ui/button";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import {
   homeNextGameActions,
@@ -31,6 +32,7 @@ function gameTargetHref(target: HomeTarget) {
 
 export function HomeNextGame({
   id,
+  rated,
   phase,
   venueName,
   courtLabel,
@@ -39,6 +41,7 @@ export function HomeNextGame({
   seats,
 }: {
   id: string;
+  rated: boolean;
   phase: HomeNextGamePhase;
   venueName: string;
   courtLabel?: string | null;
@@ -85,6 +88,11 @@ export function HomeNextGame({
       {secondaryLine ? (
         <p className="text-dim text-meta mt-2">{secondaryLine}</p>
       ) : null}
+      {rated ? null : (
+        <p className="text-meta mt-1 font-semibold" data-slot="home-unrated">
+          {UNRATED_LABEL}
+        </p>
+      )}
       <div className="mt-4">
         <HomeSeatRow seats={seats} />
       </div>

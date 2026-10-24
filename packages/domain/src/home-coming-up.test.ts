@@ -19,6 +19,7 @@ function friendly(
 ): HomeComingUpSource {
   return {
     id: "friendly-1",
+    rated: true,
     matchId: null,
     format: "friendly_game",
     poolCount: null,
@@ -87,6 +88,7 @@ describe("homeComingUpRows", () => {
     assert.deepEqual(row, {
       kind: "game",
       id: "friendly-1",
+      rated: true,
       rowKey: "friendly-1",
       venueName: "Padelhuset Bromma",
       startsAt: STARTS,
@@ -95,11 +97,24 @@ describe("homeComingUpRows", () => {
     });
   });
 
+  it("carries the rated flag onto every row kind", () => {
+    const rows = homeComingUpRows([
+      friendly({ rated: false }),
+      poolMatch({ rated: false }),
+      tournament({ rated: false }),
+    ]);
+    assert.deepEqual(
+      rows.map((row) => row.rated),
+      [false, false, false],
+    );
+  });
+
   it("shows a Pool Match behind the hero as a tournament Match row", () => {
     const rows = homeComingUpRows([friendly(), poolMatch()]);
     assert.deepEqual(rows[1], {
       kind: "tournament_match",
       id: "cup-1",
+      rated: true,
       rowKey: "match-2",
       title: "Friday Cup",
       startsAt: STARTS,
@@ -122,6 +137,7 @@ describe("homeComingUpRows", () => {
     assert.deepEqual(row, {
       kind: "tournament_match",
       id: "cup-1",
+      rated: true,
       rowKey: "match-sf",
       title: "Friday Cup",
       startsAt: STARTS,
@@ -150,6 +166,7 @@ describe("homeComingUpRows", () => {
     assert.deepEqual(row, {
       kind: "tournament",
       id: "cup-1",
+      rated: true,
       rowKey: "cup-1",
       title: "Friday Cup",
       startsAt: STARTS,

@@ -1,7 +1,7 @@
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 export const UNRATED_LABEL = "Unrated";
-export const UNRATED_GAME_LINE = "This Game won't change anyone's Level.";
+export const UNRATED_GAME_LINE = "This Game doesn't change anyone's Level.";
 export const UNRATED_GROUP_LINE =
   "Games in this Group are Unrated. They don't change anyone's Level.";
 

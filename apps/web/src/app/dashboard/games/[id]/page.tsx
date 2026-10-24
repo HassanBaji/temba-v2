@@ -992,6 +992,7 @@ export default function GameHomePage({
                 Registration, the waitlist, and invites stay closed.
               </SoftArchiveBanner>
             ) : null}
+            {data.rated ? null : <GameUnratedBlock />}
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}

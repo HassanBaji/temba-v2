@@ -132,6 +132,7 @@ export type TournamentDetails = {
   registrationMode: string;
   allowSoloRegister: boolean;
   isPublic: boolean;
+  rated: boolean;
   groupId: string | null;
   groupName: string | null;
   venueId: string | null;
