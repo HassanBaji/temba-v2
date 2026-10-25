@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { venueClosures, venuePricingRules, venues } from "@repo/db";
+import { courts, venueClosures, venuePricingRules, venues } from "@repo/db";
 import { priceForInterval } from "@repo/domain/booking-price";
 import { eq } from "drizzle-orm";
 
@@ -125,6 +125,32 @@ describe("bookings.venueAvailability", () => {
         .set({ acceptingBookings: false })
         .where(eq(venues.id, f.venueId));
       await expect(ask("2030-01-07")).rejects.toThrow("Venue not found");
+    });
+  });
+});
+
+describe("bookings.venueAvailability by sport", () => {
+  it("returns only the sport's Courts and every Court without sport", async () => {
+    await withBookableVenue(async (db, f) => {
+      await db
+        .update(courts)
+        .set({ sport: "football" })
+        .where(eq(courts.id, f.court2));
+      const args = { venueId: f.venueId, day: "2030-01-07", now: NOW };
+
+      const all = await venueAvailability(db, args);
+      expect(all.courts.map((court) => court.name)).toEqual([
+        "Court 1",
+        "Court 2",
+      ]);
+      const football = await venueAvailability(db, {
+        ...args,
+        sport: "football",
+      });
+      expect(football.courts.map((court) => court.id)).toEqual([f.court2]);
+      expect(football.courts[0]!.slots).toEqual(all.courts[1]!.slots);
+      const padel = await venueAvailability(db, { ...args, sport: "padel" });
+      expect(padel.courts.map((court) => court.id)).toEqual([f.court1]);
     });
   });
 });

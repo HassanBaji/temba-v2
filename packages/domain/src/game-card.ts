@@ -9,6 +9,8 @@ import {
   type GameSummaryCtaInput,
 } from "./game-summary-cta";
 import { gameOccupancy } from "./game-occupancy";
+import { isFootballGame, isRosterRegistrationGame } from "./game-shape";
+import { sportGlyph, sportLabel } from "./sport";
 
 export type CardSeatPosition = "left" | "right";
 
@@ -86,6 +88,25 @@ export function gameCardOpenSpots(game: {
   };
 }
 
+export function gameCardSportTag(sport: string | null | undefined) {
+  const glyph = sportGlyph(sport);
+  const label = sportLabel(sport);
+  return glyph && label ? { glyph, label } : null;
+}
+
+/** "7/10" for a Roster registration Game; null for seat Games, whose card shows seats. */
+export function gameCardRosterOccupancy(game: {
+  format: string;
+  sport?: string | null;
+  registeredUserCount: number;
+  playersAllowed: number | null | undefined;
+}) {
+  if (!isRosterRegistrationGame(game)) {
+    return null;
+  }
+  return gameOccupancy(game.registeredUserCount, game.playersAllowed);
+}
+
 export type GameCardMetaCell = { value: string; note: string | null };
 
 /** The format cell leads with the round or format and falls back to duration, then Level. */
@@ -123,7 +144,8 @@ export function hubGameCardPlan<T extends HubCardGame>(
 } {
   const primaryAction = gameSummaryPrimaryAction(game);
   const rosterSides =
-    showsFriendlyRoster(game.format, game.registrationMode) || game.matchId
+    !isFootballGame(game) &&
+    (showsFriendlyRoster(game.format, game.registrationMode) || game.matchId)
       ? game.sides
       : undefined;
   const showPartnerJoin =
@@ -139,9 +161,14 @@ export function hubGameCardPlan<T extends HubCardGame>(
 
 export type HubWaitlistJoinCall = "register" | "registerSeat";
 
-/** Americano waitlists through `register`; every other format takes a seat door. */
-export function hubWaitlistJoinCall(format: string): HubWaitlistJoinCall {
-  return format === "americano" ? "register" : "registerSeat";
+/** A Roster registration Game joins through `register`; every other Game takes a seat door. */
+export function hubWaitlistJoinCall(
+  format: string,
+  sport?: string | null,
+): HubWaitlistJoinCall {
+  return isRosterRegistrationGame({ format, sport })
+    ? "register"
+    : "registerSeat";
 }
 
 export function hubRegisterToast(waitlisted: boolean) {

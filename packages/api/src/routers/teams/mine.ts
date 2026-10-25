@@ -2,6 +2,8 @@ import { eq, inArray } from "drizzle-orm";
 
 import { teamMembers, type GroupSportEnum } from "@repo/db";
 
+import { teamIsComplete } from "@repo/domain/team-roster";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -68,7 +70,7 @@ export async function mine(database: DbClient, args: { userId: string }) {
         image: member.user.image,
       })),
       memberCount: members.length,
-      incomplete: members.length < 2,
+      incomplete: !teamIsComplete(members.length, team.sport),
     };
   });
 }

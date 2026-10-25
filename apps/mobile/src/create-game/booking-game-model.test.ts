@@ -10,6 +10,7 @@ import {
   bookingGameHeader,
   bookingGameRequest,
   bookingGameReviewRows,
+  bookingGameSport,
   splitCourtCost,
 } from "./booking-game-model";
 
@@ -104,5 +105,93 @@ describe("bookingGameRequest", () => {
       ok: false,
       errors: { levelMinTenths: LEVEL_RANGE_INVERTED_MESSAGE },
     });
+  });
+});
+
+describe("a football Booking Game", () => {
+  const pitch = { ...booking, court: { name: "Pitch 1", sport: "football" } };
+  const open = {
+    pricePerPlayer: "",
+    levelMin: LEVEL_BAND_SELECT_NONE,
+    levelMax: LEVEL_BAND_SELECT_NONE,
+    sideSize: 7,
+    playersAllowed: 16,
+  } as const;
+
+  it("reads the sport off the Court and defaults to padel", () => {
+    expect(bookingGameSport(pitch)).toBe("football");
+    expect(bookingGameSport(booking)).toBe("padel");
+  });
+
+  it("splits the price across the chosen cap, not four", () => {
+    expect(splitCourtCost(18_000, 16)).toBe("1.125");
+    expect(splitCourtCost(18_000, 14)).toBe("1.286");
+    expect(splitCourtCost(18_000)).toBe("4.500");
+  });
+
+  it("names the pitch and the size in the review", () => {
+    const rows = bookingGameReviewRows(pitch, {
+      sideSize: 7,
+      playersAllowed: 16,
+    });
+    expect(rows[0]).toEqual({
+      label: "Pitch",
+      value: "Karbabad Courts, Pitch 1",
+    });
+    expect(rows[2]).toEqual({ label: "Size", value: "7-a-side · 16 players" });
+  });
+
+  it("keeps four seats in a padel review", () => {
+    expect(bookingGameReviewRows(booking)[2]).toEqual({
+      label: "Seats",
+      value: "4 open seats",
+    });
+  });
+
+  it("sends the side size and cap and no Level range", () => {
+    expect(
+      bookingGameRequest(
+        "booking-1",
+        { ...open, pricePerPlayer: "1.125", levelMin: "C" },
+        "football",
+      ),
+    ).toEqual({
+      ok: true,
+      input: {
+        bookingId: "booking-1",
+        sideSize: 7,
+        playersAllowed: 16,
+        pricePerPlayerFils: 1_125,
+      },
+    });
+  });
+
+  it("refuses a cap below twice the side size or past forty", () => {
+    for (const playersAllowed of [13, 41]) {
+      const result = bookingGameRequest(
+        "booking-1",
+        { ...open, playersAllowed },
+        "football",
+      );
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.errors.playersAllowed).toBe(
+        "Players allowed must be between 14 and 40",
+      );
+    }
+  });
+
+  it("refuses an unknown side size and a bad price", () => {
+    const size = bookingGameRequest(
+      "booking-1",
+      { ...open, sideSize: 4 },
+      "football",
+    );
+    expect(!size.ok && size.errors.sideSize).toBeTruthy();
+    const price = bookingGameRequest(
+      "booking-1",
+      { ...open, pricePerPlayer: "abc" },
+      "football",
+    );
+    expect(!price.ok && price.errors.pricePerPlayerFils).toBeTruthy();
   });
 });

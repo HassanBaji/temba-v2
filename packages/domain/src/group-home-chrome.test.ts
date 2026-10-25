@@ -9,6 +9,7 @@ import {
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
   groupMemberFormMarks,
+  groupShowsLevel,
   groupMemberRoleCaption,
   groupPlayedMarkVariant,
   groupPlayedOpponentLine,
@@ -283,5 +284,13 @@ describe("groupMemberFormMarks", () => {
   it("keeps the latest four marks", () => {
     assert.deepEqual(groupMemberFormMarks([1, 2, 3, 4, 5]), [2, 3, 4, 5]);
     assert.deepEqual(groupMemberFormMarks([1, 2]), [1, 2]);
+  });
+});
+
+describe("groupShowsLevel", () => {
+  it("hides the Level on a football Group only", () => {
+    assert.equal(groupShowsLevel("football"), false);
+    assert.equal(groupShowsLevel("padel"), true);
+    assert.equal(groupShowsLevel(null), true);
   });
 });

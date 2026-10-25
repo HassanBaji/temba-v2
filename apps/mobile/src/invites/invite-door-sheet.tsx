@@ -8,7 +8,7 @@ import {
   assembleE164,
   DEFAULT_CALLING_COUNTRY_ISO,
 } from "@repo/domain/phone-number";
-import { TEAM_LOOKUP_NOTE } from "@repo/domain/teams";
+import { teamLookupNote } from "@repo/domain/teams";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useRef, useState } from "react";
 import { Linking, Platform, Share } from "react-native";
@@ -60,7 +60,7 @@ export type InviteDoor =
   | {
       kind: "team";
       teamId: string;
-      unusedInvite: PendingLookupRow | null;
+      squad: boolean;
       canLookup: boolean;
       canLink: boolean;
     };
@@ -154,6 +154,10 @@ export function InviteDoorSheet({
     { communityId },
     { enabled: linkOn && isCommunity },
   );
+  const teamPending = api.teams.listInAppInvites.useQuery(
+    { teamId },
+    { enabled: lookupOn && isTeam },
+  );
   const groupPending = api.groups.listLookupInvites.useQuery(
     { groupId },
     { enabled: lookupOn && isGroup },
@@ -191,15 +195,15 @@ export function InviteDoorSheet({
           ? teamLink
           : gameLink
   ).data;
-  const pendingInvites: Slot<PendingLookupRow[]> =
-    door.kind === "team"
-      ? {
-          status: "ready",
-          value: door.unusedInvite ? [door.unusedInvite] : [],
-        }
-      : slotOf(
-          isCommunity ? communityPending : isGroup ? groupPending : gamePending,
-        );
+  const pendingInvites: Slot<PendingLookupRow[]> = slotOf(
+    isCommunity
+      ? communityPending
+      : isGroup
+        ? groupPending
+        : isTeam
+          ? teamPending
+          : gamePending,
+  );
 
   function afterSend(result: {
     sent: unknown[];
@@ -217,6 +221,7 @@ export function InviteDoorSheet({
       void utils.groups.listLookupInvites.invalidate({ groupId });
     } else if (isTeam) {
       void utils.teams.byId.invalidate({ id: teamId });
+      void utils.teams.listInAppInvites.invalidate({ teamId });
     } else {
       void utils.games.listLookupInvites.invalidate({ gameId });
     }
@@ -263,6 +268,7 @@ export function InviteDoorSheet({
     onSuccess: () => {
       toast.show(LOOKUP_INVITE_REVOKED_TOAST);
       void utils.teams.byId.invalidate({ id: teamId });
+      void utils.teams.listInAppInvites.invalidate({ teamId });
       void utils.teams.searchLookupUsers.invalidate({ teamId });
     },
     onError: (error) => toast.show(error.message),
@@ -498,14 +504,14 @@ export function InviteDoorSheet({
     door.kind === "game"
       ? gameInviteSubtitle(door.share, now)
       : door.kind === "team"
-        ? TEAM_LOOKUP_NOTE
+        ? teamLookupNote(door.squad)
         : door.note;
 
   return (
     <InviteSheetView
       visible={visible}
       onClose={close}
-      title={inviteSheetTitle(door.kind)}
+      title={inviteSheetTitle(door.kind, isTeam && door.squad)}
       subtitle={subtitle}
       modes={modes}
       mode={mode}
@@ -518,7 +524,7 @@ export function InviteDoorSheet({
               results: slotOf(search),
               invitedUserIds,
               busyUserId: sendingUserId,
-              singlePick: isTeam,
+              singlePick: isTeam && !door.squad,
               onInvite: (row) => void invite(row),
               onUninvite: (userId) => {
                 const row = pendingRows.find(

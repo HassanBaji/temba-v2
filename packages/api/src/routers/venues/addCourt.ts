@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { courts } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
+import { type Sport } from "@repo/domain/sport";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -23,7 +25,7 @@ type Actor = {
 
 export async function addCourt(
   database: DbClient,
-  args: { venueId: string; name: string; actor: Actor },
+  args: { venueId: string; name: string; sport?: Sport; actor: Actor },
 ) {
   await requireVenue(database, args.venueId);
   await requireVenueManager(database, {
@@ -44,11 +46,13 @@ export async function addCourt(
       .values({
         venueId: args.venueId,
         name: args.name,
+        sport: args.sport,
       })
       .returning({
         id: courts.id,
         venueId: courts.venueId,
         name: courts.name,
+        sport: courts.sport,
         createdAt: courts.createdAt,
         updatedAt: courts.updatedAt,
       });
@@ -77,6 +81,7 @@ export const addCourtProcedure = protectedProcedure
     z.object({
       venueId: z.string().uuid(),
       name: z.string().trim().min(1).max(255),
+      sport: sportSchema.default("padel"),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -84,6 +89,7 @@ export const addCourtProcedure = protectedProcedure
     return addCourt(ctx.db, {
       venueId: input.venueId,
       name: input.name,
+      sport: input.sport,
       actor: {
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),

@@ -1,8 +1,10 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { courts, venueOpeningHours, venuePricingRules, venues } from "@repo/db";
 import { zonedParts } from "@repo/domain/product-timezone";
+import type { Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 import { type db } from "#src/db";
 
 import { venuePhotoUrlOrNull } from "#src/storage/venue-photos";
@@ -12,7 +14,7 @@ type DbClient = typeof db;
 
 export async function listBookableVenues(
   database: DbClient,
-  args: { city?: string; now?: Date },
+  args: { city?: string; sport?: Sport; now?: Date },
 ) {
   const now = args.now ?? new Date();
   const city = args.city?.trim();
@@ -47,7 +49,12 @@ export async function listBookableVenues(
     database
       .select({ venueId: courts.venueId, count: sql<number>`count(*)::int` })
       .from(courts)
-      .where(inArray(courts.venueId, ids))
+      .where(
+        and(
+          inArray(courts.venueId, ids),
+          args.sport ? eq(courts.sport, args.sport) : undefined,
+        ),
+      )
       .groupBy(courts.venueId),
     database
       .select({
@@ -55,7 +62,23 @@ export async function listBookableVenues(
         rate: sql<number>`min(${venuePricingRules.hourlyRateFils})::int`,
       })
       .from(venuePricingRules)
-      .where(inArray(venuePricingRules.venueId, ids))
+      .where(
+        and(
+          inArray(venuePricingRules.venueId, ids),
+          args.sport
+            ? or(
+                isNull(venuePricingRules.courtId),
+                inArray(
+                  venuePricingRules.courtId,
+                  database
+                    .select({ id: courts.id })
+                    .from(courts)
+                    .where(eq(courts.sport, args.sport)),
+                ),
+              )
+            : undefined,
+        ),
+      )
       .groupBy(venuePricingRules.venueId),
     database
       .select({
@@ -102,5 +125,10 @@ export async function listBookableVenues(
 }
 
 export const listBookableVenuesProcedure = protectedProcedure
-  .input(z.object({ city: z.string().trim().min(1).max(255).optional() }))
+  .input(
+    z.object({
+      city: z.string().trim().min(1).max(255).optional(),
+      sport: sportSchema.optional(),
+    }),
+  )
   .query(async ({ ctx, input }) => listBookableVenues(ctx.db, input));

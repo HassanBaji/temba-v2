@@ -1,4 +1,5 @@
-import { TEAM_CREATED_TOAST, teamNameInput } from "@repo/domain/teams";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+import { TEAM_CREATED_TOAST, teamCreateInput } from "@repo/domain/teams";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
@@ -14,6 +15,7 @@ export function CreateTeamScreen() {
   const toast = useToast();
   const utils = api.useUtils();
   const [name, setName] = useState("");
+  const [sport, setSport] = useState<Sport>(DEFAULT_SPORT);
   const [nameError, setNameError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -41,13 +43,15 @@ export function CreateTeamScreen() {
     }
     setNameError(null);
     setFormError(null);
-    create.mutate({ name: teamNameInput(name), sport: "padel" });
+    create.mutate(teamCreateInput({ name, sport }));
   }
 
   return (
     <Screen>
       <CreateTeamView
         name={name}
+        sport={sport}
+        onSportChange={setSport}
         onNameChange={setName}
         nameError={nameError}
         formError={formError}

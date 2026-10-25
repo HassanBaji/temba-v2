@@ -8,6 +8,7 @@ import { createInviteLinkProcedure as createInviteLink } from "./createInviteLin
 import { dissolveProcedure as dissolve } from "./dissolve";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { inviteInAppProcedure as inviteInApp } from "./inviteInApp";
+import { leaveProcedure as leave } from "./leave";
 import { listInAppInvitesProcedure as listInAppInvites } from "./listInAppInvites";
 import { mineProcedure as mine } from "./mine";
 import { pendingInvitesProcedure as pendingInvites } from "./pendingInvites";
@@ -34,4 +35,5 @@ export const teamsRouter = createTRPCRouter({
   requestLink,
   unlink,
   dissolve,
+  leave,
 });

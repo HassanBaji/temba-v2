@@ -24,7 +24,13 @@ import { Notice } from "./notice";
 
 const MARK_WIDTH = 16;
 
-function MemberRowContent({ row }: { row: MemberRowView }) {
+function MemberRowContent({
+  row,
+  showLevel,
+}: {
+  row: MemberRowView;
+  showLevel: boolean;
+}) {
   return (
     <>
       <Avatar name={row.name} uri={row.imageUri} size="lg" />
@@ -45,17 +51,19 @@ function MemberRowContent({ row }: { row: MemberRowView }) {
           </View>
         ))}
       </View>
-      <LevelCell view={row.level} level={row.levelText} />
+      {showLevel ? <LevelCell view={row.level} level={row.levelText} /> : null}
     </>
   );
 }
 
 function MemberRow({
   row,
+  showLevel,
   onSelect,
   onOpen,
 }: {
   row: MemberRowView;
+  showLevel: boolean;
   onSelect: () => void;
   onOpen?: (userId: string) => void;
 }) {
@@ -77,7 +85,7 @@ function MemberRow({
         onPress={() => onOpen(row.key)}
         style={({ pressed }) => ({ ...style, opacity: pressed ? 0.6 : 1 })}
       >
-        <MemberRowContent row={row} />
+        <MemberRowContent row={row} showLevel={showLevel} />
       </Pressable>
     );
   }
@@ -89,7 +97,7 @@ function MemberRow({
         accessibilityLabel={row.accessibilityLabel}
         style={style}
       >
-        <MemberRowContent row={row} />
+        <MemberRowContent row={row} showLevel={showLevel} />
       </View>
     );
   }
@@ -102,7 +110,7 @@ function MemberRow({
       onPress={onSelect}
       style={({ pressed }) => ({ ...style, opacity: pressed ? 0.6 : 1 })}
     >
-      <MemberRowContent row={row} />
+      <MemberRowContent row={row} showLevel={showLevel} />
       <ChevronRight size={sizes.iconAction} color={colors.muted} />
     </Pressable>
   );
@@ -114,6 +122,7 @@ export function MembersTab({
   onQueryChange,
   apiOrigin,
   canSetLevel,
+  showLevel = true,
   onSetLevel,
   onOpenMember,
 }: {
@@ -122,6 +131,7 @@ export function MembersTab({
   onQueryChange: (query: string) => void;
   apiOrigin: string;
   canSetLevel: boolean;
+  showLevel?: boolean;
   onSetLevel: (userId: string) => void;
   onOpenMember?: (userId: string) => void;
 }) {
@@ -158,6 +168,7 @@ export function MembersTab({
               {index > 0 ? <Hairline /> : null}
               <MemberRow
                 row={row}
+                showLevel={showLevel}
                 onSelect={() => setSelectedUserId(row.key)}
                 onOpen={onOpenMember}
               />

@@ -4,6 +4,7 @@ import {
   formatGameClock,
   formatGameStart,
 } from "@repo/domain/format-game-start";
+import { courtFace } from "@repo/domain/court-sport-copy";
 import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments } from "expo-router";
@@ -34,6 +35,7 @@ import {
   placeLine,
   untilLabel,
 } from "./booking-model";
+import { bookingGameBlurb, courtNounTitle } from "./book-sport";
 import { holdCountdown } from "./payment-model";
 
 type Booking = RouterOutputs["bookings"]["byId"];
@@ -194,7 +196,7 @@ export function BookingDetailScreen({
 
       <Surface padded={false} style={{ paddingHorizontal: 16 }}>
         <DetailRow
-          label={`Court, ${minutesBetween(data.startsAt, data.endsAt)} min`}
+          label={`${courtNounTitle(data.court.sport)}, ${minutesBetween(data.startsAt, data.endsAt)} min`}
           first
         >
           <Text>{formatBookingPriceFils(data.priceFils)}</Text>
@@ -248,7 +250,7 @@ export function BookingDetailScreen({
                   paymentStatus: data.paymentStatus,
                   refundDueFilsNow: data.cancel.refundDueFilsNow,
                   refundPercentNow: data.cancel.refundPercentNow,
-                })} The court is released for others.`,
+                })} The ${courtFace(data.court.sport)} is released for others.`,
                 confirmLabel: "Cancel booking",
                 onConfirm: () => cancel.mutate({ bookingId }),
               }
@@ -311,7 +313,7 @@ function GameBlock({
         <Text size="meta" tone="muted">
           {game
             ? "Your game was cancelled. The court is still yours, so you can set up a new one."
-            : "Turn the booking into a game and Temba handles seats, invites and the score."}
+            : bookingGameBlurb(booking.court.sport)}
         </Text>
       </View>
       <Button label="Create a game for this booking" onPress={onCreate} />
@@ -335,8 +337,8 @@ function StatusBlock({
         title={countdown ? "Finish payment" : "Your hold ran out"}
         description={
           countdown
-            ? `The court is held for you for ${countdown}.`
-            : "The court was released because payment was not finished."
+            ? `The ${courtFace(booking.court.sport)} is held for you for ${countdown}.`
+            : `The ${courtFace(booking.court.sport)} was released because payment was not finished.`
         }
         actionLabel={countdown ? "Finish payment" : undefined}
         onAction={countdown ? onFinishPayment : undefined}

@@ -9,7 +9,13 @@ import {
   CREATE_GAME_TYPE_CARDS,
   FRIENDLY_TOURNAMENT_UNEVEN_GROUPS,
   applyLevelBoundChange,
+  createFlowFirstStep,
   createFlowLaterSteps,
+  createFlowSeatsLabel,
+  changeFootballPlayersAllowed,
+  changeFootballSideSize,
+  footballSideSizeStep,
+  splitCostAcrossPlayers,
   createFlowStepForField,
   createGameFlowTarget,
   createVenueCopy,
@@ -862,5 +868,100 @@ describe("where helpers", () => {
   it("toggles a Court", () => {
     assert.deepEqual(toggleCreateCourt(["a"], "b"), ["a", "b"]);
     assert.deepEqual(toggleCreateCourt(["a", "b"], "a"), ["b"]);
+  });
+});
+
+describe("football create flow", () => {
+  it("skips the Type step and ends on Size and price", () => {
+    assert.equal(createFlowFirstStep("football"), 2);
+    assert.equal(createFlowFirstStep("padel"), 1);
+    assert.deepEqual(
+      createFlowLaterSteps("friendly_tournament", "football").map(
+        (item) => item.title,
+      ),
+      ["Where", "When", "Size and price"],
+    );
+    assert.equal(
+      createFlowLaterSteps(null, "padel")[2]?.title,
+      "Level and price",
+    );
+  });
+
+  it("says the size instead of four open seats", () => {
+    assert.equal(
+      createFlowSeatsLabel("football", { sideSize: 5, playersAllowed: 12 }),
+      "5-a-side · 12 players",
+    );
+    assert.equal(
+      createFlowSeatsLabel("padel", { sideSize: 5, playersAllowed: 10 }),
+      "4 open seats",
+    );
+  });
+
+  it("moves the cap with the side size while it sits at the minimum", () => {
+    const draft = { sideSize: 5, playersAllowed: 10 };
+    assert.deepEqual(changeFootballSideSize(draft, 7), {
+      sideSize: 7,
+      playersAllowed: 14,
+    });
+  });
+
+  it("keeps a chosen cap that still fits the new side size", () => {
+    assert.deepEqual(
+      changeFootballSideSize({ sideSize: 5, playersAllowed: 16 }, 7),
+      { sideSize: 7, playersAllowed: 16 },
+    );
+    assert.deepEqual(
+      changeFootballSideSize({ sideSize: 5, playersAllowed: 12 }, 7),
+      { sideSize: 7, playersAllowed: 14 },
+    );
+  });
+
+  it("follows the minimum down and ignores an unknown side size", () => {
+    assert.deepEqual(
+      changeFootballSideSize({ sideSize: 11, playersAllowed: 22 }, 5),
+      { sideSize: 5, playersAllowed: 10 },
+    );
+    const draft = { sideSize: 5, playersAllowed: 10 };
+    assert.equal(changeFootballSideSize(draft, 4), draft);
+    assert.equal(changeFootballPlayersAllowed(draft, 99).playersAllowed, 40);
+    assert.equal(changeFootballPlayersAllowed(draft, 3).playersAllowed, 10);
+    assert.equal(changeFootballPlayersAllowed(draft, 13).playersAllowed, 13);
+  });
+
+  it("steps the side size through the allowed list", () => {
+    assert.equal(footballSideSizeStep(5, 1), 6);
+    assert.equal(footballSideSizeStep(9, 1), 11);
+    assert.equal(footballSideSizeStep(11, 1), 11);
+    assert.equal(footballSideSizeStep(5, -1), 5);
+  });
+
+  it("splits a price across the chosen cap and rounds up", () => {
+    assert.equal(splitCostAcrossPlayers(40000, 4), 10000);
+    assert.equal(splitCostAcrossPlayers(40000, 14), 2858);
+    assert.equal(splitCostAcrossPlayers(40000, 0), 40000);
+  });
+
+  it("says pitch for a football Venue", () => {
+    assert.equal(venueCardMeta(2, "Manama", "football"), "2 pitches · Manama");
+    assert.equal(venueCardMeta(1, "Manama", "football"), "1 pitch · Manama");
+    assert.match(
+      createVenueCopy(
+        { locked: true, groupKind: "club", venues: [{ archivedAt: null }] },
+        { sport: "football" },
+      ),
+      /Pitch is optional/,
+    );
+    assert.match(
+      createVenueCopy(
+        {
+          locked: true,
+          groupKind: "club",
+          venues: [{ archivedAt: new Date() }],
+        },
+        { sport: "football" },
+      ),
+      /Skip pitch\./,
+    );
   });
 });

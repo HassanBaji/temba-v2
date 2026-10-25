@@ -1,10 +1,12 @@
+import { colors } from "@repo/design-tokens";
+import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
 
 export function ChoiceRow<T extends string>(props: {
   label: string;
-  choices: { value: T; label: string }[];
+  choices: { value: T; label: string; icon?: (color: string) => ReactNode }[];
   value: T | "";
   onSelect: (value: T) => void;
   disabled: boolean;
@@ -21,6 +23,9 @@ export function ChoiceRow<T extends string>(props: {
             label={choice.label}
             variant={props.value === choice.value ? "default" : "outline"}
             selected={props.value === choice.value}
+            icon={choice.icon?.(
+              props.value === choice.value ? colors.paper : colors.ink,
+            )}
             disabled={props.disabled}
             onPress={() => props.onSelect(choice.value)}
           />

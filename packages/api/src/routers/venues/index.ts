@@ -21,6 +21,7 @@ import { removeClosureProcedure as removeClosure } from "./removeClosure";
 import { renameCourtProcedure as renameCourt } from "./renameCourt";
 import { searchLinkableGroupsProcedure as searchLinkableGroups } from "./searchLinkableGroups";
 import { searchManagerUsersProcedure as searchManagerUsers } from "./searchManagerUsers";
+import { setCourtSportProcedure as setCourtSport } from "./setCourtSport";
 import { sendGroupLinkRequestProcedure as sendGroupLinkRequest } from "./sendGroupLinkRequest";
 import { unlinkGroupProcedure as unlinkGroup } from "./unlinkGroup";
 import { setDisplayPhotosProcedure as setDisplayPhotos } from "./setDisplayPhotos";
@@ -54,6 +55,7 @@ export const venuesRouter = createTRPCRouter({
   removeClosure,
   addCourt,
   renameCourt,
+  setCourtSport,
   deleteCourt,
   uploadLogo,
   clearLogo,

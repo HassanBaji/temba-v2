@@ -15,6 +15,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { api, type RouterOutputs } from "../trpc/react";
+import { bookingGameBlurb } from "./book-sport";
 import {
   bookedHeadline,
   bookingGamePath,
@@ -166,8 +167,7 @@ function Confirmation({ booking }: { booking: Booking }) {
             Who is playing?
           </Text>
           <Text size="meta" tone="muted">
-            Turn the booking into a game and Temba handles seats, invites and
-            the score.
+            {bookingGameBlurb(booking.court.sport)}
           </Text>
         </View>
       ) : null}

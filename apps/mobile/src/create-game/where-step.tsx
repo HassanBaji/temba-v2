@@ -1,5 +1,6 @@
 import { radii, spacing } from "@repo/design-tokens";
 import { visibleCreateCourts } from "@repo/domain/create-game-flow";
+import { courtFace } from "@repo/domain/court-sport-copy";
 import {
   playersInPairsLine,
   TOURNAMENT_TEAM_MAX,
@@ -31,6 +32,10 @@ export function WhereStep({
 }: StepProps & WhereData & { initialVenueSheetQuery?: string }) {
   const { draft } = state;
   const tournament = state.type === "friendly_tournament";
+  const face = courtFace(state.sport);
+  const courtNoun = face === "pitch" ? "pitch" : "Court";
+  const courtTitle = face === "pitch" ? "Pitch" : "Court";
+  const courtPlural = face === "pitch" ? "pitches" : "Courts";
   const [courtsExpanded, setCourtsExpanded] = useState(false);
   const pickerData = picker?.status === "ready" ? picker.value : null;
   const venues = pickerData?.venues ?? [];
@@ -55,7 +60,13 @@ export function WhereStep({
         groups={groups}
         groupId={draft.groupId}
         error={errors.groupId}
-        onSelect={(groupId) => dispatch({ kind: "setGroup", groupId })}
+        onSelect={(groupId) =>
+          dispatch({
+            kind: "setGroup",
+            groupId,
+            sport: groups.find((group) => group.id === groupId)?.sport,
+          })
+        }
       />
 
       <VenueField
@@ -63,6 +74,7 @@ export function WhereStep({
         picker={picker}
         venueId={draft.venueId}
         manyCourts={tournament}
+        sport={state.sport}
         error={errors.venueId}
         initialSheetQuery={initialVenueSheetQuery}
         onSelect={(venueId) => {
@@ -108,23 +120,23 @@ export function WhereStep({
           <FieldError message={errors.courtIds} />
         </StepSection>
       ) : (
-        <StepSection title="Court" note="Optional" locked={!selectedVenue}>
+        <StepSection title={courtTitle} note="Optional" locked={!selectedVenue}>
           {!selectedVenue ? (
             <CourtPlaceholders columns={COURT_COLUMNS} />
           ) : courts.length === 0 ? (
             <Text size="meta" tone="muted">
-              This Venue has no Courts.
+              This Venue has no {courtPlural}.
             </Text>
           ) : (
             <>
               <ChipGrid
-                label="Court"
+                label={courtTitle}
                 columns={COURT_COLUMNS}
                 chips={[
                   {
                     value: "none",
                     label: "None",
-                    accessibilityLabel: "No Court",
+                    accessibilityLabel: `No ${courtNoun}`,
                   },
                   ...visibleCourts.map((court) => ({
                     value: court.id,
@@ -137,14 +149,14 @@ export function WhereStep({
                   moreCourts
                     ? {
                         label: "More",
-                        accessibilityLabel: `All ${courts.length} Courts`,
+                        accessibilityLabel: `All ${courts.length} ${courtPlural}`,
                         onPress: () => setCourtsExpanded(true),
                       }
                     : undefined
                 }
               />
               <Text size="meta" tone="muted">
-                Leave on None to settle the Court at the Venue.
+                Leave on None to settle the {courtNoun} at the Venue.
               </Text>
             </>
           )}

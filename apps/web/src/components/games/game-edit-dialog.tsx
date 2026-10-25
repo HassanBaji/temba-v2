@@ -5,6 +5,7 @@ import * as React from "react";
 import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
+import { StepperField } from "~/components/games/stepper-field";
 import { RoundCountField } from "~/components/games/round-count-field";
 import {
   ResponsiveDialog,
@@ -46,6 +47,16 @@ export type GameEditRounds = {
   overruns: boolean;
   error: EditFormError | null;
   summaryRef: React.RefObject<HTMLDivElement | null>;
+  pending: boolean;
+  onSave: () => void;
+};
+
+export type GameEditPlayersAllowed = {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+  error: EditFormError | null;
   pending: boolean;
   onSave: () => void;
 };
@@ -97,6 +108,7 @@ export function GameEditDialog({
   levelPending,
   onSaveLevelRange,
   rounds,
+  playersAllowed,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -129,6 +141,7 @@ export function GameEditDialog({
   levelPending: boolean;
   onSaveLevelRange: () => void;
   rounds: GameEditRounds | null;
+  playersAllowed?: GameEditPlayersAllowed;
 }) {
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -136,8 +149,9 @@ export function GameEditDialog({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>{EDIT_GAME_ACTION}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Venue cannot change. Update the window, optional price per player,
-            and optional Level range. Each section saves on its own.
+            {playersAllowed
+              ? "Venue cannot change. Update the window, optional price per player, and players allowed. Each section saves on its own."
+              : "Venue cannot change. Update the window, optional price per player, and optional Level range. Each section saves on its own."}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
@@ -222,75 +236,117 @@ export function GameEditDialog({
               section="price per player"
             />
           </form>
-          <form
-            className="space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (levelPending) {
-                return;
-              }
-              onSaveLevelRange();
-            }}
-          >
-            <FormErrorSummary
-              ref={levelSummaryRef}
-              message={globalFormErrorMessage(levelError)}
-            />
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="edit-level-min">Minimum Level</FieldLabel>
-                <GameLevelBandSelect
-                  id="edit-level-min"
-                  value={levelMin}
-                  onValueChange={onLevelMinChange}
-                  invalid={
-                    levelMinError ||
-                    fieldErrorMessage(levelError, "levelMinTenths")
-                      ? true
-                      : undefined
-                  }
-                  describedBy={
-                    levelMinError ||
-                    fieldErrorMessage(levelError, "levelMinTenths")
-                      ? "edit-level-min-error"
-                      : "edit-level-range-copy"
-                  }
-                />
-                <FieldError id="edit-level-min-error">
-                  {levelMinError ??
-                    fieldErrorMessage(levelError, "levelMinTenths")}
-                </FieldError>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="edit-level-max">Maximum Level</FieldLabel>
-                <GameLevelBandSelect
-                  id="edit-level-max"
-                  value={levelMax}
-                  onValueChange={onLevelMaxChange}
-                  invalid={
-                    levelMaxError ||
-                    fieldErrorMessage(levelError, "levelMaxTenths")
-                      ? true
-                      : undefined
-                  }
-                  describedBy={
-                    levelMaxError ||
-                    fieldErrorMessage(levelError, "levelMaxTenths")
-                      ? "edit-level-max-error"
-                      : "edit-level-range-copy"
-                  }
-                />
-                <FieldDescription id="edit-level-range-copy">
-                  {LEVEL_RANGE_FIELD_DESCRIPTION}
-                </FieldDescription>
-                <FieldError id="edit-level-max-error">
-                  {levelMaxError ??
-                    fieldErrorMessage(levelError, "levelMaxTenths")}
-                </FieldError>
-              </Field>
-            </FieldGroup>
-            <SectionSaveButton pending={levelPending} section="Level range" />
-          </form>
+          {playersAllowed ? (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (playersAllowed.pending) {
+                  return;
+                }
+                playersAllowed.onSave();
+              }}
+            >
+              <FormErrorSummary
+                message={globalFormErrorMessage(playersAllowed.error)}
+              />
+              <StepperField
+                id="edit-players-allowed"
+                label="Players allowed"
+                value={playersAllowed.value}
+                unit="players"
+                min={playersAllowed.min}
+                max={playersAllowed.max}
+                step={1}
+                onChange={playersAllowed.onChange}
+                decreaseLabel="Fewer players"
+                increaseLabel="More players"
+                error={fieldErrorMessage(
+                  playersAllowed.error,
+                  "playersAllowed",
+                )}
+              />
+              <SectionSaveButton
+                pending={playersAllowed.pending}
+                section="players allowed"
+              />
+            </form>
+          ) : null}
+          {playersAllowed ? null : (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (levelPending) {
+                  return;
+                }
+                onSaveLevelRange();
+              }}
+            >
+              <FormErrorSummary
+                ref={levelSummaryRef}
+                message={globalFormErrorMessage(levelError)}
+              />
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="edit-level-min">
+                    Minimum Level
+                  </FieldLabel>
+                  <GameLevelBandSelect
+                    id="edit-level-min"
+                    value={levelMin}
+                    onValueChange={onLevelMinChange}
+                    invalid={
+                      levelMinError ||
+                      fieldErrorMessage(levelError, "levelMinTenths")
+                        ? true
+                        : undefined
+                    }
+                    describedBy={
+                      levelMinError ||
+                      fieldErrorMessage(levelError, "levelMinTenths")
+                        ? "edit-level-min-error"
+                        : "edit-level-range-copy"
+                    }
+                  />
+                  <FieldError id="edit-level-min-error">
+                    {levelMinError ??
+                      fieldErrorMessage(levelError, "levelMinTenths")}
+                  </FieldError>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-level-max">
+                    Maximum Level
+                  </FieldLabel>
+                  <GameLevelBandSelect
+                    id="edit-level-max"
+                    value={levelMax}
+                    onValueChange={onLevelMaxChange}
+                    invalid={
+                      levelMaxError ||
+                      fieldErrorMessage(levelError, "levelMaxTenths")
+                        ? true
+                        : undefined
+                    }
+                    describedBy={
+                      levelMaxError ||
+                      fieldErrorMessage(levelError, "levelMaxTenths")
+                        ? "edit-level-max-error"
+                        : "edit-level-range-copy"
+                    }
+                  />
+                  <FieldDescription id="edit-level-range-copy">
+                    {LEVEL_RANGE_FIELD_DESCRIPTION}
+                  </FieldDescription>
+                  <FieldError id="edit-level-max-error">
+                    {levelMaxError ??
+                      fieldErrorMessage(levelError, "levelMaxTenths")}
+                  </FieldError>
+                </Field>
+              </FieldGroup>
+              <SectionSaveButton pending={levelPending} section="Level range" />
+            </form>
+          )}
           {rounds ? (
             <form
               className="space-y-3"
@@ -321,7 +377,7 @@ export function GameEditDialog({
               <SectionSaveButton pending={rounds.pending} section="rounds" />
             </form>
           ) : null}
-          {format === "friendly_game" ? (
+          {format === "friendly_game" && !playersAllowed ? (
             <p className="text-muted-foreground text-body">
               Friendly game caps stay 4 players / 2 Teams.
             </p>

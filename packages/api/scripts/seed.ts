@@ -93,6 +93,7 @@ import { updateCancellationPolicy } from "#src/routers/venues/updateCancellation
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
 import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
+import type { Sport } from "@repo/domain/sport";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
 
@@ -335,6 +336,7 @@ async function seedVenues() {
     city: string,
     country: string,
     courtNames: string[],
+    sport: Sport = "padel",
   ) => {
     const created = await createVenue(db, { name, city, country });
     const courtIds: string[] = [];
@@ -342,6 +344,7 @@ async function seedVenues() {
       const court = await addCourt(db, {
         venueId: created.id,
         name: courtName,
+        sport,
         actor: { userId: "seed", publicMetadata: { operator: true } },
       });
       courtIds.push(court.id);
@@ -420,13 +423,48 @@ async function seedVenues() {
     "Court 2",
     "Court 3",
   ]);
+  const pitches = await venue(
+    "Matchday Pitches",
+    "Lisbon",
+    "PT",
+    ["Pitch A", "Pitch B"],
+    "football",
+  );
+  const pitchHours = [{ opensAtMinutes: 8 * 60, closesAtMinutes: 23 * 60 }];
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    await setOpeningHours(db, {
+      venueId: pitches.id,
+      weekday,
+      windows: pitchHours,
+      actor: operator,
+    });
+  }
+  await setPricingRules(db, {
+    venueId: pitches.id,
+    rules: pitches.courtIds.map((courtId) => ({
+      courtId,
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      startMinutes: 0,
+      endMinutes: 24 * 60,
+      hourlyRateFils: 30_000,
+      label: "All day",
+    })),
+    actor: operator,
+  });
+  await updateBookingSettings(db, {
+    venueId: pitches.id,
+    acceptingBookings: true,
+    durationOptionsMinutes: [60, 90],
+    bookingHorizonDays: 21,
+    actor: operator,
+  });
   const oldTown = await venue("Old Town Arena", "Lisbon", "PT", ["Court 1"]);
   await softArchiveVenue(db, { venueId: oldTown.id });
 
   const skyline = await venue("Skyline Padel", "Lisbon", "PT", ["Court 1"]);
   const bay = await venue("Bay Padel", "Porto", "PT", ["Court 1", "Court 2"]);
 
-  return { central, riverside, harbour, oldTown, skyline, bay };
+  return { central, riverside, harbour, pitches, oldTown, skyline, bay };
 }
 
 // ---------------------------------------------------------------------------
@@ -870,6 +908,17 @@ async function seedGroups(u: Users, c: Communities) {
   });
   await joinClubPublic(db, { groupId: portoOpen.id, userId: u.marco!.id });
 
+  // Loose Group Public for football; its Games are rosters.
+  const fiveASide = await createLoosePublic(db, {
+    name: "Sunday Five-a-side",
+    description: "Pickup football on pitches. Come as you are.",
+    sport: "football",
+    userId: u.tom!.id,
+  });
+  for (const key of ["me", "omar", "maya", "diego", "ben", "jonas"]) {
+    await joinLoosePublic(db, { groupId: fiveASide.id, userId: u[key]!.id });
+  }
+
   // Loose Group Private that Sam has a pending Lookup invite to.
   const secret = await createLoosePrivate(db, {
     name: "Thursday Doubles",
@@ -892,6 +941,7 @@ async function seedGroups(u: Users, c: Communities) {
     beach,
     earlyBirds,
     portoOpen,
+    fiveASide,
     secret,
   };
 }
@@ -901,10 +951,14 @@ async function seedGroups(u: Users, c: Communities) {
 // ---------------------------------------------------------------------------
 
 async function seedTeams(u: Users, c: Communities) {
-  const make = async (ownerKey: string, name: string | undefined) =>
+  const make = async (
+    ownerKey: string,
+    name: string | undefined,
+    sport: "padel" | "football" = "padel",
+  ) =>
     createTeam(db, {
       name,
-      sport: "padel",
+      sport,
       userId: u[ownerKey]!.id,
       userName: u[ownerKey]!.name,
     });
@@ -960,7 +1014,16 @@ async function seedTeams(u: Users, c: Communities) {
     userId: u.yusuf!.id,
   });
 
-  return { smash, netRunners, lobs, duo, rally };
+  const squad = await make("tom", "Sunday Seven", "football");
+  for (const memberKey of ["emma", "jonas", "aisha", "marco", "hana"]) {
+    const squadInvite = await invite(squad.id, "tom", memberKey);
+    await acceptInAppInvite(db, {
+      inviteId: squadInvite.id,
+      userId: u[memberKey]!.id,
+    });
+  }
+
+  return { smash, netRunners, lobs, duo, rally, squad };
 }
 
 // ---------------------------------------------------------------------------
@@ -1357,6 +1420,26 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     start: at(3, 9),
   });
   await cancelGame(db, { gameId: cancelled.id, userId: u.me!.id });
+
+  // --- Football Game: a roster, no seats ---
+  const pitchGame = await createGame(db, {
+    createdBy: u.tom!.id,
+    name: "Sunday five-a-side",
+    groupId: g.fiveASide.id,
+    isPublic: false,
+    format: "friendly_game",
+    registrationMode: "individual",
+    sideSize: 5,
+    playersAllowed: 12,
+    windowStart: at(5, 19),
+    windowEnd: at(5, 20),
+    venueId: v.pitches.id,
+    courtId: v.pitches.courtIds[0]!,
+    pricePerPlayerFils: 3000,
+  });
+  for (const key of ["tom", "me", "omar", "maya", "diego", "ben", "jonas"]) {
+    await register(db, { gameId: pitchGame.id, userId: u[key]!.id });
+  }
 
   // --- Americano ---
   const americano = await createGame(db, {

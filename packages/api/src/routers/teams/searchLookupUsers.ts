@@ -5,7 +5,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { searchLookupUsers as searchLookupUsersDoor } from "#src/invites/search-lookup-users";
 import { requireIncompleteTeamCreator } from "#src/teams/helpers/require-incomplete-team-creator";
-import { unusedInviteForTeam } from "#src/teams/helpers/unused-invite-for-team";
+import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-for-team";
 
 type DbClient = typeof db;
 
@@ -18,14 +18,14 @@ export async function searchLookupUsers(
     args.teamId,
     args.userId,
   );
-  const unusedLookup = await unusedInviteForTeam(database, team.id);
+  const unusedLookups = await unusedLookupInvitesForTeam(database, team.id);
 
   return searchLookupUsersDoor(database, {
     query: args.query,
     excludeUserIds: [
       args.userId,
       ...memberRows.map((row) => row.userId),
-      ...(unusedLookup ? [unusedLookup.userId] : []),
+      ...unusedLookups.map((invite) => invite.userId),
     ],
   });
 }

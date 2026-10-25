@@ -1,13 +1,13 @@
-import { spacing } from "@repo/design-tokens";
+import { colors, spacing } from "@repo/design-tokens";
+import { sportGlyph } from "@repo/domain/sport";
 import {
   TEAM_DISSOLVE_LABEL,
-  TEAM_INVITE_PARTNER_LABEL,
+  TEAM_LEAVE_LABEL,
   TEAM_NO_MEMBERS_COPY,
   TEAM_REQUEST_LINK_DESCRIPTION,
   TEAM_REQUEST_LINK_LABEL,
   TEAM_REQUEST_LINK_SUBMIT_LABEL,
   TEAM_UNLINK_LABEL,
-  TEAM_WAITING_COPY,
   type TeamHomeView as TeamHomeViewData,
 } from "@repo/domain/teams";
 import type { TeamLinkCommunityPicker } from "@repo/domain/team-link-community-picker";
@@ -21,6 +21,7 @@ import {
 import { Notice } from "../groups/notice";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { SportGlyph } from "../lib/sport-glyph";
 import { Hairline } from "../primitives/hairline";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Section } from "../primitives/section";
@@ -35,6 +36,7 @@ export type LinkCommunity = { id: string; name: string };
 
 export type TeamHomeViewProps = {
   view: TeamHomeViewData;
+  sport: string;
   linkOpen: boolean;
   linkPicker: TeamLinkCommunityPicker<LinkCommunity>;
   linkPickerMessage: string | null;
@@ -52,6 +54,7 @@ export type TeamHomeViewProps = {
   onRetryCommunities: () => void;
   onUnlink: () => void;
   onDissolve: () => void;
+  onLeave: () => void;
   onCloseConfirm: () => void;
 };
 
@@ -231,9 +234,14 @@ export function TeamHomeView(props: TeamHomeViewProps) {
             </View>
           </View>
         </ScreenHeader>
-        <Text size="eyebrow" tone="muted" mono uppercase>
-          {view.badges.join(" · ")}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {sportGlyph(props.sport) ? (
+            <SportGlyph sport={props.sport} color={colors.muted} />
+          ) : null}
+          <Text size="eyebrow" tone="muted" mono uppercase>
+            {view.badges.join(" · ")}
+          </Text>
+        </View>
         {view.linkedCommunity ? (
           <Text size="meta" tone="muted">
             Linked to {view.linkedCommunity.name}
@@ -246,17 +254,19 @@ export function TeamHomeView(props: TeamHomeViewProps) {
         ) : null}
         {view.primaryInvite ? (
           <View style={{ flexDirection: "row" }}>
-            <Button
-              label={TEAM_INVITE_PARTNER_LABEL}
-              onPress={props.onInvite}
-            />
+            <Button label={view.inviteLabel} onPress={props.onInvite} />
           </View>
         ) : null}
       </View>
 
       {view.waitingNote ? (
         <Text size="meta" tone="muted">
-          {TEAM_WAITING_COPY}
+          {view.waitingCopy}
+        </Text>
+      ) : null}
+      {view.requestLinkHint ? (
+        <Text size="meta" tone="muted">
+          {view.requestLinkHint}
         </Text>
       ) : null}
       {view.pendingLinkNote ? (
@@ -268,19 +278,27 @@ export function TeamHomeView(props: TeamHomeViewProps) {
       <Stats stats={view.stats} />
 
       <Section title="Members">
+        {view.roster.label ? (
+          <Text size="eyebrow" tone="muted" mono uppercase>
+            {[view.roster.label, view.roster.status]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
+        ) : null}
         <Members members={view.members} />
       </Section>
 
       {view.canInvite ||
       view.canRequestLink ||
       view.canUnlink ||
+      view.canLeave ||
       view.canDissolve ? (
         <Section title="Team actions">
           <View style={{ gap: 8 }}>
             {view.canInvite && !view.primaryInvite ? (
               <View style={{ flexDirection: "row" }}>
                 <Button
-                  label="Invite partner"
+                  label={view.inviteLabel}
                   variant="outline"
                   onPress={props.onInvite}
                 />
@@ -301,6 +319,15 @@ export function TeamHomeView(props: TeamHomeViewProps) {
                   label={TEAM_UNLINK_LABEL}
                   variant="outline"
                   onPress={props.onUnlink}
+                />
+              </View>
+            ) : null}
+            {view.canLeave ? (
+              <View style={{ flexDirection: "row" }}>
+                <Button
+                  label={TEAM_LEAVE_LABEL}
+                  variant="outline"
+                  onPress={props.onLeave}
                 />
               </View>
             ) : null}

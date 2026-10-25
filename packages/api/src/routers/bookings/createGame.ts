@@ -2,17 +2,21 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { bookings, games } from "@repo/db";
+import { bookings, courts, games } from "@repo/db";
 import {
   LEVEL_RANGE_INVERTED_MESSAGE,
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
+import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
-import { createFriendlyGame } from "#src/games/create-friendly";
+import {
+  createFootballGame,
+  createFriendlyGame,
+} from "#src/games/create-friendly";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -38,6 +42,8 @@ export const createBookingGameInputSchema = z
       .optional(),
     levelMinTenths: levelTenths,
     levelMaxTenths: levelTenths,
+    sideSize: z.number().int().optional(),
+    playersAllowed: z.number().int().optional(),
   })
   .superRefine((value, ctx) => {
     if (
@@ -93,6 +99,20 @@ export async function createBookingGame(
         message: "This Booking has already ended",
       });
     }
+    const court = await tx.query.courts.findFirst({
+      where: eq(courts.id, booking.courtId),
+      columns: { sport: true },
+    });
+    const football = court?.sport === "football";
+    if (
+      football &&
+      (args.levelMinTenths != null || args.levelMaxTenths != null)
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Football Games have no Level range",
+      });
+    }
     if (booking.gameId) {
       const linked = await tx.query.games.findFirst({
         where: eq(games.id, booking.gameId),
@@ -104,6 +124,27 @@ export async function createBookingGame(
           message: "This Booking already has a Game",
         });
       }
+    }
+
+    if (football) {
+      const sideSize = args.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
+      const { game } = await createFootballGame(tx, {
+        createdBy: args.userId,
+        name: args.name,
+        groupId: null,
+        venueId: booking.venueId,
+        courtId: booking.courtId,
+        windowStart: booking.startsAt,
+        windowEnd: booking.endsAt,
+        pricePerPlayerFils: args.pricePerPlayerFils ?? null,
+        sideSize,
+        playersAllowed: args.playersAllowed ?? 2 * sideSize,
+      });
+      await tx
+        .update(bookings)
+        .set({ gameId: game.id, updatedAt: now })
+        .where(eq(bookings.id, booking.id));
+      return { gameId: game.id, matchId: null as string | null };
     }
 
     const created = await createFriendlyGame(tx, {

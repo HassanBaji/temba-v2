@@ -27,9 +27,6 @@ export const teamMemberInvites = pgTable(
     )
       .on(table.teamId, table.userId)
       .where(sql`${table.acceptedAt} is null and ${table.revokedAt} is null`),
-    unusedTeamUnique: uniqueIndex("team_member_invites_unused_team_unique")
-      .on(table.teamId)
-      .where(sql`${table.acceptedAt} is null and ${table.revokedAt} is null`),
   }),
 );
 

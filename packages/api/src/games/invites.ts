@@ -22,6 +22,7 @@ import { admit, type AdmitResult } from "#src/games/admit";
 import { enqueueWaitlistTeam } from "#src/games/enqueue-waitlist-team";
 import { enqueueWaitlistUser } from "#src/games/enqueue-waitlist-user";
 import {
+  assertGameHasSeats,
   isIndividualSeatGame,
   listGameSides,
   type SeatPosition,
@@ -145,6 +146,9 @@ export async function admitIndividualUser(
   now = new Date(),
   seat?: { sideIndex: number; position: SeatPosition },
 ): Promise<{ waitlisted: boolean }> {
+  if (seat) {
+    assertGameHasSeats(game);
+  }
   if (await userAlreadyOnGame(database, game.id, userId)) {
     throw new TRPCError({
       code: "CONFLICT",

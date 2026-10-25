@@ -5,6 +5,9 @@ import {
   firstName,
   gameCardFormatCell,
   gameCardOpenSpots,
+  gameCardRosterOccupancy,
+  gameCardSportTag,
+  hubGameCardPlan,
   gameCardSubtitle,
   hubRegisterToast,
   hubWaitlistJoinCall,
@@ -127,11 +130,84 @@ describe("hubWaitlistJoinCall", () => {
     assert.equal(hubWaitlistJoinCall("friendly_game"), "registerSeat");
     assert.equal(hubWaitlistJoinCall("friendly_tournament"), "registerSeat");
   });
+
+  it("registers a football Friendly game and seats a padel one", () => {
+    assert.equal(hubWaitlistJoinCall("friendly_game", "football"), "register");
+    assert.equal(hubWaitlistJoinCall("friendly_game", "padel"), "registerSeat");
+  });
 });
 
 describe("hubRegisterToast", () => {
   it("tells a waitlist from a seat", () => {
     assert.equal(hubRegisterToast(true), "Joined waitlist");
     assert.equal(hubRegisterToast(false), "Registered");
+  });
+});
+
+describe("gameCardSportTag", () => {
+  it("pairs the glyph with the word", () => {
+    assert.deepEqual(gameCardSportTag("football"), {
+      glyph: "goal",
+      label: "Football",
+    });
+    assert.deepEqual(gameCardSportTag("padel"), {
+      glyph: "circle-dot",
+      label: "Padel",
+    });
+  });
+
+  it("is null when the sport is unknown", () => {
+    assert.equal(gameCardSportTag(null), null);
+    assert.equal(gameCardSportTag(""), null);
+  });
+});
+
+describe("gameCardRosterOccupancy", () => {
+  const base = { format: "friendly_game", registeredUserCount: 7 };
+
+  it("reads 7/10 on a football Game", () => {
+    const occupancy = gameCardRosterOccupancy({
+      ...base,
+      sport: "football",
+      playersAllowed: 10,
+    });
+    assert.equal(occupancy?.label, "7/10");
+    assert.equal(occupancy?.seatsLeft, 3);
+  });
+
+  it("is null on a seat Game", () => {
+    assert.equal(
+      gameCardRosterOccupancy({ ...base, sport: "padel", playersAllowed: 4 }),
+      null,
+    );
+  });
+});
+
+describe("hubGameCardPlan", () => {
+  const row = {
+    format: "friendly_game",
+    registrationMode: "individual",
+    canRegister: true,
+    canWaitlist: false,
+    joinFrozen: false,
+    isRegistered: false,
+    isSeated: false,
+    isWaitlisted: false,
+    registrationStatus: "open",
+    sides: [],
+    matchId: null,
+  };
+
+  it("registers a football Game and shows no seat roster", () => {
+    const plan = hubGameCardPlan({ ...row, sport: "football" });
+    assert.equal(plan.primaryAction, "register");
+    assert.equal(plan.rosterSides, undefined);
+    assert.equal(plan.showPartnerJoin, false);
+  });
+
+  it("keeps the seat roster on a padel Game", () => {
+    const plan = hubGameCardPlan({ ...row, sport: "padel" });
+    assert.equal(plan.primaryAction, "join");
+    assert.deepEqual(plan.rosterSides, []);
   });
 });

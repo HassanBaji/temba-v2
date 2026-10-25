@@ -77,7 +77,7 @@ export default function NewLooseGroupPage() {
         createLoosePublic.reset();
         const group = await createLoosePrivate.mutateAsync({
           name: values.name,
-          sport: "padel",
+          sport: values.sport,
         });
         await afterCreate(group, values.image, GROUP_CREATED_TOAST);
         return;
@@ -85,7 +85,7 @@ export default function NewLooseGroupPage() {
       createLoosePrivate.reset();
       const group = await createLoosePublic.mutateAsync({
         name: values.name,
-        sport: "padel",
+        sport: values.sport,
         requiresApproval: values.requiresApproval,
       });
       await afterCreate(group, values.image, GROUP_CREATED_TOAST);

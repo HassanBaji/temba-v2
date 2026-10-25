@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { isForbiddenError } from "./is-forbidden-error";
 import {
+  teamCreateInput,
   teamDissolveConfirm,
   teamHomeView,
+  teamInviteSeatsLeft,
+  teamLeaveConfirm,
   teamListRowView,
   teamNameInput,
   teamRowMeta,
@@ -115,7 +118,116 @@ describe("teamHomeView", () => {
   });
 });
 
+describe("teamCreateInput", () => {
+  it("submits the chosen sport with the trimmed name", () => {
+    expect(teamCreateInput({ name: " Five ", sport: "football" })).toEqual({
+      name: "Five",
+      sport: "football",
+    });
+    expect(teamCreateInput({ name: "", sport: "padel" })).toEqual({
+      name: undefined,
+      sport: "padel",
+    });
+  });
+});
+
+describe("teamHomeView roster", () => {
+  it("shows no count, leave or squad copy on a padel Team", () => {
+    for (const home of [
+      fixtures.home.complete,
+      fixtures.home.incomplete,
+      fixtures.home.waiting,
+    ]) {
+      const view = teamHomeView(home);
+      expect(view.roster).toEqual({ label: null, status: null });
+      expect(view.canLeave).toBe(false);
+      expect(view.squad).toBe(false);
+      expect(view.requestLinkHint).toBeNull();
+      expect(view.inviteLabel).toBe("Invite your partner");
+    }
+    expect(teamHomeView(fixtures.home.incomplete).waitingCopy).toBe(
+      "Waiting for a partner. This Team is incomplete until a second member joins.",
+    );
+  });
+
+  it("counts a football squad and marks complete and full", () => {
+    expect(teamHomeView(fixtures.home.footballCreatorBuilding).roster).toEqual({
+      label: "2 of 25",
+      status: null,
+    });
+    expect(teamHomeView(fixtures.home.footballCreatorComplete).roster).toEqual({
+      label: "7 of 25",
+      status: "Complete",
+    });
+    expect(teamHomeView(fixtures.home.footballCreatorFull).roster).toEqual({
+      label: "25 of 25",
+      status: "Full",
+    });
+  });
+
+  it("says how many members a football Team still needs", () => {
+    const building = teamHomeView(fixtures.home.footballCreatorBuilding);
+    expect(building.openSeats).toBe(3);
+    expect(building.requestLinkHint).toBe(
+      "A Team needs 5 members to request a Community link. 3 more members to go.",
+    );
+    expect(teamHomeView(fixtures.home.footballMember).waitingCopy).toBe(
+      "Needs 2 more members to be complete.",
+    );
+    expect(
+      teamHomeView(fixtures.home.footballCreatorComplete).requestLinkHint,
+    ).toBeNull();
+  });
+
+  it("gives the creator invites and dissolve, and a member leave", () => {
+    const creator = teamHomeView(fixtures.home.footballCreatorComplete);
+    expect(creator).toMatchObject({
+      canInvite: true,
+      canDissolve: true,
+      canLeave: false,
+      inviteLabel: "Invite players",
+    });
+    const member = teamHomeView(fixtures.home.footballMember);
+    expect(member).toMatchObject({
+      canInvite: false,
+      canDissolve: false,
+      canLeave: true,
+    });
+  });
+
+  it("keeps the counters at zero", () => {
+    expect(
+      teamHomeView(fixtures.home.footballCreatorComplete).stats.map(
+        (stat) => stat.value,
+      ),
+    ).toEqual(["0", "0", "0", "—"]);
+  });
+});
+
+describe("teamInviteSeatsLeft", () => {
+  it("counts pending invites against the squad limit", () => {
+    const { roster } = fixtures.home.footballCreatorComplete;
+    expect(teamInviteSeatsLeft(roster, 0)).toBe(18);
+    expect(teamInviteSeatsLeft(roster, 18)).toBe(0);
+    expect(teamInviteSeatsLeft(roster, 30)).toBe(0);
+  });
+
+  it("leaves a padel Team no seat while its invite is pending", () => {
+    const { roster } = fixtures.home.incomplete;
+    expect(teamInviteSeatsLeft(roster, 0)).toBe(1);
+    expect(teamInviteSeatsLeft(roster, 1)).toBe(0);
+  });
+});
+
 describe("confirm copy", () => {
+  it("names the Team on leave", () => {
+    expect(teamLeaveConfirm("Sunday Five")).toEqual({
+      title: "Leave Sunday Five?",
+      description: "You can only rejoin if you are invited again.",
+      confirmLabel: "Leave Team",
+    });
+  });
+
   it("names the Team", () => {
     expect(teamDissolveConfirm("Smashers")).toEqual({
       title: "Dissolve Smashers?",

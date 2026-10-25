@@ -1,15 +1,4 @@
-const SPORT_LABELS: Record<string, string> = {
-  padel: "Padel",
-  football: "Football",
-};
-
-function sportDisplayLabel(sport: string | null | undefined) {
-  const value = sport?.trim();
-  if (!value) {
-    return null;
-  }
-  return SPORT_LABELS[value] ?? value;
-}
+import { sportLabel as sportDisplayLabel } from "./sport";
 
 export function groupInviteDisplayName(groupName: string | null | undefined) {
   const trimmed = groupName?.trim();

@@ -198,7 +198,8 @@ type ExpectedTeams =
   | "acceptInviteLink"
   | "requestLink"
   | "unlink"
-  | "dissolve";
+  | "dissolve"
+  | "leave";
 
 type ExpectedUsers =
   | "home"
@@ -216,6 +217,7 @@ type ExpectedVenues =
   | "updateDetails"
   | "addCourt"
   | "renameCourt"
+  | "setCourtSport"
   | "deleteCourt"
   | "uploadLogo"
   | "clearLogo"

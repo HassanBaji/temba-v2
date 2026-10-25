@@ -10,6 +10,8 @@ import {
   teamMembers,
 } from "@repo/db";
 
+import { teamIsComplete } from "@repo/domain/team-roster";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -40,7 +42,7 @@ export async function requestLink(
   }
 
   const memberRows = await listTeamMembers(database, team.id);
-  if (memberRows.length < 2) {
+  if (!teamIsComplete(memberRows.length, team.sport)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Incomplete Teams cannot request a Community link",

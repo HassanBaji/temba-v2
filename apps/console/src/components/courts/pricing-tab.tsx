@@ -29,6 +29,7 @@ import {
 } from "./classes";
 import { toastMutationError } from "./mutation-error";
 import { NativeSelect } from "./native-select";
+import { COURT_SPORT_LABELS } from "@repo/domain/court-sport-copy";
 import {
   ALL_WEEKDAYS,
   WEEKDAY_SHORT,
@@ -303,7 +304,7 @@ export function RateCard() {
                           <option value="">All courts</option>
                           {venue.courts.map((court) => (
                             <option key={court.id} value={court.id}>
-                              {court.name}
+                              {court.name} · {COURT_SPORT_LABELS[court.sport]}
                             </option>
                           ))}
                         </NativeSelect>

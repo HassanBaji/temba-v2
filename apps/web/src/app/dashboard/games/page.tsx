@@ -183,6 +183,7 @@ function GamesHubTabPanel({
             startTime={game.startTime}
             groupName={game.groupName}
             format={game.format}
+            sport={game.sport}
             registrationMode={game.registrationMode}
             canRegister={game.canRegister}
             windowStart={game.windowStart}
@@ -433,7 +434,7 @@ export default function GamesHubPage({
   }
 
   function onJoinWaitlist(game: HubGame) {
-    if (hubWaitlistJoinCall(game.format) === "register") {
+    if (hubWaitlistJoinCall(game.format, game.sport) === "register") {
       register.mutate({ gameId: game.id });
       return;
     }

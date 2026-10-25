@@ -17,6 +17,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
+import { groupShowsLevel } from "@repo/domain/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
 import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
@@ -664,6 +665,7 @@ export default function GroupHomePage({
               verified={data.verified}
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}
+              showLevel={groupShowsLevel(data.sport)}
             />
           </TabsContent>
           <TabsContent value="games">
@@ -719,7 +721,10 @@ export default function GroupHomePage({
               />
               <GroupMembersTab
                 groupId={id}
-                canSetLevel={data.viewerCanSetLevel}
+                canSetLevel={
+                  data.viewerCanSetLevel && groupShowsLevel(data.sport)
+                }
+                showLevel={groupShowsLevel(data.sport)}
                 savedUserId={savedUserId}
                 onDismissSaved={() =>
                   router.replace(groupMembersTabHref(id), { scroll: false })

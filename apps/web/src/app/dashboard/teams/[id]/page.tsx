@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { lookupInviteSentToast } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import {
@@ -49,19 +50,21 @@ import {
   TEAM_DISSOLVE_LABEL,
   TEAM_ERROR_TITLE,
   TEAM_FORBIDDEN_COPY,
-  TEAM_INVITE_DESCRIPTION,
-  TEAM_INVITE_PARTNER_LABEL,
+  TEAM_LEAVE_LABEL,
+  TEAM_LEFT_TOAST,
   TEAM_LINK_REQUESTED_TOAST,
-  TEAM_LOOKUP_NOTE,
   TEAM_NO_MEMBERS_COPY,
   TEAM_REQUEST_LINK_DESCRIPTION,
   TEAM_REQUEST_LINK_LABEL,
   TEAM_REQUEST_LINK_SUBMIT_LABEL,
   TEAM_UNLINKED_TOAST,
   TEAM_UNLINK_LABEL,
-  TEAM_WAITING_COPY,
   teamDissolveConfirm,
   teamHomeView,
+  teamInviteDescription,
+  teamInviteSeatsLeft,
+  teamLeaveConfirm,
+  teamLookupNote,
   teamUnlinkConfirm,
 } from "@repo/domain/teams";
 import {
@@ -86,6 +89,7 @@ export default function TeamHomePage({
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const [dissolveOpen, setDissolveOpen] = useState(false);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [lookupQuery, setLookupQuery] = useState("");
   const [lookupRefused, setLookupRefused] = useState<
@@ -99,27 +103,65 @@ export default function TeamHomePage({
     { teamId: id },
     { enabled: Boolean(team.data?.canInvite) },
   );
+  const pendingInvites = api.teams.listInAppInvites.useQuery(
+    { teamId: id },
+    { enabled: inviteOpen && Boolean(team.data?.canInvite) },
+  );
   const lookupSearch = api.teams.searchLookupUsers.useQuery(
     { teamId: id, query: lookupQuery },
     { enabled: inviteOpen && Boolean(team.data?.canInvite) },
   );
 
-  const inviteInApp = api.teams.inviteInApp.useMutation({
-    onSuccess: async () => {
-      setLookupRefused([]);
-      toast.success("Lookup invite sent");
-      await utils.teams.byId.invalidate({ id });
-      await utils.teams.searchLookupUsers.invalidate({ teamId: id });
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
+  const refreshInvites = async () => {
+    await utils.teams.byId.invalidate({ id });
+    await utils.teams.listInAppInvites.invalidate({ teamId: id });
+    await utils.teams.searchLookupUsers.invalidate({ teamId: id });
+  };
+
+  const inviteInApp = api.teams.inviteInApp.useMutation();
+
+  const sendPartnerInvite = (userId: string) => {
+    inviteInApp.mutate(
+      { teamId: id, userId },
+      {
+        onSuccess: () => {
+          setLookupRefused([]);
+          toast.success("Lookup invite sent");
+          void refreshInvites();
+        },
+        onError: (error) => {
+          toastGlobalFormError(error);
+        },
+      },
+    );
+  };
+
+  const sendSquadInvites = async (userIds: string[]) => {
+    const refused: { name: string; message: string }[] = [];
+    let sent = 0;
+    for (const userId of userIds) {
+      try {
+        await inviteInApp.mutateAsync({ teamId: id, userId });
+        sent += 1;
+      } catch (error) {
+        refused.push({
+          name:
+            lookupSearch.data?.find((row) => row.id === userId)?.name ?? "User",
+          message: error instanceof Error ? error.message : "Could not invite",
+        });
+      }
+    }
+    setLookupRefused(refused);
+    if (sent > 0) {
+      toast.success(lookupInviteSentToast(sent));
+      await refreshInvites();
+    }
+  };
 
   const revokeInvite = api.teams.revokeInAppInvite.useMutation({
     onSuccess: async () => {
       toast.success("Lookup invite revoked");
-      await utils.teams.byId.invalidate({ id });
+      await refreshInvites();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -140,6 +182,14 @@ export default function TeamHomePage({
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
       toast.success(TEAM_DISSOLVED_TOAST);
+      await utils.teams.mine.invalidate();
+      router.push("/dashboard/teams");
+    },
+  });
+
+  const leave = api.teams.leave.useMutation({
+    onSuccess: async () => {
+      toast.success(TEAM_LEFT_TOAST);
       await utils.teams.mine.invalidate();
       router.push("/dashboard/teams");
     },
@@ -276,7 +326,7 @@ export default function TeamHomePage({
           primaryAction={
             view.primaryInvite ? (
               <Button onClick={() => setInviteOpen(true)}>
-                {TEAM_INVITE_PARTNER_LABEL}
+                {view.inviteLabel}
               </Button>
             ) : undefined
           }
@@ -287,7 +337,7 @@ export default function TeamHomePage({
               </ActionMenuItem>
               {data.canInvite ? (
                 <ActionMenuItem onSelect={() => setInviteOpen(true)}>
-                  Invite partner
+                  {view.squad ? "Invite players" : "Invite partner"}
                 </ActionMenuItem>
               ) : null}
               {data.canRequestLink ? (
@@ -295,8 +345,16 @@ export default function TeamHomePage({
                   {TEAM_REQUEST_LINK_LABEL}
                 </ActionMenuItem>
               ) : null}
-              {data.canUnlink || data.canDissolve ? (
+              {view.canUnlink || view.canDissolve || view.canLeave ? (
                 <ActionMenuSeparator />
+              ) : null}
+              {view.canLeave ? (
+                <ActionMenuItem
+                  variant="destructive"
+                  onSelect={() => setLeaveOpen(true)}
+                >
+                  {TEAM_LEAVE_LABEL}
+                </ActionMenuItem>
               ) : null}
               {data.canUnlink ? (
                 <ActionMenuItem
@@ -319,7 +377,13 @@ export default function TeamHomePage({
         />
 
         {view.waitingNote ? (
-          <p className="text-body text-muted-foreground">{TEAM_WAITING_COPY}</p>
+          <p className="text-body text-muted-foreground">{view.waitingCopy}</p>
+        ) : null}
+
+        {view.requestLinkHint ? (
+          <p className="text-body text-muted-foreground">
+            {view.requestLinkHint}
+          </p>
         ) : null}
 
         {view.pendingLinkNote ? (
@@ -330,7 +394,16 @@ export default function TeamHomePage({
 
         <StatStrip items={view.stats} />
 
-        <Section title="Members">
+        <Section
+          title="Members"
+          description={
+            view.roster.label
+              ? [view.roster.label, view.roster.status]
+                  .filter(Boolean)
+                  .join(" · ")
+              : undefined
+          }
+        >
           {data.members.length === 0 ? (
             <EmptyState
               headingLevel={3}
@@ -370,6 +443,17 @@ export default function TeamHomePage({
       />
 
       <ConfirmDialog
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        {...teamLeaveConfirm(displayName)}
+        pending={leave.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await leave.mutateAsync({ teamId: id });
+        }}
+      />
+
+      <ConfirmDialog
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
         {...teamUnlinkConfirm(displayName)}
@@ -391,10 +475,13 @@ export default function TeamHomePage({
             }
           }}
           restoreFocusRef={menuTriggerRef}
-          description={TEAM_INVITE_DESCRIPTION}
+          description={teamInviteDescription(view.squad)}
           lookup={{
-            note: TEAM_LOOKUP_NOTE,
-            lookupInvites: data.unusedInvite ? [data.unusedInvite] : [],
+            note: teamLookupNote(view.squad),
+            lookupInvites: pendingInvites.data,
+            canSend: pendingInvites.data
+              ? teamInviteSeatsLeft(data.roster, pendingInvites.data.length) > 0
+              : true,
             sendPending: inviteInApp.isPending,
             revokePendingId: revokeInvite.isPending
               ? revokeInvite.variables?.inviteId
@@ -405,13 +492,17 @@ export default function TeamHomePage({
             searchResults: lookupSearch.data,
             searchPending: lookupSearch.isFetching,
             refused: lookupRefused,
-            selection: "single",
+            selection: view.squad ? "multiple" : "single",
             onSendUserIds: (userIds) => {
+              if (view.squad) {
+                void sendSquadInvites(userIds);
+                return;
+              }
               const userId = userIds[0];
               if (!userId) {
                 return;
               }
-              inviteInApp.mutate({ teamId: id, userId });
+              sendPartnerInvite(userId);
             },
             onRevokeLookup: (inviteId) => revokeInvite.mutate({ inviteId }),
           }}

@@ -9,6 +9,11 @@ import {
   matches,
 } from "@repo/db";
 
+import {
+  ROSTER_GAME_NO_SEATS_MESSAGE,
+  isRosterRegistrationGame,
+} from "@repo/domain/game-shape";
+
 import { type db } from "#src/db";
 import {
   FRIENDLY_PLAYERS_ALLOWED,
@@ -63,8 +68,19 @@ export async function firstVacantPosition(database: DbClient, game: GameRow) {
 export function isIndividualSeatGame(game: GameRow) {
   return (
     game.registrationMode === "individual" &&
-    (game.format === "friendly_game" || game.format === "friendly_tournament")
+    (game.format === "friendly_game" ||
+      game.format === "friendly_tournament") &&
+    !isRosterRegistrationGame(game)
   );
+}
+
+export function assertGameHasSeats(game: GameRow) {
+  if (isRosterRegistrationGame(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: ROSTER_GAME_NO_SEATS_MESSAGE,
+    });
+  }
 }
 
 export function sideCount(game: GameRow) {

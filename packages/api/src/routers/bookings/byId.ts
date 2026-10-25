@@ -81,7 +81,7 @@ export async function bookingById(
     .from(venues)
     .where(eq(venues.id, booking.venueId));
   const [court] = await database
-    .select({ id: courts.id, name: courts.name })
+    .select({ id: courts.id, name: courts.name, sport: courts.sport })
     .from(courts)
     .where(eq(courts.id, booking.courtId));
   const [game] = booking.gameId

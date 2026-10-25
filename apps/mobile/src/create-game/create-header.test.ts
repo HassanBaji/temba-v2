@@ -47,6 +47,15 @@ describe("stepHeader", () => {
     });
   });
 
+  it("names the sport on a football Group", () => {
+    expect(
+      stepHeader(
+        { type: "friendly_game", step: 2, sport: "football" },
+        WITH_GROUP,
+      )?.context?.parts,
+    ).toEqual(["Tuesday Crew", "Football", "3 Venues"]);
+  });
+
   it("uses the singular for one Venue", () => {
     expect(
       stepHeader(
@@ -102,6 +111,14 @@ describe("stepHeader", () => {
 });
 
 describe("nextStepTitle", () => {
+  it("ends a football Game on Size and price", () => {
+    expect(nextStepTitle("friendly_game", 3, "football")).toBe(
+      "Size and price",
+    );
+    expect(nextStepTitle("friendly_game", 3)).toBe("Level and price");
+    expect(nextStepTitle("friendly_game", 4, "football")).toBeNull();
+  });
+
   it("follows the Friendly game steps", () => {
     expect(nextStepTitle("friendly_game", 1)).toBe("Where");
     expect(nextStepTitle("friendly_game", 2)).toBe("When");

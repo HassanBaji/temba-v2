@@ -2,6 +2,7 @@ import { spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import { groupShowsLevel } from "@repo/domain/group-home-chrome";
 import {
   GROUP_LINK_REQUEST_ACCEPT_LABEL,
   GROUP_LINK_REQUEST_DECLINE_LABEL,
@@ -299,7 +300,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               : undefined
           }
           apiOrigin={props.apiOrigin}
-          canSetLevel={data.viewerCanSetLevel}
+          canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
+          showLevel={groupShowsLevel(data.sport)}
           onSetLevel={props.onSetLevel}
         />
       ) : null}

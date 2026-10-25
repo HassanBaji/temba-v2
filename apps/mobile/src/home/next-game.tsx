@@ -10,6 +10,7 @@ import { homeNoGamesCopy } from "@repo/domain/home-no-games";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { SportTag } from "../lib/sport-tag";
 import { Button } from "../primitives/button";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -131,6 +132,7 @@ export function NextGame({
       <Heading left={game.venueName} status={status} />
       <View style={{ gap: 8 }}>
         <Kickoff startsAt={game.startsAt} />
+        <SportTag sport={game.sport} />
         {secondary ? (
           <Text size="meta" tone="muted">
             {secondary}
@@ -142,7 +144,26 @@ export function NextGame({
           </Text>
         )}
       </View>
-      <SeatRow seats={game.seats} />
+      {game.roster ? (
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <Text size="meta" tone="muted">
+            {game.roster.filledLabel} players in
+          </Text>
+          {game.roster.spotsLabel ? (
+            <Text size="meta" tone="muted">
+              {game.roster.spotsLabel}
+            </Text>
+          ) : null}
+        </View>
+      ) : (
+        <SeatRow seats={game.seats} />
+      )}
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
           label={primary.label}

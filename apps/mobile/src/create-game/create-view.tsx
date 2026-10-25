@@ -21,7 +21,11 @@ import {
 } from "./create-header";
 import type { CreateAction, CreateState, FieldErrors } from "./create-model";
 import { tournamentMatchTotals } from "./create-summary";
-import { GameDetailsStep, TournamentDetailsStep } from "./details-step";
+import {
+  FootballDetailsStep,
+  GameDetailsStep,
+  TournamentDetailsStep,
+} from "./details-step";
 import { StepFooter, StepShell } from "./step-shell";
 import { TypeStep } from "./type-step";
 import { GameWhenStep, TournamentWhenStep } from "./when-step";
@@ -218,6 +222,13 @@ export function CreateView(props: CreateViewProps) {
       {state.step === 4 ? (
         state.type === "friendly_tournament" ? (
           <TournamentDetailsStep
+            {...step}
+            groupName={groupName}
+            groupVerified={groupVerified}
+            picker={pickerData}
+          />
+        ) : state.sport === "football" ? (
+          <FootballDetailsStep
             {...step}
             groupName={groupName}
             groupVerified={groupVerified}

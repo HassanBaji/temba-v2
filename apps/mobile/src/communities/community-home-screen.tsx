@@ -28,6 +28,11 @@ import {
   type CommunityRoleChange,
   type CommunityRoleValue,
 } from "@repo/domain/community-role-change";
+import {
+  COMMUNITY_SPORT_ADDED_TOAST,
+  COMMUNITY_SPORT_REMOVED_TOAST,
+} from "@repo/domain/community-sports";
+import type { Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -61,6 +66,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   const [memberQuery, setMemberQuery] = useState("");
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingSport, setPendingSport] = useState<Sport | null>(null);
 
   const community = api.communities.byId.useQuery(
     { id: communityId },
@@ -207,6 +213,23 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
       ]);
     },
     onError: failed,
+  });
+
+  const addSport = api.communities.addSport.useMutation({
+    onSuccess: async () => {
+      toast.show(COMMUNITY_SPORT_ADDED_TOAST);
+      await refreshHome();
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setPendingSport(null),
+  });
+  const removeSport = api.communities.removeSport.useMutation({
+    onSuccess: async () => {
+      toast.show(COMMUNITY_SPORT_REMOVED_TOAST);
+      await refreshHome();
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setPendingSport(null),
   });
 
   const setMemberRole = api.communities.setMemberRole.useMutation({
@@ -380,6 +403,17 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
           onRejectTeam: (requestId) => rejectTeam.mutate({ requestId }),
           onRetryJoin: () => void joinRequests.refetch(),
           onRetryTeam: () => void teamLinkRequests.refetch(),
+        }}
+        sportsBlock={{
+          pendingSport,
+          onAdd: (sport) => {
+            setPendingSport(sport);
+            addSport.mutate({ communityId, sport });
+          },
+          onRemove: (sport) => {
+            setPendingSport(sport);
+            removeSport.mutate({ communityId, sport });
+          },
         }}
         venueSheet={{
           visible: venueOpen,

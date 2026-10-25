@@ -63,6 +63,8 @@ export async function registerTeam(
   const members = await database.query.teamMembers.findMany({
     where: eq(teamMembers.teamId, team.id),
   });
+  // Game-side pair check, like the ones in admit, promote-waitlist and invites:
+  // not the Team roster rule.
   if (members.length !== 2) {
     throw new TRPCError({
       code: "FORBIDDEN",

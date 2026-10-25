@@ -1,5 +1,6 @@
 import { spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
+import { groupShowsLevel } from "@repo/domain/group-home-chrome";
 import { groupStandingState } from "@repo/domain/group-join";
 import { Pressable, View } from "react-native";
 
@@ -37,7 +38,15 @@ function HeaderCell({ label, width }: { label: string; width?: number }) {
   );
 }
 
-function RowBody({ row, linked }: { row: StandingRowView; linked: boolean }) {
+function RowBody({
+  row,
+  linked,
+  showLevel,
+}: {
+  row: StandingRowView;
+  linked: boolean;
+  showLevel: boolean;
+}) {
   return (
     <View
       accessible={!linked}
@@ -76,30 +85,34 @@ function RowBody({ row, linked }: { row: StandingRowView; linked: boolean }) {
       >
         <Text width="expanded">{row.record}</Text>
       </View>
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{ width: LEVEL_WIDTH, alignItems: "flex-end" }}
-      >
-        <LevelCell view={row.level} />
-      </View>
+      {showLevel ? (
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ width: LEVEL_WIDTH, alignItems: "flex-end" }}
+        >
+          <LevelCell view={row.level} />
+        </View>
+      ) : null}
     </View>
   );
 }
 
 function StandingRow({
   row,
+  showLevel,
   onOpen,
 }: {
   row: StandingRowView;
+  showLevel: boolean;
   onOpen?: (userId: string) => void;
 }) {
   const body = row.isViewer ? (
     <Surface tone="ink" padded={false} radius="md">
-      <RowBody row={row} linked={onOpen != null} />
+      <RowBody row={row} linked={onOpen != null} showLevel={showLevel} />
     </Surface>
   ) : (
-    <RowBody row={row} linked={onOpen != null} />
+    <RowBody row={row} linked={onOpen != null} showLevel={showLevel} />
   );
 
   if (!onOpen) {
@@ -120,9 +133,11 @@ function StandingRow({
 
 function StandingTable({
   rows,
+  showLevel,
   onOpenMember,
 }: {
   rows: StandingRowView[];
+  showLevel: boolean;
   onOpenMember?: (userId: string) => void;
 }) {
   return (
@@ -140,20 +155,24 @@ function StandingTable({
         <HeaderCell label="#" width={POSITION_WIDTH} />
         <HeaderCell label="Player" />
         <HeaderCell label="W-L" width={RECORD_WIDTH} />
-        <HeaderCell label="Level" width={LEVEL_WIDTH} />
+        {showLevel ? <HeaderCell label="Level" width={LEVEL_WIDTH} /> : null}
       </View>
       {rows.map((row) => (
         <View key={row.key}>
           <Hairline />
-          <StandingRow row={row} onOpen={onOpenMember} />
+          <StandingRow row={row} showLevel={showLevel} onOpen={onOpenMember} />
         </View>
       ))}
-      <Hairline />
-      <View style={{ padding: spacing.surface }}>
-        <Text size="eyebrow" tone="muted" mono uppercase>
-          {LEVEL_PROVISIONAL_NOTE}
-        </Text>
-      </View>
+      {showLevel ? (
+        <>
+          <Hairline />
+          <View style={{ padding: spacing.surface }}>
+            <Text size="eyebrow" tone="muted" mono uppercase>
+              {LEVEL_PROVISIONAL_NOTE}
+            </Text>
+          </View>
+        </>
+      ) : null}
     </Surface>
   );
 }
@@ -223,6 +242,7 @@ export function StandingTab({
         <>
           <StandingTable
             rows={data.standing.leaderboard.map(standingRowView)}
+            showLevel={groupShowsLevel(data.sport)}
             onOpenMember={onOpenMember}
           />
           <StatPair data={data} />

@@ -41,9 +41,11 @@ const BODY_CELL = "py-4";
 function StandingTable({
   leaderboard,
   linkToPlayers,
+  showLevel,
 }: {
   leaderboard: StandingEntry[];
   linkToPlayers: boolean;
+  showLevel: boolean;
 }) {
   return (
     <div className={cardFrame}>
@@ -59,9 +61,11 @@ function StandingTable({
             <th scope="col" className={cn(COL_RECORD, HEAD_CELL)}>
               W-L
             </th>
-            <th scope="col" className={cn(COL_LEVEL, HEAD_CELL)}>
-              Level
-            </th>
+            {showLevel ? (
+              <th scope="col" className={cn(COL_LEVEL, HEAD_CELL)}>
+                Level
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -114,20 +118,24 @@ function StandingTable({
               >
                 {groupStandingRecordLabel(entry.wins, entry.losses)}
               </td>
-              <td className={cn(COL_LEVEL, BODY_CELL)}>
-                <LevelCell
-                  band={entry.levelBand}
-                  provisional={entry.levelProvisional}
-                  onInk={entry.isViewer}
-                />
-              </td>
+              {showLevel ? (
+                <td className={cn(COL_LEVEL, BODY_CELL)}>
+                  <LevelCell
+                    band={entry.levelBand}
+                    provisional={entry.levelProvisional}
+                    onInk={entry.isViewer}
+                  />
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="border-rule text-eyebrow text-muted-foreground border-t px-5 py-3.5">
-        Hatched level means the Rating is still Provisional
-      </p>
+      {showLevel ? (
+        <p className="border-rule text-eyebrow text-muted-foreground border-t px-5 py-3.5">
+          Hatched level means the Rating is still Provisional
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -170,7 +178,9 @@ export function GroupStandingTab({
   verified,
   totalGamesPlayed,
   awaitingScoreCount,
+  showLevel = true,
 }: {
+  showLevel?: boolean;
   isMember: boolean;
   linkToPlayers: boolean;
   leaderboard: StandingEntry[];
@@ -220,6 +230,7 @@ export function GroupStandingTab({
           <StandingTable
             leaderboard={leaderboard}
             linkToPlayers={linkToPlayers}
+            showLevel={showLevel}
           />
           <StatPair
             totalGamesPlayed={totalGamesPlayed}

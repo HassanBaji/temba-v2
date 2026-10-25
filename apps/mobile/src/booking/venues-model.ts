@@ -1,3 +1,6 @@
+import { courtCountLabel as courtCountLabelFor } from "@repo/domain/court-sport-copy";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+
 import type { OpeningWindow } from "./slot-grid";
 
 export type VenueSort = "name" | "cheapest";
@@ -75,11 +78,17 @@ export function openToLabel(windows: readonly OpeningWindow[]): string {
     : `Open to ${minutesLabel(closes)}`;
 }
 
-export function courtCountLabel(count: number): string {
-  return count === 1 ? "1 court" : `${count} courts`;
+export function courtCountLabel(
+  count: number,
+  sport: Sport = DEFAULT_SPORT,
+): string {
+  return courtCountLabelFor(count, sport);
 }
 
-export function venuesEmptyCopy(query: string): {
+export function venuesEmptyCopy(
+  query: string,
+  sport: Sport = DEFAULT_SPORT,
+): {
   title: string;
   description: string;
 } {
@@ -88,10 +97,15 @@ export function venuesEmptyCopy(query: string): {
         title: "No venue matches",
         description: "Try another area or venue name.",
       }
-    : {
-        title: "No venues to book yet",
-        description: "Venues show here once they open bookings on Temba.",
-      };
+    : sport === "football"
+      ? {
+          title: "No pitches to book yet",
+          description: "Venues with pitches show here once they open bookings.",
+        }
+      : {
+          title: "No venues to book yet",
+          description: "Venues show here once they open bookings on Temba.",
+        };
 }
 
 /**

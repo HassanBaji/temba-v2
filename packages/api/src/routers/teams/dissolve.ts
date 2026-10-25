@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { teamEmailInvites, teamMembers, teams } from "@repo/db";
 
+import { teamIsComplete, teamIsSquad } from "@repo/domain/team-roster";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -34,13 +36,21 @@ export async function dissolve(
   }
 
   const memberRows = await listTeamMembers(database, team.id);
-  const incomplete = memberRows.length < 2;
+  const incomplete = !teamIsComplete(memberRows.length, team.sport);
 
-  if (incomplete && team.createdBy !== args.userId) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Only the creator can dissolve an incomplete Team",
-    });
+  if (team.createdBy !== args.userId) {
+    if (teamIsSquad(team.sport)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only the creator can dissolve this Team",
+      });
+    }
+    if (incomplete) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only the creator can dissolve an incomplete Team",
+      });
+    }
   }
 
   await database.transaction(async (tx) => {

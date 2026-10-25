@@ -1,4 +1,5 @@
 import { groupHomeSportLabel } from "./group-home-chrome";
+import type { Sport } from "./sport";
 import { teamAvatarPeople } from "./team-avatar-people";
 import { formatWinRate } from "./win-rate";
 
@@ -11,12 +12,14 @@ export const TEAMS_EMPTY_COPY = {
 };
 export const TEAM_CREATE_LABEL = "Create Team";
 export const TEAM_CREATE_DESCRIPTION =
-  "Start an unattached padel partnership. You become the first member and can invite a partner later.";
+  "Start an unattached Team. You become the first member and can invite others later.";
+export const TEAM_SPORT_LABEL = "Sport";
 export const TEAM_NAME_LABEL = "Name (optional)";
 export const TEAM_NAME_HINT =
   "If you leave this blank, the Team home uses member names.";
 export const TEAM_CREATED_TOAST = "Team created";
 export const TEAM_JOINED_TOAST = "Joined Team";
+export const TEAM_LEFT_TOAST = "You left the Team";
 export const TEAM_DISSOLVED_TOAST = "Team dissolved";
 export const TEAM_UNLINKED_TOAST = "Team unlinked";
 export const TEAM_LINK_REQUESTED_TOAST = "Link request sent";
@@ -31,13 +34,19 @@ export const TEAM_FORBIDDEN_COPY = {
     "Only Team members, members of a linked Community, or a pending invitee can open a Team home.",
 };
 export const TEAM_LOOKUP_NOTE = "Pick one person. Invites don't expire.";
+export const TEAM_SQUAD_LOOKUP_NOTE =
+  "Pick the people to invite. Invites don't expire.";
+export const TEAM_SQUAD_INVITE_DESCRIPTION =
+  "Invite players to join the squad, or copy a link to share.";
+export const TEAM_SQUAD_INVITE_LABEL = "Invite players";
 export const TEAM_INVITE_DESCRIPTION =
   "Invite a partner for the open seat, or copy a link to share.";
 export const TEAM_INVITE_PARTNER_LABEL = "Invite your partner";
 export const TEAM_REQUEST_LINK_LABEL = "Request Community link";
 export const TEAM_REQUEST_LINK_SUBMIT_LABEL = "Request link";
 export const TEAM_REQUEST_LINK_DESCRIPTION =
-  "Full Teams can request a link to a Community. Owner or Admin approve; missing members are auto-admitted.";
+  "Complete Teams can request a link to a Community. Owner or Admin approve; missing members are auto-admitted.";
+export const TEAM_LEAVE_LABEL = "Leave Team";
 export const TEAM_UNLINK_LABEL = "Unlink from Community";
 export const TEAM_DISSOLVE_LABEL = "Dissolve Team";
 export const TEAM_WAITING_COPY =
@@ -50,6 +59,10 @@ export const TEAM_LOOSE_LABEL = "Not linked to a Community";
 export const TEAM_CLUB_LABEL = "Club Team";
 export const TEAM_INCOMPLETE_LABEL = "Incomplete";
 export const TEAM_MEMBER_FALLBACK_NAME = "Member";
+
+export function teamCreateInput(form: { name: string; sport: Sport }) {
+  return { name: teamNameInput(form.name), sport: form.sport };
+}
 
 export function teamNameInput(name: string) {
   const trimmed = name.trim();
@@ -101,12 +114,79 @@ export function teamDissolveConfirm(displayName: string) {
   };
 }
 
+export function teamLeaveConfirm(displayName: string) {
+  return {
+    title: `Leave ${displayName}?`,
+    description: "You can only rejoin if you are invited again.",
+    confirmLabel: TEAM_LEAVE_LABEL,
+  };
+}
+
 export function teamUnlinkConfirm(displayName: string) {
   return {
     title: `Unlink ${displayName}?`,
     description: "This Team will no longer be linked to its Community.",
     confirmLabel: TEAM_UNLINK_LABEL,
   };
+}
+
+export type TeamRosterInput = {
+  min: number;
+  max: number;
+  completeAt: number;
+  count: number;
+  complete: boolean;
+  full: boolean;
+};
+
+function isSquadRoster(roster: TeamRosterInput) {
+  return roster.max > roster.min;
+}
+
+function plural(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+/** Only a Team that can grow past its completion size shows a count. */
+export function teamRosterView(roster: TeamRosterInput) {
+  if (!isSquadRoster(roster)) {
+    return { label: null, status: null };
+  }
+  return {
+    label: `${roster.count} of ${roster.max}`,
+    status: roster.full
+      ? ("Full" as const)
+      : roster.complete
+        ? ("Complete" as const)
+        : null,
+  };
+}
+
+/** Seats a creator can still hand out as invites, pending ones included. */
+export function teamInviteSeatsLeft(
+  roster: TeamRosterInput,
+  pendingInvites: number,
+) {
+  return Math.max(0, roster.max - roster.count - pendingInvites);
+}
+
+export function teamInviteLabel(squad: boolean) {
+  return squad ? TEAM_SQUAD_INVITE_LABEL : TEAM_INVITE_PARTNER_LABEL;
+}
+
+export function teamLookupNote(squad: boolean) {
+  return squad ? TEAM_SQUAD_LOOKUP_NOTE : TEAM_LOOKUP_NOTE;
+}
+
+export function teamInviteDescription(squad: boolean) {
+  return squad ? TEAM_SQUAD_INVITE_DESCRIPTION : TEAM_INVITE_DESCRIPTION;
+}
+
+export function teamRequestLinkHint(roster: TeamRosterInput) {
+  if (roster.complete || !isSquadRoster(roster)) {
+    return null;
+  }
+  return `A Team needs ${plural(roster.completeAt, "member")} to request a Community link. ${plural(roster.completeAt - roster.count, "more member")} to go.`;
 }
 
 export type TeamHomeInput = {
@@ -126,14 +206,21 @@ export type TeamHomeInput = {
     isCreator: boolean;
     isViewer: boolean;
   }[];
+  roster: TeamRosterInput;
   canInvite: boolean;
   canRequestLink: boolean;
   canUnlink: boolean;
   canDissolve: boolean;
+  viewerCanLeave: boolean;
 };
 
 export function teamHomeView(data: TeamHomeInput) {
   const title = data.displayName ?? "Team";
+  const squad = isSquadRoster(data.roster);
+  const seatsToComplete = Math.max(
+    0,
+    data.roster.completeAt - data.roster.count,
+  );
   const badges = [
     groupHomeSportLabel(data.sport),
     data.isLoose ? TEAM_LOOSE_LABEL : TEAM_CLUB_LABEL,
@@ -147,10 +234,17 @@ export function teamHomeView(data: TeamHomeInput) {
       name: member.name ?? TEAM_MEMBER_FALLBACK_NAME,
       image: member.image,
     })),
-    openSeats: data.waitingForPartner ? 1 : 0,
+    openSeats: seatsToComplete,
+    squad,
+    roster: teamRosterView(data.roster),
+    inviteLabel: teamInviteLabel(squad),
+    requestLinkHint: teamRequestLinkHint(data.roster),
     linkedCommunity: data.community,
     primaryInvite: data.waitingForPartner && data.canInvite,
     waitingNote: data.waitingForPartner && !data.canInvite,
+    waitingCopy: squad
+      ? `Needs ${plural(seatsToComplete, "more member")} to be complete.`
+      : TEAM_WAITING_COPY,
     pendingLinkNote: data.pendingLinkRequest
       ? teamPendingLinkCopy(data.pendingLinkRequest.community.name)
       : null,
@@ -171,6 +265,7 @@ export function teamHomeView(data: TeamHomeInput) {
     canRequestLink: data.canRequestLink,
     canUnlink: data.canUnlink,
     canDissolve: data.canDissolve,
+    canLeave: data.viewerCanLeave,
   };
 }
 

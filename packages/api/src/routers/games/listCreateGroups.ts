@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { communityMembers, CommunityRoleEnum, groups } from "@repo/db";
 
+import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { mayCreateGameOnGroup } from "#src/games/access";
@@ -14,6 +15,7 @@ export type CreateGroupOption = {
   id: string;
   name: string | null;
   communityName: string | null;
+  sport: Sport;
   verified: boolean;
 };
 
@@ -73,6 +75,7 @@ export async function listCreateGroups(
       id: row.id,
       name: row.name,
       communityName: row.community?.name ?? null,
+      sport: sportOrDefault(row.sport),
       verified: await groupIsVerified(database, row),
     });
   }

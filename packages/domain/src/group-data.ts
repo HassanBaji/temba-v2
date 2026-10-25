@@ -18,6 +18,7 @@ export type GroupPublicRowData = {
   id: string;
   name: string | null;
   imageUrl: string | null;
+  sport: string | null;
   communityName: string | null;
   memberCount: number;
   requiresApproval: boolean;

@@ -12,6 +12,9 @@ import {
 } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+
+import { sportQuery } from "./book-sport";
 
 const MS_PER_MINUTE = 60_000;
 
@@ -45,8 +48,9 @@ export function bookingsFallback(segments: readonly string[]) {
   return segments.includes("profile") ? "/profile/bookings" : "/book";
 }
 
-export function venuePath(venueId: string) {
-  return `/book/venues/${venueId}` as const;
+export function venuePath(venueId: string, sport: Sport = DEFAULT_SPORT) {
+  const query = sportQuery(sport);
+  return `/book/venues/${venueId}${query ? `?${query}` : ""}`;
 }
 
 export function venueDetailsPath(venueId: string) {
@@ -58,8 +62,10 @@ export function checkoutPath(
   startsAt: Date,
   durationMinutes: number,
   courtId: string,
+  sport: Sport = DEFAULT_SPORT,
 ) {
-  return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}&minutes=${durationMinutes}&courtId=${encodeURIComponent(courtId)}`;
+  const query = sportQuery(sport);
+  return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}&minutes=${durationMinutes}&courtId=${encodeURIComponent(courtId)}${query ? `&${query}` : ""}`;
 }
 
 /** A short reference a Customer can read out at the desk. */

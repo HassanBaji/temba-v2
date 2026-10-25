@@ -82,6 +82,8 @@ describe("copy", () => {
   it("counts Courts", () => {
     expect(courtCountLabel(1)).toBe("1 court");
     expect(courtCountLabel(4)).toBe("4 courts");
+    expect(courtCountLabel(1, "football")).toBe("1 pitch");
+    expect(courtCountLabel(2, "football")).toBe("2 pitches");
   });
 
   it("tells an empty catalog from an empty search", () => {

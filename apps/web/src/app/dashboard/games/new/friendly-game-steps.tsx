@@ -15,6 +15,7 @@ import {
   type CreateVenue,
 } from "~/app/dashboard/games/new/_parts/venue-field";
 import { ChoiceChip } from "~/components/temba/choice-chip";
+import { StepperField } from "~/components/games/stepper-field";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import { FieldDescription, FieldError } from "~/components/ui/field";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
@@ -25,9 +26,11 @@ import {
 } from "@repo/domain/level-range";
 import {
   CREATE_FLOW_DURATIONS,
-  CREATE_FLOW_OPEN_SEATS_LABEL,
   CREATE_FLOW_PRICE_CHIPS,
+  FOOTBALL_SIDE_SIZE_PRESETS,
   applyLevelBoundChange,
+  createFlowSeatsLabel,
+  footballSideSizeStep,
   finishSlotForDuration,
   reconcileWindowForDay,
   selectDurationFinish,
@@ -38,14 +41,32 @@ import {
   priceChipIsSelected,
   visibleCreateCourts,
 } from "@repo/domain/create-game-flow";
+import { courtCountLabel, courtFace } from "@repo/domain/court-sport-copy";
+import {
+  FOOTBALL_PLAYERS_ALLOWED_MAX,
+  FOOTBALL_SIDE_SIZES,
+  footballPlayersAllowedBounds,
+  sideSizeLabel,
+} from "@repo/domain/game-shape";
 import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
 import { UNRATED_GROUP_LINE } from "@repo/domain/game-rating-impact";
 import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+
+const SMALLEST_SIDE_SIZE = Math.min(...FOOTBALL_SIDE_SIZES);
+const LARGEST_SIDE_SIZE = Math.max(...FOOTBALL_SIDE_SIZES);
 
 export function FriendlyGameSteps({
+  sport = DEFAULT_SPORT,
+  sideSize,
+  sideSizeError,
+  onSideSize,
+  playersAllowed,
+  playersAllowedError,
+  onPlayersAllowed,
   step,
   now,
   groups,
@@ -85,6 +106,13 @@ export function FriendlyGameSteps({
   reviewVenue,
   groupVerified,
 }: {
+  sport?: Sport;
+  sideSize: number;
+  sideSizeError?: string;
+  onSideSize: (sideSize: number) => void;
+  playersAllowed: number;
+  playersAllowedError?: string;
+  onPlayersAllowed: (playersAllowed: number) => void;
   step: 2 | 3 | 4;
   now: Date;
   groups: readonly CreateGroup[];
@@ -151,6 +179,10 @@ export function FriendlyGameSteps({
         recentCourtIds,
         courtId === "none" ? [] : [courtId],
       );
+  const football = sport === "football";
+  const courtWord = courtFace(sport);
+  const courtTitle = football ? "Pitch" : "Court";
+  const playerBounds = footballPlayersAllowedBounds(sideSize);
   const levelOpen =
     levelMin === LEVEL_BAND_SELECT_NONE && levelMax === LEVEL_BAND_SELECT_NONE;
 
@@ -211,12 +243,13 @@ export function FriendlyGameSteps({
             venueError={venueError}
             onVenueId={onVenueId}
             emptyCatalog={emptyCatalog}
+            sport={sport}
           />
 
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-court-label"
-              title="Court"
+              title={courtTitle}
               meta="Optional"
             />
             <RovingRadioGroup
@@ -258,12 +291,12 @@ export function FriendlyGameSteps({
                     setCourtsExpandedVenueId(venueId);
                   }}
                 >
-                  All {courts.length} courts
+                  All {courtCountLabel(courts.length, sport)}
                 </ChoiceChip>
               ) : null}
             </RovingRadioGroup>
             <FieldDescription id="game-court-copy">
-              Leave on None to settle the court at the venue.
+              Leave on None to settle the {courtWord} at the venue.
             </FieldDescription>
             <FieldError id="game-court-error">{courtError}</FieldError>
           </section>
@@ -408,88 +441,168 @@ export function FriendlyGameSteps({
 
       {step === 4 ? (
         <>
-          <section className="flex flex-col gap-3">
-            <SectionHeading
-              id="game-level-label"
-              title="Level range"
-              meta="Optional"
-            />
-            <LevelBandRow
-              id="game-level-min"
-              label="Minimum Level"
-              bound="min"
-              value={levelMin}
-              other={levelMax}
-              invalid={Boolean(levelMinError)}
-              describedBy={
-                levelMinError ? "game-level-min-error" : "game-level-range-copy"
-              }
-              onSelect={(band) => {
-                onLevelRange(
-                  applyLevelBoundChange(
-                    { min: levelMin, max: levelMax },
-                    "min",
-                    band,
-                  ),
-                );
-              }}
-            />
-            <FieldError id="game-level-min-error">{levelMinError}</FieldError>
-            <LevelBandRow
-              id="game-level-max"
-              label="Maximum Level"
-              bound="max"
-              value={levelMax}
-              other={levelMin}
-              invalid={Boolean(levelMaxError)}
-              describedBy={
-                levelMaxError ? "game-level-max-error" : "game-level-range-copy"
-              }
-              onSelect={(band) => {
-                onLevelRange(
-                  applyLevelBoundChange(
-                    { min: levelMin, max: levelMax },
-                    "max",
-                    band,
-                  ),
-                );
-              }}
-            />
-            <div className="text-body flex items-center justify-between gap-3">
-              <p className="text-muted-foreground">
-                {levelOpen ? (
-                  "Open to anyone"
-                ) : (
-                  <>
-                    Minimum{" "}
-                    <span className="text-foreground font-semibold">
-                      {levelMin === LEVEL_BAND_SELECT_NONE ? "Open" : levelMin}
-                    </span>
-                    {" · "}
-                    Maximum{" "}
-                    <span className="text-foreground font-semibold">
-                      {levelMax === LEVEL_BAND_SELECT_NONE ? "Open" : levelMax}
-                    </span>
-                  </>
-                )}
-              </p>
-              {levelOpen ? null : (
-                <button
-                  type="button"
-                  className="text-muted-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center underline outline-none focus-visible:ring-[3px]"
-                  onClick={() => {
-                    onLevelRange(openLevelRange());
-                  }}
+          {football ? (
+            <>
+              <section className="flex flex-col gap-3">
+                <SectionHeading id="game-side-size-label" title="Side size" />
+                <RovingRadioGroup
+                  id="game-side-size"
+                  aria-labelledby="game-side-size-label"
+                  aria-invalid={sideSizeError ? true : undefined}
+                  tabIndex={-1}
+                  className="grid grid-cols-3 gap-1.5 outline-none"
                 >
-                  Open to anyone
-                </button>
-              )}
-            </div>
-            <FieldDescription id="game-level-range-copy">
-              {LEVEL_RANGE_FIELD_DESCRIPTION}
-            </FieldDescription>
-            <FieldError id="game-level-max-error">{levelMaxError}</FieldError>
-          </section>
+                  {FOOTBALL_SIDE_SIZE_PRESETS.map((size) => (
+                    <ChoiceChip
+                      key={size}
+                      role="radio"
+                      selected={sideSize === size}
+                      onClick={() => {
+                        onSideSize(size);
+                      }}
+                    >
+                      {sideSizeLabel(size)}
+                    </ChoiceChip>
+                  ))}
+                </RovingRadioGroup>
+                <StepperField
+                  id="game-side-size-stepper"
+                  label="Side size"
+                  value={sideSize}
+                  unit="a side"
+                  min={SMALLEST_SIDE_SIZE}
+                  max={LARGEST_SIDE_SIZE}
+                  step={1}
+                  onChange={(next) => {
+                    onSideSize(
+                      footballSideSizeStep(sideSize, next > sideSize ? 1 : -1),
+                    );
+                  }}
+                  decreaseLabel="Smaller side"
+                  increaseLabel="Larger side"
+                />
+                <FieldError id="game-side-size-error">
+                  {sideSizeError}
+                </FieldError>
+              </section>
+
+              <StepperField
+                id="game-players-allowed"
+                label="Players allowed"
+                value={playersAllowed}
+                unit="players"
+                min={playerBounds.min}
+                max={FOOTBALL_PLAYERS_ALLOWED_MAX}
+                step={1}
+                onChange={onPlayersAllowed}
+                decreaseLabel="Fewer players"
+                increaseLabel="More players"
+                error={playersAllowedError}
+                description={
+                  <p className="text-muted-foreground text-meta">
+                    At least two full sides. Anyone past that is a substitute.
+                  </p>
+                }
+              />
+            </>
+          ) : (
+            <>
+              <section className="flex flex-col gap-3">
+                <SectionHeading
+                  id="game-level-label"
+                  title="Level range"
+                  meta="Optional"
+                />
+                <LevelBandRow
+                  id="game-level-min"
+                  label="Minimum Level"
+                  bound="min"
+                  value={levelMin}
+                  other={levelMax}
+                  invalid={Boolean(levelMinError)}
+                  describedBy={
+                    levelMinError
+                      ? "game-level-min-error"
+                      : "game-level-range-copy"
+                  }
+                  onSelect={(band) => {
+                    onLevelRange(
+                      applyLevelBoundChange(
+                        { min: levelMin, max: levelMax },
+                        "min",
+                        band,
+                      ),
+                    );
+                  }}
+                />
+                <FieldError id="game-level-min-error">
+                  {levelMinError}
+                </FieldError>
+                <LevelBandRow
+                  id="game-level-max"
+                  label="Maximum Level"
+                  bound="max"
+                  value={levelMax}
+                  other={levelMin}
+                  invalid={Boolean(levelMaxError)}
+                  describedBy={
+                    levelMaxError
+                      ? "game-level-max-error"
+                      : "game-level-range-copy"
+                  }
+                  onSelect={(band) => {
+                    onLevelRange(
+                      applyLevelBoundChange(
+                        { min: levelMin, max: levelMax },
+                        "max",
+                        band,
+                      ),
+                    );
+                  }}
+                />
+                <div className="text-body flex items-center justify-between gap-3">
+                  <p className="text-muted-foreground">
+                    {levelOpen ? (
+                      "Open to anyone"
+                    ) : (
+                      <>
+                        Minimum{" "}
+                        <span className="text-foreground font-semibold">
+                          {levelMin === LEVEL_BAND_SELECT_NONE
+                            ? "Open"
+                            : levelMin}
+                        </span>
+                        {" · "}
+                        Maximum{" "}
+                        <span className="text-foreground font-semibold">
+                          {levelMax === LEVEL_BAND_SELECT_NONE
+                            ? "Open"
+                            : levelMax}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                  {levelOpen ? null : (
+                    <button
+                      type="button"
+                      className="text-muted-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center underline outline-none focus-visible:ring-[3px]"
+                      onClick={() => {
+                        onLevelRange(openLevelRange());
+                      }}
+                    >
+                      Open to anyone
+                    </button>
+                  )}
+                </div>
+                <FieldDescription id="game-level-range-copy">
+                  {LEVEL_RANGE_FIELD_DESCRIPTION}
+                </FieldDescription>
+                <FieldError id="game-level-max-error">
+                  {levelMaxError}
+                </FieldError>
+              </section>
+            </>
+          )}
 
           <section className="flex flex-col gap-3">
             <SectionHeading
@@ -546,7 +659,10 @@ export function FriendlyGameSteps({
           <div className="border-rule rounded-card overflow-hidden border">
             <ReviewRow label="Group" value={reviewGroup} />
             <ReviewRow label="Venue" value={reviewVenue} />
-            <ReviewRow label="Seats" value={CREATE_FLOW_OPEN_SEATS_LABEL} />
+            <ReviewRow
+              label={football ? "Players" : "Seats"}
+              value={createFlowSeatsLabel(sport, { sideSize, playersAllowed })}
+            />
           </div>
         </>
       ) : null}

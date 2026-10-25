@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { bookings, games, matches } from "@repo/db";
+import { bookings, courts, games, matches } from "@repo/db";
 
 import {
   NOW,
@@ -192,6 +192,60 @@ describe("bookings.createGame", () => {
       await expect(create(past.id)).rejects.toThrow("already ended");
 
       expect(await db.select({ id: games.id }).from(games)).toHaveLength(0);
+    });
+  });
+
+  it("creates a football Booking Game on a pitch", async () => {
+    await withBookableVenue(async (db, f) => {
+      await db
+        .update(courts)
+        .set({ sport: "football" })
+        .where(eq(courts.id, f.court2));
+      const booking = await insertBooking(db, f, { courtId: f.court2 });
+      const before = await bookingById(asDb(db), {
+        bookingId: booking.id,
+        actor: { userId: f.customer, publicMetadata: undefined },
+        now: NOW,
+      });
+      expect(before.canCreateGame).toBe(true);
+
+      const created = await createBookingGame(asDb(db), {
+        bookingId: booking.id,
+        userId: f.customer,
+        sideSize: 7,
+        playersAllowed: 16,
+        now: NOW,
+      });
+      expect(created.matchId).toBeNull();
+      const game = await db.query.games.findFirst({
+        where: eq(games.id, created.gameId),
+      });
+      expect(game).toMatchObject({
+        sport: "football",
+        format: "friendly_game",
+        groupId: null,
+        rated: false,
+        isPublic: false,
+        sideSize: 7,
+        playersAllowed: 16,
+        teamsAllowed: null,
+      });
+      expect(await db.select({ id: matches.id }).from(matches)).toHaveLength(0);
+
+      const defaults = await insertBooking(db, f, {
+        courtId: f.court2,
+        startsAt: at(9, 18),
+        endsAt: at(9, 19),
+      });
+      const second = await createBookingGame(asDb(db), {
+        bookingId: defaults.id,
+        userId: f.customer,
+        now: NOW,
+      });
+      const defaulted = await db.query.games.findFirst({
+        where: eq(games.id, second.gameId),
+      });
+      expect(defaulted).toMatchObject({ sideSize: 5, playersAllowed: 10 });
     });
   });
 });

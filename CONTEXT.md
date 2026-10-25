@@ -53,8 +53,12 @@ A physical facility: one addressable site with a name, location, and Courts. Not
 _Avoid_: club (that is the avoided synonym for Community), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
 
 **Court**:
-A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment.
-_Avoid_: Venue, pitch, field, club (when you mean this entity)
+A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment. A Court has one **Court sport**. A Match or Booking Court must have the Game’s or the Customer’s sport.
+_Avoid_: Venue, pitch (as the entity name; football product copy may say pitch), field, club (when you mean this entity)
+
+**Court sport**:
+The one sport a Court is for: padel or football. A Venue offers a sport when at least one of its Courts has it. Set by a Venue manager or Operator; changing it never changes a Booking. Product copy calls a football Court a pitch; the entity is still a Court.
+_Avoid_: Venue sport, Venue sports (there is no Venue-level list), pitch (as the entity name), field
 
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
@@ -85,7 +89,7 @@ A planned App list of live Community Public clubs. Not a shipped surface. Distin
 _Avoid_: Group directory, marketplace, feed
 
 **Public Groups list**:
-An App list of live Public padel Groups the User is not in: Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row offers Join or Request to join.
+An App list of live Public Groups of any sport the User is not in, filterable by sport (All, Padel or Football): Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row shows its sport and offers Join or Request to join.
 _Avoid_: Directory, Group directory, marketplace, feed
 
 **Club Group Public**:
@@ -153,8 +157,12 @@ The allow-list of sports a Community offers (padel, football, or both). Each Gro
 _Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
 
 **Team**:
-A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending Lookup invite or live Invite link for the second seat). Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval, and either member may unlink.
-_Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
+A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval once complete, and any member may unlink. A football Team has a creator and no captain: other members may leave, the creator dissolves. Dropping below complete does not unlink a Team.
+_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain
+
+**Team roster rule**:
+The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty-five, complete at five, pairs not unique.
+_Avoid_: team size (bare), squad size, captain rule
 
 **Club Team**:
 A Team currently linked to a Community.
@@ -165,11 +173,11 @@ A Team with no Community link (unattached).
 _Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
-One side on a Game: a complete Team, an ad-hoc pair of Users, or one User occupying one of two Positions until a second User takes the other Position. Reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
+One side on a padel Game: a complete Team, an ad-hoc pair of Users, or one User occupying one of two Positions until a second User takes the other Position. Reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
 _Avoid_: Team (when you mean a Game side), partnership, pair (when you mean this entity), Court (the 2v2 seat diagram is not a Court)
 
 **Position**:
-Left or right on a Game team, from that side facing the net. Distinct from a Match slot and from a Court.
+Left or right on a padel Game team, from that side facing the net. Distinct from a Match slot and from a Court.
 _Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred Position (that is a User's profile default)
 
 **Preferred Position**:
@@ -221,7 +229,7 @@ One Court reserved for one interval by one Customer or Guest, at a price and und
 _Avoid_: reservation, slot (that is the offer, not the reservation), Game, session, order
 
 **Booking Game**:
-A groupless, unrated, private Friendly game created from a confirmed, upcoming Booking by its holder, who is its Organizer. Its Venue, Court and window are the Booking's. Players join through Invite doors. Cancelling the Booking cancels the Game; cancelling the Game keeps the Booking, and the holder may then create a new Game for it. Americano and Friendly tournament are never created from a Booking.
+A groupless, unrated, private Friendly game created from a confirmed, upcoming Booking by its holder, who is its Organizer. Its Venue, Court and window are the Booking's. Players join through Invite doors. Cancelling the Booking cancels the Game; cancelling the Game keeps the Booking, and the holder may then create a new Game for it. A Booking on a football Court creates a football Game, whose holder chooses the Side size and players allowed. Americano and Friendly tournament are never created from a Booking.
 _Avoid_: booked Game, court Game, reservation Game, Game booking, private Game (that is any Game with `isPublic` off)
 
 **Slot**:
@@ -273,15 +281,23 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration**, a **Side size** and, until football results ship, no Match; it is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
+
+**Roster registration**:
+A Game admit that occupies a count against players allowed and no Position. Used by Americano before its Matches exist and by every football Game. Waitlist, leave, kick and the Invite doors apply; the seat picker does not.
+_Avoid_: pool registration (a Pool is a tournament stage), open registration (registration is open or closed on every Game), seatless
+
+**Side size**:
+On a football Game, how many play on each side at once: 5, 6, 7, 8, 9 or 11. Players allowed is at least twice the Side size and at most 40; the rest are substitutes. Shown as "5-a-side".
+_Avoid_: format (that is Friendly game, Americano or Friendly tournament), team size, a-side (bare)
 
 **Match**:
 A playable contest with two sides that belongs to one Game.
 _Avoid_: Game (the parent event), session, fixture (when you mean a Match; not a separate entity)
 
 **Set**:
-A scored unit inside a Match, added after play. A Match may have any number of Sets. A Set may be drawn (equal games).
+A scored unit inside a padel Match, added after play. A Match may have any number of Sets. A Set may be drawn (equal games).
 _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temba term)
 
 **Match result**:
@@ -381,7 +397,7 @@ Organizer flag on a Friendly tournament, default yes. When no, entry is Partner 
 _Avoid_: Complete Teams, matcher, registration mode (when you mean this flag), Team (that is the persistent partnership)
 
 **Partner registration**:
-One User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving still frees only the leaver’s Position on Friendly games and on tournaments that allow registering alone. On a tournament that does not allow registering alone, leave or kick before the Pool draw removes the whole Game team.
+On a padel Game, one User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving still frees only the leaver’s Position on Friendly games and on tournaments that allow registering alone. On a tournament that does not allow registering alone, leave or kick before the Pool draw removes the whole Game team.
 _Avoid_: Team (that is the persistent partnership), Game team (that is the side this creates), Lookup invite (that is a door the invitee must accept), pair registration, team registration (that is registering a complete Team on a team-only Game)
 
 **Price per player**:
@@ -485,5 +501,5 @@ A completed, non-cancelled Match on a Game that rates, which produced rating eve
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, or any Game created on a Group that was not a Verified Group at create. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create.
+A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, any Game created on a Group that was not a Verified Group at create, and every football Game created before football results ship. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create; `bookings.createGame` and every football Game create set it.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice

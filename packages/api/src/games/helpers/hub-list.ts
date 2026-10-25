@@ -9,6 +9,7 @@ import {
   teamMembers,
 } from "@repo/db";
 
+import { isRosterRegistrationGame } from "@repo/domain/game-shape";
 import { poolLetter } from "@repo/domain/tournament-knockout";
 import {
   knockoutChampion,
@@ -305,7 +306,11 @@ function sidesBySideIndex(
 }
 
 function sidesFromRow(row: HubQueryRow, viewerUserId: string): HubListSide[] {
-  if (row.format !== "friendly_game" || row.registrationMode !== "individual") {
+  if (
+    row.format !== "friendly_game" ||
+    row.registrationMode !== "individual" ||
+    isRosterRegistrationGame(row)
+  ) {
     return [];
   }
   return sidesBySideIndex(row, viewerUserId, 2);

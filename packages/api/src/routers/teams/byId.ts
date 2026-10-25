@@ -18,11 +18,17 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import {
+  teamIsComplete,
+  teamIsFull,
+  teamIsSquad,
+  teamRosterRule,
+} from "@repo/domain/team-roster";
 import { consult } from "#src/soft-archive";
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
-import { unusedInviteForTeam } from "#src/teams/helpers/unused-invite-for-team";
+import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-for-team";
 
 type DbClient = typeof db;
 
@@ -153,18 +159,21 @@ export async function teamById(
 
   const memberRows = await listTeamMembers(database, team.id);
   const memberNames = memberRows.map((row) => row.user.name);
-  const incomplete = memberRows.length < 2;
-  const canInvite =
-    isMember &&
-    incomplete &&
-    team.createdBy === args.userId &&
-    !consult({ archivedAt: community?.archivedAt ?? null }).freeze("host");
+  const incomplete = !teamIsComplete(memberRows.length, team.sport);
+  const full = teamIsFull(memberRows.length, team.sport);
+  const hostFrozen = consult({
+    archivedAt: community?.archivedAt ?? null,
+  }).freeze("host");
+  const isCreator = team.createdBy === args.userId;
+  const canInvite = isMember && !full && isCreator && !hostFrozen;
   const unusedInvite = canInvite
-    ? await unusedInviteForTeam(database, team.id)
+    ? ((await unusedLookupInvitesForTeam(database, team.id))[0] ?? null)
     : null;
 
   const canDissolve =
-    isMember && (team.createdBy === args.userId || !incomplete);
+    isMember && (isCreator || (!incomplete && !teamIsSquad(team.sport)));
+  const viewerCanLeave =
+    isMember && !isCreator && teamIsSquad(team.sport) && !hostFrozen;
 
   const pendingLinkRequest = isMember
     ? await database.query.teamLinkRequests.findFirst({
@@ -202,6 +211,14 @@ export async function teamById(
     losses: record.losses,
     incomplete,
     waitingForPartner: incomplete,
+    roster: {
+      min: teamRosterRule(team.sport).min,
+      max: teamRosterRule(team.sport).max,
+      completeAt: teamRosterRule(team.sport).completeAt,
+      count: memberRows.length,
+      complete: !incomplete,
+      full,
+    },
     community: community
       ? {
           id: community.id,
@@ -222,6 +239,7 @@ export async function teamById(
     })),
     canInvite,
     canDissolve,
+    viewerCanLeave,
     canRequestLink,
     canUnlink,
     pendingLinkRequest: pendingLinkRequest

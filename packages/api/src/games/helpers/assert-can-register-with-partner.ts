@@ -5,6 +5,7 @@ import {
   assertUserPassesJoinGate,
   type GameRow,
 } from "#src/games/access";
+import { assertGameHasSeats } from "#src/games/seats";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { userAlreadyWaitlisted } from "#src/games/helpers/user-already-waitlisted";
 import { type db } from "#src/db";
@@ -26,6 +27,7 @@ export async function assertCanRegisterWithPartner(
       message: "Register with a partner on a Friendly game or tournament",
     });
   }
+  assertGameHasSeats(game);
   if (game.registrationMode !== "individual") {
     throw new TRPCError({
       code: "BAD_REQUEST",

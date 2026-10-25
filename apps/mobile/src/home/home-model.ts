@@ -17,7 +17,12 @@ import {
   type RecentFormHistoryRow,
   type RecentFormView,
 } from "@repo/domain/home-recent-form";
-import { homeNextGameSeats, type HomeSeatView } from "@repo/domain/home-seats";
+import { gameCardRosterOccupancy } from "@repo/domain/game-card";
+import {
+  homeNextGameSeats,
+  homeSpotsOpenLabel,
+  type HomeSeatView,
+} from "@repo/domain/home-seats";
 import type { HomeStandingRow } from "@repo/domain/home-standing";
 import {
   isDrawnTournamentSummaryRow,
@@ -43,6 +48,8 @@ export type HomeNextGameModel =
       formatLabel: string;
       startsAt: Date;
       seats: HomeSeatView[];
+      sport?: string | null;
+      roster?: { filledLabel: string; spotsLabel: string | null } | null;
     }
   | {
       kind: "tournament";
@@ -72,6 +79,20 @@ type ApiHome = RouterOutputs["users"]["home"];
 type ApiRating = RouterOutputs["ratings"]["me"];
 type CarouselGame = ApiHome["carouselGames"][number];
 
+function rosterLine(game: CarouselGame) {
+  const occupancy = gameCardRosterOccupancy(game);
+  if (!occupancy) {
+    return null;
+  }
+  return {
+    filledLabel: occupancy.label,
+    spotsLabel: homeSpotsOpenLabel(
+      occupancy.seatsLeft,
+      game.playersAllowed ?? 0,
+    ),
+  };
+}
+
 function nextGameFromApi(game: CarouselGame): HomeNextGameModel {
   if (isTournamentMatchRow(game) || isDrawnTournamentSummaryRow(game)) {
     const [row] = homeComingUpRows([game]);
@@ -95,6 +116,8 @@ function nextGameFromApi(game: CarouselGame): HomeNextGameModel {
       game.registeredUserCount,
       game.playersAllowed,
     ),
+    sport: game.sport,
+    roster: rosterLine(game),
   };
 }
 

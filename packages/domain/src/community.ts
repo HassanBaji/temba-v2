@@ -27,6 +27,8 @@ import {
   groupHomeSportLabel,
 } from "./group-home-chrome";
 import { requestRowMeta } from "./request-meta";
+import { isSport } from "./sport";
+import { teamSeatsToComplete } from "./team-roster";
 
 export const COMMUNITIES_TITLE = "Communities";
 export const COMMUNITIES_ERROR_TITLE = "Communities could not be loaded";
@@ -103,7 +105,7 @@ export const COMMUNITY_START_CLUB_GROUP_COPY = {
 };
 
 export const COMMUNITY_CREATE_CLUB_GROUP_DESCRIPTION =
-  "A padel Group inside this Community.";
+  "A Group inside this Community.";
 
 export const COMMUNITY_NO_GROUPS_EMPTY = {
   title: "No Groups yet",
@@ -440,7 +442,10 @@ export function communityTeamRow(team: CommunityTeamData) {
     displayName: team.displayName,
     sport: groupHomeSportLabel(team.sport),
     people: team.members,
-    openSeats: team.members.length < 2 ? 1 : 0,
+    openSeats: teamSeatsToComplete(
+      team.members.length,
+      isSport(team.sport) ? team.sport : "padel",
+    ),
   };
 }
 
