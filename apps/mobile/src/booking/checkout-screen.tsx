@@ -6,7 +6,6 @@ import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDayKey } from "@repo/domain/product-timezone";
 import { useRouter } from "expo-router";
 import type { BookingPaymentMethod } from "@repo/domain/booking-payment";
-import { CreditCard, Smartphone, Store } from "lucide-react-native";
 import { useState } from "react";
 import { Platform, View } from "react-native";
 
@@ -22,7 +21,12 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import { BookingHero, Notice, SectionHeading } from "./booking-parts";
+import {
+  BookingHero,
+  Notice,
+  PAYMENT_METHOD_ICONS,
+  SectionHeading,
+} from "./booking-parts";
 import {
   bookingPath,
   checkoutMethods,
@@ -36,14 +40,6 @@ import {
 } from "./booking-model";
 import { courtNounTitle } from "./book-sport";
 import { courtChoices, keepOrFirst } from "./slot-grid";
-
-const METHOD_ICONS = {
-  card: CreditCard,
-  benefit: CreditCard,
-  benefitpay: Smartphone,
-  apple_pay: Smartphone,
-  at_venue: Store,
-} satisfies Record<BookingPaymentMethod, unknown>;
 
 export function CheckoutScreen({
   venueId,
@@ -222,7 +218,7 @@ export function CheckoutScreen({
               selected={method === chosenMethod}
               title={copy.title}
               description={copy.detail}
-              leading={METHOD_ICONS[method]}
+              leading={PAYMENT_METHOD_ICONS[method]}
               onPress={() => setPickedMethod(method)}
             />
           );
