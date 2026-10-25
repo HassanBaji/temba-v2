@@ -435,6 +435,13 @@
       "when": 1792906246387,
       "tag": "0061_football_court_sport_team_roster_game_side_size",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792934300556,
+      "tag": "0062_football_lineup_score_goals",
+      "breakpoints": true
     }
   ]
 }

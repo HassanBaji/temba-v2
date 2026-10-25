@@ -3,6 +3,8 @@ import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { games } from "@repo/db";
 
+import { isFootballGame } from "@repo/domain/game-shape";
+
 import {
   participantGameIdsForViewer,
   queryHubGames,
@@ -16,6 +18,36 @@ import {
 } from "#src/games/helpers/hub-list";
 import type { HubListRow } from "#src/games/utils";
 import { filterAndSortMyGamesHubGames } from "#src/home/upcoming-games";
+
+const FOOTBALL_RESULT_DAYS = 14;
+
+/**
+ * A football Game whose window has passed stays in My Games while its Score
+ * is missing or unconfirmed, for the players on its teams and its creator,
+ * for two weeks after kick-off.
+ */
+function footballResultPending(row: HubQueryRow, userId: string, now: Date) {
+  if (!isFootballGame(row) || row.windowEnd == null) {
+    return false;
+  }
+  const age = now.getTime() - row.windowEnd.getTime();
+  if (age > FOOTBALL_RESULT_DAYS * 24 * 60 * 60 * 1000) {
+    return false;
+  }
+  const match = row.matches.find((item) => item.status !== "cancelled");
+  if (!match || match.status === "completed") {
+    return false;
+  }
+  if (row.createdBy === userId) {
+    return true;
+  }
+  return row.teams.some(
+    (team) =>
+      (team.id === match.slot1GameTeamId ||
+        team.id === match.slot2GameTeamId) &&
+      team.players.some((link) => link.gamePlayer?.user?.id === userId),
+  );
+}
 
 export async function listMyGamesHubRows(
   database: DbClient,
@@ -44,15 +76,23 @@ export async function listMyGamesHubRows(
     database,
     and(isNull(games.cancelledAt), or(...scope)),
   );
-  const filtered = filterAndSortMyGamesHubGames(
-    (rows as HubQueryRow[]).map((row) => ({
-      ...row,
-      viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
-    })),
+  const candidates = (rows as HubQueryRow[]).map((row) => ({
+    ...row,
+    viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
+  }));
+  const upcoming = filterAndSortMyGamesHubGames(
+    candidates,
     viewer.memberGroupIds,
     viewer.userId,
     now,
   );
+  const listed = new Set(upcoming.map((row) => row.id));
+  const filtered = [
+    ...candidates.filter(
+      (row) => !listed.has(row.id) && footballResultPending(row, userId, now),
+    ),
+    ...upcoming,
+  ];
   const hubRows = await applyViewerLevelRangeToHubRows(
     database,
     filtered.map((row) => toHubListRow(row, viewer, now)),

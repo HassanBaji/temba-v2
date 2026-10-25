@@ -1,6 +1,8 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 
-import { gameTeamPlayers, matchResultConfirmations } from "@repo/db";
+import { gameTeamPlayers, games, matchResultConfirmations } from "@repo/db";
+
+import { isFootballGame } from "@repo/domain/game-shape";
 
 import { type db } from "#src/db";
 import { type MatchRow } from "#src/games/utils";
@@ -130,11 +132,52 @@ export async function matchResultConfirmationCompletedAt(
   );
 }
 
-/** Whether every seated User on the Match's two Game teams has confirmed. */
+/**
+ * The sides of a Match whose players have confirmed its result, by slot.
+ * A football Match is agreed once one player from each side confirms.
+ */
+export async function matchSlotsConfirmed(
+  database: DbClient,
+  match: MatchRow,
+): Promise<{ slot1: boolean; slot2: boolean }> {
+  const confirmed = new Set(
+    await matchResultConfirmedUserIds(database, match.id),
+  );
+  const slotConfirmed = async (gameTeamId: string | null) => {
+    if (!gameTeamId) {
+      return false;
+    }
+    const links = await database.query.gameTeamPlayers.findMany({
+      where: eq(gameTeamPlayers.gameTeamId, gameTeamId),
+      columns: {},
+      with: { gamePlayer: { columns: { userId: true } } },
+    });
+    return links.some(
+      (link) => link.gamePlayer.userId && confirmed.has(link.gamePlayer.userId),
+    );
+  };
+  return {
+    slot1: await slotConfirmed(match.slot1GameTeamId),
+    slot2: await slotConfirmed(match.slot2GameTeamId),
+  };
+}
+
+/**
+ * Whether the Match's result is agreed: every seated User on a padel Match's
+ * two Game teams, or one player from each side of a football Match.
+ */
 export async function matchResultFullyConfirmed(
   database: DbClient,
   match: MatchRow,
 ): Promise<boolean> {
+  const game = await database.query.games.findFirst({
+    where: eq(games.id, match.gameId),
+    columns: { sport: true },
+  });
+  if (game && isFootballGame(game)) {
+    const sides = await matchSlotsConfirmed(database, match);
+    return sides.slot1 && sides.slot2;
+  }
   const seatedUserIds = await matchSeatedUserIds(database, match);
   if (seatedUserIds.length === 0) {
     return false;

@@ -10,17 +10,26 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import type { Slot } from "../home/home-model";
+import {
+  FootballGameCard,
+  type FootballCardActions,
+} from "./football-game-card";
 import { GameCard, type GameCardActions } from "./game-card";
 import {
+  filterBySport,
+  footballSections,
   hubItems,
   historyEmptyCopy,
   myGamesEmptyCopy,
+  SPORT_FILTERS,
   tabCount,
   type GamesTab,
+  type SportFilter,
 } from "./games-model";
 import { HistoryCard } from "./history-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";
 import { TournamentCard, TournamentMatchCard } from "./tournament-cards";
+import { useNow } from "./use-now";
 
 const LIST_GAP = 12;
 
@@ -43,6 +52,9 @@ export type GamesViewProps = {
   ) => void;
   onJoinWaitlist: (game: HubGameRow) => void;
   onRegister: (gameId: string) => void;
+  sportFilter: SportFilter;
+  onSportFilterChange: (filter: SportFilter) => void;
+  football: Omit<FootballCardActions, "onOpen" | "onJoinWaitlist">;
   onLoadMore: () => void;
   onCreate: () => void;
   onRetry: () => void;
@@ -116,21 +128,62 @@ function TabButtons({
   historyCount: number | null;
 }) {
   const tabs = [
-    { key: "my-games", label: "My Games", count: myGamesCount },
-    { key: "history", label: "History", count: historyCount },
+    { key: "my-games", label: "Upcoming", count: myGamesCount },
+    { key: "history", label: "Played", count: historyCount },
   ] as const;
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
       {tabs.map((entry) => (
+        <View key={entry.key} style={{ flex: 1 }}>
+          <Button
+            label={entry.count ? `${entry.label} ${entry.count}` : entry.label}
+            size="sm"
+            variant={entry.key === tab ? "default" : "outline"}
+            selected={entry.key === tab}
+            onPress={() => onTabChange(entry.key)}
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function SportFilterRow({
+  filter,
+  onChange,
+}: {
+  filter: SportFilter;
+  onChange: (filter: SportFilter) => void;
+}) {
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Sport"
+      style={{ flexDirection: "row", gap: 8 }}
+    >
+      {SPORT_FILTERS.map((entry) => (
         <Button
           key={entry.key}
-          label={entry.count ? `${entry.label} ${entry.count}` : entry.label}
+          label={entry.label}
           size="sm"
-          variant={entry.key === tab ? "default" : "outline"}
-          selected={entry.key === tab}
-          onPress={() => onTabChange(entry.key)}
+          variant={entry.key === filter ? "default" : "outline"}
+          selected={entry.key === filter}
+          onPress={() => onChange(entry.key)}
         />
       ))}
+    </View>
+  );
+}
+
+function SectionHead({ title, meta }: { title: string; meta: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+      <Text size="title" weight="semibold" accessibilityRole="header">
+        {title}
+      </Text>
+      <Text size="meta" tone="muted">
+        {meta}
+      </Text>
     </View>
   );
 }
@@ -169,6 +222,12 @@ export function GamesView(props: GamesViewProps) {
         historyCount={historyCount}
       />
       {tab === "my-games" ? (
+        <SportFilterRow
+          filter={props.sportFilter}
+          onChange={props.onSportFilterChange}
+        />
+      ) : null}
+      {tab === "my-games" ? (
         <MyGamesList {...props} actions={actions} />
       ) : (
         <HistoryList {...props} />
@@ -188,13 +247,20 @@ export function GamesView(props: GamesViewProps) {
 
 function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
   const { myGames, actions } = props;
+  const now = useNow();
+  const footballActions: FootballCardActions = {
+    ...props.football,
+    onOpen: actions.onOpen,
+    onJoinWaitlist: actions.onJoinWaitlist,
+  };
   if (myGames.status === "loading") {
     return <ListSkeleton />;
   }
   if (myGames.status === "error") {
     return <Failure message={myGames.message} onRetry={props.onRetry} />;
   }
-  if (myGames.value.length === 0) {
+  const rows = filterBySport(myGames.value, props.sportFilter);
+  if (rows.length === 0) {
     return (
       <Empty
         {...myGamesEmptyCopy()}
@@ -202,10 +268,39 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
       />
     );
   }
+  if (props.sportFilter === "football") {
+    return (
+      <View style={{ gap: spacing.section }}>
+        {footballSections(rows, now).map((section) => (
+          <View key={section.key} style={{ gap: LIST_GAP }}>
+            <SectionHead title={section.title} meta={section.meta} />
+            {section.rows.map((game) => (
+              <FootballGameCard
+                key={game.id}
+                game={game}
+                pending={props.pendingGameId === game.id}
+                actions={footballActions}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  }
   return (
     <View style={{ gap: LIST_GAP }}>
-      {hubItems(myGames.value).map((item) => {
+      {hubItems(rows).map((item) => {
         const pending = props.pendingGameId === item.game.id;
+        if (item.kind === "football") {
+          return (
+            <FootballGameCard
+              key={item.key}
+              game={item.game}
+              pending={pending}
+              actions={footballActions}
+            />
+          );
+        }
         if (item.kind === "match") {
           return (
             <TournamentMatchCard

@@ -109,7 +109,13 @@ function LoadingSkeleton() {
   );
 }
 
-export function GameDetailsScreen({ gameId }: { gameId: string }) {
+export function GameDetailsScreen({
+  gameId,
+  intent,
+}: {
+  gameId: string;
+  intent?: string;
+}) {
   const router = useRouter();
   const segments = useSegments();
   const toast = useToast();
@@ -540,6 +546,7 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
       <FootballGameDetails
         gameId={gameId}
         game={data}
+        openJoin={intent === "join"}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />

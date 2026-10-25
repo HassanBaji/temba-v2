@@ -10,6 +10,7 @@ import { relations, sql } from "drizzle-orm";
 import { games } from "./games";
 import { user } from "./user";
 import { gameTeamPlayers } from "./game-team-players";
+import { footballPositions, footballRoles } from "./game-enums";
 
 export const gamePlayers = pgTable(
   "game_players",
@@ -19,6 +20,8 @@ export const gamePlayers = pgTable(
       .notNull()
       .references(() => games.id, { onDelete: "cascade" }),
     userId: uuid("user_id").references(() => user.id, { onDelete: "cascade" }),
+    footballRole: footballRoles("football_role"),
+    footballPosition: footballPositions("football_position"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

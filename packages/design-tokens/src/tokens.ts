@@ -94,3 +94,22 @@ export const motion = {
   hoverMs: 150,
   reducedTransitionMs: 100,
 } as const;
+
+/**
+ * Football bib colours. These are data, not chrome: a team wears the colour
+ * its Organizer picks, so these are the one place colour appears.
+ * `on` is the ink that reads on the fill.
+ */
+export const bibColors = {
+  black: { fill: "#0a0a0a", on: "#ffffff" },
+  white: { fill: "#ffffff", on: "#0a0a0a" },
+  red: { fill: "#c8102e", on: "#ffffff" },
+  navy: { fill: "#0b2a6f", on: "#ffffff" },
+  sky: { fill: "#6cb4ee", on: "#0a0a0a" },
+  green: { fill: "#1b7f3b", on: "#ffffff" },
+  yellow: { fill: "#f2c300", on: "#0a0a0a" },
+  orange: { fill: "#e8730c", on: "#0a0a0a" },
+  purple: { fill: "#5b2a86", on: "#ffffff" },
+  pink: { fill: "#e85c9a", on: "#0a0a0a" },
+  grey: { fill: "#8e8e8e", on: "#0a0a0a" },
+} as const;

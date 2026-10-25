@@ -15,6 +15,7 @@ import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { createTournamentProcedure as createTournament } from "./createTournament";
 import { drawPoolsProcedure as drawPools } from "./drawPools";
+import { footballBoardProcedure as footballBoard } from "./footballBoard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { getSecretMessage } from "./getSecretMessage";
 import { hello } from "./hello";
@@ -37,6 +38,7 @@ import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
+import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
 import { registerProcedure as register } from "./register";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
 import { registerTeamProcedure as registerTeam } from "./registerTeam";
@@ -47,10 +49,12 @@ import { reopenRegistrationProcedure as reopenRegistration } from "./reopenRegis
 import { reportWrongScoreProcedure as reportWrongScore } from "./reportWrongScore";
 import { requestLevelRangeProcedure as requestLevelRange } from "./requestLevelRange";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
+import { saveFootballScoreProcedure as saveFootballScore } from "./saveFootballScore";
 import { scoreSetProcedure as scoreSet } from "./scoreSet";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { searchPartnerUsersProcedure as searchPartnerUsers } from "./searchPartnerUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
+import { setFootballRoleProcedure as setFootballRole } from "./setFootballRole";
 import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
 import { updateLevelRange } from "./updateLevelRange";
@@ -106,6 +110,10 @@ export const gamesRouter = createTRPCRouter({
   completeMatch,
   confirmMatchResult,
   reportWrongScore,
+  footballBoard,
+  setFootballRole,
+  publishFootballTeams,
+  saveFootballScore,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,
