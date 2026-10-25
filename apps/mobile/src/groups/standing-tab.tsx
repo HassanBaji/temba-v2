@@ -11,7 +11,7 @@ import { Text } from "../primitives/text";
 import {
   LEVEL_PROVISIONAL_NOTE,
   STANDING_NOT_MEMBER_COPY,
-  STANDING_NO_RESULTS_COPY,
+  standingNoResultsCopy,
   standingRowView,
   standingStats,
   type StandingRowView,
@@ -217,7 +217,7 @@ export function StandingTab({
   return (
     <View style={{ gap: spacing.compact }}>
       {state.showNoResultsNotice ? (
-        <Notice {...STANDING_NO_RESULTS_COPY} />
+        <Notice {...standingNoResultsCopy(data.verified)} />
       ) : null}
       {state.showTable ? (
         <>

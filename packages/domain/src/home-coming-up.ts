@@ -15,6 +15,7 @@ type Occupant = { name: string; isViewer: boolean } | null;
 
 export type HomeComingUpSource = TournamentCardInput & {
   id: string;
+  rated: boolean;
   matchId: string | null;
   format: string;
   poolCount: number | null;
@@ -32,6 +33,7 @@ export type HomeComingUpSource = TournamentCardInput & {
 export type HomeComingUpGameRow = {
   kind: "game";
   id: string;
+  rated: boolean;
   rowKey: string;
   venueName: string;
   startsAt: Date;
@@ -42,6 +44,7 @@ export type HomeComingUpGameRow = {
 export type HomeComingUpTournamentMatchRow = {
   kind: "tournament_match";
   id: string;
+  rated: boolean;
   rowKey: string;
   title: string;
   startsAt: Date;
@@ -52,6 +55,7 @@ export type HomeComingUpTournamentMatchRow = {
 export type HomeComingUpTournamentRow = {
   kind: "tournament";
   id: string;
+  rated: boolean;
   rowKey: string;
   title: string;
   startsAt: Date;
@@ -78,6 +82,7 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
     return {
       kind: "tournament_match",
       id: game.id,
+      rated: game.rated,
       rowKey: game.matchId,
       title: tournamentTitle(game),
       startsAt,
@@ -90,6 +95,7 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
     return {
       kind: "tournament",
       id: game.id,
+      rated: game.rated,
       rowKey: game.id,
       title: tournamentTitle(game),
       startsAt,
@@ -100,6 +106,7 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
   return {
     kind: "game",
     id: game.id,
+    rated: game.rated,
     rowKey: game.matchId ?? game.id,
     venueName: game.venue?.name ?? "Game",
     startsAt,

@@ -367,6 +367,7 @@ function baseTournament(args: {
     registrationMode: "individual",
     allowSoloRegister: true,
     isPublic: false,
+    rated: true,
     groupId: "group-bromma",
     groupName: "Bromma",
     venueId: "venue-bromma",

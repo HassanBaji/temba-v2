@@ -8,9 +8,17 @@ import {
   inviteKindLabel,
   type InviteInboxItem,
 } from "@repo/domain/invites";
+import {
+  GROUP_LINK_REQUEST_ACCEPT_LABEL,
+  GROUP_LINK_REQUEST_DECLINE_LABEL,
+  GROUP_LINK_REQUEST_ROW_META,
+  VENUE_REQUESTS_TITLE,
+  groupLinkRequestRowTitle,
+} from "@repo/domain/group-link-request";
 import { View } from "react-native";
 
 import { Notice } from "../groups/notice";
+import type { GroupLinkRequestRow } from "../groups/use-group-link-request";
 import type { Slot } from "../home/home-model";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -25,6 +33,10 @@ import { SeatChoice } from "./seat-choice";
 
 export type InvitesViewProps = {
   inbox: Slot<InviteInboxItem[]>;
+  venueRequests: GroupLinkRequestRow[];
+  venueRequestPendingId: string | null;
+  onAcceptVenueRequest: (request: GroupLinkRequestRow) => void;
+  onDeclineVenueRequest: (request: GroupLinkRequestRow) => void;
   pendingKey: string | null;
   onAccept: (item: InviteInboxItem) => void;
   onPickSeat: (
@@ -106,8 +118,82 @@ function InviteRow({
   );
 }
 
+function VenueRequestRow({
+  request,
+  pending,
+  onAccept,
+  onDecline,
+}: {
+  request: GroupLinkRequestRow;
+  pending: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  return (
+    <View style={{ padding: spacing.surface, gap: 10 }}>
+      <View style={{ gap: 2 }}>
+        <Text size="lead" weight="semibold" numberOfLines={3}>
+          {groupLinkRequestRowTitle(request.venueName, request.groupName)}
+        </Text>
+        <Text size="meta" tone="muted">
+          {GROUP_LINK_REQUEST_ROW_META}
+        </Text>
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Button
+          label={GROUP_LINK_REQUEST_DECLINE_LABEL}
+          accessibilityLabel={`Decline the request from ${request.venueName}`}
+          variant="outline"
+          disabled={pending}
+          onPress={onDecline}
+        />
+        <Button
+          label={GROUP_LINK_REQUEST_ACCEPT_LABEL}
+          accessibilityLabel={`Review the request from ${request.venueName}`}
+          pending={pending}
+          onPress={onAccept}
+        />
+      </View>
+    </View>
+  );
+}
+
+function VenueRequests({
+  requests,
+  pendingId,
+  onAccept,
+  onDecline,
+}: {
+  requests: GroupLinkRequestRow[];
+  pendingId: string | null;
+  onAccept: (request: GroupLinkRequestRow) => void;
+  onDecline: (request: GroupLinkRequestRow) => void;
+}) {
+  if (requests.length === 0) {
+    return null;
+  }
+  return (
+    <Section title={VENUE_REQUESTS_TITLE}>
+      <Surface padded={false} style={{ overflow: "hidden" }}>
+        {requests.map((request, index) => (
+          <View key={request.id}>
+            {index > 0 ? <Hairline /> : null}
+            <VenueRequestRow
+              request={request}
+              pending={pendingId === request.id}
+              onAccept={() => onAccept(request)}
+              onDecline={() => onDecline(request)}
+            />
+          </View>
+        ))}
+      </Surface>
+    </Section>
+  );
+}
+
 function Inbox({
   inbox,
+  hasVenueRequests,
   pendingKey,
   onAccept,
   onPickSeat,
@@ -115,7 +201,7 @@ function Inbox({
 }: Pick<
   InvitesViewProps,
   "inbox" | "pendingKey" | "onAccept" | "onPickSeat" | "onRetry"
->) {
+> & { hasVenueRequests: boolean }) {
   if (inbox.status === "loading") {
     return (
       <View style={{ gap: 12 }} accessibilityLabel="Loading invites">
@@ -136,7 +222,7 @@ function Inbox({
     );
   }
   if (inbox.value.length === 0) {
-    return <Notice {...INVITES_EMPTY_COPY} />;
+    return hasVenueRequests ? null : <Notice {...INVITES_EMPTY_COPY} />;
   }
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -164,7 +250,13 @@ export function InvitesView(props: InvitesViewProps) {
           Invites sent to you. Accept one to join.
         </Text>
       </View>
-      <Inbox {...props} />
+      <Inbox {...props} hasVenueRequests={props.venueRequests.length > 0} />
+      <VenueRequests
+        requests={props.venueRequests}
+        pendingId={props.venueRequestPendingId}
+        onAccept={props.onAcceptVenueRequest}
+        onDecline={props.onDeclineVenueRequest}
+      />
       <Section title="Have an Invite link?">
         <Surface style={{ gap: 12 }}>
           <TextField

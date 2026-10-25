@@ -72,6 +72,7 @@ async function insertGame(
     createdBy: string;
     venueId: string;
     isPublic?: boolean;
+    rated?: boolean;
     groupId?: string | null;
     windowStart?: Date;
     windowEnd?: Date;
@@ -86,6 +87,7 @@ async function insertGame(
       createdBy: args.createdBy,
       groupId: args.groupId ?? null,
       isPublic: args.isPublic ?? false,
+      rated: args.rated ?? true,
       playersAllowed: 4,
       teamsAllowed: 2,
       windowStart: args.windowStart ?? WINDOW_START,
@@ -180,6 +182,29 @@ describe("My Games hub rows", () => {
 
       const rows = await listMyGamesHubRows(db, viewer.id, NOW);
       expect(rows.map((row) => row.id)).toEqual([created.id]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("carries the stored rated flag on each row", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "rated-flag@example.com");
+      const venue = await insertVenue(db);
+      const rated = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+      });
+      const unrated = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        rated: false,
+      });
+
+      const rows = await listMyGamesHubRows(db, viewer.id, NOW);
+      expect(rows.find((row) => row.id === rated.id)?.rated).toBe(true);
+      expect(rows.find((row) => row.id === unrated.id)?.rated).toBe(false);
     } finally {
       await close();
     }

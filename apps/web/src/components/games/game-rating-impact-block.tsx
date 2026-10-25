@@ -4,6 +4,7 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
 import {
   ratingImpactView,
+  UNRATED_GAME_LINE,
   UNRATED_LABEL,
 } from "@repo/domain/game-rating-impact";
 import { type RouterOutputs } from "~/trpc/react";
@@ -84,9 +85,10 @@ export function GameUnratedBlock() {
       data-slot="game-unrated-block"
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
-      <h2 className="text-muted-foreground px-[22px] py-[22px] text-sm">
-        {UNRATED_LABEL}
-      </h2>
+      <div className="flex flex-col gap-1 px-[22px] py-[18px]">
+        <h2 className="text-sm font-semibold">{UNRATED_LABEL}</h2>
+        <p className="text-muted-foreground text-meta">{UNRATED_GAME_LINE}</p>
+      </div>
     </section>
   );
 }

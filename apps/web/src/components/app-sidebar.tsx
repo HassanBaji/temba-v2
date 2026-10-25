@@ -10,6 +10,7 @@ import {
   House,
   Mail,
   MapPin,
+  ShieldCheck,
   UserRound,
   Users,
 } from "lucide-react";
@@ -66,6 +67,12 @@ const venuesNav = {
   icon: MapPin,
 };
 
+const operatorGroupsNav = {
+  title: "Verify Groups",
+  url: "/dashboard/operator/groups",
+  icon: ShieldCheck,
+};
+
 const consoleOrigin = process.env.NEXT_PUBLIC_CONSOLE_ORIGIN;
 
 /** The Venue console is its own App (ADR-0031); the entry is an external link. */
@@ -91,7 +98,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navItems = [
     ...items,
     ...(managesVenue && consoleNav ? [consoleNav] : []),
-    ...(isOperator ? [venuesNav] : []),
+    ...(isOperator ? [venuesNav, operatorGroupsNav] : []),
   ];
 
   return (

@@ -381,7 +381,7 @@ export default function CommunityHomePage({
 
   const data = community.data;
   const communityName = data.name ?? "Community";
-  const actions = communityHomeActions(data, hasCreateAccess);
+  const actions = communityHomeActions(data);
   const canShowCreateClubGroup = actions.canCreateClubGroup;
   const canManageInvites = actions.canInvite;
   const canRequestJoin = communityCanRequestJoin(data);

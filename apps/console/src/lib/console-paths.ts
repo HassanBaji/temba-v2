@@ -9,6 +9,7 @@ import {
   List,
   Shield,
   Users,
+  UsersRound,
   Wallet,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ export const CONSOLE_SEGMENTS = [
   "reports",
   "payouts",
   "photos",
+  "groups",
   "details",
 ] as const;
 
@@ -44,6 +46,7 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
   { segment: "reports", label: "Reports", icon: BarChart3 },
   { segment: "payouts", label: "Payouts", icon: Wallet },
   { segment: "photos", label: "Photos", icon: Images },
+  { segment: "groups", label: "Groups", icon: UsersRound },
   { segment: "details", label: "Venue details", icon: Building2 },
 ];
 

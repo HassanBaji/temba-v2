@@ -9,7 +9,6 @@ import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { MatchHistoryCard } from "~/components/games/match-history-card";
@@ -203,6 +202,7 @@ function GamesHubTabPanel({
             showPartnerJoin={showPartnerJoin}
             roundLabel={poolRoundLabel(game.roundNumber, game.roundCount)}
             courtName={game.courtName}
+            rated={game.rated}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
             }}
@@ -386,7 +386,6 @@ export default function GamesHubPage({
     () => history.data?.pages.flat(),
     [history.data],
   );
-  const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
 
   async function refreshLists() {
@@ -449,9 +448,7 @@ export default function GamesHubPage({
     <DashboardShell
       title="Games"
       action={
-        hasCreateAccess ? (
-          <PageCreateAction href="/dashboard/games/new" label="Create Game" />
-        ) : undefined
+        <PageCreateAction href="/dashboard/games/new" label="Create Game" />
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
@@ -481,11 +478,9 @@ export default function GamesHubPage({
                 title="No Games yet"
                 description="Games you create or join show up here."
                 action={
-                  hasCreateAccess ? (
-                    <Button asChild>
-                      <Link href="/dashboard/games/new">Create Game</Link>
-                    </Button>
-                  ) : undefined
+                  <Button asChild>
+                    <Link href="/dashboard/games/new">Create Game</Link>
+                  </Button>
                 }
               />
             }

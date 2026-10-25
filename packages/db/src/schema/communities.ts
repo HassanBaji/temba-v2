@@ -1,5 +1,14 @@
-import { pgTable, uuid, varchar, timestamp, pgEnum } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import {
+  pgTable,
+  uuid,
+  varchar,
+  timestamp,
+  pgEnum,
+  boolean,
+  uniqueIndex,
+  check,
+} from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 import { user } from "./user";
 import { communityMembers } from "./community-members";
 import { communitySports } from "./community-sports";
@@ -16,21 +25,34 @@ export enum CommunityTypeEnum {
   PRIVATE = "private",
 }
 
-export const communities = pgTable("communities", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }).notNull(),
-  description: varchar("description", { length: 255 }),
-  type: communityTypes().notNull().default(CommunityTypeEnum.PRIVATE),
-  createdBy: uuid("created_by")
-    .references(() => user.id, { onDelete: "restrict" })
-    .notNull(),
-  archivedAt: timestamp("archived_at"),
-  venueId: uuid("venue_id").references(() => venues.id, {
-    onDelete: "restrict",
+export const communities = pgTable(
+  "communities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: varchar("description", { length: 255 }),
+    type: communityTypes().notNull().default(CommunityTypeEnum.PRIVATE),
+    createdBy: uuid("created_by")
+      .references(() => user.id, { onDelete: "restrict" })
+      .notNull(),
+    archivedAt: timestamp("archived_at"),
+    venueId: uuid("venue_id").references(() => venues.id, {
+      onDelete: "restrict",
+    }),
+    isVenueCommunity: boolean("is_venue_community").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    venueCommunityUnique: uniqueIndex("communities_venue_community_unique")
+      .on(table.venueId)
+      .where(sql`${table.isVenueCommunity}`),
+    venueCommunityHasVenue: check(
+      "communities_venue_community_has_venue",
+      sql`not ${table.isVenueCommunity} or ${table.venueId} is not null`,
+    ),
   }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+);
 
 export const communityRelations = relations(communities, ({ one, many }) => ({
   createdBy: one(user, {

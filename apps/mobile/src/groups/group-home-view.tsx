@@ -2,6 +2,13 @@ import { spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import {
+  GROUP_LINK_REQUEST_ACCEPT_LABEL,
+  GROUP_LINK_REQUEST_DECLINE_LABEL,
+  groupLeaveVenueActionLabel,
+  groupLinkRequestBannerText,
+  groupPartOfVenueLine,
+} from "@repo/domain/group-link-request";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { groupManageActions } from "@repo/domain/group-admin";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
@@ -29,6 +36,7 @@ import { MembersTab } from "./members-tab";
 import { SavedLevelBanner } from "./saved-level-banner";
 import type { SavedLevel } from "./set-level-model";
 import { StandingTab } from "./standing-tab";
+import type { GroupLinkRequestRow } from "./use-group-link-request";
 
 export type GroupAdminHandlers = {
   approver: Pick<
@@ -56,6 +64,7 @@ export type GroupHomeViewProps = {
   joinPending: boolean;
   onJoin: (door: GroupJoinDoor) => void;
   onLeave: () => void;
+  onLeaveVenue: () => void;
   onInvite: () => void;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
@@ -79,6 +88,10 @@ export type GroupHomeViewProps = {
   ) => void;
   actions: GameCardActions;
   admin: GroupAdminHandlers;
+  venueRequests: GroupLinkRequestRow[];
+  venueRequestPendingId: string | null;
+  onAcceptVenueRequest: (request: GroupLinkRequestRow) => void;
+  onDeclineVenueRequest: (request: GroupLinkRequestRow) => void;
 };
 
 const TABS: { key: GroupHomeTab; label: string }[] = [
@@ -164,6 +177,48 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           ) : null}
         </View>
       ) : null}
+
+      {data.venueCommunity ? (
+        <Text size="meta" tone="muted">
+          {groupPartOfVenueLine(data.venueCommunity.venueName)}
+        </Text>
+      ) : null}
+
+      {data.canUnlinkFromVenue && data.venueCommunity ? (
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={groupLeaveVenueActionLabel(data.venueCommunity.venueName)}
+            size="sm"
+            variant="outline"
+            onPress={props.onLeaveVenue}
+          />
+        </View>
+      ) : null}
+
+      {props.venueRequests.map((request) => (
+        <Surface key={request.id} style={{ gap: 10 }}>
+          <Text size="meta">
+            {groupLinkRequestBannerText(request.venueName)}
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Button
+              label={GROUP_LINK_REQUEST_DECLINE_LABEL}
+              accessibilityLabel={`Decline the request from ${request.venueName}`}
+              size="sm"
+              variant="outline"
+              disabled={props.venueRequestPendingId === request.id}
+              onPress={() => props.onDeclineVenueRequest(request)}
+            />
+            <Button
+              label={GROUP_LINK_REQUEST_ACCEPT_LABEL}
+              accessibilityLabel={`Review the request from ${request.venueName}`}
+              size="sm"
+              pending={props.venueRequestPendingId === request.id}
+              onPress={() => props.onAcceptVenueRequest(request)}
+            />
+          </View>
+        </Surface>
+      ))}
 
       {banner ? (
         <Surface style={{ gap: 4 }}>

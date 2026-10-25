@@ -25,6 +25,7 @@ export async function createClubGroup(args: {
   type: GroupTypeEnum;
   createdBy: string;
   requiresApproval?: boolean;
+  verifiedBy?: string;
 }) {
   const community = await args.database.query.communities.findFirst({
     where: eq(communities.id, args.communityId),
@@ -67,6 +68,8 @@ export async function createClubGroup(args: {
         sport: args.sport,
         communityId: community.id,
         createdBy: args.createdBy,
+        verifiedAt: args.verifiedBy ? new Date() : null,
+        verifiedBy: args.verifiedBy ?? null,
         requiresApproval:
           args.type === GroupTypeEnum.PUBLIC
             ? Boolean(args.requiresApproval)

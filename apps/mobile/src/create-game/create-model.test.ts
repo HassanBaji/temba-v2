@@ -222,6 +222,7 @@ describe("submitRequest", () => {
     const result = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.gameReview),
       NOW,
+      true,
     );
     expect(result.ok && result.request.kind).toBe("friendly_game");
   });
@@ -234,6 +235,7 @@ describe("submitRequest", () => {
     const result = submitRequest(
       stateAt(4, "friendly_tournament", fixtures.drafts[key]),
       NOW,
+      true,
     );
     expect(result.ok && result.request.kind).toBe("friendly_tournament");
   });
@@ -242,6 +244,7 @@ describe("submitRequest", () => {
     const level = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.invertedLevelRange),
       NOW,
+      true,
     );
     expect(level).toMatchObject({
       ok: false,
@@ -250,6 +253,7 @@ describe("submitRequest", () => {
     const price = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.badPrice),
       NOW,
+      true,
     );
     expect(price).toMatchObject({
       ok: false,
@@ -262,8 +266,19 @@ describe("submitRequest", () => {
     const result = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.emptyGame),
       NOW,
+      true,
     );
     expect(result).toMatchObject({ ok: false, step: 2 });
+  });
+
+  it("never requests a public tournament for a Group that is not Verified", () => {
+    const draft = { ...fixtures.drafts.tournamentGroupsOnly, isPublic: true };
+    const result = submitRequest(
+      stateAt(4, "friendly_tournament", draft),
+      NOW,
+      false,
+    );
+    expect(result.ok && result.request.input.isPublic).toBe(false);
   });
 });
 

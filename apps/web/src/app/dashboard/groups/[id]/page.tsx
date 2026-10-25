@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  groupLeaveVenueConfirm,
+  groupLeftVenueToast,
+  groupLinkRequestBannerText,
+  groupPartOfVenueLine,
+} from "@repo/domain/group-link-request";
 import { notFound, usePathname, useRouter } from "next/navigation";
 import { use, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
@@ -9,6 +15,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
+import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
@@ -90,6 +97,7 @@ export default function GroupHomePage({
   const desktopMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveVenueOpen, setLeaveVenueOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [removeImageOpen, setRemoveImageOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
@@ -102,6 +110,10 @@ export default function GroupHomePage({
   );
 
   const group = api.groups.byId.useQuery({ id });
+  const pendingLinkRequests = api.groups.pendingLinkRequests.useQuery(
+    undefined,
+    { enabled: (group.data?.pendingLinkRequestCount ?? 0) > 0 },
+  );
 
   const lookupInvites = api.groups.listLookupInvites.useQuery(
     { groupId: id },
@@ -223,6 +235,22 @@ export default function GroupHomePage({
         await utils.communities.byId.invalidate({ id: result.communityId });
         await utils.communities.mine.invalidate();
       }
+    },
+  });
+
+  const unlinkFromVenue = api.groups.unlinkFromVenue.useMutation({
+    onSuccess: async () => {
+      toast.success(
+        groupLeftVenueToast(
+          group.data?.venueCommunity?.venueName ?? "the Venue",
+        ),
+      );
+      await Promise.all([
+        utils.groups.byId.invalidate({ id }),
+        utils.groups.mine.invalidate(),
+        utils.groups.mineLoose.invalidate(),
+        utils.communities.mine.invalidate(),
+      ]);
     },
   });
 
@@ -463,8 +491,8 @@ export default function GroupHomePage({
 
   const data = group.data;
   const groupName = data.name ?? "Group";
+  const venueName = data.venueCommunity?.venueName ?? "the Venue";
   const canShowCreateGame = groupHomeCanShowCreateGame({
-    hasCreateAccess,
     canCreateGame: data.canCreateGame,
   });
   const canManageInvites = groupHomeCanManageInvites({
@@ -476,7 +504,6 @@ export default function GroupHomePage({
     nextJoinableGameId:
       groupHomeNextJoinableGame(data.upcomingGames, Boolean(data.membership))
         ?.id ?? null,
-    hasCreateAccess,
     canCreateGame: data.canCreateGame,
     canManageLookupInvites: data.canManageLookupInvites,
     canManageInviteLinks: data.canManageInviteLinks,
@@ -492,8 +519,10 @@ export default function GroupHomePage({
     hasImage: Boolean(data.imageUrl),
     isMember: data.membership != null,
     canDelete: data.canDelete,
+    canLeaveVenueCommunity: data.canUnlinkFromVenue,
   });
   const leaveConfirm = groupLeaveConfirm(groupName);
+  const leaveVenueConfirm = groupLeaveVenueConfirm(groupName, venueName);
   const deleteConfirm = groupDeleteConfirm(groupName);
   const removeImageConfirm = groupRemoveImageConfirm(groupName);
   const restoreFocusRef =
@@ -505,6 +534,7 @@ export default function GroupHomePage({
       groupId={id}
       communityId={data.community?.id ?? null}
       communityName={data.community?.name ?? null}
+      venueName={data.venueCommunity?.venueName ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
       }
@@ -522,6 +552,10 @@ export default function GroupHomePage({
       onRemoveImage={() => {
         setRestoreFocus(which);
         setRemoveImageOpen(true);
+      }}
+      onLeaveVenueCommunity={() => {
+        setRestoreFocus(which);
+        setLeaveVenueOpen(true);
       }}
       onLeave={() => {
         setRestoreFocus(which);
@@ -541,6 +575,20 @@ export default function GroupHomePage({
     communityName: data.community?.name ?? null,
     joinMode: data.joinMode,
   });
+  const venueRequestBanners = (pendingLinkRequests.data ?? [])
+    .filter((request) => request.groupId === id)
+    .map((request) => (
+      <section
+        key={request.id}
+        role="status"
+        className="bg-muted flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 md:p-5"
+      >
+        <p className="text-body min-w-0 flex-1">
+          {groupLinkRequestBannerText(request.venueName)}
+        </p>
+        <VenueLinkRequestActions request={request} />
+      </section>
+    ));
   const banners = bannerCopy ? (
     bannerCopy.heading ? (
       <SoftArchiveBanner headingLevel={2} heading={bannerCopy.heading}>
@@ -580,6 +628,12 @@ export default function GroupHomePage({
         />
 
         <div className="space-y-6 pt-6">
+          {venueRequestBanners}
+          {data.venueCommunity ? (
+            <p className="text-body text-muted-foreground">
+              {groupPartOfVenueLine(data.venueCommunity.venueName)}
+            </p>
+          ) : null}
           {banners}
 
           {ctaFamily.kind === "join_group" ? (
@@ -607,6 +661,7 @@ export default function GroupHomePage({
               leaderboard={data.standing.leaderboard}
               groupId={id}
               canShowCreateGame={canShowCreateGame}
+              verified={data.verified}
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}
             />
@@ -702,6 +757,23 @@ export default function GroupHomePage({
         restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {
           await leaveGroup.mutateAsync({ groupId: id });
+        }}
+      />
+
+      <ConfirmDialog
+        open={leaveVenueOpen}
+        onOpenChange={setLeaveVenueOpen}
+        title={leaveVenueConfirm.title}
+        description={[
+          leaveVenueConfirm.description,
+          ...leaveVenueConfirm.consequences,
+        ].join(" ")}
+        confirmLabel={leaveVenueConfirm.confirmLabel}
+        cancelLabel={leaveVenueConfirm.cancelLabel}
+        pending={unlinkFromVenue.isPending}
+        restoreFocusRef={restoreFocusRef}
+        onConfirm={async () => {
+          await unlinkFromVenue.mutateAsync({ groupId: id });
         }}
       />
 

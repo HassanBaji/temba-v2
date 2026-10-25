@@ -44,6 +44,7 @@ import {
   type CreateTournamentShape,
 } from "@repo/domain/create-game-flow";
 import { formatGameClock } from "@repo/domain/format-game-start";
+import { UNRATED_GROUP_LINE } from "@repo/domain/game-rating-impact";
 import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
@@ -55,6 +56,7 @@ import {
 import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
 import {
   COUNTS_FOR_RATING_LABEL,
+  COUNTS_FOR_RATING_NO,
   COUNTS_FOR_RATING_YES,
 } from "@repo/domain/tournament-home";
 import {
@@ -150,6 +152,7 @@ export function FriendlyTournamentSteps({
   allowSoloRegister,
   onAllowSoloRegister,
   groupName,
+  groupVerified,
 }: {
   step: 2 | 3 | 4;
   now: Date;
@@ -216,6 +219,7 @@ export function FriendlyTournamentSteps({
   allowSoloRegister: boolean;
   onAllowSoloRegister: (allowSoloRegister: boolean) => void;
   groupName: string;
+  groupVerified: boolean;
 }) {
   const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
     string | null
@@ -849,16 +853,23 @@ export function FriendlyTournamentSteps({
               >
                 {groupName}
               </ChoiceChip>
-              <ChoiceChip
-                role="radio"
-                selected={isPublic}
-                onClick={() => {
-                  onIsPublic(true);
-                }}
-              >
-                {ANYONE_WITH_THE_LINK_LABEL}
-              </ChoiceChip>
+              {groupVerified ? (
+                <ChoiceChip
+                  role="radio"
+                  selected={isPublic}
+                  onClick={() => {
+                    onIsPublic(true);
+                  }}
+                >
+                  {ANYONE_WITH_THE_LINK_LABEL}
+                </ChoiceChip>
+              ) : null}
             </RovingRadioGroup>
+            {groupVerified ? null : (
+              <FieldDescription id="tournament-unrated-copy">
+                {UNRATED_GROUP_LINE}
+              </FieldDescription>
+            )}
           </section>
 
           <section className="flex flex-col gap-3">
@@ -941,7 +952,9 @@ export function FriendlyTournamentSteps({
             />
             <ReviewRow
               label={COUNTS_FOR_RATING_LABEL}
-              value={COUNTS_FOR_RATING_YES}
+              value={
+                groupVerified ? COUNTS_FOR_RATING_YES : COUNTS_FOR_RATING_NO
+              }
             />
           </div>
         </>

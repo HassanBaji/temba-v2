@@ -7,6 +7,7 @@ import {
   ratingImpactStandingSentence,
   ratingImpactView,
   UNRATED_LABEL,
+  UNRATED_STANDING_COPY,
 } from "./game-rating-impact";
 
 describe("ratingImpactChangeMagnitude", () => {
@@ -125,6 +126,13 @@ describe("ratingImpactView", () => {
       }).sentence,
       /About 3 more rated games/,
     );
+  });
+});
+
+describe("UNRATED_STANDING_COPY", () => {
+  it("explains that Unrated Games don't count towards a Standing", () => {
+    assert.match(UNRATED_STANDING_COPY.description, /Unrated/);
+    assert.match(UNRATED_STANDING_COPY.description, /Standing/);
   });
 });
 

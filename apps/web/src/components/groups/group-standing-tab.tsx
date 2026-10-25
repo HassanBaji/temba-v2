@@ -6,6 +6,7 @@ import { LevelCell } from "~/components/temba/level-cell";
 import { Button } from "~/components/ui/button";
 import { groupStandingRecordLabel } from "@repo/domain/group-home-chrome";
 import { groupStandingState } from "@repo/domain/group-join";
+import { UNRATED_STANDING_COPY } from "@repo/domain/game-rating-impact";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
@@ -166,6 +167,7 @@ export function GroupStandingTab({
   leaderboard,
   groupId,
   canShowCreateGame,
+  verified,
   totalGamesPlayed,
   awaitingScoreCount,
 }: {
@@ -174,6 +176,7 @@ export function GroupStandingTab({
   leaderboard: StandingEntry[];
   groupId: string;
   canShowCreateGame: boolean;
+  verified: boolean;
   totalGamesPlayed: number;
   awaitingScoreCount: number;
 }) {
@@ -201,7 +204,12 @@ export function GroupStandingTab({
       {state.showNoResultsNotice ? (
         <EmptyState
           icon={Users}
-          title="Standings appear after the first result"
+          title={
+            verified
+              ? "Standings appear after the first result"
+              : UNRATED_STANDING_COPY.title
+          }
+          description={verified ? undefined : UNRATED_STANDING_COPY.description}
           action={createFirstGame}
           className={state.showTable ? "py-6" : undefined}
         />

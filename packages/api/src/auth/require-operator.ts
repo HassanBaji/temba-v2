@@ -16,7 +16,7 @@ export async function requireOperator(ctx: {
   if (!isOperatorPublicMetadata(await ctx.getPublicMetadata())) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only Operators can manage Venues",
+      message: "Only Operators can do this",
     });
   }
 }

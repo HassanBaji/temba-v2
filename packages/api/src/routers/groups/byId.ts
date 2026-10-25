@@ -1,10 +1,12 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   communities,
   communityMembers,
   games,
+  groupLinkRequests,
+  GroupLinkRequestStatusEnum,
   groupMembers,
   GroupTypeEnum,
   levelOverrides,
@@ -12,6 +14,7 @@ import {
   ratingEvents,
   ratings,
   user,
+  venues,
   type GroupSportEnum,
 } from "@repo/db";
 
@@ -36,6 +39,7 @@ import {
   slotMembers,
   type MatchSlotMember,
 } from "@repo/domain/match-slots";
+import { groupIsVerified } from "#src/groups/group-is-verified";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "#src/groups/helpers/group-has-non-creator-members";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
@@ -66,6 +70,7 @@ import {
   standingPosition,
 } from "@repo/domain/compare-standing";
 import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { mayUnlinkFromVenueCommunity } from "#src/venue-community/unlink-group";
 
 type DbClient = typeof db;
 
@@ -274,6 +279,37 @@ export async function groupById(
       args.userId,
     );
   }
+
+  const venueCommunityVenue =
+    community?.isVenueCommunity && community.venueId
+      ? await database.query.venues.findFirst({
+          where: eq(venues.id, community.venueId),
+          columns: { id: true, name: true },
+        })
+      : undefined;
+  const pendingLinkRequestCount =
+    !group.communityId && group.createdBy === args.userId
+      ? ((
+          await database
+            .select({ value: count() })
+            .from(groupLinkRequests)
+            .innerJoin(venues, eq(venues.id, groupLinkRequests.venueId))
+            .where(
+              and(
+                eq(groupLinkRequests.groupId, group.id),
+                eq(
+                  groupLinkRequests.status,
+                  GroupLinkRequestStatusEnum.PENDING,
+                ),
+                isNull(venues.archivedAt),
+              ),
+            )
+        )[0]?.value ?? 0)
+      : null;
+
+  const canUnlinkFromVenue =
+    group.createdBy === args.userId &&
+    (await mayUnlinkFromVenueCommunity(database, group));
 
   const isLoosePublic =
     !group.communityId && group.type === GroupTypeEnum.PUBLIC;
@@ -720,6 +756,12 @@ export async function groupById(
     canJoinClubPublic,
     joinMode,
     requiresApproval: group.requiresApproval,
+    verified: await groupIsVerified(database, group),
+    venueCommunity: venueCommunityVenue
+      ? { venueId: venueCommunityVenue.id, venueName: venueCommunityVenue.name }
+      : null,
+    pendingLinkRequestCount,
+    canUnlinkFromVenue,
     canDecideJoinRequests,
     canSetRequiresApproval,
     canManageLookupInvites,

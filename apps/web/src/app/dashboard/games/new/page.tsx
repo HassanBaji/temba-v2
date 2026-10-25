@@ -208,6 +208,9 @@ function NewGameForm() {
   });
 
   const createGroups = api.games.listCreateGroups.useQuery();
+  const groupVerified =
+    createGroups.data?.find((group) => group.id === selectedGroupId)
+      ?.verified ?? false;
   const picker = api.games.listCreateVenues.useQuery(
     { groupId: selectedGroupId },
     { enabled: Boolean(selectedGroupId) },
@@ -598,6 +601,7 @@ function NewGameForm() {
         allowSoloRegister,
       },
       session.now,
+      groupVerified,
     );
     if (!result.ok) {
       reportSubmitIssue(result);
@@ -1042,6 +1046,7 @@ function NewGameForm() {
               allowSoloRegister={allowSoloRegister}
               onAllowSoloRegister={setAllowSoloRegister}
               groupName={reviewGroupName}
+              groupVerified={groupVerified}
             />
           ) : (
             <FriendlyGameSteps
@@ -1125,6 +1130,7 @@ function NewGameForm() {
                 clearField("pricePerPlayerFils");
               }}
               reviewGroup={reviewGroupName}
+              groupVerified={groupVerified}
               reviewVenue={
                 selectedVenue
                   ? courtId === "none"

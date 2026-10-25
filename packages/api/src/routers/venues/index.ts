@@ -5,11 +5,13 @@ import { addCourtProcedure as addCourt } from "./addCourt";
 import { addManagerProcedure as addManager } from "./addManager";
 import { approveLinkRequestProcedure as approveLinkRequest } from "./approveLinkRequest";
 import { byId } from "./byId";
+import { cancelGroupLinkRequestProcedure as cancelGroupLinkRequest } from "./cancelGroupLinkRequest";
 import { clearLogoProcedure as clearLogo } from "./clearLogo";
 import { create } from "./create";
 import { deleteCourtProcedure as deleteCourt } from "./deleteCourt";
 import { deletePhotoProcedure as deletePhoto } from "./deletePhoto";
 import { list } from "./list";
+import { listCommunityGroupsProcedure as listCommunityGroups } from "./listCommunityGroups";
 import { listManagedProcedure as listManaged } from "./listManaged";
 import { listPendingLinkRequestsProcedure as listPendingLinkRequests } from "./listPendingLinkRequests";
 import { managedById } from "./managedById";
@@ -17,7 +19,10 @@ import { rejectLinkRequestProcedure as rejectLinkRequest } from "./rejectLinkReq
 import { removeManagerProcedure as removeManager } from "./removeManager";
 import { removeClosureProcedure as removeClosure } from "./removeClosure";
 import { renameCourtProcedure as renameCourt } from "./renameCourt";
+import { searchLinkableGroupsProcedure as searchLinkableGroups } from "./searchLinkableGroups";
 import { searchManagerUsersProcedure as searchManagerUsers } from "./searchManagerUsers";
+import { sendGroupLinkRequestProcedure as sendGroupLinkRequest } from "./sendGroupLinkRequest";
+import { unlinkGroupProcedure as unlinkGroup } from "./unlinkGroup";
 import { setDisplayPhotosProcedure as setDisplayPhotos } from "./setDisplayPhotos";
 import { setOpeningHoursProcedure as setOpeningHours } from "./setOpeningHours";
 import { setPricingRulesProcedure as setPricingRules } from "./setPricingRules";
@@ -60,4 +65,9 @@ export const venuesRouter = createTRPCRouter({
   listPendingLinkRequests,
   approveLinkRequest,
   rejectLinkRequest,
+  listCommunityGroups,
+  searchLinkableGroups,
+  sendGroupLinkRequest,
+  cancelGroupLinkRequest,
+  unlinkGroup,
 });

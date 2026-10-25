@@ -33,6 +33,9 @@ export function titleFromPath(pathname: string) {
   if (pathname.startsWith("/dashboard/notifications")) {
     return "Notifications";
   }
+  if (pathname.startsWith("/dashboard/operator/groups")) {
+    return "Verify Groups";
+  }
   if (pathname.startsWith("/dashboard/groups/new")) {
     return "Create Group";
   }

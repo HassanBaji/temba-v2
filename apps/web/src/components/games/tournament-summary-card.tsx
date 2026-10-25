@@ -14,6 +14,7 @@ import {
 } from "~/components/games/summary-card-shell";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag } from "~/components/temba/seat";
+import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
 import {
   formatGameCardDay,
@@ -23,6 +24,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
@@ -86,6 +88,14 @@ function CardBand({ label, meta }: { label: string; meta: string | null }) {
         </span>
       ) : null}
     </div>
+  );
+}
+
+function UnratedBadge() {
+  return (
+    <Badge variant="outline" data-slot="game-card-unrated">
+      {UNRATED_LABEL}
+    </Badge>
   );
 }
 
@@ -277,13 +287,16 @@ export function TournamentSummaryCard({
                 ? `Starts ${formatGameCardDay(game.windowStart)}`
                 : null}
             </span>
-            {cancelled ? (
-              <GameStatusBadge status="cancelled" />
-            ) : showsTournamentOpenFlag(game) ? (
-              <OpenFlag
-                openTeams={tournamentOpenTeamCount(game.teamsAllowed, teams)}
-              />
-            ) : null}
+            <span className="flex shrink-0 items-center gap-2">
+              {game.rated ? null : <UnratedBadge />}
+              {cancelled ? (
+                <GameStatusBadge status="cancelled" />
+              ) : showsTournamentOpenFlag(game) ? (
+                <OpenFlag
+                  openTeams={tournamentOpenTeamCount(game.teamsAllowed, teams)}
+                />
+              ) : null}
+            </span>
           </div>
 
           <h3 className="font-expanded text-h1-lg mt-4 line-clamp-2 leading-none tracking-[-0.035em]">
@@ -497,11 +510,14 @@ export function TournamentMatchCard({
                 </p>
               ) : null}
             </div>
-            {status ? (
-              <span className="text-muted-foreground text-meta shrink-0 tabular-nums">
-                {status}
-              </span>
-            ) : null}
+            <span className="flex shrink-0 items-center gap-2">
+              {game.rated ? null : <UnratedBadge />}
+              {status ? (
+                <span className="text-muted-foreground text-meta tabular-nums">
+                  {status}
+                </span>
+              ) : null}
+            </span>
           </div>
 
           <p className="mt-3.5 flex flex-wrap items-baseline gap-x-[9px]">
@@ -599,9 +615,10 @@ export function HomeTournamentMatchCard({
         <SummaryCardBody>
           <div className="text-muted-foreground text-meta flex items-center justify-between gap-3">
             <h3 className="min-w-0 truncate">{title}</h3>
-            {status ? (
-              <span className="shrink-0 tabular-nums">{status}</span>
-            ) : null}
+            <span className="flex shrink-0 items-center gap-2">
+              {game.rated ? null : <UnratedBadge />}
+              {status ? <span className="tabular-nums">{status}</span> : null}
+            </span>
           </div>
 
           <p className="font-expanded mt-2.5 text-[30px] leading-none tracking-[-0.035em]">

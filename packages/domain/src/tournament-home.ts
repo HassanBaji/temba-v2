@@ -40,6 +40,7 @@ export const GROUP_ROW_LABEL = "Group";
 export const PRICE_ROW_LABEL = "Price";
 export const COUNTS_FOR_RATING_LABEL = "Counts for rating";
 export const COUNTS_FOR_RATING_YES = "Yes";
+export const COUNTS_FOR_RATING_NO = "No";
 export const YOU_OWE_ROW_LABEL = "You owe";
 export const YOU_OWE_AFTER_EACH_MATCH = "after each Match";
 export const INVITE_ACTION_LABEL = "Invite";

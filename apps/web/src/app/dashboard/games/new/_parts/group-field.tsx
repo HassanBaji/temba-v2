@@ -23,6 +23,7 @@ export type CreateGroup = {
   id: string;
   name: string | null;
   communityName: string | null;
+  verified: boolean;
 };
 
 function groupOptionLabel(group: CreateGroup) {

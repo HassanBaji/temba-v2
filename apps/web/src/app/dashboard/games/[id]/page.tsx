@@ -992,6 +992,7 @@ export default function GameHomePage({
                 Registration, the waitlist, and invites stay closed.
               </SoftArchiveBanner>
             ) : null}
+            {data.rated ? null : <GameUnratedBlock />}
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}
@@ -1142,6 +1143,7 @@ export default function GameHomePage({
           // on the page a destructive/editing action renders.
           <div className="space-y-6">
             {data.booking ? <GameBookedBlock booking={data.booking} /> : null}
+            {!data.rated && !data.booking ? <GameUnratedBlock /> : null}
             <GameLineupSection
               sides={data.sides}
               viewerUserId={data.viewerUserId}
@@ -1188,9 +1190,6 @@ export default function GameHomePage({
                   }
                 />
               </div>
-            ) : null}
-            {data.phase === "final" && !data.rated ? (
-              <GameUnratedBlock />
             ) : null}
             {data.phase === "final" && data.ratingImpact ? (
               <GameRatingImpactBlock ratingImpact={data.ratingImpact} />
