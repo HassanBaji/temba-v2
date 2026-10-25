@@ -1,5 +1,7 @@
 import { colors, radii, spacing } from "@repo/design-tokens";
+import type { BookingPaymentMethod } from "@repo/domain/booking-payment";
 import type { Href } from "expo-router";
+import { CreditCard, Smartphone, Store, Wallet } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
@@ -11,12 +13,22 @@ import { Text } from "../primitives/text";
 
 const HERO_PADDING_BOTTOM = 22;
 
+export const PAYMENT_METHOD_ICONS = {
+  card: CreditCard,
+  benefit: CreditCard,
+  benefitpay: Smartphone,
+  apple_pay: Wallet,
+  at_venue: Store,
+} satisfies Record<BookingPaymentMethod, unknown>;
+
 /** The ink header of Checkout and Booking details: a start time and where. */
 export function BookingHero({
   eyebrow,
   time,
   until,
   subtitle,
+  aside,
+  nav = "back",
   fallback,
   onNav,
   children,
@@ -25,6 +37,9 @@ export function BookingHero({
   time: string;
   until: string;
   subtitle: string;
+  /** Under the eyebrow, beside the nav button: a live line such as a hold. */
+  aside?: React.ReactNode;
+  nav?: "back" | "close";
   fallback: Href;
   onNav?: () => void;
   children?: React.ReactNode;
@@ -41,13 +56,28 @@ export function BookingHero({
       }}
     >
       <ScreenHeader
-        nav="back"
+        nav={nav}
         fallback={fallback}
         onNav={onNav}
         actions={
-          <Text size="eyebrow" mono uppercase tone="muted" numberOfLines={1}>
-            {eyebrow}
-          </Text>
+          aside ? (
+            <View style={{ alignItems: "flex-end", gap: 4, flexShrink: 1 }}>
+              <Text
+                size="eyebrow"
+                mono
+                uppercase
+                tone="muted"
+                numberOfLines={1}
+              >
+                {eyebrow}
+              </Text>
+              {aside}
+            </View>
+          ) : (
+            <Text size="eyebrow" mono uppercase tone="muted" numberOfLines={1}>
+              {eyebrow}
+            </Text>
+          )
         }
       >
         <View style={{ gap: 6 }}>

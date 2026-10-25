@@ -16,6 +16,7 @@ export type ChoiceCardProps = {
   leading?: ComponentType<{ size: number; color: ColorValue }>;
   trailing?: "check" | "chevron";
   variant?: "card" | "row";
+  disabled?: boolean;
   accessibilityLabel?: string;
   onPress: () => void;
   children?: React.ReactNode;
@@ -32,6 +33,7 @@ export function ChoiceCard({
   leading: Leading,
   trailing = "check",
   variant = "card",
+  disabled = false,
   accessibilityLabel,
   onPress,
   children,
@@ -48,7 +50,8 @@ export function ChoiceCard({
           accessibilityLabel ??
           (description ? `${title}, ${description}` : title)
         }
-        accessibilityState={{ checked: selected }}
+        accessibilityState={{ checked: selected, disabled }}
+        disabled={disabled}
         onPress={onPress}
         style={({ pressed }) => [
           {
@@ -56,6 +59,7 @@ export function ChoiceCard({
             gap: 12,
             backgroundColor:
               pressed && !selected ? palette.wash : palette.background,
+            opacity: disabled ? 0.5 : 1,
           },
           card
             ? {
