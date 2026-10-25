@@ -184,6 +184,7 @@ function GamesHubTabPanel({
             startTime={game.startTime}
             groupName={game.groupName}
             format={game.format}
+            sport={game.sport}
             registrationMode={game.registrationMode}
             canRegister={game.canRegister}
             windowStart={game.windowStart}

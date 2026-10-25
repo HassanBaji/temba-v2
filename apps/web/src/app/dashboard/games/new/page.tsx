@@ -24,6 +24,9 @@ import {
   CREATE_FLOW_FIELD_IDS,
   DEFAULT_MATCH_MINUTES,
   DEFAULT_TOURNAMENT_SHAPE,
+  changeFootballPlayersAllowed,
+  changeFootballSideSize,
+  createFlowFirstStep,
   createFlowLaterSteps,
   createFlowStepForField,
   createVenueCopy,
@@ -55,6 +58,7 @@ import {
   applyTeamCountChange,
   friendlyTournamentPlan,
   reclampQualifiersPerPool,
+  validateFootballGameSubmit,
   validateFriendlyGameSubmit,
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
@@ -87,6 +91,7 @@ import {
   defaultPoolCount,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "@repo/domain/tournament-sizing";
+import { sportOrDefault } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 type FormFailure = Parameters<typeof focusFormFailure>[0];
@@ -148,6 +153,12 @@ function NewGameForm() {
   const [preferLevelRange, setPreferLevelRange] = React.useState(false);
   const [isPublic, setIsPublic] = React.useState(false);
   const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
+  const [sideSize, setSideSize] = React.useState(
+    () => initialCreateGameDraft(session.now).sideSize,
+  );
+  const [playersAllowed, setPlayersAllowed] = React.useState(
+    () => initialCreateGameDraft(session.now).playersAllowed,
+  );
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
   >({});
@@ -177,6 +188,8 @@ function NewGameForm() {
     setNameTouched(next.nameTouched);
     setIsPublic(next.isPublic);
     setAllowSoloRegister(next.allowSoloRegister);
+    setSideSize(next.sideSize);
+    setPlayersAllowed(next.playersAllowed);
   }
 
   React.useEffect(() => {
@@ -200,14 +213,21 @@ function NewGameForm() {
     finishTime,
     matchMinutes: matchMinutesInput,
   };
-  const displayedStep = resolveCreateFlowStep({
-    type: typeParam,
+  const createGroups = api.games.listCreateGroups.useQuery();
+  const selectedGroup = createGroups.data?.find(
+    (group) => group.id === selectedGroupId,
+  );
+  const sport = sportOrDefault(selectedGroup?.sport);
+  const football = sport === "football";
+  const firstStep = createFlowFirstStep(sport);
+  const flowType = football ? "friendly_game" : typeParam;
+  const resolvedStep = resolveCreateFlowStep({
+    type: flowType,
     requestedStep: stepParam,
     draft,
     now: session.now,
   });
-
-  const createGroups = api.games.listCreateGroups.useQuery();
+  const displayedStep = Math.max(resolvedStep, firstStep) as CreateFlowStep;
   const picker = api.games.listCreateVenues.useQuery(
     { groupId: selectedGroupId },
     { enabled: Boolean(selectedGroupId) },
@@ -266,8 +286,8 @@ function NewGameForm() {
     nameTouched,
     isPublic,
     allowSoloRegister,
-    sideSize: initialCreateGameDraft(session.now).sideSize,
-    playersAllowed: initialCreateGameDraft(session.now).playersAllowed,
+    sideSize,
+    playersAllowed,
   };
   const initialGroupId =
     requestedGroupId &&
@@ -303,7 +323,7 @@ function NewGameForm() {
       router.replace(
         createGameFlowHref({
           groupId: requestedGroupId,
-          type: typeParam,
+          type: flowType,
           step: displayedStep === 1 ? null : displayedStep,
         }),
       );
@@ -315,7 +335,7 @@ function NewGameForm() {
     requestedGroupId,
     router,
     stepParam,
-    typeParam,
+    flowType,
   ]);
 
   const utils = api.useUtils();
@@ -408,7 +428,7 @@ function NewGameForm() {
       router.push(
         createGameFlowHref({
           groupId: requestedGroupId,
-          type: typeParam ?? "friendly_game",
+          type: flowType ?? "friendly_game",
           step: target,
         }),
       );
@@ -420,7 +440,7 @@ function NewGameForm() {
   function hrefForStep(step: CreateFlowStep) {
     return createGameFlowHref({
       groupId: requestedGroupId,
-      type: typeParam ?? "friendly_game",
+      type: flowType ?? "friendly_game",
       step,
     });
   }
@@ -541,7 +561,7 @@ function NewGameForm() {
       return;
     }
     if (displayedStep === 3) {
-      if (typeParam === "friendly_tournament") {
+      if (flowType === "friendly_tournament") {
         if (!continueTournamentStepThree()) {
           return;
         }
@@ -609,11 +629,33 @@ function NewGameForm() {
   }
 
   function onCreate() {
-    if (typeParam === "friendly_tournament") {
+    if (flowType === "friendly_tournament") {
       onCreateTournament();
       return;
     }
     if (createGame.isPending) {
+      return;
+    }
+    if (football) {
+      const footballResult = validateFootballGameSubmit(
+        {
+          groupId: selectedGroupId,
+          venueId,
+          courtId,
+          day,
+          startTime,
+          finishTime,
+          pricePerPlayer,
+          sideSize,
+          playersAllowed,
+        },
+        session.now,
+      );
+      if (!footballResult.ok) {
+        reportSubmitIssue(footballResult);
+        return;
+      }
+      createGame.mutate(footballResult.input);
       return;
     }
     const result = validateFriendlyGameSubmit(
@@ -637,25 +679,24 @@ function NewGameForm() {
     createGame.mutate(result.input);
   }
 
-  const selectedGroup = createGroups.data?.find(
-    (group) => group.id === selectedGroupId,
-  );
   const cancelHref = selectedGroupId
     ? `/dashboard/groups/${selectedGroupId}`
     : requestedGroupId
       ? `/dashboard/groups/${requestedGroupId}`
       : "/dashboard/games";
-  const tournamentBranch = typeParam === "friendly_tournament";
+  const tournamentBranch = flowType === "friendly_tournament";
   const formError = tournamentBranch
     ? createTournament.error
     : createGame.error;
   const venueCopy = !selectedGroupId
     ? "Pick a Group first. Venue rules depend on the Group."
     : picker.data
-      ? createVenueCopy(picker.data, { manyCourts: tournamentBranch })
+      ? createVenueCopy(picker.data, { manyCourts: tournamentBranch, sport })
       : tournamentBranch
         ? "Pick a Venue. Courts are optional."
-        : "Pick a Venue. Court is optional.";
+        : football
+          ? "Pick a Venue. Pitch is optional."
+          : "Pick a Venue. Court is optional.";
   const kickoff = friendlyGameKickoff(day, startTime, finishTime);
   const previewDetail = friendlyGamePreviewLine({
     day: startTime ? day : "",
@@ -677,7 +718,7 @@ function NewGameForm() {
     errors.courtIds ??
     fieldErrorMessage(formError, "courtId") ??
     fieldErrorMessage(formError, "courtIds");
-  const laterSteps = createFlowLaterSteps(typeParam);
+  const laterSteps = createFlowLaterSteps(flowType, sport);
   const nextTitle = laterSteps.find(
     (item) => item.step === displayedStep + 1,
   )?.title;
@@ -826,10 +867,11 @@ function NewGameForm() {
       >
         <CreateFlowShell
           step={displayedStep}
+          firstStep={firstStep}
           cancelHref={cancelHref}
           onCancel={onCancel}
           onBack={() => {
-            if (displayedStep > 1) {
+            if (displayedStep > firstStep) {
               router.push(hrefForStep((displayedStep - 1) as CreateFlowStep));
             }
           }}
@@ -1047,6 +1089,36 @@ function NewGameForm() {
             />
           ) : (
             <FriendlyGameSteps
+              sport={sport}
+              sideSize={sideSize}
+              sideSizeError={
+                errors.sideSize ??
+                fieldErrorMessage(createGame.error, "sideSize")
+              }
+              onSideSize={(next) => {
+                const changed = changeFootballSideSize(
+                  { sideSize, playersAllowed },
+                  next,
+                );
+                setSideSize(changed.sideSize);
+                setPlayersAllowed(changed.playersAllowed);
+                clearField("sideSize");
+                clearField("playersAllowed");
+              }}
+              playersAllowed={playersAllowed}
+              playersAllowedError={
+                errors.playersAllowed ??
+                fieldErrorMessage(createGame.error, "playersAllowed")
+              }
+              onPlayersAllowed={(next) => {
+                setPlayersAllowed(
+                  changeFootballPlayersAllowed(
+                    { sideSize, playersAllowed },
+                    next,
+                  ).playersAllowed,
+                );
+                clearField("playersAllowed");
+              }}
               step={displayedStep}
               now={session.now}
               groups={createGroups.data ?? []}

@@ -22,6 +22,7 @@ import {
   visibleCreateGroups,
   VISIBLE_GROUP_CHIP_COUNT,
 } from "@repo/domain/create-game-flow";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 export type CreateCourt = { id: string; name: string };
 
@@ -35,6 +36,7 @@ export type CreateVenue = {
 function VenueCards({
   venues,
   venueId,
+  sport,
   labelledBy,
   invalid = false,
   describedBy,
@@ -42,6 +44,7 @@ function VenueCards({
 }: {
   venues: readonly CreateVenue[];
   venueId: string;
+  sport: Sport;
   labelledBy?: string;
   invalid?: boolean;
   describedBy?: string;
@@ -64,7 +67,7 @@ function VenueCards({
           layout="row"
           selected={venue.id === venueId}
           title={venue.name}
-          description={venueCardMeta(venue.courts.length, venue.city)}
+          description={venueCardMeta(venue.courts.length, venue.city, sport)}
           trailing="check"
           onClick={() => {
             onSelect(venue.id);
@@ -85,6 +88,7 @@ export function VenueField({
   venueError,
   onVenueId,
   emptyCatalog,
+  sport = DEFAULT_SPORT,
 }: {
   selectedGroupId: string;
   venueCopy: string;
@@ -95,6 +99,7 @@ export function VenueField({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
+  sport?: Sport;
 }) {
   const [venuesOpen, setVenuesOpen] = React.useState(false);
   const [venueQuery, setVenueQuery] = React.useState("");
@@ -146,7 +151,7 @@ export function VenueField({
           <p className="font-semibold">{venues[0]?.name ?? "Venue"}</p>
           {venues[0] ? (
             <p className="text-muted-foreground text-meta mt-0.5">
-              {venueCardMeta(venues[0].courts.length, venues[0].city)}
+              {venueCardMeta(venues[0].courts.length, venues[0].city, sport)}
             </p>
           ) : null}
         </div>
@@ -157,6 +162,7 @@ export function VenueField({
       {selectedGroupId && !venuesPending && !venuesLocked && !emptyCatalog ? (
         <>
           <VenueCards
+            sport={sport}
             venues={visibleVenues}
             venueId={venueId}
             labelledBy="game-venue-label"
@@ -199,6 +205,7 @@ export function VenueField({
                   </p>
                 ) : (
                   <VenueCards
+                    sport={sport}
                     venues={filteredVenues}
                     venueId={venueId}
                     onSelect={(nextVenueId) => {

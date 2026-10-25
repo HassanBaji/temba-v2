@@ -14,6 +14,7 @@ const BLEED = `${pageBleed} md:-mt-6`;
 
 export function CreateFlowShell({
   step,
+  firstStep = 1,
   cancelHref,
   onCancel,
   onBack,
@@ -22,6 +23,7 @@ export function CreateFlowShell({
   children,
 }: {
   step: CreateFlowStep;
+  firstStep?: CreateFlowStep;
   cancelHref: string;
   onCancel: (event: MouseEvent<HTMLAnchorElement>) => void;
   onBack: () => void;
@@ -33,7 +35,7 @@ export function CreateFlowShell({
     <div className="flex flex-col gap-6 pb-28 lg:pb-0">
       <Surface as="header" tone="ink" className={cn("py-[22px]", BLEED)}>
         <div className="flex items-center justify-between">
-          {step === 1 ? (
+          {step === firstStep ? (
             <CloseButton
               label="Cancel"
               surface="ink"
@@ -63,9 +65,7 @@ export function CreateFlowShell({
         </div>
       </Surface>
 
-      <div className="flex flex-col gap-[26px]">
-        {children}
-      </div>
+      <div className="flex flex-col gap-[26px]">{children}</div>
 
       <div
         className={cn(

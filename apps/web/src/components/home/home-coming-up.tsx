@@ -1,7 +1,9 @@
 import { Trophy } from "lucide-react";
 import Link from "next/link";
 
+import { SportGlyph } from "~/components/temba/sport-glyph";
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { gameCardSportTag } from "@repo/domain/game-card";
 import { formatGameClock, formatWeekday } from "@repo/domain/format-game-start";
 import {
   homeComingUpSeatBars,
@@ -35,27 +37,40 @@ function DayBox({ startsAt }: { startsAt: Date }) {
 
 function GameRow({ game }: { game: HomeComingUpGameRow }) {
   const { bars, spokenLabel } = homeComingUpSeatBars(game);
+  const sportTag = gameCardSportTag(game.sport);
   return (
     <Link href={`/dashboard/games/${game.id}`} className={ROW_CLASS}>
       <DayBox startsAt={game.startsAt} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{game.venueName}</p>
-        <p className="text-muted-foreground text-meta">
+        <p className="text-muted-foreground text-meta flex items-center gap-1.5">
           {formatGameClock(game.startsAt)}
+          {sportTag && game.sport ? (
+            <span className="inline-flex items-center gap-1">
+              <SportGlyph sport={game.sport} className="size-3.5" />
+              {sportTag.label}
+            </span>
+          ) : null}
         </p>
       </div>
-      <div className="flex h-6 items-end gap-0.5" aria-hidden="true">
-        {bars.map((kind, index) => (
-          <span
-            key={`${game.id}-${index}`}
-            aria-hidden="true"
-            className={cn(
-              "h-full w-1 rounded-sm",
-              kind === "taken" ? "bg-ink" : "hatch",
-            )}
-          />
-        ))}
-      </div>
+      {game.occupancyLabel ? (
+        <span className="text-meta font-semibold tabular-nums">
+          {game.occupancyLabel}
+        </span>
+      ) : (
+        <div className="flex h-6 items-end gap-0.5" aria-hidden="true">
+          {bars.map((kind, index) => (
+            <span
+              key={`${game.id}-${index}`}
+              aria-hidden="true"
+              className={cn(
+                "h-full w-1 rounded-sm",
+                kind === "taken" ? "bg-ink" : "hatch",
+              )}
+            />
+          ))}
+        </div>
+      )}
       <span className="sr-only">{spokenLabel}</span>
     </Link>
   );

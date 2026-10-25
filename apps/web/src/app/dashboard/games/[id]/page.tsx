@@ -15,6 +15,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
+import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
@@ -88,6 +89,7 @@ import {
   friendlyGameCanMintInvite,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
 import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
@@ -759,6 +761,16 @@ export default function GameHomePage({
           }}
         />
       </DashboardShell>
+    );
+  }
+
+  if (isFootballRosterGame(data)) {
+    return (
+      <FootballGameDetails
+        gameId={id}
+        game={data}
+        openInvites={intent === "invite"}
+      />
     );
   }
 
