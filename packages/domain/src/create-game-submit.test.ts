@@ -7,6 +7,7 @@ import {
   friendlyTournamentPlan,
   friendlyTournamentScheduleFor,
   reclampQualifiersPerPool,
+  validateFootballGameSubmit,
   validateFriendlyGameSubmit,
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
@@ -107,6 +108,100 @@ describe("validateFriendlyGameSubmit", () => {
       assert.equal(result.input.courtId, "court-1");
       assert.equal(typeof result.input.levelMinTenths, "number");
       assert.equal("levelMaxTenths" in result.input, false);
+    }
+  });
+});
+
+const football = {
+  groupId: "group-1",
+  venueId: "venue-1",
+  courtId: "none",
+  day: "2026-09-23",
+  startTime: "20:00",
+  finishTime: "21:30",
+  pricePerPlayer: "",
+  sideSize: 5,
+  playersAllowed: 12,
+} as const;
+
+describe("validateFootballGameSubmit", () => {
+  it("sends the side size and cap with no sport, Level range or seats", () => {
+    const result = validateFootballGameSubmit(
+      { ...football, courtId: "pitch-1", pricePerPlayer: "2.5" },
+      NOW,
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.format, "friendly_game");
+      assert.equal(result.input.registrationMode, "individual");
+      assert.equal(result.input.sideSize, 5);
+      assert.equal(result.input.playersAllowed, 12);
+      assert.equal(result.input.courtId, "pitch-1");
+      assert.equal(result.input.pricePerPlayerFils, 2500);
+      assert.equal(result.input.isPublic, false);
+      assert.equal("sport" in result.input, false);
+      assert.equal("levelMinTenths" in result.input, false);
+      assert.equal("levelMaxTenths" in result.input, false);
+    }
+  });
+
+  it("leaves the pitch out when none is picked", () => {
+    const result = validateFootballGameSubmit(football, NOW);
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.courtId, undefined);
+      assert.equal("pricePerPlayerFils" in result.input, false);
+    }
+  });
+
+  it("reports the earliest incomplete step", () => {
+    const where = validateFootballGameSubmit({ ...football, venueId: "" }, NOW);
+    assert.ok(!where.ok);
+    if (!where.ok) {
+      assert.equal(where.step, 2);
+    }
+    const when = validateFootballGameSubmit(
+      { ...football, startTime: "" },
+      NOW,
+    );
+    assert.ok(!when.ok);
+    if (!when.ok) {
+      assert.equal(when.step, 3);
+    }
+  });
+
+  it("refuses a cap below twice the side size or past 40", () => {
+    for (const playersAllowed of [9, 41]) {
+      const result = validateFootballGameSubmit(
+        { ...football, playersAllowed },
+        NOW,
+      );
+      assert.ok(!result.ok);
+      if (!result.ok) {
+        assert.equal(result.step, 4);
+        assert.equal(result.field, "playersAllowed");
+        assert.equal(
+          result.message,
+          "Players allowed must be between 10 and 40",
+        );
+      }
+    }
+  });
+
+  it("refuses an unknown side size and a bad price", () => {
+    const size = validateFootballGameSubmit({ ...football, sideSize: 4 }, NOW);
+    assert.ok(!size.ok);
+    if (!size.ok) {
+      assert.equal(size.field, "sideSize");
+    }
+    const price = validateFootballGameSubmit(
+      { ...football, pricePerPlayer: "abc" },
+      NOW,
+    );
+    assert.ok(!price.ok);
+    if (!price.ok) {
+      assert.equal(price.field, "pricePerPlayerFils");
+      assert.equal(price.step, 4);
     }
   });
 });

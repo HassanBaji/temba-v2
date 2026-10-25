@@ -25,7 +25,12 @@ async function insertUser(database: TestDatabase, email: string) {
 
 async function insertGroup(
   database: TestDatabase,
-  args: { createdBy: string; name: string; communityId?: string },
+  args: {
+    createdBy: string;
+    name: string;
+    communityId?: string;
+    sport?: "padel" | "football";
+  },
 ) {
   const [row] = await database
     .insert(groups)
@@ -33,6 +38,7 @@ async function insertGroup(
       name: args.name,
       createdBy: args.createdBy,
       communityId: args.communityId,
+      sport: args.sport,
     })
     .returning({ id: groups.id, name: groups.name });
   if (!row) {
@@ -60,6 +66,27 @@ describe("listCreateGroups", () => {
       const rows = await listCreateGroups(db, { userId: owner.id });
       expect(rows.map((row) => row.id)).toEqual([alpha.id, zebra.id]);
       expect(rows[0]?.communityName).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("carries each Group's sport so the create flow can branch on it", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "list-create-sport@example.com");
+      await insertGroup(db, {
+        createdBy: owner.id,
+        name: "Five-a-side",
+        sport: "football",
+      });
+      await insertGroup(db, { createdBy: owner.id, name: "Padel crew" });
+
+      const rows = await listCreateGroups(db, { userId: owner.id });
+      expect(rows.map((row) => [row.name, row.sport])).toEqual([
+        ["Five-a-side", "football"],
+        ["Padel crew", "padel"],
+      ]);
     } finally {
       await close();
     }
@@ -98,6 +125,7 @@ describe("listCreateGroups", () => {
           id: clubGroup.id,
           name: "Club Squad",
           communityName: "Live Club",
+          sport: "padel",
         },
       ]);
     } finally {

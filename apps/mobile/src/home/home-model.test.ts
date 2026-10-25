@@ -3,7 +3,12 @@ import { describe, it } from "vitest";
 
 import { createHomeFixtures } from "@repo/domain/home-fixtures";
 
-import { homeModelFromFixture, levelFromApi } from "./home-model";
+import {
+  homeContentFromApi,
+  homeModelFromFixture,
+  levelFromApi,
+} from "./home-model";
+import type { RouterOutputs } from "../trpc/react";
 
 const NOW = new Date("2026-09-07T12:00:00.000Z");
 const fixtures = createHomeFixtures(NOW);
@@ -64,5 +69,59 @@ describe("levelFromApi", () => {
       } as never),
       null,
     );
+  });
+});
+
+describe("homeContentFromApi", () => {
+  function home(game: Record<string, unknown>) {
+    return {
+      pendingInviteCount: 0,
+      gamesPlayed: 0,
+      gamesWon: 0,
+      gamesLost: 0,
+      carouselGames: [
+        {
+          id: "game-1",
+          matchId: null,
+          phase: "upcoming",
+          format: "friendly_game",
+          registrationMode: "individual",
+          poolCount: null,
+          tournamentShape: null,
+          venue: { name: "Riffa Sports" },
+          courtName: null,
+          roundNumber: null,
+          roundCount: null,
+          startTime: new Date("2026-09-08T16:00:00.000Z"),
+          sides: [],
+          registeredUserCount: 7,
+          playersAllowed: 10,
+          ...game,
+        },
+      ],
+      standing: [],
+    } as unknown as RouterOutputs["users"]["home"];
+  }
+
+  it("carries a football Game as a count with its sport instead of seats", () => {
+    const content = homeContentFromApi(home({ sport: "football" }), null);
+    const next = content.nextGame;
+    assert.equal(next?.kind, "game");
+    if (next?.kind !== "game") return;
+    assert.equal(next.sport, "football");
+    assert.deepEqual(next.roster, {
+      filledLabel: "7/10",
+      spotsLabel: "3 spots open",
+    });
+  });
+
+  it("keeps the seat row for a padel Game", () => {
+    const content = homeContentFromApi(
+      home({ sport: "padel", registeredUserCount: 3, playersAllowed: 4 }),
+      null,
+    );
+    const next = content.nextGame;
+    assert.equal(next?.kind === "game" && next.roster, null);
+    assert.equal(next?.kind === "game" && next.seats.length, 4);
   });
 });

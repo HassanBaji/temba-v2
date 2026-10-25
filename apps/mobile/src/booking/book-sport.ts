@@ -58,5 +58,8 @@ export function courtCoachCopy(sport: Sport): string {
   return `Pick a start time to see which ${courtPlural(sport)} are free.`;
 }
 
-export const FOOTBALL_GAMES_COMING =
-  "Football games are coming. You will be able to turn a pitch booking into a game in a later release.";
+export function bookingGameBlurb(sport: string | null | undefined) {
+  return sport === "football"
+    ? "Turn the booking into a game and Temba handles the roster and invites."
+    : "Turn the booking into a game and Temba handles seats, invites and the score.";
+}

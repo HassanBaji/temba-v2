@@ -10,6 +10,7 @@ import {
   type CreateFlowStep,
   type CreateTournamentShape,
 } from "./create-game-flow";
+import { footballPlayersAllowedBounds, isFootballSideSize } from "./game-shape";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
 import {
   LEVEL_RANGE_INVERTED_MESSAGE,
@@ -67,7 +68,13 @@ function issueAtStep(
   return { ...issue, step };
 }
 
-function validateWhereAndWhen(draft: Omit<GameFields, "courtId">, now: Date) {
+function validateWhereAndWhen(
+  draft: Pick<
+    GameFields,
+    "groupId" | "venueId" | "day" | "startTime" | "finishTime"
+  >,
+  now: Date,
+) {
   const where = validateFriendlyGameWhere(draft.groupId, draft.venueId);
   if (!where.ok) {
     return { failed: true as const, issue: issueAtStep(where, 2) };
@@ -82,6 +89,23 @@ function validateWhereAndWhen(draft: Omit<GameFields, "courtId">, now: Date) {
     return { failed: true as const, issue: issueAtStep(when, 3) };
   }
   return { failed: false as const, when };
+}
+
+function validatePrice(draft: Pick<GameFields, "pricePerPlayer">) {
+  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer);
+  if (!price.ok) {
+    return {
+      failed: true as const,
+      issue: {
+        ok: false as const,
+        field: "pricePerPlayerFils",
+        message: price.message,
+        elementId: CREATE_FLOW_FIELD_IDS.pricePerPlayerFils ?? "",
+        step: 4 as const,
+      },
+    };
+  }
+  return { failed: false as const, fils: price.fils };
 }
 
 function validatePriceAndLevel(draft: Omit<GameFields, "courtId">) {
@@ -152,6 +176,65 @@ export function validateFriendlyGameSubmit(draft: GameFields, now: Date) {
       ...(priced.levelMaxTenths !== null
         ? { levelMaxTenths: priced.levelMaxTenths }
         : {}),
+    },
+  };
+}
+
+export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
+  sideSize: number;
+  playersAllowed: number;
+};
+
+export function validateFootballGameSubmit(
+  draft: FootballGameFields,
+  now: Date,
+) {
+  const placed = validateWhereAndWhen(draft, now);
+  if (placed.failed) {
+    return placed.issue;
+  }
+  if (!isFootballSideSize(draft.sideSize)) {
+    return {
+      ok: false as const,
+      field: "sideSize",
+      message: "Pick a side size",
+      elementId: CREATE_FLOW_FIELD_IDS.sideSize ?? "",
+      step: 4 as const,
+    };
+  }
+  const bounds = footballPlayersAllowedBounds(draft.sideSize);
+  if (
+    !Number.isInteger(draft.playersAllowed) ||
+    draft.playersAllowed < bounds.min ||
+    draft.playersAllowed > bounds.max
+  ) {
+    return {
+      ok: false as const,
+      field: "playersAllowed",
+      message: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+      elementId: CREATE_FLOW_FIELD_IDS.playersAllowed ?? "",
+      step: 4 as const,
+    };
+  }
+  const priced = validatePrice(draft);
+  if (priced.failed) {
+    return priced.issue;
+  }
+  return {
+    ok: true as const,
+    input: {
+      name: formatGameWindowName(draft.day, draft.startTime, draft.finishTime),
+      groupId: draft.groupId,
+      isPublic: false,
+      format: "friendly_game" as const,
+      registrationMode: "individual" as const,
+      windowStart: placed.when.windowStart,
+      windowEnd: placed.when.windowEnd,
+      venueId: draft.venueId,
+      courtId: draft.courtId === "none" ? undefined : draft.courtId,
+      sideSize: draft.sideSize,
+      playersAllowed: draft.playersAllowed,
+      ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
     },
   };
 }

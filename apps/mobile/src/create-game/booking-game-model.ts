@@ -1,7 +1,15 @@
-import { CREATE_FLOW_OPEN_SEATS_LABEL } from "@repo/domain/create-game-flow";
+import {
+  createFlowSeatsLabel,
+  splitCostAcrossPlayers,
+} from "@repo/domain/create-game-flow";
+import { courtFace } from "@repo/domain/court-sport-copy";
 import type { CreateGameDraft } from "@repo/domain/create-game-draft";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import {
+  footballPlayersAllowedBounds,
+  isFootballSideSize,
+} from "@repo/domain/game-shape";
 import {
   LEVEL_RANGE_INVERTED_MESSAGE,
   parseLevelBandSelectTenths,
@@ -10,6 +18,7 @@ import {
   filsToMajorInput,
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
+import { sportOrDefault, type Sport } from "@repo/domain/sport";
 
 import { relativeDay } from "../booking/booking-model";
 import type { StepHeaderText } from "./create-header";
@@ -24,7 +33,7 @@ export type BookingGameSource = {
   endsAt: Date;
   priceFils: number;
   venue: { name: string };
-  court: { name: string };
+  court: { name: string; sport?: string | null };
 };
 
 export function bookingGameHeader(
@@ -46,22 +55,39 @@ export function bookingGameHeader(
   };
 }
 
-/** The court price shared by four seats, rounded up so the seats cover it. */
-export function splitCourtCost(priceFils: number): string {
-  return filsToMajorInput(Math.ceil(priceFils / BOOKING_GAME_PLAYERS));
+export function bookingGameSport(booking: BookingGameSource): Sport {
+  return sportOrDefault(booking.court.sport);
 }
 
-export function bookingGameReviewRows(booking: BookingGameSource): ReviewRow[] {
+/** The court price shared across the Game's players, rounded up so they cover it. */
+export function splitCourtCost(
+  priceFils: number,
+  players: number = BOOKING_GAME_PLAYERS,
+): string {
+  return filsToMajorInput(splitCostAcrossPlayers(priceFils, players));
+}
+
+export function bookingGameReviewRows(
+  booking: BookingGameSource,
+  size: { sideSize: number; playersAllowed: number } = {
+    sideSize: 0,
+    playersAllowed: BOOKING_GAME_PLAYERS,
+  },
+): ReviewRow[] {
+  const sport = bookingGameSport(booking);
   return [
     {
-      label: "Court",
+      label: courtFace(sport) === "pitch" ? "Pitch" : "Court",
       value: `${booking.venue.name}, ${booking.court.name}`,
     },
     {
       label: "Time",
       value: `${formatGameClock(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`,
     },
-    { label: "Seats", value: CREATE_FLOW_OPEN_SEATS_LABEL },
+    {
+      label: sport === "football" ? "Size" : "Seats",
+      value: createFlowSeatsLabel(sport, size),
+    },
     { label: "Who can join", value: "People you invite" },
     { label: "Rating", value: UNRATED_LABEL },
   ];
@@ -75,17 +101,50 @@ export type BookingGameRequest =
         pricePerPlayerFils?: number;
         levelMinTenths?: number;
         levelMaxTenths?: number;
+        sideSize?: number;
+        playersAllowed?: number;
       };
     }
   | { ok: false; errors: FieldErrors };
 
 export function bookingGameRequest(
   bookingId: string,
-  draft: Pick<CreateGameDraft, "pricePerPlayer" | "levelMin" | "levelMax">,
+  draft: Pick<CreateGameDraft, "pricePerPlayer" | "levelMin" | "levelMax"> &
+    Partial<Pick<CreateGameDraft, "sideSize" | "playersAllowed">>,
+  sport: Sport = "padel",
 ): BookingGameRequest {
   const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer);
   if (!price.ok) {
     return { ok: false, errors: { pricePerPlayerFils: price.message } };
+  }
+  if (sport === "football") {
+    const { sideSize, playersAllowed } = draft;
+    if (!isFootballSideSize(sideSize)) {
+      return { ok: false, errors: { sideSize: "Pick a side size" } };
+    }
+    const bounds = footballPlayersAllowedBounds(sideSize);
+    if (
+      playersAllowed == null ||
+      !Number.isInteger(playersAllowed) ||
+      playersAllowed < bounds.min ||
+      playersAllowed > bounds.max
+    ) {
+      return {
+        ok: false,
+        errors: {
+          playersAllowed: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+        },
+      };
+    }
+    return {
+      ok: true,
+      input: {
+        bookingId,
+        sideSize,
+        playersAllowed,
+        ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
+      },
+    };
   }
   const levelMinTenths = parseLevelBandSelectTenths(draft.levelMin, "min");
   const levelMaxTenths = parseLevelBandSelectTenths(draft.levelMax, "max");

@@ -1,3 +1,4 @@
+import { gameCardRosterOccupancy } from "./game-card";
 import {
   isTournamentMatchRow,
   isDrawnTournamentSummaryRow,
@@ -17,6 +18,7 @@ export type HomeComingUpSource = TournamentCardInput & {
   id: string;
   matchId: string | null;
   format: string;
+  sport?: string | null;
   poolCount: number | null;
   name: string | null;
   venue: { name: string } | null;
@@ -37,6 +39,9 @@ export type HomeComingUpGameRow = {
   startsAt: Date;
   seatsTaken: number;
   seatsTotal: number;
+  sport?: string | null;
+  /** "7/10" for a Roster registration Game, which shows a count instead of seat bars. */
+  occupancyLabel?: string | null;
 };
 
 export type HomeComingUpTournamentMatchRow = {
@@ -105,6 +110,8 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
     startsAt,
     seatsTaken: game.registeredUserCount,
     seatsTotal: game.playersAllowed ?? game.sides.length * 2,
+    sport: game.sport ?? null,
+    occupancyLabel: gameCardRosterOccupancy(game)?.label ?? null,
   };
 }
 

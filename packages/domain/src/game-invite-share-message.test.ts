@@ -116,4 +116,23 @@ describe("gameInviteClipboardText", () => {
       }),
     ).toBe(shortUrl);
   });
+
+  it("copies just the link for a football Friendly game, which has no teams or seats", () => {
+    expect(
+      gameInviteClipboardText({
+        format: "friendly_game",
+        sport: "football",
+        registrationMode: "individual",
+        shortUrl,
+        roster: {
+          venueName: "Pitch Club",
+          courtName: null,
+          windowStart: new Date(),
+          windowEnd: new Date(),
+          sides: [],
+          shortUrl,
+        },
+      }),
+    ).toBe(shortUrl);
+  });
 });

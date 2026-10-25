@@ -6,6 +6,7 @@ import {
   visibleCreateGroups,
   type CreateVenuePicker,
 } from "@repo/domain/create-game-flow";
+import type { Sport } from "@repo/domain/sport";
 import { Lock, Search } from "lucide-react-native";
 import { Fragment, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -32,6 +33,7 @@ export function VenueField({
   picker,
   venueId,
   manyCourts,
+  sport,
   error,
   initialSheetQuery,
   onSelect,
@@ -40,6 +42,7 @@ export function VenueField({
   picker: Slot<CreateVenuePicker> | null;
   venueId: string;
   manyCourts: boolean;
+  sport: Sport;
   error?: string;
   initialSheetQuery?: string;
   onSelect: (venueId: string) => void;
@@ -63,7 +66,11 @@ export function VenueField({
           {picker.message}
         </Text>
       ) : picker.value.locked ? (
-        <LinkedVenue picker={picker.value} manyCourts={manyCourts} />
+        <LinkedVenue
+          picker={picker.value}
+          manyCourts={manyCourts}
+          sport={sport}
+        />
       ) : picker.value.venues.length === 0 ? (
         <Text size="meta" weight="medium">
           No Venues are available yet.
@@ -75,6 +82,7 @@ export function VenueField({
             visible={sheetOpen}
             venues={picker.value.venues}
             venueId={venueId}
+            sport={sport}
             initialQuery={initialSheetQuery}
             onSelect={onSelect}
             onClose={() => setSheetOpen(false)}
@@ -82,10 +90,11 @@ export function VenueField({
           <VenueList
             venues={visibleCreateGroups(picker.value.venues, venueId)}
             venueId={venueId}
+            sport={sport}
             onSelect={onSelect}
           />
           <Text size="meta" tone="muted">
-            {createVenueCopy(picker.value, { manyCourts })}
+            {createVenueCopy(picker.value, { manyCourts, sport })}
           </Text>
         </>
       )}
@@ -156,13 +165,17 @@ function LoadingRows() {
 function LinkedVenue({
   picker,
   manyCourts,
+  sport,
 }: {
   picker: CreateVenuePicker;
   manyCourts: boolean;
+  sport: Sport;
 }) {
   const palette = useTonePalette();
   const venue = picker.venues[0];
-  const meta = venue ? venueCardMeta(venue.courts.length, venue.city) : null;
+  const meta = venue
+    ? venueCardMeta(venue.courts.length, venue.city, sport)
+    : null;
   return (
     <>
       {venue ? (
@@ -192,7 +205,7 @@ function LinkedVenue({
         </ListFrame>
       ) : null}
       <Text size="meta" tone="muted">
-        {createVenueCopy(picker, { manyCourts })}
+        {createVenueCopy(picker, { manyCourts, sport })}
       </Text>
     </>
   );
@@ -226,10 +239,12 @@ function SearchFieldButton({ onPress }: { onPress: () => void }) {
 function VenueList({
   venues,
   venueId,
+  sport,
   onSelect,
 }: {
   venues: CreateVenuePicker["venues"];
   venueId: string;
+  sport: Sport;
   onSelect: (venueId: string) => void;
 }) {
   return (
@@ -243,7 +258,7 @@ function VenueList({
             trailing="check"
             selected={venue.id === venueId}
             title={venue.name}
-            description={venueCardMeta(venue.courts.length, venue.city)}
+            description={venueCardMeta(venue.courts.length, venue.city, sport)}
             onPress={() => onSelect(venue.id)}
           />
         </Fragment>
@@ -256,6 +271,7 @@ function VenueSheet({
   visible,
   venues,
   venueId,
+  sport,
   initialQuery,
   onSelect,
   onClose,
@@ -263,6 +279,7 @@ function VenueSheet({
   visible: boolean;
   venues: CreateVenuePicker["venues"];
   venueId: string;
+  sport: Sport;
   initialQuery?: string;
   onSelect: (venueId: string) => void;
   onClose: () => void;
@@ -281,7 +298,7 @@ function VenueSheet({
           .map((venue) => ({
             id: venue.id,
             title: venue.name,
-            description: venueCardMeta(venue.courts.length, venue.city),
+            description: venueCardMeta(venue.courts.length, venue.city, sport),
           }))
       }
       resultLabel={venueSheetLabel}

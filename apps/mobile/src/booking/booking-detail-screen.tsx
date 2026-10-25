@@ -35,7 +35,7 @@ import {
   placeLine,
   untilLabel,
 } from "./booking-model";
-import { FOOTBALL_GAMES_COMING, courtNounTitle } from "./book-sport";
+import { bookingGameBlurb, courtNounTitle } from "./book-sport";
 import { holdCountdown } from "./payment-model";
 
 type Booking = RouterOutputs["bookings"]["byId"];
@@ -301,22 +301,6 @@ function GameBlock({
       </Surface>
     );
   }
-  if (
-    booking.court.sport === "football" &&
-    booking.status === "confirmed" &&
-    booking.endsAt.getTime() > Date.now()
-  ) {
-    return (
-      <Surface style={{ gap: 4 }}>
-        <Text size="title" weight="bold" width="expanded">
-          Who is playing?
-        </Text>
-        <Text size="meta" tone="muted">
-          {FOOTBALL_GAMES_COMING}
-        </Text>
-      </Surface>
-    );
-  }
   if (!booking.canCreateGame) {
     return null;
   }
@@ -329,7 +313,7 @@ function GameBlock({
         <Text size="meta" tone="muted">
           {game
             ? "Your game was cancelled. The court is still yours, so you can set up a new one."
-            : "Turn the booking into a game and Temba handles seats, invites and the score."}
+            : bookingGameBlurb(booking.court.sport)}
         </Text>
       </View>
       <Button label="Create a game for this booking" onPress={onCreate} />

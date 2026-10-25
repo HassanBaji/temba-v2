@@ -15,7 +15,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { api, type RouterOutputs } from "../trpc/react";
-import { FOOTBALL_GAMES_COMING } from "./book-sport";
+import { bookingGameBlurb } from "./book-sport";
 import {
   bookedHeadline,
   bookingGamePath,
@@ -82,11 +82,6 @@ export function BookedScreen({ bookingId }: { bookingId: string }) {
           </View>
         ) : (
           <View style={{ gap: 10 }}>
-            {booking.data?.court.sport === "football" ? (
-              <Text size="meta" tone="muted" style={{ textAlign: "center" }}>
-                {FOOTBALL_GAMES_COMING}
-              </Text>
-            ) : null}
             <Button
               label="View booking"
               size="lg"
@@ -172,8 +167,7 @@ function Confirmation({ booking }: { booking: Booking }) {
             Who is playing?
           </Text>
           <Text size="meta" tone="muted">
-            Turn the booking into a game and Temba handles seats, invites and
-            the score.
+            {bookingGameBlurb(booking.court.sport)}
           </Text>
         </View>
       ) : null}

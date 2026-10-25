@@ -29,7 +29,7 @@ export type OrganizerHandlers = {
   onKickPlayer: (userId: string) => void;
 };
 
-function Block({ children }: { children: React.ReactNode }) {
+export function Block({ children }: { children: React.ReactNode }) {
   return (
     <View
       style={{
@@ -43,7 +43,7 @@ function Block({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PersonRow({
+export function PersonRow({
   name,
   image,
   meta,

@@ -5,6 +5,7 @@ import {
 import {
   gameCardFormatCell,
   gameCardOpenSpots,
+  gameCardRosterOccupancy,
   gameCardSubtitle,
   type CardSeatPosition,
 } from "@repo/domain/game-card";
@@ -26,6 +27,7 @@ import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { poolRoundLabel } from "@repo/domain/tournament-rounds";
 import { View } from "react-native";
 
+import { SportTag } from "../lib/sport-tag";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import { CardFooter, CardShell, MetaCell } from "./card-parts";
@@ -81,6 +83,7 @@ export function GameCard({
     registeredUserCount: game.registeredUserCount,
     playersAllowed: game.playersAllowed,
   });
+  const rosterOccupancy = gameCardRosterOccupancy(game);
   const dayLabel = formatGameCardDay(game.startTime);
   const kickoff = formatHomeKickoff(game.startTime);
   const countdown = formatHomeCountdown(game.startTime, now);
@@ -142,15 +145,29 @@ export function GameCard({
           <Text size="meta" weight="semibold">
             Cancelled
           </Text>
-        ) : hasOpenCount ? (
-          <Text
-            size="meta"
-            tone="muted"
-            weight={openSpots > 0 ? "semibold" : "regular"}
-          >
-            {spotsOpenLabel(openSpots)}
-          </Text>
-        ) : null}
+        ) : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <SportTag sport={game.sport} />
+            {rosterOccupancy ? (
+              <Text
+                size="meta"
+                tone="muted"
+                weight={rosterOccupancy.seatsLeft > 0 ? "semibold" : "regular"}
+                accessibilityLabel={`${rosterOccupancy.label} players`}
+              >
+                {rosterOccupancy.label}
+              </Text>
+            ) : hasOpenCount ? (
+              <Text
+                size="meta"
+                tone="muted"
+                weight={openSpots > 0 ? "semibold" : "regular"}
+              >
+                {spotsOpenLabel(openSpots)}
+              </Text>
+            ) : null}
+          </View>
+        )}
       </View>
 
       <View

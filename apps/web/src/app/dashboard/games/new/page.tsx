@@ -266,6 +266,8 @@ function NewGameForm() {
     nameTouched,
     isPublic,
     allowSoloRegister,
+    sideSize: initialCreateGameDraft(session.now).sideSize,
+    playersAllowed: initialCreateGameDraft(session.now).playersAllowed,
   };
   const initialGroupId =
     requestedGroupId &&

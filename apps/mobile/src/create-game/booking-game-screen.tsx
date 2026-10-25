@@ -1,5 +1,6 @@
 import { spacing } from "@repo/design-tokens";
 import { priceChipIsSelected } from "@repo/domain/create-game-flow";
+import type { Sport } from "@repo/domain/sport";
 import { useRouter } from "expo-router";
 import { useCallback, useReducer, useState } from "react";
 import { View } from "react-native";
@@ -19,6 +20,7 @@ import {
   bookingGameHeader,
   bookingGameRequest,
   bookingGameReviewRows,
+  bookingGameSport,
   splitCourtCost,
   type BookingGameSource,
 } from "./booking-game-model";
@@ -30,6 +32,7 @@ import {
   type CreateState,
   type FieldErrors,
 } from "./create-model";
+import { FootballSizeFields } from "./football-size-fields";
 import { LevelRangeField } from "./level-range-field";
 import { MoneyField } from "./money-field";
 import { ReviewCard } from "./review-card";
@@ -38,8 +41,15 @@ import { HelperNote, StepSection } from "./step-section";
 
 const COST_COLUMNS = 2;
 
-function initialBookingGameState(now: Date): CreateState {
-  return { ...initialCreateState(now, undefined, "friendly_game"), step: 4 };
+function initialBookingGameState(init: {
+  now: Date;
+  sport: Sport;
+}): CreateState {
+  return {
+    ...initialCreateState(init.now, undefined, "friendly_game"),
+    sport: init.sport,
+    step: 4,
+  };
 }
 
 export function BookingGameScreen({ bookingId }: { bookingId: string }) {
@@ -103,9 +113,11 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
   const toast = useToast();
   const utils = api.useUtils();
   const now = useNow();
+  const sport = bookingGameSport(booking);
+  const football = sport === "football";
   const [state, dispatch] = useReducer(
     createReducer,
-    now,
+    { now, sport },
     initialBookingGameState,
   );
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -140,15 +152,18 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
     if (createGame.isPending) {
       return;
     }
-    const request = bookingGameRequest(booking.id, state.draft);
+    const request = bookingGameRequest(booking.id, state.draft, sport);
     if (!request.ok) {
       setErrors(request.errors);
       return;
     }
     createGame.mutate(request.input);
-  }, [booking.id, createGame, state.draft]);
+  }, [booking.id, createGame, sport, state.draft]);
 
-  const perSeat = splitCourtCost(booking.priceFils);
+  const perSeat = splitCourtCost(
+    booking.priceFils,
+    football ? state.draft.playersAllowed : undefined,
+  );
   const step = { state, now, errors, dispatch: onDispatch };
 
   return (
@@ -167,9 +182,13 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
     >
       <FormErrorSummary message={formMessage} />
       <View style={{ gap: spacing.section }}>
-        <StepSection title="Court cost" note="Optional">
+        {football ? <FootballSizeFields {...step} /> : null}
+        <StepSection
+          title={football ? "Pitch cost" : "Court cost"}
+          note="Optional"
+        >
           <ChipGrid
-            label="Court cost"
+            label={football ? "Pitch cost" : "Court cost"}
             columns={COST_COLUMNS}
             chips={[
               { value: "0", label: "I cover it" },
@@ -187,11 +206,18 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
             error={errors.pricePerPlayerFils}
           />
           <HelperNote>
-            Shown to players as the price per seat. Temba does not collect it.
+            {football
+              ? "Shown to players as the price per player. Temba does not collect it."
+              : "Shown to players as the price per seat. Temba does not collect it."}
           </HelperNote>
         </StepSection>
-        <LevelRangeField {...step} />
-        <ReviewCard rows={bookingGameReviewRows(booking)} />
+        {football ? null : <LevelRangeField {...step} />}
+        <ReviewCard
+          rows={bookingGameReviewRows(booking, {
+            sideSize: state.draft.sideSize,
+            playersAllowed: state.draft.playersAllowed,
+          })}
+        />
       </View>
     </StepShell>
   );

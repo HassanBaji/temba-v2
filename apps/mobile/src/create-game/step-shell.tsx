@@ -246,7 +246,7 @@ export function StepFooter({
   onContinue: () => void;
   onCancel: () => void;
 }) {
-  const next = nextStepTitle(state.type, state.step);
+  const next = nextStepTitle(state.type, state.step, state.sport);
 
   if (next === null || continueBlocked(state)) {
     const label =

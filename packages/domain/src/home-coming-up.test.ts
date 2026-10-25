@@ -92,7 +92,25 @@ describe("homeComingUpRows", () => {
       startsAt: STARTS,
       seatsTaken: 3,
       seatsTotal: 4,
+      sport: null,
+      occupancyLabel: null,
     });
+  });
+
+  it("shows a football Game as a count with its sport, not seat bars", () => {
+    const [row] = homeComingUpRows([
+      friendly({
+        sport: "football",
+        registeredUserCount: 7,
+        playersAllowed: 10,
+      }),
+    ]);
+    assert.equal(row?.kind, "game");
+    if (row?.kind === "game") {
+      assert.equal(row.sport, "football");
+      assert.equal(row.occupancyLabel, "7/10");
+      assert.equal(row.seatsTotal, 10);
+    }
   });
 
   it("shows a Pool Match behind the hero as a tournament Match row", () => {

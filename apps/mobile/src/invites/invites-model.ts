@@ -79,6 +79,7 @@ export function groupShareMessage(input: {
 
 export type GameShareContext = {
   format: string;
+  sport?: string | null;
   registrationMode: string;
   venueName: string | null;
   courtName: string | null;
@@ -98,6 +99,7 @@ export function gameShareMessage(
   const url = link.shortUrl ?? link.inviteUrl;
   return gameInviteClipboardText({
     format: game.format,
+    sport: game.sport,
     registrationMode: game.registrationMode,
     shortUrl: url,
     roster: {

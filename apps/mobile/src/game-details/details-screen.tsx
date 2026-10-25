@@ -1,3 +1,4 @@
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import type { FriendlyGameDetails } from "@repo/domain/friendly-game-details";
 import {
   isPartnerVacantSideRace,
@@ -57,6 +58,7 @@ import {
   gameHeroModel,
   type DetailsHandlers,
 } from "./details-content";
+import { FootballGameDetails } from "./football-details-screen";
 import { GameHero } from "./game-hero";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
@@ -127,7 +129,8 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
   const data = game.data;
-  const friendly = data != null && isFriendlyGameDetails(data);
+  const football = data != null && isFootballRosterGame(data);
+  const friendly = data != null && !football && isFriendlyGameDetails(data);
   const tournament = data != null && isDrawnTournamentDetails(data);
   const offersPartner = Boolean(
     data &&
@@ -531,6 +534,17 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
   const onOpenPlayer = gamePlayersLink(data)
     ? (userId: string) => router.push(playerPath(segments, userId))
     : undefined;
+
+  if (football) {
+    return (
+      <FootballGameDetails
+        gameId={gameId}
+        game={data}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
+    );
+  }
 
   if (tournament) {
     const details: TournamentDetails = data;

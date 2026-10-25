@@ -3,12 +3,14 @@ import {
   type FriendlyGamePartnerSides,
 } from "./friendly-game-partner";
 import { JOIN_GAME_ACTION } from "./game-copy";
+import { isRosterRegistrationGame } from "./game-shape";
 import { isDrawnTournament } from "./tournament-rounds";
 
 export type GameSummaryCta = "join" | "join_waitlist" | "register" | "view";
 
 export type GameSummaryCtaInput = {
   format: string;
+  sport?: string | null;
   registrationMode: string;
   canRegister: boolean;
   canWaitlist: boolean;
@@ -54,7 +56,7 @@ export function gameSummaryPrimaryAction(
     return "view";
   }
 
-  if (game.format === "americano") {
+  if (isRosterRegistrationGame(game)) {
     if (game.canRegister) {
       return "register";
     }

@@ -1,5 +1,8 @@
 import { useUser } from "@clerk/expo";
-import { parseCreateFlowType } from "@repo/domain/create-game-flow";
+import {
+  createFlowFirstStep,
+  parseCreateFlowType,
+} from "@repo/domain/create-game-flow";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useReducer, useState } from "react";
 
@@ -72,8 +75,9 @@ export function CreateGameScreen({
     if (!groups.data || !groupId) {
       return;
     }
-    if (groups.data.some((group) => group.id === groupId)) {
-      rawDispatch({ kind: "setGroup", groupId });
+    const group = groups.data.find((item) => item.id === groupId);
+    if (group) {
+      rawDispatch({ kind: "setGroup", groupId, sport: group.sport });
       return;
     }
     setGroupFieldError(GROUP_REFUSED);
@@ -171,7 +175,7 @@ export function CreateGameScreen({
   ]);
 
   const onBack = useCallback(() => {
-    if (state.step > 1) {
+    if (state.step > createFlowFirstStep(state.sport)) {
       setClientErrors({});
       rawDispatch({
         kind: "setStep",
@@ -180,7 +184,7 @@ export function CreateGameScreen({
       return;
     }
     router.back();
-  }, [router, state.step]);
+  }, [router, state.step, state.sport]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

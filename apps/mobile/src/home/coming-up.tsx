@@ -11,6 +11,7 @@ import { zonedParts } from "@repo/domain/product-timezone";
 import { Trophy } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { SportTag } from "../lib/sport-tag";
 import { Hatch } from "../primitives/hatch";
 import { hairline } from "../primitives/hairline-width";
 import { Hairline } from "../primitives/hairline";
@@ -139,9 +140,12 @@ function GameRow({
 }) {
   const clock = formatGameClock(game.startsAt);
   const { spokenLabel } = homeComingUpSeatBars(game);
+  const spoken = game.occupancyLabel
+    ? `${game.occupancyLabel} players`
+    : spokenLabel;
   return (
     <RowShell
-      label={`${game.venueName}, ${clock}, ${spokenLabel}`}
+      label={`${game.venueName}, ${clock}, ${spoken}`}
       onPress={() => onNavigate({ kind: "game", gameId: game.id })}
     >
       <DayBox startsAt={game.startsAt} />
@@ -149,11 +153,20 @@ function GameRow({
         <Text weight="medium" numberOfLines={1}>
           {game.venueName}
         </Text>
-        <Text size="meta" tone="muted">
-          {clock}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text size="meta" tone="muted">
+            {clock}
+          </Text>
+          <SportTag sport={game.sport} />
+        </View>
       </View>
-      <SeatBars game={game} />
+      {game.occupancyLabel ? (
+        <Text size="meta" tone="muted" accessibilityElementsHidden>
+          {game.occupancyLabel}
+        </Text>
+      ) : (
+        <SeatBars game={game} />
+      )}
     </RowShell>
   );
 }

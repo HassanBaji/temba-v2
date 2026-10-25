@@ -217,6 +217,11 @@ export function levelCellView(
     : { kind: "label", label };
 }
 
+/** A football Group has no Level until football results and Ratings exist. */
+export function groupShowsLevel(sport: string | null | undefined) {
+  return sport !== "football";
+}
+
 /** Design 06c draws four marks per member; the derivation returns up to five. */
 export const GROUP_MEMBER_FORM_MARKS = 4;
 
