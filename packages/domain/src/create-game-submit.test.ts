@@ -208,7 +208,7 @@ describe("validateFootballGameSubmit", () => {
 
 describe("validateFriendlyTournamentSubmit", () => {
   it("trims the name and omits pool fields for knockout only", () => {
-    const groups = validateFriendlyTournamentSubmit(tournament, NOW);
+    const groups = validateFriendlyTournamentSubmit(tournament, NOW, true);
     assert.ok(groups.ok);
     if (groups.ok) {
       assert.equal(groups.input.name, "Friday cup");
@@ -219,6 +219,7 @@ describe("validateFriendlyTournamentSubmit", () => {
     const knockout = validateFriendlyTournamentSubmit(
       { ...tournament, tournamentShape: "knockout_only", courtIds: [] },
       NOW,
+      true,
     );
     assert.ok(knockout.ok);
     if (knockout.ok) {
@@ -228,6 +229,7 @@ describe("validateFriendlyTournamentSubmit", () => {
     const then = validateFriendlyTournamentSubmit(
       { ...tournament, tournamentShape: "groups_then_knockout", roundCount: 2 },
       NOW,
+      true,
     );
     assert.ok(then.ok);
     if (then.ok) {
@@ -240,6 +242,7 @@ describe("validateFriendlyTournamentSubmit", () => {
     const minutes = validateFriendlyTournamentSubmit(
       { ...tournament, matchMinutes: "7" },
       NOW,
+      true,
     );
     assert.ok(!minutes.ok);
     if (!minutes.ok) {
@@ -249,11 +252,32 @@ describe("validateFriendlyTournamentSubmit", () => {
     const name = validateFriendlyTournamentSubmit(
       { ...tournament, name: "  " },
       NOW,
+      true,
     );
     assert.ok(!name.ok);
     if (!name.ok) {
       assert.equal(name.step, 4);
       assert.equal(name.message, "Name the tournament");
+    }
+  });
+});
+
+describe("validateFriendlyTournamentSubmit public Games", () => {
+  const publicDraft = { ...tournament, isPublic: true };
+
+  it("keeps a public choice on a Verified Group", () => {
+    const result = validateFriendlyTournamentSubmit(publicDraft, NOW, true);
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.isPublic, true);
+    }
+  });
+
+  it("never sends public for a Group that is not Verified", () => {
+    const result = validateFriendlyTournamentSubmit(publicDraft, NOW, false);
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.isPublic, false);
     }
   });
 });

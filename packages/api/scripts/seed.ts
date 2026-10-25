@@ -78,9 +78,12 @@ import { inviteInApp } from "#src/routers/teams/inviteInApp";
 import { requestLink as requestTeamLink } from "#src/routers/teams/requestLink";
 import { markOnboardingComplete } from "#src/routers/users/completeOnboarding";
 import { writePreferredPosition } from "#src/routers/users/setPreferredPosition";
+import { acceptLinkRequest as acceptGroupLinkRequest } from "#src/routers/groups/acceptLinkRequest";
 import { addCourt } from "#src/routers/venues/addCourt";
+import { addManager as addVenueManager } from "#src/routers/venues/addManager";
 import { approveLinkRequest as approveVenueLinkRequest } from "#src/routers/venues/approveLinkRequest";
 import { createVenue } from "#src/routers/venues/create";
+import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
 import { rejectLinkRequest as rejectVenueLinkRequest } from "#src/routers/venues/rejectLinkRequest";
 import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
 import { setPricingRules } from "#src/routers/venues/setPricingRules";
@@ -458,7 +461,10 @@ async function seedVenues() {
   const oldTown = await venue("Old Town Arena", "Lisbon", "PT", ["Court 1"]);
   await softArchiveVenue(db, { venueId: oldTown.id });
 
-  return { central, riverside, harbour, pitches, oldTown };
+  const skyline = await venue("Skyline Padel", "Lisbon", "PT", ["Court 1"]);
+  const bay = await venue("Bay Padel", "Porto", "PT", ["Court 1", "Court 2"]);
+
+  return { central, riverside, harbour, pitches, oldTown, skyline, bay };
 }
 
 // ---------------------------------------------------------------------------
@@ -1641,6 +1647,42 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Group link requests
+// ---------------------------------------------------------------------------
+
+async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
+  const manage = async (venueId: string, key: string) => {
+    await addVenueManager(db, {
+      venueId,
+      userId: u[key]!.id,
+      grantedByUserId: u.me!.id,
+    });
+    return {
+      userId: u[key]!.id,
+      publicMetadata: undefined,
+    };
+  };
+
+  const skylineManager = await manage(v.skyline.id, "zara");
+  await sendGroupLinkRequest(db, {
+    venueId: v.skyline.id,
+    groupId: g.friday.id,
+    actor: skylineManager,
+  });
+
+  const bayManager = await manage(v.bay.id, "aisha");
+  const request = await sendGroupLinkRequest(db, {
+    venueId: v.bay.id,
+    groupId: g.beach.id,
+    actor: bayManager,
+  });
+  await acceptGroupLinkRequest(db, {
+    requestId: request.id,
+    userId: u.aisha!.id,
+  });
+}
+
 async function main() {
   assertLocalDatabase();
   console.log("Wiping local database…");
@@ -1653,6 +1695,7 @@ async function main() {
   await step("teams", () => seedTeams(u, c));
   await step("games", () => seedGames(u, g, v));
   await step("bookings", () => seedBookings(u, v));
+  await step("group links", () => seedGroupLinks(u, v, g));
 
   const counts = await db.execute<{ table: string; rows: number }>(sql`
     select 'users' as table, count(*)::int as rows from ${user}

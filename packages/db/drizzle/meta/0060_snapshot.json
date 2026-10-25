@@ -1,6 +1,6 @@
 {
-  "id": "789853cd-bb4b-4929-a8dd-dbbb36b652bc",
-  "prevId": "6f339e7a-f97b-4dfa-998c-c9b04320f529",
+  "id": "c56d7df2-4b6b-4397-966d-419425fb7334",
+  "prevId": "b6d9fe8d-3a7c-4836-9f70-6d1895f8d2dc",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2321,14 +2321,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "sport": {
-          "name": "sport",
-          "type": "group_sport",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'padel'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2345,27 +2337,6 @@
         }
       },
       "indexes": {
-        "courts_venue_id_sport_idx": {
-          "name": "courts_venue_id_sport_idx",
-          "columns": [
-            {
-              "expression": "venue_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sport",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "courts_venue_id_name_unique": {
           "name": "courts_venue_id_name_unique",
           "columns": [
@@ -4357,6 +4328,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verified_by": {
+          "name": "verified_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -4398,6 +4381,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "groups_verified_by_user_id_fk": {
+          "name": "groups_verified_by_user_id_fk",
+          "tableFrom": "groups",
+          "tableTo": "user",
+          "columnsFrom": [
+            "verified_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -4778,6 +4774,22 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "team_member_invites_unused_team_unique": {
+          "name": "team_member_invites_unused_team_unique",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"team_member_invites\".\"accepted_at\" is null and \"team_member_invites\".\"revoked_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -4907,6 +4919,22 @@
             },
             {
               "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"team_email_invites\".\"accepted_at\" is null and \"team_email_invites\".\"revoked_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "team_email_invites_unused_team_unique": {
+          "name": "team_email_invites_unused_team_unique",
+          "columns": [
+            {
+              "expression": "team_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -5747,6 +5775,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "is_venue_community": {
+          "name": "is_venue_community",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -5762,7 +5797,24 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "communities_venue_community_unique": {
+          "name": "communities_venue_community_unique",
+          "columns": [
+            {
+              "expression": "venue_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"communities\".\"is_venue_community\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "communities_created_by_user_id_fk": {
           "name": "communities_created_by_user_id_fk",
@@ -5794,7 +5846,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "communities_venue_community_has_venue": {
+          "name": "communities_venue_community_has_venue",
+          "value": "not \"communities\".\"is_venue_community\" or \"communities\".\"venue_id\" is not null"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.community_members": {
@@ -6575,6 +6632,148 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.group_link_requests": {
+      "name": "group_link_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "venue_id": {
+          "name": "venue_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_by": {
+          "name": "requested_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "group_link_request_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "decided_by": {
+          "name": "decided_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "group_link_requests_pending_unique": {
+          "name": "group_link_requests_pending_unique",
+          "columns": [
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "venue_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"group_link_requests\".\"status\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "group_link_requests_group_id_groups_id_fk": {
+          "name": "group_link_requests_group_id_groups_id_fk",
+          "tableFrom": "group_link_requests",
+          "tableTo": "groups",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_link_requests_venue_id_venues_id_fk": {
+          "name": "group_link_requests_venue_id_venues_id_fk",
+          "tableFrom": "group_link_requests",
+          "tableTo": "venues",
+          "columnsFrom": [
+            "venue_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "group_link_requests_requested_by_user_id_fk": {
+          "name": "group_link_requests_requested_by_user_id_fk",
+          "tableFrom": "group_link_requests",
+          "tableTo": "user",
+          "columnsFrom": [
+            "requested_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "group_link_requests_decided_by_user_id_fk": {
+          "name": "group_link_requests_decided_by_user_id_fk",
+          "tableFrom": "group_link_requests",
+          "tableTo": "user",
+          "columnsFrom": [
+            "decided_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.coaching_session_players": {
       "name": "coaching_session_players",
       "schema": "",
@@ -7143,6 +7342,16 @@
         "pending",
         "approved",
         "rejected"
+      ]
+    },
+    "public.group_link_request_status": {
+      "name": "group_link_request_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected",
+        "cancelled"
       ]
     },
     "public.notification_audience": {

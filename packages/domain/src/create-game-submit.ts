@@ -289,6 +289,7 @@ export function validateTournamentStepThree(
 export function validateFriendlyTournamentSubmit(
   draft: TournamentFields,
   now: Date,
+  groupVerified: boolean,
 ) {
   const placed = validateWhereAndWhen(draft, now);
   if (placed.failed) {
@@ -317,7 +318,7 @@ export function validateFriendlyTournamentSubmit(
     input: {
       name: named.name,
       groupId: draft.groupId,
-      isPublic: draft.isPublic,
+      isPublic: draft.isPublic && groupVerified,
       allowSoloRegister: draft.allowSoloRegister,
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,

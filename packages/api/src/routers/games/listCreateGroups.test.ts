@@ -66,6 +66,7 @@ describe("listCreateGroups", () => {
       const rows = await listCreateGroups(db, { userId: owner.id });
       expect(rows.map((row) => row.id)).toEqual([alpha.id, zebra.id]);
       expect(rows[0]?.communityName).toBeNull();
+      expect(rows.map((row) => row.verified)).toEqual([false, false]);
     } finally {
       await close();
     }
@@ -126,6 +127,7 @@ describe("listCreateGroups", () => {
           name: "Club Squad",
           communityName: "Live Club",
           sport: "padel",
+          verified: false,
         },
       ]);
     } finally {

@@ -17,6 +17,7 @@ export async function createLoosePublic(
     description?: string;
     sport: "padel" | "football";
     userId: string;
+    verifiedBy?: string;
     requiresApproval?: boolean;
   },
 ) {
@@ -27,6 +28,7 @@ export async function createLoosePublic(
     sport: args.sport,
     type: GroupTypeEnum.PUBLIC,
     createdBy: args.userId,
+    verifiedBy: args.verifiedBy,
     requiresApproval: args.requiresApproval,
   });
 }
@@ -47,6 +49,10 @@ export const createLoosePublicProcedure = protectedProcedure
       description: input.description,
       sport: input.sport,
       userId: appUser.id,
+      verifiedBy:
+        (await ctx.getPublicMetadata())?.groupCreator === true
+          ? appUser.id
+          : undefined,
       requiresApproval: input.requiresApproval,
     });
   });

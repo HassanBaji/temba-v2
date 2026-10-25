@@ -40,20 +40,18 @@ export function HomeScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
-  const hasCreateAccess = user?.publicMetadata.groupCreator === true;
   const home = api.users.home.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const rating = api.ratings.me.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const history = api.games.listMyMatchHistory.useQuery(
     { limit: RECENT_FORM_MATCH_COUNT },
     REFETCH_ON_FOREGROUND,
   );
-  const createGroups = api.games.listCreateGroups.useQuery(undefined, {
-    ...REFETCH_ON_FOREGROUND,
-    enabled: hasCreateAccess,
-  });
+  const createGroups = api.games.listCreateGroups.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
 
   const noGamesAction = homeNoGamesCreateAction({
-    hasCreateAccess,
     createGroupCount: createGroups.data?.length,
   });
 
@@ -71,9 +69,9 @@ export function HomeScreen() {
         home.refetch(),
         rating.refetch(),
         history.refetch(),
-        hasCreateAccess ? createGroups.refetch() : Promise.resolve(),
+        createGroups.refetch(),
       ]),
-    [home, rating, history, createGroups, hasCreateAccess],
+    [home, rating, history, createGroups],
   );
 
   const onRefresh = useCallback(async () => {

@@ -34,11 +34,6 @@ export const GROUP_CREATE_CLUB_DESCRIPTION =
 
 export const GROUP_CREATED_TOAST = "Group created";
 
-export const GROUP_CREATE_NOT_AVAILABLE = {
-  title: "Creating Groups is not available for your account yet",
-  description: "Ask to be set up as a Group creator, or join a Public Group.",
-};
-
 export function groupCreateRequiresApproval(
   type: GroupCreateType,
   requiresApproval: boolean,

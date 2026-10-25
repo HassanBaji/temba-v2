@@ -58,7 +58,6 @@ import {
 export type CommunityHomeViewProps = {
   data: CommunityHomeData;
   apiOrigin: string;
-  hasCreateAccess: boolean;
   tab: CommunityHomeTab;
   onTabChange: (tab: CommunityHomeTab) => void;
   requestCount: number;
@@ -231,7 +230,7 @@ function TeamsTab(props: CommunityHomeViewProps) {
 export function CommunityHomeView(props: CommunityHomeViewProps) {
   const { data } = props;
   const header = communityHomeHeader(data);
-  const actions = communityHomeActions(data, props.hasCreateAccess);
+  const actions = communityHomeActions(data);
   const banner = communityArchiveBanner(data);
   const tabs = communityAvailableTabs(data);
   const tab = tabs.includes(props.tab) ? props.tab : "groups";

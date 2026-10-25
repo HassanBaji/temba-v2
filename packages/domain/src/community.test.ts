@@ -35,17 +35,17 @@ describe("communityHomeHeader", () => {
 });
 
 describe("communityHomeActions", () => {
-  it("needs the Group creator flag to create a Club Group", () => {
-    expect(
-      communityHomeActions(fixtures.home.owner, true).canCreateClubGroup,
-    ).toBe(true);
-    expect(
-      communityHomeActions(fixtures.home.owner, false).canCreateClubGroup,
-    ).toBe(false);
+  it("follows canCreateClubGroup from the server", () => {
+    expect(communityHomeActions(fixtures.home.owner).canCreateClubGroup).toBe(
+      true,
+    );
+    expect(communityHomeActions(fixtures.home.member).canCreateClubGroup).toBe(
+      false,
+    );
   });
 
   it("gives a plain Member only Leave", () => {
-    expect(communityHomeActions(fixtures.home.member, true)).toEqual({
+    expect(communityHomeActions(fixtures.home.member)).toEqual({
       canInvite: false,
       canCreateClubGroup: false,
       canUnarchive: false,

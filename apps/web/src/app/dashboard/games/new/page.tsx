@@ -228,6 +228,7 @@ function NewGameForm() {
     now: session.now,
   });
   const displayedStep = Math.max(resolvedStep, firstStep) as CreateFlowStep;
+  const groupVerified = selectedGroup?.verified ?? false;
   const picker = api.games.listCreateVenues.useQuery(
     { groupId: selectedGroupId },
     { enabled: Boolean(selectedGroupId) },
@@ -620,6 +621,7 @@ function NewGameForm() {
         allowSoloRegister,
       },
       session.now,
+      groupVerified,
     );
     if (!result.ok) {
       reportSubmitIssue(result);
@@ -1086,6 +1088,7 @@ function NewGameForm() {
               allowSoloRegister={allowSoloRegister}
               onAllowSoloRegister={setAllowSoloRegister}
               groupName={reviewGroupName}
+              groupVerified={groupVerified}
             />
           ) : (
             <FriendlyGameSteps
@@ -1199,6 +1202,7 @@ function NewGameForm() {
                 clearField("pricePerPlayerFils");
               }}
               reviewGroup={reviewGroupName}
+              groupVerified={groupVerified}
               reviewVenue={
                 selectedVenue
                   ? courtId === "none"

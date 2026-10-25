@@ -1,5 +1,5 @@
 {
-  "id": "6f339e7a-f97b-4dfa-998c-c9b04320f529",
+  "id": "b6d9fe8d-3a7c-4836-9f70-6d1895f8d2dc",
   "prevId": "5b9239fc-50da-465c-a0c9-a206216c4653",
   "version": "7",
   "dialect": "postgresql",
@@ -2321,14 +2321,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "sport": {
-          "name": "sport",
-          "type": "group_sport",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'padel'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2345,27 +2337,6 @@
         }
       },
       "indexes": {
-        "courts_venue_id_sport_idx": {
-          "name": "courts_venue_id_sport_idx",
-          "columns": [
-            {
-              "expression": "venue_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sport",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "courts_venue_id_name_unique": {
           "name": "courts_venue_id_name_unique",
           "columns": [
@@ -4357,6 +4328,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verified_by": {
+          "name": "verified_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -4398,6 +4381,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "groups_verified_by_user_id_fk": {
+          "name": "groups_verified_by_user_id_fk",
+          "tableFrom": "groups",
+          "tableTo": "user",
+          "columnsFrom": [
+            "verified_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

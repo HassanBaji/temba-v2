@@ -41,6 +41,7 @@ export type HomeNextGameModel =
   | {
       kind: "game";
       id: string;
+      rated: boolean;
       phase: HomeNextGamePhase;
       venueName: string;
       courtLabel: string | null;
@@ -102,6 +103,7 @@ function nextGameFromApi(game: CarouselGame): HomeNextGameModel {
   return {
     kind: "game",
     id: game.id,
+    rated: game.rated,
     phase: game.phase,
     venueName: game.venue?.name ?? "Game",
     courtLabel: game.courtName ?? null,
@@ -168,6 +170,7 @@ export function homeModelFromFixture(fixture: HomeFixture): HomeModel {
       ? {
           kind: "game",
           id: nextGame.id,
+          rated: nextGame.rated,
           phase: nextGame.phase,
           venueName: nextGame.venueName,
           courtLabel: nextGame.courtLabel,
@@ -187,7 +190,6 @@ export function homeModelFromFixture(fixture: HomeFixture): HomeModel {
     },
     standing: fixture.standing,
     noGamesAction: homeNoGamesCreateAction({
-      hasCreateAccess: fixture.hasCreateAccess,
       createGroupCount: fixture.createGroupCount,
     }),
   };

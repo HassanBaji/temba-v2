@@ -13,6 +13,10 @@ import {
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import {
+  groupLeaveVenueConfirm,
+  groupLeftVenueToast,
+} from "@repo/domain/group-link-request";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
@@ -44,6 +48,7 @@ import {
 } from "./set-level-model";
 import { useGroupAdmin } from "./use-group-admin";
 import { useGroupJoin } from "./use-group-join";
+import { useGroupLinkRequest } from "./use-group-link-request";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -74,6 +79,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     { id: groupId },
     REFETCH_ON_FOREGROUND,
   );
+  const linkRequest = useGroupLinkRequest();
+  const linkRequests = api.groups.pendingLinkRequests.useQuery(undefined, {
+    enabled: (group.data?.pendingLinkRequestCount ?? 0) > 0,
+  });
   const { join: joinGroup, pendingGroupId } = useGroupJoin();
   const { join: joinGame, pendingGameId } = useGameJoin();
 
@@ -86,6 +95,25 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         utils.users.home.invalidate(),
         utils.communities.mine.invalidate(),
         utils.communities.byId.invalidate(),
+      ]);
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setConfirm(null),
+  });
+
+  const unlinkFromVenue = api.groups.unlinkFromVenue.useMutation({
+    onSuccess: async () => {
+      toast.show(
+        groupLeftVenueToast(
+          group.data?.venueCommunity?.venueName ?? "the Venue",
+        ),
+      );
+      await Promise.all([
+        utils.groups.byId.invalidate(),
+        utils.groups.mine.invalidate(),
+        utils.groups.mineLoose.invalidate(),
+        utils.users.home.invalidate(),
+        utils.communities.mine.invalidate(),
       ]);
     },
     onError: (error) => toast.show(error.message),
@@ -214,6 +242,20 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             onConfirm: () => leave.mutate({ groupId }),
           })
         }
+        onLeaveVenue={() => {
+          const copy = groupLeaveVenueConfirm(
+            name,
+            data.venueCommunity?.venueName ?? "the Venue",
+          );
+          setConfirm({
+            title: copy.title,
+            description: copy.description,
+            details: copy.consequences,
+            confirmLabel: copy.confirmLabel,
+            cancelLabel: copy.cancelLabel,
+            onConfirm: () => unlinkFromVenue.mutate({ groupId }),
+          });
+        }}
         admin={{
           approver: admin.approver,
           imagePending: admin.imagePending,
@@ -232,9 +274,23 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
               onConfirm: admin.deleteGroup,
             }),
         }}
-        confirm={confirm}
-        confirmPending={leave.isPending || admin.deletePending}
-        onCloseConfirm={() => setConfirm(null)}
+        venueRequests={(linkRequests.data ?? []).filter(
+          (request) => request.groupId === groupId,
+        )}
+        venueRequestPendingId={linkRequest.pendingRequestId}
+        onAcceptVenueRequest={linkRequest.askAccept}
+        onDeclineVenueRequest={linkRequest.askDecline}
+        confirm={linkRequest.confirm ?? confirm}
+        confirmPending={
+          leave.isPending ||
+          unlinkFromVenue.isPending ||
+          admin.deletePending ||
+          linkRequest.confirmPending
+        }
+        onCloseConfirm={() => {
+          setConfirm(null);
+          linkRequest.closeConfirm();
+        }}
         memberQuery={memberQuery}
         onMemberQueryChange={setMemberQuery}
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}

@@ -12,7 +12,6 @@ function cta(overrides: Partial<GroupHomeCtaInput> = {}): GroupHomeCtaInput {
   return {
     canJoin: false,
     nextJoinableGameId: null,
-    hasCreateAccess: false,
     canCreateGame: false,
     canManageLookupInvites: false,
     canManageInviteLinks: false,
@@ -28,12 +27,11 @@ describe("groupHomeCtaFamily", () => {
     });
   });
 
-  it("pairs Join Group with Create game when the UI gate and canCreateGame both pass", () => {
+  it("pairs Join Group with Create game when canCreateGame is true", () => {
     assert.deepEqual(
       groupHomeCtaFamily(
         cta({
           canJoin: true,
-          hasCreateAccess: true,
           canCreateGame: true,
           canManageLookupInvites: true,
         }),
@@ -42,13 +40,12 @@ describe("groupHomeCtaFamily", () => {
     );
   });
 
-  it("pairs Join Group with Invite when create is gated off", () => {
+  it("pairs Join Group with Invite when the viewer cannot create a Game", () => {
     assert.deepEqual(
       groupHomeCtaFamily(
         cta({
           canJoin: true,
-          canCreateGame: true,
-          hasCreateAccess: false,
+          canCreateGame: false,
           canManageInviteLinks: true,
         }),
       ),
@@ -56,16 +53,15 @@ describe("groupHomeCtaFamily", () => {
     );
   });
 
-  it("hides Create game without the group-creator UI flag even when canCreateGame is true", () => {
+  it("shows Create game without any group-creator flag when canCreateGame is true", () => {
     assert.deepEqual(
       groupHomeCtaFamily(
         cta({
-          hasCreateAccess: false,
           canCreateGame: true,
           canManageLookupInvites: true,
         }),
       ),
-      { kind: "invite" },
+      { kind: "create_game", secondary: "invite" },
     );
   });
 
@@ -73,7 +69,6 @@ describe("groupHomeCtaFamily", () => {
     assert.deepEqual(
       groupHomeCtaFamily(
         cta({
-          hasCreateAccess: true,
           canCreateGame: true,
           canManageInviteLinks: true,
         }),
@@ -105,7 +100,6 @@ describe("groupHomeCtaFamily", () => {
       groupHomeCtaFamily(
         cta({
           nextJoinableGameId: "game-1",
-          hasCreateAccess: true,
           canCreateGame: true,
         }),
       ),
@@ -160,6 +154,26 @@ describe("groupHomeNextJoinableGame", () => {
 });
 
 describe("groupHomeOverflowItems", () => {
+  it("offers leaving the Venue Community only when allowed", () => {
+    const base = {
+      family: { kind: "none" as const },
+      hasCommunity: false,
+      hasCreateAccess: false,
+      canShowCreateGame: false,
+      isLoosePublic: false,
+      canManageInvites: false,
+      canManageImage: false,
+      hasImage: false,
+      isMember: true,
+      canDelete: false,
+    };
+    assert.deepEqual(groupHomeOverflowItems(base), ["leave"]);
+    assert.deepEqual(
+      groupHomeOverflowItems({ ...base, canLeaveVenueCommunity: true }),
+      ["leave_venue_community", "leave"],
+    );
+  });
+
   it("hides overflow when nothing is available", () => {
     assert.deepEqual(
       groupHomeOverflowItems({

@@ -238,11 +238,15 @@ export function createGroupFixtures(now = new Date()) {
     canManageLookupInvites: false,
     canManageInviteLinks: false,
     requiresApproval: false,
+    verified: true,
     canSetRequiresApproval: false,
     canDecideJoinRequests: false,
     canManageImage: false,
     canDelete: false,
     viewerCanSetLevel: false,
+    venueCommunity: null,
+    pendingLinkRequestCount: 0,
+    canUnlinkFromVenue: false,
   };
 
   const creator: GroupHomeData = {

@@ -202,6 +202,7 @@ export function GroupGamesTab({
                   actionPending={pendingGameId === game.id}
                   href={`/dashboard/games/${game.id}`}
                   showPartnerJoin={showPartnerJoin}
+                  rated={game.rated}
                   onJoinSeat={(sideIndex, position) => {
                     onJoinSeat(game.id, sideIndex, position);
                   }}

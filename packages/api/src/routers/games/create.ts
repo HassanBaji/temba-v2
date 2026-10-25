@@ -22,6 +22,7 @@ import {
   createFriendlyGame,
 } from "#src/games/create-friendly";
 import { requireGroup } from "#src/games/helpers/require-group";
+import { groupIsVerified } from "#src/groups/group-is-verified";
 import type { CreateGameInput } from "#src/games/utils";
 import {
   LEVEL_RANGE_INVERTED_MESSAGE,
@@ -196,6 +197,7 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";
+  const rated = await groupIsVerified(database, group);
 
   if (sportOrDefault(group.sport) === "football") {
     return createFootballGameOnGroup(database, input);
@@ -213,6 +215,7 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
       pricePerPlayerFils: input.pricePerPlayerFils ?? null,
       levelMinTenths: input.levelMinTenths ?? null,
       levelMaxTenths: input.levelMaxTenths ?? null,
+      rated,
     });
     return {
       id: created.game.id,
@@ -253,6 +256,7 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        rated,
         createdBy: input.createdBy,
       })
       .returning();

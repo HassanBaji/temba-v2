@@ -16,6 +16,7 @@ export type HomeSeat = {
 
 export type HomeNextGame = {
   id: string;
+  rated: boolean;
   phase: "upcoming" | "ongoing" | "needs_results";
   venueName: string;
   courtLabel: string | null;
@@ -66,7 +67,6 @@ export type HomeFixture = {
   gamesWon: number;
   gamesLost: number;
   standing: HomeStandingRow[];
-  hasCreateAccess: boolean;
   createGroupCount: number;
 };
 
@@ -105,6 +105,7 @@ export function createHomeFixtures(now = new Date()): {
 
   const nextGame: HomeNextGame = {
     id: "game-next",
+    rated: true,
     phase: "upcoming",
     venueName: "Padel Club",
     courtLabel: "Court 1",
@@ -118,6 +119,7 @@ export function createHomeFixtures(now = new Date()): {
     {
       kind: "game",
       id: "game-later",
+      rated: true,
       rowKey: "game-later",
       venueName: "Riverside Hall",
       startsAt: laterStart,
@@ -127,6 +129,7 @@ export function createHomeFixtures(now = new Date()): {
     {
       kind: "tournament_match",
       id: "game-cup",
+      rated: true,
       rowKey: "match-cup-r2",
       title: "Friday Cup",
       startsAt: laterStart,
@@ -136,6 +139,7 @@ export function createHomeFixtures(now = new Date()): {
     {
       kind: "tournament",
       id: "game-club-championship",
+      rated: true,
       rowKey: "game-club-championship",
       title: "Club Championship",
       startsAt: weekendStart,
@@ -145,6 +149,7 @@ export function createHomeFixtures(now = new Date()): {
     {
       kind: "game",
       id: "game-weekend",
+      rated: true,
       rowKey: "game-weekend",
       venueName: "North Courts",
       startsAt: weekendStart,
@@ -185,7 +190,6 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 3,
     gamesLost: 2,
     standing,
-    hasCreateAccess: false,
     createGroupCount: 1,
   };
 
@@ -226,7 +230,6 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 11,
     gamesLost: 6,
     standing,
-    hasCreateAccess: true,
     createGroupCount: 1,
   };
 
@@ -257,7 +260,6 @@ export function createHomeFixtures(now = new Date()): {
     gamesWon: 0,
     gamesLost: 0,
     standing: [],
-    hasCreateAccess: true,
     createGroupCount: 1,
   };
 

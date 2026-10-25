@@ -52,6 +52,7 @@ import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
+import { UNRATED_GROUP_LINE } from "@repo/domain/game-rating-impact";
 import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
@@ -103,6 +104,7 @@ export function FriendlyGameSteps({
   onPrice,
   reviewGroup,
   reviewVenue,
+  groupVerified,
 }: {
   sport?: Sport;
   sideSize: number;
@@ -151,6 +153,7 @@ export function FriendlyGameSteps({
   onPrice: (price: string) => void;
   reviewGroup: string;
   reviewVenue: string;
+  groupVerified: boolean;
 }) {
   const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
     string | null
@@ -646,6 +649,12 @@ export function FriendlyGameSteps({
               {priceError}
             </FieldError>
           </section>
+
+          {groupVerified ? null : (
+            <FieldDescription id="game-unrated-copy">
+              {UNRATED_GROUP_LINE}
+            </FieldDescription>
+          )}
 
           <div className="border-rule rounded-card overflow-hidden border">
             <ReviewRow label="Group" value={reviewGroup} />

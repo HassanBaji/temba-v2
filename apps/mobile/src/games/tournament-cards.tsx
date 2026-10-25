@@ -7,6 +7,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
@@ -223,17 +224,24 @@ export function TournamentCard({
             ? `Starts ${formatGameCardDay(game.windowStart)}`
             : ""}
         </Text>
-        {cancelled ? (
-          <Text size="meta" weight="semibold">
-            Cancelled
-          </Text>
-        ) : openFlag ? (
-          <Text size="meta" weight="semibold">
-            {tournamentOpenFlagLabel(
-              tournamentOpenTeamCount(game.teamsAllowed, teams),
-            )}
-          </Text>
-        ) : null}
+        <View style={{ flexDirection: "row", columnGap: 12 }}>
+          {game.rated ? null : (
+            <Text size="meta" weight="semibold">
+              {UNRATED_LABEL}
+            </Text>
+          )}
+          {cancelled ? (
+            <Text size="meta" weight="semibold">
+              Cancelled
+            </Text>
+          ) : openFlag ? (
+            <Text size="meta" weight="semibold">
+              {tournamentOpenFlagLabel(
+                tournamentOpenTeamCount(game.teamsAllowed, teams),
+              )}
+            </Text>
+          ) : null}
+        </View>
       </View>
       <View style={{ gap: 4 }}>
         <Text size="h2" width="expanded" weight="bold" numberOfLines={2}>
@@ -382,11 +390,18 @@ export function TournamentMatchCard({
             </Text>
           ) : null}
         </View>
-        {status ? (
-          <Text size="meta" tone="muted">
-            {status}
-          </Text>
-        ) : null}
+        <View style={{ flexDirection: "row", columnGap: 12 }}>
+          {game.rated ? null : (
+            <Text size="meta" weight="semibold">
+              {UNRATED_LABEL}
+            </Text>
+          )}
+          {status ? (
+            <Text size="meta" tone="muted">
+              {status}
+            </Text>
+          ) : null}
+        </View>
       </View>
       <View
         style={{

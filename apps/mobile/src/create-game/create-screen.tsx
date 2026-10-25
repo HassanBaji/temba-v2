@@ -37,7 +37,6 @@ export function CreateGameScreen({
 }) {
   const router = useRouter();
   const toast = useToast();
-  const { isLoaded, user } = useUser();
   const utils = api.useUtils();
   const [now, setNow] = useState(() => new Date());
   const [state, rawDispatch] = useReducer(createReducer, undefined, () =>
@@ -53,6 +52,9 @@ export function CreateGameScreen({
     undefined,
     REFETCH_ON_FOREGROUND,
   );
+  const groupVerified =
+    groups.data?.find((group) => group.id === state.draft.groupId)?.verified ??
+    false;
   const picker = api.games.listCreateVenues.useQuery(
     { groupId: state.draft.groupId },
     { ...REFETCH_ON_FOREGROUND, enabled: Boolean(state.draft.groupId) },
@@ -148,7 +150,7 @@ export function CreateGameScreen({
       }
       return;
     }
-    const result = submitRequest(state, now);
+    const result = submitRequest(state, now, groupVerified);
     if (!result.ok) {
       setClientErrors(result.errors);
       if (result.step !== state.step) {
@@ -170,6 +172,7 @@ export function CreateGameScreen({
     picker.isLoading,
     picker.data,
     groupFieldError,
+    groupVerified,
     createTournament,
     createGame,
   ]);
@@ -198,21 +201,6 @@ export function CreateGameScreen({
       setRefreshing(false);
     }
   }, [groups, picker, state.draft.groupId]);
-
-  if (isLoaded && user?.publicMetadata.groupCreator !== true) {
-    return (
-      <StepShell step={null} header={CREATE_ENTRY_HEADER}>
-        <Surface style={{ gap: 8 }} accessibilityRole="alert">
-          <Text size="lead" weight="semibold">
-            Creating Games is not available for your account yet
-          </Text>
-          <Text size="meta" tone="muted">
-            Ask a Group organizer to add you, or join a Game from the Games tab.
-          </Text>
-        </Surface>
-      </StepShell>
-    );
-  }
 
   const groupError = clientErrors.groupId ?? groupFieldError;
   const errors: FieldErrors = {

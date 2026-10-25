@@ -54,6 +54,10 @@ describe("detailBackHref", () => {
     assert.equal(detailBackHref("/dashboard/you"), undefined);
   });
 
+  it("titles the Operator Groups page", () => {
+    assert.equal(titleFromPath("/dashboard/operator/groups"), "Verify Groups");
+  });
+
   it("keeps existing detail back targets", () => {
     assert.equal(detailBackHref("/dashboard/groups/abc"), "/dashboard/groups");
     assert.equal(detailBackHref("/dashboard/teams/abc"), "/dashboard/teams");

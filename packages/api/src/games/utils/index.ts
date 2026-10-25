@@ -85,6 +85,7 @@ export type HubListRow = {
   registrationMode: GameRegistrationModeEnum | string;
   sport: GameSportEnum | string | null;
   isPublic: boolean;
+  rated: boolean;
   groupId: string | null;
   groupName: string | null;
   startTime: Date;

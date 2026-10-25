@@ -166,7 +166,13 @@ type ExpectedGroups =
   | "previewInviteLink"
   | "acceptInviteLink"
   | "uploadImage"
-  | "clearImage";
+  | "clearImage"
+  | "setVerified"
+  | "listForOperator"
+  | "pendingLinkRequests"
+  | "acceptLinkRequest"
+  | "declineLinkRequest"
+  | "unlinkFromVenue";
 
 type ExpectedNotifications =
   | "list"
@@ -221,6 +227,11 @@ type ExpectedVenues =
   | "softArchive"
   | "unarchive"
   | "listPendingLinkRequests"
+  | "listCommunityGroups"
+  | "searchLinkableGroups"
+  | "sendGroupLinkRequest"
+  | "cancelGroupLinkRequest"
+  | "unlinkGroup"
   | "approveLinkRequest"
   | "rejectLinkRequest"
   | "listManaged"

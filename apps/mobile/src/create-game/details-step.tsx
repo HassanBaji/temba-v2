@@ -20,8 +20,10 @@ import {
   groupsThenKnockoutReviewValue,
   knockoutOnlyReviewValue,
 } from "@repo/domain/tournament-knockout";
+import { UNRATED_GROUP_LINE } from "@repo/domain/game-rating-impact";
 import {
   COUNTS_FOR_RATING_LABEL,
+  COUNTS_FOR_RATING_NO,
   COUNTS_FOR_RATING_YES,
 } from "@repo/domain/tournament-home";
 import {
@@ -56,6 +58,7 @@ const FREE_PRICE_COPY = "Zero means free. Temba does not collect payment.";
 
 type DetailsProps = StepProps & {
   groupName: string | null;
+  groupVerified: boolean;
   picker: CreateVenuePicker | null;
 };
 
@@ -128,7 +131,7 @@ export function FootballDetailsStep(props: DetailsProps) {
 }
 
 export function GameDetailsStep(props: DetailsProps) {
-  const { state, groupName, picker } = props;
+  const { state, groupName, groupVerified, picker } = props;
   const { draft } = state;
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
   const court =
@@ -141,6 +144,7 @@ export function GameDetailsStep(props: DetailsProps) {
     <View style={{ gap: spacing.section }}>
       <LevelRangeField {...props} />
       <PriceField {...props} />
+      {groupVerified ? null : <HelperNote>{UNRATED_GROUP_LINE}</HelperNote>}
       <ReviewCard
         rows={[
           { label: "Group", value: groupName ?? "Group" },
@@ -189,6 +193,7 @@ function WhoCanEnter(props: StepProps) {
 function tournamentReviewRows({
   state,
   groupName,
+  groupVerified,
   picker,
 }: DetailsProps): ReviewRow[] {
   const { draft } = state;
@@ -243,12 +248,15 @@ function tournamentReviewRows({
       label: "Game length",
       value: minutes.ok ? `${minutes.minutes} min` : "Game length",
     },
-    { label: COUNTS_FOR_RATING_LABEL, value: COUNTS_FOR_RATING_YES },
+    {
+      label: COUNTS_FOR_RATING_LABEL,
+      value: groupVerified ? COUNTS_FOR_RATING_YES : COUNTS_FOR_RATING_NO,
+    },
   ];
 }
 
 export function TournamentDetailsStep(props: DetailsProps) {
-  const { state, errors, dispatch, groupName } = props;
+  const { state, errors, dispatch, groupName, groupVerified } = props;
   const { draft } = state;
 
   return (
@@ -269,13 +277,16 @@ export function TournamentDetailsStep(props: DetailsProps) {
           columns={SEGMENT_COLUMNS}
           chips={[
             { value: "group", label: groupName ?? "Group" },
-            { value: "public", label: ANYONE_WITH_THE_LINK_LABEL },
+            ...(groupVerified
+              ? [{ value: "public", label: ANYONE_WITH_THE_LINK_LABEL }]
+              : []),
           ]}
           isSelected={(value) => (value === "public") === draft.isPublic}
           onSelect={(value) =>
             dispatch({ kind: "setPublic", isPublic: value === "public" })
           }
         />
+        {groupVerified ? null : <HelperNote>{UNRATED_GROUP_LINE}</HelperNote>}
       </StepSection>
       <StepSection title={HOW_PEOPLE_JOIN_LABEL}>
         <ChipGrid

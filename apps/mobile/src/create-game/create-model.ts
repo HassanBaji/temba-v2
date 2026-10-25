@@ -336,14 +336,22 @@ export type SubmitResult =
   | { ok: true; request: SubmitRequest }
   | { ok: false; step: CreateFlowStep; errors: FieldErrors };
 
-export function submitRequest(state: CreateState, now: Date): SubmitResult {
+export function submitRequest(
+  state: CreateState,
+  now: Date,
+  groupVerified: boolean,
+): SubmitResult {
   const issueResult = (issue: CreateSubmitIssue): SubmitResult => ({
     ok: false,
     step: issue.step,
     errors: { [issue.field]: issue.message },
   });
   if (state.type === "friendly_tournament") {
-    const result = validateFriendlyTournamentSubmit(state.draft, now);
+    const result = validateFriendlyTournamentSubmit(
+      state.draft,
+      now,
+      groupVerified,
+    );
     return result.ok
       ? {
           ok: true,

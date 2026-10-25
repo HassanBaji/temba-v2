@@ -7,6 +7,7 @@ import {
   type HomeComingUpTournamentMatchRow,
   type HomeComingUpTournamentRow,
 } from "@repo/domain/home-coming-up";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { zonedParts } from "@repo/domain/product-timezone";
 import { Trophy } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -138,7 +139,12 @@ function GameRow({
   game: HomeComingUpGameRow;
   onNavigate: (target: HomeNavTarget) => void;
 }) {
-  const clock = formatGameClock(game.startsAt);
+  const clock = [
+    formatGameClock(game.startsAt),
+    game.rated ? null : UNRATED_LABEL,
+  ]
+    .filter(Boolean)
+    .join(", ");
   const { spokenLabel } = homeComingUpSeatBars(game);
   const spoken = game.occupancyLabel
     ? `${game.occupancyLabel} players`
@@ -178,9 +184,12 @@ function TournamentRow({
   game: HomeComingUpTournamentRow;
   onNavigate: (target: HomeNavTarget) => void;
 }) {
+  const teamsLine = [game.teamsLine, game.rated ? null : UNRATED_LABEL]
+    .filter(Boolean)
+    .join(", ");
   return (
     <RowShell
-      label={[game.title, game.teamsLine, game.actionLabel]
+      label={[game.title, teamsLine, game.actionLabel]
         .filter(Boolean)
         .join(", ")}
       onPress={() => onNavigate({ kind: "game", gameId: game.id })}
@@ -189,7 +198,7 @@ function TournamentRow({
       <View style={{ flex: 1, minWidth: 0 }}>
         <TournamentTitle title={game.title} />
         <Text size="meta" tone="muted" numberOfLines={1}>
-          {game.teamsLine}
+          {teamsLine}
         </Text>
       </View>
       {game.actionLabel ? <Tag label={game.actionLabel} /> : null}
@@ -204,7 +213,11 @@ function TournamentMatchRow({
   game: HomeComingUpTournamentMatchRow;
   onNavigate: (target: HomeNavTarget) => void;
 }) {
-  const meta = [formatGameClock(game.startsAt), game.opponentLine]
+  const meta = [
+    formatGameClock(game.startsAt),
+    game.opponentLine,
+    game.rated ? null : UNRATED_LABEL,
+  ]
     .filter(Boolean)
     .join(", ");
   return (

@@ -27,6 +27,7 @@ export type HubGameRow = {
   registrationMode: string;
   sport: string | null;
   isPublic: boolean;
+  rated: boolean;
   groupId: string | null;
   groupName: string | null;
   startTime: Date;

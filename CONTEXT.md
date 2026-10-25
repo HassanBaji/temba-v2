@@ -64,12 +64,16 @@ _Avoid_: Venue sport, Venue sports (there is no Venue-level list), pitch (as the
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
 _Avoid_: Community, Team, lobby, channel
 
+**Verified Group**:
+A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group of a Venue Community. Every other Group's new Games are Unrated and private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; membership of a Venue Community is derived, not stored.
+_Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
+
 **Club Group**:
-A Group that belongs to a Community.
+A Group that belongs to a Community. A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue Community.
 _Avoid_: subgroup, channel, nested group
 
 **Loose Group**:
-A Group that does not belong to a Community.
+A Group that does not belong to a Community. It stops being Loose when its Group link request is accepted, and is Loose again once it is unlinked from that Venue Community.
 _Avoid_: orphan, standalone group, free group
 
 **Community Public**:
@@ -133,8 +137,16 @@ Lookup invite and Invite link as the two live invitation channels onto a Communi
 _Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door)
 
 **Venue link**:
-A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. Distinct from Invite link and from a Team’s Community link.
+A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. A Venue Community’s Venue link is set when it is created, without a Venue link request, and cannot be unlinked. Distinct from Invite link and from a Team’s Community link.
 _Avoid_: Invite link, membership, join, Club Team
+
+**Venue Community**:
+The one Community a Venue owns. It is created when the first Group link request to that Venue is accepted, and it carries a Venue link to that Venue that cannot be unlinked. It is Private, and the Venue manager who sent the first accepted request is its creator and Owner. Its Club Groups are Verified Groups. A Venue has at most one Venue Community; other Communities may still hold a Venue link to the same Venue.
+_Avoid_: venue club, default Community (in product copy), home Community
+
+**Group link request**:
+A Venue manager’s request that a Loose Group Public join that Venue’s Venue Community. The Group creator accepts or declines it; the Venue manager may cancel it while pending. Accepting turns the Loose Group into a Club Group of the Venue Community. Distinct from a Group join request (a User asking to join a Group), a Venue link request (a Community asking for a Venue) and a Team link request.
+_Avoid_: Group join request, Venue link, invite (when you mean this request), Group transfer
 
 **Venue link request**:
 A request by a Community Owner or Admin to associate that Community with an existing Venue. An Operator approves or rejects it. Distinct from a User’s Community join request.
@@ -269,7 +281,7 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A football Game is a Friendly game with **Roster registration**, a **Side size** and, until football results ship, no Match; it is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration**, a **Side size** and, until football results ship, no Match; it is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Roster registration**:
@@ -489,5 +501,5 @@ A completed, non-cancelled Match on a Game that rates, which produced rating eve
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, and every football Game created before football results ship. Match result confirmation still applies. Stored as `games.rated = false`; `bookings.createGame` and every football Game create set it.
+A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, any Game created on a Group that was not a Verified Group at create, and every football Game created before football results ship. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create; `bookings.createGame` and every football Game create set it.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice

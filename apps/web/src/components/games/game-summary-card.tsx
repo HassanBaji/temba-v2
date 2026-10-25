@@ -12,6 +12,7 @@ import {
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag, OpenSeat } from "~/components/temba/seat";
+import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
 import {
   formatGameCardDay,
@@ -28,6 +29,7 @@ import {
   gameCardSubtitle,
   sideJoinAccessibleName,
 } from "@repo/domain/game-card";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
 import {
   gameCardActionLabel,
@@ -298,6 +300,7 @@ export function GameSummaryCard({
   onRegister,
   roundLabel,
   courtName,
+  rated = true,
 }: {
   name: string | null;
   startTime: Date | string;
@@ -329,6 +332,7 @@ export function GameSummaryCard({
   onRegister?: () => void;
   roundLabel?: string | null;
   courtName?: string | null;
+  rated?: boolean;
 }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [startAtPartner, setStartAtPartner] = React.useState(false);
@@ -478,6 +482,11 @@ export function GameSummaryCard({
                 </span>
               ) : null}
             </span>
+            {!rated ? (
+              <Badge variant="outline" data-slot="game-card-unrated">
+                {UNRATED_LABEL}
+              </Badge>
+            ) : null}
             {cancelled ? (
               <GameStatusBadge status="cancelled" />
             ) : hasOpenCount ? (

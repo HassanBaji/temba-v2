@@ -5,6 +5,7 @@ import {
   homeNextGameSecondaryLine,
   homeNextGameStatus,
 } from "@repo/domain/home-next-game";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { homeNoGamesCopy } from "@repo/domain/home-no-games";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -85,8 +86,12 @@ export function NextGame({
 
   if (game.kind === "tournament") {
     const { row } = game;
-    const subline =
-      row.kind === "tournament" ? row.teamsLine : (row.opponentLine ?? "");
+    const subline = [
+      row.kind === "tournament" ? row.teamsLine : row.opponentLine,
+      row.rated ? null : UNRATED_LABEL,
+    ]
+      .filter(Boolean)
+      .join(", ");
     return (
       <Surface tone="ink" style={{ gap: 16 }}>
         <Heading
@@ -133,6 +138,11 @@ export function NextGame({
             {secondary}
           </Text>
         ) : null}
+        {game.rated ? null : (
+          <Text size="meta" weight="semibold">
+            {UNRATED_LABEL}
+          </Text>
+        )}
       </View>
       {game.roster ? (
         <View

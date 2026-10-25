@@ -1,6 +1,15 @@
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 export const UNRATED_LABEL = "Unrated";
+export const UNRATED_GAME_LINE = "This Game doesn't change anyone's Level.";
+export const UNRATED_GROUP_LINE =
+  "Games in this Group are Unrated. They don't change anyone's Level.";
+
+export const UNRATED_STANDING_COPY = {
+  title: "No Standing in this Group",
+  description:
+    "Games in this Group are Unrated, so they don't count towards a Standing.",
+};
 
 export type RatingImpactChangeDirection = "up" | "down" | "flat";
 

@@ -1,7 +1,5 @@
-import { useUser } from "@clerk/expo";
 import {
   GROUP_CREATE_COPY,
-  GROUP_CREATE_NOT_AVAILABLE,
   GROUP_CREATED_TOAST,
   groupCreateDoor,
   groupCreateRequiresApproval,
@@ -29,7 +27,6 @@ type Picked = { uri: string; upload: PickedImage & { ok: true } };
 
 export function GroupCreateScreen({ communityId }: { communityId?: string }) {
   const context = communityId ? "club" : "loose";
-  const { user, isLoaded } = useUser();
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
@@ -155,30 +152,6 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
     }
     setImageError(null);
     setPicked({ uri: result.uri, upload: result.image });
-  }
-
-  if (
-    context === "loose" &&
-    isLoaded &&
-    user?.publicMetadata.groupCreator !== true
-  ) {
-    return (
-      <Screen>
-        <ScreenHeader
-          nav="close"
-          fallback="/groups"
-          title={GROUP_CREATE_COPY.loose.submit}
-        />
-        <Surface style={{ gap: 8 }} accessibilityRole="alert">
-          <Text size="lead" weight="semibold">
-            {GROUP_CREATE_NOT_AVAILABLE.title}
-          </Text>
-          <Text size="meta" tone="muted">
-            {GROUP_CREATE_NOT_AVAILABLE.description}
-          </Text>
-        </Surface>
-      </Screen>
-    );
   }
 
   return (

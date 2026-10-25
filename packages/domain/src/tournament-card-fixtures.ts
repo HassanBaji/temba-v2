@@ -118,6 +118,7 @@ function buildRow(args: {
     registrationMode: "individual",
     sport: "padel",
     isPublic: false,
+    rated: true,
     groupId: "group-bromma",
     groupName: "Bromma Tuesday",
     startTime: windowStart,

@@ -9,6 +9,8 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
+import { ConfirmSheet } from "../game-details/confirm-sheet";
+import { useGroupLinkRequest } from "../groups/use-group-link-request";
 import type { Slot } from "../home/home-model";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
@@ -48,6 +50,12 @@ export function InvitesScreen() {
     REFETCH_ON_FOREGROUND,
   );
 
+  const venueRequests = api.groups.pendingLinkRequests.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
+  const linkRequest = useGroupLinkRequest();
+
   const refetchAll = useCallback(
     () =>
       Promise.all([
@@ -55,8 +63,9 @@ export function InvitesScreen() {
         group.refetch(),
         team.refetch(),
         game.refetch(),
+        venueRequests.refetch(),
       ]),
-    [community, group, team, game],
+    [community, group, team, game, venueRequests],
   );
 
   const onRefresh = useCallback(async () => {
@@ -147,9 +156,18 @@ export function InvitesScreen() {
     (acceptGame.isPending ? `game-${acceptGame.variables?.inviteId}` : null);
 
   const error =
-    community.error ?? group.error ?? team.error ?? game.error ?? null;
+    community.error ??
+    group.error ??
+    team.error ??
+    game.error ??
+    venueRequests.error ??
+    null;
   const loading =
-    community.isLoading || group.isLoading || team.isLoading || game.isLoading;
+    community.isLoading ||
+    group.isLoading ||
+    team.isLoading ||
+    game.isLoading ||
+    venueRequests.isLoading;
   const inbox: Slot<InviteInboxItem[]> = error
     ? { status: "error", message: error.message }
     : loading
@@ -186,6 +204,10 @@ export function InvitesScreen() {
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <InvitesView
         inbox={inbox}
+        venueRequests={venueRequests.data ?? []}
+        venueRequestPendingId={linkRequest.pendingRequestId}
+        onAcceptVenueRequest={linkRequest.askAccept}
+        onDeclineVenueRequest={linkRequest.askDecline}
         pendingKey={pendingKey}
         onAccept={accept}
         onPickSeat={(item, sideIndex, position) =>
@@ -200,6 +222,11 @@ export function InvitesScreen() {
         }}
         onPasteLink={() => void pasteLink()}
         onOpenLink={openLink}
+      />
+      <ConfirmSheet
+        request={linkRequest.confirm}
+        pending={linkRequest.confirmPending}
+        onClose={linkRequest.closeConfirm}
       />
     </Screen>
   );

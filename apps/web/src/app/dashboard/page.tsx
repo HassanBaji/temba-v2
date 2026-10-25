@@ -92,6 +92,7 @@ export default function HomePage() {
             ) : nextGame ? (
               <HomeNextGame
                 id={nextGame.id}
+                rated={nextGame.rated}
                 phase={nextGame.phase}
                 venueName={nextGame.venue?.name ?? "Game"}
                 courtLabel={nextGame.courtName}

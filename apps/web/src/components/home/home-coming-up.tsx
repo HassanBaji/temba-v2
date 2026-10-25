@@ -12,6 +12,7 @@ import {
   type HomeComingUpTournamentMatchRow,
   type HomeComingUpTournamentRow,
 } from "@repo/domain/home-coming-up";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { zonedParts } from "@repo/domain/product-timezone";
 import { cn } from "~/lib/utils";
 
@@ -44,7 +45,9 @@ function GameRow({ game }: { game: HomeComingUpGameRow }) {
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{game.venueName}</p>
         <p className="text-muted-foreground text-meta flex items-center gap-1.5">
-          {formatGameClock(game.startsAt)}
+          {[formatGameClock(game.startsAt), game.rated ? null : UNRATED_LABEL]
+            .filter(Boolean)
+            .join(", ")}
           {sportTag && game.sport ? (
             <span className="inline-flex items-center gap-1">
               <SportGlyph sport={game.sport} className="size-3.5" />
@@ -96,7 +99,9 @@ function TournamentRow({ game }: { game: HomeComingUpTournamentRow }) {
       <div className="min-w-0 flex-1">
         <TournamentTitle title={game.title} />
         <p className="text-muted-foreground text-meta truncate">
-          {game.teamsLine}
+          {[game.teamsLine, game.rated ? null : UNRATED_LABEL]
+            .filter(Boolean)
+            .join(", ")}
         </p>
       </div>
       {game.actionLabel ? (
@@ -113,7 +118,11 @@ function TournamentMatchRow({
 }: {
   game: HomeComingUpTournamentMatchRow;
 }) {
-  const meta = [formatGameClock(game.startsAt), game.opponentLine]
+  const meta = [
+    formatGameClock(game.startsAt),
+    game.opponentLine,
+    game.rated ? null : UNRATED_LABEL,
+  ]
     .filter(Boolean)
     .join(", ");
   return (

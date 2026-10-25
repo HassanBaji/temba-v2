@@ -3,12 +3,8 @@ export type HomeNoGamesCreateAction =
   | { kind: "game"; target: { kind: "create-game" }; label: string };
 
 export function homeNoGamesCreateAction(input: {
-  hasCreateAccess: boolean;
   createGroupCount: number | undefined;
-}): HomeNoGamesCreateAction | null {
-  if (!input.hasCreateAccess) {
-    return null;
-  }
+}): HomeNoGamesCreateAction {
   if (input.createGroupCount === 0) {
     return {
       kind: "group",
