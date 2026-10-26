@@ -1,15 +1,17 @@
-import { spacing } from "@repo/design-tokens";
+import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import type { CardSeatPosition } from "@repo/domain/game-card";
 import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
 import { Plus } from "lucide-react-native";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Button } from "../primitives/button";
+import { hairline } from "../primitives/hairline-width";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import type { Slot } from "../home/home-model";
+import { SportGlyph } from "../lib/sport-glyph";
 import {
   FootballGameCard,
   type FootballCardActions,
@@ -118,6 +120,50 @@ function ListSkeleton() {
   );
 }
 
+const segmentBarStyle = {
+  flexDirection: "row",
+  borderRadius: radii.lg,
+  borderWidth: hairline,
+  borderColor: colors.rule,
+  overflow: "hidden",
+} as const;
+
+function Segment({
+  role,
+  selected,
+  first,
+  onPress,
+  children,
+}: {
+  role: "tab" | "radio";
+  selected: boolean;
+  first: boolean;
+  onPress: () => void;
+  children: (color: string) => React.ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole={role}
+      accessibilityState={role === "tab" ? { selected } : { checked: selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: sizes.touchTarget,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        backgroundColor: selected ? colors.ink : colors.paper,
+        borderLeftWidth: first ? 0 : hairline,
+        borderLeftColor: colors.rule,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      {children(selected ? colors.paper : colors.muted)}
+    </Pressable>
+  );
+}
+
 function TabButtons({
   tab,
   onTabChange,
@@ -134,18 +180,33 @@ function TabButtons({
     { key: "history", label: "Played", count: historyCount },
   ] as const;
   return (
-    <View style={{ flexDirection: "row", gap: 8 }}>
-      {tabs.map((entry) => (
-        <View key={entry.key} style={{ flex: 1 }}>
-          <Button
-            label={entry.count ? `${entry.label} ${entry.count}` : entry.label}
-            size="sm"
-            variant={entry.key === tab ? "default" : "outline"}
-            selected={entry.key === tab}
+    <View accessibilityRole="tablist" style={segmentBarStyle}>
+      {tabs.map((entry, index) => {
+        const selected = entry.key === tab;
+        return (
+          <Segment
+            key={entry.key}
+            role="tab"
+            selected={selected}
+            first={index === 0}
             onPress={() => onTabChange(entry.key)}
-          />
-        </View>
-      ))}
+          >
+            {(color) => (
+              <>
+                <Text
+                  weight={selected ? "semibold" : "regular"}
+                  style={{ color }}
+                >
+                  {entry.label}
+                </Text>
+                {entry.count ? (
+                  <Text style={{ color }}>{entry.count}</Text>
+                ) : null}
+              </>
+            )}
+          </Segment>
+        );
+      })}
     </View>
   );
 }
@@ -161,18 +222,32 @@ function SportFilterRow({
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel="Sport"
-      style={{ flexDirection: "row", gap: 8 }}
+      style={segmentBarStyle}
     >
-      {SPORT_FILTERS.map((entry) => (
-        <Button
-          key={entry.key}
-          label={entry.label}
-          size="sm"
-          variant={entry.key === filter ? "default" : "outline"}
-          selected={entry.key === filter}
-          onPress={() => onChange(entry.key)}
-        />
-      ))}
+      {SPORT_FILTERS.map((entry, index) => {
+        const selected = entry.key === filter;
+        return (
+          <Segment
+            key={entry.key}
+            role="radio"
+            selected={selected}
+            first={index === 0}
+            onPress={() => onChange(entry.key)}
+          >
+            {(color) => (
+              <>
+                <SportGlyph sport={entry.key} color={color} size={18} />
+                <Text
+                  weight={selected ? "semibold" : "regular"}
+                  style={{ color }}
+                >
+                  {entry.label}
+                </Text>
+              </>
+            )}
+          </Segment>
+        );
+      })}
     </View>
   );
 }
