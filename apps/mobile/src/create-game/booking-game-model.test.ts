@@ -53,6 +53,24 @@ describe("bookingGameReviewRows", () => {
       { label: "Rating", value: "Unrated" },
     ]);
   });
+
+  it("names the Group, its members and its rating when the Game is on one", () => {
+    const rows = bookingGameReviewRows(booking, undefined, {
+      name: "Ladder",
+      rated: true,
+    });
+    expect(rows.slice(3)).toEqual([
+      { label: "Group", value: "Ladder" },
+      { label: "Who can join", value: "Group members and people you invite" },
+      { label: "Rating", value: "Rated" },
+    ]);
+    expect(
+      bookingGameReviewRows(booking, undefined, {
+        name: "Thursday padel",
+        rated: false,
+      }).at(-1),
+    ).toEqual({ label: "Rating", value: "Unrated" });
+  });
 });
 
 describe("splitCourtCost", () => {
@@ -85,6 +103,19 @@ describe("bookingGameRequest", () => {
         levelMinTenths: parseLevelBandSelectTenths("C", "min"),
         levelMaxTenths: parseLevelBandSelectTenths("B", "max"),
       },
+    });
+  });
+
+  it("sends the Group only when one is picked", () => {
+    expect(
+      bookingGameRequest("booking-1", { ...open, groupId: "group-1" }),
+    ).toEqual({
+      ok: true,
+      input: { bookingId: "booking-1", groupId: "group-1" },
+    });
+    expect(bookingGameRequest("booking-1", { ...open, groupId: "" })).toEqual({
+      ok: true,
+      input: { bookingId: "booking-1" },
     });
   });
 

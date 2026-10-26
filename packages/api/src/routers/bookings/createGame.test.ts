@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { bookings, courts, games, matches } from "@repo/db";
+import { bookings, courts, games, groups, matches } from "@repo/db";
 
 import {
   NOW,
@@ -122,6 +122,68 @@ describe("bookings.createGame", () => {
       await expect(
         cancelGame(asDb(db), { gameId, userId: f.customer }),
       ).resolves.toEqual({ ok: true });
+    });
+  });
+
+  it("creates the Game on a Group the holder organizes, rated when the Group is verified", async () => {
+    await withBookableVenue(async (db, f) => {
+      const [loose, verified] = await db
+        .insert(groups)
+        .values([
+          { name: "Thursday padel", createdBy: f.customer },
+          { name: "Ladder", createdBy: f.customer, verifiedAt: NOW },
+        ])
+        .returning({ id: groups.id });
+      const first = await insertBooking(db, f);
+      const second = await insertBooking(db, f, { courtId: f.court2 });
+
+      const onLoose = await createBookingGame(asDb(db), {
+        bookingId: first.id,
+        groupId: loose!.id,
+        userId: f.customer,
+        now: NOW,
+      });
+      const onVerified = await createBookingGame(asDb(db), {
+        bookingId: second.id,
+        groupId: verified!.id,
+        userId: f.customer,
+        now: NOW,
+      });
+
+      await expect(
+        requireGame(asDb(db), onLoose.gameId),
+      ).resolves.toMatchObject({
+        groupId: loose!.id,
+        rated: false,
+        isPublic: false,
+      });
+      await expect(
+        requireGame(asDb(db), onVerified.gameId),
+      ).resolves.toMatchObject({ groupId: verified!.id, rated: true });
+    });
+  });
+
+  it("refuses a Group the holder cannot organize, or of another sport", async () => {
+    await withBookableVenue(async (db, f) => {
+      const [theirs, football] = await db
+        .insert(groups)
+        .values([
+          { name: "Not mine", createdBy: f.other },
+          { name: "Five-a-side", createdBy: f.customer, sport: "football" },
+        ])
+        .returning({ id: groups.id });
+      const booking = await insertBooking(db, f);
+      const create = (groupId: string) =>
+        createBookingGame(asDb(db), {
+          bookingId: booking.id,
+          groupId,
+          userId: f.customer,
+          now: NOW,
+        });
+
+      await expect(create(theirs!.id)).rejects.toThrow("Group creator");
+      await expect(create(football!.id)).rejects.toThrow("padel Group");
+      expect(await db.select({ id: games.id }).from(games)).toHaveLength(0);
     });
   });
 

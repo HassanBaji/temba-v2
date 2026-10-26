@@ -33,6 +33,7 @@ import {
   type FieldErrors,
 } from "./create-model";
 import { FootballSizeFields } from "./football-size-fields";
+import { GroupField, groupLabel } from "./group-field";
 import { LevelRangeField } from "./level-range-field";
 import { MoneyField } from "./money-field";
 import { ReviewCard } from "./review-card";
@@ -122,6 +123,13 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
   );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const groups = api.games.listCreateGroups.useQuery();
+  const sportGroups = (groups.data ?? []).filter(
+    (group) => group.sport === sport,
+  );
+  const selectedGroup = sportGroups.find(
+    (group) => group.id === state.draft.groupId,
+  );
 
   const createGame = api.bookings.createGame.useMutation({
     onSuccess: async ({ gameId }) => {
@@ -131,6 +139,9 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
         utils.bookings.listMine.invalidate(),
         utils.games.listMyGames.invalidate(),
         utils.users.home.invalidate(),
+        state.draft.groupId
+          ? utils.groups.byId.invalidate({ id: state.draft.groupId })
+          : Promise.resolve(),
       ]);
       router.replace(gamePath(gameId));
     },
@@ -182,6 +193,17 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
     >
       <FormErrorSummary message={formMessage} />
       <View style={{ gap: spacing.section }}>
+        {sportGroups.length > 0 ? (
+          <GroupField
+            groups={sportGroups}
+            groupId={state.draft.groupId}
+            error={errors.groupId}
+            noneLabel="No group"
+            onSelect={(groupId) =>
+              onDispatch({ kind: "setGroup", groupId, sport })
+            }
+          />
+        ) : null}
         {football ? <FootballSizeFields {...step} /> : null}
         <StepSection
           title={football ? "Pitch cost" : "Court cost"}
@@ -213,10 +235,19 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
         </StepSection>
         {football ? null : <LevelRangeField {...step} />}
         <ReviewCard
-          rows={bookingGameReviewRows(booking, {
-            sideSize: state.draft.sideSize,
-            playersAllowed: state.draft.playersAllowed,
-          })}
+          rows={bookingGameReviewRows(
+            booking,
+            {
+              sideSize: state.draft.sideSize,
+              playersAllowed: state.draft.playersAllowed,
+            },
+            selectedGroup
+              ? {
+                  name: groupLabel(selectedGroup),
+                  rated: !football && selectedGroup.verified,
+                }
+              : null,
+          )}
         />
       </View>
     </StepShell>

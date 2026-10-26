@@ -23,11 +23,13 @@ export function GroupField({
   groups,
   groupId,
   error,
+  noneLabel,
   onSelect,
 }: {
   groups: readonly CreateGroupOption[];
   groupId: string;
   error?: string;
+  noneLabel?: string;
   onSelect: (groupId: string) => void;
 }) {
   const [changing, setChanging] = useState(false);
@@ -44,7 +46,7 @@ export function GroupField({
   return (
     <StepSection
       title="Group"
-      note={collapsed ? undefined : "Required"}
+      note={collapsed ? undefined : noneLabel ? "Optional" : "Required"}
       link={
         collapsed
           ? {
@@ -73,10 +75,13 @@ export function GroupField({
         <ChipGrid
           label="Group"
           check
-          chips={visibleCreateGroups(groups, groupId).map((group) => ({
-            value: group.id,
-            label: groupLabel(group),
-          }))}
+          chips={[
+            ...(noneLabel ? [{ value: "", label: noneLabel }] : []),
+            ...visibleCreateGroups(groups, groupId).map((group) => ({
+              value: group.id,
+              label: groupLabel(group),
+            })),
+          ]}
           isSelected={(id) => id === groupId}
           onSelect={pick}
           escape={
