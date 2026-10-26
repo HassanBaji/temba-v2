@@ -4,7 +4,7 @@ import type { Href } from "expo-router";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
-import type { footballHeroLines } from "../football/football-model";
+import type { footballHeroLines } from "@repo/domain/football-board";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { ScreenHeader } from "../primitives/screen-header";

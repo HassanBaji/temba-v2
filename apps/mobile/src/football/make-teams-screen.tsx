@@ -35,7 +35,7 @@ import {
   type BoardPlayer,
   type Side,
   type TeamsDraft,
-} from "./football-model";
+} from "@repo/domain/football-board";
 import { BibRow } from "./team-columns";
 
 const METHOD_LABELS: Record<FootballTeamsMethod, string> = {

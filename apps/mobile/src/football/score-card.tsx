@@ -13,7 +13,7 @@ import {
   shortName,
   type Bibs,
   type BoardPlayer,
-} from "./football-model";
+} from "@repo/domain/football-board";
 
 const PLACEHOLDER_HEIGHT = 56;
 

@@ -18,7 +18,7 @@ import {
   switchMethod,
   viewerSideLine,
   type BoardPlayer,
-} from "./football-model";
+} from "./football-board";
 
 function player(userId: string, extra: Partial<BoardPlayer> = {}): BoardPlayer {
   return {
@@ -36,24 +36,18 @@ function player(userId: string, extra: Partial<BoardPlayer> = {}): BoardPlayer {
 }
 
 describe("poolLayout", () => {
-  it("fills the side seats first and opens the bench after", () => {
+  it("seats everyone up to players allowed, with no bench", () => {
     const players = Array.from({ length: 12 }, (_, index) =>
       player(String(index)),
     );
     const layout = poolLayout(players, 5, 14);
-    expect(layout.seats).toBe(10);
-    expect(layout.pool).toHaveLength(10);
-    expect(layout.openSeats).toBe(0);
-    expect(layout.bench.map((row) => row.userId)).toEqual(["10", "11"]);
-    expect(layout.benchSeats).toBe(4);
-    expect(layout.openBench).toBe(2);
+    expect(layout.seats).toBe(14);
+    expect(layout.pool).toHaveLength(12);
+    expect(layout.openSeats).toBe(2);
   });
 
-  it("leaves the bench closed while side seats are open", () => {
-    const layout = poolLayout([player("a")], 7, 16);
-    expect(layout.openSeats).toBe(13);
-    expect(layout.bench).toEqual([]);
-    expect(layout.openBench).toBe(2);
+  it("falls back to both sides' seats without a cap", () => {
+    expect(poolLayout([player("a")], 7, null).openSeats).toBe(13);
   });
 });
 

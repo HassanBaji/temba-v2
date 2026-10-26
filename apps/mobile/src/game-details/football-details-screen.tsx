@@ -37,11 +37,11 @@ import {
   slotCode,
   viewerSideLine,
   type BoardPlayer,
-} from "../football/football-model";
+} from "@repo/domain/football-board";
 import { InfoRows, type InfoRow } from "../football/info-rows";
 import { FootballJoinSheet } from "../football/join-sheet";
 import { PlayerSheet } from "../football/player-sheet";
-import { OpenTile, PoolGrid } from "../football/pool-grid";
+import { PoolGrid } from "../football/pool-grid";
 import { FootballScoreCard } from "../football/score-card";
 import { TeamColumns } from "../football/team-columns";
 import { useNow } from "../games/use-now";
@@ -88,52 +88,6 @@ function SectionHead({ title, meta }: { title: string; meta?: string }) {
         </Text>
       ) : null}
     </View>
-  );
-}
-
-function BenchCard({
-  bench,
-  benchSeats,
-  openBench,
-  seats,
-  poolFull,
-  onOpenPlayer,
-}: {
-  bench: readonly BoardPlayer[];
-  benchSeats: number;
-  openBench: number;
-  seats: number;
-  poolFull: boolean;
-  onOpenPlayer?: (userId: string) => void;
-}) {
-  return (
-    <Surface style={{ gap: 12 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Text tone="muted">Bench</Text>
-        <Text size="meta" tone="muted">
-          {poolFull
-            ? `${bench.length} of ${benchSeats}`
-            : `opens once ${seats} seats fill`}
-        </Text>
-      </View>
-      {poolFull ? (
-        <PoolGrid
-          players={bench}
-          open={openBench}
-          onOpenPlayer={onOpenPlayer}
-        />
-      ) : (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {Array.from({ length: Math.min(benchSeats, 4) }, (_, index) => (
-            <OpenTile key={index} height={34} />
-          ))}
-        </View>
-      )}
-      <Text size="meta" tone="muted">
-        Extra seats join the teams like anyone else. Captains decide who starts
-        and when to swap.
-      </Text>
-    </Surface>
   );
 }
 
@@ -518,15 +472,13 @@ export function FootballGameDetails({
               style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}
             >
               <Text size="display" width="expanded" weight="bold">
-                {String(Math.min(players.length, layout.seats))}
+                {String(players.length)}
               </Text>
               <Text tone="muted">of {layout.seats}</Text>
             </View>
           </View>
           <Text size="meta" tone="muted" style={{ textAlign: "right" }}>
-            {players.length > layout.seats
-              ? `${players.length - layout.seats} on the bench`
-              : "Teams by the organizer"}
+            Teams by the organizer
           </Text>
         </View>
         <SeatBar seats={layout.seats} filled={players.length} />
@@ -608,16 +560,6 @@ export function FootballGameDetails({
                 teams, with a keeper on each side.
               </Text>
             </View>
-          ) : null}
-          {!teams && layout.benchSeats > 0 ? (
-            <BenchCard
-              bench={layout.bench}
-              benchSeats={layout.benchSeats}
-              openBench={layout.openBench}
-              seats={layout.seats}
-              poolFull={layout.openSeats === 0}
-              onOpenPlayer={onPressPlayer}
-            />
           ) : null}
           {teams && names ? (
             <FootballScoreCard

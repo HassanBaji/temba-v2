@@ -13,7 +13,7 @@ import {
   shortName,
   slotCode,
   type BoardPlayer,
-} from "./football-model";
+} from "@repo/domain/football-board";
 
 const COLUMNS = 4;
 const GAP = 8;
@@ -110,12 +110,12 @@ function PlayerTile({
   );
 }
 
-export function OpenTile({ height = TILE_HEIGHT }: { height?: number }) {
+function OpenTile() {
   return (
     <View
       style={{
         flex: 1,
-        height,
+        height: TILE_HEIGHT,
         alignItems: "center",
         justifyContent: "center",
       }}

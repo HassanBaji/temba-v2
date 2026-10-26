@@ -18,13 +18,15 @@ import { GameCard, type GameCardActions } from "./game-card";
 import {
   filterBySport,
   footballSections,
+  SPORT_FILTERS,
+  type SportFilter,
+} from "@repo/domain/football-hub";
+import {
   hubItems,
   historyEmptyCopy,
   myGamesEmptyCopy,
-  SPORT_FILTERS,
   tabCount,
   type GamesTab,
-  type SportFilter,
 } from "./games-model";
 import { HistoryCard } from "./history-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";

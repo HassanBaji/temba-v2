@@ -12,19 +12,19 @@ import {
   type FootballPosition,
   type FootballRole,
   type FootballTeamsMethod,
-} from "@repo/domain/football-lineup";
+} from "./football-lineup";
 import {
   formatDayMonth,
   formatWeekday,
   formatWindowDuration,
-} from "@repo/domain/format-game-start";
-import { sideSizeLabel } from "@repo/domain/game-shape";
-import { formatHomeKickoff } from "@repo/domain/home-countdown";
+} from "./format-game-start";
+import { sideSizeLabel } from "./game-shape";
+import { formatHomeKickoff } from "./home-countdown";
 import {
   displayLabelFromStoredBand,
   LEVEL_BANDS,
   type LevelBand,
-} from "@repo/domain/level-bands";
+} from "./level-bands";
 
 export type Side = 1 | 2;
 
@@ -57,23 +57,19 @@ export function shortName(name: string) {
 }
 
 /**
- * The seats that make up the two sides, and the bench past them. Bench
- * seats open once every side seat is taken.
+ * Every registration is a seat up to players allowed: substitutes register
+ * like anyone else and the teams are made from everyone.
  */
 export function poolLayout(
   players: readonly BoardPlayer[],
   sideSize: number | null,
   playersAllowed: number | null,
 ) {
-  const seats = (sideSize ?? 5) * 2;
-  const cap = Math.max(seats, playersAllowed ?? seats);
+  const seats = playersAllowed ?? (sideSize ?? 5) * 2;
   return {
     seats,
-    pool: players.slice(0, seats),
+    pool: players,
     openSeats: Math.max(0, seats - players.length),
-    bench: players.slice(seats),
-    benchSeats: cap - seats,
-    openBench: Math.max(0, cap - Math.max(seats, players.length)),
   };
 }
 

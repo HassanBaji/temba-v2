@@ -13,7 +13,7 @@ import { Pressable, View } from "react-native";
 import { hairline } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import type { Bibs, Side } from "./football-model";
+import type { Bibs, Side } from "@repo/domain/football-board";
 
 const SWATCH = 30;
 const RING = 2;

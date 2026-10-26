@@ -15,7 +15,7 @@ import {
   slotCode,
   type Bibs,
   type BoardPlayer,
-} from "./football-model";
+} from "@repo/domain/football-board";
 
 const ROW_HEIGHT = 44;
 

@@ -237,7 +237,8 @@ Section 14 lists every hit that fights the feature, by slice.
 - The Organizer publishes two Football sides by Level (keepers split, then a snake draft) or by hand, each in a Bib colour; sides may differ by one. Publishing creates the one Match; publishing again replaces the sides until the Score is in.
 - The Score is the Match's one Set, 0 to 99 a side, entered from kick-off. Agreement needs one confirmer from each side, not every rostered User (rule 29 said every User).
 - Scorers are optional and stored in `match_goals`; this is the schema change rule D24 said it would not need.
-- Mobile only: the Games list gets an All / Padel / Football filter and football sections, and Game details, the join sheet, Make teams and Score follow the design. Web keeps the roster view.
+- There is no bench: substitutes register as players up to players allowed, and the teams are made from everyone registered.
+- Web and mobile: the Games list gets an All / Padel / Football filter and football sections, and Game details, the join sheet, Make teams and Score follow the design. The shared view models are `@repo/domain/football-board` and `football-hub`; `/dashboard/design/football` previews the web pieces in development.
 
 ## 6. Data model (`@repo/db`)
 

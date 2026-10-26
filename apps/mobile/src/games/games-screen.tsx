@@ -3,6 +3,7 @@ import {
   HISTORY_PAGE_SIZE,
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
+import type { SportFilter } from "@repo/domain/football-hub";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
@@ -19,7 +20,6 @@ import {
   seatJoinRequest,
   waitlistJoinRequest,
   type GamesTab,
-  type SportFilter,
 } from "./games-model";
 import { GamesView } from "./games-view";
 import { useGameJoin } from "./use-game-join";

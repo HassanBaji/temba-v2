@@ -25,7 +25,7 @@ import {
   keepersIn,
   seatSummary,
   type BoardPlayer,
-} from "./football-model";
+} from "@repo/domain/football-board";
 
 const CHOICE_HEIGHT = 52;
 

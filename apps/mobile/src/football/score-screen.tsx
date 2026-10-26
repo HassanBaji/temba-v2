@@ -39,7 +39,7 @@ import {
   type BoardPlayer,
   type ScoreDraft,
   type Side,
-} from "./football-model";
+} from "@repo/domain/football-board";
 
 const STEP = 44;
 

@@ -1,4 +1,4 @@
-import { colors } from "@repo/design-tokens";
+import { bibColors, colors } from "@repo/design-tokens";
 import {
   formatDayMonth,
   formatGameCardDay,
@@ -10,6 +10,7 @@ import {
   type FootballBib,
 } from "@repo/domain/football-lineup";
 import { sideSizeLabel } from "@repo/domain/game-shape";
+import { footballSection } from "@repo/domain/football-hub";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import type {
   HubGameFootballSide,
@@ -20,11 +21,9 @@ import { View } from "react-native";
 
 import { BibChip } from "../football/bib-picker";
 import { SeatBar } from "../game-details/football-hero";
-import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import { CardFooter, CardShell } from "./card-parts";
-import { footballSection } from "./games-model";
 import { useNow } from "./use-now";
 
 export type FootballCardActions = {
@@ -35,7 +34,8 @@ export type FootballCardActions = {
   onConfirm: (gameId: string, matchId: string) => void;
 };
 
-const AVATAR_OVERLAP = -6;
+const DISC = 22;
+const DISC_OVERLAP = -4;
 
 function bibOf(side: HubGameFootballSide): FootballBib {
   return isFootballBib(side.bib)
@@ -96,19 +96,26 @@ function SideLine({ side }: { side: HubGameFootballSide }) {
           {footballBibName(bib, side.sideIndex)}
         </Text>
       </View>
-      <View style={{ flex: 1, flexDirection: "row", overflow: "hidden" }}>
+      <View
+        accessible
+        accessibilityLabel={side.members
+          .map((member) => member.name)
+          .join(", ")}
+        style={{ flex: 1, flexDirection: "row", overflow: "hidden" }}
+      >
         {side.members.map((member, index) => (
           <View
             key={member.userId}
             style={{
-              marginLeft: index === 0 ? 0 : AVATAR_OVERLAP,
-              borderRadius: 999,
+              width: DISC,
+              height: DISC,
+              marginLeft: index === 0 ? 0 : DISC_OVERLAP,
+              borderRadius: DISC / 2,
+              backgroundColor: bibColors[bib].fill,
               borderWidth: 2,
               borderColor: colors.paper,
             }}
-          >
-            <Avatar name={member.name} uri={member.image} size="sm" />
-          </View>
+          />
         ))}
       </View>
       <Text size="meta" tone="muted">
@@ -178,8 +185,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
 }
 
 function OpenBody({ game }: { game: HubGameRow }) {
-  const sideSize = game.football?.sideSize ?? 5;
-  const seats = sideSize * 2;
+  const seats = game.playersAllowed ?? (game.football?.sideSize ?? 5) * 2;
   const taken = game.registeredUserCount;
   const open = Math.max(0, seats - taken);
   return (
@@ -196,7 +202,7 @@ function OpenBody({ game }: { game: HubGameRow }) {
           </Text>
         </Text>
         <Text size="meta" tone="muted">
-          {taken > seats ? `${taken - seats} on the bench` : "Teams not set"}
+          Teams not set
         </Text>
       </View>
     </>

@@ -6,7 +6,7 @@ import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
-import { levelLabel, type BoardPlayer } from "./football-model";
+import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
 
 function roleLine(player: BoardPlayer) {
   if (player.role === "keeper") {
