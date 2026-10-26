@@ -88,7 +88,7 @@ describe("per-sport sections", () => {
   it("counts bookable Venues for the empty Up next", () => {
     assert.equal(venueCountLabel(null), null);
     assert.equal(venueCountLabel(0), "No venues yet");
-    assert.equal(venueCountLabel(1), "1 venue");
-    assert.equal(venueCountLabel(3), "3 venues");
+    assert.equal(venueCountLabel(1), "1 venue nearby");
+    assert.equal(venueCountLabel(3), "3 venues nearby");
   });
 });
