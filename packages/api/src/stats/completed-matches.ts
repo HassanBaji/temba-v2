@@ -12,10 +12,7 @@ import {
   type CompletedMatchForStats,
   type CompletedMatchSlotPlayer,
 } from "@repo/domain/completed-matches";
-import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { gameListTime } from "#src/home/upcoming-games";
-
-export type CompletedMatchInSport = CompletedMatchForStats & { sport: Sport };
 
 function playersOnSlot(team: MatchSlotTeam): CompletedMatchSlotPlayer[] {
   return slotMembers(team, null).map((member) => ({
@@ -27,7 +24,7 @@ function playersOnSlot(team: MatchSlotTeam): CompletedMatchSlotPlayer[] {
 export async function loadCompletedMatchesForUser(
   database: DbClient,
   userId: string,
-): Promise<CompletedMatchInSport[]> {
+): Promise<CompletedMatchForStats[]> {
   const myPlayerRows = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, userId),
     columns: { id: true },
@@ -74,7 +71,6 @@ export async function loadCompletedMatchesForUser(
           createdAt: true,
           format: true,
           rated: true,
-          sport: true,
         },
         with: {
           matches: {
@@ -126,7 +122,7 @@ export async function loadCompletedMatchesForUser(
   });
 
   const teamIds = new Set(myGameTeamIds);
-  const played: CompletedMatchInSport[] = [];
+  const played: CompletedMatchForStats[] = [];
   for (const match of completedMatches) {
     const game = match.game;
     if (!game || game.cancelledAt != null) {
@@ -142,7 +138,6 @@ export async function loadCompletedMatchesForUser(
       displayTime: match.startTime ?? gameListTime(game),
       userSlot,
       rated: game.rated,
-      sport: sportOrDefault(game.sport),
       sets: match.sets,
       slot1Players: playersOnSlot(match.slot1GameTeam),
       slot2Players: playersOnSlot(match.slot2GameTeam),

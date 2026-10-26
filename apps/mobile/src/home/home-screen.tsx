@@ -11,7 +11,6 @@ import {
   levelFromApi,
   recentFormFromHistory,
   standingInSport,
-  statsInSport,
   type HomeModel,
   type Slot,
 } from "./home-model";
@@ -97,7 +96,6 @@ export function HomeScreen() {
     sport,
     level: slotOf(rating, levelFromApi),
     recentForm: slotOf(history, recentFormFromHistory),
-    stats: slotOf(home, (data) => statsInSport(data, sport)),
     standing: slotOf(home, (data) => standingInSport(data.standing, sport)),
   };
 

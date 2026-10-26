@@ -20,8 +20,6 @@ export type HomeLevel =
   | { kind: "rated"; input: HomeLevelInput }
   | { kind: "none" };
 
-export type HomeStats = { played: number; won: number; lost: number };
-
 export type HomeModel = {
   name: string;
   imageUri: string | null;
@@ -32,11 +30,9 @@ export type HomeModel = {
   sport: Sport;
   level: Slot<HomeLevel>;
   recentForm: Slot<RecentFormView>;
-  stats: Slot<HomeStats>;
   standing: Slot<HomeStandingRow[]>;
 };
 
-type ApiHome = RouterOutputs["users"]["home"];
 type ApiRating = RouterOutputs["ratings"]["me"];
 
 export function levelFromApi(data: ApiRating): HomeLevel {
@@ -64,15 +60,6 @@ export function recentFormFromHistory(
   rows: readonly RecentFormHistoryRow[],
 ): RecentFormView {
   return deriveRecentForm(rows);
-}
-
-export function statsInSport(data: ApiHome, sport: Sport): HomeStats {
-  const stats = data.statsBySport[sport];
-  return {
-    played: stats.gamesPlayed,
-    won: stats.gamesWon,
-    lost: stats.gamesLost,
-  };
 }
 
 export function standingInSport(

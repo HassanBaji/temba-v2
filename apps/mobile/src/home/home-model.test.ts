@@ -6,12 +6,10 @@ import {
   noLevelCopy,
   standingCountLabel,
   standingInSport,
-  statsInSport,
   venueCountLabel,
 } from "./home-model";
 import type { RouterOutputs } from "../trpc/react";
 
-type ApiHome = RouterOutputs["users"]["home"];
 type ApiRating = RouterOutputs["ratings"]["me"];
 
 describe("levelFromApi", () => {
@@ -51,20 +49,6 @@ describe("levelFromApi", () => {
 });
 
 describe("per-sport sections", () => {
-  it("reads Played, Won and Lost for the chosen sport", () => {
-    const data = {
-      statsBySport: {
-        padel: { gamesPlayed: 2, gamesWon: 0, gamesLost: 2 },
-        football: { gamesPlayed: 1, gamesWon: 1, gamesLost: 0 },
-      },
-    } as ApiHome;
-    assert.deepEqual(statsInSport(data, "football"), {
-      played: 1,
-      won: 1,
-      lost: 0,
-    });
-  });
-
   it("keeps the Standing of Groups in the chosen sport, a Group with no sport being padel", () => {
     const rows = [
       {

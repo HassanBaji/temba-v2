@@ -21,7 +21,6 @@ import {
 } from "@repo/db/schema";
 
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
-import { loadHome } from "#src/routers/users/home";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -739,7 +738,7 @@ describe("listMyMatchHistoryRows pagination", () => {
 });
 
 describe("listMyMatchHistoryRows by sport", () => {
-  it("tags each row with its sport, filters by sport, and splits Home stats per sport", async () => {
+  it("tags each row with its sport and filters by sport", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "sport-viewer@example.com");
@@ -789,13 +788,6 @@ describe("listMyMatchHistoryRows by sport", () => {
         sport: "football",
       });
       expect(onlyFootball.map((row) => row.outcome)).toEqual(["won"]);
-
-      const home = await loadHome(db, { userId: viewer.id });
-      expect(home.statsBySport).toEqual({
-        padel: { gamesPlayed: 1, gamesWon: 0, gamesLost: 1 },
-        football: { gamesPlayed: 1, gamesWon: 1, gamesLost: 0 },
-      });
-      expect(home.gamesPlayed).toBe(2);
     } finally {
       await close();
     }

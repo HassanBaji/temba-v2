@@ -50,12 +50,20 @@ export function ResultMark({
             />
           </>
         ) : notPlayed ? (
-          <Path
-            d={resultMark.arc}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={resultMark.notPlayedArcStroke}
-          />
+          <>
+            <Circle
+              {...resultMark.outlineDisc}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={resultMark.notPlayedRingStroke}
+            />
+            <Path
+              d={resultMark.arc}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={resultMark.notPlayedArcStroke}
+            />
+          </>
         ) : (
           <>
             <Circle

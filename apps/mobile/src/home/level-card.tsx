@@ -137,7 +137,14 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
       </View>
       <Hairline />
       {view.progress ? (
-        <View style={{ padding: spacing.surface, gap: 8 }}>
+        <View
+          style={{
+            paddingHorizontal: spacing.surface,
+            paddingTop: 14,
+            paddingBottom: 16,
+            gap: 8,
+          }}
+        >
           <Text size="meta" tone="muted">
             {view.progress.label}
           </Text>

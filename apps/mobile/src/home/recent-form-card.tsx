@@ -10,27 +10,18 @@ import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { Card } from "./card";
-import type { HomeStats } from "./home-model";
 
 const MARK = 16;
 const MARKS_WIDTH = 150;
 
-export function RecentFormCard({
-  form,
-  stats,
-}: {
-  form: RecentFormView;
-  stats: HomeStats | null;
-}) {
+export function RecentFormCard({ form }: { form: RecentFormView }) {
   const palette = useTonePalette();
   const record = recentFormRecord(form);
-  const figures = stats
-    ? [
-        { key: "played", label: "Played", value: stats.played },
-        { key: "won", label: "Won", value: stats.won },
-        { key: "lost", label: "Lost", value: stats.lost },
-      ]
-    : [];
+  const figures = [
+    { key: "played", label: "Played", value: form.playedCount },
+    { key: "won", label: "Won", value: form.wins },
+    { key: "lost", label: "Lost", value: form.losses },
+  ];
 
   return (
     <Card title="Recent form" meta="Last 10 matches">
@@ -70,36 +61,32 @@ export function RecentFormCard({
           ))}
         </View>
       </View>
-      {figures.length > 0 ? (
-        <>
-          <Hairline />
-          <View style={{ flexDirection: "row" }}>
-            {figures.map((figure, index) => (
-              <View
-                key={figure.key}
-                accessible
-                accessibilityLabel={`${figure.label} ${figure.value}`}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  alignItems: "center",
-                  gap: 4,
-                  paddingVertical: 16,
-                  borderLeftWidth: index === 0 ? 0 : 1,
-                  borderLeftColor: palette.rule,
-                }}
-              >
-                <Text size="figure" width="expanded" weight="bold">
-                  {figure.value}
-                </Text>
-                <Text size="eyebrow" tone="muted">
-                  {figure.label}
-                </Text>
-              </View>
-            ))}
+      <Hairline />
+      <View style={{ flexDirection: "row" }}>
+        {figures.map((figure, index) => (
+          <View
+            key={figure.key}
+            accessible
+            accessibilityLabel={`${figure.label} ${figure.value}`}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              alignItems: "center",
+              gap: 4,
+              paddingVertical: 16,
+              borderLeftWidth: index === 0 ? 0 : 1,
+              borderLeftColor: palette.rule,
+            }}
+          >
+            <Text size="figure" width="expanded" weight="bold">
+              {figure.value}
+            </Text>
+            <Text size="eyebrow" tone="muted">
+              {figure.label}
+            </Text>
           </View>
-        </>
-      ) : null}
+        ))}
+      </View>
     </Card>
   );
 }

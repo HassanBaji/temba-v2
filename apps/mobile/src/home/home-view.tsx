@@ -30,7 +30,6 @@ export function HomeView({
 }) {
   const now = useNow();
   const { upNext } = model;
-  const played = model.stats.status === "ready" && model.stats.value.played > 0;
 
   return (
     <>
@@ -85,14 +84,7 @@ export function HomeView({
           onRetry={onRetry}
         >
           {(form) =>
-            form.playedCount > 0 || played ? (
-              <RecentFormCard
-                form={form}
-                stats={
-                  model.stats.status === "ready" ? model.stats.value : null
-                }
-              />
-            ) : null
+            form.playedCount > 0 ? <RecentFormCard form={form} /> : null
           }
         </Block>
         {model.standing.status === "ready" ? (
