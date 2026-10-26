@@ -13,6 +13,7 @@ import {
   vacateSeat,
 } from "#src/games/seats";
 import { type db } from "#src/db";
+import { isFootballGame } from "@repo/domain/game-shape";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -72,9 +73,13 @@ export async function leaveRegisteredSeat(
     });
   }
 
-  const link = await database.query.gameTeamPlayers.findFirst({
-    where: eq(gameTeamPlayers.gamePlayerId, player.id),
-  });
+  // A football side is the whole half of the roster, so leaving it drops only
+  // this player; the cascade removes their place on the side.
+  const link = isFootballGame(game)
+    ? undefined
+    : await database.query.gameTeamPlayers.findFirst({
+        where: eq(gameTeamPlayers.gamePlayerId, player.id),
+      });
   if (link) {
     if (isPoolDrawPosted(game)) {
       const occupants = await database.query.gameTeamPlayers.findMany({

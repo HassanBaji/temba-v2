@@ -20,6 +20,28 @@ export type HubGameTournamentTeam = {
   right: HubGameOccupant | null;
 };
 
+export type HubGameFootballSide = {
+  sideIndex: 1 | 2;
+  bib: string;
+  members: HubGameOccupant[];
+};
+
+/** A football Game's teams and Score on a list card; null on other Games. */
+export type HubGameFootball = {
+  sideSize: number | null;
+  sides: HubGameFootballSide[] | null;
+  viewer: {
+    sideIndex: 1 | 2 | null;
+    role: "outfield" | "keeper" | null;
+    position: "def" | "mid" | "fwd" | null;
+  };
+  score: { slot1: number; slot2: number } | null;
+  matchId: string | null;
+  matchStatus: string | null;
+  needsViewerConfirmation: boolean;
+  enteredByName: string | null;
+};
+
 export type HubGameRow = {
   id: string;
   name: string | null;
@@ -78,6 +100,7 @@ export type HubGameRow = {
     } | null;
   } | null;
   knockoutMatch: { round: number; roundCount: number } | null;
+  football?: HubGameFootball | null;
 };
 
 export type HubHistoryMember = {

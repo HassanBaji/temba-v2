@@ -24,6 +24,7 @@ import {
   gameFormats,
   gameRegistrationModes,
   gameSports,
+  footballTeamsMethods,
   tournamentShapes,
   GameFormatEnum,
   GameRegistrationModeEnum,
@@ -66,6 +67,7 @@ export const games = pgTable(
     levelMaxTenths: integer("level_max_tenths"),
     sport: gameSports("sport").default(GameSportEnum.PADEL),
     sideSize: integer("side_size"),
+    footballTeamsMethod: footballTeamsMethods("football_teams_method"),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),

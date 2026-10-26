@@ -7,6 +7,7 @@ export type GamesTab = "my-games" | "history";
 
 export type HubItem =
   | { kind: "match"; key: string; game: HubGameRow }
+  | { kind: "football"; key: string; game: HubGameRow }
   | { kind: "tournament"; key: string; game: HubGameRow }
   | {
       kind: "game";
@@ -22,6 +23,9 @@ export function hubItems(rows: readonly HubGameRow[]): HubItem[] {
     }
     if (isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
       return { kind: "tournament", key: game.id, game };
+    }
+    if (game.football) {
+      return { kind: "football", key: game.id, game };
     }
     return {
       kind: "game",
@@ -65,6 +69,14 @@ export function registerRequest(gameId: string): JoinRequest {
 
 export function gamePath(gameId: string) {
   return `/games/${gameId}`;
+}
+
+export function footballJoinPath(gameId: string) {
+  return `/games/${gameId}?intent=join`;
+}
+
+export function footballScorePath(gameId: string) {
+  return `/games/${gameId}/score`;
 }
 
 export function historyEmptyCopy() {

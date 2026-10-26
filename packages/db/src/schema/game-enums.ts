@@ -28,6 +28,33 @@ export const gameRegistrationModes = pgEnum("game_registration_mode", [
 
 export const gamePositions = pgEnum("game_position", ["left", "right"]);
 
+export const footballRoles = pgEnum("football_role", ["outfield", "keeper"]);
+
+export const footballPositions = pgEnum("football_position", [
+  "def",
+  "mid",
+  "fwd",
+]);
+
+export const footballBibs = pgEnum("football_bib", [
+  "black",
+  "white",
+  "red",
+  "navy",
+  "sky",
+  "green",
+  "yellow",
+  "orange",
+  "purple",
+  "pink",
+  "grey",
+]);
+
+export const footballTeamsMethods = pgEnum("football_teams_method", [
+  "level",
+  "manual",
+]);
+
 export enum MatchStatusEnum {
   PENDING = "pending",
   CONFIRMED = "confirmed",

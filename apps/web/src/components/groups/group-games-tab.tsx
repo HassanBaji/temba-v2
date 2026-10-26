@@ -2,9 +2,11 @@
 
 import { Calendar } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { GroupPlayedRow } from "~/components/groups/group-played-row";
@@ -60,6 +62,7 @@ export function GroupGamesTab({
   onRegister: (gameId: string) => void;
 }) {
   const utils = api.useUtils();
+  const router = useRouter();
   const [olderPages, setOlderPages] = React.useState<{
     source: GroupHome["gameHistory"];
     games: GroupHome["gameHistory"];
@@ -137,6 +140,21 @@ export function GroupGamesTab({
         ) : (
           <ul className="flex flex-col gap-3">
             {upcomingGames.map((game) => {
+              if (game.football) {
+                return (
+                  <FootballGameCard
+                    key={game.id}
+                    game={game}
+                    pending={pendingGameId === game.id}
+                    onJoinWaitlist={() => {
+                      onJoinWaitlist(game);
+                    }}
+                    onConfirm={() => {
+                      router.push(`/dashboard/games/${game.id}`);
+                    }}
+                  />
+                );
+              }
               if (
                 isDrawnTournament(
                   game.format,

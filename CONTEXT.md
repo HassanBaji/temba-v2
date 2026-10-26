@@ -281,7 +281,7 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration**, a **Side size** and, until football results ship, no Match; it is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Roster registration**:
@@ -290,6 +290,23 @@ _Avoid_: pool registration (a Pool is a tournament stage), open registration (re
 
 **Side size**:
 On a football Game, how many play on each side at once: 5, 6, 7, 8, 9 or 11. Players allowed is at least twice the Side size and at most 40; the rest are substitutes. Shown as "5-a-side".
+
+**Football role**:
+How a registered User plays a football Game: keeper or outfield, with a **Preferred football position** (defender, midfield or forward) for outfield. Chosen when joining and changeable until the Score is in. A preference, never a promise. A football Game has two keeper seats, one a side.
+_Avoid_: Position (the padel seat), Preferred Position (the padel side preference)
+
+**Football side**:
+One of the two halves an Organizer splits a football Game's roster into, by Level or by hand, each worn in a **Bib** colour. Stored as a Game team with a side index. Publishing the sides again replaces them until the Score is in. Product copy says team.
+_Avoid_: Team (the persistent roster), squad
+
+**Bib**:
+The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. The only place colour appears in the product.
+
+**Score**:
+On a football Match, the goals each Football side scored, stored as the Match's one Set. A player on either side or an Organizer enters it from kick-off; it is agreed once one player from each side confirms. A changed Score asks again.
+
+**Scorer**:
+A player named with the goals they scored in a football Match. Optional, and never more goals than their side's Score. Goals are a player fact, not a rating input.
 _Avoid_: format (that is Friendly game, Americano or Friendly tournament), team size, a-side (bare)
 
 **Match**:

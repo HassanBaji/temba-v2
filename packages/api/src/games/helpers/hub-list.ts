@@ -5,11 +5,16 @@ import {
   gamePlayers,
   gameWaitlist,
   groupMembers,
+  matchResultConfirmations,
   matchSets,
   teamMembers,
 } from "@repo/db";
 
-import { isRosterRegistrationGame } from "@repo/domain/game-shape";
+import { DEFAULT_FOOTBALL_BIBS } from "@repo/domain/football-lineup";
+import {
+  isFootballGame,
+  isRosterRegistrationGame,
+} from "@repo/domain/game-shape";
 import { poolLetter } from "@repo/domain/tournament-knockout";
 import {
   knockoutChampion,
@@ -34,6 +39,7 @@ import { registrationStatusFromState } from "#src/games/access";
 import { gameListTime } from "#src/home/upcoming-games";
 import { consult } from "#src/soft-archive";
 import type {
+  HubListFootball,
   HubListPoolMatch,
   HubListRow,
   HubListSide,
@@ -73,6 +79,7 @@ export const hubListColumns = {
   roundCount: true,
   allowSoloRegister: true,
   drawPostedAt: true,
+  sideSize: true,
 } as const;
 
 export const hubListWith = {
@@ -124,12 +131,19 @@ export const hubListWith = {
         },
         orderBy: asc(matchSets.setNumber),
       },
+      confirmations: {
+        columns: { userId: true, confirmedAt: true },
+        with: { user: { columns: { name: true } } },
+        orderBy: asc(matchResultConfirmations.confirmedAt),
+      },
     },
   },
   players: {
     columns: {
       id: true,
       userId: true,
+      footballRole: true,
+      footballPosition: true,
     },
   },
   waitlist: {
@@ -143,6 +157,7 @@ export const hubListWith = {
       id: true,
       sideIndex: true,
       poolIndex: true,
+      bib: true,
     },
     with: {
       players: {
@@ -194,6 +209,7 @@ export type HubQueryRow = {
   roundCount: number | null;
   allowSoloRegister: boolean;
   drawPostedAt: Date | null;
+  sideSize: number | null;
   group: {
     id: string;
     communityId: string | null;
@@ -216,13 +232,24 @@ export type HubQueryRow = {
     courtId: string | null;
     court: { name: string } | null;
     sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
+    confirmations?: {
+      userId: string;
+      confirmedAt: Date;
+      user: { name: string } | null;
+    }[];
   }[];
-  players: { id: string; userId: string | null }[];
+  players: {
+    id: string;
+    userId: string | null;
+    footballRole?: "outfield" | "keeper" | null;
+    footballPosition?: "def" | "mid" | "fwd" | null;
+  }[];
   waitlist: { userId: string | null; teamId: string | null }[];
   teams: {
     id: string;
     sideIndex: number | null;
     poolIndex: number | null;
+    bib?: string | null;
     players: {
       position: "left" | "right" | null;
       gamePlayer: {
@@ -314,6 +341,84 @@ function sidesFromRow(row: HubQueryRow, viewerUserId: string): HubListSide[] {
     return [];
   }
   return sidesBySideIndex(row, viewerUserId, 2);
+}
+
+function footballSideMembers(
+  team: HubQueryRow["teams"][number],
+  viewerUserId: string,
+) {
+  return team.players.flatMap((link) => {
+    const occupant = occupantFromLink(link, viewerUserId);
+    return occupant ? [occupant] : [];
+  });
+}
+
+/**
+ * A football row's teams and Score. The Score waits on the viewer when it is
+ * in, unconfirmed, and nobody on the viewer's side has confirmed it yet.
+ */
+function footballFromRow(
+  row: HubQueryRow,
+  viewerUserId: string,
+): HubListFootball | null {
+  if (!isFootballGame(row) || row.format !== "friendly_game") {
+    return null;
+  }
+  const slot1 = row.teams.find((team) => team.sideIndex === 1);
+  const slot2 = row.teams.find((team) => team.sideIndex === 2);
+  const match = row.matches.find((item) => item.status !== "cancelled");
+  const sides: HubListFootball["sides"] =
+    slot1 && slot2 && match
+      ? [
+          {
+            sideIndex: 1,
+            bib: slot1.bib ?? DEFAULT_FOOTBALL_BIBS.slot1,
+            members: footballSideMembers(slot1, viewerUserId),
+          },
+          {
+            sideIndex: 2,
+            bib: slot2.bib ?? DEFAULT_FOOTBALL_BIBS.slot2,
+            members: footballSideMembers(slot2, viewerUserId),
+          },
+        ]
+      : null;
+  const viewerSide =
+    sides?.find((side) => side.members.some((member) => member.isViewer))
+      ?.sideIndex ?? null;
+  const viewerPlayer = row.players.find(
+    (player) => player.userId === viewerUserId,
+  );
+  const set = match?.sets[0];
+  const score =
+    set?.slot1GamesWon != null && set.slot2GamesWon != null
+      ? { slot1: set.slot1GamesWon, slot2: set.slot2GamesWon }
+      : null;
+  const confirmations = match?.confirmations ?? [];
+  const confirmedIds = new Set(confirmations.map((item) => item.userId));
+  const viewerSideMembers = sides?.find(
+    (side) => side.sideIndex === viewerSide,
+  )?.members;
+  const viewerSideConfirmed =
+    viewerSideMembers?.some((member) => confirmedIds.has(member.userId)) ??
+    false;
+  return {
+    sideSize: row.sideSize,
+    sides,
+    viewer: {
+      sideIndex: viewerSide,
+      role: viewerPlayer?.footballRole ?? null,
+      position: viewerPlayer?.footballPosition ?? null,
+    },
+    score,
+    matchId: match?.id ?? null,
+    matchStatus: match?.status ?? null,
+    needsViewerConfirmation:
+      score != null &&
+      match?.status !== "completed" &&
+      viewerSide != null &&
+      !viewerSideConfirmed,
+    enteredByName: confirmations[0]?.user?.name ?? null,
+  };
 }
 
 function tournamentTeamsFromRow(
@@ -585,6 +690,7 @@ export function toHubListRow(
     courtName: null,
     poolMatch: null,
     knockoutMatch: null,
+    football: footballFromRow(row, viewer.userId),
   };
 }
 

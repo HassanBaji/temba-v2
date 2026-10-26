@@ -8,6 +8,7 @@ import type {
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
 
+import type { HubGameFootball } from "@repo/domain/hub-game-row";
 import type { Sport } from "@repo/domain/sport";
 
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
@@ -78,6 +79,8 @@ export type HubListKnockoutMatch = {
   roundCount: number;
 };
 
+export type HubListFootball = HubGameFootball;
+
 export type HubListRow = {
   id: string;
   name: string | null;
@@ -120,6 +123,8 @@ export type HubListRow = {
   poolMatch: HubListPoolMatch | null;
   /** Only on expanded Knockout Match rows, which carry no Round number. */
   knockoutMatch: HubListKnockoutMatch | null;
+  /** Only on football Games. */
+  football?: HubListFootball | null;
 };
 
 export type GameCreateGroupKind = "club" | "loose" | "none";

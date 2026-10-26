@@ -28,14 +28,32 @@ export function FootballOrganizerCard({
   organizer,
   waitlist,
   playersAllowed,
+  teams,
   handlers,
 }: {
   organizer: NonNullable<FootballGameDetailsModel["organizer"]>;
   waitlist: FootballGameDetailsModel["waitlistRows"];
   playersAllowed: number | null;
-  handlers: FootballOrganizerHandlers;
+  teams: { status: string; actionLabel: string } | null;
+  handlers: FootballOrganizerHandlers & { onMakeTeams: () => void };
 }) {
-  const blocks: React.ReactNode[] = [
+  const blocks: React.ReactNode[] = [];
+  if (teams) {
+    blocks.push(
+      <Block key="teams">
+        <View>
+          <Text weight="medium">Teams</Text>
+          <Text size="meta" tone="muted">
+            {teams.status}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row" }}>
+          <Button label={teams.actionLabel} onPress={handlers.onMakeTeams} />
+        </View>
+      </Block>,
+    );
+  }
+  blocks.push(
     <Block key="registration">
       <Text weight="medium">Registration</Text>
       <View style={{ flexDirection: "row" }}>
@@ -66,7 +84,7 @@ export function FootballOrganizerCard({
         />
       </View>
     </Block>,
-  ];
+  );
 
   if (waitlist.length > 0) {
     blocks.push(

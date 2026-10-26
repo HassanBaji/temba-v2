@@ -13,12 +13,14 @@ export function gameHomeTabQuery(tab: GameHomeTab) {
   return tab === "overview" ? "" : `?tab=${tab}`;
 }
 
-export type GameHomeIntent = "invite" | "results";
+export type GameHomeIntent = "invite" | "results" | "join";
 
 export function gameHomeIntentFromQuery(
   intent: string | null | undefined,
 ): GameHomeIntent | null {
-  return intent === "invite" || intent === "results" ? intent : null;
+  return intent === "invite" || intent === "results" || intent === "join"
+    ? intent
+    : null;
 }
 
 export function gameHomeIntentHref(gameId: string, intent: GameHomeIntent) {

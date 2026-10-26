@@ -1,6 +1,8 @@
 "use client";
 
 import { Ban } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -14,12 +16,20 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
-import { FootballRosterSection } from "~/components/games/football-roster-section";
+import {
+  FootballInfoRows,
+  type FootballInfoRow,
+} from "~/components/games/football-info-rows";
+import { FootballJoinDialog } from "~/components/games/football-join-dialog";
+import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
+import { PoolGrid, SeatBar } from "~/components/games/football-pool-grid";
+import { FootballScoreCard } from "~/components/games/football-score-card";
+import { TeamColumns } from "~/components/games/football-team-columns";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
-import { GameUnratedBlock } from "~/components/games/game-rating-impact-block";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import {
   focusFormFailure,
   toastGlobalFormError,
@@ -27,9 +37,23 @@ import {
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import {
+  bibNames,
+  footballHeroLines,
+  poolLayout,
+  slotCode,
+  viewerSideLine,
+  type BoardPlayer,
+} from "@repo/domain/football-board";
+import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
+import {
+  footballTeamsMethodLabel,
+  keepersInLine,
+  type FootballPosition,
+  type FootballRole,
+} from "@repo/domain/football-lineup";
 import {
   CANCEL_GAME_ACTION,
   CLOSE_REGISTRATION_ACTION,
@@ -57,6 +81,7 @@ import { gameInviteAccess, lookupInviteSentToast } from "@repo/domain/invites";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
 import {
   filsToMajorInput,
+  formatPricePerPlayerFils,
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
 import { splitGameWindow } from "@repo/domain/game-window";
@@ -72,12 +97,15 @@ export function FootballGameDetails({
   gameId,
   game,
   openInvites,
+  openJoin,
 }: {
   gameId: string;
   game: FootballGame;
   openInvites: boolean;
+  openJoin: boolean;
 }) {
   const utils = api.useUtils();
+  const router = useRouter();
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const [now] = React.useState(() => new Date());
   const [editOpen, setEditOpen] = React.useState(false);
@@ -100,12 +128,36 @@ export function FootballGameDetails({
     string | undefined
   >();
   const [capDraft, setCapDraft] = React.useState(game.playersAllowed ?? 0);
+  const [joinMode, setJoinMode] = React.useState<"join" | "edit" | null>(null);
+  const [selected, setSelected] = React.useState<BoardPlayer | null>(null);
+  const autoJoined = React.useRef(false);
+
+  const board = api.games.footballBoard.useQuery({ gameId });
+  const players = board.data?.players ?? [];
+  const teams = board.data?.teams ?? null;
+  const names = teams ? bibNames(teams.bibs) : null;
+  const viewer = players.find((player) => player.isViewer) ?? null;
 
   const input: FootballGameDetailsInput = {
     ...game,
     roster: game.roster ?? { users: [], count: 0, cap: game.playersAllowed },
   };
   const model = footballGameDetailsModel(input, now);
+  const price = formatPricePerPlayerFils(game.pricePerPlayerFils);
+  const layout = poolLayout(players, game.sideSize, game.playersAllowed);
+  const lines = footballHeroLines(
+    {
+      windowStart: game.windowStart,
+      windowEnd: game.windowEnd,
+      cancelledAt: game.cancelledAt,
+      sideSize: game.sideSize,
+      venueName: game.venue?.name ?? null,
+      pitchName: game.recordedCourts[0]?.name ?? null,
+      teamsSet: teams != null,
+      scored: board.data?.match?.score != null,
+    },
+    now,
+  );
 
   const { windowStart, windowEnd, pricePerPlayerFils } = game;
   React.useEffect(() => {
@@ -129,6 +181,7 @@ export function FootballGameDetails({
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id: gameId });
+    await utils.games.footballBoard.invalidate({ gameId });
     await utils.users.home.invalidate();
     await utils.games.listPublicPickup.invalidate();
     await utils.games.listMyGames.invalidate();
@@ -137,7 +190,21 @@ export function FootballGameDetails({
   const onError = toastGlobalFormError;
   const register = api.games.register.useMutation({
     onSuccess: async (result) => {
+      setJoinMode(null);
       toast.success(gameJoinToast(result.waitlisted));
+      await refreshGame();
+    },
+  });
+  const setRole = api.games.setFootballRole.useMutation({
+    onSuccess: async () => {
+      setJoinMode(null);
+      toast.success("Saved");
+      await refreshGame();
+    },
+  });
+  const confirmScore = api.games.confirmMatchResult.useMutation({
+    onSuccess: async () => {
+      toast.success("Score confirmed");
       await refreshGame();
     },
     onError,
@@ -261,6 +328,13 @@ export function FootballGameDetails({
     onError,
   });
 
+  React.useEffect(() => {
+    if (openJoin && !autoJoined.current && model.cta?.kind === "join") {
+      autoJoined.current = true;
+      setJoinMode("join");
+    }
+  }, [openJoin, model.cta?.kind]);
+
   function requestKick(request: GameKickRequest) {
     setKickConfirm(
       gameKickTarget(
@@ -309,26 +383,213 @@ export function FootballGameDetails({
   const organizer = model.organizer;
   const cta = model.cta;
 
-  function onCta() {
-    switch (cta?.kind) {
-      case "join":
-      case "join_waitlist":
-        register.mutate({ gameId });
-        return;
-      case "registered":
-        setLeaveOpen(true);
-        return;
-      case "waitlisted":
-        setLeaveWaitlistOpen(true);
-        return;
+  function submitJoin(role: FootballRole, position: FootballPosition) {
+    if (joinMode === "edit") {
+      setRole.mutate({ gameId, role, position });
+    } else {
+      register.mutate({ gameId, football: { role, position } });
     }
   }
+
+  const canOpenProfiles = gamePlayersLink(game);
+  function onPressPlayer(userId: string) {
+    const player = players.find((row) => row.userId === userId);
+    if (player && organizer && !player.isViewer) {
+      setSelected(player);
+    } else if (canOpenProfiles) {
+      router.push(playerProfilePath(userId));
+    }
+  }
+  const pressPlayer = organizer || canOpenProfiles ? onPressPlayer : undefined;
+  const teamsHref = `/dashboard/games/${gameId}/teams`;
+  const scoreHref = `/dashboard/games/${gameId}/score`;
+  const canMakeTeams = board.data?.viewer.canMakeTeams ?? false;
+  const viewerCode = viewer ? slotCode(viewer) : null;
+  const heroMuted =
+    model.hero.tone === "ink" ? "text-dim" : "text-muted-foreground";
+  const joinSubtitle = [
+    lines.dayLine,
+    game.sideSize ? `${game.sideSize}-a-side` : null,
+    `${layout.openSeats} seats open`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const infoRows: FootballInfoRow[] = [
+    ...(game.groupName ? [{ label: "Group", value: game.groupName }] : []),
+    ...(price
+      ? [
+          {
+            label: "Pitch cost",
+            value: price === "Free" ? price : `${price} each`,
+          },
+        ]
+      : []),
+    {
+      label: "Teams",
+      value: teams
+        ? footballTeamsMethodLabel(teams.method)
+        : "The organizer makes them",
+    },
+    ...(names
+      ? [
+          {
+            label: "Bibs",
+            value: `${names.slot1} and ${names.slot2}, organizer brings`,
+          },
+        ]
+      : []),
+    { label: "Counts for rating", value: game.rated ? "Yes" : "No" },
+  ];
+  const onInk = model.hero.tone === "ink";
+
+  const heroActions = (
+    <div className="mt-4 space-y-2">
+      {cta?.kind === "join" ? (
+        <Button
+          type="button"
+          size="lg"
+          variant={onInk ? "inverse" : "default"}
+          className="w-full"
+          onClick={() => {
+            register.reset();
+            setJoinMode("join");
+          }}
+        >
+          {price && price !== "Free" ? `Join, ${price}` : "Join"}
+        </Button>
+      ) : null}
+      {cta?.kind === "join_waitlist" ? (
+        <Button
+          type="button"
+          size="lg"
+          variant={onInk ? "inverse" : "default"}
+          className="w-full"
+          pending={register.isPending}
+          onClick={() => register.mutate({ gameId })}
+        >
+          Join waitlist
+        </Button>
+      ) : null}
+      {cta?.kind === "registered" ? (
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 font-semibold">
+            {viewerCode ? `You're in as ${viewerCode}` : "You're in"}
+          </p>
+          {board.data?.match?.score == null ? (
+            <Button
+              type="button"
+              size="sm"
+              variant={onInk ? "outline-inverse" : "outline"}
+              onClick={() => {
+                setRole.reset();
+                setJoinMode("edit");
+              }}
+            >
+              Change
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant={onInk ? "outline-inverse" : "outline"}
+            onClick={() => setLeaveOpen(true)}
+          >
+            {LEAVE_GAME_ACTION}
+          </Button>
+        </div>
+      ) : null}
+      {cta?.kind === "waitlisted" ? (
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 font-semibold">{cta.title}</p>
+          <Button
+            type="button"
+            size="sm"
+            variant={onInk ? "outline-inverse" : "outline"}
+            onClick={() => setLeaveWaitlistOpen(true)}
+          >
+            {LEAVE_WAITLIST_ACTION}
+          </Button>
+        </div>
+      ) : null}
+      {inviteAccess.canManage && !teams ? (
+        <Button
+          type="button"
+          size="lg"
+          variant={onInk ? "outline-inverse" : "outline"}
+          className="w-full"
+          onClick={() => setInvitesOpen(true)}
+        >
+          Invite players
+        </Button>
+      ) : null}
+    </div>
+  );
+
+  const heroBody =
+    teams && names ? (
+      <>
+        <TeamColumns
+          players={players}
+          bibs={teams.bibs}
+          names={names}
+          muted={heroMuted}
+          onOpenPlayer={pressPlayer}
+        />
+        <p className={`${heroMuted} text-meta mt-3`}>
+          {[
+            viewerSideLine(
+              board.data?.viewer ?? { sideIndex: null },
+              players,
+              names,
+            ),
+            "Captains pick starters before kick-off.",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        </p>
+        {heroActions}
+      </>
+    ) : (
+      <>
+        <div
+          className={`border-t pt-4 ${onInk ? "border-dimrule" : "border-rule"}`}
+        >
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className={`${heroMuted} text-meta`}>Players in</p>
+              <p className="flex items-baseline gap-1.5">
+                <span className="font-expanded text-display tabular-nums leading-none">
+                  {players.length}
+                </span>
+                <span className={heroMuted}>of {layout.seats}</span>
+              </p>
+            </div>
+            <p className={`${heroMuted} text-meta text-right`}>
+              Teams by the organizer
+            </p>
+          </div>
+          <div className="mt-3">
+            <SeatBar
+              seats={layout.seats}
+              filled={players.length}
+              tone={model.hero.tone}
+            />
+          </div>
+        </div>
+        {heroActions}
+      </>
+    );
 
   const menu = organizer ? (
     <ActionMenu label="Game actions">
       <ActionMenuItem onSelect={() => setEditOpen(true)}>
         {EDIT_GAME_ACTION}
       </ActionMenuItem>
+      {canMakeTeams ? (
+        <ActionMenuItem asChild>
+          <Link href={teamsHref}>{teams ? "Edit teams" : "Make teams"}</Link>
+        </ActionMenuItem>
+      ) : null}
       {organizer.registration === "reopen" ? (
         <ActionMenuItem
           disabled={game.joinFrozen || reopenRegistration.isPending}
@@ -367,7 +628,7 @@ export function FootballGameDetails({
       isSubPage={true}
       hideNav={true}
     >
-      <div className={cta ? "mt-6 space-y-6 max-lg:pb-20" : "space-y-6"}>
+      <div className="space-y-6">
         {game.cancelledAt ? (
           <section
             role="status"
@@ -394,17 +655,84 @@ export function FootballGameDetails({
           </SoftArchiveBanner>
         ) : null}
 
-        <FootballGameHeroCard hero={model.hero} />
+        <FootballGameHeroCard tone={model.hero.tone} lines={lines}>
+          {heroBody}
+        </FootballGameHeroCard>
 
-        <FootballRosterSection
-          rows={model.rosterRows}
-          count={input.roster.count}
-          cap={input.roster.cap}
-          openSpots={model.openSpots}
-          linkToPlayers={gamePlayersLink(game)}
-          kickPending={kick.isPending}
-          onKick={(userId) => requestKick({ userId })}
-        />
+        {board.error ? (
+          <p role="alert" className="text-destructive text-meta">
+            The lineup could not be loaded. {board.error.message}
+          </p>
+        ) : null}
+
+        {!teams ? (
+          <section
+            aria-labelledby="football-players-heading"
+            className="space-y-3"
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <h2
+                id="football-players-heading"
+                className="text-title font-semibold tracking-[-0.01em]"
+              >
+                Players
+              </h2>
+              <p className="text-muted-foreground text-meta">
+                {keepersInLine(
+                  players.filter((player) => player.role === "keeper").length,
+                )}
+              </p>
+            </div>
+            <PoolGrid
+              players={layout.pool}
+              open={layout.openSeats}
+              onOpenPlayer={pressPlayer}
+            />
+            <p className="text-muted-foreground text-meta">
+              Positions are preferences, not promises. The organizer makes the
+              teams, with a keeper on each side.
+            </p>
+          </section>
+        ) : null}
+
+        {teams && names ? (
+          <FootballScoreCard
+            bibs={teams.bibs}
+            names={names}
+            players={players}
+            match={board.data?.match ?? null}
+            canEnterScore={board.data?.viewer.canEnterScore ?? false}
+            canConfirm={board.data?.viewer.canConfirm ?? false}
+            confirmPending={confirmScore.isPending}
+            scoreHref={scoreHref}
+            onConfirm={() => {
+              const matchId = board.data?.match?.id;
+              if (matchId) {
+                confirmScore.mutate({ gameId, matchId });
+              }
+            }}
+          />
+        ) : null}
+
+        <FootballInfoRows rows={infoRows} />
+
+        {canMakeTeams ? (
+          <section className="border-rule bg-paper flex items-center justify-between gap-3 rounded-xl border p-5">
+            <div>
+              <h2 className="font-medium">Teams</h2>
+              <p className="text-muted-foreground text-meta">
+                {teams
+                  ? footballTeamsMethodLabel(teams.method)
+                  : "Not set yet. Split the pool when it fills."}
+              </p>
+            </div>
+            <Button asChild>
+              <Link href={teamsHref}>
+                {teams ? "Edit teams" : "Make teams"}
+              </Link>
+            </Button>
+          </section>
+        ) : null}
 
         {organizer && model.waitlistRows.length > 0 ? (
           <section
@@ -445,34 +773,44 @@ export function FootballGameDetails({
             </RowList>
           </section>
         ) : null}
-
-        <GameUnratedBlock />
       </div>
 
-      {cta ? (
-        <div
-          data-slot="football-game-cta-bar"
-          className="bg-background border-border lg:bg-card max-lg:fixed max-lg:inset-x-0 max-lg:z-40 max-lg:border-t max-lg:px-4 max-lg:py-3 max-lg:pb-6 lg:static lg:rounded-2xl lg:border lg:p-4"
-          style={{ bottom: "env(safe-area-inset-bottom, 0px)" }}
-        >
-          <p className="text-muted-foreground text-meta mb-2">{cta.title}</p>
-          <Button
-            type="button"
-            className="w-full"
-            variant={
-              cta.kind === "registered" || cta.kind === "waitlisted"
-                ? "outline"
-                : "default"
-            }
-            disabled={
-              register.isPending || leave.isPending || leaveWaitlist.isPending
-            }
-            onClick={onCta}
-          >
-            {cta.actionLabel}
-          </Button>
-        </div>
-      ) : null}
+      <FootballJoinDialog
+        open={joinMode != null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setJoinMode(null);
+          }
+        }}
+        mode={joinMode ?? "join"}
+        subtitle={joinSubtitle}
+        players={players}
+        viewer={{
+          role: viewer?.role ?? null,
+          position: viewer?.position ?? null,
+        }}
+        price={price}
+        teamsLine={teams ? "Set" : "Made by the organizer"}
+        pending={register.isPending || setRole.isPending}
+        error={
+          (joinMode === "edit" ? setRole.error : register.error)?.message ??
+          null
+        }
+        onSubmit={submitJoin}
+      />
+      <FootballPlayerDialog
+        player={selected}
+        canOpenProfile={canOpenProfiles}
+        onOpenChange={(next) => {
+          if (!next) {
+            setSelected(null);
+          }
+        }}
+        onRemove={(userId) => {
+          setSelected(null);
+          requestKick({ userId });
+        }}
+      />
 
       {organizer ? (
         <GameEditDialog

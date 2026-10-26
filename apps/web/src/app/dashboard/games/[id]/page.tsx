@@ -770,6 +770,7 @@ export default function GameHomePage({
         gameId={id}
         game={data}
         openInvites={intent === "invite"}
+        openJoin={intent === "join"}
       />
     );
   }
