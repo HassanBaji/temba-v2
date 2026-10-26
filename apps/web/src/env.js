@@ -1,6 +1,8 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+import { toApiOrigin } from "./lib/api-origin.js";
+
 export const env = createEnv({
   /**
    * Specify your server-side environment variables schema here. This way you can ensure the app
@@ -36,7 +38,7 @@ export const env = createEnv({
     NEXT_PUBLIC_CONSOLE_ORIGIN: process.env.NEXT_PUBLIC_CONSOLE_ORIGIN,
     NODE_ENV: process.env.NODE_ENV,
     WEB_ORIGIN: process.env.WEB_ORIGIN,
-    API_ORIGIN: process.env.API_ORIGIN,
+    API_ORIGIN: toApiOrigin(process.env.API_ORIGIN),
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

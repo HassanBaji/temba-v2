@@ -1,6 +1,8 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+import { toApiOrigin } from "./lib/api-origin.js";
+
 export const env = createEnv({
   server: {
     CLERK_SECRET_KEY: z.string(),
@@ -19,7 +21,7 @@ export const env = createEnv({
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     NODE_ENV: process.env.NODE_ENV,
-    API_ORIGIN: process.env.API_ORIGIN,
+    API_ORIGIN: toApiOrigin(process.env.API_ORIGIN),
     WEB_ORIGIN: process.env.WEB_ORIGIN,
     NEXT_PUBLIC_WEB_ORIGIN: process.env.NEXT_PUBLIC_WEB_ORIGIN,
   },

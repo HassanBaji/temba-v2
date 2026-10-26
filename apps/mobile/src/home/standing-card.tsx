@@ -8,6 +8,7 @@ import { Pressable, View } from "react-native";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 import { Card } from "./card";
+import { standingCountLabel } from "./home-model";
 import type { HomeNavTarget } from "./home-target";
 
 export function StandingCard({
@@ -22,16 +23,18 @@ export function StandingCard({
   }
 
   return (
-    <Card title="Standing" flush>
+    <Card
+      title="Standing"
+      meta={standingCountLabel(rows.length)}
+      monoMeta
+      flush
+    >
       {rows.map(homeStandingRowView).map((row) => (
         <View key={row.groupId}>
           <Hairline />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${row.groupName}, ${row.sportLabel ?? ""} ${row.rank} ${row.ofCount}`.replace(
-              /\s+/g,
-              " ",
-            )}
+            accessibilityLabel={`${row.groupName}, ${row.rank} ${row.ofCount}`}
             onPress={() => onNavigate({ kind: "group", groupId: row.groupId })}
             style={({ pressed }) => ({
               minHeight: sizes.touchTarget + 8,
@@ -43,16 +46,13 @@ export function StandingCard({
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text weight="medium" numberOfLines={1}>
-                {row.groupName}
-              </Text>
-              {row.sportLabel ? (
-                <Text size="meta" tone="muted">
-                  {row.sportLabel}
-                </Text>
-              ) : null}
-            </View>
+            <Text
+              weight="semibold"
+              numberOfLines={1}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              {row.groupName}
+            </Text>
             <View
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"

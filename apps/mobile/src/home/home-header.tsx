@@ -1,49 +1,73 @@
-import { homeStateLine } from "@repo/domain/home-state-line";
-import { View } from "react-native";
+import { sizes } from "@repo/design-tokens";
+import { Bell } from "lucide-react-native";
+import { Pressable, View } from "react-native";
 
 import { Avatar } from "../primitives/avatar";
-import { Skeleton } from "../primitives/skeleton";
+import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+
+const BADGE = 8;
 
 export function HomeHeader({
   name,
   imageUri,
   pendingInviteCount,
-  bookedGameCount,
-  ready,
-  failed,
+  onInvites,
 }: {
   name: string;
   imageUri: string | null;
   pendingInviteCount: number;
-  bookedGameCount: number;
-  ready: boolean;
-  failed: boolean;
+  onInvites: () => void;
 }) {
-  const stateLine = ready
-    ? homeStateLine(pendingInviteCount, bookedGameCount)
-    : null;
+  const palette = useTonePalette();
+  const invites =
+    pendingInviteCount === 0
+      ? "Invites"
+      : `Invites, ${pendingInviteCount} waiting`;
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <Avatar name={name} uri={imageUri} size="lg" />
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text
-          size="h2"
-          weight="semibold"
-          numberOfLines={1}
-          accessibilityRole="header"
-        >
-          {name}
-        </Text>
-        {stateLine ? (
-          <Text size="meta" tone="muted">
-            {stateLine}
-          </Text>
-        ) : ready || failed ? null : (
-          <Skeleton width={112} height={12} />
-        )}
-      </View>
+      <Text
+        size="h2"
+        width="expanded"
+        weight="bold"
+        numberOfLines={1}
+        accessibilityRole="header"
+        style={{ flex: 1, minWidth: 0 }}
+      >
+        {name}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={invites}
+        onPress={onInvites}
+        style={({ pressed }) => ({
+          width: sizes.touchTarget,
+          height: sizes.touchTarget,
+          marginRight: -10,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Bell size={sizes.iconAction} color={palette.foreground} />
+        {pendingInviteCount > 0 ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 11,
+              right: 11,
+              width: BADGE,
+              height: BADGE,
+              borderRadius: BADGE / 2,
+              borderWidth: 1.5,
+              borderColor: palette.background,
+              backgroundColor: palette.foreground,
+            }}
+          />
+        ) : null}
+      </Pressable>
     </View>
   );
 }

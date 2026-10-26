@@ -86,6 +86,7 @@ export const resultMark = {
   outlineDisc: { cx: 50, cy: 50, r: 43 },
   outlineStroke: 3,
   notPlayedArcStroke: 2,
+  notPlayedRingStroke: 1.5,
 } as const;
 
 export const motion = {

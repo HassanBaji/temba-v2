@@ -248,3 +248,32 @@ describe("loadRatingsMe history with Level sets", () => {
     }
   });
 });
+
+describe("loadRatingsMe by sport", () => {
+  it("reads the football Rating only when football is asked for", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-football@example.com");
+      await db.insert(ratings).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.FOOTBALL,
+        mu: muFromLevel(4.1),
+        phi: INITIAL_PHI,
+        sigma: INITIAL_SIGMA,
+        levelBand: "C1",
+      });
+
+      const padel = await loadRatingsMe(db, { userId: viewer.id });
+      expect(padel.rating).toBeNull();
+
+      const football = await loadRatingsMe(db, {
+        userId: viewer.id,
+        sport: "football",
+      });
+      expect(football.rating?.levelBand).toBe("C1");
+      expect(football.ratedMatchCount).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+});

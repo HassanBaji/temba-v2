@@ -205,7 +205,7 @@ export function NextBooking({
   );
 }
 
-function nextActionButton(action: NextBookingAction): {
+export function nextActionButton(action: NextBookingAction): {
   label: string;
   icon?: LucideIcon;
 } {
@@ -220,7 +220,7 @@ function nextActionButton(action: NextBookingAction): {
 }
 
 /** A compact button on the ink card, so three fit on one row. */
-function CardAction({
+export function CardAction({
   label,
   icon: Icon,
   iconOnly = false,
