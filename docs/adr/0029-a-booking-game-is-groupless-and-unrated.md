@@ -20,6 +20,10 @@ Only `bookings.createGame` sets `rated = false`. Every other Game is `rated = tr
 
 The rule "a new Game must belong to a Group" exists because Standing, the join gate and Organizer resolution hang off the Group. A Booking Game wants none of them: it has no Standing because it is unrated, the join gate is the holder's invitation, and the Organizer is the holder. The groupless paths already exist for legacy rows: `isGameOrganizer` and `gameAdminUserIds` fall back to `createdBy`, `userPassesJoinGate` admits only the creator on a private groupless Game (invited Users join through Lookup invite and the Invite link), `canViewGame` admits seated and waitlisted Users, and `load-group-standing` skips `groupId = null`.
 
+## On a Group, when the holder picks one
+
+The holder may put the Booking Game on a Group instead. `bookings.createGame` takes an optional `groupId`; without one, everything above holds. With one, the Game follows the Group like a `games.create` Game: the holder must pass `assertMayCreateGameOnGroup`, the Group's sport must match the Court's, a Club Group's linked Venue still binds, and `rated` is the Group's verified status (football stays unrated). The join gate is then Group membership, and Standing counts the Game when it rates. The Game stays private.
+
 `bookings.game_id` links the two, set in the same transaction as the Game insert while the Booking row is locked. The holder may create a new Game after cancelling the first; the link then moves to the new Game.
 
 ## Considered options

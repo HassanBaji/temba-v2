@@ -67,12 +67,15 @@ export function splitCourtCost(
   return filsToMajorInput(splitCostAcrossPlayers(priceFils, players));
 }
 
+export type BookingGameGroup = { name: string; rated: boolean };
+
 export function bookingGameReviewRows(
   booking: BookingGameSource,
   size: { sideSize: number; playersAllowed: number } = {
     sideSize: 0,
     playersAllowed: BOOKING_GAME_PLAYERS,
   },
+  group: BookingGameGroup | null = null,
 ): ReviewRow[] {
   const sport = bookingGameSport(booking);
   return [
@@ -88,8 +91,14 @@ export function bookingGameReviewRows(
       label: sport === "football" ? "Size" : "Seats",
       value: createFlowSeatsLabel(sport, size),
     },
-    { label: "Who can join", value: "People you invite" },
-    { label: "Rating", value: UNRATED_LABEL },
+    ...(group ? [{ label: "Group", value: group.name }] : []),
+    {
+      label: "Who can join",
+      value: group
+        ? "Group members and people you invite"
+        : "People you invite",
+    },
+    { label: "Rating", value: group?.rated ? "Rated" : UNRATED_LABEL },
   ];
 }
 
@@ -98,6 +107,7 @@ export type BookingGameRequest =
       ok: true;
       input: {
         bookingId: string;
+        groupId?: string;
         pricePerPlayerFils?: number;
         levelMinTenths?: number;
         levelMaxTenths?: number;
@@ -110,13 +120,14 @@ export type BookingGameRequest =
 export function bookingGameRequest(
   bookingId: string,
   draft: Pick<CreateGameDraft, "pricePerPlayer" | "levelMin" | "levelMax"> &
-    Partial<Pick<CreateGameDraft, "sideSize" | "playersAllowed">>,
+    Partial<Pick<CreateGameDraft, "groupId" | "sideSize" | "playersAllowed">>,
   sport: Sport = "padel",
 ): BookingGameRequest {
   const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer);
   if (!price.ok) {
     return { ok: false, errors: { pricePerPlayerFils: price.message } };
   }
+  const group = draft.groupId ? { groupId: draft.groupId } : {};
   if (sport === "football") {
     const { sideSize, playersAllowed } = draft;
     if (!isFootballSideSize(sideSize)) {
@@ -140,6 +151,7 @@ export function bookingGameRequest(
       ok: true,
       input: {
         bookingId,
+        ...group,
         sideSize,
         playersAllowed,
         ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
@@ -162,6 +174,7 @@ export function bookingGameRequest(
     ok: true,
     input: {
       bookingId,
+      ...group,
       ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
       ...(levelMinTenths !== null ? { levelMinTenths } : {}),
       ...(levelMaxTenths !== null ? { levelMaxTenths } : {}),
