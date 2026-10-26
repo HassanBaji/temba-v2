@@ -80,5 +80,5 @@ export function venueCountLabel(count: number | null): string | null {
   if (count === 0) {
     return "No venues yet";
   }
-  return `${count} ${count === 1 ? "venue" : "venues"}`;
+  return `${count} ${count === 1 ? "venue" : "venues"} nearby`;
 }

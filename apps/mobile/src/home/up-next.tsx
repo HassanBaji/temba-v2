@@ -51,7 +51,8 @@ const ROW_ICON = 16;
 const BAR_WIDTH = 7;
 const BAR_HEIGHT = 16;
 const DAY_COLUMN = 58;
-const BOOK_TILE_HEIGHT = 60;
+const BOOK_ICON_TILE = 38;
+const BOOK_ICON = 17;
 const ACTION_TILE_HEIGHT = 44;
 
 export function UpNextHeading({ label }: { label: string }) {
@@ -531,7 +532,7 @@ export function UpNextList({
   );
 }
 
-function BookTile({
+function BookRow({
   sport,
   venues,
   onPress,
@@ -547,27 +548,37 @@ function BookTile({
       accessibilityLabel={venues ? `${label}, ${venues}` : label}
       onPress={onPress}
       style={({ pressed }) => ({
-        flex: 1,
-        height: BOOK_TILE_HEIGHT,
-        justifyContent: "center",
-        gap: 3,
-        paddingHorizontal: 14,
-        borderRadius: radii.lg,
-        backgroundColor: colors.ink,
-        opacity: pressed ? 0.85 : 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingHorizontal: spacing.compact,
+        paddingVertical: 12,
+        borderBottomWidth: hairline,
+        borderBottomColor: colors.rule,
+        opacity: pressed ? 0.7 : 1,
       })}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <SportGlyph sport={sport} color={colors.paper} size={15} />
-        <Text weight="semibold" style={{ color: colors.paper }}>
-          {label}
-        </Text>
+      <View
+        style={{
+          width: BOOK_ICON_TILE,
+          height: BOOK_ICON_TILE,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: radii.md,
+          backgroundColor: colors.wash,
+        }}
+      >
+        <SportGlyph sport={sport} color={colors.ink} size={BOOK_ICON} />
       </View>
-      {venues ? (
-        <Text size="eyebrow" style={{ color: colors.dim }}>
-          {venues}
-        </Text>
-      ) : null}
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text weight="semibold">{label}</Text>
+        {venues ? (
+          <Text size="eyebrow" tone="muted">
+            {venues}
+          </Text>
+        ) : null}
+      </View>
+      <ArrowRight size={ROW_ICON} color={colors.ink} />
     </Pressable>
   );
 }
@@ -601,7 +612,7 @@ function OutlineTile({
       })}
     >
       <Icon size={PIN_ICON} color={colors.ink} />
-      <Text>{label}</Text>
+      <Text weight="semibold">{label}</Text>
     </Pressable>
   );
 }
@@ -616,39 +627,70 @@ export function UpNextEmpty({
   onNavigate: Navigate;
 }) {
   return (
-    <Surface style={{ gap: 16 }}>
-      <Hatch radius={radii.surface} bordered={false} />
-      <View style={{ gap: 4 }}>
-        <Text size="lead" weight="semibold">
-          No bookings or games
+    <Surface padded={false} style={{ overflow: "hidden" }}>
+      <View
+        style={{
+          gap: 12,
+          paddingHorizontal: spacing.compact,
+          paddingTop: spacing.compact,
+          paddingBottom: 16,
+          borderBottomWidth: hairline,
+          borderBottomColor: colors.rule,
+        }}
+      >
+        <Hatch radius={0} bordered={false} />
+        <View
+          style={{
+            alignSelf: "flex-start",
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: radii.slot,
+            borderWidth: hairline,
+            borderColor: colors.rule,
+            backgroundColor: colors.paper,
+          }}
+        >
+          <Text size="eyebrow" mono uppercase>
+            This week
+            <Text size="eyebrow" mono uppercase tone="muted">
+              {" / Free"}
+            </Text>
+          </Text>
+        </View>
+        <Text size="h1Lg" width="expanded" accessibilityRole="header">
+          {"Your week\nis open."}
         </Text>
         <Text size="meta" tone="muted">
           Book a court, join an open game, or start one with your group.
         </Text>
       </View>
-      <View style={{ gap: 8 }}>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {SPORTS.map((sport) => (
-            <BookTile
-              key={sport}
-              sport={sport}
-              venues={venueCountLabel(venueCounts[sport])}
-              onPress={() => onNavigate({ kind: "book", sport })}
-            />
-          ))}
-        </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <OutlineTile
-            label="Find a game"
-            icon={Search}
-            onPress={() => onNavigate({ kind: "browse-games" })}
-          />
-          <OutlineTile
-            label={createAction.label}
-            icon={Plus}
-            onPress={() => onNavigate(createAction.target)}
-          />
-        </View>
+      {SPORTS.map((sport) => (
+        <BookRow
+          key={sport}
+          sport={sport}
+          venues={venueCountLabel(venueCounts[sport])}
+          onPress={() => onNavigate({ kind: "book", sport })}
+        />
+      ))}
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 8,
+          paddingHorizontal: spacing.compact,
+          paddingTop: 12,
+          paddingBottom: 16,
+        }}
+      >
+        <OutlineTile
+          label="Find a game"
+          icon={Search}
+          onPress={() => onNavigate({ kind: "browse-games" })}
+        />
+        <OutlineTile
+          label={createAction.label}
+          icon={Plus}
+          onPress={() => onNavigate(createAction.target)}
+        />
       </View>
     </Surface>
   );
