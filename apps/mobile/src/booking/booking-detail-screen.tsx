@@ -1,9 +1,6 @@
 import { colors, sizes } from "@repo/design-tokens";
 import { cancelWindowClosedMessage } from "@repo/domain/booking-copy";
-import {
-  formatGameClock,
-  formatGameStart,
-} from "@repo/domain/format-game-start";
+import { formatGameClock } from "@repo/domain/format-game-start";
 import { courtFace } from "@repo/domain/court-sport-copy";
 import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
@@ -28,6 +25,7 @@ import {
   bookingGamePath,
   bookingPath,
   bookingRef,
+  bookingShareMessage,
   bookingsFallback,
   cancelConsequence,
   minutesBetween,
@@ -162,7 +160,7 @@ export function BookingDetailScreen({
                 variant="outline-inverse"
                 icon={<Share2 size={sizes.iconRow} color={colors.paper} />}
                 onPress={() =>
-                  void Share.share({ message: shareMessage(data) })
+                  void Share.share({ message: bookingShareMessage(data) })
                 }
               />
             </View>
@@ -369,8 +367,4 @@ function StatusBlock({
     );
   }
   return null;
-}
-
-function shareMessage(booking: Booking) {
-  return `${booking.court.name} at ${booking.venue.name}, ${formatGameStart(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`;
 }

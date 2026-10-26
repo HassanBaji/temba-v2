@@ -1,25 +1,22 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors, radii, spacing } from "@repo/design-tokens";
-import { SPORTS, type Sport } from "@repo/domain/sport";
+import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { SPORT_LABELS, SPORTS, type Sport } from "@repo/domain/sport";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { venueCardImage } from "@repo/domain/venue-photos";
 import { useRouter, useSegments } from "expo-router";
+import { History } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNow } from "../games/use-now";
-import { apiOrigin } from "../lib/api-origin-runtime";
-import { mediaUrl } from "../lib/media-url";
 import { slotOf } from "../lib/slot-of";
-import { SportChoiceRow } from "../lib/sport-choice-row";
-import { Avatar } from "../primitives/avatar";
+import { SportGlyph } from "../lib/sport-glyph";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { SearchField } from "../primitives/search-field";
-import { Section } from "../primitives/section";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -28,6 +25,7 @@ import { BookingRowCard, NextBooking, type BookingItem } from "./booking-cards";
 import { Notice } from "./booking-parts";
 import { bookingRowPath, venuePath } from "./booking-model";
 import { bookTitle, readBookSport, writeBookSport } from "./book-sport";
+import { countLabel } from "./my-bookings-model";
 import { VenueBanner } from "./venue-banner";
 import {
   VENUE_SORTS,
@@ -42,8 +40,11 @@ import {
 
 type BookableVenue = RouterOutputs["bookings"]["listBookableVenues"][number];
 
+const PAST_BOOKINGS_PATH = "/book/bookings?tab=past";
+
 const BANNER_HEIGHT = 120;
-const LIST_GAP = 12;
+const LIST_GAP = 14;
+const SORT_CHIP_HEIGHT = 30;
 const FILTER_BAR_INDEX = 2;
 // Padding keeps the pinned bar off the status bar and the cards under it;
 // the matching negative margin keeps the resting gaps equal to other sections.
@@ -112,7 +113,19 @@ export function VenuesScreen() {
       stickyIndex={FILTER_BAR_INDEX}
       onViewportHeight={setViewportHeight}
     >
-      <ScreenHeader title="Bookings" />
+      <ScreenHeader
+        title="Bookings"
+        actions={
+          <Button
+            label="Past"
+            accessibilityLabel="Past bookings"
+            size="sm"
+            variant="outline"
+            icon={<History size={sizes.iconRow} color={colors.ink} />}
+            onPress={() => router.push(PAST_BOOKINGS_PATH)}
+          />
+        }
+      />
       <UpcomingBookings
         query={upcoming}
         onRetry={() => void upcoming.refetch()}
@@ -130,30 +143,36 @@ export function VenuesScreen() {
         }}
       >
         {/* The sticky wrapper takes over this View's style, so the gap lives one level down. */}
-        <View style={{ gap: 12 }}>
-          <Text size="title" weight="semibold" accessibilityRole="header">
-            {bookTitle(sport)}
-          </Text>
-          <SportChoiceRow
-            sports={SPORTS}
-            value={sport}
-            onSelect={chooseSport}
-            disabled={false}
+        <View style={{ gap: 10 }}>
+          <SectionHead
+            title={bookTitle(sport)}
+            count={
+              slot.status === "ready"
+                ? countLabel(shown.length, { one: "venue", other: "venues" })
+                : null
+            }
           />
+          <SportSegments value={sport} onSelect={chooseSport} />
           <SearchField
             value={query}
             onChangeText={setQuery}
+            tone="wash"
             placeholder="Area or venue"
             accessibilityLabel="Search area or venue"
             returnKeyType="search"
           />
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View
+            accessibilityRole="radiogroup"
+            accessibilityLabel="Sort venues"
+            style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+          >
+            <Text size="eyebrow" tone="muted" style={{ marginRight: 4 }}>
+              Sort
+            </Text>
             {VENUE_SORTS.map((entry) => (
-              <Button
+              <SortChip
                 key={entry.key}
                 label={entry.label}
-                size="sm"
-                variant={entry.key === sort ? "default" : "outline"}
                 selected={entry.key === sort}
                 onPress={() => setSort(entry.key)}
               />
@@ -198,7 +217,10 @@ function UpcomingBookings({
   query,
   onRetry,
 }: {
-  query: { data?: { items: BookingItem[] }; error: { message: string } | null };
+  query: {
+    data?: { items: BookingItem[]; nextCursor: unknown };
+    error: { message: string } | null;
+  };
   onRetry: () => void;
 }) {
   const router = useRouter();
@@ -231,7 +253,15 @@ function UpcomingBookings({
     router.push(bookingRowPath(segments, item));
 
   return (
-    <Section title="Upcoming">
+    <View style={{ gap: 12 }}>
+      <SectionHead
+        title="Upcoming"
+        count={countLabel(
+          items.length,
+          { one: "booking", other: "bookings" },
+          query.data?.nextCursor != null,
+        )}
+      />
       <View style={{ gap: LIST_GAP }}>
         {items.map((item, index) =>
           index === 0 ? (
@@ -251,7 +281,7 @@ function UpcomingBookings({
           ),
         )}
       </View>
-    </Section>
+    </View>
   );
 }
 
@@ -274,80 +304,188 @@ function VenueCard({
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
-      <Surface padded={false} style={{ overflow: "hidden" }}>
+      <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
         <VenueBanner image={venueCardImage(venue)} height={BANNER_HEIGHT}>
           <View
             style={{
               position: "absolute",
-              left: 12,
+              right: 12,
               bottom: 12,
               paddingHorizontal: 8,
               paddingVertical: 3,
               borderRadius: radii.slot,
               borderWidth: hairline,
-              borderColor: open ? colors.ink : colors.rule,
-              backgroundColor: open ? colors.ink : colors.paper,
+              borderColor: colors.rule,
+              backgroundColor: colors.paper,
             }}
           >
-            <Text
-              size="eyebrow"
-              mono
-              style={{ color: open ? colors.paper : colors.muted }}
-            >
+            <Text size="eyebrow" tone={open ? "default" : "muted"}>
               {openToLabel(venue.todayOpen)}
             </Text>
           </View>
         </VenueBanner>
         <View
           style={{
-            padding: spacing.compact,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 12,
+            paddingHorizontal: 16,
+            paddingTop: 14,
+            paddingBottom: 16,
+            gap: 6,
             borderTopWidth: hairline,
             borderTopColor: colors.rule,
           }}
         >
-          <Avatar
-            name={venue.name}
-            uri={mediaUrl(venue.logoImageUrl, apiOrigin)}
-            size="lg"
-          />
-          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <Text
+              size="lead"
+              weight="semibold"
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
             >
-              <Text
-                size="lead"
-                weight="semibold"
-                numberOfLines={1}
-                style={{ flexShrink: 1 }}
-              >
-                {venue.name}
+              {venue.name}
+            </Text>
+            <Text size="meta">
+              <Text size="meta" tone="muted">
+                from{" "}
               </Text>
-              <Text size="meta">
-                <Text size="meta" tone="muted">
-                  from{" "}
-                </Text>
-                <Text size="meta" weight="semibold">
-                  {price}
-                </Text>
-                <Text size="meta" tone="muted">
-                  /h
-                </Text>
+              {price}
+              <Text size="meta" tone="muted">
+                /h
               </Text>
-            </View>
-            <Text size="meta" tone="muted" numberOfLines={1}>
-              {`${venue.city} / ${courtCountLabel(venue.courtCount, sport)}`}
             </Text>
           </View>
+          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            {venue.city}
+            <Text size="eyebrow" style={{ color: colors.rule }}>
+              {"  /  "}
+            </Text>
+            {courtCountLabel(venue.courtCount, sport)}
+          </Text>
         </View>
       </Surface>
+    </Pressable>
+  );
+}
+
+function SectionHead({
+  title,
+  count,
+}: {
+  title: string;
+  count: string | null;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 12,
+      }}
+    >
+      <Text
+        size="title"
+        weight="semibold"
+        accessibilityRole="header"
+        style={{ flexShrink: 1 }}
+      >
+        {title}
+      </Text>
+      {count ? (
+        <Text size="eyebrow" mono uppercase tone="muted">
+          {count}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function SportSegments({
+  value,
+  onSelect,
+}: {
+  value: Sport;
+  onSelect: (sport: Sport) => void;
+}) {
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Sport"
+      style={{
+        flexDirection: "row",
+        borderRadius: radii.lg,
+        borderWidth: hairline,
+        borderColor: colors.rule,
+        overflow: "hidden",
+      }}
+    >
+      {SPORTS.map((sport, index) => {
+        const selected = sport === value;
+        const color = selected ? colors.paper : colors.muted;
+        return (
+          <Pressable
+            key={sport}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selected }}
+            onPress={() => onSelect(sport)}
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: sizes.touchTarget,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              backgroundColor: selected ? colors.ink : colors.paper,
+              borderLeftWidth: index === 0 ? 0 : hairline,
+              borderLeftColor: colors.rule,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <SportGlyph sport={sport} color={color} size={18} />
+            <Text weight={selected ? "semibold" : "regular"} style={{ color }}>
+              {SPORT_LABELS[sport]}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function SortChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      hitSlop={(sizes.touchTarget - SORT_CHIP_HEIGHT) / 2}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        height: SORT_CHIP_HEIGHT,
+        paddingHorizontal: 10,
+        justifyContent: "center",
+        borderRadius: radii.sm,
+        borderWidth: hairline,
+        borderColor: selected ? colors.ink : colors.rule,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Text size="eyebrow" tone={selected ? "default" : "muted"}>
+        {label}
+      </Text>
     </Pressable>
   );
 }

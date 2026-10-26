@@ -15,10 +15,11 @@ export type SearchFieldProps = Omit<
 > & {
   value: string;
   onChangeText: (value: string) => void;
+  tone?: "paper" | "wash";
 };
 
 export const SearchField = forwardRef<TextInput, SearchFieldProps>(
-  function SearchField({ value, onChangeText, ...props }, ref) {
+  function SearchField({ value, onChangeText, tone = "paper", ...props }, ref) {
     return (
       <View
         style={{
@@ -29,8 +30,8 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
           paddingLeft: 14,
           borderRadius: radii.lg,
           borderWidth: hairline,
-          borderColor: colors.ink,
-          backgroundColor: colors.paper,
+          borderColor: tone === "wash" ? colors.rule : colors.ink,
+          backgroundColor: tone === "wash" ? colors.wash : colors.paper,
         }}
       >
         <View

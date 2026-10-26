@@ -9,6 +9,7 @@ import {
   cancelConsequence,
   checkoutMethods,
   checkoutPath,
+  directionsUrl,
   endsAfter,
   payButtonLabel,
   paymentStatusLine,
@@ -267,5 +268,29 @@ describe("cancelConsequence", () => {
         refundPercentNow: 100,
       }),
     ).toMatch(/nothing to refund/);
+  });
+});
+
+describe("directionsUrl", () => {
+  const venue = {
+    name: "Padel Central",
+    city: "Manama",
+    latitude: "26.21",
+    longitude: "50.58",
+  };
+
+  it("routes to the pin in Apple Maps on iOS and Google Maps elsewhere", () => {
+    expect(directionsUrl(venue, "ios")).toBe(
+      "https://maps.apple.com/?daddr=26.21%2C50.58",
+    );
+    expect(directionsUrl(venue, "android")).toBe(
+      "https://www.google.com/maps/dir/?api=1&destination=26.21%2C50.58",
+    );
+  });
+
+  it("searches the name and city when the Venue has no pin", () => {
+    expect(
+      directionsUrl({ ...venue, latitude: null, longitude: null }, "ios"),
+    ).toBe("https://maps.apple.com/?daddr=Padel%20Central%2C%20Manama");
   });
 });

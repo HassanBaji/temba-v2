@@ -8,6 +8,7 @@ import { nextRefundStep, type RefundPolicy } from "@repo/domain/booking-refund";
 import {
   formatDayMonth,
   formatGameClock,
+  formatGameStart,
   formatWeekday,
 } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
@@ -66,6 +67,34 @@ export function checkoutPath(
 ) {
   const query = sportQuery(sport);
   return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}&minutes=${durationMinutes}&courtId=${encodeURIComponent(courtId)}${query ? `&${query}` : ""}`;
+}
+
+type DirectionsVenue = {
+  name: string;
+  city: string;
+  latitude: string | null;
+  longitude: string | null;
+};
+
+/** Apple Maps on iOS, Google Maps elsewhere; the name and city when the Venue has no pin. */
+export function directionsUrl(venue: DirectionsVenue, os: string): string {
+  const destination =
+    venue.latitude && venue.longitude
+      ? `${venue.latitude},${venue.longitude}`
+      : `${venue.name}, ${venue.city}`;
+  const encoded = encodeURIComponent(destination);
+  return os === "ios"
+    ? `https://maps.apple.com/?daddr=${encoded}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+}
+
+export function bookingShareMessage(booking: {
+  startsAt: Date;
+  endsAt: Date;
+  venue: { name: string };
+  court: { name: string };
+}): string {
+  return `${booking.court.name} at ${booking.venue.name}, ${formatGameStart(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`;
 }
 
 /** A short reference a Customer can read out at the desk. */

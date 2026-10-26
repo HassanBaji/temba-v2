@@ -24,11 +24,15 @@ import {
 const LIST_GAP = 12;
 const TAB_RULE = 2;
 
-export function MyBookingsScreen() {
+export function MyBookingsScreen({
+  initialTab = "upcoming",
+}: {
+  initialTab?: BookingsTab;
+}) {
   const router = useRouter();
   const segments = useSegments();
   const now = useNow();
-  const [tab, setTab] = useState<BookingsTab>("upcoming");
+  const [tab, setTab] = useState<BookingsTab>(initialTab);
   const [refreshing, setRefreshing] = useState(false);
 
   const upcoming = api.bookings.listMine.useInfiniteQuery(
@@ -72,7 +76,11 @@ export function MyBookingsScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh} onNearEnd={loadMore}>
-      <ScreenHeader title="My bookings" nav="back" fallback="/profile">
+      <ScreenHeader
+        title="My bookings"
+        nav="back"
+        fallback={segments.includes("profile") ? "/profile" : "/book"}
+      >
         <Tabs
           tab={tab}
           onChange={setTab}

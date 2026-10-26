@@ -72,7 +72,12 @@ describe("bookings.listMine", () => {
         later.id,
       ]);
       expect(upcoming.items[0]).toMatchObject({
-        venue: { name: "Padel Central" },
+        venue: {
+          name: "Padel Central",
+          city: "Manama",
+          latitude: null,
+          longitude: null,
+        },
         court: { name: "Court 2" },
         statusLabel: "Confirmed",
         paymentStatus: "pending",
