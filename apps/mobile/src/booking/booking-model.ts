@@ -81,13 +81,25 @@ export function minutesBetween(startsAt: Date, endsAt: Date): number {
   return Math.round((endsAt.getTime() - startsAt.getTime()) / MS_PER_MINUTE);
 }
 
-/** "Today, Thu 15 Oct / 90 min". */
-export function whenLine(startsAt: Date, minutes: number, now: Date): string {
+function dayLine(startsAt: Date, now: Date): string {
   const days = productDaysBetween(now, startsAt);
   const date = formatDayMonth(startsAt, { weekday: "short" });
-  const day =
-    days === 0 ? `Today, ${date}` : days === 1 ? `Tomorrow, ${date}` : date;
-  return `${day} / ${minutes} min`;
+  return days === 0
+    ? `Today, ${date}`
+    : days === 1
+      ? `Tomorrow, ${date}`
+      : date;
+}
+
+/** "Today, Thu 15 Oct / 90 min". */
+export function whenLine(startsAt: Date, minutes: number, now: Date): string {
+  return `${dayLine(startsAt, now)} / ${minutes} min`;
+}
+
+/** "Today, Thu 15 Oct / 7:30 PM to 8:30 PM / 60 min". */
+export function slotLine(startsAt: Date, minutes: number, now: Date): string {
+  const endsAt = endsAfter(startsAt, minutes);
+  return `${dayLine(startsAt, now)} / ${formatGameClock(startsAt)} to ${formatGameClock(endsAt)} / ${minutes} min`;
 }
 
 /** "Tonight / Karbabad Courts / Court 2". */
@@ -137,12 +149,12 @@ export function bookedHeadline(
 
 export function payButtonLabel(
   method: BookingPaymentMethod,
-  courtName: string,
   priceFils: number,
 ): string {
+  const price = formatBookingPriceFils(priceFils);
   return method === "at_venue"
-    ? `Book ${courtName}`
-    : `Pay ${formatBookingPriceFils(priceFils)}`;
+    ? `Reserve, pay ${price} at venue`
+    : `Pay ${price}`;
 }
 
 const PAYMENT_METHOD_COPY: Record<
@@ -150,12 +162,12 @@ const PAYMENT_METHOD_COPY: Record<
   { title: string; detail: string }
 > = {
   card: { title: "Card", detail: "Visa, Mastercard or Amex" },
-  benefit: { title: "BENEFIT", detail: "Bahraini debit card and PIN" },
+  benefit: { title: "Benefit", detail: "Bahraini debit card and PIN" },
   benefitpay: {
     title: "BenefitPay",
-    detail: "Approve in the app or scan a QR",
+    detail: "You will be directed to the BenefitPay app to complete payment",
   },
-  apple_pay: { title: "Apple Pay", detail: "Confirm with Face ID or Touch ID" },
+  apple_pay: { title: "Apple Pay", detail: "Stays in the app" },
   at_venue: {
     title: "Pay at the venue",
     detail: "Settle at the desk when you arrive",
@@ -169,9 +181,17 @@ export function paymentMethod(method: BookingPaymentMethod): {
   return PAYMENT_METHOD_COPY[method];
 }
 
+const CHECKOUT_ORDER: readonly BookingPaymentMethod[] = [
+  "apple_pay",
+  "benefit",
+  "benefitpay",
+  "card",
+  "at_venue",
+];
+
 /**
- * The checkout's choices on this device. Apple Pay needs an Apple device, and
- * an API without the methods list offers its one mode.
+ * The checkout's choices on this device, wallet first. Apple Pay needs an
+ * Apple device, and an API without the methods list offers its one mode.
  */
 export function checkoutMethods(
   payment: { mode: PaymentMode; methods?: readonly BookingPaymentMethod[] },
@@ -180,23 +200,40 @@ export function checkoutMethods(
   const methods = payment.methods ?? [
     payment.mode === "online" ? "card" : "at_venue",
   ];
-  return methods.filter(
-    (method) => method !== "apple_pay" || platform === "ios",
+  return CHECKOUT_ORDER.filter(
+    (method) =>
+      methods.includes(method) &&
+      (method !== "apple_pay" || platform === "ios"),
   );
 }
 
-/** "Full refund until Tue 18:00, then 50% refund", else the policy's first line. */
+function deadlineLine(deadline: Date, now: Date): string {
+  const days = productDaysBetween(now, deadline);
+  const day =
+    days === 0
+      ? "today"
+      : days === 1
+        ? "tomorrow"
+        : formatDayMonth(deadline, { weekday: "short" });
+  return `${formatGameClock(deadline)} ${day}`;
+}
+
+/**
+ * "Free cancellation until 6:30 PM today.", "Full refund until Tue 18:00, then
+ * 50% refund.", else the policy's first line.
+ */
 export function refundTerms(
   policy: RefundPolicy,
   policyLines: readonly string[],
   startsAt: Date,
   now: Date,
 ): string | null {
-  return (
-    describeNextRefundStep(nextRefundStep(policy, startsAt, now)) ??
-    policyLines[0] ??
-    null
-  );
+  const step = nextRefundStep(policy, startsAt, now);
+  if (step && step.currentPercent >= 100) {
+    return `Free cancellation until ${deadlineLine(step.deadline, now)}.`;
+  }
+  const line = describeNextRefundStep(step) ?? policyLines[0];
+  return line ? `${line.replace(/\.$/, "")}.` : null;
 }
 
 export function paymentStatusLine(
