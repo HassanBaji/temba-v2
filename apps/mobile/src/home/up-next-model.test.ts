@@ -65,7 +65,7 @@ function booking(overrides: Partial<UpNextBooking> = {}): UpNextBooking {
     },
     court: { id: "court-1", name: "football court 1", sport: "football" },
     ...overrides,
-  } as UpNextBooking;
+  };
 }
 
 describe("upNextItems", () => {
