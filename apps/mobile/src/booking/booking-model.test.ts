@@ -14,6 +14,7 @@ import {
   paymentStatusLine,
   placeLine,
   refundTerms,
+  slotLine,
   whenLine,
 } from "./booking-model";
 
@@ -85,6 +86,14 @@ describe("whenLine", () => {
   });
 });
 
+describe("slotLine", () => {
+  it("adds the start and end clock", () => {
+    expect(slotLine(at("2026-10-15T19:30:00"), 60, NOW)).toBe(
+      "Today, Thu 15 Oct / 7:30 PM to 8:30 PM / 60 min",
+    );
+  });
+});
+
 describe("placeLine", () => {
   it("joins day, Venue and Court", () => {
     expect(
@@ -120,14 +129,14 @@ describe("bookedHeadline", () => {
 });
 
 describe("payButtonLabel", () => {
-  it("books the Court when paid at the Venue", () => {
-    expect(payButtonLabel("at_venue", "Court 2", 18000)).toBe("Book Court 2");
+  it("reserves and names the amount due at the Venue", () => {
+    expect(payButtonLabel("at_venue", 18000)).toBe(
+      "Reserve, pay 18.000 BD at venue",
+    );
   });
 
   it("shows the amount when paid online", () => {
-    expect(payButtonLabel("benefitpay", "Court 2", 18000)).toBe(
-      "Pay 18.000 BD",
-    );
+    expect(payButtonLabel("benefitpay", 18000)).toBe("Pay 18.000 BD");
   });
 });
 
@@ -140,23 +149,29 @@ describe("checkoutMethods", () => {
     "at_venue",
   ] as const;
 
-  it("offers every method the Venue takes, in order, on iOS", () => {
+  it("offers every method the Venue takes, wallet first, on iOS", () => {
     expect(checkoutMethods({ mode: "online", methods }, "ios")).toEqual([
-      "card",
+      "apple_pay",
       "benefit",
       "benefitpay",
-      "apple_pay",
+      "card",
       "at_venue",
     ]);
   });
 
   it("leaves Apple Pay out off Apple devices", () => {
     expect(checkoutMethods({ mode: "online", methods }, "android")).toEqual([
-      "card",
       "benefit",
       "benefitpay",
+      "card",
       "at_venue",
     ]);
+  });
+
+  it("offers only the methods the Venue takes", () => {
+    expect(
+      checkoutMethods({ mode: "online", methods: ["card", "at_venue"] }, "ios"),
+    ).toEqual(["card", "at_venue"]);
   });
 
   it("falls back to the one mode when the API sends no list", () => {
@@ -172,7 +187,7 @@ describe("refundTerms", () => {
     customerCancelUntilMinutes: 0,
   };
 
-  it("names the next deadline for this start", () => {
+  it("names the free cancellation deadline for this start", () => {
     expect(
       refundTerms(
         policy,
@@ -180,7 +195,30 @@ describe("refundTerms", () => {
         at("2026-10-20T18:00:00"),
         NOW,
       ),
-    ).toBe("Full refund until Mon 18:00, then no refund");
+    ).toBe("Free cancellation until 6:00 PM Mon 19 Oct.");
+    expect(
+      refundTerms(
+        { ...policy, tiers: [{ hoursBefore: 1, refundPercent: 100 }] },
+        [],
+        at("2026-10-15T19:30:00"),
+        NOW,
+      ),
+    ).toBe("Free cancellation until 6:30 PM today.");
+  });
+
+  it("names a partial refund step", () => {
+    expect(
+      refundTerms(
+        {
+          ...policy,
+          tiers: [{ hoursBefore: 24, refundPercent: 50 }],
+          lateRefundPercent: 0,
+        },
+        [],
+        at("2026-10-20T18:00:00"),
+        NOW,
+      ),
+    ).toBe("50% refund until Mon 18:00, then no refund.");
   });
 
   it("falls back to the policy line once nothing changes", () => {
@@ -191,7 +229,7 @@ describe("refundTerms", () => {
         at("2026-10-15T20:00:00"),
         NOW,
       ),
-    ).toBe("No refund after that");
+    ).toBe("No refund after that.");
   });
 });
 

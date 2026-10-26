@@ -1,43 +1,35 @@
 import { courtFace } from "@repo/domain/court-sport-copy";
 import type { Sport } from "@repo/domain/sport";
-import { colors } from "@repo/design-tokens";
-import { formatGameClock } from "@repo/domain/format-game-start";
+import { colors, sizes } from "@repo/design-tokens";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDayKey } from "@repo/domain/product-timezone";
 import { useRouter } from "expo-router";
 import type { BookingPaymentMethod } from "@repo/domain/booking-payment";
+import { ArrowRight, Lock } from "lucide-react-native";
 import { useState } from "react";
 import { Platform, View } from "react-native";
 
 import { FormErrorSummary } from "../auth/form-error-summary";
 import { useNow } from "../games/use-now";
 import { Button } from "../primitives/button";
-import { ChoiceCard } from "../primitives/choice-card";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
-import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import {
-  BookingHero,
-  Notice,
-  PAYMENT_METHOD_ICONS,
-  SectionHeading,
-} from "./booking-parts";
+import { BookingHero, Notice, SectionHeading } from "./booking-parts";
 import {
   bookingPath,
   checkoutMethods,
-  endsAfter,
   payButtonLabel,
   paymentMethod,
   refundTerms,
-  untilLabel,
+  slotLine,
   venuePath,
-  whenLine,
 } from "./booking-model";
+import { PaymentMethodCard } from "./payment-method-card";
 import { courtNounTitle } from "./book-sport";
 import { courtChoices, keepOrFirst } from "./slot-grid";
 
@@ -149,6 +141,9 @@ export function CheckoutScreen({
     now,
   );
   const ready = court !== null;
+  const note = [terms, "Split with players after you book."]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Screen
@@ -156,22 +151,57 @@ export function CheckoutScreen({
       header={
         <BookingHero
           eyebrow={data.name}
-          time={formatGameClock(startsAt)}
-          until={untilLabel(endsAfter(startsAt, minutes))}
-          subtitle={[whenLine(startsAt, minutes, now), courtName]
-            .filter(Boolean)
-            .join(" / ")}
+          time={courtName ?? courtNounTitle(sport)}
+          titleSize="h1Lg"
+          subtitle={slotLine(startsAt, minutes, now)}
           fallback={venuePath(venueId, sport)}
         />
       }
       footer={
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, gap: 16 }}>
+          {ready ? (
+            <View style={{ gap: 10, paddingTop: 12 }}>
+              <SummaryRow
+                label={`${court.name}, ${minutes} min`}
+                value={formatBookingPriceFils(court.priceFils ?? 0)}
+              />
+              <SummaryRow
+                label="Booking fee"
+                value={formatBookingPriceFils(0)}
+              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: 12,
+                  paddingTop: 12,
+                  borderTopWidth: hairline,
+                  borderTopColor: colors.rule,
+                }}
+              >
+                <Text weight="semibold">Total</Text>
+                <Text size="figure" weight="semibold">
+                  {formatBookingPriceFils(court.priceFils ?? 0)}
+                </Text>
+              </View>
+              <Text size="eyebrow" tone="muted">
+                {note}
+              </Text>
+            </View>
+          ) : null}
           <Button
             label={
               ready
-                ? payButtonLabel(chosenMethod, court.name, court.priceFils ?? 0)
+                ? payButtonLabel(chosenMethod, court.priceFils ?? 0)
                 : `${courtNounTitle(sport)} not free at this time`
             }
+            icon={
+              ready ? (
+                <ArrowRight size={sizes.iconRow} color={colors.paper} />
+              ) : undefined
+            }
+            iconPlacement="trailing"
             size="lg"
             disabled={!ready}
             pending={create.isPending}
@@ -207,80 +237,40 @@ export function CheckoutScreen({
       )}
 
       <View style={{ gap: 12 }}>
-        <SectionHeading title="Pay with" />
-        {methods.map((method) => {
-          const copy = paymentMethod(method);
-          return (
-            <ChoiceCard
-              key={method}
-              role="radio"
-              variant="card"
-              selected={method === chosenMethod}
-              title={copy.title}
-              description={copy.detail}
-              leading={PAYMENT_METHOD_ICONS[method]}
-              onPress={() => setPickedMethod(method)}
-            />
-          );
-        })}
+        <SectionHeading
+          title="Pay with"
+          meta="Secure checkout"
+          metaIcon={Lock}
+        />
+        <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+          {methods.map((method) => {
+            const copy = paymentMethod(method);
+            return (
+              <PaymentMethodCard
+                key={method}
+                method={method}
+                title={copy.title}
+                description={copy.detail}
+                selected={method === chosenMethod}
+                onPress={() => setPickedMethod(method)}
+              />
+            );
+          })}
+        </View>
       </View>
-
-      {ready ? (
-        <Surface style={{ gap: 8 }}>
-          <SummaryRow
-            label={`${court.name}, ${minutes} min`}
-            value={formatBookingPriceFils(court.priceFils ?? 0)}
-          />
-          <View
-            style={{
-              borderTopWidth: hairline,
-              borderTopColor: colors.rule,
-              paddingTop: 8,
-            }}
-          >
-            <SummaryRow
-              label="Total"
-              value={formatBookingPriceFils(court.priceFils ?? 0)}
-              strong
-            />
-          </View>
-          {terms ? (
-            <Text size="eyebrow" tone="muted">
-              {terms}
-            </Text>
-          ) : null}
-        </Surface>
-      ) : null}
     </Screen>
   );
 }
 
-function SummaryRow({
-  label,
-  value,
-  strong = false,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
+function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <View
       style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}
     >
-      <Text
-        size={strong ? "lead" : "meta"}
-        weight={strong ? "semibold" : "regular"}
-        tone={strong ? "default" : "muted"}
-      >
+      <Text size="meta" tone="muted" style={{ flexShrink: 1 }}>
         {label}
       </Text>
-      <Text
-        size={strong ? "lead" : "meta"}
-        weight={strong ? "semibold" : "regular"}
-      >
-        {value}
-      </Text>
+      <Text size="meta">{value}</Text>
     </View>
   );
 }

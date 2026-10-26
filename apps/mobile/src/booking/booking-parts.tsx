@@ -1,7 +1,13 @@
 import { colors, radii, spacing } from "@repo/design-tokens";
 import type { BookingPaymentMethod } from "@repo/domain/booking-payment";
 import type { Href } from "expo-router";
-import { CreditCard, Smartphone, Store, Wallet } from "lucide-react-native";
+import {
+  CreditCard,
+  Smartphone,
+  Store,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
@@ -9,7 +15,7 @@ import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
-import { Text } from "../primitives/text";
+import { Text, type TextSize } from "../primitives/text";
 
 const HERO_PADDING_BOTTOM = 22;
 
@@ -26,6 +32,7 @@ export function BookingHero({
   eyebrow,
   time,
   until,
+  titleSize = "hero",
   subtitle,
   aside,
   nav = "back",
@@ -35,7 +42,8 @@ export function BookingHero({
 }: {
   eyebrow: string;
   time: string;
-  until: string;
+  until?: string;
+  titleSize?: TextSize;
   subtitle: string;
   /** Under the eyebrow, beside the nav button: a live line such as a hold. */
   aside?: React.ReactNode;
@@ -84,7 +92,7 @@ export function BookingHero({
           <View
             accessible
             accessibilityRole="header"
-            accessibilityLabel={`${time} ${until}`}
+            accessibilityLabel={until ? `${time} ${until}` : time}
             style={{
               flexDirection: "row",
               flexWrap: "wrap",
@@ -92,10 +100,10 @@ export function BookingHero({
               columnGap: 10,
             }}
           >
-            <Text size="hero" width="expanded">
+            <Text size={titleSize} width="expanded">
               {time}
             </Text>
-            <Text tone="muted">{until}</Text>
+            {until ? <Text tone="muted">{until}</Text> : null}
           </View>
           <Text size="meta" tone="muted">
             {subtitle}
@@ -110,9 +118,11 @@ export function BookingHero({
 export function SectionHeading({
   title,
   meta,
+  metaIcon: MetaIcon,
 }: {
   title: string;
   meta?: string | null;
+  metaIcon?: LucideIcon;
 }) {
   return (
     <View
@@ -131,7 +141,21 @@ export function SectionHeading({
       >
         {title}
       </Text>
-      {meta ? (
+      {meta && MetaIcon ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+            flexShrink: 1,
+          }}
+        >
+          <MetaIcon size={12} color={colors.muted} aria-hidden />
+          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            {meta}
+          </Text>
+        </View>
+      ) : meta ? (
         <Text
           size="meta"
           tone="muted"
