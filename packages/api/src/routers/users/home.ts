@@ -11,6 +11,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { listHomeCarouselGames } from "#src/home/carousel-games";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { loadCompletedMatchesForUser } from "#src/stats/completed-matches";
+import { SPORTS, type Sport } from "@repo/domain/sport";
 import {
   sortStandingMembers,
   standingPosition,
@@ -19,8 +20,8 @@ import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
 
 /**
  * Home metrics, carousel Games, and per-Group standing for the signed-in User.
- * Stats (Played / Won / Lost) are completed Matches the User sat on, including
- * zeros when they have not played. Drawn Matches count as played only. The
+ * Stats (Played / Won / Lost, overall and per sport) are completed Matches
+ * the User sat on, including zeros when they have not played. Drawn Matches count as played only. The
  * Home carousel is a dedicated live-Game list (Game admit or Organizer), not
  * the My Games hub filter. Soft-archived Club Group Games still appear when
  * live if the viewer qualifies. Standing position is among that Group's
@@ -75,15 +76,33 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
     );
 
   const carouselGames = await listHomeCarouselGames(database, args.userId, now);
-  const stats = summarizeCompletedMatchStats(
-    await loadCompletedMatchesForUser(database, args.userId),
-  );
+  const completed = await loadCompletedMatchesForUser(database, args.userId);
+  const stats = summarizeCompletedMatchStats(completed);
+  const statsBySport = Object.fromEntries(
+    SPORTS.map((sport) => {
+      const inSport = summarizeCompletedMatchStats(
+        completed.filter((match) => match.sport === sport),
+      );
+      return [
+        sport,
+        {
+          gamesPlayed: inSport.gamesPlayed,
+          gamesWon: inSport.gamesWon,
+          gamesLost: inSport.gamesLost,
+        },
+      ];
+    }),
+  ) as Record<
+    Sport,
+    { gamesPlayed: number; gamesWon: number; gamesLost: number }
+  >;
 
   return {
     gamesPlayed: stats.gamesPlayed,
     gamesWon: stats.gamesWon,
     gamesLost: stats.gamesLost,
     setsWon: stats.setsWon,
+    statsBySport,
     pendingInviteCount,
     communitiesCount: communityMemberships.length,
     groupsCount: myGroupMemberships.length,

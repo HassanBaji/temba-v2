@@ -14,5 +14,23 @@ describe("homePath", () => {
     assert.equal(homePath({ kind: "create-game" }), "/games/new");
     assert.equal(homePath({ kind: "create-group" }), "/groups/new");
     assert.equal(homePath({ kind: "browse-games" }), "/games");
+    assert.equal(
+      homePath({ kind: "booking", bookingId: "b1" }),
+      "/book/bookings/b1",
+    );
+    assert.equal(
+      homePath({ kind: "booking-payment", bookingId: "b1" }),
+      "/book/bookings/b1/payment",
+    );
+    assert.equal(
+      homePath({ kind: "booking-game", bookingId: "b1" }),
+      "/book/bookings/b1/game",
+    );
+    assert.equal(homePath({ kind: "book", sport: "padel" }), "/book");
+    assert.equal(
+      homePath({ kind: "book", sport: "football" }),
+      "/book?sport=football",
+    );
+    assert.equal(homePath({ kind: "invites" }), "/profile/invites");
   });
 });

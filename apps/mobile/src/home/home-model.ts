@@ -1,158 +1,63 @@
-import type { HomeFixture } from "@repo/domain/home-fixtures";
-import {
-  homeComingUpRows,
-  type HomeComingUpRow,
-  type HomeComingUpTournamentMatchRow,
-  type HomeComingUpTournamentRow,
-} from "@repo/domain/home-coming-up";
-import { gameFormatLabel } from "@repo/domain/game-format-label";
 import type { HomeLevelInput } from "@repo/domain/home-level";
-import type { HomeNextGamePhase } from "@repo/domain/home-next-game";
-import {
-  homeNoGamesCreateAction,
-  type HomeNoGamesCreateAction,
-} from "@repo/domain/home-no-games";
+import type { HomeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import {
   deriveRecentForm,
   type RecentFormHistoryRow,
   type RecentFormView,
 } from "@repo/domain/home-recent-form";
-import { gameCardRosterOccupancy } from "@repo/domain/game-card";
-import {
-  homeNextGameSeats,
-  homeSpotsOpenLabel,
-  type HomeSeatView,
-} from "@repo/domain/home-seats";
 import type { HomeStandingRow } from "@repo/domain/home-standing";
-import {
-  isDrawnTournamentSummaryRow,
-  isTournamentMatchRow,
-} from "@repo/domain/tournament-card";
-import { poolRoundLabel } from "@repo/domain/tournament-rounds";
+import { sportOrDefault, type Sport } from "@repo/domain/sport";
 
 import type { RouterOutputs } from "../trpc/react";
+import type { UpNextItem } from "./up-next-model";
 
 export type Slot<T> =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "ready"; value: T };
 
-export type HomeNextGameModel =
-  | {
-      kind: "game";
-      id: string;
-      rated: boolean;
-      phase: HomeNextGamePhase;
-      venueName: string;
-      courtLabel: string | null;
-      formatLabel: string;
-      startsAt: Date;
-      seats: HomeSeatView[];
-      sport?: string | null;
-      roster?: { filledLabel: string; spotsLabel: string | null } | null;
-    }
-  | {
-      kind: "tournament";
-      id: string;
-      row: HomeComingUpTournamentRow | HomeComingUpTournamentMatchRow;
-    };
+export type HomeLevel =
+  | { kind: "rated"; input: HomeLevelInput }
+  | { kind: "none" };
 
-export type HomeContent = {
-  pendingInviteCount: number;
-  bookedGameCount: number;
-  nextGame: HomeNextGameModel | null;
-  comingUp: HomeComingUpRow[];
-  allTime: { played: number; won: number; lost: number };
-  standing: HomeStandingRow[];
-  noGamesAction: HomeNoGamesCreateAction | null;
-};
+export type HomeStats = { played: number; won: number; lost: number };
 
 export type HomeModel = {
   name: string;
   imageUri: string | null;
-  home: Slot<HomeContent>;
-  level: Slot<HomeLevelInput | null>;
+  pendingInviteCount: number;
+  upNext: Slot<UpNextItem[]>;
+  noGamesAction: HomeNoGamesCreateAction;
+  venueCounts: Record<Sport, number | null>;
+  sport: Sport;
+  level: Slot<HomeLevel>;
   recentForm: Slot<RecentFormView>;
+  stats: Slot<HomeStats>;
+  standing: Slot<HomeStandingRow[]>;
 };
 
 type ApiHome = RouterOutputs["users"]["home"];
 type ApiRating = RouterOutputs["ratings"]["me"];
-type CarouselGame = ApiHome["carouselGames"][number];
 
-function rosterLine(game: CarouselGame) {
-  const occupancy = gameCardRosterOccupancy(game);
-  if (!occupancy) {
-    return null;
-  }
-  return {
-    filledLabel: occupancy.label,
-    spotsLabel: homeSpotsOpenLabel(
-      occupancy.seatsLeft,
-      game.playersAllowed ?? 0,
-    ),
-  };
-}
-
-function nextGameFromApi(game: CarouselGame): HomeNextGameModel {
-  if (isTournamentMatchRow(game) || isDrawnTournamentSummaryRow(game)) {
-    const [row] = homeComingUpRows([game]);
-    if (row && row.kind !== "game") {
-      return { kind: "tournament", id: game.id, row };
-    }
-  }
-  return {
-    kind: "game",
-    id: game.id,
-    rated: game.rated,
-    phase: game.phase,
-    venueName: game.venue?.name ?? "Game",
-    courtLabel: game.courtName ?? null,
-    formatLabel:
-      poolRoundLabel(game.roundNumber, game.roundCount) ??
-      gameFormatLabel(String(game.format)),
-    startsAt: new Date(game.startTime),
-    seats: homeNextGameSeats(
-      game.sides,
-      game.registeredUserCount,
-      game.playersAllowed,
-    ),
-    sport: game.sport,
-    roster: rosterLine(game),
-  };
-}
-
-export function homeContentFromApi(
-  data: ApiHome,
-  noGamesAction: HomeNoGamesCreateAction | null,
-): HomeContent {
-  const [next, ...comingUp] = data.carouselGames;
-  return {
-    pendingInviteCount: data.pendingInviteCount,
-    bookedGameCount: data.carouselGames.length,
-    nextGame: next ? nextGameFromApi(next) : null,
-    comingUp: homeComingUpRows(comingUp),
-    allTime: {
-      played: data.gamesPlayed,
-      won: data.gamesWon,
-      lost: data.gamesLost,
-    },
-    standing: data.standing,
-    noGamesAction,
-  };
-}
-
-export function levelFromApi(data: ApiRating): HomeLevelInput | null {
+export function levelFromApi(data: ApiRating): HomeLevel {
   if (!data.rating) {
-    return null;
+    return { kind: "none" };
   }
   return {
-    band: data.rating.levelBand,
-    level: data.rating.level,
-    provisional: data.rating.provisional,
-    ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
-    history: data.history,
-    progressPercent: data.progressPercent,
+    kind: "rated",
+    input: {
+      band: data.rating.levelBand,
+      level: data.rating.level,
+      provisional: data.rating.provisional,
+      ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      history: data.history,
+      progressPercent: data.progressPercent,
+    },
   };
+}
+
+export function noLevelCopy(sport: Sport): string {
+  return `Play a rated ${sport} game and your ${sport} Level appears.`;
 }
 
 export function recentFormFromHistory(
@@ -161,61 +66,32 @@ export function recentFormFromHistory(
   return deriveRecentForm(rows);
 }
 
-export function homeModelFromFixture(fixture: HomeFixture): HomeModel {
-  const { nextGame, level } = fixture;
-  const content: HomeContent = {
-    pendingInviteCount: fixture.pendingInviteCount,
-    bookedGameCount: fixture.bookedGameCount,
-    nextGame: nextGame
-      ? {
-          kind: "game",
-          id: nextGame.id,
-          rated: nextGame.rated,
-          phase: nextGame.phase,
-          venueName: nextGame.venueName,
-          courtLabel: nextGame.courtLabel,
-          formatLabel: nextGame.formatLabel,
-          startsAt: new Date(nextGame.startsAt),
-          seats: nextGame.seats,
-        }
-      : null,
-    comingUp: fixture.comingUp.map((row) => ({
-      ...row,
-      startsAt: new Date(row.startsAt),
-    })),
-    allTime: {
-      played: fixture.gamesPlayed,
-      won: fixture.gamesWon,
-      lost: fixture.gamesLost,
-    },
-    standing: fixture.standing,
-    noGamesAction: homeNoGamesCreateAction({
-      createGroupCount: fixture.createGroupCount,
-    }),
-  };
+export function statsInSport(data: ApiHome, sport: Sport): HomeStats {
+  const stats = data.statsBySport[sport];
   return {
-    name: fixture.userName,
-    imageUri: null,
-    home: { status: "ready", value: content },
-    level: {
-      status: "ready",
-      value:
-        level.band && level.level
-          ? {
-              band: level.band,
-              level: level.level,
-              provisional: level.provisional,
-              ratedMatchesRemaining: level.ratedMatchesRemaining,
-              history: level.history,
-              progressPercent: level.progressPercent,
-            }
-          : null,
-    },
-    recentForm: {
-      status: "ready",
-      value: deriveRecentForm(
-        fixture.recentForm.map((outcome) => ({ outcome })),
-      ),
-    },
+    played: stats.gamesPlayed,
+    won: stats.gamesWon,
+    lost: stats.gamesLost,
   };
+}
+
+export function standingInSport(
+  rows: readonly HomeStandingRow[],
+  sport: Sport,
+): HomeStandingRow[] {
+  return rows.filter((row) => sportOrDefault(row.sport) === sport);
+}
+
+export function standingCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "group" : "groups"}`;
+}
+
+export function venueCountLabel(count: number | null): string | null {
+  if (count == null) {
+    return null;
+  }
+  if (count === 0) {
+    return "No venues yet";
+  }
+  return `${count} ${count === 1 ? "venue" : "venues"}`;
 }

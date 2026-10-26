@@ -1,9 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
-import { SPORT_LABELS, SPORTS, type Sport } from "@repo/domain/sport";
+import { type Sport } from "@repo/domain/sport";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { venueCardImage } from "@repo/domain/venue-photos";
-import { useRouter, useSegments } from "expo-router";
+import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
 import { History } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNow } from "../games/use-now";
 import { slotOf } from "../lib/slot-of";
-import { SportGlyph } from "../lib/sport-glyph";
+import { SportSegments } from "../lib/sport-segments";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
@@ -24,7 +24,12 @@ import { api, type RouterOutputs } from "../trpc/react";
 import { BookingRowCard, NextBooking, type BookingItem } from "./booking-cards";
 import { Notice } from "./booking-parts";
 import { bookingRowPath, venuePath } from "./booking-model";
-import { bookTitle, readBookSport, writeBookSport } from "./book-sport";
+import {
+  bookTitle,
+  readBookSport,
+  sportFromParam,
+  writeBookSport,
+} from "./book-sport";
 import { countLabel } from "./my-bookings-model";
 import { VenueBanner } from "./venue-banner";
 import {
@@ -76,6 +81,12 @@ export function VenuesScreen() {
     setSport(next);
     void writeBookSport(AsyncStorage, next);
   }, []);
+  const params = useLocalSearchParams<{ sport?: string }>();
+  useEffect(() => {
+    if (params.sport) {
+      chooseSport(sportFromParam(params.sport));
+    }
+  }, [params.sport, chooseSport]);
   const venues = api.bookings.listBookableVenues.useQuery(
     { sport },
     { refetchOnWindowFocus: "always" },
@@ -402,58 +413,6 @@ function SectionHead({
           {count}
         </Text>
       ) : null}
-    </View>
-  );
-}
-
-function SportSegments({
-  value,
-  onSelect,
-}: {
-  value: Sport;
-  onSelect: (sport: Sport) => void;
-}) {
-  return (
-    <View
-      accessibilityRole="radiogroup"
-      accessibilityLabel="Sport"
-      style={{
-        flexDirection: "row",
-        borderRadius: radii.lg,
-        borderWidth: hairline,
-        borderColor: colors.rule,
-        overflow: "hidden",
-      }}
-    >
-      {SPORTS.map((sport, index) => {
-        const selected = sport === value;
-        const color = selected ? colors.paper : colors.muted;
-        return (
-          <Pressable
-            key={sport}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: selected }}
-            onPress={() => onSelect(sport)}
-            style={({ pressed }) => ({
-              flex: 1,
-              minHeight: sizes.touchTarget,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              backgroundColor: selected ? colors.ink : colors.paper,
-              borderLeftWidth: index === 0 ? 0 : hairline,
-              borderLeftColor: colors.rule,
-              opacity: pressed ? 0.85 : 1,
-            })}
-          >
-            <SportGlyph sport={sport} color={color} size={18} />
-            <Text weight={selected ? "semibold" : "regular"} style={{ color }}>
-              {SPORT_LABELS[sport]}
-            </Text>
-          </Pressable>
-        );
-      })}
     </View>
   );
 }

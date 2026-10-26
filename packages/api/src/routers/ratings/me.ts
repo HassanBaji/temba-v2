@@ -1,6 +1,12 @@
 import { and, count, eq } from "drizzle-orm";
+import { z } from "zod";
 
-import { GroupSportEnum, levelOverrides, ratingEvents, ratings } from "@repo/db";
+import {
+  GroupSportEnum,
+  levelOverrides,
+  ratingEvents,
+  ratings,
+} from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -13,21 +19,28 @@ import {
   progressToNextBand,
   type LevelBand,
 } from "@repo/domain/level";
+import type { Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** Recent Level changes (Rated Matches and sets) for the home sparkline. */
 const HISTORY_CHANGE_LIMIT = 15;
 
-async function padelLevelHistory(
+function ratingSport(sport: Sport): GroupSportEnum {
+  return sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
+}
+
+async function levelHistory(
   database: DbClient,
   userId: string,
+  sport: GroupSportEnum,
 ): Promise<string[]> {
   const [events, overrides] = await Promise.all([
     database.query.ratingEvents.findMany({
       where: and(
         eq(ratingEvents.userId, userId),
-        eq(ratingEvents.sport, GroupSportEnum.PADEL),
+        eq(ratingEvents.sport, sport),
       ),
       orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
       limit: HISTORY_CHANGE_LIMIT,
@@ -36,7 +49,7 @@ async function padelLevelHistory(
     database.query.levelOverrides.findMany({
       where: and(
         eq(levelOverrides.userId, userId),
-        eq(levelOverrides.sport, GroupSportEnum.PADEL),
+        eq(levelOverrides.sport, sport),
       ),
       orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
       limit: HISTORY_CHANGE_LIMIT,
@@ -63,24 +76,20 @@ async function padelLevelHistory(
   ];
 }
 
-async function padelRatedMatchCount(
+async function ratedMatchCount(
   database: DbClient,
   userId: string,
+  sport: GroupSportEnum,
 ): Promise<number> {
   const [row] = await database
     .select({ ratedMatchCount: count() })
     .from(ratingEvents)
-    .where(
-      and(
-        eq(ratingEvents.userId, userId),
-        eq(ratingEvents.sport, GroupSportEnum.PADEL),
-      ),
-    );
+    .where(and(eq(ratingEvents.userId, userId), eq(ratingEvents.sport, sport)));
   return Number(row?.ratedMatchCount ?? 0);
 }
 
 /**
- * Current padel Rating for the signed-in User. Idle RD inflation is applied
+ * Current Rating in one sport (padel unless asked) for the signed-in User. Idle RD inflation is applied
  * for display (not persisted). Returns product Level / Level band /
  * Provisional only — never raw Glicko μ/φ/σ. Also includes progress within
  * the current Level band, typical Rated Matches remaining while Provisional,
@@ -88,23 +97,17 @@ async function padelRatedMatchCount(
  */
 export async function loadRatingsMe(
   database: DbClient,
-  args: { userId: string },
+  args: { userId: string; sport?: Sport },
 ) {
+  const sport = ratingSport(args.sport ?? "padel");
   const row = await database.query.ratings.findFirst({
-    where: and(
-      eq(ratings.userId, args.userId),
-      eq(ratings.sport, GroupSportEnum.PADEL),
-    ),
+    where: and(eq(ratings.userId, args.userId), eq(ratings.sport, sport)),
   });
 
   if (!row) {
     return {
       rating: null,
-      canSelfDeclare: !(await userHasRatedMatch(
-        database,
-        args.userId,
-        GroupSportEnum.PADEL,
-      )),
+      canSelfDeclare: !(await userHasRatedMatch(database, args.userId, sport)),
       progressPercent: null as number | null,
       nextBand: null as LevelBand | null,
       history: [] as string[],
@@ -116,9 +119,9 @@ export async function loadRatingsMe(
   // Idle inflation does not change μ; progress uses the same continuous Level
   // as the displayed product number.
   const progress = progressToNextBand(levelFromMu(row.mu), rating.levelBand);
-  const [history, ratedMatchCount] = await Promise.all([
-    padelLevelHistory(database, args.userId),
-    padelRatedMatchCount(database, args.userId),
+  const [history, matchCount] = await Promise.all([
+    levelHistory(database, args.userId, sport),
+    ratedMatchCount(database, args.userId, sport),
   ]);
 
   return {
@@ -127,11 +130,13 @@ export async function loadRatingsMe(
     progressPercent: progress.progressPercent,
     nextBand: progress.nextBand,
     history,
-    ratedMatchCount,
+    ratedMatchCount: matchCount,
   };
 }
 
-export const me = protectedProcedure.query(async ({ ctx }) => {
-  const appUser = await resolveAppUser(ctx.userId);
-  return loadRatingsMe(ctx.db, { userId: appUser.id });
-});
+export const me = protectedProcedure
+  .input(z.object({ sport: sportSchema }).optional())
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return loadRatingsMe(ctx.db, { userId: appUser.id, sport: input?.sport });
+  });

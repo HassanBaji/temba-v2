@@ -1,5 +1,6 @@
-import { sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
+import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react-native";
 import { View } from "react-native";
 
@@ -9,6 +10,7 @@ import { MountFill } from "../primitives/mount-fill";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { Card } from "./card";
+import { noLevelCopy, type HomeLevel } from "./home-model";
 
 const CHANGE_ICONS = {
   up: ArrowUpRight,
@@ -17,6 +19,7 @@ const CHANGE_ICONS = {
 } as const;
 
 const SWATCH = 12;
+const NO_LEVEL_TILE = 74;
 
 function Swatch({ provisional }: { provisional: boolean }) {
   const palette = useTonePalette();
@@ -35,13 +38,55 @@ function Swatch({ provisional }: { provisional: boolean }) {
   );
 }
 
-export function LevelCard({ input }: { input: HomeLevelInput }) {
+export function LevelCard({
+  level,
+  sport,
+}: {
+  level: HomeLevel;
+  sport: Sport;
+}) {
+  return level.kind === "rated" ? (
+    <RatedLevel input={level.input} sport={sport} />
+  ) : (
+    <NoLevel sport={sport} />
+  );
+}
+
+function NoLevel({ sport }: { sport: Sport }) {
+  return (
+    <Card title="Level" meta={SPORT_LABELS[sport]} monoMeta>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 20,
+          paddingHorizontal: spacing.surface,
+          paddingBottom: spacing.surface,
+        }}
+      >
+        <View style={{ width: NO_LEVEL_TILE, height: NO_LEVEL_TILE }}>
+          <Hatch radius={radii.lg} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+          <Text size="lead" weight="semibold">
+            No Level yet
+          </Text>
+          <Text size="meta" tone="muted">
+            {noLevelCopy(sport)}
+          </Text>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
   const palette = useTonePalette();
   const view = homeLevelView(input);
   const ChangeIcon = view.change ? CHANGE_ICONS[view.change.direction] : null;
 
   return (
-    <Card title="Level" meta="Padel">
+    <Card title="Level" meta={SPORT_LABELS[sport]} monoMeta>
       <View
         style={{
           flexDirection: "row",

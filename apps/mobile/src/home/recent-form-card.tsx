@@ -1,75 +1,105 @@
 import { spacing } from "@repo/design-tokens";
 import {
   recentFormRecord,
-  recentFormStatus,
-  recentFormWinRateCopy,
   type RecentFormView,
 } from "@repo/domain/home-recent-form";
 import { View } from "react-native";
 
-import { FormSlot } from "../primitives/form-slot";
+import { Hairline } from "../primitives/hairline";
+import { ResultMark } from "../primitives/result-mark";
+import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { Card } from "./card";
+import type { HomeStats } from "./home-model";
 
-export function RecentFormCard({ form }: { form: RecentFormView }) {
-  const winRate = recentFormWinRateCopy(form);
+const MARK = 16;
+const MARKS_WIDTH = 150;
+
+export function RecentFormCard({
+  form,
+  stats,
+}: {
+  form: RecentFormView;
+  stats: HomeStats | null;
+}) {
+  const palette = useTonePalette();
+  const record = recentFormRecord(form);
+  const figures = stats
+    ? [
+        { key: "played", label: "Played", value: stats.played },
+        { key: "won", label: "Won", value: stats.won },
+        { key: "lost", label: "Lost", value: stats.lost },
+      ]
+    : [];
 
   return (
     <Card title="Recent form" meta="Last 10 matches">
       <View
         style={{
-          paddingHorizontal: spacing.surface,
-          paddingBottom: spacing.surface,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
           gap: 16,
+          paddingHorizontal: spacing.surface,
+          paddingBottom: spacing.compact,
         }}
       >
+        <Text
+          size="record"
+          width="expanded"
+          weight="bold"
+          accessibilityLabel={`Record ${record}`}
+        >
+          {record}
+        </Text>
         <View
           style={{
             flexDirection: "row",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            gap: 12,
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            gap: 5,
+            maxWidth: MARKS_WIDTH,
           }}
         >
-          <View style={{ gap: 4 }}>
-            <Text size="record" width="expanded" weight="bold">
-              {recentFormRecord(form)}
-            </Text>
-            <Text size="meta" tone="muted">
-              {recentFormStatus(form)}
-            </Text>
-          </View>
-          <View style={{ alignItems: "flex-end", gap: 4 }}>
-            <Text size="figure" width="expanded" weight="bold">
-              {winRate.value}
-            </Text>
-            <Text size="meta" tone="muted">
-              {winRate.caption}
-            </Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: "row", gap: 4 }}>
-          {form.bars.map((bar, index) =>
-            bar.kind === "empty" ? (
-              <FormSlot key={`empty-${index}`} variant="not-played" />
-            ) : (
-              <FormSlot
-                key={`${bar.label}-${index}`}
-                variant={bar.outcome}
-                label={bar.label}
-              />
-            ),
-          )}
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text size="meta" tone="muted">
-            Most recent
-          </Text>
-          <Text size="meta" tone="muted">
-            Oldest
-          </Text>
+          {form.bars.map((bar, index) => (
+            <ResultMark
+              key={index}
+              size={MARK}
+              variant={bar.kind === "empty" ? "not-played" : bar.outcome}
+            />
+          ))}
         </View>
       </View>
+      {figures.length > 0 ? (
+        <>
+          <Hairline />
+          <View style={{ flexDirection: "row" }}>
+            {figures.map((figure, index) => (
+              <View
+                key={figure.key}
+                accessible
+                accessibilityLabel={`${figure.label} ${figure.value}`}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  alignItems: "center",
+                  gap: 4,
+                  paddingVertical: 16,
+                  borderLeftWidth: index === 0 ? 0 : 1,
+                  borderLeftColor: palette.rule,
+                }}
+              >
+                <Text size="figure" width="expanded" weight="bold">
+                  {figure.value}
+                </Text>
+                <Text size="eyebrow" tone="muted">
+                  {figure.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
     </Card>
   );
 }
