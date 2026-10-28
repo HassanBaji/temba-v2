@@ -573,12 +573,19 @@ export function FootballGameDetails({
               match={board.data?.match ?? null}
               canEnterScore={board.data?.viewer.canEnterScore ?? false}
               canConfirm={board.data?.viewer.canConfirm ?? false}
+              confirmForSlots={board.data?.viewer.canConfirmForSlots ?? []}
               confirmPending={confirmScore.isPending}
               onEnterScore={() => router.push(scorePath)}
               onConfirm={() => {
                 const matchId = board.data?.match?.id;
                 if (matchId) {
                   confirmScore.mutate({ gameId, matchId });
+                }
+              }}
+              onConfirmForSlot={(slot) => {
+                const matchId = board.data?.match?.id;
+                if (matchId) {
+                  confirmScore.mutate({ gameId, matchId, slot });
                 }
               }}
             />

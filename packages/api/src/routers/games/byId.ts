@@ -47,8 +47,10 @@ import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { viewerLevelRangeFields } from "#src/games/level-range-requests";
 import {
   matchResultConfirmationCompletedAt,
+  matchOrganizerSides,
   matchResultConfirmedUserIds,
   matchSeatedUserIds,
+  type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
@@ -511,6 +513,7 @@ export async function gameById(
     // e.g. a court change, could also touch) — additive read of an existing
     // column, no schema change.
     confirmedAt: Date | null;
+    organizerSides?: { slot: MatchSlot; confirmed: boolean }[];
   } | null = null;
 
   let ratingImpact: {
@@ -529,10 +532,12 @@ export async function gameById(
   let canReportWrongScore: WrongScoreReversalEligibility | null = null;
 
   if (isIndividualFriendlyGame && friendlyMatch) {
-    const [requiredUserIds, confirmedUserIds] = await Promise.all([
-      matchSeatedUserIds(database, friendlyMatch),
-      matchResultConfirmedUserIds(database, friendlyMatch.id),
-    ]);
+    const [requiredUserIds, confirmedUserIds, organizerSides] =
+      await Promise.all([
+        matchSeatedUserIds(database, friendlyMatch),
+        matchResultConfirmedUserIds(database, friendlyMatch.id),
+        matchOrganizerSides(database, friendlyMatch),
+      ]);
     const confirmedAt =
       phase === "final"
         ? await matchResultConfirmationCompletedAt(database, friendlyMatch.id)
@@ -542,6 +547,7 @@ export async function gameById(
       requiredUserIds,
       viewerHasConfirmed: confirmedUserIds.includes(args.userId),
       confirmedAt,
+      organizerSides,
     };
 
     if (phase === "final") {

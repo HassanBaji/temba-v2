@@ -1201,6 +1201,7 @@ export default function GameHomePage({
                   viewerUserId={data.viewerUserId}
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
+                  isOrganizer={data.isOrganizer}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
                   onScoreSet={(input) =>
@@ -1216,6 +1217,13 @@ export default function GameHomePage({
                     confirmMatchResult.mutate({
                       gameId: id,
                       matchId: firstMatch.id,
+                    })
+                  }
+                  onConfirmForSlot={(slot) =>
+                    confirmMatchResult.mutate({
+                      gameId: id,
+                      matchId: firstMatch.id,
+                      slot,
                     })
                   }
                 />

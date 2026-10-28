@@ -644,6 +644,9 @@ export function GameDetailsScreen({
     onSaveSets: (payloads) => void saveSets(payloads),
     onConfirm: () =>
       firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
+    onConfirmForSlot: (slot) =>
+      firstMatchId &&
+      confirmResult.mutate({ gameId, matchId: firstMatchId, slot }),
     onRequestLevel: () => requestLevel.mutate({ gameId }),
     onFooterAction: (kind) => {
       if (kind === "leave_game") {

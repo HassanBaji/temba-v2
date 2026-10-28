@@ -1,3 +1,5 @@
+import { formatMatchSlotLabel } from "./game-side-label";
+
 export type FriendlyScorePhase =
   | "upcoming"
   | "ongoing"
@@ -120,10 +122,13 @@ export function scoreFooterNote(
   return "Scoring opens when the court is full. Fill the last spot and you'll be able to enter a result after the game.";
 }
 
+export type ScoreOrganizerSide = { slot: 1 | 2; confirmed: boolean };
+
 export type ScoreConfirmation = {
   confirmedUserIds: string[];
   requiredUserIds: string[];
   viewerHasConfirmed: boolean;
+  organizerSides?: ScoreOrganizerSide[];
 };
 
 export function scoreConfirmationRows(
@@ -165,4 +170,37 @@ export function scoreCanConfirm(input: {
     input.confirmation.requiredUserIds.includes(input.viewerUserId) &&
     !input.confirmation.viewerHasConfirmed
   );
+}
+
+/** A side with no account holder waits on an Organizer's confirmation. */
+export function scoreOrganizerWaitingLines(confirmation: ScoreConfirmation) {
+  return (confirmation.organizerSides ?? [])
+    .filter((side) => !side.confirmed)
+    .map(
+      (side) =>
+        `Waiting for the Organizer to confirm for ${formatMatchSlotLabel("friendly_game", side.slot)}.`,
+    );
+}
+
+export function scoreOrganizerConfirmSlots(input: {
+  confirmation: ScoreConfirmation | null;
+  hasResult: boolean;
+  phase: FriendlyScorePhase;
+  isOrganizer: boolean;
+}): (1 | 2)[] {
+  if (
+    !input.isOrganizer ||
+    input.confirmation == null ||
+    !input.hasResult ||
+    input.phase === "final"
+  ) {
+    return [];
+  }
+  return (input.confirmation.organizerSides ?? []).flatMap((side) =>
+    side.confirmed ? [] : [side.slot],
+  );
+}
+
+export function scoreConfirmForSlotLabel(slot: 1 | 2) {
+  return `Confirm for ${formatMatchSlotLabel("friendly_game", slot)}`;
 }

@@ -322,7 +322,7 @@ A completed Match's outcome for one User: won, lost, or draw. A draw is equal Se
 _Avoid_: score (Sets carry the score), win rate (that is a derived percentage), outcome (when you mean this entity)
 
 **Match result confirmation**:
-A seated User's acknowledgement that a Match's entered Sets are correct. The User who enters the Set that first produces a Match result is confirmed automatically; a Match only reaches completed, and only then rates, once every seated User on its two Game teams has confirmed. An Organizer may still force a Match to completed without full confirmation.
+A seated User's acknowledgement that a Match's entered Sets are correct. The User who enters the Set that first produces a Match result is confirmed automatically; a Match only reaches completed, and only then rates, once every seated User with an account on its two Game teams has confirmed. An Unclaimed player never confirms: a side whose seated Users are all Unclaimed players is confirmed by an Organizer's confirmation for that side, which a changed score clears like any other. A football Match needs one player from each side, read the same way. An Organizer may still force a Match to completed without full confirmation.
 _Avoid_: complete (the resulting Match status), verify, approve, agree, confirmed Match status (`MatchStatusEnum.CONFIRMED` is deliberately unused — see ADR-0011)
 
 **Americano**:

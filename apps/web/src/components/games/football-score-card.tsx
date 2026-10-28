@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  confirmForSideLabel,
   confirmationLine,
   shortName,
   type Bibs,
@@ -43,9 +44,11 @@ export function FootballScoreCard({
   match,
   canEnterScore,
   canConfirm,
+  confirmForSlots,
   confirmPending,
   scoreHref,
   onConfirm,
+  onConfirmForSlot,
 }: {
   bibs: Bibs;
   names: { slot1: string; slot2: string };
@@ -54,13 +57,16 @@ export function FootballScoreCard({
     status: string | null;
     score: { slot1: number; slot2: number } | null;
     confirmed: { slot1: boolean; slot2: boolean };
+    organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
     enteredByName: string | null;
   } | null;
   canEnterScore: boolean;
   canConfirm: boolean;
+  confirmForSlots: readonly (1 | 2)[];
   confirmPending: boolean;
   scoreHref: string;
   onConfirm: () => void;
+  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const score = match?.score ?? null;
   const completed = match?.status === "completed";
@@ -104,19 +110,29 @@ export function FootballScoreCard({
                   match?.confirmed ?? { slot1: false, slot2: false },
                   names,
                   completed,
+                  match?.organizerSides,
                 )}
                 {match?.enteredByName
                   ? ` Entered by ${match.enteredByName}.`
                   : ""}
               </p>
             </div>
-            {canConfirm || canEnterScore ? (
-              <div className="flex gap-2">
+            {canConfirm || confirmForSlots.length > 0 || canEnterScore ? (
+              <div className="flex flex-wrap gap-2">
                 {canConfirm ? (
                   <Button pending={confirmPending} onClick={onConfirm}>
                     Confirm score
                   </Button>
                 ) : null}
+                {confirmForSlots.map((slot) => (
+                  <Button
+                    key={slot}
+                    pending={confirmPending}
+                    onClick={() => onConfirmForSlot(slot)}
+                  >
+                    {confirmForSideLabel(slot, names)}
+                  </Button>
+                ))}
                 {canEnterScore ? (
                   <Button variant="outline" asChild>
                     <Link href={scoreHref}>Edit score</Link>

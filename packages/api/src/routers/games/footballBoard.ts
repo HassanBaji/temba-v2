@@ -28,7 +28,10 @@ import {
   footballScoreSet,
   footballSides,
 } from "#src/games/football-lineup";
-import { matchSlotsConfirmed } from "#src/games/match-result-confirmations";
+import {
+  matchOrganizerSides,
+  matchSlotsConfirmed,
+} from "#src/games/match-result-confirmations";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -126,6 +129,9 @@ export async function footballBoard(
   const slotsConfirmed = match
     ? await matchSlotsConfirmed(database, match)
     : { slot1: false, slot2: false };
+  const organizerSides = match
+    ? await matchOrganizerSides(database, match)
+    : [];
 
   const viewerSide = sideByUser.get(args.userId) ?? null;
   const published = sides.slot1 != null && sides.slot2 != null && match != null;
@@ -178,6 +184,7 @@ export async function footballBoard(
           status: match.status,
           score,
           confirmed: slotsConfirmed,
+          organizerSides,
           enteredByName: confirmations[0]?.user.name ?? null,
         }
       : null,
@@ -195,6 +202,12 @@ export async function footballBoard(
         viewerSide != null &&
         !viewerConfirmed &&
         !viewerSideConfirmed,
+      canConfirmForSlots:
+        organizer && live && score != null
+          ? organizerSides.flatMap((side) =>
+              side.confirmed ? [] : [side.slot],
+            )
+          : [],
     },
   };
 }

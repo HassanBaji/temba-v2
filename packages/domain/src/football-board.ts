@@ -354,17 +354,39 @@ export function confirmationLine(
   confirmed: { slot1: boolean; slot2: boolean },
   names: { slot1: string; slot2: string },
   completed: boolean,
+  organizerSides: readonly { slot: Side }[] = [],
 ) {
   if (completed) {
     return "Both sides confirmed.";
   }
+  const byOrganizer = (slot: Side) =>
+    organizerSides.some((side) => side.slot === slot);
+  const waitingOn = (slot: Side) => {
+    const name = slot === 1 ? names.slot1 : names.slot2;
+    return byOrganizer(slot)
+      ? `the Organizer to confirm for ${name}`
+      : `one player from ${name} to confirm`;
+  };
   if (confirmed.slot1 && !confirmed.slot2) {
-    return `Waiting for one player from ${names.slot2} to confirm.`;
+    return `Waiting for ${waitingOn(2)}.`;
   }
   if (confirmed.slot2 && !confirmed.slot1) {
-    return `Waiting for one player from ${names.slot1} to confirm.`;
+    return `Waiting for ${waitingOn(1)}.`;
+  }
+  if (byOrganizer(1) && byOrganizer(2)) {
+    return "Waiting for the Organizer to confirm for both sides.";
+  }
+  if (byOrganizer(1) || byOrganizer(2)) {
+    return `Waiting for ${waitingOn(1)} and ${waitingOn(2)}.`;
   }
   return "Waiting for one player from each side to confirm.";
+}
+
+export function confirmForSideLabel(
+  slot: Side,
+  names: { slot1: string; slot2: string },
+) {
+  return `Confirm for ${slot === 1 ? names.slot1 : names.slot2}`;
 }
 
 export function viewerSideLine(
