@@ -3,6 +3,7 @@ import { createTRPCRouter } from "#src/trpc";
 import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLink";
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
 import { addMatchProcedure as addMatch } from "./addMatch";
+import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { addSetProcedure as addSet } from "./addSet";
 import { approveLevelRangeRequestProcedure as approveLevelRangeRequest } from "./approveLevelRangeRequest";
 import { byId } from "./byId";
@@ -38,6 +39,7 @@ import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
+import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
 import { registerProcedure as register } from "./register";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
@@ -88,6 +90,8 @@ export const gamesRouter = createTRPCRouter({
   leave,
   leaveWaitlist,
   kick,
+  previewPlayerByPhone,
+  addPlayerByPhone,
   closeRegistration,
   reopenRegistration,
   cancel,

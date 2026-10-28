@@ -10,6 +10,7 @@ import type {
   FriendlyGameDetailsSide,
 } from "@repo/domain/friendly-game-details";
 import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
+import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { Fragment } from "react";
@@ -20,6 +21,7 @@ import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { FormSlot } from "../primitives/form-slot";
 import { Hatch } from "../primitives/hatch";
+import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { Text } from "../primitives/text";
 import { spacing } from "@repo/design-tokens";
 
@@ -136,6 +138,12 @@ function SeatRow({
           {seat.name}
           {isViewer ? " (You)" : ""}
         </Text>
+        {seat.unclaimed ? <NotOnTembaMark /> : null}
+        {seat.phoneMasked ? (
+          <Text size="meta" tone="muted" numberOfLines={1}>
+            {seat.phoneMasked}
+          </Text>
+        ) : null}
         <Text size="meta" tone="muted" numberOfLines={1}>
           {subline}
         </Text>
@@ -163,7 +171,14 @@ function SeatRow({
       {onOpen ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${seat.name}${isViewer ? " (You)" : ""}, ${subline}`}
+          accessibilityLabel={[
+            `${seat.name}${isViewer ? " (You)" : ""}`,
+            seat.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
+            seat.phoneMasked ?? null,
+            subline,
+          ]
+            .filter(Boolean)
+            .join(", ")}
           accessibilityHint="Opens their Player profile"
           onPress={onOpen}
           style={({ pressed }) => [

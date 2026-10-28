@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 
+import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
@@ -107,6 +108,8 @@ function LineupSeatRow({
     <SeatRow
       occupant={occupant}
       isViewer={isViewer}
+      unclaimed={occupant.unclaimed}
+      phoneMasked={occupant.phoneMasked}
       href={linked ? playerProfilePath(occupant.userId) : undefined}
       subline={friendlyGameSeatSubline(position, occupant.levelBand)}
       trailing={
@@ -231,6 +234,7 @@ export function GameLineupSection({
   kickPending,
   onKick,
   linkToPlayers,
+  onAddPlayer,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
@@ -246,6 +250,7 @@ export function GameLineupSection({
   kickPending: boolean;
   onKick: (userId: string) => void;
   linkToPlayers: boolean;
+  onAddPlayer?: () => void;
 }) {
   // Final phase never shows invite affordances in this section, regardless
   // of the caller's organizer-only `canMintInvite` value (spec: "no invite
@@ -268,9 +273,19 @@ export function GameLineupSection({
       data-slot="game-lineup-section"
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
-      <h2 className="text-muted-foreground px-[22px] pb-3 pt-[22px] text-sm">
-        Line-up
-      </h2>
+      <div className="flex items-center justify-between gap-3 px-[22px] pb-3 pt-[22px]">
+        <h2 className="text-muted-foreground text-sm">Line-up</h2>
+        {onAddPlayer ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onAddPlayer}
+          >
+            {ADD_PLAYER_ACTION}
+          </Button>
+        ) : null}
+      </div>
       <div
         className={cn(
           "border-rule flex flex-col gap-4 border-t px-[22px] pb-[22px] pt-[18px] sm:flex-row sm:items-start sm:gap-3",

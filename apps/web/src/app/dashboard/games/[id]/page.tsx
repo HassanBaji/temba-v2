@@ -14,6 +14,7 @@ import {
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
@@ -89,6 +90,7 @@ import {
   friendlyGameCanMintInvite,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
@@ -210,6 +212,7 @@ export default function GameHomePage({
   const [editOpen, setEditOpen] = React.useState(false);
   const justSavedEditSectionsRef = React.useRef(new Set<GameEditSection>());
   const [invitesOpen, setInvitesOpen] = React.useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
@@ -785,6 +788,7 @@ export default function GameHomePage({
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
   const plan = friendlyGameDetailsPlan(data);
+  const canAddPlayer = usesFriendlyChrome && organizerCanAddPlayer(data);
   const { firstMatch, winningGameTeamId, canLeaveGame } = plan;
   const heroInput = friendlyGameHeroInput(data);
   const ctaFamily = usesFriendlyChrome
@@ -1174,6 +1178,9 @@ export default function GameHomePage({
               kickPending={kick.isPending}
               onKick={(userId) => requestKick({ userId })}
               linkToPlayers={gamePlayersLink(data)}
+              onAddPlayer={
+                canAddPlayer ? () => setAddPlayerOpen(true) : undefined
+              }
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
@@ -1430,6 +1437,16 @@ export default function GameHomePage({
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutateAsync({ gameId: id, sideIndex, position })
           }
+        />
+      ) : null}
+
+      {canAddPlayer || addPlayerOpen ? (
+        <AddPlayerDialog
+          open={addPlayerOpen}
+          onOpenChange={setAddPlayerOpen}
+          gameId={id}
+          sides={data.sides}
+          onAdded={() => utils.games.byId.invalidate({ id })}
         />
       ) : null}
 

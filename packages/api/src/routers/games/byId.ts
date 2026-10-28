@@ -80,6 +80,8 @@ import {
   wrongScoreReversalEligibility,
   type WrongScoreReversalEligibility,
 } from "#src/games/wrong-score-reversal";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
+import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 
@@ -238,11 +240,33 @@ export async function gameById(
     where: eq(gamePlayers.gameId, game.id),
     with: {
       user: {
-        columns: { id: true, name: true, image: true },
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+          clerkId: true,
+          addedAt: true,
+          phoneNumber: true,
+        },
       },
     },
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
   });
+  const playerMarkByUserId = new Map(
+    playerRows.flatMap((row) => {
+      if (!row.user) {
+        return [];
+      }
+      const unclaimed = isUnclaimed(row.user);
+      const phoneMasked =
+        organizer && unclaimed && row.user.phoneNumber
+          ? maskPhone(row.user.phoneNumber)
+          : null;
+      return [[row.user.id, { unclaimed, phoneMasked }] as const];
+    }),
+  );
+  const playerMark = (userId: string) =>
+    playerMarkByUserId.get(userId) ?? { unclaimed: false, phoneMasked: null };
 
   const group = game.groupId
     ? await database.query.groups.findFirst({
@@ -358,7 +382,14 @@ export async function gameById(
   const isSeated = seatedUserIds.has(args.userId);
   const unseatedPlayers = playerRows.flatMap((row) =>
     row.user && !seatedUserIds.has(row.user.id)
-      ? [{ id: row.user.id, name: row.user.name, image: row.user.image }]
+      ? [
+          {
+            id: row.user.id,
+            name: row.user.name,
+            image: row.user.image,
+            ...playerMark(row.user.id),
+          },
+        ]
       : [],
   );
   const sides =
@@ -435,6 +466,7 @@ export async function gameById(
       ? {
           ...occupant,
           levelBand: levelBandByUserId.get(occupant.userId) ?? null,
+          ...playerMark(occupant.userId),
         }
       : null;
   const sidesWithLevelBand = sides.map((side) => ({
@@ -560,7 +592,14 @@ export async function gameById(
 
   const registeredPlayers = playerRows.flatMap((row) =>
     row.user
-      ? [{ id: row.user.id, name: row.user.name, image: row.user.image }]
+      ? [
+          {
+            id: row.user.id,
+            name: row.user.name,
+            image: row.user.image,
+            ...playerMark(row.user.id),
+          },
+        ]
       : [],
   );
 
@@ -722,6 +761,7 @@ export async function gameById(
                 name: link.gamePlayer.user.name,
                 image: link.gamePlayer.user.image,
                 position: link.position,
+                ...playerMark(link.gamePlayer.user.id),
               },
             ]
           : [],

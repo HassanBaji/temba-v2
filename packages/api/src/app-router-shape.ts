@@ -101,6 +101,8 @@ type ExpectedGames =
   | "leave"
   | "leaveWaitlist"
   | "kick"
+  | "previewPlayerByPhone"
+  | "addPlayerByPhone"
   | "closeRegistration"
   | "reopenRegistration"
   | "cancel"

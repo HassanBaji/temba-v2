@@ -422,7 +422,7 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, kick registered or waitlisted entries, edit window and price per player and Game Level range, and decide Game Level range requests.
+Of a Group Game: that Group’s creator, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, kick registered or waitlisted entries, edit window and price per player and Game Level range, decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Game admins**:
@@ -494,7 +494,7 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, or that a Game they played on has finished. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
+An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, or that an Organizer seated them on a Game. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
 
 **Notifications page**:

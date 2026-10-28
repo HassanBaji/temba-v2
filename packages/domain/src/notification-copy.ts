@@ -128,6 +128,20 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (
+    item.type === "game_seated_by_organizer" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: [
+        strong(actorName(item.actor)),
+        plain(" added you to "),
+        strong(notificationGameName(item.game)),
+      ],
+      subline: null,
+    };
+  }
   if (item.type === "game_finished" && item.game) {
     const subline = gameFinishedSubline(item.audience);
     if (subline) {

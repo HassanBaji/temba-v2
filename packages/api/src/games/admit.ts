@@ -1,6 +1,13 @@
 import { and, eq } from "drizzle-orm";
 
-import { gamePlayers, gameTeams, teamMembers, teams } from "@repo/db";
+import {
+  MatchStatusEnum,
+  gamePlayers,
+  gameTeams,
+  matches,
+  teamMembers,
+  teams,
+} from "@repo/db";
 
 import {
   FRIENDLY_PLAYERS_ALLOWED,
@@ -61,7 +68,11 @@ async function notifyGameJoined(
   database: AdmitDb,
   game: GameRow,
   door: AdmitDoor,
-  party: { userIds: readonly string[]; teamId?: string },
+  party: {
+    userIds: readonly string[];
+    teamId?: string;
+    addedByUserId?: string;
+  },
 ) {
   if (await gameNotificationsSuppressed(database, game)) {
     return;
@@ -70,7 +81,9 @@ async function notifyGameJoined(
   await notify(database, {
     type: "game_player_joined",
     recipients: adminIds.map((userId) => ({ userId, audience: "admin" })),
-    excludeUserIds: [...party.userIds],
+    excludeUserIds: party.addedByUserId
+      ? [...party.userIds, party.addedByUserId]
+      : [...party.userIds],
     actorUserId: party.userIds[0],
     partnerUserId: party.userIds[1],
     teamId: party.teamId,
@@ -80,12 +93,26 @@ async function notifyGameJoined(
   });
 }
 
+async function hasCompletedMatch(database: AdmitDb, gameId: string) {
+  const completed = await database.query.matches.findFirst({
+    where: and(
+      eq(matches.gameId, gameId),
+      eq(matches.status, MatchStatusEnum.COMPLETED),
+    ),
+    columns: { id: true },
+  });
+  return Boolean(completed);
+}
+
 async function refuseRegisterDoors(
   database: AdmitDb,
   game: GameRow,
   door: AdmitDoor,
   now: Date,
 ): Promise<AdmitResult | null> {
+  if (door === "organizer_add" && game.cancelledAt) {
+    return { ok: false, reason: "cancelled" };
+  }
   const view = await consult(database, {
     clubGroupGame: { groupId: game.groupId },
   });
@@ -94,6 +121,12 @@ async function refuseRegisterDoors(
   }
   if (door === "register" && !isRegistrationOpen(game, now)) {
     return { ok: false, reason: "registration_closed" };
+  }
+  if (
+    door === "organizer_add" &&
+    (await hasCompletedMatch(database, game.id))
+  ) {
+    return { ok: false, reason: "match_completed" };
   }
   return null;
 }
@@ -105,6 +138,8 @@ export async function admit(
     door: AdmitDoor;
     party: AdmitParty;
     now?: Date;
+    /** The Organizer behind an `organizer_add`, left out of the join fan-out. */
+    addedByUserId?: string;
   },
 ): Promise<AdmitResult> {
   const now = args.now ?? new Date();
@@ -125,7 +160,13 @@ export async function admit(
   }
 
   if (args.party.kind === "user") {
-    return admitUser(database, args.game, args.door, args.party);
+    return admitUser(
+      database,
+      args.game,
+      args.door,
+      args.party,
+      args.addedByUserId,
+    );
   }
   if (args.party.kind === "pair") {
     return admitPair(database, args.game, args.door, args.party);
@@ -138,6 +179,7 @@ async function admitUser(
   game: GameRow,
   door: AdmitDoor,
   party: Extract<AdmitParty, { kind: "user" }>,
+  addedByUserId?: string,
 ): Promise<AdmitResult> {
   if (await userOnGame(database, game.id, party.userId)) {
     return { ok: false, reason: "already_on_game" };
@@ -158,7 +200,10 @@ async function admitUser(
       party.seat.sideIndex,
       party.seat.position,
     );
-    await notifyGameJoined(database, game, door, { userIds: [party.userId] });
+    await notifyGameJoined(database, game, door, {
+      userIds: [party.userId],
+      addedByUserId,
+    });
     return {
       ok: true,
       placement: {
@@ -179,7 +224,10 @@ async function admitUser(
     gameId: game.id,
     userId: party.userId,
   });
-  await notifyGameJoined(database, game, door, { userIds: [party.userId] });
+  await notifyGameJoined(database, game, door, {
+    userIds: [party.userId],
+    addedByUserId,
+  });
   return {
     ok: true,
     placement: { kind: "user", userId: party.userId },

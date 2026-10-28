@@ -66,6 +66,17 @@ describe("friendlyGameOrganizerPlan", () => {
     );
   });
 
+  it("offers Add player until the Match is completed", () => {
+    assert.equal(
+      friendlyGameOrganizerPlan(fixtures.upcoming, NOW)?.canAddPlayer,
+      true,
+    );
+    assert.equal(
+      friendlyGameOrganizerPlan(fixtures.final, NOW)?.canAddPlayer,
+      false,
+    );
+  });
+
   it("offers a Court on the Match that is still live", () => {
     const plan = friendlyGameOrganizerPlan(fixtures.upcoming, NOW);
     assert.equal(plan?.court?.matchId, fixtures.upcoming.matches[0]?.id);

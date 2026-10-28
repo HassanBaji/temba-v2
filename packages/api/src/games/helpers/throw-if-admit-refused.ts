@@ -59,6 +59,18 @@ export function throwIfAdmitRefused(
       message: "No fully vacant side; pick a seat",
     });
   }
+  if (result.reason === "cancelled") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This Game is cancelled",
+    });
+  }
+  if (result.reason === "match_completed") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This Game already has a completed Match",
+    });
+  }
   if (result.reason === "team_not_found") {
     throw new TRPCError({
       code: "NOT_FOUND",

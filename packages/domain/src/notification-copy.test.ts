@@ -210,6 +210,44 @@ describe("notificationCopy for a Game leave", () => {
   });
 });
 
+describe("notificationCopy for an Organizer's add", () => {
+  const game = {
+    name: "Thursday Padel",
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 9, 8, 19, 0, 0),
+  };
+
+  it("tells a player an Organizer seated them", () => {
+    assert.deepEqual(
+      notificationCopy({
+        type: "game_seated_by_organizer",
+        audience: "player",
+        actor: { name: "Sara" },
+        group: { name: "Night Crew" },
+        game,
+      }),
+      {
+        title: [
+          { text: "Sara", strong: true },
+          { text: " added you to ", strong: false },
+          { text: "Thursday Padel", strong: true },
+        ],
+        subline: null,
+      },
+    );
+    assert.equal(
+      notificationCopy({
+        type: "game_seated_by_organizer",
+        audience: "admin",
+        actor: { name: "Sara" },
+        group: null,
+        game,
+      }),
+      null,
+    );
+  });
+});
+
 describe("notificationCopy for a Finished Game", () => {
   const game = {
     name: "Thursday Padel",

@@ -51,6 +51,7 @@ import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/orga
 import { TournamentContent } from "../tournament/tournament-content";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
 import { api } from "../trpc/react";
+import { AddPlayerSheet } from "./add-player-sheet";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import {
   GameDetailsBar,
@@ -687,7 +688,16 @@ export function GameDetailsScreen({
       />
       {sheets}
       {organizer.plan ? (
-        <OrganizerSheets {...organizer.sheets} game={details} />
+        <>
+          <OrganizerSheets {...organizer.sheets} game={details} />
+          <AddPlayerSheet
+            visible={organizer.addPlayer.open}
+            onClose={organizer.addPlayer.onClose}
+            gameId={gameId}
+            sides={details.sides}
+            onAdded={refresh}
+          />
+        </>
       ) : null}
     </View>
   );

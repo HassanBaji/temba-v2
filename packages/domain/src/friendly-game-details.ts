@@ -16,6 +16,8 @@ export type FriendlyGameDetailsSeat = {
   name: string;
   image: string | null;
   levelBand: LevelBand | null;
+  unclaimed?: boolean;
+  phoneMasked?: string | null;
 };
 
 export type FriendlyGameDetailsSide = {
