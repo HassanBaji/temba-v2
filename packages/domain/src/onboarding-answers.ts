@@ -25,7 +25,7 @@ import {
 } from "./preferred-position";
 import { isSport, type Sport } from "./sport";
 
-export type PadelLevelChoice = AssignableDisplayLevelBand | "unknown";
+export type PadelLevelChoice = AssignableDisplayLevelBand;
 
 /** What a User has picked so far, held by the questionnaire until Find games. */
 export type OnboardingAnswers = {
@@ -135,8 +135,10 @@ export const FOOTBALL_ROLE_CHOICES: {
   { value: "keeper", name: "Keeper", detail: "two per game" },
 ];
 
-/** "I don't know" starts at the classic default, which reads as C. */
-export const PADEL_NOT_SURE_LABEL = "Not sure, start at C and leave side open";
+/** A player who is not sure starts one rung up from the bottom, not at the classic default. */
+export const PADEL_NOT_SURE_LEVEL: PadelLevelChoice = "D+";
+
+export const PADEL_NOT_SURE_LABEL = `Not sure, start at ${PADEL_NOT_SURE_LEVEL} and leave side open`;
 
 export function initialOnboardingAnswers(
   seed: OnboardingSeed,
@@ -195,10 +197,7 @@ function footballPositionLabel(position: FootballPosition) {
 export function onboardingSummary(answers: OnboardingAnswers) {
   const lines: { sport: string; line: string }[] = [];
   if (answers.picked.padel) {
-    const level =
-      !answers.padelLevel || answers.padelLevel === "unknown"
-        ? "Level from results"
-        : answers.padelLevel;
+    const level = answers.padelLevel || "Level already set";
     const side =
       preferredPositionProfileLine(answers.padelSide) ?? "Either side";
     lines.push({ sport: "Padel", line: `${level}, ${side.toLowerCase()}` });

@@ -10,6 +10,7 @@ import {
   FOOTBALL_ROLE_CHOICES,
   PADEL_LEVEL_CHOICES,
   PADEL_NOT_SURE_LABEL,
+  PADEL_NOT_SURE_LEVEL,
   PADEL_SIDE_CHOICES,
   SPORT_CHOICES,
   initialOnboardingAnswers,
@@ -165,7 +166,10 @@ function Questions({ state }: { state: OnboardingState }) {
                 accessibilityRole="button"
                 hitSlop={8}
                 onPress={() => {
-                  update({ padelLevel: "unknown", padelSide: "either" });
+                  update({
+                    padelLevel: PADEL_NOT_SURE_LEVEL,
+                    padelSide: "either",
+                  });
                   go("next");
                 }}
                 style={{ minHeight: 44, justifyContent: "center" }}
@@ -193,7 +197,7 @@ function Questions({ state }: { state: OnboardingState }) {
               ...choice,
               mark: choice.value,
             }))}
-            value={answers.padelLevel === "unknown" ? "" : answers.padelLevel}
+            value={answers.padelLevel}
             onSelect={(padelLevel) => update({ padelLevel })}
           />
         )}

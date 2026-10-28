@@ -11,6 +11,7 @@ import {
   FOOTBALL_ROLE_CHOICES,
   PADEL_LEVEL_CHOICES,
   PADEL_NOT_SURE_LABEL,
+  PADEL_NOT_SURE_LEVEL,
   PADEL_SIDE_CHOICES,
   SPORT_CHOICES,
   initialOnboardingAnswers,
@@ -172,7 +173,7 @@ function Questions({
                 ...choice,
                 mark: choice.value,
               }))}
-              value={answers.padelLevel === "unknown" ? "" : answers.padelLevel}
+              value={answers.padelLevel}
               onSelect={(padelLevel) => update({ padelLevel })}
             />
           )}
@@ -205,7 +206,10 @@ function Questions({
               variant="link"
               className="text-muted-foreground min-h-11 underline"
               onClick={() => {
-                update({ padelLevel: "unknown", padelSide: "either" });
+                update({
+                  padelLevel: PADEL_NOT_SURE_LEVEL,
+                  padelSide: "either",
+                });
                 go("next");
               }}
             >

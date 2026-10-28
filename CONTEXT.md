@@ -450,7 +450,7 @@ A person with a Temba account.
 _Avoid_: player (when you mean User), member (when you mean the Community role)
 
 **Onboarding questionnaire**:
-The questions a new User answers after Clerk sign-up and before Home, at Route `/onboarding` on web. It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. Blocking, with **Either** and **I don't know** as the low-commitment answers. Users who predate it are complete without answering.
+The questions a new User answers after Clerk sign-up and before Home, at Route `/onboarding` on web. It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. Blocking, with **Either** and **Not sure** (which starts padel at D+) as the low-commitment answers. Users who predate it are complete without answering.
 _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboarding (bare, when you mean this entity), Lookup invite
 
 **Sports played**:

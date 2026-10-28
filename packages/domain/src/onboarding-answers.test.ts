@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  PADEL_NOT_SURE_LEVEL,
   initialOnboardingAnswers,
   onboardingSubmission,
   onboardingSummary,
@@ -38,12 +39,19 @@ describe("onboardingSubmission", () => {
     });
   });
 
-  it("declares an unknown padel Level when none was picked", () => {
+  it("starts a player who is not sure at D+", () => {
+    expect(
+      onboardingSubmission({ ...answers, padelLevel: PADEL_NOT_SURE_LEVEL })
+        .padel,
+    ).toEqual({ preferredPosition: "left", choice: "D1" });
+  });
+
+  it("sends no padel band when the Level was already set", () => {
     expect(
       onboardingSubmission({
         ...answers,
         picked: { padel: true, football: false },
-        padelLevel: "unknown",
+        padelLevel: "",
       }).padel?.choice,
     ).toBe("unknown");
   });
@@ -58,13 +66,13 @@ describe("onboardingSummary", () => {
     expect(
       onboardingSummary({
         ...answers,
-        padelLevel: "unknown",
+        padelLevel: "D+",
         padelSide: "either",
         footballRole: "keeper",
         footballPlacement: "pro",
       }),
     ).toEqual([
-      { sport: "Padel", line: "Level from results, either side" },
+      { sport: "Padel", line: "D+, either side" },
       { sport: "Football", line: "Keeper, pro" },
     ]);
   });
