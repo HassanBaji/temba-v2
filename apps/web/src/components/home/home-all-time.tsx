@@ -1,13 +1,6 @@
 import type { ReactNode } from "react";
 
-import { SurfaceLabel } from "~/components/common/surface-label";
 import { cn } from "~/lib/utils";
-
-const FIGURES = [
-  { key: "played", label: "Played" },
-  { key: "won", label: "Won" },
-  { key: "lost", label: "Lost" },
-] as const;
 
 export type DividedFigure = {
   key: string;
@@ -21,8 +14,7 @@ export type DividedFigure = {
  * TEM-179), which needs the same "big number over a muted label" shape on
  * both a light surface (Final hero's duration/won-by pair) and a new dark
  * surface (`divide-dimrule`/`border-dimrule` — Upcoming/Needs-a-score
- * hero's price/duration pair) that doesn't exist yet. `HomeAllTime` below
- * is untouched and keeps rendering its own three-column row directly.
+ * hero's price/duration pair) that doesn't exist yet.
  */
 export function DividedFigurePair({
   figures,
@@ -59,40 +51,5 @@ export function DividedFigurePair({
         </div>
       ))}
     </div>
-  );
-}
-
-export function HomeAllTime({
-  gamesPlayed,
-  gamesWon,
-  gamesLost,
-}: {
-  gamesPlayed: number;
-  gamesWon: number;
-  gamesLost: number;
-}) {
-  const values = {
-    played: gamesPlayed,
-    won: gamesWon,
-    lost: gamesLost,
-  };
-
-  return (
-    <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <SurfaceLabel>All time</SurfaceLabel>
-      <div className="divide-rule border-rule flex divide-x border-t px-[22px] pb-[22px]">
-        {FIGURES.map((figure) => (
-          <div
-            key={figure.key}
-            className="mt-4 flex min-w-0 flex-1 flex-col items-center gap-1 px-3 first:pl-0 last:pr-0"
-          >
-            <p className="font-expanded text-[34px] tabular-nums leading-none">
-              {values[figure.key]}
-            </p>
-            <p className="text-muted-foreground text-meta">{figure.label}</p>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }

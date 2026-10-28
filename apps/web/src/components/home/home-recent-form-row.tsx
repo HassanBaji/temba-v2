@@ -1,19 +1,6 @@
 "use client";
 
-import { ErrorState } from "~/components/common/error-state";
-import { SurfaceLabel } from "~/components/common/surface-label";
-import { Skeleton } from "~/components/ui/skeleton";
-import { api } from "~/trpc/react";
-
-import {
-  deriveRecentForm,
-  RECENT_FORM_MATCH_COUNT,
-  recentFormRecord,
-  recentFormStatus,
-  recentFormWinRateCopy,
-  type RecentFormBar,
-  type RecentFormView,
-} from "@repo/domain/home-recent-form";
+import { type RecentFormBar } from "@repo/domain/home-recent-form";
 
 function slotLabel(bar: RecentFormBar): string {
   if (bar.kind === "empty") {
@@ -136,85 +123,4 @@ export function WinLossMark({ outcome }: { outcome: "won" | "lost" | "draw" }) {
       </span>
     </div>
   );
-}
-
-export function HomeRecentFormBlock({ form }: { form: RecentFormView }) {
-  const record = recentFormRecord(form);
-  const status = recentFormStatus(form);
-  const winRate = recentFormWinRateCopy(form);
-
-  return (
-    <section className="border-rule bg-paper rounded-xl border">
-      <SurfaceLabel meta="Last 10 matches">Recent form</SurfaceLabel>
-      <div className="px-[22px] pb-[22px]">
-        <div className="mt-1 flex items-end justify-between gap-3">
-          <div>
-            <p className="font-expanded text-[52px] tabular-nums leading-none">
-              {record}
-            </p>
-            <p className="text-muted-foreground text-meta mt-1">{status}</p>
-          </div>
-          <div className="text-right">
-            <p className="font-expanded text-[22px] tabular-nums leading-none">
-              {winRate.value}
-            </p>
-            <p className="text-muted-foreground text-meta mt-1">
-              {winRate.caption}
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 flex gap-1">
-          {form.bars.map((bar, index) => (
-            <FormSlot
-              key={
-                bar.kind === "played"
-                  ? `${bar.label}-${index}`
-                  : `empty-${index}`
-              }
-              bar={bar}
-            />
-          ))}
-        </div>
-        <div className="text-muted-foreground text-meta mt-2 flex justify-between">
-          <p>Most recent</p>
-          <p>Oldest</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function HomeRecentForm() {
-  const history = api.games.listMyMatchHistory.useQuery({
-    limit: RECENT_FORM_MATCH_COUNT,
-  });
-
-  if (history.isLoading) {
-    return (
-      <div aria-busy="true" className="border-rule rounded-xl border p-[22px]">
-        <Skeleton className="h-12 w-28" />
-        <div className="mt-4 flex gap-1">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <Skeleton key={index} className="rounded-xs h-[38px] flex-1" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (history.error) {
-    return (
-      <ErrorState
-        variant="inline"
-        title="Recent form could not be loaded"
-        message={history.error.message}
-        onRetry={() => {
-          void history.refetch();
-        }}
-      />
-    );
-  }
-
-  const form = deriveRecentForm(history.data ?? []);
-  return <HomeRecentFormBlock form={form} />;
 }
