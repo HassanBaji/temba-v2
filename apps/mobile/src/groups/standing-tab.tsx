@@ -5,6 +5,7 @@ import { groupStandingState } from "@repo/domain/group-join";
 import { Pressable, View } from "react-native";
 
 import { Hairline } from "../primitives/hairline";
+import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { hairline as hairlineWidth } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
@@ -72,11 +73,12 @@ function RowBody({
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={{ flex: 1, minWidth: 0 }}
+        style={{ flex: 1, minWidth: 0, gap: 2 }}
       >
         <Text weight={row.isViewer ? "semibold" : "regular"} numberOfLines={1}>
           {row.name}
         </Text>
+        {row.unclaimed ? <NotOnTembaMark /> : null}
       </View>
       <View
         accessibilityElementsHidden

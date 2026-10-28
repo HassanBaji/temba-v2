@@ -5,6 +5,7 @@ import {
   groupBanner,
   groupHomeHeader,
   groupJoinCta,
+  memberIsRemovable,
   memberList,
   memberSheetView,
   playedRowView,
@@ -227,6 +228,36 @@ describe("memberList for a Level setter", () => {
     };
     const row = memberList([provisional], "", ORIGIN).rows[0]!;
     expect(row.accessibilityLabel).toContain("Level C 3.2, still Provisional");
+  });
+});
+
+describe("memberList with an Unclaimed player", () => {
+  const leaderboard = home.member.standing.leaderboard;
+  const unclaimed = {
+    ...leaderboard[1]!,
+    name: "Ali",
+    unclaimed: true,
+    phoneMasked: "+973 •••• 4408",
+  };
+  const members = [leaderboard[0]!, unclaimed];
+
+  it("marks the row and lets only a Group approver select it to remove", () => {
+    const approverRows = memberList(members, "", ORIGIN, false, true).rows;
+    expect(approverRows.map((row) => row.unclaimed)).toEqual([false, true]);
+    expect(approverRows.map((row) => row.selectable)).toEqual([false, true]);
+    expect(approverRows[1]!.caption).toContain("+973 •••• 4408");
+    expect(approverRows[1]!.accessibilityLabel).toContain("Not on Temba yet");
+    expect(
+      memberList(members, "", ORIGIN).rows.some((row) => row.selectable),
+    ).toBe(false);
+    expect(memberIsRemovable(unclaimed, true)).toBe(true);
+    expect(memberIsRemovable(unclaimed, false)).toBe(false);
+    expect(memberIsRemovable(leaderboard[0]!, true)).toBe(false);
+  });
+
+  it("marks the Standing row", () => {
+    expect(standingRowView(unclaimed).unclaimed).toBe(true);
+    expect(standingRowView(leaderboard[0]!).unclaimed).toBe(false);
   });
 });
 

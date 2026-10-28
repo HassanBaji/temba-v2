@@ -12,9 +12,11 @@ import {
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
 import {
   FootballInfoRows,
@@ -71,6 +73,10 @@ import {
 } from "@repo/domain/game-copy";
 import { gameWindowSaveInput } from "@repo/domain/game-edit-save";
 import {
+  ADD_PLAYER_ACTION,
+  organizerCanAddPlayer,
+} from "@repo/domain/add-player-by-phone";
+import {
   gameKickConfirmCopy,
   gameKickTarget,
   type GameKickRequest,
@@ -109,6 +115,7 @@ export function FootballGameDetails({
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const [now] = React.useState(() => new Date());
   const [editOpen, setEditOpen] = React.useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
   const [invitesOpen, setInvitesOpen] = React.useState(openInvites);
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [leaveOpen, setLeaveOpen] = React.useState(false);
@@ -130,6 +137,10 @@ export function FootballGameDetails({
   const [capDraft, setCapDraft] = React.useState(game.playersAllowed ?? 0);
   const [joinMode, setJoinMode] = React.useState<"join" | "edit" | null>(null);
   const [selected, setSelected] = React.useState<BoardPlayer | null>(null);
+  const [renaming, setRenaming] = React.useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const autoJoined = React.useRef(false);
 
   const board = api.games.footballBoard.useQuery({ gameId });
@@ -580,6 +591,7 @@ export function FootballGameDetails({
       </>
     );
 
+  const canAddPlayer = organizerCanAddPlayer(game);
   const menu = organizer ? (
     <ActionMenu label="Game actions">
       <ActionMenuItem onSelect={() => setEditOpen(true)}>
@@ -608,6 +620,11 @@ export function FootballGameDetails({
       {inviteAccess.canManage ? (
         <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
           Invite
+        </ActionMenuItem>
+      ) : null}
+      {canAddPlayer ? (
+        <ActionMenuItem onSelect={() => setAddPlayerOpen(true)}>
+          {ADD_PLAYER_ACTION}
         </ActionMenuItem>
       ) : null}
       <ActionMenuSeparator />
@@ -703,12 +720,19 @@ export function FootballGameDetails({
             match={board.data?.match ?? null}
             canEnterScore={board.data?.viewer.canEnterScore ?? false}
             canConfirm={board.data?.viewer.canConfirm ?? false}
+            confirmForSlots={board.data?.viewer.canConfirmForSlots ?? []}
             confirmPending={confirmScore.isPending}
             scoreHref={scoreHref}
             onConfirm={() => {
               const matchId = board.data?.match?.id;
               if (matchId) {
                 confirmScore.mutate({ gameId, matchId });
+              }
+            }}
+            onConfirmForSlot={(slot) => {
+              const matchId = board.data?.match?.id;
+              if (matchId) {
+                confirmScore.mutate({ gameId, matchId, slot });
               }
             }}
           />
@@ -798,6 +822,16 @@ export function FootballGameDetails({
         }
         onSubmit={submitJoin}
       />
+      {canAddPlayer || addPlayerOpen ? (
+        <AddPlayerDialog
+          open={addPlayerOpen}
+          onOpenChange={setAddPlayerOpen}
+          gameId={gameId}
+          placement="football"
+          sides={[]}
+          onAdded={refreshGame}
+        />
+      ) : null}
       <FootballPlayerDialog
         player={selected}
         canOpenProfile={canOpenProfiles}
@@ -810,7 +844,17 @@ export function FootballGameDetails({
           setSelected(null);
           requestKick({ userId });
         }}
+        onRename={(player) => {
+          setSelected(null);
+          setRenaming(player);
+        }}
       />
+      {organizer ? (
+        <RenameUnclaimedPlayerDialog
+          player={renaming}
+          onClose={() => setRenaming(null)}
+        />
+      ) : null}
 
       {organizer ? (
         <GameEditDialog

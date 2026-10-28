@@ -1,4 +1,8 @@
 import {
+  ADD_PLAYER_ACTION,
+  ADD_PLAYER_DESCRIPTION,
+} from "@repo/domain/add-player-by-phone";
+import {
   CLOSE_REGISTRATION_ACTION,
   EDIT_GAME_ACTION,
   KICK_ACTION,
@@ -22,6 +26,7 @@ export type FootballOrganizerHandlers = {
   onEdit: () => void;
   onCancel: () => void;
   onKickWaitlist: (waitlistId: string) => void;
+  onAddPlayer?: () => void;
 };
 
 export function FootballOrganizerCard({
@@ -49,6 +54,25 @@ export function FootballOrganizerCard({
         </View>
         <View style={{ flexDirection: "row" }}>
           <Button label={teams.actionLabel} onPress={handlers.onMakeTeams} />
+        </View>
+      </Block>,
+    );
+  }
+  if (handlers.onAddPlayer) {
+    blocks.push(
+      <Block key="add-player">
+        <View>
+          <Text weight="medium">Players</Text>
+          <Text size="meta" tone="muted">
+            {ADD_PLAYER_DESCRIPTION}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={ADD_PLAYER_ACTION}
+            variant="outline"
+            onPress={handlers.onAddPlayer}
+          />
         </View>
       </Block>,
     );

@@ -20,6 +20,7 @@ import { requireGame } from "#src/games/access";
 import { assertCanRegisterWithPartner } from "#src/games/helpers/assert-can-register-with-partner";
 import { gameHideRegisteredWaitlistedSelf } from "#src/games/helpers/game-hide-registered-waitlisted-self";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
+import { notUnclaimedUserSql } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -196,10 +197,12 @@ export async function listPartnerSuggestions(
           .innerJoin(games, eq(games.id, gameTeams.gameId))
           .innerJoin(partnerGtp, eq(partnerGtp.gameTeamId, mineGtp.gameTeamId))
           .innerJoin(partnerGp, eq(partnerGp.id, partnerGtp.gamePlayerId))
+          .innerJoin(user, eq(user.id, partnerGp.userId))
           .where(
             and(
               eq(mineGp.userId, args.userId),
               ne(partnerGp.userId, args.userId),
+              notUnclaimedUserSql,
               game.groupId
                 ? inArray(partnerGp.userId, groupMemberIds)
                 : undefined,
@@ -242,7 +245,7 @@ export async function listPartnerSuggestions(
     groupUserIds.length === 0
       ? []
       : await database.query.user.findMany({
-          where: inArray(user.id, groupUserIds),
+          where: and(inArray(user.id, groupUserIds), notUnclaimedUserSql),
           columns: { id: true, name: true },
         });
   groupPeople.sort((a, b) => a.name.localeCompare(b.name));

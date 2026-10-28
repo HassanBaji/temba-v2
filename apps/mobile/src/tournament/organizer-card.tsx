@@ -1,4 +1,9 @@
 import { spacing } from "@repo/design-tokens";
+import {
+  ADD_PLAYER_ACTION,
+  ADD_PLAYER_DESCRIPTION,
+  organizerCanAddPlayer,
+} from "@repo/domain/add-player-by-phone";
 import { KICK_ACTION } from "@repo/domain/game-copy";
 import type {
   TournamentDetails,
@@ -46,6 +51,7 @@ export type OrganizerCardHandlers = {
   onUndo: () => void;
   onKickPlayer: (userId: string) => void;
   onKickWaitlist: (waitlistId: string) => void;
+  onAddPlayer: () => void;
 };
 
 function Block({ children }: { children: React.ReactNode }) {
@@ -169,6 +175,23 @@ export function OrganizerCard({
             variant="outline"
             pending={handlers.undoPending}
             onPress={handlers.onUndo}
+          />
+        </Action>
+      </Block>,
+    );
+  }
+
+  if (organizerCanAddPlayer(game)) {
+    blocks.push(
+      <Block key="add-player">
+        <Text size="meta" tone="muted">
+          {ADD_PLAYER_DESCRIPTION}
+        </Text>
+        <Action>
+          <Button
+            label={ADD_PLAYER_ACTION}
+            variant="outline"
+            onPress={handlers.onAddPlayer}
           />
         </Action>
       </Block>,

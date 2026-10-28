@@ -7,6 +7,7 @@ import {
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import { KEEPER_CODE } from "@repo/domain/football-lineup";
+import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { Hatch } from "~/components/ui/hatch";
@@ -35,7 +36,12 @@ function PlayerTile({
     <Tag
       type={onPress ? "button" : undefined}
       onClick={onPress ? () => onPress(player.userId) : undefined}
-      aria-label={[name, code, levelLabel(player.levelBand)]
+      aria-label={[
+        name,
+        code,
+        levelLabel(player.levelBand),
+        player.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
+      ]
         .filter(Boolean)
         .join(", ")}
       className={cn(
@@ -43,6 +49,7 @@ function PlayerTile({
         player.isViewer
           ? "bg-ink text-paper border-ink"
           : "bg-paper border-rule",
+        player.unclaimed && "border-ink border-dashed",
         onPress && !player.isViewer && "hover:bg-wash",
       )}
     >

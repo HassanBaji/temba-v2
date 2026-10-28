@@ -1,3 +1,4 @@
+import { organizerCanAddPlayer } from "./add-player-by-phone";
 import { friendlyGameOverflowItems } from "./friendly-game-cta";
 import type {
   FriendlyGameDetails,
@@ -45,6 +46,7 @@ export type FriendlyGameOrganizerPlan = {
   waitlist: Person[];
   unseated: Person[];
   kickableUserIds: string[];
+  canAddPlayer: boolean;
 };
 
 export function friendlyGameOrganizerPlan(
@@ -88,5 +90,6 @@ export function friendlyGameOrganizerPlan(
     waitlist: game.waitlist.map(({ id, name, image }) => ({ id, name, image })),
     unseated: game.unseatedPlayers.filter((player) => kickable(player.id)),
     kickableUserIds: seatedUserIds.filter(kickable),
+    canAddPlayer: organizerCanAddPlayer(game),
   };
 }

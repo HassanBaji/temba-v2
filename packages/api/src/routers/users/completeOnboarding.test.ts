@@ -1,14 +1,18 @@
+import type { UserWebhookEvent } from "@clerk/backend/webhooks";
 import { TRPCError } from "@trpc/server";
 import { GroupSportEnum, ratings, user } from "@repo/db/schema";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
+import { upsertUserFromClerk } from "#src/auth/sync-clerk-user";
 import {
   markOnboardingComplete,
   onboardingAnswersSchema,
   submitOnboarding,
 } from "#src/routers/users/completeOnboarding";
+import { loadOnboardingState } from "#src/routers/users/onboardingState";
 import { writePreferredPosition } from "#src/routers/users/setPreferredPosition";
+import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, clerkId: string) {
@@ -303,6 +307,82 @@ describe("submitOnboarding", () => {
 
       expect(result.onboardingCompletedAt).toBeInstanceOf(Date);
       expect(await ratingBands(db, appUser.id)).toEqual({ padel: "C2" });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("submitOnboarding after claiming an Unclaimed player", () => {
+  it("keeps the Organizer's starting Level and still asks the other questions", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const organizer = await insertUser(db, "claim_organizer");
+      const { user: unclaimed } = await createUnclaimedPlayer(db, {
+        phoneNumber: "+97336124408",
+        name: "Ali",
+        addedByUserId: organizer.id,
+        startingLevel: { sport: "padel", level: "C+" },
+      });
+      const startingBands = await ratingBands(db, unclaimed.id);
+      expect(startingBands).toEqual({ padel: expect.any(String) });
+
+      await upsertUserFromClerk(db, {
+        id: "user_clerk_claimer",
+        username: null,
+        first_name: "Ali",
+        last_name: "Hassan",
+        image_url: "",
+        has_image: false,
+        primary_email_address_id: null,
+        primary_phone_number_id: "idn_phone",
+        email_addresses: [],
+        phone_numbers: [
+          {
+            id: "idn_phone",
+            phone_number: "+97336124408",
+            verification: { status: "verified" },
+          },
+        ],
+      } as unknown as Extract<
+        UserWebhookEvent,
+        { type: "user.created" }
+      >["data"]);
+
+      const state = await loadOnboardingState(db, {
+        clerkId: "user_clerk_claimer",
+      });
+      expect(state).toMatchObject({
+        provisioning: false,
+        sports: null,
+        preferredPosition: null,
+        onboardingCompletedAt: null,
+        hasRating: true,
+        canSelfDeclare: false,
+      });
+
+      const result = await submitOnboarding(db, {
+        userId: unclaimed.id,
+        answers: {
+          sports: ["padel", "football"],
+          padel: { preferredPosition: "right", choice: "A" },
+          football: { role: "outfield", position: null, choice: "B3" },
+        },
+      });
+
+      expect(result.onboardingCompletedAt).toBeInstanceOf(Date);
+      expect(await ratingBands(db, unclaimed.id)).toEqual({
+        ...startingBands,
+        football: "B3",
+      });
+      const row = await db.query.user.findFirst({
+        where: eq(user.id, unclaimed.id),
+      });
+      expect(row).toMatchObject({
+        sports: ["padel", "football"],
+        preferredPosition: "right",
+        preferredFootballRole: "outfield",
+      });
     } finally {
       await close();
     }

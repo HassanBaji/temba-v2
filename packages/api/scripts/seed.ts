@@ -32,7 +32,10 @@ import {
 import { db } from "#src/db";
 
 import { settlePayment } from "#src/bookings/payments";
+import { requireGame } from "#src/games/access";
+import { occupySeat } from "#src/games/seats";
 import { setJobSink } from "#src/jobs/enqueue";
+import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 import { cancelMyBooking } from "#src/routers/bookings/cancel";
 import { createBooking } from "#src/routers/bookings/create";
 import { createBookingGame } from "#src/routers/bookings/createGame";
@@ -1390,6 +1393,19 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
   });
   await step("level range request", () =>
     requestLevelRange(db, { gameId: beginners.id, userId: u.emma!.id }),
+  );
+  // ... with an Unclaimed player Sam added by phone in one of its open seats.
+  await step("unclaimed player", () =>
+    db.transaction(async (tx) => {
+      const { user: unclaimed } = await createUnclaimedPlayer(tx, {
+        phoneNumber: "+97336124408",
+        name: "Ali Hassan",
+        addedByUserId: u.me!.id,
+        startingLevel: { sport: "padel", level: "not_sure" },
+      });
+      const game = await requireGame(tx, beginners.id);
+      await occupySeat(tx, game, unclaimed.id, 2, "left");
+    }),
   );
 
   // Pending Game Lookup invite to Sam, and a Game Invite link (/g/{code}).

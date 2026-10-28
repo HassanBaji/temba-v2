@@ -268,9 +268,11 @@ export function FootballPreviewStates() {
           match={null}
           canEnterScore={false}
           canConfirm={false}
+          confirmForSlots={[]}
           confirmPending={false}
           scoreHref="#"
           onConfirm={() => undefined}
+          onConfirmForSlot={() => undefined}
         />
       </Block>
 
@@ -287,9 +289,11 @@ export function FootballPreviewStates() {
           }}
           canEnterScore
           canConfirm
+          confirmForSlots={[]}
           confirmPending={false}
           scoreHref="#"
           onConfirm={() => undefined}
+          onConfirmForSlot={() => undefined}
         />
       </Block>
 

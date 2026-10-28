@@ -38,9 +38,11 @@ export type DetailsHandlers = {
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
+  onConfirmForSlot: (slot: 1 | 2) => void;
   onRequestLevel: () => void;
   onFooterAction: (kind: FriendlyGameFooterAction["kind"]) => void;
   onOpenPlayer?: (userId: string) => void;
+  onRenameUnclaimed?: (player: { userId: string; name: string }) => void;
 };
 
 export type DetailsOrganizer = {
@@ -101,6 +103,7 @@ export function GameDetailsContent({
         onMove={handlers.onMove}
         kickableUserIds={organizer?.plan.kickableUserIds}
         onKick={organizer?.handlers.onKickPlayer}
+        onRenameUnclaimed={handlers.onRenameUnclaimed}
         onOpenPlayer={handlers.onOpenPlayer}
       />
       {live && firstMatch ? (
@@ -111,10 +114,12 @@ export function GameDetailsContent({
           viewerUserId={game.viewerUserId}
           winningGameTeamId={plan.winningGameTeamId}
           confirmation={game.matchResultConfirmation}
+          isOrganizer={game.isOrganizer}
           scorePending={handlers.scorePending}
           confirmPending={handlers.confirmPending}
           onSaveSets={handlers.onSaveSets}
           onConfirm={handlers.onConfirm}
+          onConfirmForSlot={handlers.onConfirmForSlot}
         />
       ) : null}
       {phase === "final" && game.ratingImpact ? (

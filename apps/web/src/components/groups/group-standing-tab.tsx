@@ -3,6 +3,7 @@ import { Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { LevelCell } from "~/components/temba/level-cell";
+import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { groupStandingRecordLabel } from "@repo/domain/group-home-chrome";
 import { groupStandingState } from "@repo/domain/group-join";
@@ -24,6 +25,7 @@ type StandingEntry = {
   losses: number;
   levelBand: LevelBand | null;
   levelProvisional: boolean;
+  unclaimed: boolean;
 };
 
 /**
@@ -88,26 +90,29 @@ function StandingTable({
                 {entry.position}
               </td>
               <td className={cn(COL_PLAYER, BODY_CELL)}>
-                {linkToPlayers ? (
-                  <Link
-                    href={playerProfilePath(entry.userId)}
-                    className={cn(
-                      "text-body block truncate after:absolute after:inset-0",
-                      entry.isViewer && "font-semibold",
-                    )}
-                  >
-                    {entry.isViewer ? "You" : (entry.name ?? "Member")}
-                  </Link>
-                ) : (
-                  <span
-                    className={cn(
-                      "text-body block truncate",
-                      entry.isViewer && "font-semibold",
-                    )}
-                  >
-                    {entry.isViewer ? "You" : (entry.name ?? "Member")}
-                  </span>
-                )}
+                <span className="flex min-w-0 items-center gap-2">
+                  {linkToPlayers ? (
+                    <Link
+                      href={playerProfilePath(entry.userId)}
+                      className={cn(
+                        "text-body block min-w-0 truncate after:absolute after:inset-0",
+                        entry.isViewer && "font-semibold",
+                      )}
+                    >
+                      {entry.isViewer ? "You" : (entry.name ?? "Member")}
+                    </Link>
+                  ) : (
+                    <span
+                      className={cn(
+                        "text-body block min-w-0 truncate",
+                        entry.isViewer && "font-semibold",
+                      )}
+                    >
+                      {entry.isViewer ? "You" : (entry.name ?? "Member")}
+                    </span>
+                  )}
+                  {entry.unclaimed ? <NotOnTembaTag /> : null}
+                </span>
               </td>
               <td
                 className={cn(

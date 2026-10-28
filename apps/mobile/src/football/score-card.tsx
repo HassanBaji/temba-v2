@@ -9,6 +9,7 @@ import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 import { BibChip } from "./bib-picker";
 import {
+  confirmForSideLabel,
   confirmationLine,
   shortName,
   type Bibs,
@@ -93,13 +94,16 @@ export type FootballScoreCardProps = {
     status: string | null;
     score: { slot1: number; slot2: number } | null;
     confirmed: { slot1: boolean; slot2: boolean };
+    organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
     enteredByName: string | null;
   } | null;
   canEnterScore: boolean;
   canConfirm: boolean;
+  confirmForSlots: readonly (1 | 2)[];
   confirmPending: boolean;
   onEnterScore: () => void;
   onConfirm: () => void;
+  onConfirmForSlot: (slot: 1 | 2) => void;
 };
 
 /**
@@ -169,14 +173,17 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
               props.match?.confirmed ?? { slot1: false, slot2: false },
               props.names,
               completed,
+              props.match?.organizerSides,
             )}
             {props.match?.enteredByName
               ? ` Entered by ${props.match.enteredByName}.`
               : ""}
           </Text>
         </View>
-        {props.canConfirm || props.canEnterScore ? (
-          <View style={{ flexDirection: "row", gap: 8 }}>
+        {props.canConfirm ||
+        props.confirmForSlots.length > 0 ||
+        props.canEnterScore ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {props.canConfirm ? (
               <Button
                 label="Confirm score"
@@ -184,6 +191,14 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
                 onPress={props.onConfirm}
               />
             ) : null}
+            {props.confirmForSlots.map((slot) => (
+              <Button
+                key={slot}
+                label={confirmForSideLabel(slot, props.names)}
+                pending={props.confirmPending}
+                onPress={() => props.onConfirmForSlot(slot)}
+              />
+            ))}
             {props.canEnterScore ? (
               <Button
                 label="Edit score"
