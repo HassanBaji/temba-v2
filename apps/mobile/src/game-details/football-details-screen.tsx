@@ -1,3 +1,4 @@
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
@@ -55,6 +56,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api, type RouterOutputs } from "../trpc/react";
+import { AddPlayerSheet } from "./add-player-sheet";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
@@ -112,6 +114,7 @@ export function FootballGameDetails({
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [section, setSection] = useState<FootballEditSection | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [joinMode, setJoinMode] = useState<"join" | "edit" | null>(null);
   const [selected, setSelected] = useState<BoardPlayer | null>(null);
   const autoJoined = useRef(false);
@@ -608,6 +611,9 @@ export function FootballGameDetails({
                 onEdit: () => setSection("menu"),
                 onCancel: askCancel,
                 onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
+                onAddPlayer: organizerCanAddPlayer(game)
+                  ? () => setAddPlayerOpen(true)
+                  : undefined,
                 onMakeTeams: () => router.push(teamsPath),
               }}
             />
@@ -666,6 +672,16 @@ export function FootballGameDetails({
         }}
         onRemove={(userId) => askKick({ userId })}
       />
+      {model.organizer ? (
+        <AddPlayerSheet
+          visible={addPlayerOpen}
+          onClose={() => setAddPlayerOpen(false)}
+          gameId={gameId}
+          placement="football"
+          sides={[]}
+          onAdded={refresh}
+        />
+      ) : null}
       {model.organizer ? (
         <FootballOrganizerSheets
           section={section}

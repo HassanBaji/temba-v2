@@ -23,19 +23,32 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import {
   ADD_PLAYER_ACTION,
+  ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
+  ADD_PLAYER_DEFAULT_FOOTBALL_POSITION,
+  ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
   ADD_PLAYER_DEFAULT_LEVEL,
   ADD_PLAYER_DESCRIPTION,
+  ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
+  ADD_PLAYER_FOOTBALL_POSITION_CHOICES,
+  ADD_PLAYER_FOOTBALL_ROLE_CHOICES,
   ADD_PLAYER_LEVEL_CHOICES,
   ADD_PLAYER_NAME_LABEL,
   ADD_PLAYER_NO_SEAT_COPY,
+  ADD_PLAYER_NO_SIDE_COPY,
   addPlayerAddedToast,
   addPlayerCanSubmit,
   addPlayerCompletePhone,
+  addPlayerFootballInput,
   addPlayerPreviewLine,
   addPlayerSeatChoices,
+  addPlayerSideChoices,
   sameJoinSeat,
+  type AddPlayerFootballPosition,
   type AddPlayerLevel,
+  type AddPlayerPlacement,
 } from "@repo/domain/add-player-by-phone";
+import type { FootballRole } from "@repo/domain/football-lineup";
+import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
 import { api } from "~/trpc/react";
@@ -47,17 +60,21 @@ function seatKey(seat: FriendlyGameJoinSeat) {
   return `${seat.sideIndex}:${seat.position}`;
 }
 
+type NamedSeat = { name: string } | null;
+
 export function AddPlayerDialog({
   open,
   onOpenChange,
   gameId,
+  placement,
   sides,
   onAdded,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   gameId: string;
-  sides: readonly { sideIndex: number; left: unknown; right: unknown }[];
+  placement: AddPlayerPlacement;
+  sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   onAdded: () => Promise<unknown>;
 }) {
   const [countryIso, setCountryIso] = React.useState(
@@ -68,13 +85,35 @@ export function AddPlayerDialog({
   const [level, setLevel] = React.useState<AddPlayerLevel>(
     ADD_PLAYER_DEFAULT_LEVEL,
   );
+  const [footballLevel, setFootballLevel] =
+    React.useState<FootballSelfPlacement>(ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL);
+  const [role, setRole] = React.useState<FootballRole>(
+    ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
+  );
+  const [footballPosition, setFootballPosition] =
+    React.useState<AddPlayerFootballPosition>(
+      ADD_PLAYER_DEFAULT_FOOTBALL_POSITION,
+    );
   const [picked, setPicked] = React.useState<FriendlyGameJoinSeat | null>(null);
+  const [pickedSide, setPickedSide] = React.useState<number | null>(null);
 
-  const seatChoices = addPlayerSeatChoices(sides);
+  const isFootball = placement === "football";
+  const seatChoices = placement === "seat" ? addPlayerSeatChoices(sides) : [];
   const seat =
     seatChoices.find((choice) => sameJoinSeat(choice.seat, picked))?.seat ??
     seatChoices[0]?.seat ??
     null;
+  const sideChoices = placement === "side" ? addPlayerSideChoices(sides) : [];
+  const side =
+    sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
+    sideChoices[0] ??
+    null;
+  const placed =
+    placement === "seat"
+      ? seat != null
+      : placement === "side"
+        ? side != null
+        : true;
   const utils = api.useUtils();
   const completePhone = addPlayerCompletePhone(countryIso, national);
   const preview = api.games.previewPlayerByPhone.useQuery(
@@ -89,6 +128,9 @@ export function AddPlayerDialog({
       setNational("");
       setName("");
       setLevel(ADD_PLAYER_DEFAULT_LEVEL);
+      setFootballLevel(ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL);
+      setRole(ADD_PLAYER_DEFAULT_FOOTBALL_ROLE);
+      setFootballPosition(ADD_PLAYER_DEFAULT_FOOTBALL_POSITION);
       setPicked(null);
       await Promise.all([
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
@@ -99,22 +141,28 @@ export function AddPlayerDialog({
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!seat || !addPlayerCanSubmit({ preview: previewData, name, seat })) {
+    if (!addPlayerCanSubmit({ preview: previewData, name, placed })) {
       return;
     }
+    const isNewPlayer = previewData?.kind === "new";
     add.mutate({
       gameId,
       countryIso,
       nationalNumber: national,
-      name: previewData?.kind === "new" ? name.trim() : undefined,
-      level: previewData?.kind === "new" ? level : undefined,
-      seat,
+      name: isNewPlayer ? name.trim() : undefined,
+      level: isNewPlayer ? (isFootball ? footballLevel : level) : undefined,
+      seat: seat ?? undefined,
+      side: side ? { sideIndex: side.sideIndex } : undefined,
+      football: isFootball
+        ? addPlayerFootballInput(role, footballPosition)
+        : undefined,
     });
   }
 
   const isNew = previewData?.kind === "new";
   const canSubmit =
-    !add.isPending && addPlayerCanSubmit({ preview: previewData, name, seat });
+    !add.isPending &&
+    addPlayerCanSubmit({ preview: previewData, name, placed });
 
   return (
     <ResponsiveDialog
@@ -188,17 +236,73 @@ export function AddPlayerDialog({
               </Field>
               <Group>
                 <SectionLabel label="Starting Level" />
-                <RowChoices
-                  label="Starting Level"
-                  choices={ADD_PLAYER_LEVEL_CHOICES}
-                  value={level}
-                  onSelect={setLevel}
-                />
+                {isFootball ? (
+                  <RowChoices
+                    label="Starting Level"
+                    choices={ADD_PLAYER_FOOTBALL_LEVEL_CHOICES}
+                    value={footballLevel}
+                    onSelect={setFootballLevel}
+                  />
+                ) : (
+                  <RowChoices
+                    label="Starting Level"
+                    choices={ADD_PLAYER_LEVEL_CHOICES}
+                    value={level}
+                    onSelect={setLevel}
+                  />
+                )}
               </Group>
             </>
           ) : null}
 
-          {seatChoices.length > 0 && seat ? (
+          {isFootball ? (
+            <>
+              <Group>
+                <SectionLabel label="Plays as" />
+                <TileChoices
+                  label="Plays as"
+                  choices={ADD_PLAYER_FOOTBALL_ROLE_CHOICES}
+                  value={role}
+                  onSelect={setRole}
+                />
+              </Group>
+              {role === "outfield" ? (
+                <Group>
+                  <SectionLabel label="Preferred position" />
+                  <TileChoices
+                    label="Preferred position"
+                    choices={ADD_PLAYER_FOOTBALL_POSITION_CHOICES}
+                    value={footballPosition}
+                    onSelect={setFootballPosition}
+                  />
+                </Group>
+              ) : null}
+            </>
+          ) : null}
+
+          {placement === "side" ? (
+            side ? (
+              <Group>
+                <SectionLabel label="Side" />
+                <TileChoices
+                  label="Side"
+                  choices={sideChoices.map((choice) => ({
+                    value: String(choice.sideIndex),
+                    name: choice.team,
+                    detail: choice.detail,
+                  }))}
+                  value={String(side.sideIndex)}
+                  onSelect={(key) => setPickedSide(Number(key))}
+                />
+              </Group>
+            ) : (
+              <p className="text-muted-foreground text-meta">
+                {ADD_PLAYER_NO_SIDE_COPY}
+              </p>
+            )
+          ) : null}
+
+          {placement !== "seat" ? null : seat ? (
             <Group>
               <SectionLabel label="Position" />
               <TileChoices

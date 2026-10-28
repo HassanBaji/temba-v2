@@ -604,6 +604,16 @@ export function GameDetailsScreen({
           {...tournamentOrganizer.sheets}
           game={details}
         />
+        {details.isOrganizer ? (
+          <AddPlayerSheet
+            visible={tournamentOrganizer.addPlayer.open}
+            onClose={tournamentOrganizer.addPlayer.onClose}
+            gameId={gameId}
+            placement="side"
+            sides={details.sides}
+            onAdded={refresh}
+          />
+        ) : null}
       </View>
     );
   }
@@ -694,6 +704,7 @@ export function GameDetailsScreen({
             visible={organizer.addPlayer.open}
             onClose={organizer.addPlayer.onClose}
             gameId={gameId}
+            placement="seat"
             sides={details.sides}
             onAdded={refresh}
           />

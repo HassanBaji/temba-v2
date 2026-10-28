@@ -1,4 +1,13 @@
 import {
+  FOOTBALL_POSITION_CHOICES,
+  type FootballPosition,
+  type FootballRole,
+} from "./football-lineup";
+import {
+  FOOTBALL_SELF_PLACEMENT_CHOICES,
+  type FootballSelfPlacement,
+} from "./football-self-placement";
+import {
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "./friendly-game-cta";
@@ -38,7 +47,104 @@ export const ADD_PLAYER_LEVEL_CHOICES: {
   ...PADEL_LEVEL_CHOICES.map((choice) => ({ ...choice, mark: choice.value })),
 ];
 
+export const ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL: FootballSelfPlacement =
+  "beginner";
+
+export const ADD_PLAYER_FOOTBALL_LEVEL_CHOICES: {
+  value: FootballSelfPlacement;
+  name: string;
+  detail: string;
+}[] = FOOTBALL_SELF_PLACEMENT_CHOICES.map((choice) => ({
+  value: choice.value,
+  name: choice.label,
+  detail: choice.description,
+}));
+
 export const ADD_PLAYER_NO_SEAT_COPY = "Every Position is taken.";
+
+export const ADD_PLAYER_NO_SIDE_COPY = "Every side is full.";
+
+/** How the Add player sheet places someone, by Game format. */
+export type AddPlayerPlacement = "seat" | "side" | "roster" | "football";
+
+export function addPlayerPlacement(game: {
+  format: string;
+  sport: string | null;
+  registrationMode: string;
+}): AddPlayerPlacement | null {
+  if (game.registrationMode !== "individual") {
+    return null;
+  }
+  if (game.format === "americano") {
+    return "roster";
+  }
+  if (game.format === "friendly_tournament") {
+    return "side";
+  }
+  if (game.format === "friendly_game") {
+    return game.sport === "football" ? "football" : "seat";
+  }
+  return null;
+}
+
+export type AddPlayerFootballPosition = FootballPosition | "none";
+
+export const ADD_PLAYER_DEFAULT_FOOTBALL_ROLE: FootballRole = "outfield";
+
+export const ADD_PLAYER_DEFAULT_FOOTBALL_POSITION: AddPlayerFootballPosition =
+  "none";
+
+export const ADD_PLAYER_FOOTBALL_ROLE_CHOICES: {
+  value: FootballRole;
+  name: string;
+  detail: string;
+}[] = [
+  { value: "outfield", name: "Player", detail: "outfield" },
+  { value: "keeper", name: "Keeper", detail: "in goal" },
+];
+
+export const ADD_PLAYER_FOOTBALL_POSITION_CHOICES: {
+  value: AddPlayerFootballPosition;
+  name: string;
+}[] = [
+  { value: "none", name: "No preference" },
+  ...FOOTBALL_POSITION_CHOICES.map((choice) => ({
+    value: choice.value,
+    name: choice.label,
+  })),
+];
+
+/** A keeper has no outfield position; "No preference" stores none. */
+export function addPlayerFootballInput(
+  role: FootballRole,
+  position: AddPlayerFootballPosition,
+): { role: FootballRole; position: FootballPosition | null } {
+  return {
+    role,
+    position: role === "keeper" || position === "none" ? null : position,
+  };
+}
+
+type NamedSeat = { name: string } | null;
+
+/** Fully vacant sides and Half teams, each with who already holds the side. */
+export function addPlayerSideChoices(
+  sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[],
+): { sideIndex: number; team: string; detail: string }[] {
+  return sides.flatMap((side) => {
+    if (side.left && side.right) {
+      return [];
+    }
+    const partner = side.left ?? side.right;
+    return [
+      {
+        sideIndex: side.sideIndex,
+        team: formatGameSideLabel("friendly_tournament", side.sideIndex),
+        detail: partner ? `With ${partner.name}` : "Open",
+      },
+    ];
+  });
+}
 
 export type PhonePlayerPreview = {
   kind: "account" | "unclaimed" | "new";
@@ -73,9 +179,9 @@ export function addPlayerPreviewLine(preview: PhonePlayerPreview): string {
 export function addPlayerCanSubmit(input: {
   preview: PhonePlayerPreview | null;
   name: string;
-  seat: FriendlyGameJoinSeat | null;
+  placed: boolean;
 }): boolean {
-  if (!input.preview || input.preview.alreadyOnGame || !input.seat) {
+  if (!input.preview || input.preview.alreadyOnGame || !input.placed) {
     return false;
   }
   return input.preview.kind !== "new" || input.name.trim().length > 0;
@@ -110,7 +216,11 @@ export function sameJoinSeat(
   return left.sideIndex === right.sideIndex && left.position === right.position;
 }
 
-/** Padel Friendly games only, Booking Games among them, until a Match is completed. */
+/**
+ * Until a completed Match, while there is room: a vacant Position on a padel
+ * Friendly game, a side with room on a tournament before its Pool draw, or a
+ * roster below players allowed on an Americano or football Game.
+ */
 export function organizerCanAddPlayer(game: {
   isOrganizer: boolean;
   cancelledAt: Date | string | null;
@@ -120,16 +230,30 @@ export function organizerCanAddPlayer(game: {
   sport: string | null;
   registrationMode: string;
   sides: readonly { sideIndex: number; left: unknown; right: unknown }[];
+  drawPostedAt?: Date | string | null;
+  matches?: readonly { status: string | null }[];
+  roster?: { count: number; cap: number | null } | null;
 }): boolean {
-  return (
-    game.isOrganizer &&
-    !game.cancelledAt &&
-    !game.joinFrozen &&
-    game.phase !== "final" &&
-    game.phase !== "cancelled" &&
-    game.format === "friendly_game" &&
-    game.sport !== "football" &&
-    game.registrationMode === "individual" &&
-    vacantJoinSeats(game.sides).length > 0
-  );
+  if (!game.isOrganizer || game.cancelledAt || game.joinFrozen) {
+    return false;
+  }
+  if (game.matches?.some((match) => match.status === "completed")) {
+    return false;
+  }
+  const placement = addPlayerPlacement(game);
+  if (placement === "seat") {
+    return (
+      game.phase !== "final" &&
+      game.phase !== "cancelled" &&
+      vacantJoinSeats(game.sides).length > 0
+    );
+  }
+  if (placement === "side") {
+    return !game.drawPostedAt && vacantJoinSeats(game.sides).length > 0;
+  }
+  if (placement === "roster" || placement === "football") {
+    const roster = game.roster;
+    return roster != null && (roster.cap == null || roster.count < roster.cap);
+  }
+  return false;
 }

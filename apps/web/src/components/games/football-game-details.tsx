@@ -15,6 +15,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
 import {
   FootballInfoRows,
@@ -71,6 +72,10 @@ import {
 } from "@repo/domain/game-copy";
 import { gameWindowSaveInput } from "@repo/domain/game-edit-save";
 import {
+  ADD_PLAYER_ACTION,
+  organizerCanAddPlayer,
+} from "@repo/domain/add-player-by-phone";
+import {
   gameKickConfirmCopy,
   gameKickTarget,
   type GameKickRequest,
@@ -109,6 +114,7 @@ export function FootballGameDetails({
   const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const [now] = React.useState(() => new Date());
   const [editOpen, setEditOpen] = React.useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
   const [invitesOpen, setInvitesOpen] = React.useState(openInvites);
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [leaveOpen, setLeaveOpen] = React.useState(false);
@@ -580,6 +586,7 @@ export function FootballGameDetails({
       </>
     );
 
+  const canAddPlayer = organizerCanAddPlayer(game);
   const menu = organizer ? (
     <ActionMenu label="Game actions">
       <ActionMenuItem onSelect={() => setEditOpen(true)}>
@@ -608,6 +615,11 @@ export function FootballGameDetails({
       {inviteAccess.canManage ? (
         <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
           Invite
+        </ActionMenuItem>
+      ) : null}
+      {canAddPlayer ? (
+        <ActionMenuItem onSelect={() => setAddPlayerOpen(true)}>
+          {ADD_PLAYER_ACTION}
         </ActionMenuItem>
       ) : null}
       <ActionMenuSeparator />
@@ -798,6 +810,16 @@ export function FootballGameDetails({
         }
         onSubmit={submitJoin}
       />
+      {canAddPlayer || addPlayerOpen ? (
+        <AddPlayerDialog
+          open={addPlayerOpen}
+          onOpenChange={setAddPlayerOpen}
+          gameId={gameId}
+          placement="football"
+          sides={[]}
+          onAdded={refreshGame}
+        />
+      ) : null}
       <FootballPlayerDialog
         player={selected}
         canOpenProfile={canOpenProfiles}

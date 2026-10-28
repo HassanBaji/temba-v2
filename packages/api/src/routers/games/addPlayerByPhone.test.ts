@@ -4,9 +4,11 @@ import { describe, expect, it } from "vitest";
 import {
   CommunityRoleEnum,
   GameFormatEnum,
+  GameRegistrationModeEnum,
   MatchStatusEnum,
   communities,
   communityMembers,
+  courts,
   gamePlayers,
   games,
   groupMembers,
@@ -24,12 +26,20 @@ import {
   insertBooking,
   withBookableVenue,
 } from "#src/bookings/booking.test-support";
+import { balanceFootballSides } from "@repo/domain/football-lineup";
+import { PARTNER_REQUIRED_REFUSAL_MESSAGE } from "@repo/domain/tournament-rounds";
 import { createFriendlyGame } from "#src/games/create-friendly";
-import { ORGANIZER_ADD_FORMAT_SOON_MESSAGE } from "#src/games/assert-organizer-add-format";
+import { ORGANIZER_ADD_TEAM_ONLY_MESSAGE } from "#src/games/assert-organizer-add-format";
+import { POOL_DRAW_POSTED_MESSAGE } from "#src/games/assert-pool-draw-not-posted";
 import { createBookingGame } from "#src/routers/bookings/createGame";
 import { addPlayerByPhone } from "#src/routers/games/addPlayerByPhone";
 import { gameById } from "#src/routers/games/byId";
+import { createGame } from "#src/routers/games/create";
+import { createTournament } from "#src/routers/games/createTournament";
+import { footballBoard } from "#src/routers/games/footballBoard";
 import { previewPlayerByPhone } from "#src/routers/games/previewPlayerByPhone";
+import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
+import { registerSeat } from "#src/routers/games/registerSeat";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -733,39 +743,574 @@ describe("games.previewPlayerByPhone and games.addPlayerByPhone", () => {
       }
     });
 
-    it("formats other than a padel Friendly game", async () => {
+    it("a team-only Game", async () => {
       const { db, close } = await createPgliteDb();
       try {
         const f = await seed(db);
-        const [americano] = await db
+        const [teamOnly] = await db
           .insert(games)
           .values({
-            format: GameFormatEnum.AMERICANO,
+            format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+            registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
             groupId: f.groupId,
             venueId: f.venueId,
             createdBy: f.organizer,
-            playersAllowed: 8,
+            teamsAllowed: 4,
           })
           .returning({ id: games.id });
         await expect(
           previewPlayerByPhone(db, {
-            gameId: americano!.id,
+            gameId: teamOnly!.id,
             organizerUserId: f.organizer,
             ...bahrain("36124408"),
           }),
-        ).rejects.toThrow(ORGANIZER_ADD_FORMAT_SOON_MESSAGE);
+        ).rejects.toThrow(ORGANIZER_ADD_TEAM_ONLY_MESSAGE);
         await expect(
           addPlayerByPhone(db, {
-            gameId: americano!.id,
+            gameId: teamOnly!.id,
             organizerUserId: f.organizer,
             ...bahrain("36124408"),
             name: "Ali",
-            seat: { sideIndex: 1, position: "left" },
+            side: { sideIndex: 1 },
           }),
-        ).rejects.toThrow(ORGANIZER_ADD_FORMAT_SOON_MESSAGE);
+        ).rejects.toThrow(ORGANIZER_ADD_TEAM_ONLY_MESSAGE);
       } finally {
         await close();
       }
     });
+
+    it("a football role or Level on a padel Friendly game", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const f = await seed(db);
+        await expect(
+          addPlayerByPhone(db, {
+            gameId: f.gameId,
+            organizerUserId: f.organizer,
+            ...bahrain("36124408"),
+            name: "Ali",
+            seat: { sideIndex: 1, position: "left" },
+            football: { role: "outfield", position: null },
+          }),
+        ).rejects.toThrow("Only a football Game takes a role and position");
+        await expect(
+          addPlayerByPhone(db, {
+            gameId: f.gameId,
+            organizerUserId: f.organizer,
+            ...bahrain("36124408"),
+            name: "Ali",
+            level: "pro",
+            seat: { sideIndex: 1, position: "left" },
+          }),
+        ).rejects.toThrow("Pick a padel Level");
+      } finally {
+        await close();
+      }
+    });
+  });
+});
+
+async function seedTournament(
+  database: TestDatabase,
+  args: { allowSoloRegister?: boolean } = {},
+) {
+  const f = await seed(database);
+  const windowStart = new Date(Date.now() + 14 * 24 * HOUR);
+  const created = await createTournament(database, {
+    createdBy: f.organizer,
+    name: "Autumn Friendly",
+    groupId: f.groupId,
+    isPublic: false,
+    allowSoloRegister: args.allowSoloRegister,
+    teamCount: 4,
+    poolCount: 1,
+    venueId: f.venueId,
+    matchMinutes: 45,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + 4 * HOUR),
+  });
+  return { ...f, tournamentId: created.id };
+}
+
+async function seedFootball(database: TestDatabase) {
+  const f = await seed(database);
+  const [pitch] = await database
+    .insert(courts)
+    .values({ venueId: f.venueId, name: "Pitch 1", sport: "football" })
+    .returning({ id: courts.id });
+  const [group] = await database
+    .insert(groups)
+    .values({
+      name: "Friday Football",
+      createdBy: f.organizer,
+      sport: "football",
+    })
+    .returning({ id: groups.id });
+  await database
+    .insert(groupMembers)
+    .values({ groupId: group!.id, userId: f.organizer });
+  const windowStart = new Date(Date.now() + 24 * HOUR);
+  const created = await createGame(database, {
+    createdBy: f.organizer,
+    groupId: group!.id,
+    isPublic: false,
+    format: "friendly_game",
+    registrationMode: "individual",
+    venueId: f.venueId,
+    courtId: pitch!.id,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + HOUR),
+  });
+  return { ...f, footballGameId: created.id };
+}
+
+describe("games.addPlayerByPhone on an Americano", () => {
+  it("registers onto the roster with no Position and counts against players allowed", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seed(db);
+      const [americano] = await db
+        .insert(games)
+        .values({
+          format: GameFormatEnum.AMERICANO,
+          groupId: f.groupId,
+          venueId: f.venueId,
+          createdBy: f.organizer,
+          playersAllowed: 4,
+        })
+        .returning({ id: games.id });
+      const gameId = americano!.id;
+
+      await expect(
+        previewPlayerByPhone(db, {
+          gameId,
+          organizerUserId: f.organizer,
+          ...bahrain("36110001"),
+        }),
+      ).resolves.toMatchObject({ kind: "account", alreadyOnGame: false });
+
+      const added = [];
+      for (const [index, phone] of [
+        "36124401",
+        "36124402",
+        "36124403",
+        "36110001",
+      ].entries()) {
+        added.push(
+          await addPlayerByPhone(db, {
+            gameId,
+            organizerUserId: f.organizer,
+            ...bahrain(phone),
+            name: `Player ${index}`,
+            level: "B",
+          }),
+        );
+      }
+      expect(added.map((row) => row.kind)).toEqual([
+        "new",
+        "new",
+        "new",
+        "account",
+      ]);
+
+      expect(await playersOn(db, gameId)).toHaveLength(4);
+      expect(
+        await db.query.gameTeamPlayers.findMany({ columns: { id: true } }),
+      ).toEqual([]);
+
+      await expect(
+        addPlayerByPhone(db, {
+          gameId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124405"),
+          name: "Fifth",
+        }),
+      ).rejects.toThrow("This Game is full");
+
+      const details = await gameById(db, { gameId, userId: f.organizer });
+      expect(details.roster).toMatchObject({ count: 4, cap: 4 });
+      expect(
+        details.registeredPlayers.find((row) => row.id === added[0]!.userId),
+      ).toMatchObject({ unclaimed: true, phoneMasked: "+973 •••• 4401" });
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses once a Match is completed", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seed(db);
+      const [americano] = await db
+        .insert(games)
+        .values({
+          format: GameFormatEnum.AMERICANO,
+          groupId: f.groupId,
+          venueId: f.venueId,
+          createdBy: f.organizer,
+          playersAllowed: 8,
+        })
+        .returning({ id: games.id });
+      await db.insert(matches).values({
+        gameId: americano!.id,
+        status: MatchStatusEnum.COMPLETED,
+      });
+      await expect(
+        addPlayerByPhone(db, {
+          gameId: americano!.id,
+          organizerUserId: f.organizer,
+          ...bahrain("36124408"),
+          name: "Ali",
+        }),
+      ).rejects.toThrow("This Game already has a completed Match");
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("games.addPlayerByPhone on a Friendly tournament", () => {
+  it("seats a Half team on a vacant side, then fills its open Position", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedTournament(db);
+      const first = await addPlayerByPhone(db, {
+        gameId: f.tournamentId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124408"),
+        name: "Ali",
+        side: { sideIndex: 2 },
+      });
+      let details = await gameById(db, {
+        gameId: f.tournamentId,
+        userId: f.organizer,
+      });
+      expect(details.sides[1]?.left).toMatchObject({
+        userId: first.userId,
+        unclaimed: true,
+      });
+      expect(details.sides[1]?.right).toBeNull();
+
+      const second = await addPlayerByPhone(db, {
+        gameId: f.tournamentId,
+        organizerUserId: f.organizer,
+        ...bahrain("36110001"),
+        side: { sideIndex: 2 },
+      });
+      expect(second.kind).toBe("account");
+      details = await gameById(db, {
+        gameId: f.tournamentId,
+        userId: f.organizer,
+      });
+      expect(details.sides[1]?.left?.userId).toBe(first.userId);
+      expect(details.sides[1]?.right?.userId).toBe(f.ahmed);
+
+      await expect(
+        addPlayerByPhone(db, {
+          gameId: f.tournamentId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124409"),
+          name: "Sara",
+          side: { sideIndex: 2 },
+        }),
+      ).rejects.toThrow("That side is full");
+      await expect(
+        addPlayerByPhone(db, {
+          gameId: f.tournamentId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124409"),
+          name: "Sara",
+        }),
+      ).rejects.toThrow("Pick a side");
+    } finally {
+      await close();
+    }
+  });
+
+  it("fills a Half team a player left by registering alone", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedTournament(db);
+      await registerSeat(db, {
+        gameId: f.tournamentId,
+        userId: f.member,
+        sideIndex: 1,
+        position: "right",
+      });
+      const added = await addPlayerByPhone(db, {
+        gameId: f.tournamentId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124408"),
+        name: "Ali",
+        side: { sideIndex: 1 },
+      });
+      const details = await gameById(db, {
+        gameId: f.tournamentId,
+        userId: f.organizer,
+      });
+      expect(details.sides[0]?.left?.userId).toBe(added.userId);
+      expect(details.sides[0]?.right?.userId).toBe(f.member);
+    } finally {
+      await close();
+    }
+  });
+
+  it("on a tournament that does not allow registering alone, keeps the side a Half team until the second add", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedTournament(db, { allowSoloRegister: false });
+      const first = await addPlayerByPhone(db, {
+        gameId: f.tournamentId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124408"),
+        name: "Ali",
+        side: { sideIndex: 1 },
+      });
+      await expect(
+        registerSeat(db, {
+          gameId: f.tournamentId,
+          userId: f.member,
+          sideIndex: 1,
+          position: "right",
+        }),
+      ).rejects.toThrow(PARTNER_REQUIRED_REFUSAL_MESSAGE);
+      let details = await gameById(db, {
+        gameId: f.tournamentId,
+        userId: f.organizer,
+      });
+      expect(details.sides[0]?.left?.userId).toBe(first.userId);
+      expect(details.sides[0]?.right).toBeNull();
+
+      const second = await addPlayerByPhone(db, {
+        gameId: f.tournamentId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124409"),
+        name: "Sara",
+        side: { sideIndex: 1 },
+      });
+      details = await gameById(db, {
+        gameId: f.tournamentId,
+        userId: f.organizer,
+      });
+      expect(details.sides[0]?.right?.userId).toBe(second.userId);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses once the Pool draw is posted", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedTournament(db);
+      await db
+        .update(games)
+        .set({ drawPostedAt: new Date() })
+        .where(eq(games.id, f.tournamentId));
+      await expect(
+        previewPlayerByPhone(db, {
+          gameId: f.tournamentId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124408"),
+        }),
+      ).rejects.toThrow(POOL_DRAW_POSTED_MESSAGE);
+      await expect(
+        addPlayerByPhone(db, {
+          gameId: f.tournamentId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124408"),
+          name: "Ali",
+          side: { sideIndex: 1 },
+        }),
+      ).rejects.toThrow(POOL_DRAW_POSTED_MESSAGE);
+      expect(
+        await db.query.user.findFirst({
+          where: eq(user.phoneNumber, "+97336124408"),
+        }),
+      ).toBeUndefined();
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("games.addPlayerByPhone on a football Game", () => {
+  it("stores the role and position, and rates a new number from the self-placement", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedFootball(db);
+      const keeper = await addPlayerByPhone(db, {
+        gameId: f.footballGameId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124408"),
+        name: "Ali",
+        level: "pro",
+        football: { role: "keeper", position: null },
+      });
+      const outfield = await addPlayerByPhone(db, {
+        gameId: f.footballGameId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124409"),
+        name: "Sara",
+        football: { role: "outfield", position: "fwd" },
+      });
+      const fallback = await addPlayerByPhone(db, {
+        gameId: f.footballGameId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124410"),
+        name: "Noor",
+      });
+
+      const rows = await db.query.gamePlayers.findMany({
+        where: eq(gamePlayers.gameId, f.footballGameId),
+        columns: { userId: true, footballRole: true, footballPosition: true },
+      });
+      const byUser = new Map(rows.map((row) => [row.userId, row]));
+      expect(byUser.get(keeper.userId)).toMatchObject({
+        footballRole: "keeper",
+        footballPosition: null,
+      });
+      expect(byUser.get(outfield.userId)).toMatchObject({
+        footballRole: "outfield",
+        footballPosition: "fwd",
+      });
+      expect(byUser.get(fallback.userId)).toMatchObject({
+        footballRole: "outfield",
+        footballPosition: null,
+      });
+
+      const footballRatings = await db.query.ratings.findMany({
+        where: eq(ratings.sport, "football"),
+        columns: { userId: true, levelBand: true },
+      });
+      const bandByUser = new Map(
+        footballRatings.map((row) => [row.userId, row.levelBand]),
+      );
+      expect(bandByUser.get(keeper.userId)).toBe("B3");
+      expect(bandByUser.get(outfield.userId)).toBe("D3");
+      expect(bandByUser.get(fallback.userId)).toBe("D3");
+      expect(
+        await db.query.ratings.findMany({
+          where: and(
+            eq(ratings.userId, keeper.userId),
+            eq(ratings.sport, "padel"),
+          ),
+        }),
+      ).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a padel Level, a third keeper and a full roster", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedFootball(db);
+      await expect(
+        addPlayerByPhone(db, {
+          gameId: f.footballGameId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124400"),
+          name: "Ali",
+          level: "C+",
+        }),
+      ).rejects.toThrow("Pick a football Level");
+      for (const phone of ["36124401", "36124402"]) {
+        await addPlayerByPhone(db, {
+          gameId: f.footballGameId,
+          organizerUserId: f.organizer,
+          ...bahrain(phone),
+          name: `Keeper ${phone}`,
+          football: { role: "keeper", position: null },
+        });
+      }
+      await expect(
+        addPlayerByPhone(db, {
+          gameId: f.footballGameId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124403"),
+          name: "Third keeper",
+          football: { role: "keeper", position: null },
+        }),
+      ).rejects.toThrow("Both keeper seats are taken");
+
+      const game = await db.query.games.findFirst({
+        where: eq(games.id, f.footballGameId),
+        columns: { playersAllowed: true },
+      });
+      for (let index = 2; index < game!.playersAllowed!; index += 1) {
+        await addPlayerByPhone(db, {
+          gameId: f.footballGameId,
+          organizerUserId: f.organizer,
+          ...bahrain(`3612450${index}`),
+          name: `Player ${index}`,
+        });
+      }
+      await expect(
+        addPlayerByPhone(db, {
+          gameId: f.footballGameId,
+          organizerUserId: f.organizer,
+          ...bahrain("36124499"),
+          name: "One too many",
+        }),
+      ).rejects.toThrow("This Game is full");
+    } finally {
+      await close();
+    }
+  });
+
+  it("puts an added player into Make teams by Level", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedFootball(db);
+      const added = [];
+      for (const [index, level] of (
+        ["pro", "beginner", "competitive", "casual"] as const
+      ).entries()) {
+        added.push(
+          await addPlayerByPhone(db, {
+            gameId: f.footballGameId,
+            organizerUserId: f.organizer,
+            ...bahrain(`3612440${index}`),
+            name: `Player ${index}`,
+            level,
+          }),
+        );
+      }
+
+      const board = await footballBoard(db, {
+        gameId: f.footballGameId,
+        userId: f.organizer,
+      });
+      expect(
+        board.players.map((player) => [player.userId, player.levelBand]),
+      ).toEqual([
+        [added[0]!.userId, "B3"],
+        [added[1]!.userId, "D3"],
+        [added[2]!.userId, "C1"],
+        [added[3]!.userId, "C3"],
+      ]);
+      expect(board.viewer.canMakeTeams).toBe(true);
+
+      const split = balanceFootballSides(board.players);
+      expect([...split.slot1, ...split.slot2].sort()).toEqual(
+        added.map((row) => row.userId).sort(),
+      );
+      await publishFootballTeams(db, {
+        gameId: f.footballGameId,
+        userId: f.organizer,
+        method: "level",
+        bibs: { slot1: "black", slot2: "white" },
+        ...split,
+      });
+      const published = await footballBoard(db, {
+        gameId: f.footballGameId,
+        userId: f.organizer,
+      });
+      expect(
+        published.players.every((player) => player.sideIndex != null),
+      ).toBe(true);
+    } finally {
+      await close();
+    }
   });
 });

@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { detailBackHref } from "~/lib/dashboard-paths";
+import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import {
   CANCEL_GAME_ACTION,
   EDIT_GAME_ACTION,
@@ -100,6 +101,7 @@ export function TournamentHome({
   onCancelGame,
   onKick,
   onKickWaitlist,
+  onAddPlayer,
   teamId,
   onTeamIdChange,
   onRegisterTeam,
@@ -138,6 +140,7 @@ export function TournamentHome({
   onCancelGame?: () => void;
   onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
+  onAddPlayer?: () => void;
   teamId: string;
   onTeamIdChange: (teamId: string) => void;
   onRegisterTeam: (teamId: string) => void;
@@ -302,6 +305,7 @@ export function TournamentHome({
         onCancelGame={onCancelGame}
         onKick={onKick}
         onKickWaitlist={onKickWaitlist}
+        onAddPlayer={onAddPlayer}
       />
 
       <GameLevelRangePanel game={data} />
@@ -635,6 +639,7 @@ function TournamentHomeActions({
   onCancelGame,
   onKick,
   onKickWaitlist,
+  onAddPlayer,
   onInvite,
   onShare,
 }: {
@@ -662,6 +667,7 @@ function TournamentHomeActions({
   onCancelGame?: () => void;
   onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
+  onAddPlayer?: () => void;
   onInvite?: () => void;
   onShare?: () => void;
 }) {
@@ -740,6 +746,11 @@ function TournamentHomeActions({
             ) : null}
             <div className="ml-auto">
               <ActionMenu label="Game actions">
+                {onAddPlayer ? (
+                  <ActionMenuItem onSelect={onAddPlayer}>
+                    {ADD_PLAYER_ACTION}
+                  </ActionMenuItem>
+                ) : null}
                 {onShare ? (
                   <ActionMenuItem disabled={sharePending} onSelect={onShare}>
                     Share

@@ -1,19 +1,31 @@
 import {
   ADD_PLAYER_ACTION,
+  ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
+  ADD_PLAYER_DEFAULT_FOOTBALL_POSITION,
+  ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
   ADD_PLAYER_DEFAULT_LEVEL,
   ADD_PLAYER_DESCRIPTION,
+  ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
+  ADD_PLAYER_FOOTBALL_POSITION_CHOICES,
+  ADD_PLAYER_FOOTBALL_ROLE_CHOICES,
   ADD_PLAYER_LEVEL_CHOICES,
   ADD_PLAYER_NAME_LABEL,
   ADD_PLAYER_NO_SEAT_COPY,
+  ADD_PLAYER_NO_SIDE_COPY,
   addPlayerAddedToast,
   addPlayerCanSubmit,
   addPlayerCompletePhone,
+  addPlayerFootballInput,
   addPlayerPreviewLine,
   addPlayerSeatChoices,
+  addPlayerSideChoices,
   sameJoinSeat,
+  type AddPlayerFootballPosition,
   type AddPlayerLevel,
+  type AddPlayerPlacement,
 } from "@repo/domain/add-player-by-phone";
-import type { FriendlyGameDetailsSide } from "@repo/domain/friendly-game-details";
+import type { FootballRole } from "@repo/domain/football-lineup";
+import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
 import { useState } from "react";
@@ -34,17 +46,38 @@ function seatKey(seat: FriendlyGameJoinSeat) {
   return `${seat.sideIndex}:${seat.position}`;
 }
 
+type NamedSeat = { name: string } | null;
+
+function Section({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text size="meta" tone="muted">
+        {label}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
 export function AddPlayerSheet({
   visible,
   onClose,
   gameId,
+  placement,
   sides,
   onAdded,
 }: {
   visible: boolean;
   onClose: () => void;
   gameId: string;
-  sides: readonly FriendlyGameDetailsSide[];
+  placement: AddPlayerPlacement;
+  sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   onAdded: () => Promise<unknown>;
 }) {
   const toast = useToast();
@@ -53,13 +86,34 @@ export function AddPlayerSheet({
   const [national, setNational] = useState("");
   const [name, setName] = useState("");
   const [level, setLevel] = useState<AddPlayerLevel>(ADD_PLAYER_DEFAULT_LEVEL);
+  const [footballLevel, setFootballLevel] = useState<FootballSelfPlacement>(
+    ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
+  );
+  const [role, setRole] = useState<FootballRole>(
+    ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
+  );
+  const [footballPosition, setFootballPosition] =
+    useState<AddPlayerFootballPosition>(ADD_PLAYER_DEFAULT_FOOTBALL_POSITION);
   const [picked, setPicked] = useState<FriendlyGameJoinSeat | null>(null);
+  const [pickedSide, setPickedSide] = useState<number | null>(null);
 
-  const seatChoices = addPlayerSeatChoices(sides);
+  const isFootball = placement === "football";
+  const seatChoices = placement === "seat" ? addPlayerSeatChoices(sides) : [];
   const seat =
     seatChoices.find((choice) => sameJoinSeat(choice.seat, picked))?.seat ??
     seatChoices[0]?.seat ??
     null;
+  const sideChoices = placement === "side" ? addPlayerSideChoices(sides) : [];
+  const side =
+    sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
+    sideChoices[0] ??
+    null;
+  const placed =
+    placement === "seat"
+      ? seat != null
+      : placement === "side"
+        ? side != null
+        : true;
   const completePhone = addPlayerCompletePhone(countryIso, national);
   const preview = api.games.previewPlayerByPhone.useQuery(
     { gameId, countryIso, nationalNumber: national },
@@ -74,6 +128,9 @@ export function AddPlayerSheet({
       setNational("");
       setName("");
       setLevel(ADD_PLAYER_DEFAULT_LEVEL);
+      setFootballLevel(ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL);
+      setRole(ADD_PLAYER_DEFAULT_FOOTBALL_ROLE);
+      setFootballPosition(ADD_PLAYER_DEFAULT_FOOTBALL_POSITION);
       setPicked(null);
       await Promise.all([
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
@@ -83,10 +140,11 @@ export function AddPlayerSheet({
   });
 
   const canSubmit =
-    !add.isPending && addPlayerCanSubmit({ preview: previewData, name, seat });
+    !add.isPending &&
+    addPlayerCanSubmit({ preview: previewData, name, placed });
 
   function submit() {
-    if (!seat || !canSubmit) {
+    if (!canSubmit) {
       return;
     }
     add.mutate({
@@ -94,8 +152,12 @@ export function AddPlayerSheet({
       countryIso,
       nationalNumber: national,
       name: isNew ? name.trim() : undefined,
-      level: isNew ? level : undefined,
-      seat,
+      level: isNew ? (isFootball ? footballLevel : level) : undefined,
+      seat: seat ?? undefined,
+      side: side ? { sideIndex: side.sideIndex } : undefined,
+      football: isFootball
+        ? addPlayerFootballInput(role, footballPosition)
+        : undefined,
     });
   }
 
@@ -167,48 +229,101 @@ export function AddPlayerSheet({
             editable={!add.isPending}
             onChangeText={setName}
           />
-          <View style={{ gap: 8 }}>
-            <Text size="meta" tone="muted">
-              Starting Level
-            </Text>
-            <RowChoices
-              label="Starting Level"
-              choices={ADD_PLAYER_LEVEL_CHOICES}
-              value={level}
-              onSelect={setLevel}
-              disabled={add.isPending}
-            />
-          </View>
+          <Section label="Starting Level">
+            {isFootball ? (
+              <RowChoices
+                label="Starting Level"
+                choices={ADD_PLAYER_FOOTBALL_LEVEL_CHOICES}
+                value={footballLevel}
+                onSelect={setFootballLevel}
+                disabled={add.isPending}
+              />
+            ) : (
+              <RowChoices
+                label="Starting Level"
+                choices={ADD_PLAYER_LEVEL_CHOICES}
+                value={level}
+                onSelect={setLevel}
+                disabled={add.isPending}
+              />
+            )}
+          </Section>
         </>
       ) : null}
 
-      <View style={{ gap: 8 }}>
-        <Text size="meta" tone="muted">
-          Position
-        </Text>
-        {seat ? (
-          <TileChoices
-            label="Position"
-            choices={seatChoices.map((choice) => ({
-              value: seatKey(choice.seat),
-              name: choice.side,
-              detail: choice.team,
-            }))}
-            value={seatKey(seat)}
-            onSelect={(key) =>
-              setPicked(
-                seatChoices.find((choice) => seatKey(choice.seat) === key)
-                  ?.seat ?? null,
-              )
-            }
-            disabled={add.isPending}
-          />
-        ) : (
-          <Text size="meta" tone="muted">
-            {ADD_PLAYER_NO_SEAT_COPY}
-          </Text>
-        )}
-      </View>
+      {isFootball ? (
+        <>
+          <Section label="Plays as">
+            <TileChoices
+              label="Plays as"
+              choices={ADD_PLAYER_FOOTBALL_ROLE_CHOICES}
+              value={role}
+              onSelect={setRole}
+              disabled={add.isPending}
+            />
+          </Section>
+          {role === "outfield" ? (
+            <Section label="Preferred position">
+              <TileChoices
+                label="Preferred position"
+                choices={ADD_PLAYER_FOOTBALL_POSITION_CHOICES}
+                value={footballPosition}
+                onSelect={setFootballPosition}
+                disabled={add.isPending}
+              />
+            </Section>
+          ) : null}
+        </>
+      ) : null}
+
+      {placement === "side" ? (
+        <Section label="Side">
+          {side ? (
+            <TileChoices
+              label="Side"
+              choices={sideChoices.map((choice) => ({
+                value: String(choice.sideIndex),
+                name: choice.team,
+                detail: choice.detail,
+              }))}
+              value={String(side.sideIndex)}
+              onSelect={(key) => setPickedSide(Number(key))}
+              disabled={add.isPending}
+            />
+          ) : (
+            <Text size="meta" tone="muted">
+              {ADD_PLAYER_NO_SIDE_COPY}
+            </Text>
+          )}
+        </Section>
+      ) : null}
+
+      {placement === "seat" ? (
+        <Section label="Position">
+          {seat ? (
+            <TileChoices
+              label="Position"
+              choices={seatChoices.map((choice) => ({
+                value: seatKey(choice.seat),
+                name: choice.side,
+                detail: choice.team,
+              }))}
+              value={seatKey(seat)}
+              onSelect={(key) =>
+                setPicked(
+                  seatChoices.find((choice) => seatKey(choice.seat) === key)
+                    ?.seat ?? null,
+                )
+              }
+              disabled={add.isPending}
+            />
+          ) : (
+            <Text size="meta" tone="muted">
+              {ADD_PLAYER_NO_SEAT_COPY}
+            </Text>
+          )}
+        </Section>
+      ) : null}
     </Sheet>
   );
 }

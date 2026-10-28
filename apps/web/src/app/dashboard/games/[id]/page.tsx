@@ -90,7 +90,11 @@ import {
   friendlyGameCanMintInvite,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
-import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import {
+  ADD_PLAYER_ACTION,
+  addPlayerPlacement,
+  organizerCanAddPlayer,
+} from "@repo/domain/add-player-by-phone";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
@@ -788,7 +792,9 @@ export default function GameHomePage({
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
   const plan = friendlyGameDetailsPlan(data);
-  const canAddPlayer = usesFriendlyChrome && organizerCanAddPlayer(data);
+  const addPlacement = addPlayerPlacement(data);
+  const canAddPlayer = organizerCanAddPlayer(data);
+  const openAddPlayer = canAddPlayer ? () => setAddPlayerOpen(true) : undefined;
   const { firstMatch, winningGameTeamId, canLeaveGame } = plan;
   const heroInput = friendlyGameHeroInput(data);
   const ctaFamily = usesFriendlyChrome
@@ -866,6 +872,11 @@ export default function GameHomePage({
           {canManageGameInvites ? (
             <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
               Invite
+            </ActionMenuItem>
+          ) : null}
+          {openAddPlayer ? (
+            <ActionMenuItem onSelect={openAddPlayer}>
+              {ADD_PLAYER_ACTION}
             </ActionMenuItem>
           ) : null}
         </>
@@ -1078,6 +1089,7 @@ export default function GameHomePage({
               onCancelGame={() => setCancelGameOpen(true)}
               onKick={(userId) => requestKick({ userId })}
               onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
+              onAddPlayer={openAddPlayer}
               onCancelKnockoutMatch={setCancelKnockoutPlace}
             />
           </>
@@ -1178,9 +1190,7 @@ export default function GameHomePage({
               kickPending={kick.isPending}
               onKick={(userId) => requestKick({ userId })}
               linkToPlayers={gamePlayersLink(data)}
-              onAddPlayer={
-                canAddPlayer ? () => setAddPlayerOpen(true) : undefined
-              }
+              onAddPlayer={openAddPlayer}
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
@@ -1440,11 +1450,12 @@ export default function GameHomePage({
         />
       ) : null}
 
-      {canAddPlayer || addPlayerOpen ? (
+      {addPlacement && (canAddPlayer || addPlayerOpen) ? (
         <AddPlayerDialog
           open={addPlayerOpen}
           onOpenChange={setAddPlayerOpen}
           gameId={id}
+          placement={addPlacement}
           sides={data.sides}
           onAdded={() => utils.games.byId.invalidate({ id })}
         />
