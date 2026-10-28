@@ -12,6 +12,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { account } from "./account";
+import { footballPositions, footballRoles } from "./game-enums";
+import { groupSports } from "./group-enums";
 import { session } from "./session";
 
 /**
@@ -52,6 +54,14 @@ export const user = pgTable(
       .notNull()
       .default(0),
     preferredPosition: userPreferredPositions("preferred_position"),
+    /**
+     * The sports the User told onboarding they play. Null for a User who
+     * onboarded before the question existed, who is read as padel only.
+     */
+    sports: groupSports("sports").array(),
+    /** Football defaults for the join sheet; each Game registration keeps its own. */
+    preferredFootballRole: footballRoles("preferred_football_role"),
+    preferredFootballPosition: footballPositions("preferred_football_position"),
     onboardingCompletedAt: timestamp("onboarding_completed_at"),
     createdAt: timestamp("created_at")
       .$defaultFn(() => /* @__PURE__ */ new Date())

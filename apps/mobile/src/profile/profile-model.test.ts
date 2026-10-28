@@ -12,9 +12,13 @@ describe("positionFromApi", () => {
   it("reads an unanswered position as null and locks editing while provisioning", () => {
     const state = {
       provisioning: true,
+      sports: null,
       preferredPosition: null,
+      preferredFootballRole: null,
+      preferredFootballPosition: null,
       onboardingCompletedAt: null,
       hasRating: false,
+      hasFootballRating: false,
       canSelfDeclare: false,
     } as const;
     assert.deepEqual(positionFromApi(state), {
@@ -26,9 +30,13 @@ describe("positionFromApi", () => {
   it("keeps a stored position and allows editing once provisioned", () => {
     const state = {
       provisioning: false,
+      sports: null,
       preferredPosition: "right",
+      preferredFootballRole: null,
+      preferredFootballPosition: null,
       onboardingCompletedAt: new Date(),
       hasRating: true,
+      hasFootballRating: false,
       canSelfDeclare: false,
     } as const;
     assert.deepEqual(positionFromApi(state), {

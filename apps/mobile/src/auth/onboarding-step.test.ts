@@ -1,70 +1,87 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  adjacentQuestion,
   canReachTabs,
-  onboardingStepFromState,
-  type OnboardingQuestionnaireState,
+  findGamesLabel,
+  onboardingPhaseFromState,
+  onboardingQuestions,
+  sportsContinueLabel,
 } from "./onboarding-step";
 
-const base: OnboardingQuestionnaireState = {
-  provisioning: false,
-  preferredPosition: null,
-  onboardingCompletedAt: null,
-  hasRating: false,
-};
+const both = { padel: true, football: true };
+const padelOnly = { padel: true, football: false };
+const footballOnly = { padel: false, football: true };
+const none = { padel: false, football: false };
 
-describe("onboardingStepFromState", () => {
+describe("onboardingPhaseFromState", () => {
   it("waits while the state has not loaded", () => {
-    expect(onboardingStepFromState(undefined)).toBe("loading");
+    expect(onboardingPhaseFromState(undefined)).toBe("loading");
   });
 
   it("holds a User whose row is still being created", () => {
-    expect(onboardingStepFromState({ ...base, provisioning: true })).toBe(
-      "provisioning",
-    );
-  });
-
-  it("asks Preferred Position first", () => {
-    expect(onboardingStepFromState(base)).toBe("position");
-  });
-
-  it("asks the Level declaration once the position is answered", () => {
     expect(
-      onboardingStepFromState({ ...base, preferredPosition: "left" }),
-    ).toBe("level");
-  });
-
-  it("finishes once both answers exist", () => {
-    expect(
-      onboardingStepFromState({
-        ...base,
-        preferredPosition: "either",
-        hasRating: true,
+      onboardingPhaseFromState({
+        provisioning: true,
+        onboardingCompletedAt: null,
       }),
-    ).toBe("finishing");
+    ).toBe("provisioning");
   });
 
-  it("releases a completed User, even one backfilled with no position", () => {
+  it("asks the questions until onboarding is complete", () => {
     expect(
-      onboardingStepFromState({
-        ...base,
-        onboardingCompletedAt: new Date("2026-01-01T00:00:00Z"),
+      onboardingPhaseFromState({
+        provisioning: false,
+        onboardingCompletedAt: null,
       }),
-    ).toBe("complete");
+    ).toBe("questions");
+  });
+
+  it("lets a complete User reach the tabs", () => {
+    const phase = onboardingPhaseFromState({
+      provisioning: false,
+      onboardingCompletedAt: new Date(),
+    });
+    expect(phase).toBe("complete");
+    expect(canReachTabs(phase)).toBe(true);
+    expect(canReachTabs("questions")).toBe(false);
   });
 });
 
-describe("canReachTabs", () => {
-  it("opens only for a completed questionnaire", () => {
-    expect(canReachTabs("complete")).toBe(true);
-    for (const step of [
-      "loading",
-      "provisioning",
-      "position",
-      "level",
-      "finishing",
-    ] as const) {
-      expect(canReachTabs(step)).toBe(false);
-    }
+describe("onboardingQuestions", () => {
+  it("asks one question per picked sport", () => {
+    expect(onboardingQuestions(both)).toEqual([
+      "sports",
+      "padel",
+      "football",
+      "ready",
+    ]);
+    expect(onboardingQuestions(footballOnly)).toEqual([
+      "sports",
+      "football",
+      "ready",
+    ]);
+  });
+});
+
+describe("adjacentQuestion", () => {
+  it("skips the sport that was not picked", () => {
+    expect(adjacentQuestion(footballOnly, "sports", "next")).toBe("football");
+    expect(adjacentQuestion(padelOnly, "padel", "next")).toBe("ready");
+    expect(adjacentQuestion(footballOnly, "ready", "back")).toBe("football");
+  });
+
+  it("has nothing before the sports question", () => {
+    expect(adjacentQuestion(both, "sports", "back")).toBeNull();
+  });
+});
+
+describe("labels", () => {
+  it("names what the next step covers", () => {
+    expect(sportsContinueLabel(none)).toBe("Pick at least one");
+    expect(sportsContinueLabel(both)).toBe("Continue with both");
+    expect(sportsContinueLabel(footballOnly)).toBe("Continue with football");
+    expect(findGamesLabel(padelOnly)).toBe("Find padel games");
+    expect(findGamesLabel(both)).toBe("Find games");
   });
 });

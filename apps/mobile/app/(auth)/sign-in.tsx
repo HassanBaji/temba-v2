@@ -27,7 +27,7 @@ const MODE_DESCRIPTIONS: Record<IdentifierMode, string> = {
 
 export default function SignIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const [mode, setMode] = useState<IdentifierMode>("username");
+  const [mode, setMode] = useState<IdentifierMode>("phone");
   const [username, setUsername] = useState("");
   const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
   const [national, setNational] = useState("");
@@ -125,7 +125,7 @@ export default function SignIn() {
           style={{ minHeight: 44, justifyContent: "center" }}
         >
           <Text style={{ textDecorationLine: "underline" }}>
-            {usePhone ? "Use username" : "Use phone"}
+            {usePhone ? "Use username instead" : "Use phone instead"}
           </Text>
         </Pressable>
         <TextField
@@ -160,6 +160,19 @@ export default function SignIn() {
         onPress={() => void onSubmit()}
       />
       <OauthButtons />
+      <Text size="eyebrow" tone="muted" style={{ textAlign: "center" }}>
+        New to Temba? Continuing with Google creates an account, and you agree
+        to the{" "}
+        <Text
+          size="eyebrow"
+          accessibilityRole="link"
+          onPress={() => router.push("/terms")}
+          style={{ textDecorationLine: "underline" }}
+        >
+          Terms and Conditions
+        </Text>
+        .
+      </Text>
     </AuthScreen>
   );
 }

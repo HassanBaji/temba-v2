@@ -450,8 +450,16 @@ A person with a Temba account.
 _Avoid_: player (when you mean User), member (when you mean the Community role)
 
 **Onboarding questionnaire**:
-The two questions a new User answers at Route `/onboarding` after Clerk sign-up and before Home: Preferred Position, and a one-time Level declaration. Blocking, with **Either** and **I don't know** as the low-commitment answers. Users who predate it are complete without answering.
+The questions a new User answers after Clerk sign-up and before Home. On web, at Route `/onboarding`: Preferred Position, and a one-time padel Level declaration. On mobile it first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. Blocking, with **Either** and **I don't know** as the low-commitment answers. Users who predate it are complete without answering.
 _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboarding (bare, when you mean this entity), Lookup invite
+
+**Sports played**:
+The sports a User told the Onboarding questionnaire they play: padel, football or both. It decides which questions they answer. A User with none recorded onboarded before the question existed and is read as padel only.
+_Avoid_: favourite sports, interests
+
+**Football self-placement**:
+A new football player's own starting Level, picked as Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C or B; never A) until football results rate. One time, like the padel Level declaration.
+_Avoid_: football rating (when you mean the self-placed start), skill level
 
 **Home**:
 The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
