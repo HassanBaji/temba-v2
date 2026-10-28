@@ -18,6 +18,7 @@ import {
   notifications,
   ratings,
   user,
+  userMerges,
   venues,
 } from "@repo/db/schema";
 
@@ -918,6 +919,184 @@ describe("Claiming an Unclaimed player at sign-up", () => {
       expect(linked.clerkId).toBe("user_clerk_legacy");
       expect(linked.claimedAt).toBeNull();
       expect(await historyLinkedRows(db)).toHaveLength(0);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("An existing account that verifies an Unclaimed player's phone", () => {
+  function emailAccountPayload(
+    overrides: { phone?: string | null; phoneVerified?: boolean } = {},
+  ) {
+    return clerkUser({
+      id: "user_clerk_email_first",
+      has_image: false,
+      first_name: "Ali",
+      last_name: "Hassan",
+      username: "alihassan",
+      email: "ali@example.com",
+      phone: null,
+      ...overrides,
+    });
+  }
+
+  it("absorbs the Unclaimed player on user.updated: seats, memberships and Rating move, the row is gone", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const account = await upsertUserFromClerk(db, emailAccountPayload());
+      const { unclaimed, groupId } = await seedUnclaimedHistory(db);
+
+      const updated = await upsertUserFromClerk(
+        db,
+        emailAccountPayload({ phone: UNCLAIMED_PHONE }),
+      );
+
+      expect(updated.id).toBe(account.id);
+      expect(updated).toMatchObject({
+        phoneNumber: UNCLAIMED_PHONE,
+        phoneNumberVerified: true,
+        name: "Ali Hassan",
+      });
+      expect(updated.claimedAt).toBeInstanceOf(Date);
+      expect(
+        await db.query.user.findFirst({ where: eq(user.id, unclaimed.id) }),
+      ).toBeUndefined();
+      expect(
+        await db.query.gamePlayers.findMany({
+          where: eq(gamePlayers.userId, account.id),
+        }),
+      ).toHaveLength(2);
+      const memberships = await db.query.groupMembers.findMany({
+        where: eq(groupMembers.userId, account.id),
+      });
+      expect(memberships.map((row) => row.groupId)).toEqual([groupId]);
+      expect(
+        await db.query.ratings.findMany({
+          where: eq(ratings.userId, account.id),
+        }),
+      ).toHaveLength(1);
+      expect(await db.select().from(userMerges)).toMatchObject([
+        { survivorUserId: account.id, mergedUserId: unclaimed.id },
+      ]);
+      expect(await historyLinkedRows(db)).toMatchObject([
+        { recipientUserId: account.id, gameCount: 2 },
+      ]);
+      const home = await loadHome(db, { userId: account.id });
+      expect(home.gamesPlayed).toBe(1);
+      expect(home.groupsCount).toBe(1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("does nothing more on a repeated user.updated delivery", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(db, emailAccountPayload());
+      await seedUnclaimedHistory(db);
+      const withPhone = emailAccountPayload({ phone: UNCLAIMED_PHONE });
+
+      await upsertUserFromClerk(db, withPhone);
+      await upsertUserFromClerk(db, withPhone);
+
+      expect(await db.select().from(userMerges)).toHaveLength(1);
+      expect(await historyLinkedRows(db)).toHaveLength(1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("absorbs the Unclaimed player on a user.created that matched an existing row by email", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const [emailRow] = await db
+        .insert(user)
+        .values({ name: "Ali", email: "ali@example.com" })
+        .returning();
+      const { unclaimed } = await seedUnclaimedHistory(db);
+
+      const created = await upsertUserFromClerk(
+        db,
+        emailAccountPayload({ phone: UNCLAIMED_PHONE }),
+      );
+
+      expect(created.id).toBe(emailRow!.id);
+      expect(created).toMatchObject({
+        clerkId: "user_clerk_email_first",
+        phoneNumber: UNCLAIMED_PHONE,
+        phoneNumberVerified: true,
+      });
+      expect(
+        await db.query.user.findFirst({ where: eq(user.id, unclaimed.id) }),
+      ).toBeUndefined();
+      expect(
+        await db.query.gamePlayers.findMany({
+          where: eq(gamePlayers.userId, created.id),
+        }),
+      ).toHaveLength(2);
+      expect(await db.select().from(userMerges)).toHaveLength(1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("never merges for an unverified phone: the phone is dropped and both rows stay", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const account = await upsertUserFromClerk(db, emailAccountPayload());
+      const { unclaimed } = await seedUnclaimedHistory(db);
+
+      const updated = await upsertUserFromClerk(
+        db,
+        emailAccountPayload({ phone: UNCLAIMED_PHONE, phoneVerified: false }),
+      );
+
+      expect(updated).toMatchObject({
+        id: account.id,
+        phoneNumber: null,
+        claimedAt: null,
+      });
+      expect(
+        await db.query.user.findFirst({ where: eq(user.id, unclaimed.id) }),
+      ).toMatchObject({ clerkId: null, phoneNumber: UNCLAIMED_PHONE });
+      expect(
+        await db.query.gamePlayers.findMany({
+          where: eq(gamePlayers.userId, unclaimed.id),
+        }),
+      ).toHaveLength(2);
+      expect(await db.select().from(userMerges)).toHaveLength(0);
+      expect(await historyLinkedRows(db)).toHaveLength(0);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps dropping a verified phone another account holder owns", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const holder = await upsertUserFromClerk(
+        db,
+        clerkUser({
+          id: "user_clerk_holder",
+          has_image: false,
+          email: "holder@example.com",
+          username: "holder",
+          phone: UNCLAIMED_PHONE,
+        }),
+      );
+      const account = await upsertUserFromClerk(db, emailAccountPayload());
+
+      const updated = await upsertUserFromClerk(
+        db,
+        emailAccountPayload({ phone: UNCLAIMED_PHONE }),
+      );
+
+      expect(updated).toMatchObject({ id: account.id, phoneNumber: null });
+      expect(
+        await db.query.user.findFirst({ where: eq(user.id, holder.id) }),
+      ).toMatchObject({ phoneNumber: UNCLAIMED_PHONE });
+      expect(await db.select().from(userMerges)).toHaveLength(0);
     } finally {
       await close();
     }

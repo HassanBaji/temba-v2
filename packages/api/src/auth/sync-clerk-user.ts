@@ -5,8 +5,9 @@ import type { UserWebhookEvent } from "@clerk/backend/webhooks";
 import { gamePlayers, user } from "@repo/db";
 
 import { type db } from "#src/db";
-import { notify } from "#src/notifications/notify";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
+import { mergeIntoAccount } from "#src/unclaimed-players/merge-into-account";
+import { notifyHistoryLinked } from "#src/unclaimed-players/notify-history-linked";
 
 export type ClerkUserSyncDb = DbClient | DbTx;
 
@@ -88,26 +89,27 @@ async function availablePhoneNumber(
   return taken ? null : phoneNumber;
 }
 
+async function unclaimedPhoneHolder(
+  database: ClerkUserSyncDb,
+  phoneNumber: string | null,
+  phoneNumberVerified: boolean,
+  exceptUserId: string,
+) {
+  if (!phoneNumber || !phoneNumberVerified) {
+    return null;
+  }
+  const holder = await database.query.user.findFirst({
+    where: and(eq(user.phoneNumber, phoneNumber), ne(user.id, exceptUserId)),
+  });
+  return holder && isUnclaimed(holder) ? holder : null;
+}
+
 async function seatedGameCount(database: ClerkUserSyncDb, userId: string) {
   const [row] = await database
     .select({ count: countDistinct(gamePlayers.gameId) })
     .from(gamePlayers)
     .where(eq(gamePlayers.userId, userId));
   return row?.count ?? 0;
-}
-
-async function notifyHistoryLinked(database: ClerkUserSyncDb, userId: string) {
-  const gameCount = await seatedGameCount(database, userId);
-  if (gameCount === 0) {
-    return;
-  }
-  await notify(database, {
-    type: "history_linked",
-    recipients: [{ userId, audience: "player" }],
-    excludeUserIds: [],
-    gameCount,
-    dedupeKey: "history_linked",
-  });
 }
 
 function displayName(
@@ -144,7 +146,9 @@ function clerkStoredImage(clerkUser: ClerkUserPayload): string | null {
  *
  * A row without a clerkId is linked by phone only when Clerk verified that
  * phone: the SMS code is what proves the number belongs to the new account.
- * Linking an Unclaimed player claims its history (ADR-0042).
+ * Linking an Unclaimed player claims its history (ADR-0042). An existing
+ * account whose verified phone an Unclaimed player holds absorbs that player
+ * instead of dropping the phone.
  */
 export async function upsertUserFromClerk(
   database: ClerkUserSyncDb,
@@ -197,11 +201,19 @@ export async function upsertUserFromClerk(
         ? null
         : ((await availableUsername(database, username, existing.id)) ??
           existing.username);
+    const absorbed = await unclaimedPhoneHolder(
+      database,
+      phoneNumber,
+      phoneNumberVerified,
+      existing.id,
+    );
     const nextPhoneNumber =
       phoneNumber === null
         ? null
-        : ((await availablePhoneNumber(database, phoneNumber, existing.id)) ??
-          existing.phoneNumber);
+        : absorbed
+          ? phoneNumber
+          : ((await availablePhoneNumber(database, phoneNumber, existing.id)) ??
+            existing.phoneNumber);
     const nextPhoneVerified =
       nextPhoneNumber === phoneNumber
         ? phoneNumberVerified
@@ -210,6 +222,13 @@ export async function upsertUserFromClerk(
     const claiming = isUnclaimed(existing);
 
     return writeDb(database).transaction(async (tx) => {
+      if (absorbed?.phoneNumber) {
+        await mergeIntoAccount(tx, {
+          survivorUserId: existing.id,
+          mergedUserId: absorbed.id,
+          phoneNumber: absorbed.phoneNumber,
+        });
+      }
       const now = new Date();
       const [updated] = await tx
         .update(user)
@@ -229,7 +248,11 @@ export async function upsertUserFromClerk(
         .returning();
 
       if (claiming) {
-        await notifyHistoryLinked(tx, existing.id);
+        await notifyHistoryLinked(tx, {
+          userId: existing.id,
+          gameCount: await seatedGameCount(tx, existing.id),
+          dedupeKey: "history_linked",
+        });
       }
 
       return updated ?? existing;
