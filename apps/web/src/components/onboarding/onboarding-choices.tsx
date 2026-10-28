@@ -61,7 +61,7 @@ export function TileChoices<T extends string>(props: {
   );
 }
 
-/** A compact list row: a bold mark, a name, and a line that may truncate. */
+/** A compact list row: a bold mark, a name, and a short line under it. */
 export function RowChoices<T extends string>(props: {
   label: string;
   choices: { value: T; mark?: string; name: string; detail: string }[];
@@ -69,7 +69,10 @@ export function RowChoices<T extends string>(props: {
   onSelect: (value: T) => void;
 }) {
   return (
-    <RovingRadioGroup aria-label={props.label} className="flex flex-col gap-1.5">
+    <RovingRadioGroup
+      aria-label={props.label}
+      className="flex flex-col gap-1.5"
+    >
       {props.choices.map((choice) => {
         const selected = choice.value === props.value;
         return (
@@ -91,9 +94,7 @@ export function RowChoices<T extends string>(props: {
             ) : null}
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="text-meta font-semibold">{choice.name}</span>
-              <span
-                className={cn("text-eyebrow truncate", mutedClass(selected))}
-              >
+              <span className={cn("text-eyebrow", mutedClass(selected))}>
                 {choice.detail}
               </span>
             </span>

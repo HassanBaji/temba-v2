@@ -96,7 +96,7 @@ export function TileChoices<T extends string>(props: {
   );
 }
 
-/** A compact list row: a bold mark, a name, and a line that may truncate. */
+/** A compact list row: a bold mark, a name, and a short line under it. */
 export function RowChoices<T extends string>(props: {
   label: string;
   choices: { value: T; mark?: string; name: string; detail: string }[];
@@ -142,7 +142,7 @@ export function RowChoices<T extends string>(props: {
             <Text size="meta" weight="semibold">
               {choice.name}
             </Text>
-            <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            <Text size="eyebrow" tone="muted">
               {choice.detail}
             </Text>
           </View>

@@ -85,26 +85,35 @@ export const PADEL_LEVEL_CHOICES: {
   {
     value: "D",
     name: "New to padel",
-    detail: "First months, learning the walls.",
+    detail: "Learning the walls and the rules.",
   },
+  { value: "D+", name: "Beginner", detail: "Lobs and volleys with intent." },
   {
-    value: "D+",
-    name: "Finding rhythm",
-    detail: "Serves in, short rallies hold.",
+    value: "C",
+    name: "Improver",
+    detail: "Overheads and volleys are reliable, errors still creep in.",
   },
-  { value: "C", name: "Consistent", detail: "Lobs and volleys on purpose." },
   {
     value: "C+",
-    name: "Club regular",
-    detail: "Plays weekly, uses the glass.",
+    name: "Intermediate",
+    detail:
+      "Plays tournaments, picks the right shot, rarely gives points away.",
   },
-  { value: "B", name: "Advanced", detail: "Bandeja and vibora in play." },
+  {
+    value: "B",
+    name: "Advanced",
+    detail: "Wins tournaments, finishes points at the net.",
+  },
   {
     value: "B+",
-    name: "High advanced",
-    detail: "Wins the net, reads lobs early.",
+    name: "Expert",
+    detail: "Top of the local scene, reads the game a step ahead.",
   },
-  { value: "A", name: "Competitive", detail: "Tournament level, few errors." },
+  {
+    value: "A",
+    name: "Pro",
+    detail: "Competes on the national or international circuit.",
+  },
 ];
 
 export const PADEL_SIDE_CHOICES: {
