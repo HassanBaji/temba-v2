@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { Check } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
-import { TERMS_MINIMUM_AGE } from "../legal/terms";
+import { TERMS_MINIMUM_AGE } from "@repo/domain/terms";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 

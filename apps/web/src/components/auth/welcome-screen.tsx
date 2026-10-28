@@ -1,16 +1,12 @@
 import Link from "next/link";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Button, touchHitArea } from "~/components/ui/button";
 import { TembaWordmark } from "~/components/ui/temba-wordmark";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
 import { cn } from "~/lib/utils";
-
-const PREVIEW_TILES = [
-  { initials: "MK", level: "C+" },
-  { initials: "SL", level: "C" },
-  { initials: "JB", level: "C+" },
-] as const;
+import { SPORTS, SPORT_LABELS } from "@repo/domain/sport";
 
 export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
   const signUpHref = authCrossLinkUrl("/signup", redirectUrl);
@@ -24,37 +20,29 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
 
       <div className="mt-24 px-[26px]">
         <h1 className="text-hero font-bold leading-[0.96] tracking-[-0.035em] [font-variation-settings:'wdth'_112,'wght'_700]">
-          Every match counts.
+          Find a game,
           <br />
-          Fill the court,
+          fill the court,
           <br />
           keep the score.
         </h1>
         <p className="text-body text-dim mt-5 max-w-[300px] leading-[1.5]">
-          Open games near you, your regular groups, and a level that follows
-          your results.
+          Open padel and football games near you, your regular Groups, and a
+          Level that follows your results.
         </p>
       </div>
 
-      <div aria-hidden="true" className="mt-[52px] px-[26px]">
-        <p className="text-eyebrow text-dim font-mono">
-          TONIGHT, KARBABAD 9:00 PM
-        </p>
-        <div className="mt-3 grid grid-cols-4 gap-2">
-          {PREVIEW_TILES.map((tile) => (
-            <div
-              key={tile.initials}
-              className="bg-raised flex h-[66px] flex-col items-center justify-center gap-1 rounded-md"
-            >
-              <span className="text-body font-semibold">{tile.initials}</span>
-              <span className="text-eyebrow text-dim">{tile.level}</span>
-            </div>
-          ))}
-          <div className="hatch hatch-on-ink text-eyebrow text-paper border-dimrule flex h-[66px] items-center justify-center rounded-md border">
-            1 open
-          </div>
-        </div>
-      </div>
+      <ul aria-label="Sports" className="mt-8 flex gap-2 px-[26px]">
+        {SPORTS.map((sport) => (
+          <li
+            key={sport}
+            className="border-dimrule bg-raised text-meta flex h-9 items-center gap-2 rounded-md border px-3.5 font-medium"
+          >
+            <SportGlyph sport={sport} className="size-4" />
+            {SPORT_LABELS[sport]}
+          </li>
+        ))}
+      </ul>
 
       <div className="mt-auto flex flex-col gap-2.5 p-[26px]">
         <Button
@@ -79,7 +67,7 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
             className={cn(touchHitArea, "text-paper underline")}
             href="/terms"
           >
-            Terms
+            Terms and Conditions
           </Link>{" "}
           and{" "}
           <Link

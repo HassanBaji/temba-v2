@@ -3,7 +3,11 @@ import { View } from "react-native";
 import { AuthScreen } from "../auth/auth-screen";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
-import { TERMS_SECTIONS, TERMS_UPDATED, type TermsClause } from "./terms";
+import {
+  TERMS_SECTIONS,
+  TERMS_UPDATED,
+  type TermsClause,
+} from "@repo/domain/terms";
 
 function Clause({ clause }: { clause: TermsClause }) {
   return (

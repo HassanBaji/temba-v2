@@ -1,23 +1,30 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { colors, radii } from "@repo/design-tokens";
 import {
-  DEFAULT_FOOTBALL_POSITION,
   FOOTBALL_POSITION_CHOICES,
   KEEPER_CODE,
-  isFootballPosition,
-  isFootballRole,
   type FootballPosition,
-  type FootballRole,
 } from "@repo/domain/football-lineup";
+import { FOOTBALL_SELF_PLACEMENT_CHOICES } from "@repo/domain/football-self-placement";
 import {
-  DEFAULT_FOOTBALL_SELF_PLACEMENT,
-  FOOTBALL_SELF_PLACEMENT_CHOICES,
-} from "@repo/domain/football-self-placement";
+  FOOTBALL_ROLE_CHOICES,
+  PADEL_LEVEL_CHOICES,
+  PADEL_NOT_SURE_LABEL,
+  PADEL_SIDE_CHOICES,
+  SPORT_CHOICES,
+  initialOnboardingAnswers,
+  onboardingSubmission,
+  onboardingSummary,
+  type OnboardingAnswers,
+} from "@repo/domain/onboarding-answers";
 import {
-  isPreferredPosition,
-  type PreferredPosition,
-} from "@repo/domain/preferred-position";
-import { isSport, type Sport } from "@repo/domain/sport";
+  adjacentQuestion,
+  findGamesLabel,
+  onboardingProgress,
+  sportsContinueLabel,
+  type OnboardingQuestion,
+} from "@repo/domain/onboarding-flow";
+import { type Sport } from "@repo/domain/sport";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -34,111 +41,14 @@ import { api, type RouterOutputs } from "../trpc/react";
 import { AuthLoading } from "./auth-loading";
 import { AuthScreen } from "./auth-screen";
 import { FormErrorSummary } from "./form-error-summary";
-import {
-  completeOnboardingInput,
-  onboardingSummary,
-  type OnboardingAnswers,
-  type PadelLevelChoice,
-} from "./onboarding-answers";
 import { RowChoices, TileChoices } from "./onboarding-choices";
 import {
   PROVISIONING_POLL_MS,
   PROVISIONING_TIMEOUT_MS,
-  adjacentQuestion,
-  findGamesLabel,
   onboardingPhaseFromState,
-  onboardingQuestions,
-  sportsContinueLabel,
-  type OnboardingQuestion,
 } from "./onboarding-step";
 
 type OnboardingState = RouterOutputs["users"]["onboardingState"];
-
-const PADEL_BANDS: {
-  value: PadelLevelChoice;
-  mark: string;
-  name: string;
-  detail: string;
-}[] = [
-  {
-    value: "D",
-    mark: "D",
-    name: "New to padel",
-    detail: "First months, learning the walls.",
-  },
-  {
-    value: "D+",
-    mark: "D+",
-    name: "Finding rhythm",
-    detail: "Serves in, short rallies hold.",
-  },
-  {
-    value: "C",
-    mark: "C",
-    name: "Consistent",
-    detail: "Lobs and volleys on purpose.",
-  },
-  {
-    value: "C+",
-    mark: "C+",
-    name: "Club regular",
-    detail: "Plays weekly, uses the glass.",
-  },
-  {
-    value: "B",
-    mark: "B",
-    name: "Advanced",
-    detail: "Bandeja and vibora in play.",
-  },
-  {
-    value: "B+",
-    mark: "B+",
-    name: "High advanced",
-    detail: "Wins the net, reads lobs early.",
-  },
-  {
-    value: "A",
-    mark: "A",
-    name: "Competitive",
-    detail: "Tournament level, few errors.",
-  },
-];
-
-const PADEL_SIDES: {
-  value: PreferredPosition;
-  name: string;
-  detail: string;
-}[] = [
-  { value: "left", name: "Left", detail: "backhand side" },
-  { value: "right", name: "Right", detail: "forehand side" },
-  { value: "either", name: "Either", detail: "wherever open" },
-];
-
-const FOOTBALL_ROLE_CHOICES: {
-  value: FootballRole;
-  name: string;
-  detail: string;
-}[] = [
-  { value: "outfield", name: "Player", detail: "outfield" },
-  { value: "keeper", name: "Keeper", detail: "two per game" },
-];
-
-const SPORT_CARDS: Record<
-  Sport,
-  { title: string; description: string; meta: string }
-> = {
-  padel: {
-    title: "Padel",
-    description:
-      "Doubles, 90 minute slots. A letter Level that follows your results.",
-    meta: "Level D to A, side",
-  },
-  football: {
-    title: "Football",
-    description: "Five or seven a side. Pool first, teams set before kick-off.",
-    meta: "Level, role, position",
-  },
-};
 
 function SectionLabel(props: { label: string; hint?: string }) {
   return (
@@ -170,41 +80,16 @@ function LevelAlreadySet(props: { sport: string }) {
   );
 }
 
-function initialAnswers(state: OnboardingState): OnboardingAnswers {
-  const sports = (state.sports ?? []).filter(isSport);
-  return {
-    picked: {
-      padel: sports.includes("padel"),
-      football: sports.includes("football"),
-    },
-    padelSide: isPreferredPosition(state.preferredPosition)
-      ? state.preferredPosition
-      : "either",
-    padelLevel: "",
-    footballRole: isFootballRole(state.preferredFootballRole)
-      ? state.preferredFootballRole
-      : "outfield",
-    footballPosition: isFootballPosition(state.preferredFootballPosition)
-      ? state.preferredFootballPosition
-      : DEFAULT_FOOTBALL_POSITION,
-    footballPlacement: DEFAULT_FOOTBALL_SELF_PLACEMENT,
-  };
-}
-
 function Questions({ state }: { state: OnboardingState }) {
   const utils = api.useUtils();
   const { user } = useUser();
   const [question, setQuestion] = useState<OnboardingQuestion>("sports");
-  const [answers, setAnswers] = useState(() => initialAnswers(state));
+  const [answers, setAnswers] = useState(() => initialOnboardingAnswers(state));
   const complete = api.users.completeOnboarding.useMutation({
     onSuccess: () => utils.users.onboardingState.invalidate(),
   });
 
-  const questions = onboardingQuestions(answers.picked);
-  const progress = {
-    step: questions.indexOf(question) + 1,
-    total: questions.length,
-  };
+  const progress = onboardingProgress(answers.picked, question);
   const update = (patch: Partial<OnboardingAnswers>) =>
     setAnswers((current) => ({ ...current, ...patch }));
   const go = (direction: "next" | "back") => {
@@ -234,17 +119,17 @@ function Questions({ state }: { state: OnboardingState }) {
         }
       >
         <View style={{ gap: 12 }}>
-          {(["padel", "football"] as const).map((sport) => (
+          {SPORT_CHOICES.map((choice) => (
             <ChoiceCard
-              key={sport}
+              key={choice.value}
               role="checkbox"
-              selected={answers.picked[sport]}
-              title={SPORT_CARDS[sport].title}
-              description={SPORT_CARDS[sport].description}
-              onPress={() => togglePicked(sport)}
+              selected={answers.picked[choice.value]}
+              title={choice.title}
+              description={choice.description}
+              onPress={() => togglePicked(choice.value)}
             >
               <Text size="eyebrow" tone="muted" mono uppercase>
-                {SPORT_CARDS[sport].meta}
+                {choice.meta}
               </Text>
             </ChoiceCard>
           ))}
@@ -292,7 +177,7 @@ function Questions({ state }: { state: OnboardingState }) {
                     textDecorationLine: "underline",
                   }}
                 >
-                  Not sure, start at C and leave side open
+                  {PADEL_NOT_SURE_LABEL}
                 </Text>
               </Pressable>
             )}
@@ -304,7 +189,10 @@ function Questions({ state }: { state: OnboardingState }) {
         ) : (
           <RowChoices
             label="Padel Level"
-            choices={PADEL_BANDS}
+            choices={PADEL_LEVEL_CHOICES.map((choice) => ({
+              ...choice,
+              mark: choice.value,
+            }))}
             value={answers.padelLevel === "unknown" ? "" : answers.padelLevel}
             onSelect={(padelLevel) => update({ padelLevel })}
           />
@@ -316,7 +204,7 @@ function Questions({ state }: { state: OnboardingState }) {
           />
           <TileChoices
             label="Preferred side"
-            choices={PADEL_SIDES}
+            choices={PADEL_SIDE_CHOICES}
             value={answers.padelSide}
             onSelect={(padelSide) => update({ padelSide })}
           />
@@ -443,7 +331,7 @@ function Questions({ state }: { state: OnboardingState }) {
           label={findGamesLabel(answers.picked)}
           size="lg"
           pending={pending}
-          onPress={() => complete.mutate(completeOnboardingInput(answers))}
+          onPress={() => complete.mutate(onboardingSubmission(answers))}
         />
       }
     >
