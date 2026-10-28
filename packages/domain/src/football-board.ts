@@ -38,6 +38,8 @@ export type BoardPlayer = {
   sideIndex: Side | null;
   goals: number;
   isViewer: boolean;
+  unclaimed?: boolean;
+  phoneMasked?: string | null;
 };
 
 export type Bibs = { slot1: FootballBib; slot2: FootballBib };

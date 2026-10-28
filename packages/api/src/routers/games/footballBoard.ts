@@ -32,6 +32,8 @@ import {
   matchOrganizerSides,
   matchSlotsConfirmed,
 } from "#src/games/match-result-confirmations";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
+import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -86,7 +88,18 @@ export async function footballBoard(
       footballPosition: true,
       createdAt: true,
     },
-    with: { user: { columns: { id: true, name: true, image: true } } },
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+          clerkId: true,
+          addedAt: true,
+          phoneNumber: true,
+        },
+      },
+    },
     orderBy: asc(gamePlayers.createdAt),
   });
   const userIds = roster.flatMap((row) => (row.user ? [row.user.id] : []));
@@ -155,23 +168,30 @@ export async function footballBoard(
     sideSize: game.sideSize,
     playersAllowed: game.playersAllowed,
     isOrganizer: organizer,
-    players: roster.flatMap((row) =>
-      row.user
-        ? [
-            {
-              userId: row.user.id,
-              name: row.user.name,
-              image: row.user.image,
-              role: row.footballRole,
-              position: row.footballPosition,
-              levelBand: levelByUser.get(row.user.id) ?? null,
-              sideIndex: sideByUser.get(row.user.id) ?? null,
-              goals: goalsByUser.get(row.user.id) ?? 0,
-              isViewer: row.user.id === args.userId,
-            },
-          ]
-        : [],
-    ),
+    players: roster.flatMap((row) => {
+      if (!row.user) {
+        return [];
+      }
+      const unclaimed = isUnclaimed(row.user);
+      return [
+        {
+          userId: row.user.id,
+          name: row.user.name,
+          image: row.user.image,
+          role: row.footballRole,
+          position: row.footballPosition,
+          levelBand: levelByUser.get(row.user.id) ?? null,
+          sideIndex: sideByUser.get(row.user.id) ?? null,
+          goals: goalsByUser.get(row.user.id) ?? 0,
+          isViewer: row.user.id === args.userId,
+          unclaimed,
+          phoneMasked:
+            organizer && unclaimed && row.user.phoneNumber
+              ? maskPhone(row.user.phoneNumber)
+              : null,
+        },
+      ];
+    }),
     teams: published
       ? {
           method: game.footballTeamsMethod,

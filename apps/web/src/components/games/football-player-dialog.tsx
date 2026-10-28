@@ -3,6 +3,7 @@
 import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
 import { FOOTBALL_POSITION_CHOICES } from "@repo/domain/football-lineup";
 import { KICK_ACTION } from "@repo/domain/game-copy";
+import { RENAME_UNCLAIMED_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import Link from "next/link";
 
 import {
@@ -13,6 +14,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 
@@ -34,11 +36,13 @@ export function FootballPlayerDialog({
   canOpenProfile,
   onOpenChange,
   onRemove,
+  onRename,
 }: {
   player: BoardPlayer | null;
   canOpenProfile: boolean;
   onOpenChange: (open: boolean) => void;
   onRemove: (userId: string) => void;
+  onRename?: (player: { userId: string; name: string }) => void;
 }) {
   return (
     <ResponsiveDialog open={player != null} onOpenChange={onOpenChange}>
@@ -48,12 +52,20 @@ export function FootballPlayerDialog({
             <ResponsiveDialogHeader className="flex-row items-center gap-3 text-left">
               <UserAvatar name={player.name} image={player.image} size="lg" />
               <div className="min-w-0">
-                <ResponsiveDialogTitle className="truncate">
-                  {player.name}
-                </ResponsiveDialogTitle>
+                <div className="flex items-center gap-1.5">
+                  <ResponsiveDialogTitle className="truncate">
+                    {player.name}
+                  </ResponsiveDialogTitle>
+                  {player.unclaimed ? <NotOnTembaTag /> : null}
+                </div>
                 <ResponsiveDialogDescription>
                   {roleLine(player)}, Level {levelLabel(player.levelBand)}
                 </ResponsiveDialogDescription>
+                {player.phoneMasked ? (
+                  <p className="text-muted-foreground text-meta tabular-nums">
+                    {player.phoneMasked}
+                  </p>
+                ) : null}
               </div>
             </ResponsiveDialogHeader>
             <div className="flex gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
@@ -62,6 +74,17 @@ export function FootballPlayerDialog({
                   <Link href={playerProfilePath(player.userId)}>
                     View profile
                   </Link>
+                </Button>
+              ) : null}
+              {onRename && player.unclaimed ? (
+                <Button
+                  variant="outline"
+                  aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${player.name}`}
+                  onClick={() =>
+                    onRename({ userId: player.userId, name: player.name })
+                  }
+                >
+                  {RENAME_UNCLAIMED_PLAYER_ACTION}
                 </Button>
               ) : null}
               <Button

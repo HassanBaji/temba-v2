@@ -12,6 +12,7 @@ import {
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -136,6 +137,10 @@ export function FootballGameDetails({
   const [capDraft, setCapDraft] = React.useState(game.playersAllowed ?? 0);
   const [joinMode, setJoinMode] = React.useState<"join" | "edit" | null>(null);
   const [selected, setSelected] = React.useState<BoardPlayer | null>(null);
+  const [renaming, setRenaming] = React.useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const autoJoined = React.useRef(false);
 
   const board = api.games.footballBoard.useQuery({ gameId });
@@ -839,7 +844,17 @@ export function FootballGameDetails({
           setSelected(null);
           requestKick({ userId });
         }}
+        onRename={(player) => {
+          setSelected(null);
+          setRenaming(player);
+        }}
       />
+      {organizer ? (
+        <RenameUnclaimedPlayerDialog
+          player={renaming}
+          onClose={() => setRenaming(null)}
+        />
+      ) : null}
 
       {organizer ? (
         <GameEditDialog

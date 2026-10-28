@@ -1284,6 +1284,7 @@ export default function GameHomePage({
               <div className="space-y-6">
                 <GamePlayersPanel
                   game={data}
+                  onRenameUnclaimed={data.isOrganizer ? setRenaming : undefined}
                   partnerQuery={partnerQuery}
                   selectedPartner={selectedPartner}
                   partnerSide={partnerSide}

@@ -41,6 +41,7 @@ function RenameForm({
       toast.success(renameUnclaimedPlayerToast(result.name));
       await Promise.all([
         utils.games.byId.invalidate(),
+        utils.games.footballBoard.invalidate(),
         utils.groups.byId.invalidate(),
         utils.users.playerProfile.invalidate(),
       ]);

@@ -1201,6 +1201,46 @@ describe("games.addPlayerByPhone on a football Game", () => {
     }
   });
 
+  it("marks the Unclaimed player on the board, with the masked phone for Organizers", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedFootball(db);
+      const added = await addPlayerByPhone(db, {
+        gameId: f.footballGameId,
+        organizerUserId: f.organizer,
+        ...bahrain("36124408"),
+        name: "Ali",
+      });
+      await addPlayerByPhone(db, {
+        gameId: f.footballGameId,
+        organizerUserId: f.organizer,
+        ...bahrain("36110001"),
+        name: "Ahmed",
+      });
+
+      const board = await footballBoard(db, {
+        gameId: f.footballGameId,
+        userId: f.organizer,
+      });
+      expect(
+        board.players.find((player) => player.userId === added.userId),
+      ).toMatchObject({ unclaimed: true, phoneMasked: "+973 •••• 4408" });
+      expect(
+        board.players.find((player) => player.userId === f.ahmed),
+      ).toMatchObject({ unclaimed: false, phoneMasked: null });
+
+      const asAhmed = await footballBoard(db, {
+        gameId: f.footballGameId,
+        userId: f.ahmed,
+      });
+      expect(
+        asAhmed.players.find((player) => player.userId === added.userId),
+      ).toMatchObject({ unclaimed: true, phoneMasked: null });
+    } finally {
+      await close();
+    }
+  });
+
   it("refuses a padel Level, a third keeper and a full roster", async () => {
     const { db, close } = await createPgliteDb();
     try {
