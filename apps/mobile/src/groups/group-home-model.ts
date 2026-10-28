@@ -34,6 +34,7 @@ import {
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { FormMark } from "@repo/domain/member-form-marks";
+import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
 
@@ -97,6 +98,7 @@ export type StandingRowView = {
   record: string;
   level: LevelCellView;
   isViewer: boolean;
+  unclaimed: boolean;
   accessibilityLabel: string;
 };
 
@@ -113,7 +115,10 @@ export function standingRowView(
     record,
     level,
     isViewer: entry.isViewer,
-    accessibilityLabel: `${entry.position}. ${name}. ${record} wins and losses. ${
+    unclaimed: entry.unclaimed,
+    accessibilityLabel: `${entry.position}. ${name}${
+      entry.unclaimed ? `, ${NOT_ON_TEMBA_YET_LABEL}` : ""
+    }. ${record} wins and losses. ${
       level.kind === "label"
         ? `Level ${level.label}`
         : "Level still Provisional"
@@ -207,6 +212,7 @@ export type MemberRowView = {
   name: string;
   imageUri: string | null;
   isViewer: boolean;
+  unclaimed: boolean;
   caption: string | null;
   formMarks: FormMark[];
   level: LevelCellView;
@@ -224,14 +230,23 @@ function levelSpokenLabel(view: LevelCellView, levelText: string | null) {
     : "Level still Provisional";
 }
 
+export function memberIsRemovable(
+  entry: GroupLeaderboardEntryData,
+  canAddPlayers: boolean,
+) {
+  return canAddPlayers && entry.unclaimed && !entry.isViewer;
+}
+
 export function memberRowView(
   entry: GroupLeaderboardEntryData,
   apiOrigin: string,
   canSetLevel = false,
+  canAddPlayers = false,
 ): MemberRowView {
   const name = entry.name ?? "Member";
   const caption = [
     groupMemberRoleCaption(entry),
+    entry.phoneMasked,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption(entry.levelOverride)
       : null,
@@ -244,13 +259,17 @@ export function memberRowView(
     name,
     imageUri: mediaUrl(entry.image, apiOrigin),
     isViewer: entry.isViewer,
+    unclaimed: entry.unclaimed,
     caption: caption || null,
     formMarks: groupMemberFormMarks(entry.formMarks),
     level,
     levelText: entry.level,
-    selectable: canSetLevel && !entry.isViewer,
+    selectable:
+      (canSetLevel && !entry.isViewer) ||
+      memberIsRemovable(entry, canAddPlayers),
     accessibilityLabel: [
       entry.isViewer ? `${name}, you` : name,
+      entry.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
       caption || null,
       levelSpokenLabel(level, entry.level),
     ]
@@ -264,9 +283,10 @@ export function memberList(
   query: string,
   apiOrigin: string,
   canSetLevel = false,
+  canAddPlayers = false,
 ) {
   const members = leaderboard.map((entry) =>
-    memberRowView(entry, apiOrigin, canSetLevel),
+    memberRowView(entry, apiOrigin, canSetLevel, canAddPlayers),
   );
   const showSearch = groupHomeShowsMemberSearch(members.length);
   return {
@@ -278,6 +298,8 @@ export function memberList(
 
 export type MemberSheetView = {
   name: string;
+  unclaimed: boolean;
+  phoneMasked: string | null;
   summary: string;
   letter: string | null;
   level: string | null;
@@ -303,6 +325,8 @@ export function memberSheetView(
     : "";
   return {
     name,
+    unclaimed: entry.unclaimed,
+    phoneMasked: entry.phoneMasked,
     summary: [
       override ? levelOverrideCaption(override) : null,
       matchCountLabel(entry.ratedMatchCount),

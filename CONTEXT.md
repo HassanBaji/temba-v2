@@ -113,7 +113,7 @@ A User asking a Group approver to admit them to a Public Group that requires app
 _Avoid_: invitation, Invite, Community join request (when you mean this Group request)
 
 **Group approver**:
-Who may set Require approval and decide Group join requests. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived.
+Who may set Require approval, decide Group join requests, add players by phone and remove Unclaimed players. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.
 _Avoid_: Group owner, organizer (when you mean this write permission), group admin
 
 **Loose Group Private**:

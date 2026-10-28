@@ -1,4 +1,5 @@
 import { spacing } from "@repo/design-tokens";
+import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
@@ -67,6 +68,8 @@ export type GroupHomeViewProps = {
   onLeave: () => void;
   onLeaveVenue: () => void;
   onInvite: () => void;
+  onAddPlayer: () => void;
+  onRemoveUnclaimed: (member: { userId: string; name: string }) => void;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
   onCloseConfirm: () => void;
@@ -127,14 +130,24 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         </View>
       </ScreenHeader>
 
-      {data.membership || groupHomeCanManageInvites(data) ? (
-        <View style={{ flexDirection: "row", gap: 8 }}>
+      {data.membership ||
+      groupHomeCanManageInvites(data) ||
+      data.canAddPlayers ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {groupHomeCanManageInvites(data) ? (
             <Button
               label="Invite"
               size="sm"
               variant="outline"
               onPress={props.onInvite}
+            />
+          ) : null}
+          {data.canAddPlayers ? (
+            <Button
+              label={ADD_PLAYER_ACTION}
+              size="sm"
+              variant="outline"
+              onPress={props.onAddPlayer}
             />
           ) : null}
           {data.membership ? (
@@ -303,6 +316,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
           showLevel={groupShowsLevel(data.sport)}
           onSetLevel={props.onSetLevel}
+          canAddPlayers={data.canAddPlayers}
+          onRemoveUnclaimed={props.onRemoveUnclaimed}
         />
       ) : null}
 

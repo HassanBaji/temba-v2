@@ -5,11 +5,8 @@ import {
   ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
   ADD_PLAYER_DEFAULT_LEVEL,
   ADD_PLAYER_DESCRIPTION,
-  ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
   ADD_PLAYER_FOOTBALL_POSITION_CHOICES,
   ADD_PLAYER_FOOTBALL_ROLE_CHOICES,
-  ADD_PLAYER_LEVEL_CHOICES,
-  ADD_PLAYER_NAME_LABEL,
   ADD_PLAYER_NO_SEAT_COPY,
   ADD_PLAYER_NO_SIDE_COPY,
   addPlayerAddedToast,
@@ -31,39 +28,23 @@ import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
 import { useState } from "react";
 import { View } from "react-native";
 
-import { RowChoices, TileChoices } from "../auth/onboarding-choices";
-import { PhoneField } from "../auth/phone-field";
+import { TileChoices } from "../auth/onboarding-choices";
 import { FieldError } from "../create-game/chips";
 import { Button } from "../primitives/button";
-import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
-import { TextField } from "../primitives/text-field";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
+import {
+  AddPlayerIdentityFields,
+  AddPlayerSection,
+} from "./add-player-identity-fields";
 
 function seatKey(seat: FriendlyGameJoinSeat) {
   return `${seat.sideIndex}:${seat.position}`;
 }
 
 type NamedSeat = { name: string } | null;
-
-function Section({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={{ gap: 8 }}>
-      <Text size="meta" tone="muted">
-        {label}
-      </Text>
-      {children}
-    </View>
-  );
-}
 
 export function AddPlayerSheet({
   visible,
@@ -187,73 +168,36 @@ export function AddPlayerSheet({
         </View>
       }
     >
-      <View style={{ gap: 8 }}>
-        <PhoneField
-          label="Phone"
-          countryIso={countryIso}
-          national={national}
-          onCountryIsoChange={setCountryIso}
-          onNationalChange={setNational}
-          error={completePhone ? preview.error?.message : undefined}
-          disabled={add.isPending}
-        />
-        <View accessibilityLiveRegion="polite" style={{ gap: 6 }}>
-          {previewData ? (
-            <Text size="meta">{addPlayerPreviewLine(previewData)}</Text>
-          ) : completePhone && preview.isFetching ? (
-            <Text size="meta" tone="muted">
-              Looking up…
-            </Text>
-          ) : null}
-          {previewData?.kind === "unclaimed" ? (
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <NotOnTembaMark />
-              <Text size="meta" tone="muted">
-                {previewData.phoneMasked}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      {isNew ? (
-        <>
-          <TextField
-            label={ADD_PLAYER_NAME_LABEL}
-            value={name}
-            maxLength={100}
-            autoCapitalize="words"
-            autoComplete="off"
-            editable={!add.isPending}
-            onChangeText={setName}
-          />
-          <Section label="Starting Level">
-            {isFootball ? (
-              <RowChoices
-                label="Starting Level"
-                choices={ADD_PLAYER_FOOTBALL_LEVEL_CHOICES}
-                value={footballLevel}
-                onSelect={setFootballLevel}
-                disabled={add.isPending}
-              />
-            ) : (
-              <RowChoices
-                label="Starting Level"
-                choices={ADD_PLAYER_LEVEL_CHOICES}
-                value={level}
-                onSelect={setLevel}
-                disabled={add.isPending}
-              />
-            )}
-          </Section>
-        </>
-      ) : null}
+      <AddPlayerIdentityFields
+        countryIso={countryIso}
+        national={national}
+        onCountryIsoChange={setCountryIso}
+        onNationalChange={setNational}
+        complete={completePhone != null}
+        preview={
+          previewData
+            ? {
+                line: addPlayerPreviewLine(previewData),
+                kind: previewData.kind,
+                phoneMasked: previewData.phoneMasked,
+              }
+            : null
+        }
+        previewError={preview.error?.message}
+        previewFetching={preview.isFetching}
+        name={name}
+        onNameChange={setName}
+        isFootball={isFootball}
+        level={level}
+        onLevelChange={setLevel}
+        footballLevel={footballLevel}
+        onFootballLevelChange={setFootballLevel}
+        disabled={add.isPending}
+      />
 
       {isFootball ? (
         <>
-          <Section label="Plays as">
+          <AddPlayerSection label="Plays as">
             <TileChoices
               label="Plays as"
               choices={ADD_PLAYER_FOOTBALL_ROLE_CHOICES}
@@ -261,9 +205,9 @@ export function AddPlayerSheet({
               onSelect={setRole}
               disabled={add.isPending}
             />
-          </Section>
+          </AddPlayerSection>
           {role === "outfield" ? (
-            <Section label="Preferred position">
+            <AddPlayerSection label="Preferred position">
               <TileChoices
                 label="Preferred position"
                 choices={ADD_PLAYER_FOOTBALL_POSITION_CHOICES}
@@ -271,13 +215,13 @@ export function AddPlayerSheet({
                 onSelect={setFootballPosition}
                 disabled={add.isPending}
               />
-            </Section>
+            </AddPlayerSection>
           ) : null}
         </>
       ) : null}
 
       {placement === "side" ? (
-        <Section label="Side">
+        <AddPlayerSection label="Side">
           {side ? (
             <TileChoices
               label="Side"
@@ -295,11 +239,11 @@ export function AddPlayerSheet({
               {ADD_PLAYER_NO_SIDE_COPY}
             </Text>
           )}
-        </Section>
+        </AddPlayerSection>
       ) : null}
 
       {placement === "seat" ? (
-        <Section label="Position">
+        <AddPlayerSection label="Position">
           {seat ? (
             <TileChoices
               label="Position"
@@ -322,7 +266,7 @@ export function AddPlayerSheet({
               {ADD_PLAYER_NO_SEAT_COPY}
             </Text>
           )}
-        </Section>
+        </AddPlayerSection>
       ) : null}
     </Sheet>
   );

@@ -7,6 +7,7 @@ import { Pressable, View } from "react-native";
 import { Avatar } from "../primitives/avatar";
 import { FormSlot } from "../primitives/form-slot";
 import { Hairline } from "../primitives/hairline";
+import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
@@ -14,6 +15,7 @@ import {
   MEMBERS_EMPTY_COPY,
   MEMBERS_NO_MATCH_COPY,
   MEMBERS_SET_LEVEL_HINT,
+  memberIsRemovable,
   memberList,
   memberSheetView,
   type MemberRowView,
@@ -34,10 +36,11 @@ function MemberRowContent({
   return (
     <>
       <Avatar name={row.name} uri={row.imageUri} size="lg" />
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <Text weight={row.isViewer ? "semibold" : "regular"} numberOfLines={1}>
           {row.isViewer ? "You" : row.name}
         </Text>
+        {row.unclaimed ? <NotOnTembaMark /> : null}
         {row.caption ? (
           <Text size="meta" tone="muted" numberOfLines={1}>
             {row.caption}
@@ -125,6 +128,8 @@ export function MembersTab({
   showLevel = true,
   onSetLevel,
   onOpenMember,
+  canAddPlayers = false,
+  onRemoveUnclaimed,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
@@ -134,14 +139,23 @@ export function MembersTab({
   showLevel?: boolean;
   onSetLevel: (userId: string) => void;
   onOpenMember?: (userId: string) => void;
+  canAddPlayers?: boolean;
+  onRemoveUnclaimed?: (member: { userId: string; name: string }) => void;
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const list = memberList(leaderboard, query, apiOrigin, canSetLevel);
-  const selected = canSetLevel
-    ? leaderboard.find(
-        (entry) => entry.userId === selectedUserId && !entry.isViewer,
-      )
-    : undefined;
+  const list = memberList(
+    leaderboard,
+    query,
+    apiOrigin,
+    canSetLevel,
+    canAddPlayers,
+  );
+  const selected = leaderboard.find(
+    (entry) =>
+      entry.userId === selectedUserId &&
+      !entry.isViewer &&
+      (canSetLevel || memberIsRemovable(entry, canAddPlayers)),
+  );
 
   if (list.isEmpty) {
     return <Notice {...MEMBERS_EMPTY_COPY} />;
@@ -181,28 +195,43 @@ export function MembersTab({
           {MEMBERS_SET_LEVEL_HINT}
         </Text>
       ) : null}
-      {canSetLevel ? (
-        <MemberSheet
-          member={selected ? memberSheetView(selected) : null}
-          onClose={() => setSelectedUserId(null)}
-          onSetLevel={() => {
-            if (selected) {
-              setSelectedUserId(null);
-              onSetLevel(selected.userId);
-            }
-          }}
-          onViewProfile={
-            onOpenMember
-              ? () => {
-                  if (selected) {
-                    setSelectedUserId(null);
-                    onOpenMember(selected.userId);
-                  }
+      <MemberSheet
+        member={selected ? memberSheetView(selected) : null}
+        onClose={() => setSelectedUserId(null)}
+        onSetLevel={
+          canSetLevel
+            ? () => {
+                if (selected) {
+                  setSelectedUserId(null);
+                  onSetLevel(selected.userId);
                 }
-              : undefined
-          }
-        />
-      ) : null}
+              }
+            : undefined
+        }
+        onViewProfile={
+          onOpenMember
+            ? () => {
+                if (selected) {
+                  setSelectedUserId(null);
+                  onOpenMember(selected.userId);
+                }
+              }
+            : undefined
+        }
+        onRemove={
+          selected &&
+          onRemoveUnclaimed &&
+          memberIsRemovable(selected, canAddPlayers)
+            ? () => {
+                setSelectedUserId(null);
+                onRemoveUnclaimed({
+                  userId: selected.userId,
+                  name: selected.name ?? "Member",
+                });
+              }
+            : undefined
+        }
+      />
     </View>
   );
 }

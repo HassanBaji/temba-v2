@@ -5,6 +5,10 @@ import {
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
   ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
   ADD_PLAYER_LEVEL_CHOICES,
+  addGroupPlayerCanSubmit,
+  addGroupPlayerDoneToast,
+  addGroupPlayerIsFootball,
+  addGroupPlayerPreviewLine,
   addPlayerCanSubmit,
   addPlayerCompletePhone,
   addPlayerFootballInput,
@@ -59,6 +63,94 @@ describe("addPlayerPreviewLine", () => {
         alreadyOnGame: true,
       }),
       "Ali is already on this Game",
+    );
+  });
+});
+
+describe("addGroupPlayerPreviewLine", () => {
+  it("tells an approver an account holder gets an invite, and who is already in", () => {
+    assert.equal(
+      addGroupPlayerPreviewLine({
+        kind: "account",
+        name: "Ahmed Ali",
+        alreadyInGroup: false,
+      }),
+      "This is Ahmed Ali (has an account). They get an invite to accept.",
+    );
+    assert.equal(
+      addGroupPlayerPreviewLine({
+        kind: "unclaimed",
+        name: "Ali",
+        alreadyInGroup: false,
+        phoneMasked: "+973 •••• 4408",
+      }),
+      "Already on Temba as Ali (no account yet)",
+    );
+    assert.equal(
+      addGroupPlayerPreviewLine({
+        kind: "new",
+        name: null,
+        alreadyInGroup: false,
+      }),
+      "Not on Temba yet. Add their name and starting Level.",
+    );
+    assert.equal(
+      addGroupPlayerPreviewLine({
+        kind: "unclaimed",
+        name: "Ali",
+        alreadyInGroup: true,
+      }),
+      "Ali is already in this Group",
+    );
+  });
+});
+
+describe("addGroupPlayerCanSubmit", () => {
+  it("needs a preview, someone not yet in the Group and, for a new number, a name", () => {
+    const fresh = { kind: "new" as const, name: null, alreadyInGroup: false };
+    assert.equal(
+      addGroupPlayerCanSubmit({ preview: null, name: "Ali" }),
+      false,
+    );
+    assert.equal(addGroupPlayerCanSubmit({ preview: fresh, name: " " }), false);
+    assert.equal(
+      addGroupPlayerCanSubmit({ preview: fresh, name: "Ali" }),
+      true,
+    );
+    assert.equal(
+      addGroupPlayerCanSubmit({
+        preview: { kind: "account", name: "Ahmed", alreadyInGroup: true },
+        name: "",
+      }),
+      false,
+    );
+    assert.equal(
+      addGroupPlayerCanSubmit({
+        preview: { kind: "account", name: "Ahmed", alreadyInGroup: false },
+        name: "",
+      }),
+      true,
+    );
+  });
+});
+
+describe("addGroupPlayerIsFootball", () => {
+  it("asks for a football Level only on a football Group", () => {
+    assert.equal(addGroupPlayerIsFootball("football"), true);
+    assert.equal(addGroupPlayerIsFootball("padel"), false);
+    assert.equal(addGroupPlayerIsFootball(null), false);
+  });
+});
+
+describe("addGroupPlayerDoneToast", () => {
+  it("says added or invited", () => {
+    assert.equal(
+      addGroupPlayerDoneToast({ outcome: "added", name: "Ali" }),
+      "Ali added",
+    );
+    assert.equal(
+      addGroupPlayerDoneToast({ outcome: "invited", name: "Ahmed" }),
+      "Invite sent to Ahmed",
     );
   });
 });

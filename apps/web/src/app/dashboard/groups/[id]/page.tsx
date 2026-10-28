@@ -14,6 +14,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { GroupAddPlayerDialog } from "~/components/groups/group-add-player-dialog";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
@@ -30,6 +31,12 @@ import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { groupMembersTabHref } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { gameJoinToast } from "@repo/domain/game-copy";
+import {
+  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  addGroupPlayerIsFootball,
+  removeUnclaimedPlayerConfirmLine,
+  removeUnclaimedPlayerToast,
+} from "@repo/domain/add-player-by-phone";
 import {
   groupHomeCanManageInvites,
   groupHomeCanShowCreateGame,
@@ -102,6 +109,11 @@ export default function GroupHomePage({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [removeImageOpen, setRemoveImageOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
+  const [removing, setRemoving] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [lookupQuery, setLookupQuery] = useState("");
   const [lookupRefused, setLookupRefused] = useState<
     { name: string; message: string }[] | null
@@ -323,6 +335,22 @@ export default function GroupHomePage({
     },
     onError: (error) => {
       toastGlobalFormError(error);
+    },
+  });
+
+  async function refreshMembers() {
+    await Promise.all([
+      utils.groups.byId.invalidate({ id }),
+      utils.groups.listLookupInvites.invalidate({ groupId: id }),
+      group.data?.communityId
+        ? utils.communities.byId.invalidate({ id: group.data.communityId })
+        : Promise.resolve(),
+    ]);
+  }
+
+  const removeUnclaimedPlayer = api.groups.removeUnclaimedPlayer.useMutation({
+    onSuccess: async () => {
+      await utils.groups.byId.invalidate({ id });
     },
   });
 
@@ -742,10 +770,15 @@ export default function GroupHomePage({
                   level: entry.level,
                   ratedMatchCount: entry.ratedMatchCount,
                   levelOverride: entry.levelOverride,
+                  unclaimed: entry.unclaimed,
+                  phoneMasked: entry.phoneMasked,
                 }))}
                 linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
                 onInvite={() => setInvitesOpen(true)}
+                canAddPlayers={data.canAddPlayers}
+                onAddPlayer={() => setAddPlayerOpen(true)}
+                onRemoveUnclaimed={setRemoving}
               />
             </div>
           </TabsContent>
@@ -807,6 +840,40 @@ export default function GroupHomePage({
           await clearImage.mutateAsync({ groupId: id });
         }}
       />
+
+      <ConfirmDialog
+        open={removing != null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setRemoving(null);
+          }
+        }}
+        title={REMOVE_UNCLAIMED_PLAYER_ACTION}
+        description={
+          removing ? removeUnclaimedPlayerConfirmLine(removing.name) : undefined
+        }
+        confirmLabel="Remove"
+        pending={removeUnclaimedPlayer.isPending}
+        onConfirm={async () => {
+          if (removing) {
+            await removeUnclaimedPlayer.mutateAsync({
+              groupId: id,
+              userId: removing.userId,
+            });
+            toast.success(removeUnclaimedPlayerToast(removing.name));
+          }
+        }}
+      />
+
+      {data.canAddPlayers ? (
+        <GroupAddPlayerDialog
+          open={addPlayerOpen}
+          onOpenChange={setAddPlayerOpen}
+          groupId={id}
+          isFootball={addGroupPlayerIsFootball(data.sport)}
+          onDone={refreshMembers}
+        />
+      ) : null}
 
       {data.canManageImage ? (
         <input

@@ -3,6 +3,7 @@ import { createTRPCRouter } from "#src/trpc";
 import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLink";
 import { acceptLinkRequestProcedure as acceptLinkRequest } from "./acceptLinkRequest";
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
+import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { approveJoinRequestProcedure as approveJoinRequest } from "./approveJoinRequest";
 import { byId } from "./byId";
 import { clearImageProcedure as clearImage } from "./clearImage";
@@ -28,7 +29,9 @@ import { unlinkFromVenueProcedure as unlinkFromVenue } from "./unlinkFromVenue";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
+import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { rejectJoinRequestProcedure as rejectJoinRequest } from "./rejectJoinRequest";
+import { removeUnclaimedPlayerProcedure as removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
 import { requestJoinProcedure as requestJoin } from "./requestJoin";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
@@ -74,4 +77,7 @@ export const groupsRouter = createTRPCRouter({
   acceptLinkRequest,
   declineLinkRequest,
   unlinkFromVenue,
+  previewPlayerByPhone,
+  addPlayerByPhone,
+  removeUnclaimedPlayer,
 });

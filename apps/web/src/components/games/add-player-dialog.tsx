@@ -3,7 +3,6 @@
 import * as React from "react";
 import { toast } from "sonner";
 
-import { PhoneField } from "~/components/auth/phone-field";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -11,16 +10,14 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { AddPlayerIdentityFields } from "~/components/games/add-player-identity-fields";
 import {
   Group,
-  RowChoices,
   SectionLabel,
   TileChoices,
 } from "~/components/onboarding/onboarding-choices";
-import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
-import { Field, FieldError, FieldLabel } from "~/components/ui/field";
-import { Input } from "~/components/ui/input";
+import { FieldError } from "~/components/ui/field";
 import {
   ADD_PLAYER_ACTION,
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
@@ -28,11 +25,8 @@ import {
   ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
   ADD_PLAYER_DEFAULT_LEVEL,
   ADD_PLAYER_DESCRIPTION,
-  ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
   ADD_PLAYER_FOOTBALL_POSITION_CHOICES,
   ADD_PLAYER_FOOTBALL_ROLE_CHOICES,
-  ADD_PLAYER_LEVEL_CHOICES,
-  ADD_PLAYER_NAME_LABEL,
   ADD_PLAYER_NO_SEAT_COPY,
   ADD_PLAYER_NO_SIDE_COPY,
   addPlayerAddedToast,
@@ -52,9 +46,6 @@ import type { FootballSelfPlacement } from "@repo/domain/football-self-placement
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
 import { api } from "~/trpc/react";
-
-const PHONE_ID = "add-player-phone";
-const NAME_ID = "add-player-name";
 
 function seatKey(seat: FriendlyGameJoinSeat) {
   return `${seat.sideIndex}:${seat.position}`;
@@ -159,7 +150,6 @@ export function AddPlayerDialog({
     });
   }
 
-  const isNew = previewData?.kind === "new";
   const canSubmit =
     !add.isPending &&
     addPlayerCanSubmit({ preview: previewData, name, placed });
@@ -186,74 +176,32 @@ export function AddPlayerDialog({
           onSubmit={submit}
           className="max-h-[70vh] space-y-6 overflow-y-auto px-4 pb-4 md:max-h-none md:overflow-visible md:px-0 md:pb-0"
         >
-          <Field>
-            <FieldLabel htmlFor={PHONE_ID}>Phone</FieldLabel>
-            <PhoneField
-              id={PHONE_ID}
-              countryIso={countryIso}
-              national={national}
-              onCountryIsoChange={setCountryIso}
-              onNationalChange={setNational}
-              invalid={Boolean(preview.error && completePhone)}
-              describedBy={`${PHONE_ID}-preview`}
-              disabled={add.isPending}
-            />
-            <div id={`${PHONE_ID}-preview`} aria-live="polite">
-              {completePhone && preview.error ? (
-                <FieldError>{preview.error.message}</FieldError>
-              ) : previewData ? (
-                <div className="space-y-1">
-                  <p className="text-meta">
-                    {addPlayerPreviewLine(previewData)}
-                  </p>
-                  {previewData.kind === "unclaimed" ? (
-                    <p className="text-muted-foreground text-meta flex items-center gap-2 tabular-nums">
-                      <NotOnTembaTag />
-                      {previewData.phoneMasked}
-                    </p>
-                  ) : null}
-                </div>
-              ) : completePhone && preview.isFetching ? (
-                <p className="text-muted-foreground text-meta">Looking up…</p>
-              ) : null}
-            </div>
-          </Field>
-
-          {isNew ? (
-            <>
-              <Field>
-                <FieldLabel htmlFor={NAME_ID}>
-                  {ADD_PLAYER_NAME_LABEL}
-                </FieldLabel>
-                <Input
-                  id={NAME_ID}
-                  value={name}
-                  maxLength={100}
-                  autoComplete="off"
-                  disabled={add.isPending}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </Field>
-              <Group>
-                <SectionLabel label="Starting Level" />
-                {isFootball ? (
-                  <RowChoices
-                    label="Starting Level"
-                    choices={ADD_PLAYER_FOOTBALL_LEVEL_CHOICES}
-                    value={footballLevel}
-                    onSelect={setFootballLevel}
-                  />
-                ) : (
-                  <RowChoices
-                    label="Starting Level"
-                    choices={ADD_PLAYER_LEVEL_CHOICES}
-                    value={level}
-                    onSelect={setLevel}
-                  />
-                )}
-              </Group>
-            </>
-          ) : null}
+          <AddPlayerIdentityFields
+            countryIso={countryIso}
+            national={national}
+            onCountryIsoChange={setCountryIso}
+            onNationalChange={setNational}
+            complete={completePhone != null}
+            preview={
+              previewData
+                ? {
+                    line: addPlayerPreviewLine(previewData),
+                    kind: previewData.kind,
+                    phoneMasked: previewData.phoneMasked,
+                  }
+                : null
+            }
+            previewError={preview.error?.message ?? null}
+            previewFetching={preview.isFetching}
+            name={name}
+            onNameChange={setName}
+            isFootball={isFootball}
+            level={level}
+            onLevelChange={setLevel}
+            footballLevel={footballLevel}
+            onFootballLevelChange={setFootballLevel}
+            disabled={add.isPending}
+          />
 
           {isFootball ? (
             <>

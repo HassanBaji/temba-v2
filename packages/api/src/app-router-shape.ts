@@ -178,7 +178,10 @@ type ExpectedGroups =
   | "pendingLinkRequests"
   | "acceptLinkRequest"
   | "declineLinkRequest"
-  | "unlinkFromVenue";
+  | "unlinkFromVenue"
+  | "previewPlayerByPhone"
+  | "addPlayerByPhone"
+  | "removeUnclaimedPlayer";
 
 type ExpectedNotifications =
   | "list"

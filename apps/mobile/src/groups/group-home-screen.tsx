@@ -1,3 +1,9 @@
+import {
+  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  addGroupPlayerIsFootball,
+  removeUnclaimedPlayerConfirmLine,
+  removeUnclaimedPlayerToast,
+} from "@repo/domain/add-player-by-phone";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import {
@@ -38,6 +44,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
+import { GroupAddPlayerSheet } from "./group-add-player-sheet";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
 import { Notice } from "./notice";
@@ -71,6 +78,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [older, setOlder] = useState<OlderPages | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
@@ -119,6 +127,21 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     onError: (error) => toast.show(error.message),
     onSettled: () => setConfirm(null),
   });
+
+  const removeUnclaimedPlayer = api.groups.removeUnclaimedPlayer.useMutation({
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setConfirm(null),
+  });
+
+  const refreshMembers = useCallback(
+    () =>
+      Promise.all([
+        utils.groups.byId.invalidate({ id: groupId }),
+        utils.groups.listLookupInvites.invalidate({ groupId }),
+        utils.communities.byId.invalidate(),
+      ]),
+    [utils, groupId],
+  );
 
   const data = group.data;
   const admin = useGroupAdmin(groupId, data, () => {
@@ -236,6 +259,24 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         joinPending={pendingGroupId === groupId}
         onJoin={(door) => joinGroup(groupId, door)}
         onInvite={() => setInviteOpen(true)}
+        onAddPlayer={() => setAddPlayerOpen(true)}
+        onRemoveUnclaimed={(member) =>
+          setConfirm({
+            title: REMOVE_UNCLAIMED_PLAYER_ACTION,
+            description: removeUnclaimedPlayerConfirmLine(member.name),
+            confirmLabel: "Remove",
+            onConfirm: () =>
+              removeUnclaimedPlayer.mutate(
+                { groupId, userId: member.userId },
+                {
+                  onSuccess: () => {
+                    toast.show(removeUnclaimedPlayerToast(member.name));
+                    void utils.groups.byId.invalidate({ id: groupId });
+                  },
+                },
+              ),
+          })
+        }
         onLeave={() =>
           setConfirm({
             ...groupLeaveConfirm(name),
@@ -284,6 +325,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         confirmPending={
           leave.isPending ||
           unlinkFromVenue.isPending ||
+          removeUnclaimedPlayer.isPending ||
           admin.deletePending ||
           linkRequest.confirmPending
         }
@@ -322,6 +364,15 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
           onRegister: (gameId) => joinGame(registerRequest(gameId)),
         }}
       />
+      {data.canAddPlayers ? (
+        <GroupAddPlayerSheet
+          visible={addPlayerOpen}
+          onClose={() => setAddPlayerOpen(false)}
+          groupId={groupId}
+          isFootball={addGroupPlayerIsFootball(data.sport)}
+          onDone={refreshMembers}
+        />
+      ) : null}
       {groupHomeCanManageInvites(data) ? (
         <InviteDoorSheet
           visible={inviteOpen}

@@ -191,6 +191,66 @@ export function addPlayerAddedToast(name: string) {
   return `${name} added`;
 }
 
+export type GroupPhonePlayerPreview = {
+  kind: "account" | "unclaimed" | "new";
+  name: string | null;
+  alreadyInGroup: boolean;
+  phoneMasked?: string;
+};
+
+export function addGroupPlayerIsFootball(sport: string | null | undefined) {
+  return sport === "football";
+}
+
+export const ADD_GROUP_PLAYER_DESCRIPTION =
+  "Add someone by phone. If they're on Temba, they get an invite to accept.";
+
+export function addGroupPlayerPreviewLine(
+  preview: GroupPhonePlayerPreview,
+): string {
+  const name = preview.name ?? "This player";
+  if (preview.alreadyInGroup) {
+    return `${name} is already in this Group`;
+  }
+  if (preview.kind === "account") {
+    return `This is ${name} (has an account). They get an invite to accept.`;
+  }
+  return addPlayerPreviewLine({ ...preview, alreadyOnGame: false });
+}
+
+export function addGroupPlayerCanSubmit(input: {
+  preview: GroupPhonePlayerPreview | null;
+  name: string;
+}): boolean {
+  if (!input.preview || input.preview.alreadyInGroup) {
+    return false;
+  }
+  return addPlayerCanSubmit({
+    preview: { ...input.preview, alreadyOnGame: false },
+    name: input.name,
+    placed: true,
+  });
+}
+
+export function addGroupPlayerDoneToast(result: {
+  outcome: "added" | "invited";
+  name: string;
+}) {
+  return result.outcome === "invited"
+    ? `Invite sent to ${result.name}`
+    : addPlayerAddedToast(result.name);
+}
+
+export const REMOVE_UNCLAIMED_PLAYER_ACTION = "Remove from Group";
+
+export function removeUnclaimedPlayerConfirmLine(name: string) {
+  return `Remove ${name} from this Group? Their Games stay in history.`;
+}
+
+export function removeUnclaimedPlayerToast(name: string) {
+  return `${name} removed`;
+}
+
 export function addPlayerSeatChoices(
   sides: readonly { sideIndex: number; left: unknown; right: unknown }[],
 ): {
