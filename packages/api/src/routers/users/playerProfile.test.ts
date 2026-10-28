@@ -167,7 +167,8 @@ async function gameTeam(
   if (!team) {
     throw new Error("Failed to insert game team");
   }
-  for (const userId of userIds) {
+  const seatedFrom = Date.now();
+  for (const [index, userId] of userIds.entries()) {
     const existing = await database.query.gamePlayers.findFirst({
       where: and(
         eq(gamePlayers.gameId, gameId),
@@ -175,9 +176,11 @@ async function gameTeam(
       ),
     });
     const player = existing ?? (await seat(database, gameId, userId));
-    await database
-      .insert(gameTeamPlayers)
-      .values({ gameTeamId: team.id, gamePlayerId: player.id });
+    await database.insert(gameTeamPlayers).values({
+      gameTeamId: team.id,
+      gamePlayerId: player.id,
+      createdAt: new Date(seatedFrom + index),
+    });
   }
   return team;
 }
