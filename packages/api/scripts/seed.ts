@@ -54,10 +54,12 @@ import { createInviteLink as createGameInviteLink } from "#src/routers/games/cre
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
+import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { requestLevelRange } from "#src/routers/games/requestLevelRange";
+import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { sendLookupInvite as sendGameLookupInvite } from "#src/routers/games/sendLookupInvite";
 import { acceptLookupInvite as acceptGroupLookupInvite } from "#src/routers/groups/acceptLookupInvite";
@@ -1375,7 +1377,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     levelMaxTenths: 60,
     seats: seats(["lina", "emma", "priya", "leo"]).slice(0, 2),
   });
-  // ... and one Sam organizes, where Tom asked to be let in.
+  // ... and one Sam organizes, where Emma asked to be let in.
   const beginners = await friendly(u, {
     groupId: g.ladder.id,
     organizerKey: "me",
@@ -1387,7 +1389,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     seats: seats(["me", "sofia", "omar", "maya"]).slice(0, 2),
   });
   await step("level range request", () =>
-    requestLevelRange(db, { gameId: beginners.id, userId: u.diego!.id }),
+    requestLevelRange(db, { gameId: beginners.id, userId: u.emma!.id }),
   );
 
   // Pending Game Lookup invite to Sam, and a Game Invite link (/g/{code}).
@@ -1646,6 +1648,200 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
 }
 
 // ---------------------------------------------------------------------------
+// Football: full rosters for team picking and goal tracking
+// ---------------------------------------------------------------------------
+
+type Footballer = {
+  key: string;
+  role: "outfield" | "keeper";
+  position: "def" | "mid" | "fwd";
+};
+
+const FOOTBALL_LEVELS: Record<string, SelfDeclareChoice> = {
+  me: "C2",
+  tom: "B2",
+  omar: "C1",
+  maya: "C3",
+  diego: "B3",
+  ben: "D1",
+  jonas: "C2",
+  lina: "B1",
+  priya: "D2",
+  sofia: "C1",
+  yusuf: "B3",
+  emma: "D3",
+  marco: "A",
+  hana: "C3",
+  leo: "B2",
+  aisha: "D1",
+  zara: "C2",
+};
+
+function outfield(key: string, position: Footballer["position"]): Footballer {
+  return { key, role: "outfield", position };
+}
+
+function keeper(key: string): Footballer {
+  return { key, role: "keeper", position: "def" };
+}
+
+/**
+ * Sam organizes all three Games, so signing in as `me` reaches the team
+ * picker and the score sheet. Each Game is created in the future, filled,
+ * then moved so it has kicked off: the score only opens at kick-off.
+ */
+async function seedFootball(u: Users, v: Venues) {
+  for (const [key, level] of Object.entries(FOOTBALL_LEVELS)) {
+    await selfDeclareRating(db, u[key]!.id, "football", level);
+  }
+
+  const group = await createLoosePublic(db, {
+    name: "Thursday Football",
+    description: "Full-roster pickup games. Bibs provided.",
+    sport: "football",
+    userId: u.me!.id,
+  });
+  for (const key of Object.keys(FOOTBALL_LEVELS)) {
+    if (key === "me") continue;
+    await joinLoosePublic(db, { groupId: group.id, userId: u[key]!.id });
+  }
+
+  const pitch = v.pitches;
+  const footballGame = async (args: {
+    name: string;
+    sideSize: 5 | 7;
+    start: Date;
+    players: Footballer[];
+  }) => {
+    const created = await createGame(db, {
+      createdBy: u.me!.id,
+      name: args.name,
+      groupId: group.id,
+      isPublic: false,
+      format: "friendly_game",
+      registrationMode: "individual",
+      sideSize: args.sideSize,
+      playersAllowed: args.players.length,
+      windowStart: args.start,
+      windowEnd: new Date(args.start.getTime() + 90 * 60 * 1000),
+      venueId: pitch.id,
+      courtId: pitch.courtIds[0]!,
+      pricePerPlayerFils: 2500,
+    });
+    for (const player of args.players) {
+      await step(`football ${player.key} on ${args.name}`, () =>
+        register(db, {
+          gameId: created.id,
+          userId: u[player.key]!.id,
+          football: { role: player.role, position: player.position },
+        }),
+      );
+    }
+    return created.id;
+  };
+  const ids = (keys: string[]) => keys.map((key) => u[key]!.id);
+
+  // Kicked off, teams not picked: try "Balanced by level" and manual.
+  const sevens = await footballGame({
+    name: "Thursday seven-a-side",
+    sideSize: 7,
+    start: at(20, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "mid"),
+      outfield("tom", "fwd"),
+      outfield("omar", "def"),
+      outfield("maya", "fwd"),
+      outfield("diego", "mid"),
+      outfield("jonas", "def"),
+      outfield("lina", "mid"),
+      outfield("priya", "def"),
+      outfield("sofia", "fwd"),
+      outfield("yusuf", "mid"),
+      outfield("emma", "def"),
+      outfield("marco", "fwd"),
+    ],
+  });
+  await moveIntoPast(sevens, new Date(Date.now() - 20 * 60 * 1000));
+
+  // Kicked off, teams published, no score yet: enter goals and scorers.
+  const fives = await footballGame({
+    name: "Monday five-a-side",
+    sideSize: 5,
+    start: at(21, 19),
+    players: [
+      keeper("aisha"),
+      keeper("leo"),
+      outfield("me", "fwd"),
+      outfield("zara", "mid"),
+      outfield("diego", "def"),
+      outfield("yusuf", "fwd"),
+      outfield("omar", "mid"),
+      outfield("maya", "fwd"),
+      outfield("tom", "def"),
+      outfield("marco", "mid"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: fives,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["aisha", "me", "zara", "diego", "yusuf"]),
+    slot2: ids(["leo", "omar", "maya", "tom", "marco"]),
+  });
+  await moveIntoPast(fives, new Date(Date.now() - 45 * 60 * 1000));
+
+  // Played last week, 4–3 with named scorers, confirmed by both sides.
+  const played = await footballGame({
+    name: "Last week's five-a-side",
+    sideSize: 5,
+    start: at(22, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "fwd"),
+      outfield("lina", "mid"),
+      outfield("priya", "def"),
+      outfield("sofia", "fwd"),
+      outfield("emma", "def"),
+      outfield("jonas", "mid"),
+      outfield("omar", "fwd"),
+      outfield("maya", "mid"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: played,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "red", slot2: "navy" },
+    slot1: ids(["ben", "me", "lina", "priya", "sofia"]),
+    slot2: ids(["hana", "emma", "jonas", "omar", "maya"]),
+  });
+  await moveIntoPast(played, at(-7, 19));
+  await saveFootballScore(db, {
+    gameId: played,
+    userId: u.me!.id,
+    slot1Goals: 4,
+    slot2Goals: 3,
+    scorers: [
+      { userId: u.me!.id, goals: 2 },
+      { userId: u.sofia!.id, goals: 1 },
+      { userId: u.priya!.id, goals: 1 },
+      { userId: u.omar!.id, goals: 2 },
+      { userId: u.emma!.id, goals: 1 },
+    ],
+  });
+  const playedMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, played),
+  });
+  await confirmMatchResult(db, {
+    gameId: played,
+    matchId: playedMatch!.id,
+    userId: u.omar!.id,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Group link requests
@@ -1694,6 +1890,7 @@ async function main() {
   const g = await step("groups", () => seedGroups(u, c));
   await step("teams", () => seedTeams(u, c));
   await step("games", () => seedGames(u, g, v));
+  await step("football", () => seedFootball(u, v));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));
 
