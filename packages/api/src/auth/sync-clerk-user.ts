@@ -1,10 +1,12 @@
 import type { DbClient, DbTx } from "@repo/db";
-import { and, eq, ne } from "drizzle-orm";
+import { and, countDistinct, eq, ne } from "drizzle-orm";
 import type { UserWebhookEvent } from "@clerk/backend/webhooks";
 
-import { user } from "@repo/db";
+import { gamePlayers, user } from "@repo/db";
 
 import { type db } from "#src/db";
+import { notify } from "#src/notifications/notify";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 export type ClerkUserSyncDb = DbClient | DbTx;
 
@@ -15,6 +17,9 @@ type ClerkUserPayload = Extract<
 
 export const CLERK_USER_IDENTIFIER_REQUIRED =
   "Clerk user must have an email address or a phone number";
+
+export const CLERK_PHONE_HELD_UNVERIFIED =
+  "Phone number belongs to another User and is not verified";
 
 function clerkUsername(username: string | null) {
   if (!username || username.length === 0) {
@@ -83,6 +88,28 @@ async function availablePhoneNumber(
   return taken ? null : phoneNumber;
 }
 
+async function seatedGameCount(database: ClerkUserSyncDb, userId: string) {
+  const [row] = await database
+    .select({ count: countDistinct(gamePlayers.gameId) })
+    .from(gamePlayers)
+    .where(eq(gamePlayers.userId, userId));
+  return row?.count ?? 0;
+}
+
+async function notifyHistoryLinked(database: ClerkUserSyncDb, userId: string) {
+  const gameCount = await seatedGameCount(database, userId);
+  if (gameCount === 0) {
+    return;
+  }
+  await notify(database, {
+    type: "history_linked",
+    recipients: [{ userId, audience: "player" }],
+    excludeUserIds: [],
+    gameCount,
+    dedupeKey: "history_linked",
+  });
+}
+
 function displayName(
   clerkUser: ClerkUserPayload,
   email: string | null,
@@ -114,6 +141,10 @@ function clerkStoredImage(clerkUser: ClerkUserPayload): string | null {
  * Insert or update the Temba User row for a Clerk user.created / user.updated
  * webhook. Lookup invite still matches username, email, and primary phone.
  * Email may be null when a phone number is present (and the reverse).
+ *
+ * A row without a clerkId is linked by phone only when Clerk verified that
+ * phone: the SMS code is what proves the number belongs to the new account.
+ * Linking an Unclaimed player claims its history (ADR-0042).
  */
 export async function upsertUserFromClerk(
   database: ClerkUserSyncDb,
@@ -145,7 +176,7 @@ export async function upsertUserFromClerk(
         })
       : null;
   const byPhone =
-    !byClerkId && !byEmail && phoneNumber
+    !byClerkId && !byEmail && phoneNumber && phoneNumberVerified
       ? await database.query.user.findFirst({
           where: eq(user.phoneNumber, phoneNumber),
         })
@@ -176,27 +207,40 @@ export async function upsertUserFromClerk(
         ? phoneNumberVerified
         : existing.phoneNumberVerified;
 
-    const [updated] = await writeDb(database)
-      .update(user)
-      .set({
-        clerkId,
-        name,
-        email,
-        emailVerified,
-        username: nextUsername,
-        phoneNumber: nextPhoneNumber,
-        phoneNumberVerified: nextPhoneVerified,
-        image,
-        updatedAt: new Date(),
-      })
-      .where(eq(user.id, existing.id))
-      .returning();
+    const claiming = isUnclaimed(existing);
 
-    return updated ?? existing;
+    return writeDb(database).transaction(async (tx) => {
+      const now = new Date();
+      const [updated] = await tx
+        .update(user)
+        .set({
+          clerkId,
+          name,
+          email,
+          emailVerified,
+          username: nextUsername,
+          phoneNumber: nextPhoneNumber,
+          phoneNumberVerified: nextPhoneVerified,
+          image,
+          ...(claiming ? { claimedAt: now } : {}),
+          updatedAt: now,
+        })
+        .where(eq(user.id, existing.id))
+        .returning();
+
+      if (claiming) {
+        await notifyHistoryLinked(tx, existing.id);
+      }
+
+      return updated ?? existing;
+    });
   }
 
   const insertUsername = await availableUsername(database, username);
   const insertPhoneNumber = await availablePhoneNumber(database, phoneNumber);
+  if (!email && !insertPhoneNumber) {
+    throw new Error(CLERK_PHONE_HELD_UNVERIFIED);
+  }
 
   const [created] = await writeDb(database)
     .insert(user)

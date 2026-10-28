@@ -63,6 +63,13 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens Match history for a claimed history", () => {
+    assert.equal(
+      notificationHref({ type: "history_linked", group: null, game: null }),
+      "/dashboard/games?tab=history",
+    );
+  });
+
   it("has no target without a Group or for a type it does not know", () => {
     assert.equal(
       notificationHref({ type: "group_member_joined", group: null }),

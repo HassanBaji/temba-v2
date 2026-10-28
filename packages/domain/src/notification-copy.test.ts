@@ -248,6 +248,42 @@ describe("notificationCopy for an Organizer's add", () => {
   });
 });
 
+describe("notificationCopy for a claimed history", () => {
+  function linked(item: Partial<NotificationCopyInput>) {
+    return notificationCopy({
+      type: "history_linked",
+      audience: "player",
+      actor: null,
+      group: null,
+      gameCount: 3,
+      ...item,
+    });
+  }
+
+  it("tells the claimer how many Games were linked", () => {
+    assert.deepEqual(linked({}), {
+      title: [
+        { text: "We linked ", strong: false },
+        { text: "3 Games", strong: true },
+        { text: " played under your number", strong: false },
+      ],
+      subline: null,
+    });
+    assert.equal(
+      linked({ gameCount: 1 })
+        ?.title.map((part) => part.text)
+        .join(""),
+      "We linked 1 Game played under your number",
+    );
+  });
+
+  it("returns null without a Game count or for another audience", () => {
+    assert.equal(linked({ gameCount: null }), null);
+    assert.equal(linked({ gameCount: 0 }), null);
+    assert.equal(linked({ audience: "admin" }), null);
+  });
+});
+
 describe("notificationCopy for a Finished Game", () => {
   const game = {
     name: "Thursday Padel",

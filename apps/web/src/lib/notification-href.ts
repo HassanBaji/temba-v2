@@ -1,3 +1,5 @@
+import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
+
 export function notificationHref(item: {
   type: string;
   group: { id: string } | null;
@@ -14,6 +16,9 @@ export function notificationHref(item: {
     item.game
   ) {
     return `/dashboard/games/${item.game.id}`;
+  }
+  if (item.type === "history_linked") {
+    return `/dashboard/games${gamesHubTabQuery("history")}`;
   }
   return null;
 }

@@ -216,4 +216,30 @@ describe("notifications.list", () => {
       await close();
     }
   });
+
+  it("returns the Game count of a claimed history", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const claimer = await insertUser(db, "Claimer");
+      await db.insert(notifications).values({
+        recipientUserId: claimer,
+        type: "history_linked",
+        audience: "player",
+        gameCount: 4,
+        createdAt: new Date(NOW.getTime() - 60_000),
+      });
+
+      const page = await listNotifications(db, { userId: claimer, now: NOW });
+
+      expect(page.items[0]).toMatchObject({
+        type: "history_linked",
+        gameCount: 4,
+        actor: null,
+        game: null,
+        group: null,
+      });
+    } finally {
+      await close();
+    }
+  });
 });

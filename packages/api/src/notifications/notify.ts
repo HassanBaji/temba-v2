@@ -28,6 +28,7 @@ export type NotifyArgs = {
   groupId?: string | null;
   gameId?: string | null;
   viaWaitlist?: boolean;
+  gameCount?: number | null;
   dedupeKey?: string | null;
 };
 
@@ -83,6 +84,7 @@ export async function notify(
     groupId: args.groupId ?? null,
     gameId: args.gameId ?? null,
     viaWaitlist: args.viaWaitlist ?? false,
+    gameCount: args.gameCount ?? null,
     dedupeKey: args.dedupeKey ?? null,
   }));
 

@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   pgEnum,
   pgTable,
   timestamp,
@@ -66,6 +67,7 @@ export const notifications = pgTable(
       onDelete: "cascade",
     }),
     viaWaitlist: boolean("via_waitlist").notNull().default(false),
+    gameCount: integer("game_count"),
     dedupeKey: varchar("dedupe_key", { length: 255 }),
     readAt: timestamp("read_at"),
     // Millisecond precision so a JavaScript Date round-trips exactly as a list cursor.

@@ -19,6 +19,7 @@ export type NotificationCopyInput = {
   team?: { name: string | null } | null;
   group: { name: string | null } | null;
   game?: NotificationGame | null;
+  gameCount?: number | null;
 };
 
 type NotificationGame = {
@@ -138,6 +139,20 @@ export function notificationCopy(
         strong(actorName(item.actor)),
         plain(" added you to "),
         strong(notificationGameName(item.game)),
+      ],
+      subline: null,
+    };
+  }
+  if (
+    item.type === "history_linked" &&
+    item.audience === "player" &&
+    item.gameCount
+  ) {
+    return {
+      title: [
+        plain("We linked "),
+        strong(`${item.gameCount} ${item.gameCount === 1 ? "Game" : "Games"}`),
+        plain(" played under your number"),
       ],
       subline: null,
     };

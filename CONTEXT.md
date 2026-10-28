@@ -494,7 +494,7 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, or that an Organizer seated them on a Game. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
+An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, that an Organizer seated them on a Game, or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
 
 **Notifications page**:
