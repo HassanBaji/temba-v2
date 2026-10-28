@@ -1,8 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { UserPlus, Users, X } from "lucide-react";
 
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+} from "~/components/common/action-menu";
 import { EmptyState } from "~/components/common/empty-state";
 import { MemberRow } from "~/components/common/member-row";
 import { RowList } from "~/components/common/row-list";
@@ -116,21 +122,68 @@ function SavedBanner({
   );
 }
 
+function MemberActionsMenu({
+  name,
+  setLevelHref,
+  profileHref,
+  onRename,
+  onRemove,
+}: {
+  name: string;
+  setLevelHref?: string;
+  profileHref?: string;
+  onRename?: () => void;
+  onRemove?: () => void;
+}) {
+  return (
+    <ActionMenu label={`Manage ${name}`}>
+      {setLevelHref ? (
+        <ActionMenuItem asChild>
+          <Link href={setLevelHref}>Set Level</Link>
+        </ActionMenuItem>
+      ) : null}
+      {profileHref ? (
+        <ActionMenuItem asChild>
+          <Link href={profileHref}>View profile</Link>
+        </ActionMenuItem>
+      ) : null}
+      {onRename ? (
+        <ActionMenuItem onSelect={onRename}>
+          {RENAME_UNCLAIMED_PLAYER_ACTION}
+        </ActionMenuItem>
+      ) : null}
+      {onRemove ? (
+        <>
+          {setLevelHref || profileHref || onRename ? (
+            <ActionMenuSeparator />
+          ) : null}
+          <ActionMenuItem variant="destructive" onSelect={onRemove}>
+            {REMOVE_UNCLAIMED_PLAYER_ACTION}
+          </ActionMenuItem>
+        </>
+      ) : null}
+    </ActionMenu>
+  );
+}
+
 function GroupMemberRow({
   member,
   canSetLevel,
   showLevel,
-  href,
+  setLevelHref,
+  profileHref,
   onRename,
   onRemove,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
   showLevel: boolean;
-  href?: string;
+  setLevelHref?: string;
+  profileHref?: string;
   onRename?: () => void;
   onRemove?: () => void;
 }) {
+  const managed = setLevelHref != null || onRename != null || onRemove != null;
   return (
     <MemberRow
       size="lg"
@@ -138,34 +191,17 @@ function GroupMemberRow({
       image={member.image}
       isViewer={member.isViewer}
       unclaimed={member.unclaimed}
-      href={href}
+      href={setLevelHref ?? profileHref}
       meta={memberCaption(member, canSetLevel)}
       action={
-        onRename || onRemove ? (
-          <div className="flex items-center gap-2">
-            {onRename ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onRename}
-                aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${member.name}`}
-              >
-                {RENAME_UNCLAIMED_PLAYER_ACTION}
-              </Button>
-            ) : null}
-            {onRemove ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onRemove}
-                aria-label={`${REMOVE_UNCLAIMED_PLAYER_ACTION}: ${member.name}`}
-              >
-                Remove
-              </Button>
-            ) : null}
-          </div>
+        managed ? (
+          <MemberActionsMenu
+            name={member.name}
+            setLevelHref={setLevelHref}
+            profileHref={profileHref}
+            onRename={onRename}
+            onRemove={onRemove}
+          />
         ) : undefined
       }
       trailing={
@@ -298,12 +334,13 @@ export function GroupMembersTab({
               member={member}
               canSetLevel={canSetLevel}
               showLevel={showLevel}
-              href={
+              setLevelHref={
                 canSetLevel && !member.isViewer
                   ? groupMemberSetLevelHref(groupId, member.userId)
-                  : linkToPlayers
-                    ? playerProfilePath(member.userId)
-                    : undefined
+                  : undefined
+              }
+              profileHref={
+                linkToPlayers ? playerProfilePath(member.userId) : undefined
               }
               onRename={
                 canAddPlayers && member.unclaimed && onRenameUnclaimed
