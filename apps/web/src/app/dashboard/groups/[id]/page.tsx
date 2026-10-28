@@ -699,6 +699,8 @@ export default function GroupHomePage({
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}
               showLevel={groupShowsLevel(data.sport)}
+              canInvite={canManageInvites}
+              onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
           <TabsContent value="games">
@@ -713,6 +715,11 @@ export default function GroupHomePage({
               onJoinSeat={onJoinSeat}
               onJoinWaitlist={onJoinWaitlist}
               onRegister={onRegisterGame}
+              sport={data.sport ?? null}
+              members={data.standing.leaderboard}
+              isMember={Boolean(data.membership)}
+              canInvite={canManageInvites}
+              onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
           <TabsContent value="members">
