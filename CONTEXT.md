@@ -241,8 +241,8 @@ A User as seen from one Venue: someone who holds or has held a Booking there. De
 _Avoid_: client, member (that is a Community role), player (when you mean this view), account
 
 **Guest**:
-A person without a Temba account recorded on a Booking by name and phone by a Venue manager. A Guest Booking has no Customer and never a Game; a Venue's Guests are matched by phone.
-_Avoid_: walk-in (as the name of the entity), offline customer, anonymous User
+A person without a Temba account recorded on a Booking by name and phone by a Venue manager. A Guest Booking has no Customer and never a Game; a Venue's Guests are matched by phone. Not an Unclaimed player: a Guest is not a User.
+_Avoid_: walk-in (as the name of the entity), offline customer, anonymous User, Unclaimed player
 
 **No-show**:
 A confirmed Booking whose start has passed and that a Venue manager marked as not used. Terminal: no refund, and the payment status is left as it was (a paid no-show stays paid; an unpaid one stays pending).
@@ -446,8 +446,12 @@ An approved Game Level range request, or an Organizer Lookup invite, that except
 _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup invite (that is a door that grants this)
 
 **User**:
-A person with a Temba account.
+A person on Temba. Almost every User has a Temba account; the exception is an Unclaimed player, who has a phone and a name but no account yet.
 _Avoid_: player (when you mean User), member (when you mean the Community role)
+
+**Unclaimed player**:
+A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
+_Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
 The questions a new User answers after Clerk sign-up and before Home, at Route `/onboarding` on web. It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. Blocking, with **Either** and **Not sure** (which starts padel at D+) as the low-commitment answers. Users who predate it are complete without answering.
