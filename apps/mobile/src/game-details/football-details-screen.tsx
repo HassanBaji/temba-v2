@@ -124,6 +124,7 @@ export function FootballGameDetails({
   const teams = board.data?.teams ?? null;
   const names = teams ? bibNames(teams.bibs) : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
+  const preferences = api.users.onboardingState.useQuery().data;
 
   const input: FootballGameDetailsInput = {
     ...game,
@@ -641,8 +642,9 @@ export function FootballGameDetails({
         subtitle={subtitle}
         players={players}
         viewer={{
-          role: viewer?.role ?? null,
-          position: viewer?.position ?? null,
+          role: viewer?.role ?? preferences?.preferredFootballRole ?? null,
+          position:
+            viewer?.position ?? preferences?.preferredFootballPosition ?? null,
         }}
         price={price}
         teamsLine={teams ? "Set" : "Made by the organizer"}

@@ -4,7 +4,13 @@ import {
   preferredPositionNote,
   type PreferredPosition,
 } from "@repo/domain/preferred-position";
-import { Calendar, ChevronRight, Mail, Users } from "lucide-react-native";
+import {
+  Calendar,
+  ChevronRight,
+  FileText,
+  Mail,
+  Users,
+} from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
@@ -17,7 +23,7 @@ import { Text } from "../primitives/text";
 import type { PositionSetting } from "./profile-model";
 import type { Slot } from "../home/home-model";
 
-export type ProfileDestination = "bookings" | "teams" | "invites";
+export type ProfileDestination = "bookings" | "teams" | "invites" | "terms";
 
 function LinkRow({
   icon,
@@ -147,6 +153,13 @@ export function ProfileSettings({
           subtitle="Lookup invites addressed to you"
           count={pendingInviteCount}
           onPress={() => onOpen("invites")}
+        />
+        <Hairline />
+        <LinkRow
+          icon={<FileText size={sizes.iconAction} color={colors.ink} />}
+          title="Terms and Conditions"
+          subtitle="What you agree to by using Temba"
+          onPress={() => onOpen("terms")}
         />
       </Card>
       <View style={{ flexDirection: "row" }}>

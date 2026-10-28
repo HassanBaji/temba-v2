@@ -76,7 +76,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
   const { setActive } = useClerk();
   const { signIn, isLoaded } = useSignIn();
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const [mode, setMode] = React.useState<IdentifierMode>("username");
+  const [mode, setMode] = React.useState<IdentifierMode>("phone");
   const [username, setUsername] = React.useState("");
   const [countryIso, setCountryIso] = React.useState(
     DEFAULT_CALLING_COUNTRY_ISO,
@@ -198,7 +198,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
                 onClick={switchMode}
                 disabled={pending}
               >
-                {usePhone ? "Use username" : "Use phone"}
+                {usePhone ? "Use username instead" : "Use phone instead"}
               </button>
             </div>
             {usePhone ? (
@@ -286,6 +286,14 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string | null }) {
           Sign in
         </Button>
         <OauthButtons flow="sign-in" redirectUrl={redirectUrl} />
+        <p className="text-eyebrow text-muted-foreground text-center leading-[1.6]">
+          New to Temba? Continuing with Google creates an account, and you agree
+          to the{" "}
+          <Link className="text-ink underline" href="/terms">
+            Terms and Conditions
+          </Link>
+          .
+        </p>
       </form>
     </AuthScreen>
   );

@@ -1,70 +1,37 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  canReachTabs,
-  onboardingStepFromState,
-  type OnboardingQuestionnaireState,
-} from "./onboarding-step";
+import { canReachTabs, onboardingPhaseFromState } from "./onboarding-step";
 
-const base: OnboardingQuestionnaireState = {
-  provisioning: false,
-  preferredPosition: null,
-  onboardingCompletedAt: null,
-  hasRating: false,
-};
-
-describe("onboardingStepFromState", () => {
+describe("onboardingPhaseFromState", () => {
   it("waits while the state has not loaded", () => {
-    expect(onboardingStepFromState(undefined)).toBe("loading");
+    expect(onboardingPhaseFromState(undefined)).toBe("loading");
   });
 
   it("holds a User whose row is still being created", () => {
-    expect(onboardingStepFromState({ ...base, provisioning: true })).toBe(
-      "provisioning",
-    );
-  });
-
-  it("asks Preferred Position first", () => {
-    expect(onboardingStepFromState(base)).toBe("position");
-  });
-
-  it("asks the Level declaration once the position is answered", () => {
     expect(
-      onboardingStepFromState({ ...base, preferredPosition: "left" }),
-    ).toBe("level");
-  });
-
-  it("finishes once both answers exist", () => {
-    expect(
-      onboardingStepFromState({
-        ...base,
-        preferredPosition: "either",
-        hasRating: true,
+      onboardingPhaseFromState({
+        provisioning: true,
+        onboardingCompletedAt: null,
       }),
-    ).toBe("finishing");
+    ).toBe("provisioning");
   });
 
-  it("releases a completed User, even one backfilled with no position", () => {
+  it("asks the questions until onboarding is complete", () => {
     expect(
-      onboardingStepFromState({
-        ...base,
-        onboardingCompletedAt: new Date("2026-01-01T00:00:00Z"),
+      onboardingPhaseFromState({
+        provisioning: false,
+        onboardingCompletedAt: null,
       }),
-    ).toBe("complete");
+    ).toBe("questions");
   });
-});
 
-describe("canReachTabs", () => {
-  it("opens only for a completed questionnaire", () => {
-    expect(canReachTabs("complete")).toBe(true);
-    for (const step of [
-      "loading",
-      "provisioning",
-      "position",
-      "level",
-      "finishing",
-    ] as const) {
-      expect(canReachTabs(step)).toBe(false);
-    }
+  it("lets a complete User reach the tabs", () => {
+    const phase = onboardingPhaseFromState({
+      provisioning: false,
+      onboardingCompletedAt: new Date(),
+    });
+    expect(phase).toBe("complete");
+    expect(canReachTabs(phase)).toBe(true);
+    expect(canReachTabs("questions")).toBe(false);
   });
 });

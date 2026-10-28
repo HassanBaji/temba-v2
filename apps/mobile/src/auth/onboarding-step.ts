@@ -1,42 +1,29 @@
 export type OnboardingQuestionnaireState = {
   provisioning: boolean;
-  preferredPosition: string | null;
   onboardingCompletedAt: Date | null;
-  hasRating: boolean;
 };
 
-export type OnboardingStep =
+export type OnboardingPhase =
   | "loading"
   | "provisioning"
-  | "position"
-  | "level"
-  | "finishing"
+  | "questions"
   | "complete";
 
 export const PROVISIONING_POLL_MS = 2000;
 export const PROVISIONING_TIMEOUT_MS = 10 * PROVISIONING_POLL_MS;
 
-export function onboardingStepFromState(
+export function onboardingPhaseFromState(
   state: OnboardingQuestionnaireState | undefined,
-): OnboardingStep {
+): OnboardingPhase {
   if (!state) {
     return "loading";
   }
   if (state.provisioning) {
     return "provisioning";
   }
-  if (state.onboardingCompletedAt) {
-    return "complete";
-  }
-  if (!state.preferredPosition) {
-    return "position";
-  }
-  if (!state.hasRating) {
-    return "level";
-  }
-  return "finishing";
+  return state.onboardingCompletedAt ? "complete" : "questions";
 }
 
-export function canReachTabs(step: OnboardingStep): boolean {
-  return step === "complete";
+export function canReachTabs(phase: OnboardingPhase): boolean {
+  return phase === "complete";
 }

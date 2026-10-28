@@ -15,6 +15,7 @@ export function AuthScreen({
   onBack,
   backLabel = "Back",
   crossLink,
+  progress,
   eyebrow,
   title,
   description,
@@ -29,6 +30,7 @@ export function AuthScreen({
   onBack?: () => void;
   backLabel?: string;
   crossLink?: { href: string; label: string };
+  progress?: { step: number; total: number };
   eyebrow?: string;
   title?: string;
   description?: ReactNode;
@@ -38,7 +40,8 @@ export function AuthScreen({
 }) {
   const welcome = variant === "welcome";
   const surface = welcome ? "ink" : "paper";
-  const showHeader = Boolean(backHref ?? onBack ?? crossLink) || brand;
+  const showHeader =
+    Boolean(backHref ?? onBack ?? crossLink ?? progress) || brand;
   // The frame stays wide on desktop; forms read in a phone-width column.
   const column = welcome
     ? undefined
@@ -87,16 +90,46 @@ export function AuthScreen({
               >
                 {crossLink.label}
               </Link>
+            ) : progress ? (
+              <span
+                aria-hidden="true"
+                className="text-eyebrow text-muted-foreground font-mono uppercase"
+              >
+                Step {progress.step} of {progress.total}
+              </span>
             ) : (
               <span className="size-11 shrink-0" aria-hidden="true" />
             )}
           </header>
         ) : null}
 
+        {progress ? (
+          <div
+            role="progressbar"
+            aria-label={`Step ${progress.step} of ${progress.total}`}
+            aria-valuemin={1}
+            aria-valuemax={progress.total}
+            aria-valuenow={progress.step}
+            className={cn(column, "px-6.5 flex gap-1.5 pt-3.5")}
+          >
+            {Array.from({ length: progress.total }, (_, index) => (
+              <span
+                key={index}
+                className={cn(
+                  "h-[3px] flex-1 rounded-full",
+                  index < progress.step ? "bg-ink" : "bg-rule",
+                )}
+              />
+            ))}
+          </div>
+        ) : null}
+
         {(eyebrow ?? title ?? description) ? (
           <div className={cn(column, "px-6.5 pt-4.5")}>
             {eyebrow ? (
-              <p className="text-meta text-muted-foreground mb-2">{eyebrow}</p>
+              <p className="text-eyebrow text-muted-foreground mb-2 font-mono uppercase">
+                {eyebrow}
+              </p>
             ) : null}
             {title ? (
               <h1
