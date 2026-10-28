@@ -22,7 +22,7 @@ describe("onboardingSubmission", () => {
     expect(onboardingSubmission(answers)).toEqual({
       sports: ["padel", "football"],
       padel: { preferredPosition: "left", choice: "C1" },
-      football: { role: "outfield", position: "mid", choice: "C3" },
+      football: { role: "outfield", position: "mid", choice: "C1" },
     });
   });
 
@@ -35,7 +35,7 @@ describe("onboardingSubmission", () => {
       }),
     ).toEqual({
       sports: ["football"],
-      football: { role: "keeper", position: null, choice: "C3" },
+      football: { role: "keeper", position: null, choice: "C1" },
     });
   });
 

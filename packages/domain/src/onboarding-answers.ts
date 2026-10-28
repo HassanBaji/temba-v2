@@ -126,13 +126,9 @@ export const PADEL_SIDE_CHOICES: {
   { value: "either", name: "Either", detail: "wherever open" },
 ];
 
-export const FOOTBALL_ROLE_CHOICES: {
-  value: FootballRole;
-  name: string;
-  detail: string;
-}[] = [
-  { value: "outfield", name: "Player", detail: "outfield" },
-  { value: "keeper", name: "Keeper", detail: "two per game" },
+export const FOOTBALL_ROLE_CHOICES: { value: FootballRole; name: string }[] = [
+  { value: "outfield", name: "Player" },
+  { value: "keeper", name: "Keeper" },
 ];
 
 /** A player who is not sure starts one rung up from the bottom, not at the classic default. */

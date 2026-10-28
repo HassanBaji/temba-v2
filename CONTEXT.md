@@ -458,7 +458,7 @@ The sports a User told the Onboarding questionnaire they play: padel, football o
 _Avoid_: favourite sports, interests
 
 **Football self-placement**:
-A new football player's own starting Level, picked as Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C or B; never A) until football results rate. One time, like the padel Level declaration.
+A new football player's own starting Level, picked as Beginner, Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C, C+ or B; never A) until football results rate. One time, like the padel Level declaration.
 _Avoid_: football rating (when you mean the self-placed start), skill level
 
 **Home**:

@@ -5,12 +5,13 @@ import {
 } from "./level-bands";
 
 /**
- * Football self-placement: three plain words instead of the padel letter
+ * Football self-placement: four plain words instead of the padel letter
  * ladder, since pickup players rarely know a letter. Each one declares a
  * starting football Level that Make teams balances on until football results
  * rate. Pro sits on B, not A: A is earned, never self-placed.
  */
 export const FOOTBALL_SELF_PLACEMENTS = [
+  "beginner",
   "casual",
   "competitive",
   "pro",
@@ -25,21 +26,28 @@ export const FOOTBALL_SELF_PLACEMENT_CHOICES: {
   band: AssignableDisplayLevelBand;
 }[] = [
   {
+    value: "beginner",
+    label: "Beginner",
+    description: "Still finding your feet. Now and then.",
+    band: "D",
+  },
+  {
     value: "casual",
     label: "Casual",
-    description: "Pick-up games, still learning the basics",
-    band: "D",
+    description: "Pick-up games, holds a position. 1–2× a week.",
+    band: "C",
   },
   {
     value: "competitive",
     label: "Competitive",
-    description: "Plays weekly, holds position, fit for 60 minutes",
-    band: "C",
+    description: "Plays local tournaments, lasts the full match. 2–3× a week.",
+    band: "C+",
   },
   {
     value: "pro",
     label: "Pro",
-    description: "Played at club or academy level",
+    description:
+      "Club or academy background, dictates the game. Several times a week.",
     band: "B",
   },
 ];

@@ -2,7 +2,7 @@
 
 **Status:** accepted. Supersedes the onboarding part of football spec D23.
 
-The Onboarding questionnaire, on web and mobile, now opens with "What do you play?" and asks padel or football questions only for the sports picked. Football players place themselves as Casual, Competitive or Pro, which declares a starting football Level.
+The Onboarding questionnaire, on web and mobile, now opens with "What do you play?" and asks padel or football questions only for the sports picked. Football players place themselves as Beginner, Casual, Competitive or Pro, which declares a starting football Level.
 
 ## Decision
 
@@ -11,7 +11,7 @@ The Onboarding questionnaire, on web and mobile, now opens with "What do you pla
 - **`users.completeOnboarding` takes an optional answers input.** With it, one transaction writes the Sports played, the padel Preferred Position, the football defaults and a self-declared Rating for each picked sport, then marks the User complete. Without it, the door behaves as before, so released mobile builds keep working.
 - **What completion needs depends on the Sports played.** Padel needs a Preferred Position and a padel Rating. Football needs a Football role and a football Rating.
 - **A sport that already has a Rating, or a Rated Match, keeps it.** The one-time declare is skipped rather than refused, so a retry after a partial onboarding still finishes.
-- **Football self-placement declares D, C or B.** It is the lower third of each, as for the padel display ladder. A is never self-placed.
+- **Football self-placement declares D, C, C+ or B.** It is the lower third of each, as for the padel display ladder. A is never self-placed.
 
 **Considered Options**: one door per question, as the web questionnaire used to do (back navigation would meet the one-time Level declaration half way through); keeping football out of onboarding until football results rate (Make teams already balances on football Ratings and had nothing to balance on).
 
