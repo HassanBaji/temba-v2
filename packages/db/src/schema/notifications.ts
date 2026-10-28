@@ -20,6 +20,8 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_player_joined",
   "game_player_left",
   "game_finished",
+  "game_seated_by_organizer",
+  "history_linked",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

@@ -329,6 +329,61 @@ describe("listPartnerSuggestions", () => {
     }
   });
 
+  it("never suggests an Unclaimed player", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const caller = await insertUser(db, "unclaimed-caller@example.com");
+      const teammate = await insertUser(db, "unclaimed-teammate@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, caller.id);
+      const [unclaimed] = await db
+        .insert(user)
+        .values({
+          name: "Ali",
+          phoneNumber: "+97336124408",
+          addedByUserId: caller.id,
+          addedAt: new Date(),
+        })
+        .returning({ id: user.id });
+      if (!unclaimed) {
+        throw new Error("Failed to insert Unclaimed player");
+      }
+      await db.insert(groupMembers).values([
+        { groupId: group.id, userId: teammate.id },
+        { groupId: group.id, userId: unclaimed.id },
+      ]);
+      await insertSharedSide(db, {
+        callerId: caller.id,
+        partnerId: unclaimed.id,
+        venueId: venue.id,
+        windowStart: new Date("2026-09-01T09:00:00Z"),
+      });
+      await insertSharedSide(db, {
+        callerId: caller.id,
+        partnerId: teammate.id,
+        venueId: venue.id,
+        windowStart: new Date("2026-08-01T09:00:00Z"),
+      });
+      const game = await insertFriendly(db, {
+        createdBy: caller.id,
+        venueId: venue.id,
+        groupId: group.id,
+      });
+
+      const result = await listPartnerSuggestions(db, {
+        gameId: game.id,
+        userId: caller.id,
+      });
+
+      expect(result.playedWithBefore.map((row) => row.id)).toEqual([
+        teammate.id,
+      ]);
+      expect(result.fromYourGroups.map((row) => row.id)).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
   it("marks a User outside Level range as level_range", async () => {
     const { db, close } = await createPgliteDb();
     try {

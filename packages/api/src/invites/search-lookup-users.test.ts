@@ -70,3 +70,65 @@ describe("Lookup invite search with email-less Users", () => {
     }
   });
 });
+
+describe("Lookup invite search with Unclaimed players", () => {
+  it("never returns an Unclaimed player, even by exact phone", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const [organizer] = await db
+        .insert(user)
+        .values({
+          name: "Ali Organizer",
+          email: "ali-organizer@example.com",
+          clerkId: "user_ali_organizer",
+        })
+        .returning();
+      const [unclaimed] = await db
+        .insert(user)
+        .values({
+          name: "Ali Unclaimed",
+          phoneNumber: "+97336124408",
+          addedByUserId: organizer!.id,
+          addedAt: new Date(),
+        })
+        .returning();
+      const [legacy] = await db
+        .insert(user)
+        .values({ name: "Ali Legacy", phoneNumber: "+97336124409" })
+        .returning();
+
+      const byName = await searchLookupUsers(db, {
+        query: "Ali",
+        excludeUserIds: [],
+      });
+      expect(byName.map((row) => row.id).sort()).toEqual(
+        [organizer!.id, legacy!.id].sort(),
+      );
+
+      expect(
+        await searchLookupUsers(db, {
+          query: "+97336124408",
+          excludeUserIds: [],
+        }),
+      ).toEqual([]);
+
+      expect(
+        await searchLookupUsers(db, {
+          query: "Ali",
+          excludeUserIds: [],
+          includeUserIds: [unclaimed!.id],
+        }),
+      ).toEqual([]);
+
+      const boosted = await searchLookupUsers(db, {
+        query: "Ali",
+        excludeUserIds: [],
+        boostUserIds: [unclaimed!.id],
+        boostCue: "Group member",
+      });
+      expect(boosted.map((row) => row.id)).not.toContain(unclaimed!.id);
+    } finally {
+      await close();
+    }
+  });
+});

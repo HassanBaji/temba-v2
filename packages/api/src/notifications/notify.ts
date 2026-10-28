@@ -3,11 +3,13 @@ import { and, inArray, lt } from "drizzle-orm";
 
 import {
   notifications,
+  user,
   type NotificationAudience,
   type NotificationType,
 } from "@repo/db";
 
 import { notificationRetentionCutoff } from "#src/notifications/retention";
+import { unclaimedUserSql } from "#src/unclaimed-players/is-unclaimed";
 
 type DbOrTx = DbClient | DbTx;
 
@@ -44,12 +46,29 @@ function audienceByRecipient(
   return audiences;
 }
 
+async function dropUnclaimedRecipients(
+  database: DbOrTx,
+  audiences: Map<string, NotificationAudience>,
+) {
+  if (audiences.size === 0) {
+    return;
+  }
+  const unclaimed = await database
+    .select({ id: user.id })
+    .from(user)
+    .where(and(inArray(user.id, [...audiences.keys()]), unclaimedUserSql));
+  for (const { id } of unclaimed) {
+    audiences.delete(id);
+  }
+}
+
 /** The only writer of `notifications` rows; call it inside the event's transaction. */
 export async function notify(
   database: DbOrTx,
   args: NotifyArgs,
 ): Promise<void> {
   const audiences = audienceByRecipient(args.recipients, args.excludeUserIds);
+  await dropUnclaimedRecipients(database, audiences);
   if (audiences.size === 0) {
     return;
   }
