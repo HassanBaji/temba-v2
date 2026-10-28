@@ -51,6 +51,8 @@ export type GroupLeaderboardEntryData = {
   levelOverride: GroupLevelOverrideData | null;
   formMarks: FormMark[];
   joinedAt: Date | string | null;
+  unclaimed: boolean;
+  phoneMasked: string | null;
 };
 
 export type GroupPlayedGameData = {
@@ -97,6 +99,7 @@ export type GroupHomeData = {
   canSetRequiresApproval: boolean;
   canDecideJoinRequests: boolean;
   canManageImage: boolean;
+  canAddPlayers: boolean;
   canDelete: boolean;
   viewerCanSetLevel: boolean;
 };

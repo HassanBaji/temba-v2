@@ -19,10 +19,13 @@ import {
   SCORE_INCOMPLETE_MESSAGE,
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmForSlotLabel,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
   scoreNameByUserId,
+  scoreOrganizerConfirmSlots,
+  scoreOrganizerWaitingLines,
   scoreSetBoxAccessibleLabel,
   scoreSetBoxState,
   scoreSetNeverPlayed,
@@ -182,17 +185,22 @@ function MatchResultConfirmations({
   viewerUserId,
   names,
   canConfirm,
+  confirmForSlots,
   confirmPending,
   onConfirm,
+  onConfirmForSlot,
 }: {
   confirmation: GameScoreSectionConfirmation;
   viewerUserId: string;
   names: ReadonlyMap<string, string>;
   canConfirm: boolean;
+  confirmForSlots: (1 | 2)[];
   confirmPending: boolean;
   onConfirm: () => void;
+  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
+  const waitingLines = scoreOrganizerWaitingLines(confirmation);
 
   return (
     <div className="border-rule space-y-2.5 border-t pt-4">
@@ -217,16 +225,37 @@ function MatchResultConfirmations({
           </li>
         ))}
       </ul>
-      {canConfirm ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onConfirm}
-          disabled={confirmPending}
-        >
-          Confirm result
-        </Button>
+      {waitingLines.map((line) => (
+        <p key={line} className="text-muted-foreground text-meta">
+          {line}
+        </p>
+      ))}
+      {canConfirm || confirmForSlots.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {canConfirm ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onConfirm}
+              disabled={confirmPending}
+            >
+              Confirm result
+            </Button>
+          ) : null}
+          {confirmForSlots.map((slot) => (
+            <Button
+              key={slot}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onConfirmForSlot(slot)}
+              disabled={confirmPending}
+            >
+              {scoreConfirmForSlotLabel(slot)}
+            </Button>
+          ))}
+        </div>
       ) : null}
     </div>
   );
@@ -247,10 +276,12 @@ export function GameScoreSection({
   viewerUserId,
   winningGameTeamId,
   matchResultConfirmation,
+  isOrganizer,
   scorePending,
   confirmPending,
   onScoreSet,
   onConfirm,
+  onConfirmForSlot,
 }: {
   phase: GameScoreSectionPhase;
   match: GameScoreSectionMatch;
@@ -258,6 +289,7 @@ export function GameScoreSection({
   viewerUserId: string;
   winningGameTeamId: string | null;
   matchResultConfirmation: GameScoreSectionConfirmation | null;
+  isOrganizer: boolean;
   scorePending: boolean;
   confirmPending: boolean;
   onScoreSet: (input: {
@@ -266,6 +298,7 @@ export function GameScoreSection({
     slot2GamesWon: number;
   }) => void | Promise<unknown>;
   onConfirm: () => void;
+  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const [drafts, setDrafts] = React.useState<Record<string, SetDraft>>({});
 
@@ -307,6 +340,12 @@ export function GameScoreSection({
     hasResult,
     phase,
     viewerUserId,
+  });
+  const confirmForSlots = scoreOrganizerConfirmSlots({
+    confirmation: matchResultConfirmation,
+    hasResult,
+    phase,
+    isOrganizer,
   });
 
   return (
@@ -444,8 +483,10 @@ export function GameScoreSection({
             viewerUserId={viewerUserId}
             names={names}
             canConfirm={canConfirm}
+            confirmForSlots={confirmForSlots}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
+            onConfirmForSlot={onConfirmForSlot}
           />
         ) : null}
 

@@ -50,6 +50,7 @@ export function useOrganizerActions({
   const toast = useToast();
   const utils = api.useUtils();
   const [section, setSection] = useState<EditSection | null>(null);
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [now] = useState(() => new Date());
   const plan = useMemo(
     () => (game ? friendlyGameOrganizerPlan(game) : null),
@@ -261,6 +262,7 @@ export function useOrganizerActions({
     onReject: (requestId) => reject.mutate({ requestId }),
     onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
     onKickPlayer: (userId) => askKick({ userId }),
+    onAddPlayer: () => setAddPlayerOpen(true),
   };
 
   const sheets: Omit<OrganizerSheetsProps, "game"> = {
@@ -311,6 +313,10 @@ export function useOrganizerActions({
     footerPendingKind,
     onFooterAction,
     askKick,
+    addPlayer: {
+      open: addPlayerOpen && plan != null,
+      onClose: () => setAddPlayerOpen(false),
+    },
     confirmPending:
       kick.isPending ||
       cancelGame.isPending ||

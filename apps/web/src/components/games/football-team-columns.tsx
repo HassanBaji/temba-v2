@@ -9,6 +9,7 @@ import {
   type Bibs,
   type BoardPlayer,
 } from "@repo/domain/football-board";
+import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import type { FootballBib } from "@repo/domain/football-lineup";
 
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -30,7 +31,12 @@ export function BibRow({
 }) {
   const name = player.isViewer ? "You" : shortName(player.name);
   const code = slotCode(player);
-  const label = [name, code, levelLabel(player.levelBand)]
+  const label = [
+    name,
+    code,
+    levelLabel(player.levelBand),
+    player.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
+  ]
     .filter(Boolean)
     .join(", ");
   const body = (
@@ -54,6 +60,7 @@ export function BibRow({
   );
   const className = cn(
     "flex h-11 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left",
+    player.unclaimed && "border-dashed",
     player.isViewer &&
       "ring-current ring-2 ring-offset-1 ring-offset-transparent",
   );

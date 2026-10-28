@@ -4,10 +4,13 @@ import { describe, it } from "vitest";
 import {
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmForSlotLabel,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
   scoreNameByUserId,
+  scoreOrganizerConfirmSlots,
+  scoreOrganizerWaitingLines,
   scoreSetBoxAccessibleLabel,
   scoreSetBoxState,
   scoreShowsConfirmations,
@@ -208,5 +211,60 @@ describe("confirmations", () => {
       scoreCanConfirm({ ...input, viewerUserId: "u2", phase: "final" }),
       false,
     );
+  });
+});
+
+describe("Organizer confirmation for a side with no account holder", () => {
+  const confirmation = {
+    confirmedUserIds: ["u1"],
+    requiredUserIds: ["u1", "u2"],
+    viewerHasConfirmed: false,
+    organizerSides: [{ slot: 2 as const, confirmed: false }],
+  };
+  const input = {
+    confirmation,
+    hasResult: true,
+    phase: "needs_results" as const,
+  };
+
+  it("says the Organizer still has to confirm for that side", () => {
+    assert.deepEqual(scoreOrganizerWaitingLines(confirmation), [
+      "Waiting for the Organizer to confirm for Team B.",
+    ]);
+    assert.deepEqual(
+      scoreOrganizerWaitingLines({
+        ...confirmation,
+        organizerSides: [{ slot: 2, confirmed: true }],
+      }),
+      [],
+    );
+    assert.deepEqual(
+      scoreOrganizerWaitingLines({
+        confirmedUserIds: [],
+        requiredUserIds: ["u1"],
+        viewerHasConfirmed: false,
+      }),
+      [],
+    );
+  });
+
+  it("offers the Organizer the confirm action for that side only", () => {
+    assert.deepEqual(
+      scoreOrganizerConfirmSlots({ ...input, isOrganizer: true }),
+      [2],
+    );
+    assert.deepEqual(
+      scoreOrganizerConfirmSlots({ ...input, isOrganizer: false }),
+      [],
+    );
+    assert.deepEqual(
+      scoreOrganizerConfirmSlots({
+        ...input,
+        isOrganizer: true,
+        phase: "final",
+      }),
+      [],
+    );
+    assert.equal(scoreConfirmForSlotLabel(2), "Confirm for Team B");
   });
 });

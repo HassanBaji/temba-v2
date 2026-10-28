@@ -23,6 +23,7 @@ import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { setFootballRole } from "#src/routers/games/setFootballRole";
+import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -109,6 +110,26 @@ async function addPlayer(
     .values({ groupId: game!.groupId!, userId: player.id });
   await register(f.db, { gameId: f.gameId, userId: player.id, football });
   return player;
+}
+
+async function addUnclaimedPlayer(f: Fixture, phoneNumber: string) {
+  const created = await f.db.transaction((tx) =>
+    createUnclaimedPlayer(tx, {
+      phoneNumber,
+      name: `Unclaimed ${phoneNumber}`,
+      addedByUserId: f.organizer.id,
+      startingLevel: { sport: "football", placement: "competitive" },
+    }),
+  );
+  const game = await f.db.query.games.findFirst({
+    where: eq(games.id, f.gameId),
+    columns: { groupId: true },
+  });
+  await f.db
+    .insert(groupMembers)
+    .values({ groupId: game!.groupId!, userId: created.user.id });
+  await register(f.db, { gameId: f.gameId, userId: created.user.id });
+  return created.user;
 }
 
 async function addPlayers(f: Fixture, count: number) {
@@ -451,6 +472,76 @@ describe("football Score and goals", () => {
       });
       expect(changed.match?.confirmed).toEqual({ slot1: false, slot2: true });
       expect(changed.match?.status).not.toBe("completed");
+    });
+  });
+});
+
+describe("football Score with a side of Unclaimed players (D14)", () => {
+  it("is agreed once a player on the other side and an Organizer confirm, and a changed Score asks the Organizer again", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b] = await addPlayers(f, 2);
+      const c = await addUnclaimedPlayer(f, "+97336124501");
+      const d = await addUnclaimedPlayer(f, "+97336124502");
+      await publish(f, [a!, b!], [c, d]);
+      const match = await f.db.query.matches.findFirst({
+        where: eq(matches.gameId, f.gameId),
+      });
+      const save = (userId: string, slot1Goals: number) =>
+        saveFootballScore(
+          f.db,
+          { gameId: f.gameId, userId, slot1Goals, slot2Goals: 1, scorers: [] },
+          AFTER_KICKOFF(),
+        );
+      const organizerConfirms = () =>
+        confirmMatchResult(f.db, {
+          gameId: f.gameId,
+          matchId: match!.id,
+          userId: f.organizer.id,
+        });
+
+      await save(f.organizer.id, 2);
+      const waiting = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+      });
+      expect(waiting.match?.confirmed).toEqual({ slot1: false, slot2: false });
+      expect(waiting.match?.organizerSides).toEqual([
+        { slot: 2, confirmed: false },
+      ]);
+      expect(waiting.viewer.canConfirmForSlots).toEqual([2]);
+      const player = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: b!.id,
+      });
+      expect(player.viewer.canConfirmForSlots).toEqual([]);
+
+      await organizerConfirms();
+      const organizerConfirmed = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+      });
+      expect(organizerConfirmed.match?.confirmed).toEqual({
+        slot1: false,
+        slot2: true,
+      });
+      expect(organizerConfirmed.match?.status).not.toBe("completed");
+
+      await save(a!.id, 3);
+      const changed = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+      });
+      expect(changed.match?.status).not.toBe("completed");
+      expect(changed.match?.confirmed).toEqual({ slot1: true, slot2: false });
+      expect(changed.viewer.canConfirmForSlots).toEqual([2]);
+
+      await organizerConfirms();
+      const done = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+      });
+      expect(done.match?.status).toBe("completed");
+      expect(done.viewer.canConfirmForSlots).toEqual([]);
     });
   });
 });

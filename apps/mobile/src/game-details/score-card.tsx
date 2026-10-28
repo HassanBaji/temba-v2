@@ -8,10 +8,13 @@ import type {
 import {
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmForSlotLabel,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
   scoreNameByUserId,
+  scoreOrganizerConfirmSlots,
+  scoreOrganizerWaitingLines,
   scorePhaseFlags,
   scoreSetBoxAccessibleLabel,
   scoreSetBoxState,
@@ -157,17 +160,22 @@ function Confirmations({
   viewerUserId,
   names,
   canConfirm,
+  confirmForSlots,
   confirmPending,
   onConfirm,
+  onConfirmForSlot,
 }: {
   confirmation: FriendlyGameDetailsConfirmation;
   viewerUserId: string;
   names: ReadonlyMap<string, string>;
   canConfirm: boolean;
+  confirmForSlots: (1 | 2)[];
   confirmPending: boolean;
   onConfirm: () => void;
+  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
+  const waitingLines = scoreOrganizerWaitingLines(confirmation);
   return (
     <View style={{ gap: 10 }}>
       <Hairline />
@@ -195,15 +203,32 @@ function Confirmations({
           </Text>
         </View>
       ))}
-      {canConfirm ? (
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label="Confirm result"
-            variant="outline"
-            size="sm"
-            pending={confirmPending}
-            onPress={onConfirm}
-          />
+      {waitingLines.map((line) => (
+        <Text key={line} size="meta" tone="muted">
+          {line}
+        </Text>
+      ))}
+      {canConfirm || confirmForSlots.length > 0 ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {canConfirm ? (
+            <Button
+              label="Confirm result"
+              variant="outline"
+              size="sm"
+              pending={confirmPending}
+              onPress={onConfirm}
+            />
+          ) : null}
+          {confirmForSlots.map((slot) => (
+            <Button
+              key={slot}
+              label={scoreConfirmForSlotLabel(slot)}
+              variant="outline"
+              size="sm"
+              pending={confirmPending}
+              onPress={() => onConfirmForSlot(slot)}
+            />
+          ))}
         </View>
       ) : null}
     </View>
@@ -217,10 +242,12 @@ export function ScoreCard({
   viewerUserId,
   winningGameTeamId,
   confirmation,
+  isOrganizer,
   scorePending,
   confirmPending,
   onSaveSets,
   onConfirm,
+  onConfirmForSlot,
 }: {
   phase: FriendlyScorePhase;
   match: FriendlyGameDetailsMatch;
@@ -228,10 +255,12 @@ export function ScoreCard({
   viewerUserId: string;
   winningGameTeamId: string | null;
   confirmation: FriendlyGameDetailsConfirmation | null;
+  isOrganizer: boolean;
   scorePending: boolean;
   confirmPending: boolean;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
+  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const [drafts, setDrafts] = useState<ScoreDrafts>(() =>
     draftsFromSets(match.sets),
@@ -248,6 +277,12 @@ export function ScoreCard({
     hasResult,
     phase,
     viewerUserId,
+  });
+  const confirmForSlots = scoreOrganizerConfirmSlots({
+    confirmation,
+    hasResult,
+    phase,
+    isOrganizer,
   });
 
   return (
@@ -339,8 +374,10 @@ export function ScoreCard({
             viewerUserId={viewerUserId}
             names={names}
             canConfirm={canConfirm}
+            confirmForSlots={confirmForSlots}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
+            onConfirmForSlot={onConfirmForSlot}
           />
         ) : null}
 

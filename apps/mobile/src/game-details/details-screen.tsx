@@ -51,6 +51,8 @@ import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/orga
 import { TournamentContent } from "../tournament/tournament-content";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
 import { api } from "../trpc/react";
+import { AddPlayerSheet } from "./add-player-sheet";
+import { RenamePlayerSheet } from "./rename-player-sheet";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import {
   GameDetailsBar,
@@ -131,6 +133,10 @@ export function GameDetailsScreen({
     position: "left" | "right";
   } | null>(null);
   const [teamId, setTeamId] = useState("");
+  const [renaming, setRenaming] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
@@ -603,6 +609,16 @@ export function GameDetailsScreen({
           {...tournamentOrganizer.sheets}
           game={details}
         />
+        {details.isOrganizer ? (
+          <AddPlayerSheet
+            visible={tournamentOrganizer.addPlayer.open}
+            onClose={tournamentOrganizer.addPlayer.onClose}
+            gameId={gameId}
+            placement="side"
+            sides={details.sides}
+            onAdded={refresh}
+          />
+        ) : null}
       </View>
     );
   }
@@ -633,6 +649,9 @@ export function GameDetailsScreen({
     onSaveSets: (payloads) => void saveSets(payloads),
     onConfirm: () =>
       firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
+    onConfirmForSlot: (slot) =>
+      firstMatchId &&
+      confirmResult.mutate({ gameId, matchId: firstMatchId, slot }),
     onRequestLevel: () => requestLevel.mutate({ gameId }),
     onFooterAction: (kind) => {
       if (kind === "leave_game") {
@@ -642,6 +661,7 @@ export function GameDetailsScreen({
       organizer.onFooterAction(kind);
     },
     onOpenPlayer,
+    onRenameUnclaimed: details.isOrganizer ? setRenaming : undefined,
   };
 
   const hero = gameHeroModel(details, now);
@@ -687,7 +707,23 @@ export function GameDetailsScreen({
       />
       {sheets}
       {organizer.plan ? (
-        <OrganizerSheets {...organizer.sheets} game={details} />
+        <>
+          <OrganizerSheets {...organizer.sheets} game={details} />
+          <AddPlayerSheet
+            visible={organizer.addPlayer.open}
+            onClose={organizer.addPlayer.onClose}
+            gameId={gameId}
+            placement="seat"
+            sides={details.sides}
+            onAdded={refresh}
+          />
+        </>
+      ) : null}
+      {details.isOrganizer ? (
+        <RenamePlayerSheet
+          player={renaming}
+          onClose={() => setRenaming(null)}
+        />
       ) : null}
     </View>
   );

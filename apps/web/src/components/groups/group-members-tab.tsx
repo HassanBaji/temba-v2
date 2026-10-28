@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users, X } from "lucide-react";
+import { UserPlus, Users, X } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { MemberRow } from "~/components/common/member-row";
@@ -25,6 +25,11 @@ import {
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
 import {
+  ADD_PLAYER_ACTION,
+  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  RENAME_UNCLAIMED_PLAYER_ACTION,
+} from "@repo/domain/add-player-by-phone";
+import {
   levelOverrideCaption,
   levelOverrideReasonLabel,
   levelSliderLabel,
@@ -44,6 +49,8 @@ type GroupMember = {
   level: string | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
+  unclaimed: boolean;
+  phoneMasked: string | null;
 };
 
 type SavedLevel = {
@@ -66,6 +73,7 @@ function savedLevelOf(member: GroupMember | undefined): SavedLevel | null {
 function memberCaption(member: GroupMember, canSetLevel: boolean) {
   const parts = [
     groupMemberRoleCaption(member),
+    member.phoneMasked,
     canSetLevel && member.levelOverride
       ? levelOverrideCaption(member.levelOverride)
       : null,
@@ -113,11 +121,15 @@ function GroupMemberRow({
   canSetLevel,
   showLevel,
   href,
+  onRename,
+  onRemove,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
   showLevel: boolean;
   href?: string;
+  onRename?: () => void;
+  onRemove?: () => void;
 }) {
   return (
     <MemberRow
@@ -125,8 +137,37 @@ function GroupMemberRow({
       name={member.name}
       image={member.image}
       isViewer={member.isViewer}
+      unclaimed={member.unclaimed}
       href={href}
       meta={memberCaption(member, canSetLevel)}
+      action={
+        onRename || onRemove ? (
+          <div className="flex items-center gap-2">
+            {onRename ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRename}
+                aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${member.name}`}
+              >
+                {RENAME_UNCLAIMED_PLAYER_ACTION}
+              </Button>
+            ) : null}
+            {onRemove ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRemove}
+                aria-label={`${REMOVE_UNCLAIMED_PLAYER_ACTION}: ${member.name}`}
+              >
+                Remove
+              </Button>
+            ) : null}
+          </div>
+        ) : undefined
+      }
       trailing={
         <>
           <FormStrip
@@ -175,9 +216,17 @@ export function GroupMembersTab({
   savedUserId,
   onDismissSaved,
   onInvite,
+  canAddPlayers = false,
+  onAddPlayer,
+  onRenameUnclaimed,
+  onRemoveUnclaimed,
   showLevel = true,
 }: {
   showLevel?: boolean;
+  canAddPlayers?: boolean;
+  onAddPlayer?: () => void;
+  onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
+  onRemoveUnclaimed?: (member: { userId: string; name: string }) => void;
   groupId: string;
   members: GroupMember[];
   linkToPlayers: boolean;
@@ -196,6 +245,18 @@ export function GroupMembersTab({
   const visible = showSearch
     ? filterGroupMembersByName(members, query)
     : members;
+  const addPlayerButton =
+    canAddPlayers && onAddPlayer ? (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onAddPlayer}
+        className="w-full font-semibold"
+      >
+        <UserPlus aria-hidden="true" />
+        {ADD_PLAYER_ACTION}
+      </Button>
+    ) : null;
 
   if (members.length === 0) {
     return (
@@ -205,6 +266,7 @@ export function GroupMembersTab({
           title="No members yet"
           description="People who join this Group will show up here."
         />
+        {addPlayerButton}
         {canInvite ? <InviteBlock onInvite={onInvite} /> : null}
       </div>
     );
@@ -213,6 +275,7 @@ export function GroupMembersTab({
   return (
     <div className="flex flex-col gap-[26px]">
       {saved ? <SavedBanner saved={saved} onDismiss={onDismissSaved} /> : null}
+      {addPlayerButton}
       {showSearch ? (
         <Input
           type="search"
@@ -241,6 +304,24 @@ export function GroupMembersTab({
                   : linkToPlayers
                     ? playerProfilePath(member.userId)
                     : undefined
+              }
+              onRename={
+                canAddPlayers && member.unclaimed && onRenameUnclaimed
+                  ? () =>
+                      onRenameUnclaimed({
+                        userId: member.userId,
+                        name: member.name,
+                      })
+                  : undefined
+              }
+              onRemove={
+                canAddPlayers && member.unclaimed && onRemoveUnclaimed
+                  ? () =>
+                      onRemoveUnclaimed({
+                        userId: member.userId,
+                        name: member.name,
+                      })
+                  : undefined
               }
             />
           ))}

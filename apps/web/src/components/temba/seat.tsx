@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import { cn } from "~/lib/utils";
 
 /**
@@ -56,6 +57,14 @@ export function YouTag() {
   );
 }
 
+export function NotOnTembaTag() {
+  return (
+    <span className="border-ink text-ink shrink-0 rounded-full border px-1.5 py-px text-[10px] font-medium">
+      {NOT_ON_TEMBA_YET_LABEL}
+    </span>
+  );
+}
+
 const SEAT_AVATAR_SIZE = {
   md: "size-10",
   lg: "size-[42px]",
@@ -68,6 +77,8 @@ export function SeatRow({
   open,
   title,
   isViewer = false,
+  unclaimed = false,
+  phoneMasked,
   subline,
   trailing,
   href,
@@ -79,6 +90,8 @@ export function SeatRow({
   /** Defaults to the occupant's name. */
   title?: React.ReactNode;
   isViewer?: boolean;
+  unclaimed?: boolean;
+  phoneMasked?: string | null;
   subline?: React.ReactNode;
   trailing?: React.ReactNode;
   /** Links an occupied seat's avatar and name; the trailing action stays apart. */
@@ -102,7 +115,13 @@ export function SeatRow({
               {title ?? occupant?.name}
             </p>
             {isViewer ? <YouTag /> : null}
+            {unclaimed ? <NotOnTembaTag /> : null}
           </div>
+        ) : null}
+        {phoneMasked ? (
+          <p className="text-muted-foreground text-meta truncate tabular-nums">
+            {phoneMasked}
+          </p>
         ) : null}
         {subline ? (
           <p className="text-muted-foreground text-meta truncate">{subline}</p>

@@ -16,6 +16,8 @@ export type FriendlyGameDetailsSeat = {
   name: string;
   image: string | null;
   levelBand: LevelBand | null;
+  unclaimed?: boolean;
+  phoneMasked?: string | null;
 };
 
 export type FriendlyGameDetailsSide = {
@@ -53,6 +55,7 @@ export type FriendlyGameDetailsConfirmation = {
   requiredUserIds: string[];
   viewerHasConfirmed: boolean;
   confirmedAt: Date | null;
+  organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
 };
 
 export type FriendlyGameDetailsRatingImpact = {

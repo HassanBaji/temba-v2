@@ -4,22 +4,25 @@ import type { ReactNode } from "react";
 
 import { ListRow } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { YouTag } from "~/components/temba/seat";
+import { NotOnTembaTag, YouTag } from "~/components/temba/seat";
 
 export function MemberRow({
   name,
   image,
   isViewer = false,
+  unclaimed = false,
   meta,
   badge,
   trailing,
   size,
   href,
   onSelect,
+  action,
 }: {
   name: string;
   image?: string | null;
   isViewer?: boolean;
+  unclaimed?: boolean;
   meta?: ReactNode;
   badge?: ReactNode;
   trailing?: ReactNode;
@@ -28,6 +31,7 @@ export function MemberRow({
   href?: string;
   /** Makes the whole row a button, with a chevron on narrow screens too. */
   onSelect?: () => void;
+  action?: ReactNode;
 }) {
   const hasTrailing = badge != null || trailing != null;
   const navigates = href != null || onSelect != null;
@@ -41,9 +45,11 @@ export function MemberRow({
       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 whitespace-normal">
         <span className="min-w-0 break-words">{name}</span>
         {isViewer ? <YouTag /> : null}
+        {unclaimed ? <NotOnTembaTag /> : null}
       </span>
     ),
     meta,
+    action,
     trailing:
       hasTrailing || navigates ? (
         <div className="flex items-center gap-2">
