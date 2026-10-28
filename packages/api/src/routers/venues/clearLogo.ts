@@ -4,15 +4,29 @@ import { z } from "zod";
 
 import { venues } from "@repo/db";
 
-import { operatorProcedure } from "#src/trpc";
+import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { protectedProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { removeVenueLogoObject } from "#src/storage/venue-logos";
 import { requireVenue } from "#src/venues/helpers/require-venue";
+import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
 type DbClient = typeof db;
 
-export async function clearLogo(database: DbClient, args: { venueId: string }) {
+type Actor = {
+  userId: string;
+  publicMetadata: Record<string, unknown> | undefined;
+};
+
+export async function clearLogo(
+  database: DbClient,
+  args: { venueId: string; actor: Actor },
+) {
   await requireVenue(database, args.venueId);
+  await requireVenueManager(database, {
+    venueId: args.venueId,
+    ...args.actor,
+  });
   await removeVenueLogoObject(args.venueId);
 
   const [updated] = await database
@@ -37,8 +51,15 @@ export async function clearLogo(database: DbClient, args: { venueId: string }) {
   return updated;
 }
 
-export const clearLogoProcedure = operatorProcedure
+export const clearLogoProcedure = protectedProcedure
   .input(z.object({ venueId: z.string().uuid() }))
   .mutation(async ({ ctx, input }) => {
-    return clearLogo(ctx.db, { venueId: input.venueId });
+    const appUser = await resolveAppUser(ctx.userId);
+    return clearLogo(ctx.db, {
+      venueId: input.venueId,
+      actor: {
+        userId: appUser.id,
+        publicMetadata: await ctx.getPublicMetadata(),
+      },
+    });
   });

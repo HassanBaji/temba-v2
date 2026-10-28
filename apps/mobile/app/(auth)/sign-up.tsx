@@ -4,8 +4,8 @@ import {
   DEFAULT_CALLING_COUNTRY_ISO,
   formatInternationalNumber,
 } from "@repo/domain/phone-number";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { AuthScreen, goBackOrWelcome } from "../../src/auth/auth-screen";
@@ -19,6 +19,7 @@ import { CodeForm } from "../../src/auth/code-form";
 import { FormErrorSummary } from "../../src/auth/form-error-summary";
 import { OauthButtons } from "../../src/auth/oauth-buttons";
 import { PhoneField } from "../../src/auth/phone-field";
+import { TermsConsent } from "../../src/auth/terms-consent";
 import { type SplitFormError } from "../../src/lib/form-error";
 import { Button } from "../../src/primitives/button";
 import { Text } from "../../src/primitives/text";
@@ -28,6 +29,8 @@ type Step = "details" | "verify-phone";
 
 export default function SignUp() {
   const { signUp, setActive, isLoaded } = useSignUp();
+  const { terms } = useLocalSearchParams<{ terms?: string }>();
+  const [agreed, setAgreed] = useState(false);
   const [step, setStep] = useState<Step>("details");
   const [username, setUsername] = useState("");
   const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
@@ -38,6 +41,12 @@ export default function SignUp() {
   const [pending, setPending] = useState(false);
   const [split, setSplit] = useState<SplitFormError | null>(null);
   const verifying = step === "verify-phone";
+
+  useEffect(() => {
+    if (terms === "accepted") {
+      setAgreed(true);
+    }
+  }, [terms]);
 
   function backToDetails() {
     setStep("details");
@@ -57,7 +66,7 @@ export default function SignUp() {
   }
 
   async function onCreate() {
-    if (pending || !signUp) {
+    if (pending || !signUp || !agreed) {
       return;
     }
     const phone = resolvePhone(countryIso, national, "phoneNumber");
@@ -72,6 +81,7 @@ export default function SignUp() {
         username,
         phoneNumber: phone.e164,
         password,
+        legalAccepted: true,
       });
       if (await activateIfComplete(created)) {
         return;
@@ -136,13 +146,13 @@ export default function SignUp() {
       description={
         verifying
           ? undefined
-          : "We send a six digit code to confirm your number."
+          : "We send a six digit code to confirm your number. One account per person."
       }
       footer={
         <Text size="eyebrow" tone="muted">
           {verifying
             ? "Codes expire after a short time. Too many wrong tries will lock this number."
-            : "By creating an account you agree to the Terms and Privacy Policy."}
+            : "Under 18? A parent or guardian must review and accept the Terms for you."}
         </Text>
       }
     >
@@ -199,14 +209,19 @@ export default function SignUp() {
               error={fieldError(split, "password")}
             />
           </View>
+          <TermsConsent
+            agreed={agreed}
+            onChange={setAgreed}
+            disabled={pending}
+          />
           <Button
             label="Send code"
             size="lg"
             pending={pending}
-            disabled={!isLoaded}
+            disabled={!isLoaded || !agreed}
             onPress={() => void onCreate()}
           />
-          <OauthButtons />
+          <OauthButtons disabled={!agreed} />
         </>
       )}
     </AuthScreen>

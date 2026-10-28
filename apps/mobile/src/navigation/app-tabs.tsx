@@ -1,7 +1,17 @@
-import { useUser } from "@clerk/expo";
 import { colors, sizes } from "@repo/design-tokens";
 import { Tabs, useSegments } from "expo-router";
-import { Building2, CircleUser, House, Users } from "lucide-react-native";
+import type { BottomTabScreenProps } from "expo-router/js-tabs";
+import {
+  CommonActions,
+  type ParamListBase,
+} from "expo-router/react-navigation";
+import {
+  Building2,
+  CalendarCheck,
+  CircleUser,
+  House,
+  Users,
+} from "lucide-react-native";
 import type { ComponentType } from "react";
 import type { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,7 +19,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { FieldIcon } from "./field-icon";
-import { tabBarHidden, type TabSlot, visibleTabs } from "./tab-list";
+import {
+  stackMissingRoot,
+  tabBarHidden,
+  type TabSlot,
+  visibleTabs,
+} from "./tab-list";
 
 type TabIcon = ComponentType<{
   size: number;
@@ -20,6 +35,7 @@ type TabIcon = ComponentType<{
 const ICONS: Record<TabSlot, TabIcon> = {
   home: House,
   games: FieldIcon,
+  book: CalendarCheck,
   groups: Users,
   communities: Building2,
   profile: CircleUser,
@@ -28,16 +44,16 @@ const ICONS: Record<TabSlot, TabIcon> = {
 const ROUTES: Record<TabSlot, string> = {
   home: "(home)",
   games: "games",
+  book: "book",
   groups: "groups",
   communities: "communities",
   profile: "profile",
 };
 
 export function AppTabs() {
-  const { user } = useUser();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
-  const tabs = visibleTabs(user?.publicMetadata.groupCreator === true);
+  const tabs = visibleTabs();
   const shown = new Set(tabs.map((tab) => tab.slot));
 
   return (
@@ -64,6 +80,30 @@ export function AppTabs() {
           <Tabs.Screen
             key={slot}
             name={ROUTES[slot]}
+            listeners={({
+              navigation,
+              route,
+            }: BottomTabScreenProps<ParamListBase>) => ({
+              tabPress: (event) => {
+                if (!navigation.isFocused()) {
+                  return;
+                }
+                const stack = navigation
+                  .getState()
+                  .routes.find((tab) => tab.key === route.key)?.state;
+                if (!stackMissingRoot(stack)) {
+                  return;
+                }
+                event.preventDefault();
+                navigation.dispatch({
+                  ...CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: "index" }],
+                  }),
+                  target: stack.key,
+                });
+              },
+            })}
             options={{
               title: entry?.title,
               href: shown.has(slot) ? undefined : null,

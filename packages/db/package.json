@@ -37,9 +37,11 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^20.14.10",
+    "@types/pg": "^8.23.1",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.5",
     "eslint": "^9.23.0",
+    "pg": "^8.23.1",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "typescript": "^6.0.3"

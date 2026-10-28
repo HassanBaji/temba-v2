@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { courts } from "@repo/db";
 
+import { sportOrDefault } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -23,22 +24,25 @@ export async function listAssignableCourts(database: DbClient, game: GameRow) {
     return [];
   }
 
+  const sport = sportOrDefault(game.sport);
   const recordedCourtIds = await recordedCourtIdsForGame(database, game.id);
   const rows = await database.query.courts.findMany({
     where:
       recordedCourtIds == null
-        ? eq(courts.venueId, venue.id)
+        ? and(eq(courts.venueId, venue.id), eq(courts.sport, sport))
         : and(
             eq(courts.venueId, venue.id),
+            eq(courts.sport, sport),
             inArray(courts.id, recordedCourtIds),
           ),
-    columns: { id: true, name: true, venueId: true },
+    columns: { id: true, name: true, venueId: true, sport: true },
     orderBy: (table, { asc }) => [asc(table.name), asc(table.id)],
   });
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
     venueId: row.venueId,
+    sport: row.sport,
     venueName: venue.name,
   }));
 }

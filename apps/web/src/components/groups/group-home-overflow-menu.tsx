@@ -8,6 +8,7 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
+import { groupLeaveVenueActionLabel } from "@repo/domain/group-link-request";
 import type { GroupHomeOverflowItem } from "@repo/domain/group-home-cta";
 
 export function GroupHomeOverflowMenu({
@@ -15,11 +16,13 @@ export function GroupHomeOverflowMenu({
   groupId,
   communityId,
   communityName,
+  venueName,
   triggerRef,
   onCopyGroupUrl,
   onManageInvites,
   onChangeImage,
   onRemoveImage,
+  onLeaveVenueCommunity,
   onLeave,
   onDelete,
 }: {
@@ -27,11 +30,13 @@ export function GroupHomeOverflowMenu({
   groupId: string;
   communityId: string | null;
   communityName: string | null;
+  venueName: string | null;
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onCopyGroupUrl: () => void;
   onManageInvites: () => void;
   onChangeImage: () => void;
   onRemoveImage: () => void;
+  onLeaveVenueCommunity: () => void;
   onLeave: () => void;
   onDelete: () => void;
 }) {
@@ -44,8 +49,11 @@ export function GroupHomeOverflowMenu({
       {items.map((item, index) => {
         const previous = items[index - 1];
         const showSeparator =
-          (item === "leave" || item === "delete") &&
+          (item === "leave_venue_community" ||
+            item === "leave" ||
+            item === "delete") &&
           previous != null &&
+          previous !== "leave_venue_community" &&
           previous !== "leave" &&
           previous !== "delete";
 
@@ -89,6 +97,14 @@ export function GroupHomeOverflowMenu({
             {item === "remove_image" ? (
               <ActionMenuItem onSelect={onRemoveImage}>
                 Remove image
+              </ActionMenuItem>
+            ) : null}
+            {item === "leave_venue_community" && venueName ? (
+              <ActionMenuItem
+                variant="destructive"
+                onSelect={onLeaveVenueCommunity}
+              >
+                {groupLeaveVenueActionLabel(venueName)}
               </ActionMenuItem>
             ) : null}
             {item === "leave" ? (

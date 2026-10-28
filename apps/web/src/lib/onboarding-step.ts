@@ -6,53 +6,36 @@ export const ONBOARDING_FALLBACK_REDIRECT = "/dashboard";
 /** The shape `users.onboardingState` returns, read structurally. */
 export type OnboardingQuestionnaireState = {
   provisioning: boolean;
-  preferredPosition: string | null;
   onboardingCompletedAt: Date | null;
-  hasRating: boolean;
 };
 
-export type OnboardingStep =
+export type OnboardingPhase =
   /** `users.onboardingState` has not answered yet. */
   | "loading"
   /** No `user` row yet — the Clerk `user.created` webhook has not landed. */
   | "provisioning"
-  /** Step one: Preferred Position. */
-  | "position"
-  /** Step two: the one-time Level declaration. */
-  | "level"
-  /** Both answered, `onboardingCompletedAt` still null — complete it. */
-  | "finishing"
+  /** The questions, walked in the page from `@repo/domain/onboarding-flow`. */
+  | "questions"
   /** Already complete: this User is sent onward and never questioned again. */
   | "complete";
 
 /**
- * Which step of the Onboarding questionnaire a caller resumes on.
- *
- * Preferred Position unanswered → step one; answered but no padel Rating →
- * step two; both answered → finish. A User whose questionnaire is already
- * complete — including one backfilled by the migration, complete with a null
- * Preferred Position — is `complete` and is redirected out, so the
+ * Whether a caller is questioned at all. Answers are held in the page and
+ * saved in one `users.completeOnboarding` call, so there is no half-done
+ * step to resume. A User whose questionnaire is already complete — including
+ * one backfilled by the migration — is `complete` and redirected out, so the
  * questionnaire cannot be re-run.
  */
-export function onboardingStepFromState(
+export function onboardingPhaseFromState(
   state: OnboardingQuestionnaireState | undefined,
-): OnboardingStep {
+): OnboardingPhase {
   if (!state) {
     return "loading";
   }
   if (state.provisioning) {
     return "provisioning";
   }
-  if (state.onboardingCompletedAt) {
-    return "complete";
-  }
-  if (!state.preferredPosition) {
-    return "position";
-  }
-  if (!state.hasRating) {
-    return "level";
-  }
-  return "finishing";
+  return state.onboardingCompletedAt ? "complete" : "questions";
 }
 
 /**
@@ -65,13 +48,10 @@ export function onboardingRedirectTarget(value: string | null | undefined) {
 }
 
 /**
- * Whether a step change should move focus to the new step's heading. The
+ * Whether a screen change should move focus to the new screen's heading. The
  * first answer from `users.onboardingState` is a page load, not a change, so
  * focus stays where the browser put it.
  */
-export function shouldFocusStepHeading(
-  previous: OnboardingStep,
-  next: OnboardingStep,
-): boolean {
+export function shouldFocusStepHeading(previous: string, next: string) {
   return previous !== next && previous !== "loading";
 }

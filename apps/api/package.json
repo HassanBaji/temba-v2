@@ -6,7 +6,7 @@
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --format=esm --conditions=temba-source --banner:js=\"import{createRequire}from'node:module';const require=createRequire(import.meta.url);\" --outfile=dist/index.js",
     "dev": "tsx watch --env-file-if-exists=.env --conditions=temba-source src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node --env-file-if-exists=.env dist/index.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -21,7 +21,9 @@
     "@repo/db": "workspace:*",
     "@t3-oss/env-core": "^0.12.0",
     "@trpc/server": "^11.0.0",
+    "graphile-worker": "^0.18.0",
     "hono": "^4.9.0",
+    "pg": "^8.23.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {

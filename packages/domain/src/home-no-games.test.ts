@@ -4,20 +4,9 @@ import { describe, it } from "vitest";
 import { homeNoGamesCopy, homeNoGamesCreateAction } from "./home-no-games";
 
 describe("homeNoGamesCreateAction", () => {
-  it("hides create when the viewer cannot create Groups", () => {
-    assert.equal(
-      homeNoGamesCreateAction({
-        hasCreateAccess: false,
-        createGroupCount: 2,
-      }),
-      null,
-    );
-  });
-
-  it("sends group creators to Create Group when they have no Group", () => {
+  it("sends every viewer to Create Group when they have no Group", () => {
     assert.deepEqual(
       homeNoGamesCreateAction({
-        hasCreateAccess: true,
         createGroupCount: 0,
       }),
       {
@@ -28,10 +17,9 @@ describe("homeNoGamesCreateAction", () => {
     );
   });
 
-  it("sends group creators to the single Create route when they have a Group", () => {
+  it("sends every viewer to the single Create route when they have a Group", () => {
     assert.deepEqual(
       homeNoGamesCreateAction({
-        hasCreateAccess: true,
         createGroupCount: 1,
       }),
       {

@@ -70,6 +70,7 @@ export async function loadCompletedMatchesForUser(
           windowEnd: true,
           createdAt: true,
           format: true,
+          rated: true,
         },
         with: {
           matches: {
@@ -136,6 +137,7 @@ export async function loadCompletedMatchesForUser(
       createdAt: match.createdAt,
       displayTime: match.startTime ?? gameListTime(game),
       userSlot,
+      rated: game.rated,
       sets: match.sets,
       slot1Players: playersOnSlot(match.slot1GameTeam),
       slot2Players: playersOnSlot(match.slot2GameTeam),

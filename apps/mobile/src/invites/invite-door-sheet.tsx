@@ -4,26 +4,33 @@ import {
   LOOKUP_INVITE_REVOKED_TOAST,
   lookupInviteSentToast,
 } from "@repo/domain/invites";
-import { TEAM_LOOKUP_NOTE } from "@repo/domain/teams";
+import {
+  assembleE164,
+  DEFAULT_CALLING_COUNTRY_ISO,
+} from "@repo/domain/phone-number";
+import { teamLookupNote } from "@repo/domain/teams";
 import * as Clipboard from "expo-clipboard";
-import { useState } from "react";
-import { Share } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Linking, Platform, Share } from "react-native";
 
+import { useNow } from "../games/use-now";
 import { splitTrpcFormError } from "../lib/form-error";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import {
+  gameInviteSubtitle,
   gameShareMessage,
   groupShareMessage,
-  toggleSelection,
+  inviteModes,
+  inviteSheetTitle,
+  rowWithPhone,
+  textMessageUrl,
+  whatsAppUrl,
   type GameShareContext,
+  type InviteMode,
   type LookupResultRow,
 } from "./invites-model";
-import {
-  InviteSheetView,
-  type LookupSectionProps,
-  type PendingLookupRow,
-} from "./invite-sheet-view";
+import { InviteSheetView, type PendingLookupRow } from "./invite-sheet-view";
 import type { Slot } from "../home/home-model";
 
 export type InviteDoor =
@@ -53,10 +60,12 @@ export type InviteDoor =
   | {
       kind: "team";
       teamId: string;
-      unusedInvite: PendingLookupRow | null;
+      squad: boolean;
       canLookup: boolean;
       canLink: boolean;
     };
+
+const COPIED_MS = 1800;
 
 type LinkResult = { shortUrl: string | null; inviteUrl: string };
 type LinkResultLike = { shortUrl?: string | null; inviteUrl: string };
@@ -92,12 +101,27 @@ export function InviteDoorSheet({
   const groupId = door.kind === "group" ? door.groupId : "";
   const gameId = door.kind === "game" ? door.gameId : "";
   const teamId = door.kind === "team" ? door.teamId : "";
+  const now = useNow();
+  const modes = inviteModes(door);
+  const [mode, setMode] = useState<InviteMode>(modes[0] ?? "link");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<LookupResultRow[]>([]);
+  const [sendingUserId, setSendingUserId] = useState<string | null>(null);
   const [refused, setRefused] = useState<
     { name: string; message: string }[] | null
   >(null);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
+  const [national, setNational] = useState("");
+  const [phoneSending, setPhoneSending] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) {
+        clearTimeout(copiedTimer.current);
+      }
+    },
+    [],
+  );
 
   const lookupOn = visible && door.canLookup;
   const linkOn = visible && door.canLink;
@@ -129,6 +153,10 @@ export function InviteDoorSheet({
   const communityLink = api.communities.getInviteLink.useQuery(
     { communityId },
     { enabled: linkOn && isCommunity },
+  );
+  const teamPending = api.teams.listInAppInvites.useQuery(
+    { teamId },
+    { enabled: lookupOn && isTeam },
   );
   const groupPending = api.groups.listLookupInvites.useQuery(
     { groupId },
@@ -167,38 +195,35 @@ export function InviteDoorSheet({
           ? teamLink
           : gameLink
   ).data;
-  const pendingInvites: Slot<PendingLookupRow[]> =
-    door.kind === "team"
-      ? {
-          status: "ready",
-          value: door.unusedInvite ? [door.unusedInvite] : [],
-        }
-      : slotOf(
-          isCommunity ? communityPending : isGroup ? groupPending : gamePending,
-        );
+  const pendingInvites: Slot<PendingLookupRow[]> = slotOf(
+    isCommunity
+      ? communityPending
+      : isGroup
+        ? groupPending
+        : isTeam
+          ? teamPending
+          : gamePending,
+  );
 
   function afterSend(result: {
     sent: unknown[];
     refused: { name: string; message: string }[];
   }) {
-    setRefused(result.refused);
-    setFormError(null);
-    setSelected([]);
+    setRefused(result.refused.length > 0 ? result.refused : null);
     if (result.sent.length > 0) {
       toast.show(lookupInviteSentToast(result.sent.length));
     }
+    // Search results are left cached on purpose: the row stays put and
+    // flips to Invited once the pending list refetches.
     if (isCommunity) {
       void utils.communities.listLookupInvites.invalidate({ communityId });
-      void utils.communities.searchLookupUsers.invalidate({ communityId });
     } else if (isGroup) {
       void utils.groups.listLookupInvites.invalidate({ groupId });
-      void utils.groups.searchLookupUsers.invalidate({ groupId });
     } else if (isTeam) {
       void utils.teams.byId.invalidate({ id: teamId });
-      void utils.teams.searchLookupUsers.invalidate({ teamId });
+      void utils.teams.listInAppInvites.invalidate({ teamId });
     } else {
       void utils.games.listLookupInvites.invalidate({ gameId });
-      void utils.games.searchLookupUsers.invalidate({ gameId });
     }
   }
 
@@ -208,7 +233,6 @@ export function InviteDoorSheet({
     );
     const message =
       split.globalMessage ?? Object.values(split.fieldErrors)[0] ?? null;
-    setFormError(message ?? error.message);
     toast.show(message ?? error.message);
   }
 
@@ -244,6 +268,7 @@ export function InviteDoorSheet({
     onSuccess: () => {
       toast.show(LOOKUP_INVITE_REVOKED_TOAST);
       void utils.teams.byId.invalidate({ id: teamId });
+      void utils.teams.listInAppInvites.invalidate({ teamId });
       void utils.teams.searchLookupUsers.invalidate({ teamId });
     },
     onError: (error) => toast.show(error.message),
@@ -307,17 +332,14 @@ export function InviteDoorSheet({
     try {
       await Clipboard.setStringAsync(message);
       toast.show(INVITE_LINK_COPIED_TOAST);
+      return true;
     } catch {
       toast.show(INVITE_LINK_COPY_FAILED_TOAST);
+      return false;
     }
   }
 
-  async function shareLink() {
-    const link = await mintLink();
-    if (!link) {
-      return;
-    }
-    const message = messageFor(link);
+  async function shareMessage(message: string) {
     try {
       await Share.share({ message });
     } catch {
@@ -325,37 +347,142 @@ export function InviteDoorSheet({
     }
   }
 
-  async function copyLink() {
+  async function shareLink() {
     const link = await mintLink();
     if (link) {
-      await copyMessage(messageFor(link));
+      await shareMessage(messageFor(link));
     }
   }
 
-  function send() {
-    const userIds = selected.map((row) => row.id);
-    setRefused(null);
-    setFormError(null);
+  async function copyLink() {
+    const link = await mintLink();
+    if (link && (await copyMessage(messageFor(link)))) {
+      setCopied(true);
+      if (copiedTimer.current) {
+        clearTimeout(copiedTimer.current);
+      }
+      copiedTimer.current = setTimeout(() => setCopied(false), COPIED_MS);
+    }
+  }
+
+  async function openWith(url: (message: string) => string) {
+    const link = await mintLink();
+    if (!link) {
+      return;
+    }
+    const message = messageFor(link);
+    try {
+      await Linking.openURL(url(message));
+    } catch {
+      await shareMessage(message);
+    }
+  }
+
+  function sendLookup(userIds: string[]) {
     if (door.kind === "team") {
       const userId = userIds[0];
-      if (userId) {
-        sendTeam.mutate({ teamId: door.teamId, userId });
+      return userId
+        ? sendTeam.mutateAsync({ teamId: door.teamId, userId })
+        : Promise.resolve();
+    }
+    if (door.kind === "community") {
+      return sendCommunity.mutateAsync({
+        communityId: door.communityId,
+        userIds,
+      });
+    }
+    if (door.kind === "group") {
+      return sendGroup.mutateAsync({ groupId: door.groupId, userIds });
+    }
+    return sendGame.mutateAsync({ gameId: door.gameId, userIds });
+  }
+
+  async function invite(row: LookupResultRow) {
+    setRefused(null);
+    setSendingUserId(row.id);
+    try {
+      await sendLookup([row.id]);
+    } catch {
+      // onSendError has already told the organizer.
+    } finally {
+      setSendingUserId(null);
+    }
+  }
+
+  function searchByPhone(phoneQuery: string) {
+    if (door.kind === "team") {
+      return utils.teams.searchLookupUsers.fetch({ teamId, query: phoneQuery });
+    }
+    if (door.kind === "community") {
+      return utils.communities.searchLookupUsers.fetch({
+        communityId,
+        query: phoneQuery,
+      });
+    }
+    if (door.kind === "group") {
+      return utils.groups.searchLookupUsers.fetch({
+        groupId,
+        query: phoneQuery,
+      });
+    }
+    return utils.games.searchLookupUsers.fetch({ gameId, query: phoneQuery });
+  }
+
+  async function sendByText() {
+    const assembled = assembleE164(countryIso, national);
+    if (!assembled.ok) {
+      return;
+    }
+    setPhoneSending(true);
+    try {
+      if (door.canLookup) {
+        try {
+          const rows = await searchByPhone(assembled.e164.slice(1));
+          const member = rowWithPhone(rows, assembled.e164);
+          if (member) {
+            await sendLookup([member.id]);
+          }
+        } catch {
+          // Still text them; the link works without an account match.
+        }
       }
-    } else if (door.kind === "community") {
-      sendCommunity.mutate({ communityId: door.communityId, userIds });
-    } else if (door.kind === "group") {
-      sendGroup.mutate({ groupId: door.groupId, userIds });
-    } else {
-      sendGame.mutate({ gameId: door.gameId, userIds });
+      const link = await mintLink();
+      if (!link) {
+        return;
+      }
+      const message = messageFor(link);
+      try {
+        await Linking.openURL(
+          textMessageUrl(Platform.OS, assembled.e164, message),
+        );
+      } catch {
+        await shareMessage(message);
+      }
+      setNational("");
+    } finally {
+      setPhoneSending(false);
     }
   }
 
   function close() {
+    setMode(modes[0] ?? "link");
     setQuery("");
-    setSelected([]);
     setRefused(null);
-    setFormError(null);
+    setNational("");
+    setCopied(false);
     onClose();
+  }
+
+  function revoke(inviteId: string) {
+    if (door.kind === "team") {
+      revokeTeam.mutate({ inviteId });
+    } else if (door.kind === "community") {
+      revokeCommunity.mutate({ inviteId });
+    } else if (door.kind === "group") {
+      revokeGroup.mutate({ inviteId });
+    } else {
+      revokeGame.mutate({ inviteId });
+    }
   }
 
   const revokePendingId =
@@ -365,66 +492,92 @@ export function InviteDoorSheet({
     (revokeTeam.isPending ? revokeTeam.variables?.inviteId : null) ??
     null;
 
-  const lookup: LookupSectionProps | null = door.canLookup
-    ? {
-        note:
-          door.kind === "group" || door.kind === "community"
-            ? door.note
-            : door.kind === "team"
-              ? TEAM_LOOKUP_NOTE
-              : null,
-        query,
-        onQueryChange: setQuery,
-        results: slotOf(search),
-        selected,
-        onToggle: (row) =>
-          setSelected((current) =>
-            toggleSelection(current, row, isTeam ? "single" : "multiple"),
-          ),
-        sendPending:
-          sendCommunity.isPending ||
-          sendGroup.isPending ||
-          sendGame.isPending ||
-          sendTeam.isPending,
-        onSend: send,
-        refused,
-        formError,
-        pendingInvites,
-        revokePendingId,
-        onRevoke: (inviteId) => {
-          if (door.kind === "team") {
-            revokeTeam.mutate({ inviteId });
-          } else if (door.kind === "community") {
-            revokeCommunity.mutate({ inviteId });
-          } else if (door.kind === "group") {
-            revokeGroup.mutate({ inviteId });
-          } else {
-            revokeGame.mutate({ inviteId });
-          }
-        },
-      }
-    : null;
+  const pendingRows =
+    pendingInvites.status === "ready" ? pendingInvites.value : [];
+  const invitedUserIds = new Set(pendingRows.map((row) => row.user.id));
+  const linkPending =
+    createCommunityLink.isPending ||
+    createGroupLink.isPending ||
+    createGameLink.isPending ||
+    createTeamLink.isPending;
+  const subtitle =
+    door.kind === "game"
+      ? gameInviteSubtitle(door.share, now)
+      : door.kind === "team"
+        ? teamLookupNote(door.squad)
+        : door.note;
 
   return (
     <InviteSheetView
       visible={visible}
       onClose={close}
-      lookup={lookup}
+      title={inviteSheetTitle(door.kind, isTeam && door.squad)}
+      subtitle={subtitle}
+      modes={modes}
+      mode={mode}
+      onModeChange={setMode}
+      players={
+        door.canLookup
+          ? {
+              query,
+              onQueryChange: setQuery,
+              results: slotOf(search),
+              invitedUserIds,
+              busyUserId: sendingUserId,
+              singlePick: isTeam && !door.squad,
+              onInvite: (row) => void invite(row),
+              onUninvite: (userId) => {
+                const row = pendingRows.find(
+                  (entry) => entry.user.id === userId,
+                );
+                if (row) {
+                  revoke(row.id);
+                }
+              },
+              refused,
+              canLink: door.canLink,
+            }
+          : null
+      }
+      phone={
+        door.canLink
+          ? {
+              countryIso,
+              national,
+              onCountryIsoChange: setCountryIso,
+              onNationalChange: setNational,
+              ready: assembleE164(countryIso, national).ok,
+              sending: phoneSending,
+              onSend: () => void sendByText(),
+              canLookup: door.canLookup,
+            }
+          : null
+      }
       link={
         door.canLink
           ? {
+              kind: door.kind,
               currentUrl: currentLink
-                ? "shortUrl" in currentLink
-                  ? (currentLink.shortUrl ?? currentLink.inviteUrl)
-                  : currentLink.inviteUrl
+                ? (currentLink.shortUrl ?? currentLink.inviteUrl)
                 : null,
-              pending:
-                createCommunityLink.isPending ||
-                createGroupLink.isPending ||
-                createGameLink.isPending ||
-                createTeamLink.isPending,
+              pending: linkPending,
+              copied,
               onShare: () => void shareLink(),
               onCopy: () => void copyLink(),
+              onWhatsApp: () => void openWith(whatsAppUrl),
+              onMessages: () =>
+                void openWith((message) =>
+                  textMessageUrl(Platform.OS, null, message),
+                ),
+            }
+          : null
+      }
+      pending={
+        door.canLookup
+          ? {
+              rows: pendingInvites,
+              revokingId: revokePendingId,
+              onRevoke: revoke,
             }
           : null
       }

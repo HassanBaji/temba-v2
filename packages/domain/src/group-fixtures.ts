@@ -110,6 +110,7 @@ export function createGroupFixtures(now = new Date()) {
     {
       id: "public-open",
       name: "Hammarby Open Play",
+      sport: "padel",
       imageUrl: null,
       communityName: null,
       memberCount: 22,
@@ -119,6 +120,7 @@ export function createGroupFixtures(now = new Date()) {
     {
       id: "public-approval",
       name: "Södermalm Padel Club",
+      sport: "padel",
       imageUrl: "/api/media/group-images/public-approval/image?v=1",
       communityName: "Södermalm Padel",
       memberCount: 9,
@@ -128,6 +130,7 @@ export function createGroupFixtures(now = new Date()) {
     {
       id: "public-requested",
       name: "Lidingö Ladder",
+      sport: "football",
       imageUrl: null,
       communityName: null,
       memberCount: 1,
@@ -235,11 +238,15 @@ export function createGroupFixtures(now = new Date()) {
     canManageLookupInvites: false,
     canManageInviteLinks: false,
     requiresApproval: false,
+    verified: true,
     canSetRequiresApproval: false,
     canDecideJoinRequests: false,
     canManageImage: false,
     canDelete: false,
     viewerCanSetLevel: false,
+    venueCommunity: null,
+    pendingLinkRequestCount: 0,
+    canUnlinkFromVenue: false,
   };
 
   const creator: GroupHomeData = {

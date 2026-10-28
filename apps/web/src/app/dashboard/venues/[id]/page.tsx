@@ -15,6 +15,7 @@ import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
+import { VenueManagersSection } from "~/components/venues/venue-managers-section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -26,6 +27,13 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
 import {
   fieldErrorMessage,
@@ -35,6 +43,8 @@ import {
 } from "~/lib/form-mutation-error";
 import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 import { courtRenameIsDirty } from "@repo/domain/court-rename";
+import { COURT_SPORT_LABELS } from "@repo/domain/court-sport-copy";
+import { SPORTS, type Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   coordToInput,
@@ -58,6 +68,7 @@ export default function VenueHomePage({
   const [longitude, setLongitude] = React.useState("");
   const [hydratedId, setHydratedId] = React.useState<string | null>(null);
   const [newCourtName, setNewCourtName] = React.useState("");
+  const [newCourtSport, setNewCourtSport] = React.useState<Sport>("padel");
   const [courtNames, setCourtNames] = React.useState<Record<string, string>>(
     {},
   );
@@ -119,6 +130,7 @@ export default function VenueHomePage({
     onSuccess: async () => {
       toast.success("Court added");
       setNewCourtName("");
+      setNewCourtSport("padel");
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -134,6 +146,16 @@ export default function VenueHomePage({
   const renameCourt = api.venues.renameCourt.useMutation({
     onSuccess: async () => {
       toast.success("Court renamed");
+      await utils.venues.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const setCourtSport = api.venues.setCourtSport.useMutation({
+    onSuccess: async () => {
+      toast.success("Court sport updated");
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -206,7 +228,7 @@ export default function VenueHomePage({
     if (addCourt.isPending) {
       return;
     }
-    addCourt.mutate({ venueId: id, name: newCourtName });
+    addCourt.mutate({ venueId: id, name: newCourtName, sport: newCourtSport });
   }
 
   function onLogoPicked(file: File | null) {
@@ -515,6 +537,8 @@ export default function VenueHomePage({
           ) : null}
         </Section>
 
+        <VenueManagersSection venueId={id} />
+
         <Section
           title="Courts"
           description="Each Court on this Venue needs its own name."
@@ -543,6 +567,25 @@ export default function VenueHomePage({
                       : undefined
                   }
                 />
+                <Select
+                  value={newCourtSport}
+                  onValueChange={(next) => setNewCourtSport(next as Sport)}
+                >
+                  <SelectTrigger
+                    id="new-court-sport"
+                    aria-label="Sport"
+                    className="w-full sm:w-40"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SPORTS.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {COURT_SPORT_LABELS[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button type="submit" disabled={addCourt.isPending}>
                   {addCourt.isPending ? "Adding…" : "Add Court"}
                 </Button>
@@ -598,6 +641,36 @@ export default function VenueHomePage({
                       <FieldError id={`court-name-${court.id}-error`}>
                         {renameError}
                       </FieldError>
+                    </Field>
+                    <Field className="sm:w-40">
+                      <FieldLabel htmlFor={`court-sport-${court.id}`}>
+                        Sport
+                      </FieldLabel>
+                      <Select
+                        value={court.sport}
+                        disabled={setCourtSport.isPending}
+                        onValueChange={(next) =>
+                          setCourtSport.mutate({
+                            id: court.id,
+                            sport: next as Sport,
+                          })
+                        }
+                      >
+                        <SelectTrigger
+                          id={`court-sport-${court.id}`}
+                          aria-label={`${court.name} sport`}
+                          className="w-full"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SPORTS.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {COURT_SPORT_LABELS[value]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </Field>
                     <div className="flex gap-2">
                       <Button

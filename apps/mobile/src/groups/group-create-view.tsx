@@ -8,9 +8,11 @@ import {
   type GroupCreateType,
 } from "@repo/domain/group-create";
 import { GROUP_REQUIRE_APPROVAL_LABEL } from "@repo/domain/group-admin";
+import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
 import { ChoiceRow } from "../lib/choice-row";
+import { SportChoiceRow } from "../lib/sport-choice-row";
 import { ToggleRow } from "../lib/toggle-row";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -24,6 +26,10 @@ export type GroupCreateViewProps = {
   onNameChange: (name: string) => void;
   nameError: string | null;
   formError: string | null;
+  sports: readonly Sport[];
+  showSportPicker: boolean;
+  sport: Sport;
+  onSportChange: (sport: Sport) => void;
   type: GroupCreateType;
   onTypeChange: (type: GroupCreateType) => void;
   requiresApproval: boolean;
@@ -68,6 +74,17 @@ export function GroupCreateView(props: GroupCreateViewProps) {
         editable={!props.pending}
         returnKeyType="done"
       />
+      {props.showSportPicker ? (
+        <View style={{ gap: 6 }}>
+          <Text weight="medium">Sport</Text>
+          <SportChoiceRow
+            sports={props.sports}
+            value={props.sport}
+            onSelect={props.onSportChange}
+            disabled={props.pending}
+          />
+        </View>
+      ) : null}
       <View style={{ gap: 6 }}>
         <Text weight="medium">Type</Text>
         <ChoiceRow

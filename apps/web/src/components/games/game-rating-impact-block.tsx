@@ -2,7 +2,11 @@
 
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
-import { ratingImpactView } from "@repo/domain/game-rating-impact";
+import {
+  ratingImpactView,
+  UNRATED_GAME_LINE,
+  UNRATED_LABEL,
+} from "@repo/domain/game-rating-impact";
 import { type RouterOutputs } from "~/trpc/react";
 
 export type GameRatingImpactBlockValue = NonNullable<
@@ -70,6 +74,20 @@ export function GameRatingImpactBlock({
         <div className="mt-4 flex min-w-0 flex-1 items-center px-3 last:pr-0">
           <p className="text-meta">{sentence}</p>
         </div>
+      </div>
+    </section>
+  );
+}
+
+export function GameUnratedBlock() {
+  return (
+    <section
+      data-slot="game-unrated-block"
+      className="border-rule bg-paper overflow-hidden rounded-xl border"
+    >
+      <div className="flex flex-col gap-1 px-[22px] py-[18px]">
+        <h2 className="text-sm font-semibold">{UNRATED_LABEL}</h2>
+        <p className="text-muted-foreground text-meta">{UNRATED_GAME_LINE}</p>
       </div>
     </section>
   );

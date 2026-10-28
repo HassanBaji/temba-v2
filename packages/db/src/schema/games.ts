@@ -1,12 +1,13 @@
 import {
   boolean,
+  check,
   integer,
   pgTable,
   timestamp,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 import { user } from "./user";
 import { groups } from "./groups";
@@ -23,50 +24,69 @@ import {
   gameFormats,
   gameRegistrationModes,
   gameSports,
+  footballTeamsMethods,
   tournamentShapes,
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
 } from "./game-enums";
 
-export const games = pgTable("games", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }),
-  format: gameFormats("format").notNull().default(GameFormatEnum.FRIENDLY_GAME),
-  registrationMode: gameRegistrationModes("registration_mode")
-    .notNull()
-    .default(GameRegistrationModeEnum.INDIVIDUAL),
-  groupId: uuid("group_id").references(() => groups.id, {
-    onDelete: "restrict",
+export const games = pgTable(
+  "games",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 255 }),
+    format: gameFormats("format")
+      .notNull()
+      .default(GameFormatEnum.FRIENDLY_GAME),
+    registrationMode: gameRegistrationModes("registration_mode")
+      .notNull()
+      .default(GameRegistrationModeEnum.INDIVIDUAL),
+    groupId: uuid("group_id").references(() => groups.id, {
+      onDelete: "restrict",
+    }),
+    venueId: uuid("venue_id")
+      .notNull()
+      .references(() => venues.id, { onDelete: "restrict" }),
+    isPublic: boolean("is_public").notNull().default(false),
+    rated: boolean("rated").notNull().default(true),
+    windowStart: timestamp("window_start"),
+    windowEnd: timestamp("window_end"),
+    playersAllowed: integer("players_allowed"),
+    teamsAllowed: integer("teams_allowed"),
+    poolCount: integer("pool_count"),
+    tournamentShape: tournamentShapes("tournament_shape"),
+    qualifiersPerPool: integer("qualifiers_per_pool"),
+    matchMinutes: integer("match_minutes"),
+    roundCount: integer("round_count"),
+    drawPostedAt: timestamp("draw_posted_at"),
+    allowSoloRegister: boolean("allow_solo_register").notNull().default(true),
+    legacyPricePerPlayerCents: integer("price_per_player_cents"),
+    pricePerPlayerFils: integer("price_per_player_fils"),
+    levelMinTenths: integer("level_min_tenths"),
+    levelMaxTenths: integer("level_max_tenths"),
+    sport: gameSports("sport").default(GameSportEnum.PADEL),
+    sideSize: integer("side_size"),
+    footballTeamsMethod: footballTeamsMethods("football_teams_method"),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    cancelledAt: timestamp("cancelled_at"),
+    registrationClosedAt: timestamp("registration_closed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    sideSizeCheck: check(
+      "games_side_size_check",
+      sql`${table.sideSize} is null or ${table.sideSize} in (5, 6, 7, 8, 9, 11)`,
+    ),
+    footballSideSizeCheck: check(
+      "games_football_side_size_check",
+      sql`${table.sport} <> 'football' or ${table.sideSize} is not null`,
+    ),
   }),
-  venueId: uuid("venue_id")
-    .notNull()
-    .references(() => venues.id, { onDelete: "restrict" }),
-  isPublic: boolean("is_public").notNull().default(false),
-  windowStart: timestamp("window_start"),
-  windowEnd: timestamp("window_end"),
-  playersAllowed: integer("players_allowed"),
-  teamsAllowed: integer("teams_allowed"),
-  poolCount: integer("pool_count"),
-  tournamentShape: tournamentShapes("tournament_shape"),
-  qualifiersPerPool: integer("qualifiers_per_pool"),
-  matchMinutes: integer("match_minutes"),
-  roundCount: integer("round_count"),
-  drawPostedAt: timestamp("draw_posted_at"),
-  allowSoloRegister: boolean("allow_solo_register").notNull().default(true),
-  legacyPricePerPlayerCents: integer("price_per_player_cents"),
-  pricePerPlayerFils: integer("price_per_player_fils"),
-  levelMinTenths: integer("level_min_tenths"),
-  levelMaxTenths: integer("level_max_tenths"),
-  sport: gameSports("sport").default(GameSportEnum.PADEL),
-  createdBy: uuid("created_by")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  cancelledAt: timestamp("cancelled_at"),
-  registrationClosedAt: timestamp("registration_closed_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+);
 
 export const gameRelations = relations(games, ({ one, many }) => ({
   createdBy: one(user, { fields: [games.createdBy], references: [user.id] }),

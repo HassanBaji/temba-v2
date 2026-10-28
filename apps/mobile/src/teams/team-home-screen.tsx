@@ -5,11 +5,13 @@ import {
   TEAM_DISSOLVED_TOAST,
   TEAM_ERROR_TITLE,
   TEAM_FORBIDDEN_COPY,
+  TEAM_LEFT_TOAST,
   TEAM_LINK_REQUESTED_TOAST,
   TEAM_NOT_FOUND_COPY,
   TEAM_UNLINKED_TOAST,
   teamDissolveConfirm,
   teamHomeView,
+  teamLeaveConfirm,
   teamUnlinkConfirm,
 } from "@repo/domain/teams";
 import { useRouter } from "expo-router";
@@ -99,6 +101,19 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     onSettled: () => setConfirm(null),
   });
 
+  const leave = api.teams.leave.useMutation({
+    onSuccess: async () => {
+      toast.show(TEAM_LEFT_TOAST);
+      await utils.teams.mine.invalidate();
+      router.replace(TEAMS_PATH);
+    },
+    onError: (error) => {
+      setActionError(error.message);
+      toast.show(error.message);
+    },
+    onSettled: () => setConfirm(null),
+  });
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -158,6 +173,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <TeamHomeView
         view={view}
+        sport={data.sport}
         linkOpen={linkOpen}
         linkPicker={linkPicker}
         linkPickerMessage={communities.error?.message ?? null}
@@ -165,7 +181,9 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         linkError={linkError}
         linkPending={requestLink.isPending}
         confirm={confirm}
-        confirmPending={unlink.isPending || dissolve.isPending}
+        confirmPending={
+          unlink.isPending || dissolve.isPending || leave.isPending
+        }
         actionError={actionError}
         onInvite={() => setInviteOpen(true)}
         onOpenLink={() => {
@@ -195,6 +213,13 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
             onConfirm: () => dissolve.mutate({ teamId }),
           });
         }}
+        onLeave={() => {
+          setActionError(null);
+          setConfirm({
+            ...teamLeaveConfirm(view.title),
+            onConfirm: () => leave.mutate({ teamId }),
+          });
+        }}
         onCloseConfirm={() => setConfirm(null)}
       />
       {data.canInvite ? (
@@ -204,12 +229,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
           door={{
             kind: "team",
             teamId,
-            unusedInvite: data.unusedInvite
-              ? {
-                  id: data.unusedInvite.id,
-                  user: data.unusedInvite.user,
-                }
-              : null,
+            squad: view.squad,
             canLookup: true,
             canLink: true,
           }}

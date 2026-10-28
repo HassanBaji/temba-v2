@@ -38,9 +38,10 @@ describe("gameHomeTabQuery", () => {
 });
 
 describe("gameHomeIntentFromQuery", () => {
-  it("reads the invite and results intents", () => {
+  it("reads the invite, results and join intents", () => {
     assert.equal(gameHomeIntentFromQuery("invite"), "invite");
     assert.equal(gameHomeIntentFromQuery("results"), "results");
+    assert.equal(gameHomeIntentFromQuery("join"), "join");
   });
 
   it("ignores anything else", () => {

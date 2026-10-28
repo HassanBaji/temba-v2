@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GroupSportEnum } from "@repo/db";
+import { GameSportEnum, GroupSportEnum } from "@repo/db";
 import { SPORTS, type Sport } from "@repo/domain/sport";
 
 type Equal<A, B> =
@@ -9,10 +9,16 @@ type Equal<A, B> =
     : false;
 
 const sportsMatchDatabaseEnum: Equal<Sport, `${GroupSportEnum}`> = true;
+const sportsMatchGameEnum: Equal<Sport, `${GameSportEnum}`> = true;
 
 describe("sport values", () => {
   it("match the database enum", () => {
     expect(sportsMatchDatabaseEnum).toBe(true);
     expect([...SPORTS].sort()).toEqual(Object.values(GroupSportEnum).sort());
+  });
+
+  it("match the Game sport enum, whose football member is spelled Football", () => {
+    expect(sportsMatchGameEnum).toBe(true);
+    expect([...SPORTS].sort()).toEqual(Object.values(GameSportEnum).sort());
   });
 });

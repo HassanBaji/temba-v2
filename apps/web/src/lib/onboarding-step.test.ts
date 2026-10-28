@@ -3,7 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   onboardingRedirectTarget,
-  onboardingStepFromState,
+  onboardingPhaseFromState,
   shouldFocusStepHeading,
   type OnboardingQuestionnaireState,
 } from "./onboarding-step";
@@ -13,61 +13,30 @@ function state(
 ): OnboardingQuestionnaireState {
   return {
     provisioning: false,
-    preferredPosition: null,
     onboardingCompletedAt: null,
-    hasRating: false,
     ...overrides,
   };
 }
 
-describe("onboardingStepFromState", () => {
+describe("onboardingPhaseFromState", () => {
   it("waits while onboarding state is still loading", () => {
-    assert.equal(onboardingStepFromState(undefined), "loading");
+    assert.equal(onboardingPhaseFromState(undefined), "loading");
   });
 
   it("waits on the webhook race instead of questioning a missing User", () => {
     assert.equal(
-      onboardingStepFromState(state({ provisioning: true })),
+      onboardingPhaseFromState(state({ provisioning: true })),
       "provisioning",
     );
   });
 
-  it("opens step one when Preferred Position is unanswered", () => {
-    assert.equal(onboardingStepFromState(state()), "position");
+  it("asks the questions until onboarding is complete", () => {
+    assert.equal(onboardingPhaseFromState(state()), "questions");
   });
 
-  it("resumes on step two when Preferred Position is set and there is no Rating", () => {
+  it("sends a completed or backfilled User onward", () => {
     assert.equal(
-      onboardingStepFromState(state({ preferredPosition: "either" })),
-      "level",
-    );
-  });
-
-  it("finishes once both questions are answered", () => {
-    assert.equal(
-      onboardingStepFromState(
-        state({ preferredPosition: "left", hasRating: true }),
-      ),
-      "finishing",
-    );
-  });
-
-  it("sends a completed User onward rather than re-running the questionnaire", () => {
-    assert.equal(
-      onboardingStepFromState(
-        state({
-          preferredPosition: "right",
-          hasRating: true,
-          onboardingCompletedAt: new Date("2026-01-01T00:00:00Z"),
-        }),
-      ),
-      "complete",
-    );
-  });
-
-  it("sends a backfilled User onward even with no Preferred Position", () => {
-    assert.equal(
-      onboardingStepFromState(
+      onboardingPhaseFromState(
         state({ onboardingCompletedAt: new Date("2025-01-01T00:00:00Z") }),
       ),
       "complete",
@@ -98,16 +67,15 @@ describe("onboardingRedirectTarget", () => {
 });
 
 describe("shouldFocusStepHeading", () => {
-  it("focuses the heading when the questionnaire moves between steps", () => {
-    assert.equal(shouldFocusStepHeading("position", "level"), true);
-    assert.equal(shouldFocusStepHeading("level", "position"), true);
-    assert.equal(shouldFocusStepHeading("provisioning", "position"), true);
-    assert.equal(shouldFocusStepHeading("level", "finishing"), true);
+  it("focuses the heading when the questionnaire moves between screens", () => {
+    assert.equal(shouldFocusStepHeading("sports", "padel"), true);
+    assert.equal(shouldFocusStepHeading("football", "padel"), true);
+    assert.equal(shouldFocusStepHeading("provisioning", "sports"), true);
   });
 
-  it("leaves focus alone on the first load and when the step is unchanged", () => {
-    assert.equal(shouldFocusStepHeading("loading", "position"), false);
+  it("leaves focus alone on the first load and when the screen is unchanged", () => {
+    assert.equal(shouldFocusStepHeading("loading", "sports"), false);
     assert.equal(shouldFocusStepHeading("loading", "provisioning"), false);
-    assert.equal(shouldFocusStepHeading("position", "position"), false);
+    assert.equal(shouldFocusStepHeading("sports", "sports"), false);
   });
 });

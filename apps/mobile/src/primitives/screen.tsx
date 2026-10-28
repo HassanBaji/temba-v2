@@ -14,8 +14,14 @@ export type ScreenProps = {
   refreshing?: boolean;
   onRefresh?: () => void;
   onNearEnd?: () => void;
+  /** Index among `children` of the one child that pins to the top on scroll. */
+  stickyIndex?: number;
+  onViewportHeight?: (height: number) => void;
   header?: React.ReactNode;
+  bleedHeader?: boolean;
   footer?: React.ReactNode;
+  /** Fill of the fixed band behind the status bar; match an ink `header`. */
+  statusBarTone?: "paper" | "ink";
 };
 
 const FOOTER_PADDING_Y = 14;
@@ -26,8 +32,12 @@ export function Screen({
   refreshing = false,
   onRefresh,
   onNearEnd,
+  stickyIndex,
+  onViewportHeight,
   header,
+  bleedHeader = false,
   footer,
+  statusBarTone = "paper",
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const registry = useMemo(
@@ -40,10 +50,13 @@ export function Screen({
     [],
   );
 
+  // The scroll view starts below the status bar, so scrolled content never
+  // shows behind the notch or the Dynamic Island.
+  const sticky = stickyIndex !== undefined && !header;
   const content = {
     gap: spacing.section,
     paddingHorizontal: spacing.surface,
-    paddingTop: header ? spacing.section : insets.top + spacing.surface,
+    paddingTop: header ? spacing.section : spacing.surface,
     paddingBottom: footer ? spacing.section : insets.bottom + spacing.section,
   };
   const body = header ? (
@@ -57,11 +70,25 @@ export function Screen({
 
   return (
     <InkRegistryContext.Provider value={registry}>
-      <View style={{ flex: 1, backgroundColor: colors.paper }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors[statusBarTone],
+          paddingTop: bleedHeader && header ? 0 : insets.top,
+        }}
+      >
         {scroll ? (
           <ScrollView
+            style={{ backgroundColor: colors.paper }}
             contentContainerStyle={header ? undefined : content}
             keyboardShouldPersistTaps="handled"
+            stickyHeaderIndices={sticky ? [stickyIndex] : undefined}
+            onLayout={
+              onViewportHeight
+                ? ({ nativeEvent }) =>
+                    onViewportHeight(nativeEvent.layout.height)
+                : undefined
+            }
             automaticallyAdjustKeyboardInsets
             scrollEventThrottle={onNearEnd ? 100 : undefined}
             onScroll={
@@ -92,9 +119,13 @@ export function Screen({
             {body}
           </ScrollView>
         ) : header ? (
-          <View style={{ flex: 1 }}>{body}</View>
+          <View style={{ flex: 1, backgroundColor: colors.paper }}>
+            {body}
+          </View>
         ) : (
-          <View style={[{ flex: 1 }, content]}>{children}</View>
+          <View style={[{ flex: 1, backgroundColor: colors.paper }, content]}>
+            {children}
+          </View>
         )}
         {footer ? (
           <View

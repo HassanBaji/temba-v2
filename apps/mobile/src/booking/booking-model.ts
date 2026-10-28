@@ -1,0 +1,290 @@
+import { describeNextRefundStep } from "@repo/domain/booking-copy";
+import {
+  paymentStatusLabel,
+  type BookingPaymentMethod,
+  type PaymentStatus,
+} from "@repo/domain/booking-payment";
+import { nextRefundStep, type RefundPolicy } from "@repo/domain/booking-refund";
+import {
+  formatDayMonth,
+  formatGameClock,
+  formatGameStart,
+  formatWeekday,
+} from "@repo/domain/format-game-start";
+import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+
+import { sportQuery } from "./book-sport";
+
+const MS_PER_MINUTE = 60_000;
+
+export type PaymentMode = "at_venue" | "online";
+
+export function bookingPath(bookingId: string) {
+  return `/book/bookings/${bookingId}` as const;
+}
+
+export function bookingGamePath(bookingId: string) {
+  return `${bookingPath(bookingId)}/game` as const;
+}
+
+/**
+ * A Booking opened from Profile stays in the Profile stack, so the tab bar
+ * does not switch and Back returns to the list. Payment always runs in Book.
+ */
+export function bookingRowPath(
+  segments: readonly string[],
+  booking: { id: string; status: string },
+) {
+  if (booking.status === "pending_payment") {
+    return `${bookingPath(booking.id)}/payment`;
+  }
+  return segments.includes("profile")
+    ? `/profile/bookings/${booking.id}`
+    : bookingPath(booking.id);
+}
+
+export function bookingsFallback(segments: readonly string[]) {
+  return segments.includes("profile") ? "/profile/bookings" : "/book";
+}
+
+export function venuePath(venueId: string, sport: Sport = DEFAULT_SPORT) {
+  const query = sportQuery(sport);
+  return `/book/venues/${venueId}${query ? `?${query}` : ""}`;
+}
+
+export function venueDetailsPath(venueId: string) {
+  return `/book/venues/${venueId}/details` as const;
+}
+
+export function checkoutPath(
+  venueId: string,
+  startsAt: Date,
+  durationMinutes: number,
+  courtId: string,
+  sport: Sport = DEFAULT_SPORT,
+) {
+  const query = sportQuery(sport);
+  return `/book/venues/${venueId}/checkout?startsAt=${encodeURIComponent(startsAt.toISOString())}&minutes=${durationMinutes}&courtId=${encodeURIComponent(courtId)}${query ? `&${query}` : ""}`;
+}
+
+type DirectionsVenue = {
+  name: string;
+  city: string;
+  latitude: string | null;
+  longitude: string | null;
+};
+
+/** Apple Maps on iOS, Google Maps elsewhere; the name and city when the Venue has no pin. */
+export function directionsUrl(venue: DirectionsVenue, os: string): string {
+  const destination =
+    venue.latitude && venue.longitude
+      ? `${venue.latitude},${venue.longitude}`
+      : `${venue.name}, ${venue.city}`;
+  const encoded = encodeURIComponent(destination);
+  return os === "ios"
+    ? `https://maps.apple.com/?daddr=${encoded}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+}
+
+export function bookingShareMessage(booking: {
+  startsAt: Date;
+  endsAt: Date;
+  venue: { name: string };
+  court: { name: string };
+}): string {
+  return `${booking.court.name} at ${booking.venue.name}, ${formatGameStart(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`;
+}
+
+/** A short reference a Customer can read out at the desk. */
+export function bookingRef(bookingId: string): string {
+  return bookingId.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+export function endsAfter(startsAt: Date, minutes: number): Date {
+  return new Date(startsAt.getTime() + minutes * MS_PER_MINUTE);
+}
+
+export function minutesBetween(startsAt: Date, endsAt: Date): number {
+  return Math.round((endsAt.getTime() - startsAt.getTime()) / MS_PER_MINUTE);
+}
+
+function dayLine(startsAt: Date, now: Date): string {
+  const days = productDaysBetween(now, startsAt);
+  const date = formatDayMonth(startsAt, { weekday: "short" });
+  return days === 0
+    ? `Today, ${date}`
+    : days === 1
+      ? `Tomorrow, ${date}`
+      : date;
+}
+
+/** "Today, Thu 15 Oct / 90 min". */
+export function whenLine(startsAt: Date, minutes: number, now: Date): string {
+  return `${dayLine(startsAt, now)} / ${minutes} min`;
+}
+
+/** "Today, Thu 15 Oct / 7:30 PM to 8:30 PM / 60 min". */
+export function slotLine(startsAt: Date, minutes: number, now: Date): string {
+  const endsAt = endsAfter(startsAt, minutes);
+  return `${dayLine(startsAt, now)} / ${formatGameClock(startsAt)} to ${formatGameClock(endsAt)} / ${minutes} min`;
+}
+
+/** "Tonight / Karbabad Courts / Court 2". */
+export function placeLine(
+  startsAt: Date,
+  venueName: string,
+  courtName: string,
+  now: Date,
+): string {
+  return [relativeDay(startsAt, now), venueName, courtName].join(" / ");
+}
+
+function isEvening(startsAt: Date) {
+  return zonedParts(startsAt).hour >= 17;
+}
+
+/** "Tonight", "Today", "Tomorrow" or "Tue 20 Oct". */
+export function relativeDay(startsAt: Date, now: Date): string {
+  const days = productDaysBetween(now, startsAt);
+  if (days === 0) {
+    return isEvening(startsAt) ? "Tonight" : "Today";
+  }
+  if (days === 1) {
+    return "Tomorrow";
+  }
+  return formatDayMonth(startsAt, { weekday: "short" });
+}
+
+export function untilLabel(endsAt: Date): string {
+  return `to ${formatGameClock(endsAt)}`;
+}
+
+export function bookedHeadline(
+  courtName: string,
+  startsAt: Date,
+  now: Date,
+): string {
+  const days = productDaysBetween(now, startsAt);
+  if (days === 0) {
+    return `${courtName} is yours ${isEvening(startsAt) ? "tonight" : "today"}.`;
+  }
+  if (days === 1) {
+    return `${courtName} is yours tomorrow.`;
+  }
+  return `${courtName} is yours on ${formatWeekday(startsAt, "long")}.`;
+}
+
+export function payButtonLabel(
+  method: BookingPaymentMethod,
+  priceFils: number,
+): string {
+  const price = formatBookingPriceFils(priceFils);
+  return method === "at_venue"
+    ? `Reserve, pay ${price} at venue`
+    : `Pay ${price}`;
+}
+
+const PAYMENT_METHOD_COPY: Record<
+  BookingPaymentMethod,
+  { title: string; detail: string }
+> = {
+  card: { title: "Card", detail: "Visa, Mastercard or Amex" },
+  benefit: { title: "Benefit", detail: "Bahraini debit card and PIN" },
+  benefitpay: {
+    title: "BenefitPay",
+    detail: "You will be directed to the BenefitPay app to complete payment",
+  },
+  apple_pay: { title: "Apple Pay", detail: "Stays in the app" },
+  at_venue: {
+    title: "Pay at the venue",
+    detail: "Settle at the desk when you arrive",
+  },
+};
+
+export function paymentMethod(method: BookingPaymentMethod): {
+  title: string;
+  detail: string;
+} {
+  return PAYMENT_METHOD_COPY[method];
+}
+
+const CHECKOUT_ORDER: readonly BookingPaymentMethod[] = [
+  "apple_pay",
+  "benefit",
+  "benefitpay",
+  "card",
+  "at_venue",
+];
+
+/**
+ * The checkout's choices on this device, wallet first. Apple Pay needs an
+ * Apple device, and an API without the methods list offers its one mode.
+ */
+export function checkoutMethods(
+  payment: { mode: PaymentMode; methods?: readonly BookingPaymentMethod[] },
+  platform: string,
+): BookingPaymentMethod[] {
+  const methods = payment.methods ?? [
+    payment.mode === "online" ? "card" : "at_venue",
+  ];
+  return CHECKOUT_ORDER.filter(
+    (method) =>
+      methods.includes(method) &&
+      (method !== "apple_pay" || platform === "ios"),
+  );
+}
+
+function deadlineLine(deadline: Date, now: Date): string {
+  const days = productDaysBetween(now, deadline);
+  const day =
+    days === 0
+      ? "today"
+      : days === 1
+        ? "tomorrow"
+        : formatDayMonth(deadline, { weekday: "short" });
+  return `${formatGameClock(deadline)} ${day}`;
+}
+
+/**
+ * "Free cancellation until 6:30 PM today.", "Full refund until Tue 18:00, then
+ * 50% refund.", else the policy's first line.
+ */
+export function refundTerms(
+  policy: RefundPolicy,
+  policyLines: readonly string[],
+  startsAt: Date,
+  now: Date,
+): string | null {
+  const step = nextRefundStep(policy, startsAt, now);
+  if (step && step.currentPercent >= 100) {
+    return `Free cancellation until ${deadlineLine(step.deadline, now)}.`;
+  }
+  const line = describeNextRefundStep(step) ?? policyLines[0];
+  return line ? `${line.replace(/\.$/, "")}.` : null;
+}
+
+export function paymentStatusLine(
+  status: PaymentStatus,
+  bookingStatus: string,
+): string {
+  if (status === "pending" && bookingStatus === "confirmed") {
+    return "Pay at the venue";
+  }
+  return paymentStatusLabel(status);
+}
+
+export function cancelConsequence(args: {
+  paymentStatus: PaymentStatus;
+  refundDueFilsNow: number;
+  refundPercentNow: number;
+}): string {
+  if (args.paymentStatus !== "paid") {
+    return "You have not paid for this booking, so there is nothing to refund.";
+  }
+  if (args.refundDueFilsNow <= 0) {
+    return "It is too late for a refund. You will not get any money back.";
+  }
+  return `You'll be refunded ${formatBookingPriceFils(args.refundDueFilsNow)} (${args.refundPercentNow}%).`;
+}

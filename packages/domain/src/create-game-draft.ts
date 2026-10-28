@@ -8,6 +8,7 @@ import {
   type CreateTournamentShape,
 } from "./create-game-flow";
 import { parseDateInputValue } from "./game-window";
+import { DEFAULT_FOOTBALL_SIDE_SIZE, isFootballSideSize } from "./game-shape";
 import { isAssignableDisplayLevelBand, LEVEL_BANDS } from "./level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
@@ -41,6 +42,8 @@ export type CreateGameDraft = {
   nameTouched: boolean;
   isPublic: boolean;
   allowSoloRegister: boolean;
+  sideSize: number;
+  playersAllowed: number;
 };
 
 type DraftStorage = {
@@ -80,6 +83,8 @@ export function initialCreateGameDraft(now: Date): CreateGameDraft {
     nameTouched: false,
     isPublic: false,
     allowSoloRegister: true,
+    sideSize: DEFAULT_FOOTBALL_SIDE_SIZE,
+    playersAllowed: 2 * DEFAULT_FOOTBALL_SIDE_SIZE,
   };
 }
 
@@ -111,6 +116,8 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     nameTouched: draft.nameTouched,
     isPublic: draft.isPublic,
     allowSoloRegister: draft.allowSoloRegister,
+    sideSize: draft.sideSize,
+    playersAllowed: draft.playersAllowed,
   });
 }
 
@@ -151,6 +158,14 @@ export function parseCreateGameDraft(
     record.qualifiersPerPool === undefined
       ? DEFAULT_QUALIFIERS_PER_POOL
       : record.qualifiersPerPool;
+  const sideSize =
+    record.sideSize === undefined
+      ? DEFAULT_FOOTBALL_SIDE_SIZE
+      : record.sideSize;
+  const playersAllowed =
+    record.playersAllowed === undefined
+      ? 2 * DEFAULT_FOOTBALL_SIDE_SIZE
+      : record.playersAllowed;
   const strings = [
     "groupId",
     "venueId",
@@ -181,6 +196,8 @@ export function parseCreateGameDraft(
     !isCount(record.poolCount) ||
     !(record.roundCount === null || isCount(record.roundCount)) ||
     !isCount(qualifiersPerPool) ||
+    !isFootballSideSize(sideSize) ||
+    !isCount(playersAllowed) ||
     parseDateInputValue(record.day as string) === undefined
   ) {
     return null;
@@ -207,6 +224,8 @@ export function parseCreateGameDraft(
     nameTouched: record.nameTouched as boolean,
     isPublic: record.isPublic as boolean,
     allowSoloRegister: record.allowSoloRegister as boolean,
+    sideSize,
+    playersAllowed,
   };
 }
 

@@ -1,3 +1,4 @@
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import type { FriendlyGameDetails } from "@repo/domain/friendly-game-details";
 import {
   isPartnerVacantSideRace,
@@ -31,6 +32,7 @@ import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 
+import { useNow } from "../games/use-now";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
@@ -53,8 +55,11 @@ import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import {
   GameDetailsBar,
   GameDetailsContent,
+  gameHeroModel,
   type DetailsHandlers,
 } from "./details-content";
+import { FootballGameDetails } from "./football-details-screen";
+import { GameHero } from "./game-hero";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
 import {
@@ -104,11 +109,18 @@ function LoadingSkeleton() {
   );
 }
 
-export function GameDetailsScreen({ gameId }: { gameId: string }) {
+export function GameDetailsScreen({
+  gameId,
+  intent,
+}: {
+  gameId: string;
+  intent?: string;
+}) {
   const router = useRouter();
   const segments = useSegments();
   const toast = useToast();
   const utils = api.useUtils();
+  const now = useNow();
   const [refreshing, setRefreshing] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -123,7 +135,8 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
   const data = game.data;
-  const friendly = data != null && isFriendlyGameDetails(data);
+  const football = data != null && isFootballRosterGame(data);
+  const friendly = data != null && !football && isFriendlyGameDetails(data);
   const tournament = data != null && isDrawnTournamentDetails(data);
   const offersPartner = Boolean(
     data &&
@@ -528,6 +541,18 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     ? (userId: string) => router.push(playerPath(segments, userId))
     : undefined;
 
+  if (football) {
+    return (
+      <FootballGameDetails
+        gameId={gameId}
+        game={data}
+        openJoin={intent === "join"}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
+    );
+  }
+
   if (tournament) {
     const details: TournamentDetails = data;
     const firstTeamId = details.eligibleTeams[0]?.id ?? "";
@@ -619,11 +644,26 @@ export function GameDetailsScreen({ gameId }: { gameId: string }) {
     onOpenPlayer,
   };
 
+  const hero = gameHeroModel(details, now);
+
   return (
     <View style={{ flex: 1 }}>
-      <Screen refreshing={refreshing} onRefresh={onRefresh}>
-        {header}
-        {inviteEntry}
+      <Screen
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        statusBarTone={hero?.tone ?? "paper"}
+        header={
+          hero ? (
+            <GameHero model={hero} fallback="/games" actions={inviteEntry} />
+          ) : undefined
+        }
+      >
+        {hero ? null : (
+          <>
+            {header}
+            {inviteEntry}
+          </>
+        )}
         <GameDetailsContent
           game={details}
           handlers={handlers}

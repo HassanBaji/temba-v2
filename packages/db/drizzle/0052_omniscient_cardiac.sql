@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "rated" boolean DEFAULT true NOT NULL;

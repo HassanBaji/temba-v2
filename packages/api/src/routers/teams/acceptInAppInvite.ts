@@ -6,6 +6,8 @@ import { teamMemberInvites } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { teamIsFull, teamRosterRule } from "@repo/domain/team-roster";
+
 import { type db } from "#src/db";
 import { acceptLookup } from "#src/invites/doors";
 import { killTeamOpenSeatDoors } from "#src/teams/helpers/kill-team-open-seat-doors";
@@ -69,7 +71,7 @@ export async function acceptInAppInvite(
     };
   }
 
-  if (memberRows.length >= 2) {
+  if (teamIsFull(memberRows.length, team.sport)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "This Team is full",
@@ -78,7 +80,8 @@ export async function acceptInAppInvite(
 
   const creatorId = memberRows[0]?.userId ?? team.createdBy;
   if (
-    await unorderedPairIsReserved(database, creatorId, args.userId, invite.id)
+    teamRosterRule(team.sport).pairIsUnique &&
+    (await unorderedPairIsReserved(database, creatorId, args.userId, invite.id))
   ) {
     throw new TRPCError({
       code: "CONFLICT",
@@ -99,7 +102,9 @@ export async function acceptInAppInvite(
       });
     }
 
-    await killTeamOpenSeatDoors(tx, team.id);
+    if (teamIsFull(memberRows.length + 1, team.sport)) {
+      await killTeamOpenSeatDoors(tx, team.id);
+    }
   });
 
   return {

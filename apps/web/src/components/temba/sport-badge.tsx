@@ -1,15 +1,12 @@
+import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Badge } from "~/components/ui/badge";
-
-export const SPORT_LABELS = {
-  padel: "Padel",
-  football: "Football",
-} as const;
-
-export type SportValue = keyof typeof SPORT_LABELS;
+import { sportLabel } from "@repo/domain/sport";
 
 export function SportBadge({ sport }: { sport: string }) {
-  const label =
-    sport in SPORT_LABELS ? SPORT_LABELS[sport as SportValue] : sport;
-
-  return <Badge variant="secondary">{label}</Badge>;
+  return (
+    <Badge variant="secondary">
+      <SportGlyph sport={sport} />
+      {sportLabel(sport) ?? sport}
+    </Badge>
+  );
 }

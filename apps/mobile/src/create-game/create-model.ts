@@ -1,7 +1,10 @@
 import {
+  createFlowFirstStep,
   createFlowStepForField,
   applyLevelBoundChange,
   changeCreateDay,
+  changeFootballPlayersAllowed,
+  changeFootballSideSize,
   changeCreateGroup,
   changeCreateVenue,
   openLevelRange,
@@ -23,16 +26,19 @@ import {
 import {
   applyTeamCountChange,
   reclampQualifiersPerPool,
+  validateFootballGameSubmit,
   validateFriendlyGameSubmit,
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
   type CreateSubmitIssue,
 } from "@repo/domain/create-game-submit";
 import type { LevelBandSelectValue } from "@repo/domain/level-range";
+import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
 
 import { splitTrpcFormError } from "../lib/form-error";
 
 export type CreateState = {
+  sport: Sport;
   type: CreateGameTypeId | null;
   step: CreateFlowStep;
   draft: CreateGameDraft;
@@ -41,7 +47,9 @@ export type CreateState = {
 export type CreateAction =
   | { kind: "selectType"; type: CreateGameTypeId }
   | { kind: "setStep"; step: CreateFlowStep }
-  | { kind: "setGroup"; groupId: string }
+  | { kind: "setGroup"; groupId: string; sport?: string | null }
+  | { kind: "setSideSize"; sideSize: number }
+  | { kind: "setPlayersAllowed"; playersAllowed: number }
   | { kind: "setVenue"; venueId: string }
   | { kind: "setCourt"; courtId: string }
   | { kind: "toggleCourt"; courtId: string }
@@ -72,6 +80,7 @@ export function initialCreateState(
   type: CreateGameTypeId | null = null,
 ): CreateState {
   return {
+    sport: DEFAULT_SPORT,
     type,
     step: type ? 2 : 1,
     draft: { ...initialCreateGameDraft(now), groupId: groupId ?? "" },
@@ -93,6 +102,7 @@ export function createReducer(
         return { ...state, step: 1 };
       }
       return {
+        sport: state.sport,
         type: action.type,
         step: 1,
         draft: resetCreateBranch(draft, action.type),
@@ -100,8 +110,35 @@ export function createReducer(
     }
     case "setStep":
       return { ...state, step: action.step };
-    case "setGroup":
-      return { ...state, draft: changeCreateGroup(draft, action.groupId) };
+    case "setGroup": {
+      const sport = sportOrDefault(action.sport);
+      const grouped = changeCreateGroup(draft, action.groupId);
+      if (sport !== "football") {
+        return { ...state, sport, draft: grouped };
+      }
+      return {
+        sport,
+        type: "friendly_game",
+        step: Math.max(
+          state.step,
+          createFlowFirstStep(sport),
+        ) as CreateFlowStep,
+        draft:
+          state.type === "friendly_game"
+            ? grouped
+            : resetCreateBranch(grouped, "friendly_game"),
+      };
+    }
+    case "setSideSize":
+      return {
+        ...state,
+        draft: changeFootballSideSize(draft, action.sideSize),
+      };
+    case "setPlayersAllowed":
+      return {
+        ...state,
+        draft: changeFootballPlayersAllowed(draft, action.playersAllowed),
+      };
     case "setVenue":
       return { ...state, draft: changeCreateVenue(draft, action.venueId) };
     case "setCourt":
@@ -274,6 +311,13 @@ export function continueBlocked(state: CreateState): boolean {
 
 export type SubmitRequest =
   | {
+      kind: "football_game";
+      input: Extract<
+        ReturnType<typeof validateFootballGameSubmit>,
+        { ok: true }
+      >["input"];
+    }
+  | {
       kind: "friendly_game";
       input: Extract<
         ReturnType<typeof validateFriendlyGameSubmit>,
@@ -292,20 +336,34 @@ export type SubmitResult =
   | { ok: true; request: SubmitRequest }
   | { ok: false; step: CreateFlowStep; errors: FieldErrors };
 
-export function submitRequest(state: CreateState, now: Date): SubmitResult {
+export function submitRequest(
+  state: CreateState,
+  now: Date,
+  groupVerified: boolean,
+): SubmitResult {
   const issueResult = (issue: CreateSubmitIssue): SubmitResult => ({
     ok: false,
     step: issue.step,
     errors: { [issue.field]: issue.message },
   });
   if (state.type === "friendly_tournament") {
-    const result = validateFriendlyTournamentSubmit(state.draft, now);
+    const result = validateFriendlyTournamentSubmit(
+      state.draft,
+      now,
+      groupVerified,
+    );
     return result.ok
       ? {
           ok: true,
           request: { kind: "friendly_tournament", input: result.input },
         }
       : issueResult(result);
+  }
+  if (state.sport === "football") {
+    const football = validateFootballGameSubmit(state.draft, now);
+    return football.ok
+      ? { ok: true, request: { kind: "football_game", input: football.input } }
+      : issueResult(football);
   }
   const result = validateFriendlyGameSubmit(state.draft, now);
   return result.ok

@@ -1,0 +1,27 @@
+{
+  "id": "chg_TS02A5320262230Q2D81012822",
+  "object": "charge",
+  "live_mode": false,
+  "amount": 12.5,
+  "currency": "BHD",
+  "status": "DECLINED",
+  "response": { "code": "501", "message": "Declined, Do not honor" },
+  "source": {
+    "object": "source",
+    "type": "CARD_NOT_PRESENT",
+    "payment_type": "CREDIT",
+    "payment_method": "MASTERCARD",
+    "channel": "INTERNET"
+  },
+  "transaction": {
+    "url": "https://checkout.tap.company/?mode=page&charge_id=chg_TS02A5320262230Q2D81012822",
+    "created": "1790000000000"
+  },
+  "reference": {
+    "gateway": "gw_123",
+    "payment": "pmt_456",
+    "transaction": "pay_1",
+    "order": "ord_1"
+  },
+  "metadata": { "paymentId": "pay_1" }
+}

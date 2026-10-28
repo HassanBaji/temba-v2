@@ -34,6 +34,13 @@ export async function requestVenueLink(
     frozenMessage: "Cannot request a Venue link for an archived Community",
   });
 
+  if (community.isVenueCommunity) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A Venue Community is already linked to its Venue",
+    });
+  }
+
   if (community.venueId) {
     throw new TRPCError({
       code: "BAD_REQUEST",

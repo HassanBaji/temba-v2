@@ -5,10 +5,16 @@ import {
   GROUP_ARCHIVE_GAMES_COPY,
   groupGamesEmptyDescription,
 } from "@repo/domain/group-join";
+import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 
+import { FootballGameCard } from "../games/football-game-card";
 import { GameCard, type GameCardActions } from "../games/game-card";
-import { hubItems } from "../games/games-model";
+import {
+  footballJoinPath,
+  footballScorePath,
+  hubItems,
+} from "../games/games-model";
 import { TournamentCard } from "../games/tournament-cards";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -95,6 +101,14 @@ function PlayedRow({
 
 export function GamesTab(props: GamesTabProps) {
   const { upcomingGames, playedGames, actions } = props;
+  const router = useRouter();
+  const footballActions = {
+    onOpen: actions.onOpen,
+    onJoinWaitlist: actions.onJoinWaitlist,
+    onJoin: (gameId: string) => router.push(footballJoinPath(gameId)),
+    onEnterScore: (gameId: string) => router.push(footballScorePath(gameId)),
+    onConfirm: (gameId: string) => actions.onOpen(gameId),
+  };
 
   if (upcomingGames.length === 0 && playedGames.length === 0) {
     return (
@@ -117,6 +131,16 @@ export function GamesTab(props: GamesTabProps) {
           <View style={{ gap: 12 }}>
             {hubItems(upcomingGames).map((item) => {
               const pending = props.pendingGameId === item.game.id;
+              if (item.kind === "football") {
+                return (
+                  <FootballGameCard
+                    key={item.key}
+                    game={item.game}
+                    pending={pending}
+                    actions={footballActions}
+                  />
+                );
+              }
               return item.kind === "game" ? (
                 <GameCard
                   key={item.key}

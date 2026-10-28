@@ -27,6 +27,8 @@ import {
   groupHomeSportLabel,
 } from "./group-home-chrome";
 import { requestRowMeta } from "./request-meta";
+import { isSport } from "./sport";
+import { teamSeatsToComplete } from "./team-roster";
 
 export const COMMUNITIES_TITLE = "Communities";
 export const COMMUNITIES_ERROR_TITLE = "Communities could not be loaded";
@@ -103,7 +105,7 @@ export const COMMUNITY_START_CLUB_GROUP_COPY = {
 };
 
 export const COMMUNITY_CREATE_CLUB_GROUP_DESCRIPTION =
-  "A padel Group inside this Community.";
+  "A Group inside this Community.";
 
 export const COMMUNITY_NO_GROUPS_EMPTY = {
   title: "No Groups yet",
@@ -315,11 +317,10 @@ export type CommunityHomeActions = {
 
 export function communityHomeActions(
   data: CommunityHomeData,
-  hasCreateAccess: boolean,
 ): CommunityHomeActions {
   return {
     canInvite: communityCanInvite(data),
-    canCreateClubGroup: hasCreateAccess && data.canCreateClubGroup,
+    canCreateClubGroup: data.canCreateClubGroup,
     canUnarchive: data.canUnarchive,
     canLeave: communityIsMember(data),
     canSoftArchive: data.canSoftArchive,
@@ -441,7 +442,10 @@ export function communityTeamRow(team: CommunityTeamData) {
     displayName: team.displayName,
     sport: groupHomeSportLabel(team.sport),
     people: team.members,
-    openSeats: team.members.length < 2 ? 1 : 0,
+    openSeats: teamSeatsToComplete(
+      team.members.length,
+      isSport(team.sport) ? team.sport : "padel",
+    ),
   };
 }
 
@@ -550,7 +554,7 @@ export function communityLiveVenueRow(venue: CommunityLiveVenueData) {
 
 export const COMMUNITY_CREATE_NOT_AVAILABLE = {
   title: "Creating is limited",
-  description: "New Communities, Groups, and Games are set up by Temba staff.",
+  description: "New Communities are set up by Temba staff.",
 };
 
 export function communityTabLabel(tab: CommunityHomeTab, requestCount: number) {

@@ -15,6 +15,8 @@ import {
   type MatchSlotMember,
 } from "@repo/domain/match-slots";
 import { gameListTime, isGameLive } from "#src/home/upcoming-games";
+import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 
 export type MatchHistoryMember = MatchSlotMember;
 
@@ -22,6 +24,7 @@ export type MatchHistoryRow = {
   id: string;
   name: string | null;
   format: string;
+  sport: Sport;
   venue: { name: string };
   displayTime: Date;
   matchId: string;
@@ -32,6 +35,7 @@ export type MatchHistoryRow = {
   /** Slot the signed-in User sat on, so cards can read scores as us-vs-them. */
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
+  rated: boolean;
 };
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -39,6 +43,7 @@ const DEFAULT_PAGE_SIZE = 20;
 const historyPageInput = z
   .object({
     limit: z.number().int().min(1).max(100).default(DEFAULT_PAGE_SIZE),
+    sport: sportSchema.optional(),
     cursor: z
       .object({ displayTime: z.date(), matchId: z.string().uuid() })
       .optional(),
@@ -101,11 +106,13 @@ export async function listMyMatchHistoryRows(
           id: true,
           name: true,
           format: true,
+          sport: true,
           groupId: true,
           cancelledAt: true,
           windowStart: true,
           windowEnd: true,
           createdAt: true,
+          rated: true,
         },
         with: {
           group: {
@@ -190,6 +197,10 @@ export async function listMyMatchHistoryRows(
     if (game.cancelledAt != null) {
       continue;
     }
+    const sport = sportOrDefault(game.sport);
+    if (page?.sport && page.sport !== sport) {
+      continue;
+    }
     if (
       game.format === "friendly_game" &&
       isGameLive(
@@ -252,6 +263,7 @@ export async function listMyMatchHistoryRows(
         id: game.id,
         name: game.name,
         format: game.format,
+        sport,
         venue: { name: venueName },
         displayTime: chosen.displayTime,
         matchId: chosen.match.id,
@@ -261,6 +273,7 @@ export async function listMyMatchHistoryRows(
         scoredSets: scoredSetsFromMatch(chosen.match.sets),
         viewerSlot: chosen.userSlot,
         outcome: chosen.outcome,
+        rated: game.rated,
       });
     }
   }

@@ -5,10 +5,16 @@ import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  gameCourts,
   games,
   matches,
   matchSets,
 } from "@repo/db";
+
+import {
+  footballPlayersAllowedBounds,
+  isFootballSideSize,
+} from "@repo/domain/game-shape";
 
 import { type db } from "#src/db";
 import {
@@ -18,6 +24,7 @@ import {
 import { assertGameCreateVenueAndCourt } from "#src/games/assert-game-create-venue-and-court";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import type {
+  CreateFootballGameInput,
   CreateFriendlyDb,
   CreateFriendlyGameInput,
   CreateFriendlyGameResult,
@@ -30,6 +37,73 @@ export type {
 } from "#src/games/utils";
 
 export const FRIENDLY_SET_SHELL_COUNT = 3;
+
+export async function createFootballGame(
+  database: CreateFriendlyDb,
+  input: CreateFootballGameInput,
+) {
+  if (!isFootballSideSize(input.sideSize)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Side size must be 5, 6, 7, 8, 9 or 11",
+    });
+  }
+  const bounds = footballPlayersAllowedBounds(input.sideSize);
+  if (
+    !Number.isInteger(input.playersAllowed) ||
+    input.playersAllowed < bounds.min ||
+    input.playersAllowed > bounds.max
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+    });
+  }
+  await assertGameCreateVenueAndCourt(writeDb(database), {
+    groupId: input.groupId ?? undefined,
+    venueId: input.venueId,
+    courtId: input.courtId,
+    sport: "football",
+  });
+
+  return writeDb(database).transaction(async (tx) => {
+    const [game] = await tx
+      .insert(games)
+      .values({
+        name: input.name && input.name.length > 0 ? input.name : null,
+        format: GameFormatEnum.FRIENDLY_GAME,
+        registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
+        groupId: input.groupId,
+        venueId: input.venueId,
+        isPublic: false,
+        windowStart: input.windowStart,
+        windowEnd: input.windowEnd,
+        playersAllowed: input.playersAllowed,
+        teamsAllowed: null,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        sport: GameSportEnum.Football,
+        sideSize: input.sideSize,
+        rated: false,
+        createdBy: input.createdBy,
+      })
+      .returning();
+
+    if (!game) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create Game",
+      });
+    }
+
+    if (input.courtId) {
+      await tx
+        .insert(gameCourts)
+        .values({ gameId: game.id, courtId: input.courtId });
+    }
+
+    return { game };
+  });
+}
 
 function writeDb(database: CreateFriendlyDb): typeof db {
   return database as typeof db;
@@ -74,7 +148,7 @@ export async function createFriendlyGame(
 ): Promise<CreateFriendlyGameResult> {
   await backfillFriendlySetShells(database);
   await assertGameCreateVenueAndCourt(writeDb(database), {
-    groupId: input.groupId,
+    groupId: input.groupId ?? undefined,
     venueId: input.venueId,
     courtId: input.courtId,
   });
@@ -104,6 +178,7 @@ export async function createFriendlyGame(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        rated: input.rated ?? true,
         createdBy: input.createdBy,
       })
       .returning();

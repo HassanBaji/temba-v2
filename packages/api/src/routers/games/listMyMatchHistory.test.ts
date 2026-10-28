@@ -5,6 +5,7 @@ import {
   GameFormatEnum,
   GamePositionEnum,
   GameRegistrationModeEnum,
+  GameSportEnum,
   MatchStatusEnum,
   communities,
   gamePlayers,
@@ -65,6 +66,7 @@ async function insertGame(
     venueId: string;
     name?: string | null;
     format?: (typeof GameFormatEnum)[keyof typeof GameFormatEnum];
+    sport?: (typeof GameSportEnum)[keyof typeof GameSportEnum];
     groupId?: string | null;
     windowStart?: Date | null;
     windowEnd?: Date | null;
@@ -76,6 +78,8 @@ async function insertGame(
     .values({
       name: args.name ?? "Friendly night",
       format: args.format ?? GameFormatEnum.FRIENDLY_GAME,
+      sport: args.sport ?? GameSportEnum.PADEL,
+      sideSize: args.sport === GameSportEnum.Football ? 5 : null,
       registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
       venueId: args.venueId,
       createdBy: args.createdBy,
@@ -727,6 +731,63 @@ describe("listMyMatchHistoryRows pagination", () => {
         cursor: { displayTime: last.displayTime, matchId: last.matchId },
       });
       expect(next).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("listMyMatchHistoryRows by sport", () => {
+  it("tags each row with its sport and filters by sport", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "sport-viewer@example.com");
+      const partner = await insertUser(db, "sport-partner@example.com");
+      const oppLeft = await insertUser(db, "sport-opp-left@example.com");
+      const oppRight = await insertUser(db, "sport-opp-right@example.com");
+      const venue = await insertVenue(db);
+
+      const padel = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        name: "Padel loss",
+      });
+      await seatCompletedFriendly(db, {
+        gameId: padel.game.id,
+        matchId: padel.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 2, slot2GamesWon: 6 }],
+      });
+
+      const football = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        name: "Football win",
+        sport: GameSportEnum.Football,
+      });
+      await seatCompletedFriendly(db, {
+        gameId: football.game.id,
+        matchId: football.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 3, slot2GamesWon: 1 }],
+        startTime: new Date("2026-08-02T18:00:00.000Z"),
+      });
+
+      const all = await listMyMatchHistoryRows(db, viewer.id, NOW, {
+        limit: 10,
+      });
+      expect(all.map((row) => [row.name, row.sport])).toEqual([
+        ["Football win", "football"],
+        ["Padel loss", "padel"],
+      ]);
+
+      const onlyFootball = await listMyMatchHistoryRows(db, viewer.id, NOW, {
+        limit: 10,
+        sport: "football",
+      });
+      expect(onlyFootball.map((row) => row.outcome)).toEqual(["won"]);
     } finally {
       await close();
     }

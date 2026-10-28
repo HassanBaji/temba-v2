@@ -80,13 +80,24 @@ export function createCreateGameFixtures(
   return {
     now,
     groups: [
-      { id: "group-friends", name: "Friday Padel", communityName: null },
+      {
+        id: "group-friends",
+        name: "Friday Padel",
+        communityName: null,
+        verified: true,
+      },
       {
         id: "group-club",
         name: null,
         communityName: "Seef Padel Club",
+        verified: true,
       },
-      { id: "group-juniors", name: "Weekend Juniors", communityName: null },
+      {
+        id: "group-juniors",
+        name: "Weekend Juniors",
+        communityName: null,
+        verified: true,
+      },
     ],
     pickers: {
       loose: {

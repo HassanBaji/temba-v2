@@ -15,6 +15,7 @@
 import { eq, inArray, sql } from "drizzle-orm";
 
 import {
+  bookings,
   communityMemberInvites,
   gameTeamPlayers,
   games,
@@ -29,6 +30,12 @@ import {
 } from "@repo/db";
 
 import { db } from "#src/db";
+
+import { settlePayment } from "#src/bookings/payments";
+import { setJobSink } from "#src/jobs/enqueue";
+import { cancelMyBooking } from "#src/routers/bookings/cancel";
+import { createBooking } from "#src/routers/bookings/create";
+import { createBookingGame } from "#src/routers/bookings/createGame";
 
 import { approveTeamLink } from "#src/routers/communities/approveTeamLink";
 import { createCommunity } from "#src/routers/communities/create";
@@ -71,13 +78,22 @@ import { inviteInApp } from "#src/routers/teams/inviteInApp";
 import { requestLink as requestTeamLink } from "#src/routers/teams/requestLink";
 import { markOnboardingComplete } from "#src/routers/users/completeOnboarding";
 import { writePreferredPosition } from "#src/routers/users/setPreferredPosition";
+import { acceptLinkRequest as acceptGroupLinkRequest } from "#src/routers/groups/acceptLinkRequest";
 import { addCourt } from "#src/routers/venues/addCourt";
+import { addManager as addVenueManager } from "#src/routers/venues/addManager";
 import { approveLinkRequest as approveVenueLinkRequest } from "#src/routers/venues/approveLinkRequest";
 import { createVenue } from "#src/routers/venues/create";
+import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
 import { rejectLinkRequest as rejectVenueLinkRequest } from "#src/routers/venues/rejectLinkRequest";
+import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
+import { setPricingRules } from "#src/routers/venues/setPricingRules";
 import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive";
+import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
+import { updateCancellationPolicy } from "#src/routers/venues/updateCancellationPolicy";
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
+import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
+import type { Sport } from "@repo/domain/sport";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
 
@@ -320,6 +336,7 @@ async function seedVenues() {
     city: string,
     country: string,
     courtNames: string[],
+    sport: Sport = "padel",
   ) => {
     const created = await createVenue(db, { name, city, country });
     const courtIds: string[] = [];
@@ -327,6 +344,8 @@ async function seedVenues() {
       const court = await addCourt(db, {
         venueId: created.id,
         name: courtName,
+        sport,
+        actor: { userId: "seed", publicMetadata: { operator: true } },
       });
       courtIds.push(court.id);
     }
@@ -339,6 +358,62 @@ async function seedVenues() {
     "Court 3",
     "Court 4",
   ]);
+  const operator = { userId: "seed", publicMetadata: { operator: true } };
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    await setOpeningHours(db, {
+      venueId: central.id,
+      weekday,
+      windows:
+        weekday === 5
+          ? []
+          : [
+              { opensAtMinutes: 8 * 60, closesAtMinutes: 14 * 60 },
+              { opensAtMinutes: 16 * 60, closesAtMinutes: 23 * 60 },
+            ],
+      actor: operator,
+    });
+  }
+  await setPricingRules(db, {
+    venueId: central.id,
+    rules: [
+      {
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        startMinutes: 0,
+        endMinutes: 17 * 60,
+        hourlyRateFils: 10_000,
+        label: "Off-peak",
+      },
+      {
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        startMinutes: 17 * 60,
+        endMinutes: 24 * 60,
+        hourlyRateFils: 16_000,
+        label: "Peak",
+      },
+    ],
+    actor: operator,
+  });
+  await updateCancellationPolicy(db, {
+    venueId: central.id,
+    policy: {
+      tiers: [
+        { hoursBefore: 48, refundPercent: 100 },
+        { hoursBefore: 12, refundPercent: 50 },
+      ],
+      lateRefundPercent: 0,
+      customerCancelUntilMinutes: 60,
+    },
+    actor: operator,
+  });
+  await updateBookingSettings(db, {
+    venueId: central.id,
+    acceptingBookings: true,
+    durationOptionsMinutes: [60, 90, 120],
+    bookingHorizonDays: 21,
+    description: "Four indoor padel courts in central Lisbon.",
+    bookingNotes: "Reception is on the first floor.",
+    actor: operator,
+  });
   const riverside = await venue("Riverside Padel", "Lisbon", "PT", [
     "Panoramic",
     "Court B",
@@ -348,10 +423,172 @@ async function seedVenues() {
     "Court 2",
     "Court 3",
   ]);
+  const pitches = await venue(
+    "Matchday Pitches",
+    "Lisbon",
+    "PT",
+    ["Pitch A", "Pitch B"],
+    "football",
+  );
+  const pitchHours = [{ opensAtMinutes: 8 * 60, closesAtMinutes: 23 * 60 }];
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    await setOpeningHours(db, {
+      venueId: pitches.id,
+      weekday,
+      windows: pitchHours,
+      actor: operator,
+    });
+  }
+  await setPricingRules(db, {
+    venueId: pitches.id,
+    rules: pitches.courtIds.map((courtId) => ({
+      courtId,
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      startMinutes: 0,
+      endMinutes: 24 * 60,
+      hourlyRateFils: 30_000,
+      label: "All day",
+    })),
+    actor: operator,
+  });
+  await updateBookingSettings(db, {
+    venueId: pitches.id,
+    acceptingBookings: true,
+    durationOptionsMinutes: [60, 90],
+    bookingHorizonDays: 21,
+    actor: operator,
+  });
   const oldTown = await venue("Old Town Arena", "Lisbon", "PT", ["Court 1"]);
   await softArchiveVenue(db, { venueId: oldTown.id });
 
-  return { central, riverside, harbour, oldTown };
+  const skyline = await venue("Skyline Padel", "Lisbon", "PT", ["Court 1"]);
+  const bay = await venue("Bay Padel", "Porto", "PT", ["Court 1", "Court 2"]);
+
+  return { central, riverside, harbour, pitches, oldTown, skyline, bay };
+}
+
+// ---------------------------------------------------------------------------
+// Bookings
+// ---------------------------------------------------------------------------
+
+async function seedBookings(u: Users, v: Venues) {
+  // The graphile_worker schema only exists once the API worker has booted.
+  setJobSink({ add: () => Promise.resolve(), remove: () => Promise.resolve() });
+
+  const FRIDAY = 5;
+  const now = new Date();
+
+  const hourOn = (dayOffset: number, hour: number) => {
+    let offset = dayOffset;
+    const weekdayOf = (days: number) => {
+      const { year, month, day } = zonedParts(addProductDays(now, days));
+      return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    };
+    while (dayOffset > 0 && weekdayOf(offset) === FRIDAY) offset += 1;
+    return new Date(
+      addProductDays(now, offset).getTime() + hour * 60 * 60 * 1000,
+    );
+  };
+
+  const [court1, court2] = v.central.courtIds;
+  const venue = await db.query.venues.findFirst({
+    where: eq(venues.id, v.central.id),
+    columns: { cancellationPolicy: true },
+  });
+  if (!court1 || !court2 || !venue) throw new Error("Central Venue missing");
+
+  const book = (
+    userKey: string,
+    courtId: string,
+    dayOffset: number,
+    hour: number,
+    durationMinutes: number,
+  ) =>
+    createBooking(db, {
+      venueId: v.central.id,
+      courtId,
+      userId: u[userKey]!.id,
+      startsAt: hourOn(dayOffset, hour),
+      durationMinutes,
+      now,
+    });
+
+  await book("me", court1, 2, 18, 60);
+  const yusufs = await createBooking(db, {
+    venueId: v.central.id,
+    courtId: court2,
+    userId: u.yusuf!.id,
+    startsAt: hourOn(2, 17),
+    durationMinutes: 90,
+    paymentMethod: "at_venue",
+    now,
+  });
+  const bookingGame = await createBookingGame(db, {
+    bookingId: yusufs.booking.id,
+    userId: u.yusuf!.id,
+    pricePerPlayerFils: Math.ceil(yusufs.booking.priceFils / 4),
+    now,
+  });
+  await sendGameLookupInvite(db, {
+    gameId: bookingGame.gameId,
+    userId: u.yusuf!.id,
+    userIds: [u.me!.id],
+  });
+  const paid = await book("lina", court1, 3, 9, 60);
+  await settlePayment(db, {
+    bookingId: paid.booking.id,
+    outcome: "paid",
+    method: "cash",
+    actorUserId: u.me!.id,
+    amountFils: paid.booking.priceFils,
+    now,
+  });
+  const dropped = await book("omar", court2, 4, 18, 60);
+  await cancelMyBooking(db, {
+    bookingId: dropped.booking.id,
+    userId: u.omar!.id,
+    now,
+  });
+
+  const past = async (
+    userKey: string,
+    courtId: string,
+    dayOffset: number,
+    hour: number,
+    status: "confirmed" | "no_show",
+    paymentStatus: "paid" | "pending",
+  ) => {
+    const [row] = await db
+      .insert(bookings)
+      .values({
+        venueId: v.central.id,
+        courtId,
+        userId: u[userKey]!.id,
+        startsAt: hourOn(dayOffset, hour),
+        endsAt: hourOn(dayOffset, hour + 1),
+        status,
+        noShowAt: status === "no_show" ? hourOn(dayOffset, hour + 1) : null,
+        source: "app",
+        priceFils: 16_000,
+        cancellationPolicy: venue.cancellationPolicy,
+        createdByUserId: u[userKey]!.id,
+      })
+      .returning({ id: bookings.id });
+    if (paymentStatus === "paid") {
+      await settlePayment(db, {
+        bookingId: row!.id,
+        outcome: "paid",
+        method: "card",
+        actorUserId: u[userKey]!.id,
+        amountFils: 16_000,
+        now,
+      });
+    }
+  };
+
+  await past("me", court1, -5, 18, "confirmed", "paid");
+  await past("maya", court2, -2, 18, "confirmed", "paid");
+  await past("tom", court1, -3, 19, "no_show", "pending");
 }
 
 // ---------------------------------------------------------------------------
@@ -671,6 +908,17 @@ async function seedGroups(u: Users, c: Communities) {
   });
   await joinClubPublic(db, { groupId: portoOpen.id, userId: u.marco!.id });
 
+  // Loose Group Public for football; its Games are rosters.
+  const fiveASide = await createLoosePublic(db, {
+    name: "Sunday Five-a-side",
+    description: "Pickup football on pitches. Come as you are.",
+    sport: "football",
+    userId: u.tom!.id,
+  });
+  for (const key of ["me", "omar", "maya", "diego", "ben", "jonas"]) {
+    await joinLoosePublic(db, { groupId: fiveASide.id, userId: u[key]!.id });
+  }
+
   // Loose Group Private that Sam has a pending Lookup invite to.
   const secret = await createLoosePrivate(db, {
     name: "Thursday Doubles",
@@ -693,6 +941,7 @@ async function seedGroups(u: Users, c: Communities) {
     beach,
     earlyBirds,
     portoOpen,
+    fiveASide,
     secret,
   };
 }
@@ -702,10 +951,14 @@ async function seedGroups(u: Users, c: Communities) {
 // ---------------------------------------------------------------------------
 
 async function seedTeams(u: Users, c: Communities) {
-  const make = async (ownerKey: string, name: string | undefined) =>
+  const make = async (
+    ownerKey: string,
+    name: string | undefined,
+    sport: "padel" | "football" = "padel",
+  ) =>
     createTeam(db, {
       name,
-      sport: "padel",
+      sport,
       userId: u[ownerKey]!.id,
       userName: u[ownerKey]!.name,
     });
@@ -761,7 +1014,16 @@ async function seedTeams(u: Users, c: Communities) {
     userId: u.yusuf!.id,
   });
 
-  return { smash, netRunners, lobs, duo, rally };
+  const squad = await make("tom", "Sunday Seven", "football");
+  for (const memberKey of ["emma", "jonas", "aisha", "marco", "hana"]) {
+    const squadInvite = await invite(squad.id, "tom", memberKey);
+    await acceptInAppInvite(db, {
+      inviteId: squadInvite.id,
+      userId: u[memberKey]!.id,
+    });
+  }
+
+  return { smash, netRunners, lobs, duo, rally, squad };
 }
 
 // ---------------------------------------------------------------------------
@@ -1159,6 +1421,26 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
   });
   await cancelGame(db, { gameId: cancelled.id, userId: u.me!.id });
 
+  // --- Football Game: a roster, no seats ---
+  const pitchGame = await createGame(db, {
+    createdBy: u.tom!.id,
+    name: "Sunday five-a-side",
+    groupId: g.fiveASide.id,
+    isPublic: false,
+    format: "friendly_game",
+    registrationMode: "individual",
+    sideSize: 5,
+    playersAllowed: 12,
+    windowStart: at(5, 19),
+    windowEnd: at(5, 20),
+    venueId: v.pitches.id,
+    courtId: v.pitches.courtIds[0]!,
+    pricePerPlayerFils: 3000,
+  });
+  for (const key of ["tom", "me", "omar", "maya", "diego", "ben", "jonas"]) {
+    await register(db, { gameId: pitchGame.id, userId: u[key]!.id });
+  }
+
   // --- Americano ---
   const americano = await createGame(db, {
     createdBy: u.me!.id,
@@ -1365,6 +1647,42 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Group link requests
+// ---------------------------------------------------------------------------
+
+async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
+  const manage = async (venueId: string, key: string) => {
+    await addVenueManager(db, {
+      venueId,
+      userId: u[key]!.id,
+      grantedByUserId: u.me!.id,
+    });
+    return {
+      userId: u[key]!.id,
+      publicMetadata: undefined,
+    };
+  };
+
+  const skylineManager = await manage(v.skyline.id, "zara");
+  await sendGroupLinkRequest(db, {
+    venueId: v.skyline.id,
+    groupId: g.friday.id,
+    actor: skylineManager,
+  });
+
+  const bayManager = await manage(v.bay.id, "aisha");
+  const request = await sendGroupLinkRequest(db, {
+    venueId: v.bay.id,
+    groupId: g.beach.id,
+    actor: bayManager,
+  });
+  await acceptGroupLinkRequest(db, {
+    requestId: request.id,
+    userId: u.aisha!.id,
+  });
+}
+
 async function main() {
   assertLocalDatabase();
   console.log("Wiping local database…");
@@ -1376,6 +1694,8 @@ async function main() {
   const g = await step("groups", () => seedGroups(u, c));
   await step("teams", () => seedTeams(u, c));
   await step("games", () => seedGames(u, g, v));
+  await step("bookings", () => seedBookings(u, v));
+  await step("group links", () => seedGroupLinks(u, v, g));
 
   const counts = await db.execute<{ table: string; rows: number }>(sql`
     select 'users' as table, count(*)::int as rows from ${user}

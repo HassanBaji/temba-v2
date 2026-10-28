@@ -18,6 +18,7 @@ export type GroupPublicRowData = {
   id: string;
   name: string | null;
   imageUrl: string | null;
+  sport: string | null;
   communityName: string | null;
   memberCount: number;
   requiresApproval: boolean;
@@ -89,6 +90,10 @@ export type GroupHomeData = {
   canManageLookupInvites: boolean;
   canManageInviteLinks: boolean;
   requiresApproval: boolean;
+  verified: boolean;
+  venueCommunity: { venueId: string; venueName: string } | null;
+  pendingLinkRequestCount: number | null;
+  canUnlinkFromVenue: boolean;
   canSetRequiresApproval: boolean;
   canDecideJoinRequests: boolean;
   canManageImage: boolean;

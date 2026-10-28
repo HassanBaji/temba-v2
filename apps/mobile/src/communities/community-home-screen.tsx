@@ -1,4 +1,3 @@
-import { useUser } from "@clerk/expo";
 import {
   COMMUNITY_ARCHIVED_TOAST,
   COMMUNITY_ERROR_TITLE,
@@ -29,6 +28,11 @@ import {
   type CommunityRoleChange,
   type CommunityRoleValue,
 } from "@repo/domain/community-role-change";
+import {
+  COMMUNITY_SPORT_ADDED_TOAST,
+  COMMUNITY_SPORT_REMOVED_TOAST,
+} from "@repo/domain/community-sports";
+import type { Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -51,11 +55,9 @@ import { CommunityHomeView } from "./community-home-view";
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function CommunityHomeScreen({ communityId }: { communityId: string }) {
-  const { user } = useUser();
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
-  const hasCreateAccess = user?.publicMetadata.groupCreator === true;
   const [tab, setTab] = useState<CommunityHomeTab>("groups");
   const [refreshing, setRefreshing] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -64,6 +66,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   const [memberQuery, setMemberQuery] = useState("");
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingSport, setPendingSport] = useState<Sport | null>(null);
 
   const community = api.communities.byId.useQuery(
     { id: communityId },
@@ -212,6 +215,23 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
     onError: failed,
   });
 
+  const addSport = api.communities.addSport.useMutation({
+    onSuccess: async () => {
+      toast.show(COMMUNITY_SPORT_ADDED_TOAST);
+      await refreshHome();
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setPendingSport(null),
+  });
+  const removeSport = api.communities.removeSport.useMutation({
+    onSuccess: async () => {
+      toast.show(COMMUNITY_SPORT_REMOVED_TOAST);
+      await refreshHome();
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setPendingSport(null),
+  });
+
   const setMemberRole = api.communities.setMemberRole.useMutation({
     onSuccess: async (result) => {
       toast.show(communityRoleUpdatedToast(result.role));
@@ -292,7 +312,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
     );
   }
 
-  const actions = communityHomeActions(data, hasCreateAccess);
+  const actions = communityHomeActions(data);
   const mutating = (pending: boolean, id: string | undefined) =>
     pending ? (id ?? null) : null;
 
@@ -301,7 +321,6 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
       <CommunityHomeView
         data={data}
         apiOrigin={apiOrigin}
-        hasCreateAccess={hasCreateAccess}
         tab={tab}
         onTabChange={setTab}
         requestCount={communityRequestCount({
@@ -384,6 +403,17 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
           onRejectTeam: (requestId) => rejectTeam.mutate({ requestId }),
           onRetryJoin: () => void joinRequests.refetch(),
           onRetryTeam: () => void teamLinkRequests.refetch(),
+        }}
+        sportsBlock={{
+          pendingSport,
+          onAdd: (sport) => {
+            setPendingSport(sport);
+            addSport.mutate({ communityId, sport });
+          },
+          onRemove: (sport) => {
+            setPendingSport(sport);
+            removeSport.mutate({ communityId, sport });
+          },
         }}
         venueSheet={{
           visible: venueOpen,

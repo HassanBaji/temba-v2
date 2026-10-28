@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
-import { deleteS3Object, getS3Object, putS3Object } from "#src/storage/s3";
+import { deleteS3Object, putS3Object } from "#src/storage/s3";
 
 export const GROUP_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -108,20 +108,6 @@ export async function uploadGroupImageObject(input: {
   }
 
   return `/api/media/group-images/${input.groupId}/image?v=${Date.now()}`;
-}
-
-export async function getGroupImageObject(groupId: string): Promise<{
-  bytes: Uint8Array;
-  contentType: string;
-} | null> {
-  const object = await getS3Object(groupImageObjectPath(groupId));
-  if (!object) {
-    return null;
-  }
-  return {
-    bytes: object.body,
-    contentType: object.contentType ?? "application/octet-stream",
-  };
 }
 
 export async function removeGroupImageObject(groupId: string): Promise<void> {

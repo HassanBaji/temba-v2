@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { user } from "@repo/db";
+import { teamRosterRule } from "@repo/domain/team-roster";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -10,7 +11,7 @@ import { type db } from "#src/db";
 import { mintLookup } from "#src/invites/doors";
 import { requireIncompleteTeamCreator } from "#src/teams/helpers/require-incomplete-team-creator";
 import { unorderedPairIsReserved } from "#src/teams/helpers/unordered-pair-is-reserved";
-import { unusedInviteForTeam } from "#src/teams/helpers/unused-invite-for-team";
+import { teamInviteBudget } from "#src/teams/helpers/unused-invites-for-team";
 
 type DbClient = typeof db;
 
@@ -54,18 +55,28 @@ export async function inviteInApp(
     });
   }
 
-  const unusedLookup = await unusedInviteForTeam(database, team.id);
-  if (unusedLookup) {
+  const { lookupInvites, budget } = await teamInviteBudget(
+    database,
+    team,
+    memberRows.length,
+  );
+  if (lookupInvites.some((invite) => invite.userId === invitee.id)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message:
-        unusedLookup.userId === invitee.id
-          ? "An unused Lookup invite already exists for this User"
-          : "Revoke the unused invite before sending a new one",
+      message: "An unused Lookup invite already exists for this User",
+    });
+  }
+  if (budget === 0) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Revoke the unused invite before sending a new one",
     });
   }
 
-  if (await unorderedPairIsReserved(database, args.userId, invitee.id)) {
+  if (
+    teamRosterRule(team.sport).pairIsUnique &&
+    (await unorderedPairIsReserved(database, args.userId, invitee.id))
+  ) {
     throw new TRPCError({
       code: "CONFLICT",
       message: "This pair already has a Team or a pending invite",

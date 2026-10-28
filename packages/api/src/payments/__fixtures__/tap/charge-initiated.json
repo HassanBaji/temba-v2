@@ -1,0 +1,22 @@
+{
+  "id": "chg_TS02A5320262230Q2D81012822",
+  "object": "charge",
+  "live_mode": false,
+  "amount": 12.5,
+  "currency": "BHD",
+  "status": "INITIATED",
+  "transaction": {
+    "url": "https://checkout.tap.company/?mode=page&charge_id=chg_TS02A5320262230Q2D81012822",
+    "created": "1790000000000"
+  },
+  "reference": { "transaction": "pay_1", "order": "ord_1" },
+  "redirect": {
+    "status": "PENDING",
+    "url": "https://api.example/payments/return?bookingId=b1"
+  },
+  "post": {
+    "status": "PENDING",
+    "url": "https://api.example/webhooks/payments/tap"
+  },
+  "metadata": { "paymentId": "pay_1" }
+}

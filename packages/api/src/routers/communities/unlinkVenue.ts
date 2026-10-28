@@ -29,6 +29,13 @@ export async function unlinkVenue(
     frozenMessage: "Cannot unlink a Venue from an archived Community",
   });
 
+  if (community.isVenueCommunity) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A Venue Community cannot be unlinked from its Venue",
+    });
+  }
+
   if (!community.venueId) {
     throw new TRPCError({
       code: "BAD_REQUEST",

@@ -18,6 +18,7 @@ export function NavMain({
     title: string;
     url: string;
     icon?: LucideIcon;
+    external?: boolean;
   }[];
 }) {
   return (
@@ -27,12 +28,21 @@ export function NavMain({
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton tooltip={item.title} asChild>
-                <Link href={item.url}>
-                  {item.icon ? (
-                    <item.icon strokeWidth={1.75} aria-hidden="true" />
-                  ) : null}
-                  <span>{item.title}</span>
-                </Link>
+                {item.external ? (
+                  <a href={item.url}>
+                    {item.icon ? (
+                      <item.icon strokeWidth={1.75} aria-hidden="true" />
+                    ) : null}
+                    <span>{item.title}</span>
+                  </a>
+                ) : (
+                  <Link href={item.url}>
+                    {item.icon ? (
+                      <item.icon strokeWidth={1.75} aria-hidden="true" />
+                    ) : null}
+                    <span>{item.title}</span>
+                  </Link>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

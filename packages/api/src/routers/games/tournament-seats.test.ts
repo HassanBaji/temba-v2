@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   GameFormatEnum,
@@ -74,7 +74,11 @@ async function insertVenue(database: TestDatabase) {
 async function insertGroup(database: TestDatabase, createdBy: string) {
   const [row] = await database
     .insert(groups)
-    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .values({
+      verifiedAt: new Date(),
+      name: `Group ${crypto.randomUUID()}`,
+      createdBy,
+    })
     .returning({ id: groups.id });
   if (!row) {
     throw new Error("Failed to insert group");
@@ -108,8 +112,12 @@ async function insertTwelveTeamTournament(
   },
 ) {
   const group = await insertGroup(database, args.createdBy);
-  const windowStart = new Date("2026-09-20T18:00:00");
-  const windowEnd = new Date("2026-10-11T19:00:00");
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() + 14);
+  windowStart.setHours(18, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + 21);
+  windowEnd.setHours(19, 0, 0, 0);
   const created = await createTournament(database, {
     createdBy: args.createdBy,
     name: "Autumn Friendly",
@@ -141,6 +149,15 @@ function occupantUserId(
 }
 
 describe("Friendly tournament seats at 12 Game teams", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("shows 12 sides, occupancy, and Round window before anyone joins", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -656,12 +673,22 @@ describe("Friendly tournament seats at 12 Game teams", () => {
 });
 
 describe("Complete Teams tournament field", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("lists vacant Game team sides so the Teams list is not empty", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "owner-teams@example.com");
       const venue = await insertVenue(db);
       const group = await insertGroup(db, owner.id);
+      const windowStart = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
       const [created] = await db
         .insert(games)
         .values({
@@ -676,8 +703,8 @@ describe("Complete Teams tournament field", () => {
           teamsAllowed: 4,
           playersAllowed: 8,
           sport: GameSportEnum.PADEL,
-          windowStart: new Date("2026-09-21T13:00:00"),
-          windowEnd: new Date("2026-09-21T15:00:00"),
+          windowStart,
+          windowEnd: new Date(windowStart.getTime() + 2 * 60 * 60 * 1000),
         })
         .returning({ id: games.id });
       if (!created) {

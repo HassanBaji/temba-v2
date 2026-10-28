@@ -99,14 +99,12 @@ function NavButton({
   onNav?: () => void;
 }) {
   const router = useRouter();
-  const onInk = useSurfaceTone() === "ink";
-  const Icon = nav === "back" ? ChevronLeft : X;
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <HeaderIconButton
+      framed
+      icon={nav === "back" ? ChevronLeft : X}
       accessibilityLabel={nav === "back" ? "Back" : "Close"}
-      hitSlop={NAV_HIT_SLOP}
       onPress={() => {
         if (onNav) {
           onNav();
@@ -119,20 +117,7 @@ function NavButton({
           router.replace(target.href);
         }
       }}
-      style={({ pressed }) => ({
-        width: NAV_BUTTON,
-        height: NAV_BUTTON,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: radii.md,
-        borderWidth: hairline,
-        borderColor: onInk ? colors.dimrule : colors.rule,
-        backgroundColor: onInk ? colors.ink : colors.paper,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Icon size={sizes.iconAction} color={onInk ? colors.paper : colors.ink} />
-    </Pressable>
+    />
   );
 }
 
@@ -140,11 +125,42 @@ export function HeaderIconButton({
   icon: Icon,
   accessibilityLabel,
   onPress,
+  framed = false,
 }: {
   icon: ComponentType<{ size: number; color: ColorValue }>;
   accessibilityLabel: string;
   onPress: () => void;
+  framed?: boolean;
 }) {
+  const onInk = useSurfaceTone() === "ink";
+
+  if (framed) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        hitSlop={NAV_HIT_SLOP}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          width: NAV_BUTTON,
+          height: NAV_BUTTON,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: radii.md,
+          borderWidth: hairline,
+          borderColor: onInk ? colors.dimrule : colors.rule,
+          backgroundColor: onInk ? colors.ink : colors.paper,
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Icon
+          size={sizes.iconAction}
+          color={onInk ? colors.paper : colors.ink}
+        />
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable
       accessibilityRole="button"

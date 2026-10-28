@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 
 import { courts } from "@repo/db";
 
+import { sportOrDefault } from "@repo/domain/sport";
+
 import { type GameRow } from "#src/games/access";
 import { recordedCourtIdsForGame } from "#src/games/helpers/recorded-court-ids-for-game";
 import { venueForGame } from "#src/games/helpers/venue-for-game";
@@ -18,7 +20,7 @@ export async function assertCourtAssignable(
 ) {
   const court = await database.query.courts.findFirst({
     where: eq(courts.id, courtId),
-    columns: { id: true, venueId: true },
+    columns: { id: true, venueId: true, sport: true },
   });
   if (!court) {
     throw new TRPCError({
@@ -44,6 +46,13 @@ export async function assertCourtAssignable(
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Court must belong to this Game's Venue",
+    });
+  }
+
+  if (court.sport !== sportOrDefault(game.sport)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Court must be of this Game's sport",
     });
   }
 

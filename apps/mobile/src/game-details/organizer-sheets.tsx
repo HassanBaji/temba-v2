@@ -66,7 +66,7 @@ export type OrganizerSheetsProps = {
   onChooseCourt: (courtId: string | null) => void;
 };
 
-function SaveRow({
+export function SaveRow({
   pending,
   onSave,
   onBack,
@@ -83,7 +83,7 @@ function SaveRow({
   );
 }
 
-function WindowForm({
+export function WindowForm({
   game,
   now,
   pending,
@@ -91,7 +91,7 @@ function WindowForm({
   onSave,
   onBack,
 }: {
-  game: OrganizerSheetsProps["game"];
+  game: Pick<OrganizerSheetsProps["game"], "windowStart" | "windowEnd">;
   now: Date;
   pending: boolean;
   error: string | null;
@@ -163,7 +163,7 @@ function WindowForm({
   );
 }
 
-function PriceForm({
+export function PriceForm({
   fils,
   pending,
   error,

@@ -1,17 +1,20 @@
-import { useUser } from "@clerk/expo";
 import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
 import {
   HISTORY_PAGE_SIZE,
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
+import type { SportFilter } from "@repo/domain/football-hub";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
 import { Screen } from "../primitives/screen";
+import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
 import {
+  footballJoinPath,
+  footballScorePath,
   gamePath,
   registerRequest,
   seatJoinRequest,
@@ -24,12 +27,13 @@ import { useGameJoin } from "./use-game-join";
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function GamesScreen() {
-  const { user } = useUser();
   const router = useRouter();
+  const toast = useToast();
+  const utils = api.useUtils();
   const [tab, setTab] = useState<GamesTab>("my-games");
+  const [sportFilter, setSportFilter] = useState<SportFilter>("all");
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const hasCreateAccess = user?.publicMetadata.groupCreator === true;
 
   const myGames = api.games.listMyGames.useQuery(
     undefined,
@@ -42,6 +46,14 @@ export function GamesScreen() {
   const historyRows = useMemo(() => history.data?.pages.flat(), [history.data]);
 
   const { join, pendingGameId } = useGameJoin();
+  const confirmScore = api.games.confirmMatchResult.useMutation({
+    onSuccess: () => toast.show("Score confirmed"),
+    onError: (error) => toast.show(error.message),
+    onSettled: () => utils.games.listMyGames.invalidate(),
+  });
+  const confirmingGameId = confirmScore.isPending
+    ? (confirmScore.variables?.gameId ?? null)
+    : null;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -80,9 +92,8 @@ export function GamesScreen() {
         historyLoadMoreFailed={
           history.isFetchNextPageError ? history.error.message : null
         }
-        pendingGameId={pendingGameId}
+        pendingGameId={pendingGameId ?? confirmingGameId}
         pickerGame={pickerGame}
-        hasCreateAccess={hasCreateAccess}
         onOpenPicker={setPickerGame}
         onOpen={(gameId) => router.push(gamePath(gameId))}
         onJoinSeat={(gameId, sideIndex, position) =>
@@ -90,6 +101,14 @@ export function GamesScreen() {
         }
         onJoinWaitlist={(game) => join(waitlistJoinRequest(game))}
         onRegister={(gameId) => join(registerRequest(gameId))}
+        sportFilter={sportFilter}
+        onSportFilterChange={setSportFilter}
+        football={{
+          onJoin: (gameId) => router.push(footballJoinPath(gameId)),
+          onEnterScore: (gameId) => router.push(footballScorePath(gameId)),
+          onConfirm: (gameId, matchId) =>
+            confirmScore.mutate({ gameId, matchId }),
+        }}
         onLoadMore={loadMore}
         onCreate={() => router.push("/games/new")}
         onRetry={() => void onRefresh()}

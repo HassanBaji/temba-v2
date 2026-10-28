@@ -18,6 +18,7 @@ export async function createClubPrivate(
     description?: string;
     sport: "padel" | "football";
     userId: string;
+    verifiedBy?: string;
   },
 ) {
   return createClubGroup({
@@ -28,6 +29,7 @@ export async function createClubPrivate(
     sport: args.sport,
     type: GroupTypeEnum.PRIVATE,
     createdBy: args.userId,
+    verifiedBy: args.verifiedBy,
   });
 }
 
@@ -48,5 +50,9 @@ export const createClubPrivateProcedure = protectedProcedure
       description: input.description,
       sport: input.sport,
       userId: appUser.id,
+      verifiedBy:
+        (await ctx.getPublicMetadata())?.groupCreator === true
+          ? appUser.id
+          : undefined,
     });
   });

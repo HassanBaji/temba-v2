@@ -17,7 +17,7 @@ type OAuthOutcome = {
   cancelled?: boolean;
 };
 
-export function OauthButtons() {
+export function OauthButtons({ disabled = false }: { disabled?: boolean }) {
   const { startSSOFlow } = useSSO();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export function OauthButtons() {
         size="lg"
         variant="outline"
         pending={pending}
-        disabled={pending}
+        disabled={pending || disabled}
         onPress={() => {
           void run(async () => {
             const result = await startSSOFlow({ strategy: "oauth_google" });

@@ -61,7 +61,7 @@ async function insertCommunity(
 }
 
 describe("listPublic", () => {
-  it("lists live Public padel Groups the viewer is not in, with joinMode", async () => {
+  it("lists live Public Groups of every sport the viewer is not in, with joinMode", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "list-viewer@example.com");
@@ -156,11 +156,12 @@ describe("listPublic", () => {
           looseGated.id,
           clubOpen.id,
           clubPrivateCommunity.id,
+          football.id,
         ].sort(),
       );
       expect(viewerRows.map((row) => row.id)).not.toContain(mine.id);
       expect(viewerRows.map((row) => row.id)).not.toContain(privateGroup.id);
-      expect(viewerRows.map((row) => row.id)).not.toContain(football.id);
+      expect(viewerRows.map((row) => row.id)).toContain(football.id);
       expect(viewerRows.map((row) => row.id)).not.toContain(clubArchived.id);
 
       const byId = new Map(viewerRows.map((row) => [row.id, row]));
@@ -172,6 +173,20 @@ describe("listPublic", () => {
         "Hidden Club",
       );
       expect(byId.get(looseOpen.id)?.memberCount).toBe(2);
+
+      const footballRows = await listPublic(db, {
+        userId: viewer.id,
+        sport: "football",
+      });
+      expect(footballRows.map((row) => row.id)).toEqual([football.id]);
+      expect(footballRows[0]?.sport).toBe("football");
+
+      const padelRows = await listPublic(db, {
+        userId: viewer.id,
+        sport: "padel",
+      });
+      expect(padelRows.map((row) => row.id)).not.toContain(football.id);
+      expect(padelRows.map((row) => row.id)).toContain(looseOpen.id);
 
       const memberRows = await listPublic(db, { userId: member.id });
       const memberById = new Map(memberRows.map((row) => [row.id, row]));

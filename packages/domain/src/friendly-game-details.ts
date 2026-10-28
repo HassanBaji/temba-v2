@@ -67,6 +67,14 @@ export type FriendlyGameDetailsLevelRangeRequest = {
   status: string;
 };
 
+export type FriendlyGameDetailsBooking = {
+  id: string;
+  courtName: string;
+  startsAt: Date;
+  endsAt: Date;
+  heldByViewer: boolean;
+};
+
 export type FriendlyGameDetails = {
   id: string;
   name: string | null;
@@ -107,6 +115,8 @@ export type FriendlyGameDetails = {
   sides: FriendlyGameDetailsSide[];
   phase: FriendlyGameCtaPhase | null;
   matchResultConfirmation: FriendlyGameDetailsConfirmation | null;
+  rated: boolean;
+  booking?: FriendlyGameDetailsBooking | null;
   ratingImpact: FriendlyGameDetailsRatingImpact | null;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;
 };

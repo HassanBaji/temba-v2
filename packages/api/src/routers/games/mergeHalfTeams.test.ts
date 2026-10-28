@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   gameTeamPlayers,
@@ -51,7 +51,11 @@ async function insertVenue(database: TestDatabase) {
 async function insertGroup(database: TestDatabase, createdBy: string) {
   const [row] = await database
     .insert(groups)
-    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .values({
+      verifiedAt: new Date(),
+      name: `Group ${crypto.randomUUID()}`,
+      createdBy,
+    })
     .returning({ id: groups.id });
   if (!row) {
     throw new Error("Failed to insert group");
@@ -65,8 +69,12 @@ async function insertFourTeamTournament(
   venueId: string,
 ) {
   const group = await insertGroup(database, createdBy);
-  const windowStart = new Date("2026-09-20T18:00:00");
-  const windowEnd = new Date("2026-10-11T19:00:00");
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() + 14);
+  windowStart.setHours(18, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + 21);
+  windowEnd.setHours(19, 0, 0, 0);
   const created = await createTournament(database, {
     createdBy,
     name: "Autumn Friendly",
@@ -114,6 +122,15 @@ async function expectRefused(
 }
 
 describe("mergeHalfTeams", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("merges two opposite-Position Half teams into one ad-hoc Game team", async () => {
     const { db, close } = await createPgliteDb();
     try {

@@ -16,6 +16,7 @@ import {
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
+import { sportOrDefault } from "@repo/domain/sport";
 import {
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
@@ -29,6 +30,7 @@ import { type db } from "#src/db";
 import { assertMayCreateGameOnGroup } from "#src/games/access";
 import { assertGameCreateVenueAndCourt } from "#src/games/assert-game-create-venue-and-court";
 import { requireGroup } from "#src/games/helpers/require-group";
+import { groupIsVerified } from "#src/groups/group-is-verified";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -245,7 +247,20 @@ export async function createTournament(
   }
 
   const group = await requireGroup(database, input.groupId);
+  if (sportOrDefault(group.sport) === "football") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Football Games are Friendly games",
+    });
+  }
   await assertMayCreateGameOnGroup(database, group, input.createdBy);
+  const rated = await groupIsVerified(database, group);
+  if (input.isPublic && !rated) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only a Verified Group can open a Game to anyone with the link",
+    });
+  }
   await assertGameCreateVenueAndCourt(database, {
     groupId: input.groupId,
     venueId: input.venueId,
@@ -277,6 +292,7 @@ export async function createTournament(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        rated,
         createdBy: input.createdBy,
       })
       .returning();

@@ -87,3 +87,8 @@ function formatMajorUnitsFromFils(fils: number): string {
 function formatMajorUnitsWithCurrency(fils: number): string {
   return `${formatMajorUnitsFromFils(fils)} ${PRICE_PER_PLAYER_CURRENCY}`;
 }
+
+/** A Booking price always shows its amount, so zero reads "0.000 BD". */
+export function formatBookingPriceFils(fils: number): string {
+  return formatMajorUnitsWithCurrency(fils);
+}

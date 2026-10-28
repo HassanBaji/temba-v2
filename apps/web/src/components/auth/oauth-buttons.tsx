@@ -25,9 +25,11 @@ const ENABLED_OAUTH_PROVIDERS = [
 export function OauthButtons({
   flow,
   redirectUrl,
+  disabled = false,
 }: {
   flow: "sign-in" | "sign-up";
   redirectUrl: string | null;
+  disabled?: boolean;
 }) {
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
@@ -69,6 +71,7 @@ export function OauthButtons({
         strategy,
         redirectUrl: redirectCallback,
         redirectUrlComplete: complete,
+        legalAccepted: true,
       });
     } catch (err) {
       setPending(false);
@@ -91,7 +94,7 @@ export function OauthButtons({
           size="lg"
           variant="outline"
           aria-busy={pending}
-          disabled={!loaded || pending}
+          disabled={!loaded || pending || disabled}
           className="border-rule bg-paper text-body hover:bg-wash w-full font-semibold"
           onClick={() => {
             void start(strategy);

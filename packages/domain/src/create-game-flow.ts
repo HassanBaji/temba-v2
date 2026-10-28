@@ -33,6 +33,14 @@ import {
   type TournamentSizing,
 } from "./tournament-sizing";
 import type { CreateGameDraft } from "./create-game-draft";
+import { courtCountLabel } from "./court-sport-copy";
+import { footballSizeLabel } from "./football-size-copy";
+import {
+  FOOTBALL_SIDE_SIZES,
+  footballPlayersAllowedBounds,
+  isFootballSideSize,
+} from "./game-shape";
+import { DEFAULT_SPORT, type Sport } from "./sport";
 
 export const CREATE_FLOW_STEP_COUNT = 4;
 
@@ -78,14 +86,80 @@ export const FRIENDLY_TOURNAMENT_LATER_STEPS: readonly {
   { step: 4, title: "Entry and review" },
 ];
 
-export function createFlowLaterSteps(type: CreateGameTypeId | null) {
+export const FOOTBALL_GAME_LATER_STEPS: readonly {
+  step: Exclude<CreateFlowStep, 1>;
+  title: string;
+}[] = [
+  { step: 2, title: "Where" },
+  { step: 3, title: "When" },
+  { step: 4, title: "Size and price" },
+];
+
+export function createFlowLaterSteps(
+  type: CreateGameTypeId | null,
+  sport: Sport = DEFAULT_SPORT,
+) {
+  if (sport === "football") {
+    return FOOTBALL_GAME_LATER_STEPS;
+  }
   if (type === "friendly_tournament") {
     return FRIENDLY_TOURNAMENT_LATER_STEPS;
   }
   return FRIENDLY_GAME_LATER_STEPS;
 }
 
+/** A football Group only offers a Friendly game, so the Type step is skipped. */
+export function createFlowFirstStep(sport: Sport): CreateFlowStep {
+  return sport === "football" ? 2 : 1;
+}
+
 export const CREATE_FLOW_OPEN_SEATS_LABEL = "4 open seats";
+
+export function createFlowSeatsLabel(
+  sport: Sport,
+  size: { sideSize: number; playersAllowed: number },
+) {
+  return sport === "football"
+    ? footballSizeLabel(size.sideSize, size.playersAllowed)
+    : CREATE_FLOW_OPEN_SEATS_LABEL;
+}
+
+export const FOOTBALL_SIDE_SIZE_PRESETS = [5, 7, 11] as const;
+
+export function footballSideSizeStep(sideSize: number, direction: 1 | -1) {
+  const index = FOOTBALL_SIDE_SIZES.findIndex((size) => size === sideSize);
+  return FOOTBALL_SIDE_SIZES[index + direction] ?? sideSize;
+}
+
+export function changeFootballSideSize<
+  T extends { sideSize: number; playersAllowed: number },
+>(draft: T, sideSize: number): T {
+  if (!isFootballSideSize(sideSize)) {
+    return draft;
+  }
+  const oldBounds = footballPlayersAllowedBounds(draft.sideSize);
+  const bounds = footballPlayersAllowedBounds(sideSize);
+  const playersAllowed =
+    draft.playersAllowed === oldBounds.min
+      ? bounds.min
+      : Math.min(Math.max(draft.playersAllowed, bounds.min), bounds.max);
+  return { ...draft, sideSize, playersAllowed };
+}
+
+export function changeFootballPlayersAllowed<
+  T extends { sideSize: number; playersAllowed: number },
+>(draft: T, playersAllowed: number): T {
+  const bounds = footballPlayersAllowedBounds(draft.sideSize);
+  return {
+    ...draft,
+    playersAllowed: Math.min(Math.max(playersAllowed, bounds.min), bounds.max),
+  };
+}
+
+/** A court price split across `players`, rounded up so the cap covers it. */
+export function splitCostAcrossPlayers(priceFils: number, players: number) {
+  return Math.ceil(priceFils / Math.max(players, 1));
+}
 
 export const CREATE_FLOW_DURATIONS = [60, 90, 120] as const;
 
@@ -175,6 +249,8 @@ export const CREATE_FLOW_FIELD_IDS: Record<string, string> = {
   qualifiersPerPool: "tournament-qualifiers-per-pool",
   matchMinutes: "tournament-match-minutes",
   name: "tournament-name",
+  sideSize: "game-side-size",
+  playersAllowed: "game-players-allowed",
 };
 
 const STEP_TWO_FIELDS = new Set([
@@ -433,12 +509,19 @@ export function createVenueCopy(
     groupKind: "club" | "loose" | "none";
     venues: { archivedAt: Date | string | null }[];
   },
-  options?: { manyCourts?: boolean },
+  options?: { manyCourts?: boolean; sport?: Sport },
 ) {
+  const football = options?.sport === "football";
   const optional = options?.manyCourts
     ? "Courts are optional."
-    : "Court is optional.";
-  const skip = options?.manyCourts ? "Skip Courts." : "Skip Court.";
+    : football
+      ? "Pitch is optional."
+      : "Court is optional.";
+  const skip = options?.manyCourts
+    ? "Skip Courts."
+    : football
+      ? "Skip pitch."
+      : "Skip Court.";
   if (picker.locked) {
     if (picker.venues[0]?.archivedAt) {
       return `This Community’s linked Venue is Soft-archived. You can still create this Game here. ${skip}`;
@@ -451,8 +534,17 @@ export function createVenueCopy(
   return `Pick a Venue. ${optional}`;
 }
 
-export function venueCardMeta(courtCount: number, city: string) {
-  const courts = courtCount === 1 ? "1 Court" : `${courtCount} Courts`;
+export function venueCardMeta(
+  courtCount: number,
+  city: string,
+  sport: Sport = DEFAULT_SPORT,
+) {
+  const courts =
+    sport === "football"
+      ? courtCountLabel(courtCount, sport)
+      : courtCount === 1
+        ? "1 Court"
+        : `${courtCount} Courts`;
   return `${courts} · ${city}`;
 }
 
@@ -889,7 +981,14 @@ export function changeCreateGroup(
   draft: CreateGameDraft,
   groupId: string,
 ): CreateGameDraft {
-  return { ...draft, groupId, venueId: "", courtId: "none", courtIds: [] };
+  return {
+    ...draft,
+    groupId,
+    venueId: "",
+    courtId: "none",
+    courtIds: [],
+    isPublic: false,
+  };
 }
 
 export function changeCreateVenue(
@@ -921,6 +1020,8 @@ export type CreateGroupOption = {
   id: string;
   name: string | null;
   communityName: string | null;
+  sport?: string | null;
+  verified: boolean;
 };
 
 export type CreateVenuePicker = {

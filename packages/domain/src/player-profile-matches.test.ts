@@ -109,9 +109,20 @@ describe("playerMatchRowView", () => {
       meta: "Thu 1 Oct, Tuesday Crew",
       sets: ["6–4", "6–3"],
       delta: "+0.1",
+      unrated: false,
       accessibilityLabel:
         "Won against Sofia L and Adam R, Thursday 1 October, Tuesday Crew, 6–4 6–3, rating up 0.1",
     });
+  });
+
+  it("marks an unrated Match and says so in the spoken label", () => {
+    const row = playerMatchRowView(
+      { ...fixtures.confirmed.lastMatches[4]!, rated: false },
+      ELIN_ID,
+    );
+    expect(row.unrated).toBe(true);
+    expect(row.delta).toBeNull();
+    expect(row.accessibilityLabel.endsWith("Unrated")).toBe(true);
   });
 
   it("reads Set scores from the owner's side when they sat in slot 2", () => {

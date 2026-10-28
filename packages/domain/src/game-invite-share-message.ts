@@ -1,4 +1,5 @@
 import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
+import { isRosterRegistrationGame } from "./game-shape";
 import { showsFriendlyRoster } from "./game-summary-cta";
 
 export type GameInviteShareOccupant = {
@@ -69,11 +70,13 @@ export function formatGameInviteShareMessage(
 
 export function gameInviteClipboardText(input: {
   format: string;
+  sport?: string | null;
   registrationMode: string;
   shortUrl: string;
   roster: GameInviteShareMessageInput | null;
 }) {
   if (
+    isRosterRegistrationGame(input) ||
     !showsFriendlyRoster(input.format, input.registrationMode) ||
     input.roster == null
   ) {

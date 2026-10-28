@@ -10,7 +10,11 @@ import {
   requireGame,
 } from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
-import { isIndividualSeatGame, moveToSeat } from "#src/games/seats";
+import {
+  assertGameHasSeats,
+  isIndividualSeatGame,
+  moveToSeat,
+} from "#src/games/seats";
 import type { SeatPosition } from "#src/games/utils";
 import {
   isPartnerRequiredGame,
@@ -39,6 +43,7 @@ export async function moveSeat(
     });
   }
 
+  assertGameHasSeats(game);
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",

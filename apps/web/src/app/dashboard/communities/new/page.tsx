@@ -18,6 +18,7 @@ import {
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import { SportCheckboxes } from "~/components/temba/sport-picker";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   fieldErrorMessage,
@@ -31,6 +32,12 @@ import {
   COMMUNITY_TYPE_LABELS,
   communityTypeHelp,
 } from "@repo/domain/community";
+import {
+  COMMUNITY_CREATE_SPORTS_HELP,
+  COMMUNITY_CREATE_SPORTS_LABEL,
+  toggleCommunitySport,
+} from "@repo/domain/community-sports";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api, type RouterInputs } from "~/trpc/react";
 
 type CommunityType = RouterInputs["communities"]["create"]["type"];
@@ -48,6 +55,7 @@ export default function NewCommunityPage() {
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<CommunityType>("public");
+  const [sports, setSports] = React.useState<Sport[]>([DEFAULT_SPORT]);
 
   const createCommunity = api.communities.create.useMutation({
     onSuccess: async (community) => {
@@ -65,13 +73,13 @@ export default function NewCommunityPage() {
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (createCommunity.isPending) {
+    if (createCommunity.isPending || sports.length === 0) {
       return;
     }
     createCommunity.mutate({
       name,
       type,
-      sports: ["padel"],
+      sports,
     });
   }
 
@@ -126,12 +134,30 @@ export default function NewCommunityPage() {
                 {communityTypeHelp(type)}
               </FieldDescription>
             </Field>
+
+            <Field>
+              <FieldTitle id="community-sports-label">
+                {COMMUNITY_CREATE_SPORTS_LABEL}
+              </FieldTitle>
+              <SportCheckboxes
+                id="community-sports"
+                labelledBy="community-sports-label"
+                value={sports}
+                onToggle={(sport) =>
+                  setSports((current) => toggleCommunitySport(current, sport))
+                }
+                disabled={createCommunity.isPending}
+              />
+              <FieldDescription>
+                {COMMUNITY_CREATE_SPORTS_HELP}
+              </FieldDescription>
+            </Field>
           </FieldGroup>
 
           <div className="flex flex-col gap-3">
             <Button
               type="submit"
-              disabled={createCommunity.isPending}
+              disabled={createCommunity.isPending || sports.length === 0}
               className="bg-ink text-paper hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
             >
               {createCommunity.isPending

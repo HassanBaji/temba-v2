@@ -60,6 +60,7 @@ export type CommunityHomeData = {
   canManageInviteLinks: boolean;
   canCreateClubGroup: boolean;
   canManageRoles: boolean;
+  canManageSports: boolean;
   canSoftArchive: boolean;
   canUnarchive: boolean;
   canLeave: boolean;

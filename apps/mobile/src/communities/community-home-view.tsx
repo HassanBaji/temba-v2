@@ -46,6 +46,10 @@ import {
   type CommunityRequestsViewProps,
 } from "./community-requests-view";
 import {
+  CommunitySportsBlock,
+  type CommunitySportsViewProps,
+} from "./community-sports-view";
+import {
   CommunityVenueBlock,
   VenueLinkSheet,
   type VenueLinkSheetProps,
@@ -54,7 +58,6 @@ import {
 export type CommunityHomeViewProps = {
   data: CommunityHomeData;
   apiOrigin: string;
-  hasCreateAccess: boolean;
   tab: CommunityHomeTab;
   onTabChange: (tab: CommunityHomeTab) => void;
   requestCount: number;
@@ -83,6 +86,10 @@ export type CommunityHomeViewProps = {
     "apiOrigin" | "canManageJoinRequests" | "canManageTeamLinks"
   >;
   venueSheet: VenueLinkSheetProps;
+  sportsBlock: Pick<
+    CommunitySportsViewProps,
+    "pendingSport" | "onAdd" | "onRemove"
+  >;
 };
 
 function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
@@ -95,6 +102,13 @@ function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
           apiOrigin={props.apiOrigin}
           onLink={props.onLinkVenue}
           onUnlink={props.onUnlinkVenue}
+        />
+      ) : null}
+      {communityIsMember(data) ? (
+        <CommunitySportsBlock
+          sports={data.sports}
+          canManage={data.canManageSports}
+          {...props.sportsBlock}
         />
       ) : null}
       {data.groups.length === 0 ? (
@@ -216,7 +230,7 @@ function TeamsTab(props: CommunityHomeViewProps) {
 export function CommunityHomeView(props: CommunityHomeViewProps) {
   const { data } = props;
   const header = communityHomeHeader(data);
-  const actions = communityHomeActions(data, props.hasCreateAccess);
+  const actions = communityHomeActions(data);
   const banner = communityArchiveBanner(data);
   const tabs = communityAvailableTabs(data);
   const tab = tabs.includes(props.tab) ? props.tab : "groups";

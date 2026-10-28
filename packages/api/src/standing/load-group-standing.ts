@@ -3,6 +3,7 @@ import { inArray } from "drizzle-orm";
 
 import { games, groupMembers } from "@repo/db";
 
+import { gameRates } from "@repo/domain/game-rating-eligibility";
 import {
   groupMemberStandingRecords,
   type GroupStandingMatch,
@@ -54,7 +55,7 @@ export async function loadGroupStandingMembers(
     }),
     database.query.games.findMany({
       where: inArray(games.groupId, [...groupIds]),
-      columns: { id: true, groupId: true, cancelledAt: true },
+      columns: { id: true, groupId: true, cancelledAt: true, rated: true },
       with: {
         matches: {
           columns: { status: true },
@@ -88,7 +89,7 @@ export async function loadGroupStandingMembers(
 
   const matchesByGroup = new Map<string, GroupStandingMatch[]>();
   for (const game of gameRows) {
-    if (game.groupId === null || game.cancelledAt !== null) {
+    if (game.groupId === null || !gameRates(game)) {
       continue;
     }
     const list = matchesByGroup.get(game.groupId) ?? [];

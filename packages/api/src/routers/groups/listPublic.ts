@@ -1,7 +1,9 @@
 import type { DbClient } from "@repo/db";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { z } from "zod";
 
-import { GroupSportEnum, GroupTypeEnum, groupMembers, groups } from "@repo/db";
+import { GroupTypeEnum, groupMembers, groups } from "@repo/db";
+import { sportSchema } from "@repo/validators/sport";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -34,7 +36,7 @@ function isPublicListJoinMode(
 
 export async function listPublic(
   database: DbClient,
-  args: { userId: string },
+  args: { userId: string; sport?: z.infer<typeof sportSchema> },
 ): Promise<PublicGroupRow[]> {
   const memberships = await database.query.groupMembers.findMany({
     where: eq(groupMembers.userId, args.userId),
@@ -43,17 +45,13 @@ export async function listPublic(
   const memberGroupIds = memberships.map((row) => row.groupId);
 
   const candidates = await database.query.groups.findMany({
-    where:
+    where: and(
+      eq(groups.type, GroupTypeEnum.PUBLIC),
+      args.sport ? eq(groups.sport, args.sport) : undefined,
       memberGroupIds.length > 0
-        ? and(
-            eq(groups.type, GroupTypeEnum.PUBLIC),
-            eq(groups.sport, GroupSportEnum.PADEL),
-            notInArray(groups.id, memberGroupIds),
-          )
-        : and(
-            eq(groups.type, GroupTypeEnum.PUBLIC),
-            eq(groups.sport, GroupSportEnum.PADEL),
-          ),
+        ? notInArray(groups.id, memberGroupIds)
+        : undefined,
+    ),
     with: {
       community: {
         columns: { name: true, archivedAt: true },
@@ -121,7 +119,9 @@ export async function listPublic(
   return rows;
 }
 
-export const listPublicProcedure = protectedProcedure.query(async ({ ctx }) => {
-  const appUser = await resolveAppUser(ctx.userId);
-  return listPublic(ctx.db, { userId: appUser.id });
-});
+export const listPublicProcedure = protectedProcedure
+  .input(z.object({ sport: sportSchema.optional() }).optional())
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return listPublic(ctx.db, { userId: appUser.id, sport: input?.sport });
+  });

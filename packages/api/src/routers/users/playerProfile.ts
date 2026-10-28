@@ -103,6 +103,7 @@ type CountedMatch = {
   sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
   venue: { id: string; name: string };
   game: Omit<PlayerMatchInput["game"], "venueName">;
+  rated: boolean;
 };
 
 function newestFirst(left: CountedMatch, right: CountedMatch) {
@@ -164,6 +165,7 @@ async function loadCountedMatches(
           windowEnd: true,
           createdAt: true,
           format: true,
+          rated: true,
         },
         with: {
           venue: { columns: { id: true, name: true } },
@@ -202,6 +204,7 @@ async function loadCountedMatches(
       slotTeamIds: { 1: row.slot1GameTeamId, 2: row.slot2GameTeamId },
       sets: row.sets,
       venue: game.venue,
+      rated: game.rated,
       game: {
         name: game.name,
         format: game.format,
@@ -412,6 +415,7 @@ async function lastMatchesFrom(
       playedAt: match.displayTime,
       outcome: outcome ?? "draw",
       game: { ...match.game, venueName: match.venue.name },
+      rated: match.rated,
       ownerSlot: match.userSlot,
       slot1: playersOf(match.slotTeamIds[1]),
       slot2: playersOf(match.slotTeamIds[2]),

@@ -53,19 +53,27 @@ A physical facility: one addressable site with a name, location, and Courts. Not
 _Avoid_: club (that is the avoided synonym for Community), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
 
 **Court**:
-A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment.
-_Avoid_: Venue, pitch, field, club (when you mean this entity)
+A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment. A Court has one **Court sport**. A Match or Booking Court must have the Game’s or the Customer’s sport.
+_Avoid_: Venue, pitch (as the entity name; football product copy may say pitch), field, club (when you mean this entity)
+
+**Court sport**:
+The one sport a Court is for: padel or football. A Venue offers a sport when at least one of its Courts has it. Set by a Venue manager or Operator; changing it never changes a Booking. Product copy calls a football Court a pitch; the entity is still a Court.
+_Avoid_: Venue sport, Venue sports (there is no Venue-level list), pitch (as the entity name), field
 
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
 _Avoid_: Community, Team, lobby, channel
 
+**Verified Group**:
+A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group of a Venue Community. Every other Group's new Games are Unrated and private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; membership of a Venue Community is derived, not stored.
+_Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
+
 **Club Group**:
-A Group that belongs to a Community.
+A Group that belongs to a Community. A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue Community.
 _Avoid_: subgroup, channel, nested group
 
 **Loose Group**:
-A Group that does not belong to a Community.
+A Group that does not belong to a Community. It stops being Loose when its Group link request is accepted, and is Loose again once it is unlinked from that Venue Community.
 _Avoid_: orphan, standalone group, free group
 
 **Community Public**:
@@ -81,7 +89,7 @@ A planned App list of live Community Public clubs. Not a shipped surface. Distin
 _Avoid_: Group directory, marketplace, feed
 
 **Public Groups list**:
-An App list of live Public padel Groups the User is not in: Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row offers Join or Request to join.
+An App list of live Public Groups of any sport the User is not in, filterable by sport (All, Padel or Football): Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row shows its sport and offers Join or Request to join.
 _Avoid_: Directory, Group directory, marketplace, feed
 
 **Club Group Public**:
@@ -129,8 +137,16 @@ Lookup invite and Invite link as the two live invitation channels onto a Communi
 _Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door)
 
 **Venue link**:
-A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. Distinct from Invite link and from a Team’s Community link.
+A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. A Venue Community’s Venue link is set when it is created, without a Venue link request, and cannot be unlinked. Distinct from Invite link and from a Team’s Community link.
 _Avoid_: Invite link, membership, join, Club Team
+
+**Venue Community**:
+The one Community a Venue owns. It is created when the first Group link request to that Venue is accepted, and it carries a Venue link to that Venue that cannot be unlinked. It is Private, and the Venue manager who sent the first accepted request is its creator and Owner. Its Club Groups are Verified Groups. A Venue has at most one Venue Community; other Communities may still hold a Venue link to the same Venue.
+_Avoid_: venue club, default Community (in product copy), home Community
+
+**Group link request**:
+A Venue manager’s request that a Loose Group Public join that Venue’s Venue Community. The Group creator accepts or declines it; the Venue manager may cancel it while pending. Accepting turns the Loose Group into a Club Group of the Venue Community. Distinct from a Group join request (a User asking to join a Group), a Venue link request (a Community asking for a Venue) and a Team link request.
+_Avoid_: Group join request, Venue link, invite (when you mean this request), Group transfer
 
 **Venue link request**:
 A request by a Community Owner or Admin to associate that Community with an existing Venue. An Operator approves or rejects it. Distinct from a User’s Community join request.
@@ -141,8 +157,12 @@ The allow-list of sports a Community offers (padel, football, or both). Each Gro
 _Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
 
 **Team**:
-A persistent partnership of exactly two Users for one sport. Distinct from Group. A Team may be incomplete (one member with a pending Lookup invite or live Invite link for the second seat). Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval, and either member may unlink.
-_Avoid_: Group, Game team, squad, pair, doubles (when you mean this entity)
+A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval once complete, and any member may unlink. A football Team has a creator and no captain: other members may leave, the creator dissolves. Dropping below complete does not unlink a Team.
+_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain
+
+**Team roster rule**:
+The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty-five, complete at five, pairs not unique.
+_Avoid_: team size (bare), squad size, captain rule
 
 **Club Team**:
 A Team currently linked to a Community.
@@ -153,11 +173,11 @@ A Team with no Community link (unattached).
 _Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
-One side on a Game: a complete Team, an ad-hoc pair of Users, or one User occupying one of two Positions until a second User takes the other Position. Reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
+One side on a padel Game: a complete Team, an ad-hoc pair of Users, or one User occupying one of two Positions until a second User takes the other Position. Reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
 _Avoid_: Team (when you mean a Game side), partnership, pair (when you mean this entity), Court (the 2v2 seat diagram is not a Court)
 
 **Position**:
-Left or right on a Game team, from that side facing the net. Distinct from a Match slot and from a Court.
+Left or right on a padel Game team, from that side facing the net. Distinct from a Match slot and from a Court.
 _Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred Position (that is a User's profile default)
 
 **Preferred Position**:
@@ -176,6 +196,74 @@ _Avoid_: Owner, moderator, Operator
 A Temba staff User. Not a Community role. Operators curate Venues and Courts and decide Venue link requests.
 _Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
 
+**Venue manager**:
+A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Venue console. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
+_Avoid_: facility owner, venue admin, Owner (that is a Community role), Admin, Operator, staff
+
+**Venue photo**:
+A picture of a Venue that a Venue manager uploads from the Venue console, up to ten per Venue. One is the **Main photo**, which fronts the Venue's card in the App's Venue list; one is the **Details photo**, at the top of the Venue screen. They may be the same photo. With no Venue photo, the App shows the Venue logo.
+_Avoid_: court image (Courts have no photos), cover, banner, gallery, hero
+
+**Opening hours**:
+The windows in which a Venue's Courts can be booked, per weekday in the product timezone, as minutes from midnight. A weekday may have several non-overlapping windows; none means closed. A window belongs to the weekday it opened on and may run to 06:00 the next day. Times sit on the Venue's slot grid.
+_Avoid_: schedule, availability (that is derived from Opening hours, Closures and Bookings), business hours
+
+**Closure**:
+A period when a whole Venue, or one Court, cannot be booked, set by a Venue manager (maintenance, a private event). It never cancels Bookings by itself; the manager sees which Bookings fall inside and decides.
+_Avoid_: blackout, holiday, block
+
+**Pricing rule**:
+An hourly rate in fils for a set of weekdays and a time range, for every Court or for one Court. A Court rule beats a Venue-wide rule. Rules on one scope never overlap, and a window that runs past midnight prices on the weekday it opened. The rule covering a Booking's start time prices its whole length; the price is fixed at the moment the Booking is made, and a start no rule covers cannot be booked. A Venue-wide rule for every weekday, 00:00–24:00 is the base rate.
+_Avoid_: tariff, rate card, price list, Price per player (that is a Game field), fee
+
+**Accepting bookings**:
+The single Venue setting that lists the Venue for Customers and opens the Customer Booking doors. Off by default; it cannot be turned on for a Soft-archived Venue or one with no Court.
+_Avoid_: bookable (that is the derived state of a Venue on a given day), published, open
+
+**Cancellation policy**:
+A Venue's refund terms for a cancelled Booking: up to five tiers of hours before the start with a refund percent each, a late refund percent after the last tier, and the cut-off after which a Customer can no longer cancel in the app. A Booking keeps the policy it was made under. A Venue that cancels always refunds in full; a Venue manager who cancels because the Customer asked applies the policy, without the Customer's cut-off.
+_Avoid_: refund rules, cancellation fee, terms
+
+**Booking**:
+One Court reserved for one interval by one Customer or Guest, at a price and under a Cancellation policy fixed when it was made. A Venue manager may make one from the Venue console: it is confirmed at once with a Payment to settle at the Venue, ignores the Customer's lead and horizon, and may carry a typed price. A Customer's Booking is pending payment for at most ten minutes, then confirmed once the charge is captured or payment is deferred to the Venue; it occupies the Court while confirmed, or pending payment with a live hold. It may become cancelled, no-show or expired, and those never block. Distinct from a Game: a Game is the event, a Booking is the Court.
+_Avoid_: reservation, slot (that is the offer, not the reservation), Game, session, order
+
+**Booking Game**:
+A groupless, unrated, private Friendly game created from a confirmed, upcoming Booking by its holder, who is its Organizer. Its Venue, Court and window are the Booking's. Players join through Invite doors. Cancelling the Booking cancels the Game; cancelling the Game keeps the Booking, and the holder may then create a new Game for it. A Booking on a football Court creates a football Game, whose holder chooses the Side size and players allowed. Americano and Friendly tournament are never created from a Booking.
+_Avoid_: booked Game, court Game, reservation Game, Game booking, private Game (that is any Game with `isPublic` off)
+
+**Slot**:
+One Court, one start on the Venue's grid, one duration and one price, offered to a Customer. Derived from Opening hours, Closures, Pricing rules and occupying Bookings; never stored.
+_Avoid_: Booking (that is the reservation), Position, Match slot, time slot (as an entity), window (that is a Game's registration window)
+
+**Customer**:
+A User as seen from one Venue: someone who holds or has held a Booking there. Derived from User and Bookings, never a separate record. Needs no Community or Group membership.
+_Avoid_: client, member (that is a Community role), player (when you mean this view), account
+
+**Guest**:
+A person without a Temba account recorded on a Booking by name and phone by a Venue manager. A Guest Booking has no Customer and never a Game; a Venue's Guests are matched by phone.
+_Avoid_: walk-in (as the name of the entity), offline customer, anonymous User
+
+**No-show**:
+A confirmed Booking whose start has passed and that a Venue manager marked as not used. Terminal: no refund, and the payment status is left as it was (a paid no-show stays paid; an unpaid one stays pending).
+_Avoid_: missed booking, absent, forfeited
+
+**Payment**:
+One attempt to collect a Booking's price through a payment provider or by hand at the Venue, with its refund. Pending, paid, failed, refunded, partially refunded or waived; never held, since Temba charges immediately. The Booking's payment status summarises its Payments: the latest attempt that did not fail, or failed when every attempt failed.
+_Avoid_: transaction, charge (that is one kind of Payment movement), invoice, Price per player, payment status (that is the Booking's summary, not the row)
+
+**Payment provider**:
+The outside service that takes a Customer's money for a Booking, behind one adapter in the API Package. Tap Payments in v1 (ADR-0028), charging immediately in BHD by card or BENEFIT. "Manual" is the adapter that collects nothing and lets a Venue manager settle by hand.
+_Avoid_: gateway, PSP, Tap (bare, when you mean the boundary rather than the vendor), Clerk (that is identity)
+
+**Payment method**:
+How a Customer pays one Booking, picked at checkout: card, BENEFIT, BenefitPay or Apple Pay through Tap, or pay at the Venue. The online methods are the ones switched on for the Tap merchant account; pay at the Venue is offered unless the Venue refuses it (ADR-0033).
+_Avoid_: payment mode (that is the older single answer), source (that is Tap's word for one hosted page)
+
+**Venue console**:
+The web App (`apps/console`) where a Venue manager runs a Venue: Schedule, Bookings, Courts & pricing, Hours & closures, Customers, Staff & roles, Reports, Payouts and Venue details, one Venue at a time with a switcher. It signs in with the same Temba account and calls the same API as the Web App. The Web App's sidebar links to it only when the caller manages at least one Venue (Operators see every Venue). Distinct from the Operator Venues area in the Web App, which curates the catalog. ADR-0031.
+_Avoid_: Manage area (the name of the same section while it lived in the Web App), admin panel, admin dashboard, backoffice, facility dashboard
+
 **Level setter**:
 A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator, Organizer and Community roles.
 _Avoid_: admin, rating admin, rating editor, Operator (when you mean this)
@@ -193,15 +281,40 @@ A reversible hide. For a Community: hides it and its Club Groups together; Games
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group; groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
+
+**Roster registration**:
+A Game admit that occupies a count against players allowed and no Position. Used by Americano before its Matches exist and by every football Game. Waitlist, leave, kick and the Invite doors apply; the seat picker does not.
+_Avoid_: pool registration (a Pool is a tournament stage), open registration (registration is open or closed on every Game), seatless
+
+**Side size**:
+On a football Game, how many play on each side at once: 5, 6, 7, 8, 9 or 11. Players allowed is at least twice the Side size and at most 40; the rest are substitutes. Shown as "5-a-side".
+
+**Football role**:
+How a registered User plays a football Game: keeper or outfield, with a **Preferred football position** (defender, midfield or forward) for outfield. Chosen when joining and changeable until the Score is in. A preference, never a promise. A football Game has two keeper seats, one a side.
+_Avoid_: Position (the padel seat), Preferred Position (the padel side preference)
+
+**Football side**:
+One of the two halves an Organizer splits a football Game's roster into, by Level or by hand, each worn in a **Bib** colour. Stored as a Game team with a side index. Publishing the sides again replaces them until the Score is in. Product copy says team.
+_Avoid_: Team (the persistent roster), squad
+
+**Bib**:
+The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. The only place colour appears in the product.
+
+**Score**:
+On a football Match, the goals each Football side scored, stored as the Match's one Set. A player on either side or an Organizer enters it from kick-off; it is agreed once one player from each side confirms. A changed Score asks again.
+
+**Scorer**:
+A player named with the goals they scored in a football Match. Optional, and never more goals than their side's Score. Goals are a player fact, not a rating input.
+_Avoid_: format (that is Friendly game, Americano or Friendly tournament), team size, a-side (bare)
 
 **Match**:
 A playable contest with two sides that belongs to one Game.
 _Avoid_: Game (the parent event), session, fixture (when you mean a Match; not a separate entity)
 
 **Set**:
-A scored unit inside a Match, added after play. A Match may have any number of Sets. A Set may be drawn (equal games).
+A scored unit inside a padel Match, added after play. A Match may have any number of Sets. A Set may be drawn (equal games).
 _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temba term)
 
 **Match result**:
@@ -301,7 +414,7 @@ Organizer flag on a Friendly tournament, default yes. When no, entry is Partner 
 _Avoid_: Complete Teams, matcher, registration mode (when you mean this flag), Team (that is the persistent partnership)
 
 **Partner registration**:
-One User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving still frees only the leaver’s Position on Friendly games and on tournaments that allow registering alone. On a tournament that does not allow registering alone, leave or kick before the Pool draw removes the whole Game team.
+On a padel Game, one User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving still frees only the leaver’s Position on Friendly games and on tournaments that allow registering alone. On a tournament that does not allow registering alone, leave or kick before the Pool draw removes the whole Game team.
 _Avoid_: Team (that is the persistent partnership), Game team (that is the side this creates), Lookup invite (that is a door the invitee must accept), pair registration, team registration (that is registering a complete Team on a team-only Game)
 
 **Price per player**:
@@ -337,8 +450,16 @@ A person with a Temba account.
 _Avoid_: player (when you mean User), member (when you mean the Community role)
 
 **Onboarding questionnaire**:
-The two questions a new User answers at Route `/onboarding` after Clerk sign-up and before Home: Preferred Position, and a one-time Level declaration. Blocking, with **Either** and **I don't know** as the low-commitment answers. Users who predate it are complete without answering.
+The questions a new User answers after Clerk sign-up and before Home, at Route `/onboarding` on web. It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. Blocking, with **Either** and **Not sure** (which starts padel at D+) as the low-commitment answers. Users who predate it are complete without answering.
 _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboarding (bare, when you mean this entity), Lookup invite
+
+**Sports played**:
+The sports a User told the Onboarding questionnaire they play: padel, football or both. It decides which questions they answer. A User with none recorded onboarded before the question existed and is read as padel only.
+_Avoid_: favourite sports, interests
+
+**Football self-placement**:
+A new football player's own starting Level, picked as Beginner, Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C, C+ or B; never A) until football results rate. One time, like the padel Level declaration.
+_Avoid_: football rating (when you mean the self-placed start), skill level
 
 **Home**:
 The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
@@ -359,6 +480,14 @@ _Avoid_: form, run, streak (bare, when a losing run is meant)
 **Played side**:
 The share of a User's Matches with a recorded Position that they played on the left or on the right. Derived, never declared. Distinct from Preferred Position.
 _Avoid_: Preferred Position (that is declared), backhand side, forehand side
+
+**Job**:
+A unit of background work run by the Job queue (Graphile Worker on Postgres) inside the API App, such as expiring a Booking hold or creating a Tap charge. Enqueued in the same database transaction as the change that needs it, so it exists only if that change commits. A Job that fails permanently stays in the queue tables with its last error.
+_Avoid_: task (that is Graphile's name for a handler), cron job (when a one-off is meant), queue message
+
+**Job key**:
+The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enqueueing the same Job key again replaces or keeps the pending Job instead of adding a second one, and the key lets a Job be removed before it runs.
+_Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
 An in-app record that tells one User that something happened on a Group or Game they run, or that a Game they played on has finished. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
@@ -393,5 +522,9 @@ A Level that a Level setter set by hand, and its audit record. It replaces the R
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match that produced rating events for the Users on its two Game teams.
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams. A Match on an Unrated Game is never a Rated Match.
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
+
+**Unrated Game**:
+A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, any Game created on a Group that was not a Verified Group at create, and every football Game created before football results ship. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create; `bookings.createGame` and every football Game create set it.
+_Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice

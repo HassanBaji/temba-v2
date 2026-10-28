@@ -24,6 +24,22 @@ const COMPLETE_MEMBERS = [
   member("m2", KIM),
 ];
 
+function roster(
+  sport: "padel" | "football",
+  count: number,
+): TeamHomeInput["roster"] {
+  const rule =
+    sport === "padel"
+      ? { min: 2, max: 2, completeAt: 2 }
+      : { min: 2, max: 25, completeAt: 5 };
+  return {
+    ...rule,
+    count,
+    complete: count >= rule.completeAt,
+    full: count >= rule.max,
+  };
+}
+
 const BASE_HOME: TeamHomeInput = {
   displayName: "Ada Lindqvist & Kim Holm",
   sport: "padel",
@@ -39,7 +55,18 @@ const BASE_HOME: TeamHomeInput = {
   canRequestLink: true,
   canUnlink: false,
   canDissolve: true,
+  roster: roster("padel", 2),
+  viewerCanLeave: false,
 };
+
+function footballMembers(count: number) {
+  return Array.from({ length: count }, (_, index) =>
+    member(`f${index + 1}`, index === 0 ? ADA : KIM, {
+      isCreator: index === 0,
+      isViewer: index === 0,
+    }),
+  );
+}
 
 export function createTeamsFixtures() {
   const list: Record<"mixed" | "empty", TeamListRowInput[]> = {
@@ -71,7 +98,16 @@ export function createTeamsFixtures() {
   ];
 
   const home: Record<
-    "complete" | "record" | "incomplete" | "waiting" | "linked" | "pendingLink",
+    | "complete"
+    | "record"
+    | "incomplete"
+    | "waiting"
+    | "linked"
+    | "pendingLink"
+    | "footballCreatorBuilding"
+    | "footballCreatorComplete"
+    | "footballCreatorFull"
+    | "footballMember",
     TeamHomeInput
   > = {
     complete: BASE_HOME,
@@ -83,6 +119,7 @@ export function createTeamsFixtures() {
       members: [COMPLETE_MEMBERS[0]!],
       canInvite: true,
       canRequestLink: false,
+      roster: roster("padel", 1),
     },
     waiting: {
       ...BASE_HOME,
@@ -91,6 +128,7 @@ export function createTeamsFixtures() {
       members: [member("m3", KIM, { isCreator: true })],
       canRequestLink: false,
       canDissolve: false,
+      roster: roster("padel", 1),
     },
     linked: {
       ...BASE_HOME,
@@ -106,6 +144,43 @@ export function createTeamsFixtures() {
       ...BASE_HOME,
       pendingLinkRequest: { community: { name: COMMUNITY.name } },
       canRequestLink: false,
+    },
+    footballCreatorBuilding: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      waitingForPartner: true,
+      members: footballMembers(2),
+      canInvite: true,
+      canRequestLink: false,
+      roster: roster("football", 2),
+    },
+    footballCreatorComplete: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      members: footballMembers(7),
+      canInvite: true,
+      roster: roster("football", 7),
+    },
+    footballCreatorFull: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      members: footballMembers(25),
+      canInvite: false,
+      roster: roster("football", 25),
+    },
+    footballMember: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      waitingForPartner: true,
+      members: footballMembers(3),
+      canDissolve: false,
+      canRequestLink: false,
+      viewerCanLeave: true,
+      roster: roster("football", 3),
     },
   };
 

@@ -3,25 +3,26 @@
 import { Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { use } from "react";
+import { use, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
-import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import {
   PendingInvitesSection,
   type PendingInviteRow,
 } from "~/components/invites/pending-invites-section";
 import { PageCreateAction } from "~/components/layout/page-create-action";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { FormStrip } from "~/components/temba/form-strip";
+import { SportBadge } from "~/components/temba/sport-badge";
 import { Button } from "~/components/ui/button";
+import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { entityListIsEmpty } from "@repo/domain/entity-list-empty";
 import {
   groupNextGameWeekday,
   groupRowMetaLine,
@@ -36,6 +37,13 @@ import {
   publicGroupMetaLine,
 } from "@repo/domain/group-join";
 import { memberCountLabel } from "@repo/domain/member-count-label";
+import {
+  DEFAULT_PUBLIC_GROUP_SPORT_FILTER,
+  PUBLIC_GROUP_SPORT_FILTERS,
+  publicGroupSportFilterInput,
+  publicGroupSportFilterLabel,
+  type PublicGroupSportFilter,
+} from "@repo/domain/sport";
 import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -138,14 +146,12 @@ function StartAGroupCard() {
     <section className="border-rule rounded-card border p-5">
       <h2 className="text-body font-semibold">Start a group</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        Pick a sport, invite players, and Temba keeps the standing and history.
+        Choose padel or football, invite players, and Temba keeps the standing
+        and history.
       </p>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Button asChild className="flex-1 font-semibold">
-          <Link href="/dashboard/groups/new">Padel</Link>
-        </Button>
-        <Button type="button" variant="outline" disabled className="flex-1">
-          Football · coming soon
+      <div className="mt-4">
+        <Button asChild className="w-full font-semibold">
+          <Link href="/dashboard/groups/new">Create Group</Link>
         </Button>
       </div>
     </section>
@@ -190,6 +196,9 @@ function PublicGroupRows({
             }
             subtitle={group.communityName ?? undefined}
             meta={meta}
+            footer={
+              group.sport ? <SportBadge sport={group.sport} /> : undefined
+            }
             trailing={
               <Button
                 type="button"
@@ -227,11 +236,14 @@ export default function GroupsIndexPage({
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/groups";
   const groups = api.groups.mine.useQuery();
-  const publicGroups = api.groups.listPublic.useQuery(undefined, {
-    enabled: tab === "public",
-  });
+  const [sportFilter, setSportFilter] = useState<PublicGroupSportFilter>(
+    DEFAULT_PUBLIC_GROUP_SPORT_FILTER,
+  );
+  const publicGroups = api.groups.listPublic.useQuery(
+    publicGroupSportFilterInput(sportFilter),
+    { enabled: tab === "public" },
+  );
   const invites = api.groups.pendingLookupInvites.useQuery();
-  const { hasCreateAccess } = useCreateAccess();
   const utils = api.useUtils();
 
   function setTab(next: string) {
@@ -300,26 +312,12 @@ export default function GroupsIndexPage({
 
   const groupRows = groups.data ?? [];
   const showGroups = groupRows.length > 0;
-  const showEmpty =
-    entityListIsEmpty({
-      list: {
-        isLoading: groups.isLoading,
-        error: groups.error,
-        count: groupRows.length,
-      },
-      invites: {
-        isLoading: invites.isLoading,
-        count: invites.data?.length ?? 0,
-      },
-    }) && !hasCreateAccess;
 
   return (
     <DashboardShell
       title="Groups"
       action={
-        hasCreateAccess ? (
-          <PageCreateAction href="/dashboard/groups/new" label="Create Group" />
-        ) : undefined
+        <PageCreateAction href="/dashboard/groups/new" label="Create Group" />
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
@@ -359,20 +357,28 @@ export default function GroupsIndexPage({
               }}
             />
 
-            {hasCreateAccess ? <StartAGroupCard /> : null}
-
-            {showEmpty ? (
-              <EmptyState
-                icon={Users}
-                title="No Groups yet"
-                description="Groups are where you play and where your Standing lives."
-              />
-            ) : null}
+            <StartAGroupCard />
           </div>
         </TabsContent>
 
         <TabsContent value="public">
           <div className="flex flex-col gap-[26px] py-2">
+            <RovingRadioGroup
+              aria-label="Filter by sport"
+              className="flex flex-wrap gap-2"
+            >
+              {PUBLIC_GROUP_SPORT_FILTERS.map((filter) => (
+                <ChoiceChip
+                  key={filter}
+                  role="radio"
+                  selected={sportFilter === filter}
+                  onClick={() => setSportFilter(filter)}
+                >
+                  {publicGroupSportFilterLabel(filter)}
+                </ChoiceChip>
+              ))}
+            </RovingRadioGroup>
+
             {publicGroups.isLoading ? <GroupRowsSkeleton /> : null}
 
             {publicGroups.error ? (

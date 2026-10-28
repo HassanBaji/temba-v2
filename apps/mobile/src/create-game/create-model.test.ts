@@ -22,7 +22,12 @@ function stateAt(
   type: CreateState["type"],
   draft: CreateState["draft"],
 ): CreateState {
-  return { type, step, draft: { ...draft, day: "2026-10-09" } };
+  return {
+    sport: "padel",
+    type,
+    step,
+    draft: { ...draft, day: "2026-10-09" },
+  };
 }
 
 describe("createReducer", () => {
@@ -222,6 +227,7 @@ describe("submitRequest", () => {
     const result = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.gameReview),
       NOW,
+      true,
     );
     expect(result.ok && result.request.kind).toBe("friendly_game");
   });
@@ -234,6 +240,7 @@ describe("submitRequest", () => {
     const result = submitRequest(
       stateAt(4, "friendly_tournament", fixtures.drafts[key]),
       NOW,
+      true,
     );
     expect(result.ok && result.request.kind).toBe("friendly_tournament");
   });
@@ -242,6 +249,7 @@ describe("submitRequest", () => {
     const level = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.invertedLevelRange),
       NOW,
+      true,
     );
     expect(level).toMatchObject({
       ok: false,
@@ -250,6 +258,7 @@ describe("submitRequest", () => {
     const price = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.badPrice),
       NOW,
+      true,
     );
     expect(price).toMatchObject({
       ok: false,
@@ -262,8 +271,19 @@ describe("submitRequest", () => {
     const result = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.emptyGame),
       NOW,
+      true,
     );
     expect(result).toMatchObject({ ok: false, step: 2 });
+  });
+
+  it("never requests a public tournament for a Group that is not Verified", () => {
+    const draft = { ...fixtures.drafts.tournamentGroupsOnly, isPublic: true };
+    const result = submitRequest(
+      stateAt(4, "friendly_tournament", draft),
+      NOW,
+      false,
+    );
+    expect(result.ok && result.request.input.isPublic).toBe(false);
   });
 });
 
@@ -286,5 +306,126 @@ describe("serverFailure", () => {
     );
     expect(failure.step).toBe(3);
     expect(failure.fieldErrors).toEqual({ windowStart: "Too early" });
+  });
+});
+
+describe("football create flow", () => {
+  function footballState(overrides: Partial<CreateState> = {}): CreateState {
+    return {
+      ...stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      sport: "football",
+      ...overrides,
+    };
+  }
+
+  it("skips the Type step when a football Group is picked", () => {
+    const picked = createReducer(initialCreateState(NOW), {
+      kind: "setGroup",
+      groupId: "group-football",
+      sport: "football",
+    });
+    expect(picked.sport).toBe("football");
+    expect(picked.type).toBe("friendly_game");
+    expect(picked.step).toBe(2);
+  });
+
+  it("turns a chosen tournament into a Friendly game on a football Group", () => {
+    const tournament = createReducer(initialCreateState(NOW), {
+      kind: "selectType",
+      type: "friendly_tournament",
+    });
+    const picked = createReducer(tournament, {
+      kind: "setGroup",
+      groupId: "group-football",
+      sport: "football",
+    });
+    expect(picked.type).toBe("friendly_game");
+    expect(picked.draft.courtIds).toEqual([]);
+  });
+
+  it("keeps the padel flow when a padel Group is picked", () => {
+    const picked = createReducer(initialCreateState(NOW), {
+      kind: "setGroup",
+      groupId: "group-padel",
+      sport: "padel",
+    });
+    expect(picked.sport).toBe("padel");
+    expect(picked.type).toBeNull();
+    expect(picked.step).toBe(1);
+    const unknown = createReducer(initialCreateState(NOW), {
+      kind: "setGroup",
+      groupId: "group-padel",
+    });
+    expect(unknown.sport).toBe("padel");
+  });
+
+  it("returns to padel when the Group changes back", () => {
+    const football = createReducer(initialCreateState(NOW), {
+      kind: "setGroup",
+      groupId: "group-football",
+      sport: "football",
+    });
+    const padel = createReducer(football, {
+      kind: "setGroup",
+      groupId: "group-padel",
+      sport: "padel",
+    });
+    expect(padel.sport).toBe("padel");
+    expect(padel.type).toBe("friendly_game");
+  });
+
+  it("moves the cap with the side size and clamps the stepper", () => {
+    const seven = createReducer(footballState(), {
+      kind: "setSideSize",
+      sideSize: 7,
+    });
+    expect(seven.draft.sideSize).toBe(7);
+    expect(seven.draft.playersAllowed).toBe(14);
+    const below = createReducer(seven, {
+      kind: "setPlayersAllowed",
+      playersAllowed: 3,
+    });
+    expect(below.draft.playersAllowed).toBe(14);
+    const above = createReducer(seven, {
+      kind: "setPlayersAllowed",
+      playersAllowed: 99,
+    });
+    expect(above.draft.playersAllowed).toBe(40);
+  });
+
+  it("submits the side size and cap, never a Level range or sport", () => {
+    const sized = createReducer(footballState(), {
+      kind: "setPlayersAllowed",
+      playersAllowed: 12,
+    });
+    const result = submitRequest(sized, NOW, false);
+    expect(result.ok && result.request.kind).toBe("football_game");
+    if (result.ok && result.request.kind === "football_game") {
+      expect(result.request.input.sideSize).toBe(5);
+      expect(result.request.input.playersAllowed).toBe(12);
+      expect("sport" in result.request.input).toBe(false);
+      expect("levelMinTenths" in result.request.input).toBe(false);
+    }
+  });
+
+  it("points a cap error back at step 4", () => {
+    const state = footballState({
+      draft: { ...footballState().draft, playersAllowed: 3 },
+    });
+    const result = submitRequest(state, NOW, false);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.step).toBe(4);
+      expect(result.errors.playersAllowed).toMatch(/between 10 and 40/);
+    }
+  });
+
+  it("leaves the padel request unchanged", () => {
+    const result = submitRequest(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      NOW,
+      true,
+    );
+    expect(result.ok && result.request.kind).toBe("friendly_game");
   });
 });

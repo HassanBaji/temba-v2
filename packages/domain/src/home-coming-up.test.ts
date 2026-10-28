@@ -19,6 +19,7 @@ function friendly(
 ): HomeComingUpSource {
   return {
     id: "friendly-1",
+    rated: true,
     matchId: null,
     format: "friendly_game",
     poolCount: null,
@@ -87,12 +88,43 @@ describe("homeComingUpRows", () => {
     assert.deepEqual(row, {
       kind: "game",
       id: "friendly-1",
+      rated: true,
       rowKey: "friendly-1",
       venueName: "Padelhuset Bromma",
       startsAt: STARTS,
       seatsTaken: 3,
       seatsTotal: 4,
+      sport: null,
+      occupancyLabel: null,
     });
+  });
+
+  it("shows a football Game as a count with its sport, not seat bars", () => {
+    const [row] = homeComingUpRows([
+      friendly({
+        sport: "football",
+        registeredUserCount: 7,
+        playersAllowed: 10,
+      }),
+    ]);
+    assert.equal(row?.kind, "game");
+    if (row?.kind === "game") {
+      assert.equal(row.sport, "football");
+      assert.equal(row.occupancyLabel, "7/10");
+      assert.equal(row.seatsTotal, 10);
+    }
+  });
+
+  it("carries the rated flag onto every row kind", () => {
+    const rows = homeComingUpRows([
+      friendly({ rated: false }),
+      poolMatch({ rated: false }),
+      tournament({ rated: false }),
+    ]);
+    assert.deepEqual(
+      rows.map((row) => row.rated),
+      [false, false, false],
+    );
   });
 
   it("shows a Pool Match behind the hero as a tournament Match row", () => {
@@ -100,6 +132,7 @@ describe("homeComingUpRows", () => {
     assert.deepEqual(rows[1], {
       kind: "tournament_match",
       id: "cup-1",
+      rated: true,
       rowKey: "match-2",
       title: "Friday Cup",
       startsAt: STARTS,
@@ -122,6 +155,7 @@ describe("homeComingUpRows", () => {
     assert.deepEqual(row, {
       kind: "tournament_match",
       id: "cup-1",
+      rated: true,
       rowKey: "match-sf",
       title: "Friday Cup",
       startsAt: STARTS,
@@ -150,6 +184,7 @@ describe("homeComingUpRows", () => {
     assert.deepEqual(row, {
       kind: "tournament",
       id: "cup-1",
+      rated: true,
       rowKey: "cup-1",
       title: "Friday Cup",
       startsAt: STARTS,

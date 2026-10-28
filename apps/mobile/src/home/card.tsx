@@ -7,11 +7,13 @@ import { Text } from "../primitives/text";
 export function Card({
   title,
   meta,
+  monoMeta = false,
   children,
   flush = false,
 }: {
   title?: string;
   meta?: string;
+  monoMeta?: boolean;
   children: React.ReactNode;
   flush?: boolean;
 }) {
@@ -33,7 +35,12 @@ export function Card({
             {title}
           </Text>
           {meta ? (
-            <Text size="meta" tone="muted">
+            <Text
+              size={monoMeta ? "eyebrow" : "meta"}
+              tone="muted"
+              mono={monoMeta}
+              uppercase={monoMeta}
+            >
               {meta}
             </Text>
           ) : null}

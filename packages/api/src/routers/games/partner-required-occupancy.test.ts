@@ -62,7 +62,11 @@ async function insertVenue(database: TestDatabase) {
 async function insertGroup(database: TestDatabase, createdBy: string) {
   const [row] = await database
     .insert(groups)
-    .values({ name: `Group ${crypto.randomUUID()}`, createdBy })
+    .values({
+      verifiedAt: new Date(),
+      name: `Group ${crypto.randomUUID()}`,
+      createdBy,
+    })
     .returning({ id: groups.id });
   if (!row) {
     throw new Error("Failed to insert group");
@@ -75,8 +79,12 @@ async function insertTournament(
   args: { createdBy: string; venueId: string; allowSoloRegister?: boolean },
 ) {
   const group = await insertGroup(database, args.createdBy);
-  const windowStart = new Date("2026-09-20T18:00:00");
-  const windowEnd = new Date("2026-10-11T19:00:00");
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() + 14);
+  windowStart.setHours(18, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + 21);
+  windowEnd.setHours(19, 0, 0, 0);
   const created = await createTournament(database, {
     createdBy: args.createdBy,
     name: "Autumn Friendly",

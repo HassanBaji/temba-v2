@@ -1,11 +1,12 @@
 import {
   DeleteObjectCommand,
-  GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 
 import { storageEnv } from "#src/storage/env";
+
+export const MEDIA_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 export function createS3Client(): S3Client {
   return new S3Client({
@@ -30,21 +31,6 @@ export function getS3BucketName(): string {
   return storageEnv.AWS_S3_BUCKET_NAME;
 }
 
-export function isS3NotFoundError(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) {
-    return false;
-  }
-
-  const named = error as {
-    name?: string;
-    $metadata?: { httpStatusCode?: number };
-  };
-  if (named.name === "NoSuchKey" || named.name === "NotFound") {
-    return true;
-  }
-  return named.$metadata?.httpStatusCode === 404;
-}
-
 export async function putS3Object(input: {
   key: string;
   body: Buffer;
@@ -56,33 +42,9 @@ export async function putS3Object(input: {
       Key: input.key,
       Body: input.body,
       ContentType: input.contentType,
+      CacheControl: MEDIA_CACHE_CONTROL,
     }),
   );
-}
-
-export async function getS3Object(
-  key: string,
-): Promise<{ body: Uint8Array; contentType: string | undefined } | null> {
-  try {
-    const output = await getS3Client().send(
-      new GetObjectCommand({
-        Bucket: getS3BucketName(),
-        Key: key,
-      }),
-    );
-    if (!output.Body) {
-      return null;
-    }
-    return {
-      body: await output.Body.transformToByteArray(),
-      contentType: output.ContentType,
-    };
-  } catch (error) {
-    if (isS3NotFoundError(error)) {
-      return null;
-    }
-    throw error;
-  }
 }
 
 export async function deleteS3Object(key: string): Promise<void> {

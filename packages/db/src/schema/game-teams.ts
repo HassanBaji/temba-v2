@@ -12,6 +12,7 @@ import { games } from "./games";
 import { gameTeamPlayers } from "./game-team-players";
 import { teams } from "./teams";
 import { matches } from "./matches";
+import { footballBibs } from "./game-enums";
 
 export const gameTeams = pgTable(
   "game_teams",
@@ -27,6 +28,7 @@ export const gameTeams = pgTable(
     sideIndex: integer("side_index"),
     poolIndex: integer("pool_index"),
     knockoutSeed: integer("knockout_seed"),
+    bib: footballBibs("bib"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

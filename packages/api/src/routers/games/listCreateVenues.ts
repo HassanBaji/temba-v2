@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { gamePlayers, games, venues } from "@repo/db";
 
+import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { assertMayCreateGameOnGroup } from "#src/games/access";
@@ -26,12 +27,17 @@ const RECENT_BOOKING_LIMIT = 40;
 async function listVenuesForGameCreate(
   database: DbOrTx,
   groupId: string | undefined,
+  sport: Sport | null,
 ): Promise<{
   locked: boolean;
   groupKind: GameCreateGroupKind;
   venues: GameCreateVenueOption[];
 }> {
   const context = await loadGameCreateVenueContext(database, groupId);
+  const ofSport = (court: { sport: Sport }) =>
+    sport == null || court.sport === sport;
+  const offersFootball = (venue: { courts: { sport: Sport }[] }) =>
+    sport !== "football" || venue.courts.some(ofSport);
 
   if (context.locked && context.linkedVenueId) {
     const venue = await database.query.venues.findFirst({
@@ -45,7 +51,7 @@ async function listVenuesForGameCreate(
       },
       with: {
         courts: {
-          columns: { id: true, name: true },
+          columns: { id: true, name: true, sport: true },
           orderBy: (table, { asc }) => [asc(table.name), asc(table.id)],
         },
       },
@@ -70,9 +76,7 @@ async function listVenuesForGameCreate(
           city: venue.city,
           country: venue.country,
           archivedAt: venue.archivedAt,
-          courts: archived
-            ? []
-            : venue.courts.map((court) => ({ id: court.id, name: court.name })),
+          courts: archived ? [] : venue.courts.filter(ofSport),
         },
       ],
     };
@@ -89,7 +93,7 @@ async function listVenuesForGameCreate(
     },
     with: {
       courts: {
-        columns: { id: true, name: true },
+        columns: { id: true, name: true, sport: true },
         orderBy: (table, { asc }) => [asc(table.name), asc(table.id)],
       },
     },
@@ -104,13 +108,13 @@ async function listVenuesForGameCreate(
   return {
     locked: false,
     groupKind: context.groupKind,
-    venues: rows.map((venue) => ({
+    venues: rows.filter(offersFootball).map((venue) => ({
       id: venue.id,
       name: venue.name,
       city: venue.city,
       country: venue.country,
       archivedAt: venue.archivedAt,
-      courts: venue.courts.map((court) => ({ id: court.id, name: court.name })),
+      courts: venue.courts.filter(ofSport),
     })),
   };
 }
@@ -168,16 +172,18 @@ export async function listRecentCourtIds(
   return ids;
 }
 
-async function listCreateVenuesForUser(
+export async function listCreateVenuesForUser(
   database: DbOrTx,
   args: { userId: string; groupId?: string },
 ) {
+  let sport: Sport | null = null;
   if (args.groupId) {
     const group = await requireGroup(database, args.groupId);
     await assertMayCreateGameOnGroup(database, group, args.userId);
+    sport = sportOrDefault(group.sport);
   }
   const [catalog, recentCourtIds] = await Promise.all([
-    listVenuesForGameCreate(database, args.groupId),
+    listVenuesForGameCreate(database, args.groupId, sport),
     listRecentCourtIds(database, args.userId),
   ]);
   return { ...catalog, recentCourtIds };

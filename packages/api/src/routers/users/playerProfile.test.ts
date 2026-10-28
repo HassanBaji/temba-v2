@@ -129,6 +129,7 @@ async function insertGame(
       createdBy: args.createdBy,
       isPublic: args.isPublic ?? false,
       sport: args.sport ?? GameSportEnum.PADEL,
+      sideSize: args.sport === GameSportEnum.Football ? 5 : null,
       playersAllowed: 4,
       teamsAllowed: 2,
       windowStart: T1,

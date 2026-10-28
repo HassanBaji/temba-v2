@@ -12,6 +12,7 @@ type Equal<A, B> =
 type AssertTrue<T extends true> = T;
 
 type ExpectedTopLevel =
+  | "bookings"
   | "communities"
   | "games"
   | "groups"
@@ -20,6 +21,28 @@ type ExpectedTopLevel =
   | "teams"
   | "users"
   | "venues";
+
+type ExpectedBookings =
+  | "listBookableVenues"
+  | "venueForBooking"
+  | "venueAvailability"
+  | "create"
+  | "listMine"
+  | "listForVenue"
+  | "byId"
+  | "createForVenue"
+  | "searchCustomers"
+  | "listCustomers"
+  | "update"
+  | "cancelForVenue"
+  | "markNoShow"
+  | "cancel"
+  | "createGame"
+  | "paymentState"
+  | "confirmPayment"
+  | "retryPayment"
+  | "settlePayment"
+  | "recordRefund";
 
 type ExpectedCommunities =
   | "create"
@@ -99,6 +122,10 @@ type ExpectedGames =
   | "removeSet"
   | "completeMatch"
   | "confirmMatchResult"
+  | "footballBoard"
+  | "setFootballRole"
+  | "publishFootballTeams"
+  | "saveFootballScore"
   | "reportWrongScore"
   | "searchLookupUsers"
   | "sendLookupInvite"
@@ -143,7 +170,13 @@ type ExpectedGroups =
   | "previewInviteLink"
   | "acceptInviteLink"
   | "uploadImage"
-  | "clearImage";
+  | "clearImage"
+  | "setVerified"
+  | "listForOperator"
+  | "pendingLinkRequests"
+  | "acceptLinkRequest"
+  | "declineLinkRequest"
+  | "unlinkFromVenue";
 
 type ExpectedNotifications =
   | "list"
@@ -169,7 +202,8 @@ type ExpectedTeams =
   | "acceptInviteLink"
   | "requestLink"
   | "unlink"
-  | "dissolve";
+  | "dissolve"
+  | "leave";
 
 type ExpectedUsers =
   | "home"
@@ -184,18 +218,42 @@ type ExpectedVenues =
   | "byId"
   | "create"
   | "update"
+  | "updateDetails"
   | "addCourt"
   | "renameCourt"
+  | "setCourtSport"
   | "deleteCourt"
   | "uploadLogo"
   | "clearLogo"
+  | "uploadPhoto"
+  | "deletePhoto"
+  | "setDisplayPhotos"
   | "softArchive"
   | "unarchive"
   | "listPendingLinkRequests"
+  | "listCommunityGroups"
+  | "searchLinkableGroups"
+  | "sendGroupLinkRequest"
+  | "cancelGroupLinkRequest"
+  | "unlinkGroup"
   | "approveLinkRequest"
-  | "rejectLinkRequest";
+  | "rejectLinkRequest"
+  | "listManaged"
+  | "managedById"
+  | "addManager"
+  | "removeManager"
+  | "searchManagerUsers"
+  | "setOpeningHours"
+  | "setPricingRules"
+  | "addClosure"
+  | "removeClosure"
+  | "updateBookingSettings"
+  | "updateCancellationPolicy";
 
 type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
+type _Bookings = AssertTrue<
+  Equal<keyof RouterInputs["bookings"], ExpectedBookings>
+>;
 type _Communities = AssertTrue<
   Equal<keyof RouterInputs["communities"], ExpectedCommunities>
 >;
@@ -212,6 +270,7 @@ type _Users = AssertTrue<Equal<keyof RouterInputs["users"], ExpectedUsers>>;
 type _Venues = AssertTrue<Equal<keyof RouterInputs["venues"], ExpectedVenues>>;
 
 export type AppRouterShapeChecks = [
+  _Bookings,
   _TopLevel,
   _Communities,
   _Games,

@@ -2,14 +2,15 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
 
 import { MatchStatusEnum, gameWaitlist, games, matches } from "@repo/db";
+import type { DbClient, DbTx } from "@repo/db";
 
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 import { type GameRow } from "#src/games/access";
-import { type db } from "#src/db";
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-export async function cancelGameRecord(database: Tx, game: GameRow) {
+export async function cancelGameRecord(
+  database: DbClient | DbTx,
+  game: GameRow,
+) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",

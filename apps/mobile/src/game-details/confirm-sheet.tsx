@@ -7,7 +7,9 @@ import { Text } from "../primitives/text";
 export type ConfirmRequest = {
   title: string;
   description: string;
+  details?: readonly string[];
   confirmLabel: string;
+  cancelLabel?: string;
   onConfirm: () => void;
 };
 
@@ -25,8 +27,17 @@ export function ConfirmSheet({
       <Text size="meta" tone="muted">
         {request?.description}
       </Text>
+      {request?.details?.map((line) => (
+        <Text key={line} size="meta" tone="muted">
+          {`• ${line}`}
+        </Text>
+      ))}
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <Button label="Keep" variant="outline" onPress={onClose} />
+        <Button
+          label={request?.cancelLabel ?? "Keep"}
+          variant="outline"
+          onPress={onClose}
+        />
         <Button
           label={request?.confirmLabel ?? ""}
           pending={pending}

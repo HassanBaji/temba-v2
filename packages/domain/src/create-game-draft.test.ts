@@ -84,6 +84,40 @@ describe("create game draft", () => {
     );
   });
 
+  it("starts at 5-a-side with ten players and reads an older draft the same way", () => {
+    const initial = initialCreateGameDraft(now);
+    assert.equal(initial.sideSize, 5);
+    assert.equal(initial.playersAllowed, 10);
+    const stored = JSON.parse(
+      serializeCreateGameDraft(filledDraft()),
+    ) as Record<string, unknown>;
+    delete stored.sideSize;
+    delete stored.playersAllowed;
+    const parsed = parseCreateGameDraft(JSON.stringify(stored));
+    assert.equal(parsed?.sideSize, 5);
+    assert.equal(parsed?.playersAllowed, 10);
+  });
+
+  it("round-trips a football side size and cap and refuses a bad one", () => {
+    const draft = { ...filledDraft(), sideSize: 7, playersAllowed: 16 };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    const stored = JSON.parse(serializeCreateGameDraft(draft)) as Record<
+      string,
+      unknown
+    >;
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify({ ...stored, sideSize: 4 })),
+      null,
+    );
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify({ ...stored, playersAllowed: 0 })),
+      null,
+    );
+  });
+
   it("round-trips the Tournament shape and reads an older draft as Groups only", () => {
     const draft = {
       ...filledDraft(),

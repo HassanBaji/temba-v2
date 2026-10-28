@@ -16,10 +16,12 @@ import {
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
 
+import { DEFAULT_SPORT, SPORT_LABELS, type Sport } from "@repo/domain/sport";
+
 import type { CreateState } from "./create-model";
 import { matchCountLabel } from "./create-summary";
 
-export type HeaderContextIcon = "users" | "trophy";
+export type HeaderContextIcon = "users" | "trophy" | "lock";
 
 export type KickoffHero = {
   value: string;
@@ -57,7 +59,7 @@ function venueCountPart(venues: { locked: boolean; count: number }) {
 }
 
 export function stepHeader(
-  state: Pick<CreateState, "type" | "step">,
+  state: Pick<CreateState, "type" | "step"> & { sport?: Sport },
   context: StepHeaderContext,
 ): StepHeaderText | null {
   if (state.step === 1) {
@@ -91,14 +93,15 @@ export function stepHeader(
       context: null,
     };
   }
+  const sportPart = state.sport === "football" ? [SPORT_LABELS.football] : [];
   return {
     title: ["Friendly", "game"],
     subtitle: null,
     context: {
       icon: "users",
       parts: context.venues
-        ? [context.groupName, venueCountPart(context.venues)]
-        : [context.groupName],
+        ? [context.groupName, ...sportPart, venueCountPart(context.venues)]
+        : [context.groupName, ...sportPart],
     },
   };
 }
@@ -106,10 +109,11 @@ export function stepHeader(
 export function nextStepTitle(
   type: CreateGameTypeId | null,
   step: CreateFlowStep,
+  sport: Sport = DEFAULT_SPORT,
 ): string | null {
   return (
-    createFlowLaterSteps(type).find((item) => item.step === step + 1)?.title ??
-    null
+    createFlowLaterSteps(type, sport).find((item) => item.step === step + 1)
+      ?.title ?? null
   );
 }
 

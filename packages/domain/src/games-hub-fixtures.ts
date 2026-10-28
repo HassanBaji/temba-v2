@@ -40,6 +40,7 @@ function friendlyRow(args: {
     registrationMode: "individual",
     sport: "padel",
     isPublic: false,
+    rated: true,
     groupId: "group-bromma",
     groupName: "Bromma Tuesday",
     startTime: args.startTime,
@@ -119,6 +120,7 @@ function historyRow(args: {
     scoredSets: args.scoredSets,
     viewerSlot: args.viewerSlot,
     outcome: args.outcome,
+    rated: true,
   };
 }
 

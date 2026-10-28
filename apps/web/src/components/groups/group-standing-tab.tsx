@@ -6,6 +6,7 @@ import { LevelCell } from "~/components/temba/level-cell";
 import { Button } from "~/components/ui/button";
 import { groupStandingRecordLabel } from "@repo/domain/group-home-chrome";
 import { groupStandingState } from "@repo/domain/group-join";
+import { UNRATED_STANDING_COPY } from "@repo/domain/game-rating-impact";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
@@ -40,9 +41,11 @@ const BODY_CELL = "py-4";
 function StandingTable({
   leaderboard,
   linkToPlayers,
+  showLevel,
 }: {
   leaderboard: StandingEntry[];
   linkToPlayers: boolean;
+  showLevel: boolean;
 }) {
   return (
     <div className={cardFrame}>
@@ -58,9 +61,11 @@ function StandingTable({
             <th scope="col" className={cn(COL_RECORD, HEAD_CELL)}>
               W-L
             </th>
-            <th scope="col" className={cn(COL_LEVEL, HEAD_CELL)}>
-              Level
-            </th>
+            {showLevel ? (
+              <th scope="col" className={cn(COL_LEVEL, HEAD_CELL)}>
+                Level
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -113,20 +118,24 @@ function StandingTable({
               >
                 {groupStandingRecordLabel(entry.wins, entry.losses)}
               </td>
-              <td className={cn(COL_LEVEL, BODY_CELL)}>
-                <LevelCell
-                  band={entry.levelBand}
-                  provisional={entry.levelProvisional}
-                  onInk={entry.isViewer}
-                />
-              </td>
+              {showLevel ? (
+                <td className={cn(COL_LEVEL, BODY_CELL)}>
+                  <LevelCell
+                    band={entry.levelBand}
+                    provisional={entry.levelProvisional}
+                    onInk={entry.isViewer}
+                  />
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="border-rule text-eyebrow text-muted-foreground border-t px-5 py-3.5">
-        Hatched level means the Rating is still Provisional
-      </p>
+      {showLevel ? (
+        <p className="border-rule text-eyebrow text-muted-foreground border-t px-5 py-3.5">
+          Hatched level means the Rating is still Provisional
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -166,14 +175,18 @@ export function GroupStandingTab({
   leaderboard,
   groupId,
   canShowCreateGame,
+  verified,
   totalGamesPlayed,
   awaitingScoreCount,
+  showLevel = true,
 }: {
+  showLevel?: boolean;
   isMember: boolean;
   linkToPlayers: boolean;
   leaderboard: StandingEntry[];
   groupId: string;
   canShowCreateGame: boolean;
+  verified: boolean;
   totalGamesPlayed: number;
   awaitingScoreCount: number;
 }) {
@@ -201,7 +214,12 @@ export function GroupStandingTab({
       {state.showNoResultsNotice ? (
         <EmptyState
           icon={Users}
-          title="Standings appear after the first result"
+          title={
+            verified
+              ? "Standings appear after the first result"
+              : UNRATED_STANDING_COPY.title
+          }
+          description={verified ? undefined : UNRATED_STANDING_COPY.description}
           action={createFirstGame}
           className={state.showTable ? "py-6" : undefined}
         />
@@ -212,6 +230,7 @@ export function GroupStandingTab({
           <StandingTable
             leaderboard={leaderboard}
             linkToPlayers={linkToPlayers}
+            showLevel={showLevel}
           />
           <StatPair
             totalGamesPlayed={totalGamesPlayed}

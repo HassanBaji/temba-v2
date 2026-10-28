@@ -13,6 +13,7 @@ import { admit } from "#src/games/admit";
 import { throwIfAdmitRefused } from "#src/games/helpers/throw-if-admit-refused";
 import { userAlreadyWaitlisted } from "#src/games/helpers/user-already-waitlisted";
 import {
+  assertGameHasSeats,
   isIndividualSeatGame,
   occupySeat,
   remainingCapacity,
@@ -48,6 +49,7 @@ export async function registerSeat(
     });
   }
 
+  assertGameHasSeats(game);
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",

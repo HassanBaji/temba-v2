@@ -15,6 +15,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
+import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
@@ -22,11 +23,15 @@ import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-she
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
+import { GameBookedBlock } from "~/components/games/game-booked-block";
 import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameLineupSection } from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
-import { GameRatingImpactBlock } from "~/components/games/game-rating-impact-block";
+import {
+  GameRatingImpactBlock,
+  GameUnratedBlock,
+} from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHome } from "~/components/games/tournament-home";
@@ -84,6 +89,7 @@ import {
   friendlyGameCanMintInvite,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
 import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
@@ -758,6 +764,17 @@ export default function GameHomePage({
     );
   }
 
+  if (isFootballRosterGame(data)) {
+    return (
+      <FootballGameDetails
+        gameId={id}
+        game={data}
+        openInvites={intent === "invite"}
+        openJoin={intent === "join"}
+      />
+    );
+  }
+
   const gameName = data.name ?? "Game";
   const shellTitle = usesFriendlyChrome
     ? friendlyGameHomeTitle(data.groupId, data.groupName)
@@ -988,6 +1005,7 @@ export default function GameHomePage({
                 Registration, the waitlist, and invites stay closed.
               </SoftArchiveBanner>
             ) : null}
+            {data.rated ? null : <GameUnratedBlock />}
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}
@@ -1137,6 +1155,8 @@ export default function GameHomePage({
           // card changed, and the organiser actions footer is the only place
           // on the page a destructive/editing action renders.
           <div className="space-y-6">
+            {data.booking ? <GameBookedBlock booking={data.booking} /> : null}
+            {!data.rated && !data.booking ? <GameUnratedBlock /> : null}
             <GameLineupSection
               sides={data.sides}
               viewerUserId={data.viewerUserId}

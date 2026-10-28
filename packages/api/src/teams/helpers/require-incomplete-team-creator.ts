@@ -1,5 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
+import { teamIsFull, teamRosterRule } from "@repo/domain/team-roster";
+
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { refuseIfLinkedCommunityArchived } from "#src/teams/helpers/refuse-if-linked-community-archived";
 import { requireTeam } from "#src/teams/helpers/require-team";
@@ -22,13 +24,14 @@ export async function requireIncompleteTeamCreator(
   if (team.createdBy !== userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "Only the creator can invite a partner while the Team is incomplete",
+      message: teamRosterRule(team.sport).pairIsUnique
+        ? "Only the creator can invite a partner while the Team is incomplete"
+        : "Only the creator can invite into this Team",
     });
   }
 
   const memberRows = await listTeamMembers(database, team.id);
-  if (memberRows.length >= 2) {
+  if (teamIsFull(memberRows.length, team.sport)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "This Team is full",

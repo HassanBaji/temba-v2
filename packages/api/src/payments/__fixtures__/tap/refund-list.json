@@ -1,0 +1,26 @@
+{
+  "object": "list",
+  "live_mode": false,
+  "count": 2,
+  "has_more": false,
+  "refunds": [
+    {
+      "id": "re_other",
+      "object": "refund",
+      "charge_id": "chg_TS02A5320262230Q2D81012822",
+      "amount": 1,
+      "currency": "BHD",
+      "status": "SUCCEEDED",
+      "metadata": { "idempotencyKey": "refund-key-other" }
+    },
+    {
+      "id": "re_existing",
+      "object": "refund",
+      "charge_id": "chg_TS02A5320262230Q2D81012822",
+      "amount": 4.25,
+      "currency": "BHD",
+      "status": "SUCCEEDED",
+      "metadata": { "idempotencyKey": "refund-key-existing" }
+    }
+  ]
+}

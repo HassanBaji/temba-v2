@@ -1,68 +1,94 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { createHomeFixtures } from "@repo/domain/home-fixtures";
+import {
+  levelFromApi,
+  noLevelCopy,
+  standingCountLabel,
+  standingInSport,
+  venueCountLabel,
+} from "./home-model";
+import type { RouterOutputs } from "../trpc/react";
 
-import { homeModelFromFixture, levelFromApi } from "./home-model";
+type ApiRating = RouterOutputs["ratings"]["me"];
 
-const NOW = new Date("2026-09-07T12:00:00.000Z");
-const fixtures = createHomeFixtures(NOW);
-
-describe("homeModelFromFixture", () => {
-  it("carries the next Game, Coming up rows and the Level of a Provisional User", () => {
-    const model = homeModelFromFixture(fixtures.provisional);
-    assert.equal(model.home.status, "ready");
-    if (model.home.status !== "ready") return;
-    assert.equal(model.home.value.nextGame?.kind, "game");
-    assert.equal(model.home.value.comingUp.length, 4);
-    assert.ok(model.home.value.comingUp[0]?.startsAt instanceof Date);
+describe("levelFromApi", () => {
+  it("has no Level before the first Rating in a sport", () => {
+    const data = {
+      rating: null,
+      canSelfDeclare: true,
+      progressPercent: null,
+      nextBand: null,
+      history: [],
+      ratedMatchCount: 0,
+    } as ApiRating;
+    assert.deepEqual(levelFromApi(data), { kind: "none" });
     assert.equal(
-      model.level.status === "ready" && model.level.value?.provisional,
-      true,
+      noLevelCopy("football"),
+      "Play a rated football game and your football Level appears.",
     );
   });
 
-  it("fills the ten Recent form slots from the fixture outcomes", () => {
-    const model = homeModelFromFixture(fixtures.provisional);
-    assert.equal(model.recentForm.status, "ready");
-    if (model.recentForm.status !== "ready") return;
-    assert.equal(model.recentForm.value.playedCount, 4);
-    assert.equal(model.recentForm.value.bars.length, 10);
-  });
-
-  it("offers Create Group to a creator with no Group and Create to one with a Group", () => {
-    const noGroup = homeModelFromFixture(fixtures.noGroup);
-    const noGames = homeModelFromFixture(fixtures.noGames);
-    assert.equal(
-      noGroup.home.status === "ready" && noGroup.home.value.noGamesAction?.kind,
-      "group",
-    );
-    assert.equal(
-      noGames.home.status === "ready" && noGames.home.value.noGamesAction?.kind,
-      "game",
-    );
-  });
-
-  it("has no Level and no next Game in the empty record", () => {
-    const model = homeModelFromFixture(fixtures.noGames);
-    assert.equal(model.level.status === "ready" && model.level.value, null);
-    assert.equal(
-      model.home.status === "ready" && model.home.value.nextGame,
-      null,
-    );
+  it("carries the band, Level and progress of a Rating", () => {
+    const data = {
+      rating: {
+        levelBand: "C3",
+        level: "2.8",
+        provisional: true,
+        ratedMatchesRemaining: 3,
+      },
+      progressPercent: 1,
+      history: ["3.2", "2.8"],
+    } as unknown as ApiRating;
+    const level = levelFromApi(data);
+    assert.equal(level.kind, "rated");
+    if (level.kind !== "rated") return;
+    assert.equal(level.input.level, "2.8");
+    assert.equal(level.input.progressPercent, 1);
   });
 });
 
-describe("levelFromApi", () => {
-  it("is null before the User has a Rating", () => {
-    assert.equal(
-      levelFromApi({
-        rating: null,
-        history: [],
-        progressPercent: null,
-        canSelfDeclare: true,
-      } as never),
-      null,
+describe("per-sport sections", () => {
+  it("keeps the Standing of Groups in the chosen sport, a Group with no sport being padel", () => {
+    const rows = [
+      {
+        groupId: "a",
+        groupName: "Ladder",
+        sport: "padel",
+        position: 2,
+        memberCount: 8,
+      },
+      {
+        groupId: "b",
+        groupName: "First football",
+        sport: "football",
+        position: 1,
+        memberCount: 1,
+      },
+      {
+        groupId: "c",
+        groupName: "Old group",
+        sport: null,
+        position: 3,
+        memberCount: 4,
+      },
+    ];
+    assert.deepEqual(
+      standingInSport(rows, "padel").map((row) => row.groupId),
+      ["a", "c"],
     );
+    assert.deepEqual(
+      standingInSport(rows, "football").map((row) => row.groupId),
+      ["b"],
+    );
+    assert.equal(standingCountLabel(1), "1 group");
+    assert.equal(standingCountLabel(7), "7 groups");
+  });
+
+  it("counts bookable Venues for the empty Up next", () => {
+    assert.equal(venueCountLabel(null), null);
+    assert.equal(venueCountLabel(0), "No venues yet");
+    assert.equal(venueCountLabel(1), "1 venue nearby");
+    assert.equal(venueCountLabel(3), "3 venues nearby");
   });
 });

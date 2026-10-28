@@ -1,7 +1,7 @@
 "use client";
 
 import { useClerk, useUser } from "@clerk/nextjs";
-import { Building2, Mail, Users } from "lucide-react";
+import { Building2, FileText, Mail, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -122,6 +122,21 @@ export default function SettingsPage() {
                   <Skeleton className="h-[22px] w-8 shrink-0 rounded-full" />
                 ) : null
               }
+            />
+          </SettingsSection>
+
+          <SettingsSection eyebrow="About">
+            <SettingsLinkRow
+              href="/terms"
+              icon={
+                <FileText
+                  aria-hidden="true"
+                  className="size-5"
+                  strokeWidth={2}
+                />
+              }
+              title="Terms and Conditions"
+              subtitle="What you agree to by using Temba"
             />
           </SettingsSection>
 

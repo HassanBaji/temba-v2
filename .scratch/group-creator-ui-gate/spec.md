@@ -1,4 +1,6 @@
-Status: ready-for-agent
+Status: ready-for-agent, partly superseded
+
+> Partly superseded by `.scratch/verified-groups/spec.md` (TEM-378): Create Group and Create Game are no longer gated by `groupCreator`. Create Community and the Communities nav stay gated.
 
 ## Problem Statement
 

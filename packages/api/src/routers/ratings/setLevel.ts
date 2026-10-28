@@ -74,6 +74,12 @@ export async function setMemberLevel(
       message: "This Group has no sport, so it has no Levels",
     });
   }
+  if (sport === "football") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Football Levels arrive with results",
+    });
+  }
   if (!(await isGroupMember(database, group.id, args.setterUserId))) {
     throw new TRPCError({
       code: "FORBIDDEN",

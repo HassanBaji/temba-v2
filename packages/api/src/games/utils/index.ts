@@ -8,6 +8,9 @@ import type {
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
 
+import type { HubGameFootball } from "@repo/domain/hub-game-row";
+import type { Sport } from "@repo/domain/sport";
+
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
 
 export type MatchRow = typeof matches.$inferSelect;
@@ -76,6 +79,8 @@ export type HubListKnockoutMatch = {
   roundCount: number;
 };
 
+export type HubListFootball = HubGameFootball;
+
 export type HubListRow = {
   id: string;
   name: string | null;
@@ -83,6 +88,7 @@ export type HubListRow = {
   registrationMode: GameRegistrationModeEnum | string;
   sport: GameSportEnum | string | null;
   isPublic: boolean;
+  rated: boolean;
   groupId: string | null;
   groupName: string | null;
   startTime: Date;
@@ -117,6 +123,8 @@ export type HubListRow = {
   poolMatch: HubListPoolMatch | null;
   /** Only on expanded Knockout Match rows, which carry no Round number. */
   knockoutMatch: HubListKnockoutMatch | null;
+  /** Only on football Games. */
+  football?: HubListFootball | null;
 };
 
 export type GameCreateGroupKind = "club" | "loose" | "none";
@@ -133,7 +141,7 @@ export type GameCreateVenueOption = {
   city: string;
   country: string;
   archivedAt: Date | null;
-  courts: { id: string; name: string }[];
+  courts: { id: string; name: string; sport: Sport }[];
 };
 
 export type CreateFriendlyDb = DbClient | DbTx;
@@ -141,16 +149,33 @@ export type CreateFriendlyDb = DbClient | DbTx;
 export type CreateFriendlyGameInput = {
   createdBy: string;
   name?: string | null;
-  groupId: string;
+  /** Null only for a Booking Game. */
+  groupId: string | null;
   venueId: string;
   courtId?: string | null;
   windowStart: Date;
   windowEnd: Date;
+  /** Omitted = rated. False only for a Booking Game. */
+  rated?: boolean;
   /** Null / omitted = unset. 0 = free. Positive = fils per User occupying a seat. */
   pricePerPlayerFils?: number | null;
   /** Null / omitted = that bound unset. 0 = Level 0.0. */
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+};
+
+export type CreateFootballGameInput = {
+  createdBy: string;
+  name?: string | null;
+  /** Null only for a Booking Game. */
+  groupId: string | null;
+  venueId: string;
+  courtId?: string | null;
+  windowStart: Date;
+  windowEnd: Date;
+  pricePerPlayerFils?: number | null;
+  sideSize: number;
+  playersAllowed: number;
 };
 
 export type CreateFriendlyGameResult = {
@@ -167,6 +192,7 @@ export type CreateGameInput = {
   registrationMode: "individual" | "team_only";
   playersAllowed?: number;
   teamsAllowed?: number;
+  sideSize?: number;
   windowStart: Date;
   windowEnd: Date;
   venueId: string;

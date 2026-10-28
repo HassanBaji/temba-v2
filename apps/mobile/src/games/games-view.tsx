@@ -1,16 +1,28 @@
-import { spacing } from "@repo/design-tokens";
+import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import type { CardSeatPosition } from "@repo/domain/game-card";
 import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
 import { Plus } from "lucide-react-native";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Button } from "../primitives/button";
+import { hairline } from "../primitives/hairline-width";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import type { Slot } from "../home/home-model";
+import { SportGlyph } from "../lib/sport-glyph";
+import {
+  FootballGameCard,
+  type FootballCardActions,
+} from "./football-game-card";
 import { GameCard, type GameCardActions } from "./game-card";
+import {
+  filterBySport,
+  footballSections,
+  SPORT_FILTERS,
+  type SportFilter,
+} from "@repo/domain/football-hub";
 import {
   hubItems,
   historyEmptyCopy,
@@ -21,6 +33,7 @@ import {
 import { HistoryCard } from "./history-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";
 import { TournamentCard, TournamentMatchCard } from "./tournament-cards";
+import { useNow } from "./use-now";
 
 const LIST_GAP = 12;
 
@@ -34,7 +47,6 @@ export type GamesViewProps = {
   historyLoadMoreFailed?: string | null;
   pendingGameId: string | null;
   pickerGame: HubGameRow | null;
-  hasCreateAccess: boolean;
   onOpenPicker: (game: HubGameRow | null) => void;
   onOpen: (gameId: string) => void;
   onJoinSeat: (
@@ -44,6 +56,9 @@ export type GamesViewProps = {
   ) => void;
   onJoinWaitlist: (game: HubGameRow) => void;
   onRegister: (gameId: string) => void;
+  sportFilter: SportFilter;
+  onSportFilterChange: (filter: SportFilter) => void;
+  football: Omit<FootballCardActions, "onOpen" | "onJoinWaitlist">;
   onLoadMore: () => void;
   onCreate: () => void;
   onRetry: () => void;
@@ -105,6 +120,50 @@ function ListSkeleton() {
   );
 }
 
+const segmentBarStyle = {
+  flexDirection: "row",
+  borderRadius: radii.lg,
+  borderWidth: hairline,
+  borderColor: colors.rule,
+  overflow: "hidden",
+} as const;
+
+function Segment({
+  role,
+  selected,
+  first,
+  onPress,
+  children,
+}: {
+  role: "tab" | "radio";
+  selected: boolean;
+  first: boolean;
+  onPress: () => void;
+  children: (color: string) => React.ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole={role}
+      accessibilityState={role === "tab" ? { selected } : { checked: selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: sizes.touchTarget,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        backgroundColor: selected ? colors.ink : colors.paper,
+        borderLeftWidth: first ? 0 : hairline,
+        borderLeftColor: colors.rule,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      {children(selected ? colors.paper : colors.muted)}
+    </Pressable>
+  );
+}
+
 function TabButtons({
   tab,
   onTabChange,
@@ -117,21 +176,91 @@ function TabButtons({
   historyCount: number | null;
 }) {
   const tabs = [
-    { key: "my-games", label: "My Games", count: myGamesCount },
-    { key: "history", label: "History", count: historyCount },
+    { key: "my-games", label: "Upcoming", count: myGamesCount },
+    { key: "history", label: "Played", count: historyCount },
   ] as const;
   return (
-    <View style={{ flexDirection: "row", gap: 8 }}>
-      {tabs.map((entry) => (
-        <Button
-          key={entry.key}
-          label={entry.count ? `${entry.label} ${entry.count}` : entry.label}
-          size="sm"
-          variant={entry.key === tab ? "default" : "outline"}
-          selected={entry.key === tab}
-          onPress={() => onTabChange(entry.key)}
-        />
-      ))}
+    <View accessibilityRole="tablist" style={segmentBarStyle}>
+      {tabs.map((entry, index) => {
+        const selected = entry.key === tab;
+        return (
+          <Segment
+            key={entry.key}
+            role="tab"
+            selected={selected}
+            first={index === 0}
+            onPress={() => onTabChange(entry.key)}
+          >
+            {(color) => (
+              <>
+                <Text
+                  weight={selected ? "semibold" : "regular"}
+                  style={{ color }}
+                >
+                  {entry.label}
+                </Text>
+                {entry.count ? (
+                  <Text style={{ color }}>{entry.count}</Text>
+                ) : null}
+              </>
+            )}
+          </Segment>
+        );
+      })}
+    </View>
+  );
+}
+
+function SportFilterRow({
+  filter,
+  onChange,
+}: {
+  filter: SportFilter;
+  onChange: (filter: SportFilter) => void;
+}) {
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Sport"
+      style={segmentBarStyle}
+    >
+      {SPORT_FILTERS.map((entry, index) => {
+        const selected = entry.key === filter;
+        return (
+          <Segment
+            key={entry.key}
+            role="radio"
+            selected={selected}
+            first={index === 0}
+            onPress={() => onChange(entry.key)}
+          >
+            {(color) => (
+              <>
+                <SportGlyph sport={entry.key} color={color} size={18} />
+                <Text
+                  weight={selected ? "semibold" : "regular"}
+                  style={{ color }}
+                >
+                  {entry.label}
+                </Text>
+              </>
+            )}
+          </Segment>
+        );
+      })}
+    </View>
+  );
+}
+
+function SectionHead({ title, meta }: { title: string; meta: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+      <Text size="title" weight="semibold" accessibilityRole="header">
+        {title}
+      </Text>
+      <Text size="meta" tone="muted">
+        {meta}
+      </Text>
     </View>
   );
 }
@@ -156,13 +285,11 @@ export function GamesView(props: GamesViewProps) {
       <ScreenHeader
         title="Games"
         actions={
-          props.hasCreateAccess ? (
-            <HeaderIconButton
-              icon={Plus}
-              accessibilityLabel="Create Game"
-              onPress={props.onCreate}
-            />
-          ) : null
+          <HeaderIconButton
+            icon={Plus}
+            accessibilityLabel="Create Game"
+            onPress={props.onCreate}
+          />
         }
       />
       <TabButtons
@@ -171,6 +298,12 @@ export function GamesView(props: GamesViewProps) {
         myGamesCount={myGamesCount}
         historyCount={historyCount}
       />
+      {tab === "my-games" ? (
+        <SportFilterRow
+          filter={props.sportFilter}
+          onChange={props.onSportFilterChange}
+        />
+      ) : null}
       {tab === "my-games" ? (
         <MyGamesList {...props} actions={actions} />
       ) : (
@@ -191,28 +324,60 @@ export function GamesView(props: GamesViewProps) {
 
 function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
   const { myGames, actions } = props;
+  const now = useNow();
+  const footballActions: FootballCardActions = {
+    ...props.football,
+    onOpen: actions.onOpen,
+    onJoinWaitlist: actions.onJoinWaitlist,
+  };
   if (myGames.status === "loading") {
     return <ListSkeleton />;
   }
   if (myGames.status === "error") {
     return <Failure message={myGames.message} onRetry={props.onRetry} />;
   }
-  if (myGames.value.length === 0) {
+  const rows = filterBySport(myGames.value, props.sportFilter);
+  if (rows.length === 0) {
     return (
       <Empty
         {...myGamesEmptyCopy()}
-        action={
-          props.hasCreateAccess ? (
-            <Button label="Create Game" onPress={props.onCreate} />
-          ) : undefined
-        }
+        action={<Button label="Create Game" onPress={props.onCreate} />}
       />
+    );
+  }
+  if (props.sportFilter === "football") {
+    return (
+      <View style={{ gap: spacing.section }}>
+        {footballSections(rows, now).map((section) => (
+          <View key={section.key} style={{ gap: LIST_GAP }}>
+            <SectionHead title={section.title} meta={section.meta} />
+            {section.rows.map((game) => (
+              <FootballGameCard
+                key={game.id}
+                game={game}
+                pending={props.pendingGameId === game.id}
+                actions={footballActions}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
     );
   }
   return (
     <View style={{ gap: LIST_GAP }}>
-      {hubItems(myGames.value).map((item) => {
+      {hubItems(rows).map((item) => {
         const pending = props.pendingGameId === item.game.id;
+        if (item.kind === "football") {
+          return (
+            <FootballGameCard
+              key={item.key}
+              game={item.game}
+              pending={pending}
+              actions={footballActions}
+            />
+          );
+        }
         if (item.kind === "match") {
           return (
             <TournamentMatchCard

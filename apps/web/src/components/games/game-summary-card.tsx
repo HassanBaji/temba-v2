@@ -9,8 +9,10 @@ import {
   SummaryCardFooter,
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
+import { SportGlyph } from "~/components/temba/sport-glyph";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag, OpenSeat } from "~/components/temba/seat";
+import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
 import {
   formatGameCardDay,
@@ -22,9 +24,12 @@ import {
   firstName,
   gameCardFormatCell,
   gameCardOpenSpots,
+  gameCardRosterOccupancy,
+  gameCardSportTag,
   gameCardSubtitle,
   sideJoinAccessibleName,
 } from "@repo/domain/game-card";
+import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
 import {
   gameCardActionLabel,
@@ -269,6 +274,7 @@ export function GameSummaryCard({
   startTime,
   groupName,
   format,
+  sport,
   href,
   cancelled = false,
   venueName,
@@ -294,6 +300,7 @@ export function GameSummaryCard({
   onRegister,
   roundLabel,
   courtName,
+  rated = true,
 }: {
   name: string | null;
   startTime: Date | string;
@@ -325,6 +332,7 @@ export function GameSummaryCard({
   onRegister?: () => void;
   roundLabel?: string | null;
   courtName?: string | null;
+  rated?: boolean;
 }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [startAtPartner, setStartAtPartner] = React.useState(false);
@@ -352,6 +360,13 @@ export function GameSummaryCard({
   const { showRoster, openSpots, hasOpenCount } = gameCardOpenSpots({
     sides,
     registeredUserCount,
+    playersAllowed,
+  });
+  const sportTag = gameCardSportTag(sport);
+  const rosterOccupancy = gameCardRosterOccupancy({
+    format: format ?? "",
+    sport,
+    registeredUserCount: registeredUserCount ?? 0,
     playersAllowed,
   });
   const dayLabel = formatGameCardDay(startTime);
@@ -458,11 +473,34 @@ export function GameSummaryCard({
       >
         <SummaryCardBody>
           <div className="text-muted-foreground text-meta flex items-center justify-between font-medium">
-            <span>{dayLabel}</span>
+            <span className="flex items-center gap-2">
+              {dayLabel}
+              {sportTag && sport ? (
+                <span className="inline-flex items-center gap-1">
+                  <SportGlyph sport={sport} className="size-3.5" />
+                  {sportTag.label}
+                </span>
+              ) : null}
+            </span>
+            {!rated ? (
+              <Badge variant="outline" data-slot="game-card-unrated">
+                {UNRATED_LABEL}
+              </Badge>
+            ) : null}
             {cancelled ? (
               <GameStatusBadge status="cancelled" />
             ) : hasOpenCount ? (
-              <OpenFlag openSpots={openSpots} />
+              <span className="flex items-center gap-2">
+                {rosterOccupancy ? (
+                  <span
+                    className="tabular-nums"
+                    aria-label={`${rosterOccupancy.label} players`}
+                  >
+                    {rosterOccupancy.label}
+                  </span>
+                ) : null}
+                <OpenFlag openSpots={openSpots} />
+              </span>
             ) : null}
           </div>
 

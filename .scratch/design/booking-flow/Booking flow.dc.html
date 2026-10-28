@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900&amp;family=Sora:wght@300;400&amp;display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.446.0/dist/umd/lucide.min.js"></script>
+<style>
+  body { margin:0; background:#F4F4F4; font-family:'Archivo',Helvetica,Arial,sans-serif; font-variation-settings:'wdth' 100,'wght' 400; font-variant-numeric:tabular-nums; color:#000000; -webkit-font-smoothing:antialiased; text-wrap:pretty; }
+  a { color:#000000; text-decoration:none; }
+  a:hover { color:#6E6E6E; }
+</style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="bkMark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#000000"></circle><path d="M6,50 C18,16 82,16 94,50" fill="none" stroke="#FFFFFF" stroke-width="6"></path></symbol>
+<symbol id="bkMarkRev" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#FFFFFF"></circle><path d="M6,50 C18,16 82,16 94,50" fill="none" stroke="#000000" stroke-width="6"></path></symbol>
+</defs></svg>
+
+<div style="padding:56px 48px 96px;display:flex;flex-direction:column;gap:56px;width:1800px;box-sizing:border-box">
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid #E6E6E6;padding-bottom:22px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <svg width="34" height="34" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMark"></use></svg>
+      <div style="font-family:'Sora',sans-serif;font-weight:300;font-size:26px;letter-spacing:0.18em">TEMBA</div>
+    </div>
+    <div style="font-size:14px;color:#6E6E6E;max-width:620px">Court booking. A web console for venue staff (schedule, bookings, courts and pricing, hours, customers, staff, reports, payouts) and the app side for players: find a facility, book a court, pay in app, then turn the booking into a private, open or group game.</div>
+  </div>
+
+  <!-- ADMIN WEB -->
+  <div style="display:flex;flex-direction:column;gap:44px">
+    <div style="display:flex;align-items:baseline;gap:16px"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Venue console</div><div style="font-size:14px;color:#6E6E6E">Web, 1280 wide. Signed in as venue staff of Karbabad Courts.</div></div>
+
+    <!-- A1 SCHEDULE -->
+    <div id="a1" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A1 / SCHEDULE, DAY GRID + MANUAL BOOKING</div>
+      <div data-screen-label="A1 Schedule" style="width:1280px;height:820px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings<span style="margin-left:auto;font-size:11px;color:#FFFFFF">3</span></a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+          <div style="margin-top:auto;padding:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;border:1px solid #2E2E2E;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">NA</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px">Noor Ahmed</span><span style="display:block;font-size:11px;color:#8E8E8E">Manager</span></span></div>
+        </div>
+
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="padding:22px 28px 0;display:flex;align-items:center;gap:14px">
+            <div style="display:flex;align-items:center;border:1px solid #E6E6E6;border-radius:10px;overflow:hidden">
+              <button onClick="{{ noop }}" style="width:40px;height:40px;border:none;background:#FFFFFF;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#F4F4F4"><i data-lucide="chevron-left" style="width:16px;height:16px"></i></button>
+              <div style="padding:0 16px;border-left:1px solid #E6E6E6;border-right:1px solid #E6E6E6;height:40px;display:flex;align-items:center;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Thu 15 Oct<span style="margin-left:8px;font-size:12px;color:#6E6E6E;font-variation-settings:'wdth' 100,'wght' 400">Today</span></div>
+              <button onClick="{{ noop }}" style="width:40px;height:40px;border:none;background:#FFFFFF;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#F4F4F4"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></button>
+            </div>
+            <div style="display:flex;border:1px solid #E6E6E6;border-radius:10px;overflow:hidden;height:40px">
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">Day</button>
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;border-left:1px solid #E6E6E6;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Week</button>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:18px;font-size:12px;color:#6E6E6E">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:#000000"></span>App booking</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;border:1px solid #000000;box-sizing:border-box"></span>Manual</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,#C9C9C9 3px 4px)"></span>Closed</span>
+            </div>
+            <button onClick="{{ toggleManual }}" style="height:40px;padding:0 16px;border:none;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:#2E2E2E"><i data-lucide="plus" style="width:15px;height:15px"></i>New booking</button>
+          </div>
+          <div style="padding:14px 28px 0;display:flex;gap:28px;font-size:13px;color:#6E6E6E"><span><span style="color:#000000;font-variation-settings:'wdth' 100,'wght' 600">22</span> bookings</span><span><span style="color:#000000;font-variation-settings:'wdth' 100,'wght' 600">71%</span> occupied</span><span><span style="color:#000000;font-variation-settings:'wdth' 100,'wght' 600">4</span> open games filling</span><span><span style="color:#000000;font-variation-settings:'wdth' 100,'wght' 600">148.000 BD</span> taken today</span></div>
+
+          <div style="flex:1;min-height:0;display:flex;margin-top:18px;border-top:1px solid #E6E6E6">
+            <div style="flex:1;min-width:0;overflow:hidden;padding:0 0 0 28px">
+              <div style="display:grid;grid-template-columns:56px repeat(4,1fr);height:48px;border-bottom:1px solid #E6E6E6">
+                <div></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Court 1<span style="font-size:11px;color:#9A9A9A;font-variation-settings:'wdth' 100,'wght' 400">Outdoor</span></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Court 2<span style="font-size:11px;color:#9A9A9A;font-variation-settings:'wdth' 100,'wght' 400">Outdoor</span></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Court 3<span style="font-size:11px;color:#9A9A9A;font-variation-settings:'wdth' 100,'wght' 400">Indoor</span></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Court 4<span style="font-size:11px;color:#9A9A9A;font-variation-settings:'wdth' 100,'wght' 400">Indoor</span></div>
+              </div>
+              <div style="position:relative;display:grid;grid-template-columns:56px repeat(4,1fr);grid-template-rows:repeat(20,30px);gap:0 6px">
+                <div style="grid-column:1;grid-row:1;font-size:11px;color:#9A9A9A;margin-top:-7px">2:00 PM</div>
+                <div style="grid-column:1;grid-row:3;font-size:11px;color:#9A9A9A;margin-top:-7px">3:00</div>
+                <div style="grid-column:1;grid-row:5;font-size:11px;color:#9A9A9A;margin-top:-7px">4:00</div>
+                <div style="grid-column:1;grid-row:7;font-size:11px;color:#9A9A9A;margin-top:-7px">5:00</div>
+                <div style="grid-column:1;grid-row:9;font-size:11px;color:#9A9A9A;margin-top:-7px">6:00</div>
+                <div style="grid-column:1;grid-row:11;font-size:11px;color:#9A9A9A;margin-top:-7px">7:00</div>
+                <div style="grid-column:1;grid-row:13;font-size:11px;color:#9A9A9A;margin-top:-7px">8:00</div>
+                <div style="grid-column:1;grid-row:15;font-size:11px;color:#9A9A9A;margin-top:-7px">9:00</div>
+                <div style="grid-column:1;grid-row:17;font-size:11px;color:#9A9A9A;margin-top:-7px">10:00</div>
+                <div style="grid-column:1;grid-row:19;font-size:11px;color:#9A9A9A;margin-top:-7px">11:00</div>
+                <div style="grid-column:2 / -1;grid-row:1;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:3;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:5;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:7;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:9;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:11;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:13;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:15;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:17;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:19;border-top:1px solid #E6E6E6;pointer-events:none"></div>
+                <div style="grid-column:2 / -1;grid-row:5;border-top:2px solid #000000;margin-top:14px;pointer-events:none;position:relative"><span style="position:absolute;right:0;top:-18px;font-size:10px;background:#000000;color:#FFFFFF;border-radius:4px;padding:2px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">4:28 PM</span></div>
+
+                <div style="grid-column:2;grid-row:1 / span 3;margin:2px 0;border-radius:8px;background:#6E6E6E;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Mikael K.</div><div style="color:#D6D6D6">90 min, paid</div></div>
+                <div style="grid-column:2;grid-row:9 / span 3;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Sara L.</div><div style="color:#8E8E8E">90 min, paid</div></div>
+                <div style="grid-column:2;grid-row:13 / span 4;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-variation-settings:'wdth' 100,'wght' 600">Tuesday Crew</span><span style="font-size:10px;border:1px solid #2E2E2E;border-radius:4px;padding:1px 5px">GROUP GAME</span></div><div style="color:#8E8E8E">120 min, 4 of 4 seats</div></div>
+                <div style="grid-column:2;grid-row:17 / span 3;margin:2px 0;border-radius:8px;border:1px solid #000000;box-sizing:border-box;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Walk-in, Hassan</div><div style="color:#6E6E6E">90 min, cash at desk</div></div>
+
+                <div style="grid-column:3;grid-row:3 / span 2;margin:2px 0;border-radius:8px;background:#6E6E6E;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Jonas B.</div><div style="color:#D6D6D6">60 min, paid</div></div>
+                <div style="grid-column:3;grid-row:11 / span 3;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-variation-settings:'wdth' 100,'wght' 600">Adam R.</span><span style="font-size:10px;border:1px solid #2E2E2E;border-radius:4px;padding:1px 5px">OPEN GAME</span></div><div style="color:#8E8E8E">90 min, 3 of 4 seats</div></div>
+                <div style="grid-column:3;grid-row:14 / span 3;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Fatima A.</div><div style="color:#8E8E8E">90 min, paid</div></div>
+                <div style="grid-column:3;grid-row:17 / span 3;margin:2px 0;border-radius:8px;border:2px dashed #000000;box-sizing:border-box;padding:7px 9px;font-size:12px;overflow:hidden;background:#F4F4F4"><div style="font-variation-settings:'wdth' 100,'wght' 600">New booking</div><div style="color:#6E6E6E">10:00 to 11:30 PM</div></div>
+
+                <div style="grid-column:4;grid-row:1 / span 6;margin:2px 0;border-radius:8px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 4px,#E6E6E6 4px 5px);padding:8px 10px;font-size:12px;color:#6E6E6E"><div style="font-variation-settings:'wdth' 100,'wght' 600;color:#000000">Closed, resurfacing</div><div>Until 5:00 PM</div></div>
+                <div style="grid-column:4;grid-row:9 / span 3;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Yousef M.</div><div style="color:#8E8E8E">90 min, paid</div></div>
+                <div style="grid-column:4;grid-row:13 / span 3;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-variation-settings:'wdth' 100,'wght' 600">Layla H.</span><span style="font-size:10px;border:1px solid #2E2E2E;border-radius:4px;padding:1px 5px">OPEN GAME</span></div><div style="color:#8E8E8E">90 min, 2 of 4 seats</div></div>
+
+                <div style="grid-column:5;grid-row:1 / span 3;margin:2px 0;border-radius:8px;background:#6E6E6E;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Coaching, Omar</div><div style="color:#D6D6D6">90 min, recurring</div></div>
+                <div style="grid-column:5;grid-row:7 / span 3;margin:2px 0;border-radius:8px;border:1px solid #000000;box-sizing:border-box;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Phone, Khalid</div><div style="color:#6E6E6E">90 min, unpaid</div></div>
+                <div style="grid-column:5;grid-row:11 / span 3;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Friday Doubles</div><div style="color:#8E8E8E">90 min, group, paid</div></div>
+                <div style="grid-column:5;grid-row:15 / span 4;margin:2px 0;border-radius:8px;background:#000000;color:#FFFFFF;padding:8px 10px;font-size:12px;overflow:hidden"><div style="font-variation-settings:'wdth' 100,'wght' 600">Ali S.</div><div style="color:#8E8E8E">120 min, paid</div></div>
+              </div>
+            </div>
+
+            <sc-if value="{{ manualOpen }}" hint-placeholder-val="{{ true }}">
+              <div style="width:340px;flex:none;border-left:1px solid #E6E6E6;display:flex;flex-direction:column;background:#FFFFFF">
+                <div style="padding:20px 22px 0;display:flex;align-items:center;justify-content:space-between">
+                  <div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:20px">New booking</div>
+                  <button onClick="{{ toggleManual }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6E6E6E"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+                </div>
+                <div style="padding:4px 22px 0;font-size:13px;color:#6E6E6E">Court 2, picked from the grid. Change anything below.</div>
+                <div style="padding:20px 22px 0;display:flex;flex-direction:column;gap:16px">
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#6E6E6E">Customer</span><div style="height:44px;border:1px solid #000000;border-radius:10px;padding:0 12px;display:flex;align-items:center;gap:10px"><i data-lucide="search" style="width:15px;height:15px;color:#6E6E6E"></i><input value="Hassan" style="flex:1;min-width:0;border:none;outline:none;background:none;font-family:'Archivo',sans-serif;font-size:14px;color:#000000"><span style="font-size:11px;color:#6E6E6E;text-decoration:underline;cursor:pointer">New customer</span></div></label>
+                  <div style="border:1px solid #E6E6E6;border-radius:10px;overflow:hidden">
+                    <button onClick="{{ noop }}" style="width:100%;border:none;background:#FFFFFF;font-family:'Archivo',sans-serif;text-align:left;cursor:pointer;padding:10px 12px;display:flex;align-items:center;gap:10px" style-hover="background:#F4F4F4"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">HB</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px">Hassan Baji</span><span style="display:block;font-size:11px;color:#6E6E6E">+973 3612 4408, 14 bookings</span></span><span style="font-size:11px;color:#6E6E6E">Temba</span></button>
+                    <button onClick="{{ noop }}" style="width:100%;border:none;border-top:1px solid #E6E6E6;background:#FFFFFF;font-family:'Archivo',sans-serif;text-align:left;cursor:pointer;padding:10px 12px;display:flex;align-items:center;gap:10px" style-hover="background:#F4F4F4"><span style="width:28px;height:28px;border-radius:7px;border:1px solid #E6E6E6;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">HA</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px">Hassan Al Arrayed</span><span style="display:block;font-size:11px;color:#6E6E6E">+973 3900 1123, walk-in</span></span></button>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#6E6E6E">Court</span><div style="height:44px;border:1px solid #E6E6E6;border-radius:10px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px">Court 2<i data-lucide="chevron-down" style="width:14px;height:14px;color:#9A9A9A"></i></div></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#6E6E6E">Start</span><div style="height:44px;border:1px solid #E6E6E6;border-radius:10px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px">10:00 PM<i data-lucide="chevron-down" style="width:14px;height:14px;color:#9A9A9A"></i></div></label>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#6E6E6E">Duration</span><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><button onClick="{{ noop }}" style="height:40px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">60 min</button><button onClick="{{ noop }}" style="height:40px;border:1px solid #000000;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">90 min</button><button onClick="{{ noop }}" style="height:40px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">120 min</button></div></div>
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#6E6E6E">Payment</span><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><button onClick="{{ noop }}" style="height:40px;border:1px solid #000000;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">Cash</button><button onClick="{{ noop }}" style="height:40px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Card at desk</button><button onClick="{{ noop }}" style="height:40px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Send link</button></div></div>
+                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><span style="width:18px;height:18px;border-radius:5px;border:1px solid #C9C9C9;box-sizing:border-box"></span>Repeat weekly</label>
+                </div>
+                <div style="margin-top:auto;padding:18px 22px;border-top:1px solid #E6E6E6">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:13px;color:#6E6E6E">Peak, 90 min</span><span style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:24px">18.000 BD</span></div>
+                  <button onClick="{{ toggleManual }}" style="margin-top:14px;width:100%;height:48px;border:none;border-radius:12px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer" style-hover="background:#2E2E2E">Book Court 2</button>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A2 BOOKINGS -->
+    <div id="a2" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A2 / BOOKINGS LIST + CANCEL</div>
+      <div data-screen-label="A2 Bookings" style="position:relative;width:1280px;height:760px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings</a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 32px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Bookings</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E">Everything on the books, app and manual. Cancel here refunds by the venue policy.</div></div>
+            <button onClick="{{ noop }}" style="height:40px;padding:0 14px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:#F4F4F4"><i data-lucide="download" style="width:14px;height:14px"></i>Export CSV</button>
+          </div>
+          <div style="margin-top:22px;display:flex;align-items:center;gap:10px">
+            <div style="height:40px;width:280px;border:1px solid #E6E6E6;border-radius:10px;padding:0 12px;display:flex;align-items:center;gap:10px;color:#6E6E6E"><i data-lucide="search" style="width:15px;height:15px"></i><span style="font-size:13px">Name, phone or booking ref</span></div>
+            <div style="display:flex;border:1px solid #E6E6E6;border-radius:10px;overflow:hidden;height:40px">
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">Upcoming</button>
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;border-left:1px solid #E6E6E6;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Past</button>
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;border-left:1px solid #E6E6E6;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Cancelled</button>
+            </div>
+            <button onClick="{{ noop }}" style="height:40px;padding:0 12px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:#F4F4F4">All courts<i data-lucide="chevron-down" style="width:14px;height:14px;color:#9A9A9A"></i></button>
+            <button onClick="{{ noop }}" style="height:40px;padding:0 12px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:#F4F4F4">Any source<i data-lucide="chevron-down" style="width:14px;height:14px;color:#9A9A9A"></i></button>
+            <span style="margin-left:auto;font-size:13px;color:#6E6E6E">61 bookings, next 7 days</span>
+          </div>
+          <div style="margin-top:18px;border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;font-size:13px">
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:12px 18px;border-bottom:1px solid #E6E6E6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A"><span>WHEN</span><span>CUSTOMER</span><span>COURT</span><span>GAME</span><span>SOURCE</span><span>PAYMENT</span><span style="text-align:right">AMOUNT</span><span></span></div>
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span><span style="display:block;font-variation-settings:'wdth' 100,'wght' 600">Today 6:00 PM</span><span style="display:block;color:#6E6E6E">90 min</span></span><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">SL</span><span><span style="display:block">Sara Lind</span><span style="display:block;color:#6E6E6E">+973 3345 0012</span></span></span><span>Court 1</span><span style="color:#6E6E6E">Private, 4 of 4</span><span>App</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span><span style="text-align:right">18.000 BD</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid #E6E6E6;align-items:center;background:#F4F4F4"><span><span style="display:block;font-variation-settings:'wdth' 100,'wght' 600">Today 7:00 PM</span><span style="display:block;color:#6E6E6E">90 min</span></span><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">AR</span><span><span style="display:block">Adam Rashid</span><span style="display:block;color:#6E6E6E">+973 3671 8890</span></span></span><span>Court 2</span><span style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;border:1px solid #000000;border-radius:4px;padding:1px 5px">OPEN</span><span style="color:#6E6E6E">3 of 4 seats</span></span><span>App</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Per seat</span><span style="text-align:right">13.500 BD</span><button onClick="{{ toggleCancel }}" style="width:32px;height:32px;border:none;background:#000000;color:#FFFFFF;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span><span style="display:block;font-variation-settings:'wdth' 100,'wght' 600">Today 8:00 PM</span><span style="display:block;color:#6E6E6E">120 min</span></span><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid #E6E6E6;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">TC</span><span><span style="display:block">Tuesday Crew</span><span style="display:block;color:#6E6E6E">Booked by Mikael K.</span></span></span><span>Court 1</span><span style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;border:1px solid #000000;border-radius:4px;padding:1px 5px">GROUP</span><span style="color:#6E6E6E">4 of 4</span></span><span>App</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span><span style="text-align:right">24.000 BD</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span><span style="display:block;font-variation-settings:'wdth' 100,'wght' 600">Today 8:30 PM</span><span style="display:block;color:#6E6E6E">90 min</span></span><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid #E6E6E6;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">KH</span><span><span style="display:block">Khalid</span><span style="display:block;color:#6E6E6E">+973 3900 7781</span></span></span><span>Court 4</span><span style="color:#9A9A9A">None</span><span>Phone</span><span style="display:flex;align-items:center;gap:6px;color:#6E6E6E"><i data-lucide="circle-dashed" style="width:13px;height:13px"></i>Unpaid</span><span style="text-align:right">18.000 BD</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span><span style="display:block;font-variation-settings:'wdth' 100,'wght' 600">Today 10:00 PM</span><span style="display:block;color:#6E6E6E">90 min</span></span><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid #E6E6E6;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">HB</span><span><span style="display:block">Hassan Baji</span><span style="display:block;color:#6E6E6E">+973 3612 4408</span></span></span><span>Court 2</span><span style="color:#9A9A9A">None</span><span>Walk-in</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Cash</span><span style="text-align:right">18.000 BD</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span><span style="display:block;font-variation-settings:'wdth' 100,'wght' 600">Fri 5:00 PM</span><span style="display:block;color:#6E6E6E">90 min</span></span><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">LH</span><span><span style="display:block">Layla Hasan</span><span style="display:block;color:#6E6E6E">+973 3322 4455</span></span></span><span>Court 3</span><span style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;border:1px solid #000000;border-radius:4px;padding:1px 5px">OPEN</span><span style="color:#6E6E6E">1 of 4 seats</span></span><span>App</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Per seat</span><span style="text-align:right">4.500 BD</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+            <div style="display:grid;grid-template-columns:120px 1.4fr 90px 1fr 110px 110px 90px 44px;gap:12px;padding:14px 18px;align-items:center"><span><span style="display:block;font-variation-settings:'wdth' 100,'wght' 600">Fri 7:00 PM</span><span style="display:block;color:#6E6E6E">60 min</span></span><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">JB</span><span><span style="display:block">Jonas Berg</span><span style="display:block;color:#6E6E6E">+973 3511 9900</span></span></span><span>Court 2</span><span style="color:#6E6E6E">Private, 2 of 4</span><span>App</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span><span style="text-align:right">12.000 BD</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+          </div>
+        </div>
+
+        <sc-if value="{{ cancelOpen }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center">
+            <div onClick="{{ toggleCancel }}" style="position:absolute;inset:0;background:rgba(0,0,0,0.45)"></div>
+            <div style="position:relative;width:460px;background:#FFFFFF;border-radius:16px;padding:26px 26px 22px;display:flex;flex-direction:column;gap:18px">
+              <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:22px">Cancel this booking?</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E;line-height:1.5">Adam Rashid, Court 2, today 7:00 PM. An open game with 3 players is attached; all three get a notification.</div></div>
+              <div style="border:1px solid #E6E6E6;border-radius:12px;overflow:hidden;font-size:13px">
+                <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;border-bottom:1px solid #E6E6E6"><span style="width:18px;height:18px;border-radius:50%;border:5px solid #000000;box-sizing:border-box"></span><span style="flex:1"><span style="display:block">Venue cancels</span><span style="display:block;color:#6E6E6E">Full refund, 13.500 BD, to all payers</span></span></label>
+                <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer"><span style="width:18px;height:18px;border-radius:50%;border:1px solid #C9C9C9;box-sizing:border-box"></span><span style="flex:1"><span style="display:block">Customer asked</span><span style="display:block;color:#6E6E6E">Policy applies: 1h 32m to start, so no refund</span></span></label>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#6E6E6E">Note to customer, optional</span><div style="height:44px;border:1px solid #E6E6E6;border-radius:10px;padding:0 12px;display:flex;align-items:center;font-size:13px;color:#9A9A9A">Floodlight fault on Court 2</div></label>
+              <div style="display:flex;gap:10px;justify-content:flex-end"><button onClick="{{ toggleCancel }}" style="height:44px;padding:0 16px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="background:#F4F4F4">Keep booking</button><button onClick="{{ toggleCancel }}" style="height:44px;padding:0 16px;border:none;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer" style-hover="background:#2E2E2E">Cancel and refund</button></div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- A3 COURTS & PRICING -->
+    <div id="a3" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A3 / COURTS &amp; PRICING</div>
+      <div data-screen-label="A3 Courts and pricing" style="width:1280px;height:760px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings</a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 32px;gap:26px;overflow:hidden">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Courts &amp; pricing</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E">Courts come from the Temba venue catalog. Pricing is yours: a rate per 60 minutes per time band, per court.</div></div>
+            <button onClick="{{ noop }}" style="height:40px;padding:0 16px;border:none;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:#2E2E2E"><i data-lucide="plus" style="width:15px;height:15px"></i>Add court</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px">
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px"><div style="height:84px;border-radius:10px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">court photo</div><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Court 1</span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;color:#6E6E6E">Bookable</span></div><div style="font-size:12px;color:#6E6E6E">Outdoor, panoramic glass, floodlit</div></div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px"><div style="height:84px;border-radius:10px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">court photo</div><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Court 2</span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;color:#6E6E6E">Bookable</span></div><div style="font-size:12px;color:#6E6E6E">Outdoor, panoramic glass, floodlit</div></div>
+            <div style="border:1px solid #000000;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px"><div style="height:84px;border-radius:10px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">court photo</div><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Court 3</span><span style="font-size:11px;background:#000000;color:#FFFFFF;border-radius:6px;padding:3px 8px">Closed to 5 PM</span></div><div style="font-size:12px;color:#6E6E6E">Indoor, air conditioned</div></div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px"><div style="height:84px;border-radius:10px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">court photo</div><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">Court 4</span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;color:#6E6E6E">Bookable</span></div><div style="font-size:12px;color:#6E6E6E">Indoor, air conditioned</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:22px;flex:1;min-height:0">
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;display:flex;flex-direction:column">
+              <div style="padding:16px 20px;border-bottom:1px solid #E6E6E6;display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Rate card, per 60 min</span><button onClick="{{ noop }}" style="border:none;background:none;padding:0;font-family:'Archivo',sans-serif;font-size:13px;color:#6E6E6E;text-decoration:underline;cursor:pointer">Add time band</button></div>
+              <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;gap:10px;padding:10px 20px;border-bottom:1px solid #E6E6E6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A"><span>BAND</span><span>OUTDOOR 1, 2</span><span>INDOOR 3, 4</span><span>WEEKEND</span><span>DAYS</span></div>
+              <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;gap:10px;padding:14px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span><span style="display:block">Morning</span><span style="display:block;color:#6E6E6E">7:00 AM to 4:00 PM</span></span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">8.000</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">10.000</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">10.000</span><span style="color:#6E6E6E">Sun to Thu</span></div>
+              <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;gap:10px;padding:14px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span><span style="display:block">Peak</span><span style="display:block;color:#6E6E6E">4:00 PM to 11:00 PM</span></span><span style="height:36px;border:1px solid #000000;border-radius:8px;display:flex;align-items:center;padding:0 10px">12.000</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">14.000</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">14.000</span><span style="color:#6E6E6E">All days</span></div>
+              <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;gap:10px;padding:14px 20px;font-size:13px;align-items:center"><span><span style="display:block">Late</span><span style="display:block;color:#6E6E6E">11:00 PM to 1:00 AM</span></span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">10.000</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">12.000</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">12.000</span><span style="color:#6E6E6E">Thu, Fri</span></div>
+              <div style="margin-top:auto;padding:14px 20px;border-top:1px solid #E6E6E6;font-size:12px;color:#6E6E6E">90 minutes charges 1.5× the band it starts in. Prices in BD, fils kept.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+                <div style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Booking rules</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span style="color:#6E6E6E">Durations</span><span style="display:flex;gap:6px"><span style="border:1px solid #000000;border-radius:6px;padding:3px 8px">60</span><span style="border:1px solid #000000;border-radius:6px;padding:3px 8px">90</span><span style="border:1px solid #000000;border-radius:6px;padding:3px 8px">120</span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span style="color:#6E6E6E">Start steps</span><span>Every 30 min</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span style="color:#6E6E6E">Book ahead</span><span>Up to 14 days</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span style="color:#6E6E6E">Last minute</span><span>30 min before</span></div>
+              </div>
+              <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;flex:1">
+                <div style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Cancellation policy</div>
+                <div style="font-size:12px;color:#6E6E6E">Shown to every player before they pay.</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span style="color:#6E6E6E">More than 24h before</span><span>Full refund</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span style="color:#6E6E6E">6 to 24h before</span><span>50% refund</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><span style="color:#6E6E6E">Under 6h</span><span>No refund</span></div>
+                <button onClick="{{ noop }}" style="margin-top:auto;height:40px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Edit policy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A4 HOURS & CLOSURES -->
+    <div id="a4" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A4 / HOURS &amp; CLOSURES</div>
+      <div data-screen-label="A4 Hours and closures" style="width:1280px;height:700px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings</a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 32px;gap:26px">
+          <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Hours &amp; closures</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E">Opening hours set what players can book. Closures block courts without touching the hours.</div></div>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:22px;flex:1;min-height:0">
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;display:flex;flex-direction:column">
+              <div style="padding:16px 20px;border-bottom:1px solid #E6E6E6;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Weekly hours</div>
+              <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px;gap:12px;padding:12px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span>Sunday</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">7:00 AM</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">11:00 PM</span><span style="color:#6E6E6E;text-align:right">16h</span></div>
+              <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px;gap:12px;padding:12px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span>Monday</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">7:00 AM</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">11:00 PM</span><span style="color:#6E6E6E;text-align:right">16h</span></div>
+              <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px;gap:12px;padding:12px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span>Tuesday</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">7:00 AM</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">11:00 PM</span><span style="color:#6E6E6E;text-align:right">16h</span></div>
+              <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px;gap:12px;padding:12px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span>Wednesday</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">7:00 AM</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">11:00 PM</span><span style="color:#6E6E6E;text-align:right">16h</span></div>
+              <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px;gap:12px;padding:12px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span>Thursday</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">7:00 AM</span><span style="height:36px;border:1px solid #000000;border-radius:8px;display:flex;align-items:center;padding:0 10px">1:00 AM</span><span style="color:#6E6E6E;text-align:right">18h</span></div>
+              <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px;gap:12px;padding:12px 20px;border-bottom:1px solid #E6E6E6;font-size:13px;align-items:center"><span>Friday</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">8:00 AM</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">1:00 AM</span><span style="color:#6E6E6E;text-align:right">17h</span></div>
+              <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px;gap:12px;padding:12px 20px;font-size:13px;align-items:center"><span>Saturday</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">8:00 AM</span><span style="height:36px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px">11:00 PM</span><span style="color:#6E6E6E;text-align:right">15h</span></div>
+              <div style="margin-top:auto;padding:14px 20px;border-top:1px solid #E6E6E6;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:#6E6E6E">Changes apply to new bookings only.</span><button onClick="{{ noop }}" style="height:38px;padding:0 14px;border:none;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer" style-hover="background:#2E2E2E">Save hours</button></div>
+            </div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;display:flex;flex-direction:column">
+              <div style="padding:16px 20px;border-bottom:1px solid #E6E6E6;display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Closures</span><button onClick="{{ noop }}" style="height:34px;padding:0 12px;border:1px solid #E6E6E6;border-radius:8px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px" style-hover="background:#F4F4F4"><i data-lucide="plus" style="width:13px;height:13px"></i>Add closure</button></div>
+              <div style="padding:14px 20px;border-bottom:1px solid #E6E6E6;display:flex;align-items:center;gap:14px;font-size:13px"><span style="width:38px;height:38px;border-radius:9px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 4px,#E6E6E6 4px 5px);flex:none"></span><span style="flex:1;min-width:0"><span style="display:block">Court 3, resurfacing</span><span style="display:block;color:#6E6E6E">Today, 7:00 AM to 5:00 PM</span></span><span style="font-size:11px;background:#000000;color:#FFFFFF;border-radius:6px;padding:3px 8px">Active</span></div>
+              <div style="padding:14px 20px;border-bottom:1px solid #E6E6E6;display:flex;align-items:center;gap:14px;font-size:13px"><span style="width:38px;height:38px;border-radius:9px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 4px,#E6E6E6 4px 5px);flex:none"></span><span style="flex:1;min-width:0"><span style="display:block">All courts, National Day</span><span style="display:block;color:#6E6E6E">Wed 16 Dec, all day</span></span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;color:#6E6E6E">Scheduled</span></div>
+              <div style="padding:14px 20px;border-bottom:1px solid #E6E6E6;display:flex;align-items:center;gap:14px;font-size:13px"><span style="width:38px;height:38px;border-radius:9px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 4px,#E6E6E6 4px 5px);flex:none"></span><span style="flex:1;min-width:0"><span style="display:block">Courts 1, 2, Karbabad Open</span><span style="display:block;color:#6E6E6E">Fri 6 to Sat 7 Nov, 8:00 AM to 8:00 PM</span></span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;color:#6E6E6E">Scheduled</span></div>
+              <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+                <div style="font-size:12px;color:#6E6E6E">New closure</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><span style="height:38px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px">All courts<i data-lucide="chevron-down" style="width:13px;height:13px;color:#9A9A9A"></i></span><span style="height:38px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px;color:#9A9A9A">Reason<i data-lucide="chevron-down" style="width:13px;height:13px"></i></span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><span style="height:38px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-size:13px;color:#9A9A9A">From</span><span style="height:38px;border:1px solid #E6E6E6;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-size:13px;color:#9A9A9A">To</span></div>
+                <div style="font-size:12px;color:#6E6E6E;line-height:1.5">Existing bookings inside the window are listed before you confirm. Each is cancelled with a full refund.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A5 CUSTOMERS -->
+    <div id="a5" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A5 / CUSTOMERS</div>
+      <div data-screen-label="A5 Customers" style="width:1280px;height:700px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings</a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 32px;gap:22px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Customers</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E">Everyone who has booked here. Temba players link to their profile; walk-ins are yours only.</div></div>
+            <div style="height:40px;width:260px;border:1px solid #E6E6E6;border-radius:10px;padding:0 12px;display:flex;align-items:center;gap:10px;color:#6E6E6E"><i data-lucide="search" style="width:15px;height:15px"></i><span style="font-size:13px">Search 412 customers</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:22px;flex:1;min-height:0">
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;font-size:13px">
+              <div style="display:grid;grid-template-columns:1.6fr 90px 90px 110px 100px;gap:12px;padding:12px 18px;border-bottom:1px solid #E6E6E6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A"><span>CUSTOMER</span><span>BOOKINGS</span><span>NO-SHOWS</span><span>SPENT</span><span>LAST</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 90px 90px 110px 100px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center;background:#F4F4F4"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">HB</span><span><span style="display:block">Hassan Baji</span><span style="display:block;color:#6E6E6E">Temba, level C+</span></span></span><span>14</span><span>0</span><span>218.000 BD</span><span style="color:#6E6E6E">Today</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 90px 90px 110px 100px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">SL</span><span><span style="display:block">Sara Lind</span><span style="display:block;color:#6E6E6E">Temba, level C</span></span></span><span>11</span><span>0</span><span>171.000 BD</span><span style="color:#6E6E6E">Today</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 90px 90px 110px 100px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">MK</span><span><span style="display:block">Mikael Karlsson</span><span style="display:block;color:#6E6E6E">Temba, level C+, Tuesday Crew</span></span></span><span>9</span><span>1</span><span>162.000 BD</span><span style="color:#6E6E6E">Tue</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 90px 90px 110px 100px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid #E6E6E6;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">KH</span><span><span style="display:block">Khalid</span><span style="display:block;color:#6E6E6E">Phone only, +973 3900 7781</span></span></span><span>6</span><span>2</span><span>84.000 BD</span><span style="color:#6E6E6E">Today</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 90px 90px 110px 100px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">AR</span><span><span style="display:block">Adam Rashid</span><span style="display:block;color:#6E6E6E">Temba, level B</span></span></span><span>5</span><span>0</span><span>49.500 BD</span><span style="color:#6E6E6E">Today</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 90px 90px 110px 100px;gap:12px;padding:13px 18px;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">LH</span><span><span style="display:block">Layla Hasan</span><span style="display:block;color:#6E6E6E">Temba, level C</span></span></span><span>3</span><span>0</span><span>31.500 BD</span><span style="color:#6E6E6E">Fri</span></div>
+            </div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:18px">
+              <div style="display:flex;align-items:center;gap:14px"><span style="width:48px;height:48px;border-radius:12px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">HB</span><span><span style="display:block;font-size:18px;font-variation-settings:'wdth' 100,'wght' 600">Hassan Baji</span><span style="display:block;font-size:13px;color:#6E6E6E">+973 3612 4408, Temba since Mar 2026</span></span></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+                <div style="border:1px solid #E6E6E6;border-radius:10px;padding:12px"><div style="font-size:11px;color:#6E6E6E">Bookings</div><div style="margin-top:4px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:24px">14</div></div>
+                <div style="border:1px solid #E6E6E6;border-radius:10px;padding:12px"><div style="font-size:11px;color:#6E6E6E">Spent</div><div style="margin-top:4px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:24px">218</div></div>
+                <div style="border:1px solid #E6E6E6;border-radius:10px;padding:12px"><div style="font-size:11px;color:#6E6E6E">Usual</div><div style="margin-top:4px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:24px">Tue</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+                <div style="font-size:12px;color:#6E6E6E">Recent</div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #E6E6E6"><span>Today 10:00 PM, Court 2</span><span style="color:#6E6E6E">Walk-in, cash</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #E6E6E6"><span>Tue 8:00 PM, Court 1</span><span style="color:#6E6E6E">Group game</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #E6E6E6"><span>Sat 6:00 PM, Court 3</span><span style="color:#6E6E6E">Open game, 4 of 4</span></div>
+              </div>
+              <div style="margin-top:auto;display:flex;gap:8px"><button onClick="{{ noop }}" style="flex:1;height:40px;border:none;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer" style-hover="background:#2E2E2E">Book for Hassan</button><button onClick="{{ noop }}" style="height:40px;padding:0 14px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Add note</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A6 STAFF + A7 REPORTS, side by side -->
+    <div style="display:flex;flex-wrap:wrap;gap:44px 40px">
+    <div id="a6" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A6 / STAFF &amp; ROLES</div>
+      <div data-screen-label="A6 Staff and roles" style="width:1280px;height:620px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings</a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 32px;gap:22px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Staff &amp; roles</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E">Three roles. Invite by phone number; staff sign in with the same Temba account they play with.</div></div>
+            <button onClick="{{ noop }}" style="height:40px;padding:0 16px;border:none;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:#2E2E2E"><i data-lucide="plus" style="width:15px;height:15px"></i>Invite staff</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:22px;flex:1;min-height:0">
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;font-size:13px">
+              <div style="display:grid;grid-template-columns:1.6fr 120px 1fr 40px;gap:12px;padding:12px 18px;border-bottom:1px solid #E6E6E6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A"><span>PERSON</span><span>ROLE</span><span>LAST ACTIVE</span><span></span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 120px 1fr 40px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">NA</span><span><span style="display:block">Noor Ahmed</span><span style="display:block;color:#6E6E6E">+973 3300 1100, you</span></span></span><span style="font-size:11px;background:#000000;color:#FFFFFF;border-radius:6px;padding:3px 8px;justify-self:start">Owner</span><span style="color:#6E6E6E">Now</span><span></span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 120px 1fr 40px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">RS</span><span><span style="display:block">Reem Saleh</span><span style="display:block;color:#6E6E6E">+973 3611 2200</span></span></span><span style="font-size:11px;border:1px solid #000000;border-radius:6px;padding:2px 7px;justify-self:start">Manager</span><span style="color:#6E6E6E">2h ago</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+              <div style="display:grid;grid-template-columns:1.6fr 120px 1fr 40px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">OT</span><span><span style="display:block">Omar Tariq</span><span style="display:block;color:#6E6E6E">+973 3499 8812, also coach</span></span></span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;color:#6E6E6E;justify-self:start">Front desk</span><span style="color:#6E6E6E">Yesterday</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+              <div style="display:grid;grid-template-columns:1.6fr 120px 1fr 40px;gap:12px;padding:13px 18px;border-bottom:1px solid #E6E6E6;align-items:center"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#000000;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">DM</span><span><span style="display:block">Dana Mahmood</span><span style="display:block;color:#6E6E6E">+973 3777 4410</span></span></span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;color:#6E6E6E;justify-self:start">Front desk</span><span style="color:#6E6E6E">3 days ago</span><button onClick="{{ noop }}" style="width:32px;height:32px;border:none;background:none;cursor:pointer;color:#6E6E6E;display:flex;align-items:center;justify-content:center;border-radius:8px" style-hover="background:#F4F4F4"><i data-lucide="more-horizontal" style="width:16px;height:16px"></i></button></div>
+              <div style="display:grid;grid-template-columns:1.6fr 120px 1fr 40px;gap:12px;padding:13px 18px;align-items:center;color:#6E6E6E"><span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;border:1px dashed #C9C9C9;box-sizing:border-box"></span><span><span style="display:block;color:#000000">+973 3222 9090</span><span style="display:block">Invited Tue, not accepted</span></span></span><span style="font-size:11px;border:1px solid #E6E6E6;border-radius:6px;padding:2px 7px;justify-self:start">Front desk</span><span style="text-decoration:underline;cursor:pointer">Resend</span><span></span></div>
+            </div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;font-size:13px">
+              <div style="padding:16px 20px;border-bottom:1px solid #E6E6E6;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">What each role can do</div>
+              <div style="display:grid;grid-template-columns:1fr 60px 70px 70px;gap:8px;padding:10px 20px;border-bottom:1px solid #E6E6E6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A"><span></span><span>DESK</span><span>MANAGER</span><span>OWNER</span></div>
+              <div style="display:grid;grid-template-columns:1fr 60px 70px 70px;gap:8px;padding:11px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>View schedule, book, check in</span><i data-lucide="check" style="width:14px;height:14px"></i><i data-lucide="check" style="width:14px;height:14px"></i><i data-lucide="check" style="width:14px;height:14px"></i></div>
+              <div style="display:grid;grid-template-columns:1fr 60px 70px 70px;gap:8px;padding:11px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Cancel and refund</span><span style="color:#C9C9C9">—</span><i data-lucide="check" style="width:14px;height:14px"></i><i data-lucide="check" style="width:14px;height:14px"></i></div>
+              <div style="display:grid;grid-template-columns:1fr 60px 70px 70px;gap:8px;padding:11px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Pricing, hours, closures</span><span style="color:#C9C9C9">—</span><i data-lucide="check" style="width:14px;height:14px"></i><i data-lucide="check" style="width:14px;height:14px"></i></div>
+              <div style="display:grid;grid-template-columns:1fr 60px 70px 70px;gap:8px;padding:11px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Reports</span><span style="color:#C9C9C9">—</span><i data-lucide="check" style="width:14px;height:14px"></i><i data-lucide="check" style="width:14px;height:14px"></i></div>
+              <div style="display:grid;grid-template-columns:1fr 60px 70px 70px;gap:8px;padding:11px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Payouts and bank details</span><span style="color:#C9C9C9">—</span><span style="color:#C9C9C9">—</span><i data-lucide="check" style="width:14px;height:14px"></i></div>
+              <div style="display:grid;grid-template-columns:1fr 60px 70px 70px;gap:8px;padding:11px 20px;align-items:center"><span>Invite and remove staff</span><span style="color:#C9C9C9">—</span><span style="color:#C9C9C9">—</span><i data-lucide="check" style="width:14px;height:14px"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- A7 REPORTS -->
+    <div id="a7" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A7 / REPORTS</div>
+      <div data-screen-label="A7 Reports" style="width:1280px;height:760px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings</a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 32px;gap:22px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Reports</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E">Occupancy and revenue, with the Temba effect broken out: how many hours came from open and group games.</div></div>
+            <div style="display:flex;border:1px solid #E6E6E6;border-radius:10px;overflow:hidden;height:40px">
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">7 days</button>
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;border-left:1px solid #E6E6E6;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">30 days</button>
+              <button onClick="{{ noop }}" style="padding:0 14px;border:none;border-left:1px solid #E6E6E6;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer" style-hover="background:#F4F4F4">Quarter</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px"><div style="font-size:12px;color:#6E6E6E">Revenue</div><div style="margin-top:6px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:32px;line-height:1">4,212 <span style="font-size:14px;letter-spacing:0;font-variation-settings:'wdth' 100,'wght' 500;color:#6E6E6E">BD</span></div><div style="margin-top:8px;font-size:12px;color:#6E6E6E">+11% on previous 30 days</div></div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px"><div style="font-size:12px;color:#6E6E6E">Occupancy</div><div style="margin-top:6px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:32px;line-height:1">64%</div><div style="margin-top:8px;font-size:12px;color:#6E6E6E">Peak 91%, morning 38%</div></div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px"><div style="font-size:12px;color:#6E6E6E">Hours from Temba games</div><div style="margin-top:6px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:32px;line-height:1">172</div><div style="margin-top:8px;font-size:12px;color:#6E6E6E">31% of booked hours, open + group</div></div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px"><div style="font-size:12px;color:#6E6E6E">Cancellations</div><div style="margin-top:6px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:32px;line-height:1">6.2%</div><div style="margin-top:8px;font-size:12px;color:#6E6E6E">19 of 306, 4 no-shows</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:22px;flex:1;min-height:0">
+            <div style="border:1px solid #E6E6E6;border-radius:14px;padding:20px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Occupancy by hour, all courts</span><span style="display:flex;gap:14px;font-size:12px;color:#6E6E6E"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#000000"></span>Direct</span><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#9A9A9A"></span>Temba games</span></span></div>
+              <div style="flex:1;margin-top:18px;display:grid;grid-template-columns:repeat(17,1fr);gap:6px;align-items:end">
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:4%;background:#9A9A9A"></div><div style="height:18%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:6%;background:#9A9A9A"></div><div style="height:24%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:8%;background:#9A9A9A"></div><div style="height:30%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:6%;background:#9A9A9A"></div><div style="height:28%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:5%;background:#9A9A9A"></div><div style="height:22%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:6%;background:#9A9A9A"></div><div style="height:26%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:10%;background:#9A9A9A"></div><div style="height:30%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:14%;background:#9A9A9A"></div><div style="height:36%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:18%;background:#9A9A9A"></div><div style="height:46%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:26%;background:#9A9A9A"></div><div style="height:54%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:32%;background:#9A9A9A"></div><div style="height:58%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:36%;background:#9A9A9A"></div><div style="height:60%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:34%;background:#9A9A9A"></div><div style="height:58%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:28%;background:#9A9A9A"></div><div style="height:54%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:16%;background:#9A9A9A"></div><div style="height:40%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:8%;background:#9A9A9A"></div><div style="height:22%;background:#000000"></div></div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;border-radius:4px;overflow:hidden"><div style="height:3%;background:#9A9A9A"></div><div style="height:9%;background:#000000"></div></div>
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:space-between;font-size:11px;color:#9A9A9A"><span>7 AM</span><span>11 AM</span><span>3 PM</span><span>7 PM</span><span>11 PM</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+                <div style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">By court</div>
+                <div style="display:flex;align-items:center;gap:12px"><span style="width:56px">Court 1</span><span style="flex:1;height:8px;border-radius:4px;background:#F4F4F4;overflow:hidden"><span style="display:block;width:72%;height:100%;background:#000000"></span></span><span style="width:40px;text-align:right">72%</span></div>
+                <div style="display:flex;align-items:center;gap:12px"><span style="width:56px">Court 2</span><span style="flex:1;height:8px;border-radius:4px;background:#F4F4F4;overflow:hidden"><span style="display:block;width:69%;height:100%;background:#000000"></span></span><span style="width:40px;text-align:right">69%</span></div>
+                <div style="display:flex;align-items:center;gap:12px"><span style="width:56px">Court 3</span><span style="flex:1;height:8px;border-radius:4px;background:#F4F4F4;overflow:hidden"><span style="display:block;width:51%;height:100%;background:#000000"></span></span><span style="width:40px;text-align:right">51%</span></div>
+                <div style="display:flex;align-items:center;gap:12px"><span style="width:56px">Court 4</span><span style="flex:1;height:8px;border-radius:4px;background:#F4F4F4;overflow:hidden"><span style="display:block;width:63%;height:100%;background:#000000"></span></span><span style="width:40px;text-align:right">63%</span></div>
+              </div>
+              <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;font-size:13px;flex:1">
+                <div style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Revenue by source</div>
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E6E6E6"><span>App, private bookings</span><span>2,418 BD</span></div>
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E6E6E6"><span>App, open games</span><span>864 BD</span></div>
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E6E6E6"><span>App, group games</span><span>512 BD</span></div>
+                <div style="display:flex;justify-content:space-between;padding:7px 0"><span>Desk and phone</span><span>418 BD</span></div>
+                <button onClick="{{ noop }}" style="margin-top:auto;height:38px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:#F4F4F4"><i data-lucide="download" style="width:14px;height:14px"></i>Download report</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A8 PAYOUTS -->
+    <div id="a8" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">A8 / PAYOUTS</div>
+      <div data-screen-label="A8 Payouts" style="width:1280px;height:640px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex">
+        <div style="width:212px;flex:none;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;padding:22px 14px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px"><svg width="22" height="22" viewBox="0 0 100 100" style="display:block;flex:none" aria-hidden="true"><use href="#bkMarkRev"></use></svg><div style="font-family:'Sora',sans-serif;font-weight:400;font-size:15px;letter-spacing:0.2em">TEMBA</div></div>
+          <div style="margin-top:26px;padding:12px 10px;border:1px solid #2E2E2E;border-radius:10px;display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">KC</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="display:block;font-size:11px;color:#8E8E8E">4 courts, Karbabad</span></span><i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:#8E8E8E"></i></div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:2px">
+            <a href="#a1" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="calendar-days" style="width:16px;height:16px"></i>Schedule</a>
+            <a href="#a2" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="list" style="width:16px;height:16px"></i>Bookings</a>
+            <a href="#a3" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="layout-grid" style="width:16px;height:16px"></i>Courts &amp; pricing</a>
+            <a href="#a4" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="clock" style="width:16px;height:16px"></i>Hours &amp; closures</a>
+            <a href="#a5" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="users" style="width:16px;height:16px"></i>Customers</a>
+            <a href="#a6" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="shield" style="width:16px;height:16px"></i>Staff &amp; roles</a>
+            <a href="#a7" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:#8E8E8E;font-size:14px"><i data-lucide="bar-chart-3" style="width:16px;height:16px"></i>Reports</a>
+            <a href="#a8" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;background:#FFFFFF;color:#000000;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="wallet" style="width:16px;height:16px"></i>Payouts</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 32px;gap:22px">
+          <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Payouts</div><div style="margin-top:6px;font-size:14px;color:#6E6E6E">In-app payments settle to your bank every Monday. Desk and phone bookings are not in these numbers.</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:22px;flex:1;min-height:0">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="background:#000000;color:#FFFFFF;border-radius:14px;padding:22px"><div style="font-size:12px;color:#8E8E8E">Next payout, Mon 19 Oct</div><div style="margin-top:8px;font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:40px;line-height:1">912.600 <span style="font-size:16px;letter-spacing:0;font-variation-settings:'wdth' 100,'wght' 500;color:#8E8E8E">BD</span></div><div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;font-size:13px"><div style="display:flex;justify-content:space-between"><span style="color:#8E8E8E">Court fees, 61 bookings</span><span>984.000</span></div><div style="display:flex;justify-content:space-between"><span style="color:#8E8E8E">Refunds issued</span><span>−36.000</span></div><div style="display:flex;justify-content:space-between"><span style="color:#8E8E8E">Temba fee, 3.5%</span><span>−35.400</span></div></div></div>
+              <div style="border:1px solid #E6E6E6;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;font-size:13px"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Bank account</span><span style="font-size:12px;color:#6E6E6E;text-decoration:underline;cursor:pointer">Change</span></div><div style="display:flex;justify-content:space-between"><span style="color:#6E6E6E">Account</span><span>Karbabad Courts W.L.L.</span></div><div style="display:flex;justify-content:space-between"><span style="color:#6E6E6E">IBAN</span><span>BH67 BMAG •••• 4410</span></div><div style="display:flex;justify-content:space-between"><span style="color:#6E6E6E">Schedule</span><span>Weekly, Monday</span></div></div>
+            </div>
+            <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;font-size:13px;display:flex;flex-direction:column">
+              <div style="padding:16px 20px;border-bottom:1px solid #E6E6E6;display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">Past payouts</span><button onClick="{{ noop }}" style="border:none;background:none;padding:0;font-family:'Archivo',sans-serif;font-size:13px;color:#6E6E6E;text-decoration:underline;cursor:pointer">Statements</button></div>
+              <div style="display:grid;grid-template-columns:92px 1fr 82px 76px 90px 64px;gap:12px;padding:10px 20px;border-bottom:1px solid #E6E6E6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A"><span>DATE</span><span>PERIOD</span><span>GROSS</span><span>REFUNDS</span><span>PAID OUT</span><span>STATUS</span></div>
+              <div style="display:grid;grid-template-columns:92px 1fr 82px 76px 90px 64px;gap:12px;padding:14px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Mon 12 Oct</span><span style="color:#6E6E6E">5 to 11 Oct</span><span>1,046.000</span><span>−18.000</span><span style="font-variation-settings:'wdth' 100,'wght' 600">992.020</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span></div>
+              <div style="display:grid;grid-template-columns:92px 1fr 82px 76px 90px 64px;gap:12px;padding:14px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Mon 5 Oct</span><span style="color:#6E6E6E">28 Sep to 4 Oct</span><span>968.500</span><span>−54.000</span><span style="font-variation-settings:'wdth' 100,'wght' 600">882.493</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span></div>
+              <div style="display:grid;grid-template-columns:92px 1fr 82px 76px 90px 64px;gap:12px;padding:14px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Mon 28 Sep</span><span style="color:#6E6E6E">21 to 27 Sep</span><span>1,102.000</span><span>−9.000</span><span style="font-variation-settings:'wdth' 100,'wght' 600">1,054.745</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span></div>
+              <div style="display:grid;grid-template-columns:92px 1fr 82px 76px 90px 64px;gap:12px;padding:14px 20px;border-bottom:1px solid #E6E6E6;align-items:center"><span>Mon 21 Sep</span><span style="color:#6E6E6E">14 to 20 Sep</span><span>874.000</span><span>−27.000</span><span style="font-variation-settings:'wdth' 100,'wght' 600">817.355</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span></div>
+              <div style="display:grid;grid-template-columns:92px 1fr 82px 76px 90px 64px;gap:12px;padding:14px 20px;align-items:center"><span>Mon 14 Sep</span><span style="color:#6E6E6E">7 to 13 Sep</span><span>791.000</span><span>0.000</span><span style="font-variation-settings:'wdth' 100,'wght' 600">763.315</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="check" style="width:13px;height:13px"></i>Paid</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER APP -->
+  <div style="display:flex;flex-direction:column;gap:44px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-top:1px solid #E6E6E6;padding-top:44px"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Player app</div><div style="font-size:14px;color:#6E6E6E">Book a court, pay in app, then turn it into a game.</div></div>
+    <div style="display:flex;flex-wrap:wrap;gap:44px 40px">
+
+    <!-- C1 FACILITIES -->
+    <div id="c1" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">C1 / FACILITIES</div>
+      <div data-screen-label="C1 Facilities" style="width:390px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px">
+        <div style="padding:22px 22px 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">Book a court</div>
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-right:-10px"><i data-lucide="sliders-horizontal" style="width:20px;height:20px"></i></div>
+        </div>
+        <div style="padding:14px 22px 0;display:flex;gap:8px">
+          <div style="flex:1;height:44px;border:1px solid #E6E6E6;border-radius:12px;background:#F4F4F4;padding:0 14px;display:flex;align-items:center;gap:10px;color:#6E6E6E;font-size:14px"><i data-lucide="search" style="width:16px;height:16px"></i>Area or venue</div>
+          <button onClick="{{ noop }}" style="height:44px;padding:0 14px;border:1px solid #000000;border-radius:12px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer;display:flex;align-items:center;gap:6px">Tonight<i data-lucide="chevron-down" style="width:14px;height:14px"></i></button>
+        </div>
+        <div style="padding:12px 22px 0;display:flex;gap:6px;overflow:hidden">
+          <span style="border:1px solid #000000;border-radius:8px;padding:6px 10px;font-size:12px;white-space:nowrap">Nearest</span><span style="border:1px solid #E6E6E6;border-radius:8px;padding:6px 10px;font-size:12px;white-space:nowrap;color:#6E6E6E">Cheapest</span><span style="border:1px solid #E6E6E6;border-radius:8px;padding:6px 10px;font-size:12px;white-space:nowrap;color:#6E6E6E">Indoor</span><span style="border:1px solid #E6E6E6;border-radius:8px;padding:6px 10px;font-size:12px;white-space:nowrap;color:#6E6E6E">Free after 8 PM</span>
+        </div>
+        <div style="padding:20px 22px 0;display:flex;flex-direction:column;gap:14px">
+          <a href="#c2" style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;color:#000000">
+            <div style="height:132px;border-bottom:1px solid #E6E6E6;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);position:relative;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">venue photo<span style="position:absolute;left:12px;bottom:12px;background:#000000;color:#FFFFFF;border-radius:6px;padding:4px 8px;font-size:11px;font-variation-settings:'wdth' 100,'wght' 600">3 courts free tonight</span></div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:17px;font-variation-settings:'wdth' 100,'wght' 600">Karbabad Courts</span><span style="font-size:13px"><span style="color:#6E6E6E">from</span> 8.000 BD</span></div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#6E6E6E"><span>6 min drive, 2.1 km</span><span style="color:#E6E6E6">/</span><span style="display:flex;align-items:center;gap:4px;color:#000000"><i data-lucide="star" style="width:12px;height:12px"></i>4.8 <span style="color:#6E6E6E">(212)</span></span><span style="color:#E6E6E6">/</span><span>4 courts, 2 indoor</span></div>
+            </div>
+          </a>
+          <a href="#c2" style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;color:#000000">
+            <div style="height:132px;border-bottom:1px solid #E6E6E6;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);position:relative;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">venue photo<span style="position:absolute;left:12px;bottom:12px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:6px;padding:3px 8px;font-size:11px">Next free 9:30 PM</span></div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:17px;font-variation-settings:'wdth' 100,'wght' 600">Seef Padel Hub</span><span style="font-size:13px"><span style="color:#6E6E6E">from</span> 10.000 BD</span></div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#6E6E6E"><span>9 min drive, 4.4 km</span><span style="color:#E6E6E6">/</span><span style="display:flex;align-items:center;gap:4px;color:#000000"><i data-lucide="star" style="width:12px;height:12px"></i>4.6 <span style="color:#6E6E6E">(97)</span></span><span style="color:#E6E6E6">/</span><span>5 courts, indoor</span></div>
+            </div>
+          </a>
+          <a href="#c2" style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;color:#000000">
+            <div style="height:132px;border-bottom:1px solid #E6E6E6;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);position:relative;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">venue photo<span style="position:absolute;left:12px;bottom:12px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:6px;padding:3px 8px;font-size:11px;color:#6E6E6E">Full tonight</span></div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:17px;font-variation-settings:'wdth' 100,'wght' 600">Janabiyah Padel Park</span><span style="font-size:13px"><span style="color:#6E6E6E">from</span> 9.000 BD</span></div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#6E6E6E"><span>14 min drive, 8.0 km</span><span style="color:#E6E6E6">/</span><span style="display:flex;align-items:center;gap:4px;color:#000000"><i data-lucide="star" style="width:12px;height:12px"></i>4.9 <span style="color:#6E6E6E">(340)</span></span><span style="color:#E6E6E6">/</span><span>6 courts</span></div>
+            </div>
+          </a>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid #E6E6E6;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 14px;gap:2px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><i data-lucide="home" style="width:19px;height:19px"></i><span style="font-size:10px">Home</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><svg width="19" height="19" viewBox="0 0 100 100" style="display:block;opacity:0.45" aria-hidden="true"><use href="#bkMark"></use></svg><span style="font-size:10px">Games</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#000000"><i data-lucide="calendar-check" style="width:19px;height:19px"></i><span style="font-size:10px;font-variation-settings:'wdth' 100,'wght' 600">Book</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><i data-lucide="users" style="width:19px;height:19px"></i><span style="font-size:10px">Groups</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><i data-lucide="circle-user" style="width:19px;height:19px"></i><span style="font-size:10px">Profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C2 FACILITY + AVAILABILITY -->
+    <div id="c2" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">C2 / FACILITY, PICK A TIME</div>
+      <div data-screen-label="C2 Facility" style="width:390px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px">
+        <div style="height:200px;background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#F4F4F4 5px 6px);border-bottom:1px solid #E6E6E6;position:relative;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9A9A9A">venue photos, swipe
+          <a href="#c1" style="position:absolute;left:14px;top:14px;width:36px;height:36px;border-radius:10px;background:#FFFFFF;border:1px solid #E6E6E6;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:18px;height:18px"></i></a>
+          <span style="position:absolute;right:14px;bottom:12px;font-size:11px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:6px;padding:3px 8px;color:#000000">1 / 6</span>
+        </div>
+        <div style="padding:18px 22px 0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:26px;line-height:1">Karbabad Courts</div><div style="margin-top:8px;font-size:13px;color:#6E6E6E">Road 2010, Karbabad. 6 min drive.</div></div>
+            <div style="text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600"><i data-lucide="star" style="width:14px;height:14px"></i>4.8</div><div style="font-size:11px;color:#6E6E6E">212 reviews</div></div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap;font-size:12px"><span style="border:1px solid #E6E6E6;border-radius:8px;padding:5px 9px">4 courts</span><span style="border:1px solid #E6E6E6;border-radius:8px;padding:5px 9px">2 indoor</span><span style="border:1px solid #E6E6E6;border-radius:8px;padding:5px 9px">Open to 11 PM</span><span style="border:1px solid #E6E6E6;border-radius:8px;padding:5px 9px">Parking</span></div>
+        </div>
+        <div style="padding:22px 22px 0">
+          <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Day</div><span style="font-size:13px;color:#6E6E6E;display:flex;align-items:center;gap:6px"><i data-lucide="calendar" style="width:14px;height:14px"></i>Later</span></div>
+          <div style="margin-top:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            <button onClick="{{ noop }}" style="border:1px solid #000000;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:3px"><span style="font-size:11px;color:#8E8E8E">Today</span><span style="font-size:16px;font-variation-settings:'wdth' 112,'wght' 700;letter-spacing:-0.02em">15</span></button>
+            <button onClick="{{ noop }}" style="border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:3px" style-hover="background:#F4F4F4"><span style="font-size:11px;color:#9A9A9A">Fri</span><span style="font-size:16px;font-variation-settings:'wdth' 112,'wght' 700;letter-spacing:-0.02em">16</span></button>
+            <button onClick="{{ noop }}" style="border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:3px" style-hover="background:#F4F4F4"><span style="font-size:11px;color:#9A9A9A">Sat</span><span style="font-size:16px;font-variation-settings:'wdth' 112,'wght' 700;letter-spacing:-0.02em">17</span></button>
+            <button onClick="{{ noop }}" style="border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:3px" style-hover="background:#F4F4F4"><span style="font-size:11px;color:#9A9A9A">Sun</span><span style="font-size:16px;font-variation-settings:'wdth' 112,'wght' 700;letter-spacing:-0.02em">18</span></button>
+            <button onClick="{{ noop }}" style="border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:3px" style-hover="background:#F4F4F4"><span style="font-size:11px;color:#9A9A9A">Mon</span><span style="font-size:16px;font-variation-settings:'wdth' 112,'wght' 700;letter-spacing:-0.02em">19</span></button>
+          </div>
+        </div>
+        <div style="padding:22px 22px 0">
+          <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Start time</div><span style="font-size:12px;color:#9A9A9A">Peak after 4 PM</span></div>
+          <div style="margin-top:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            <sc-for list="{{ slots }}" as="t" hint-placeholder-count="10">
+              <button onClick="{{ t.pick }}" style="height:42px;border:1px solid {{ t.border }};border-radius:10px;background:{{ t.bg }};color:{{ t.color }};text-decoration:{{ t.deco }};font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:#9A9A9A">Struck times have no court free for 90 minutes.</div>
+        </div>
+        <div style="padding:22px 22px 0;display:flex;flex-direction:column;gap:12px;font-size:13px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #E6E6E6"><span style="color:#6E6E6E">Cancellation</span><span>Free until 24h before, 50% to 6h</span></div>
+        </div>
+        <div style="margin-top:auto;padding:14px 22px 22px;border-top:1px solid #E6E6E6;display:flex;align-items:center;gap:12px">
+          <div style="flex:1;min-width:0"><div style="font-size:12px;color:#9A9A9A">Today</div><div style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">{{ slotLabel }}, 2 courts free</div></div>
+          <a href="#c3" style="width:150px;height:50px;border-radius:12px;background:#000000;color:#FFFFFF;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600;display:flex;align-items:center;justify-content:center;gap:8px">Continue<i data-lucide="arrow-right" style="width:16px;height:16px"></i></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- C3 COURT, DURATION, PAY -->
+    <div id="c3" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">C3 / COURT, DURATION, PAY</div>
+      <div data-screen-label="C3 Checkout" style="width:390px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px">
+        <div style="background:#000000;color:#FFFFFF;padding:22px 22px 22px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><a href="#c2" style="width:40px;height:40px;margin-left:-10px;display:flex;align-items:center;justify-content:center;color:#FFFFFF"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></a><div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#8E8E8E">KARBABAD COURTS</div></div>
+          <div style="margin-top:14px;display:flex;align-items:baseline;gap:8px"><span style="font-variation-settings:'wdth' 118,'wght' 700;letter-spacing:-0.03em;font-size:44px;line-height:0.95">{{ slotLabel }}</span><span style="font-size:15px;color:#8E8E8E;margin-left:4px">to {{ slotEnd }}</span></div>
+          <div style="margin-top:8px;font-size:14px;color:#8E8E8E">Today, Thu 15 Oct / 90 min</div>
+        </div>
+        <div style="padding:24px 22px 0;display:flex;flex-direction:column;gap:26px">
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Court</div><span style="font-size:12px;color:#9A9A9A">2 free at this time</span></div>
+            <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <button onClick="{{ noop }}" style="border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#9A9A9A;font-family:'Archivo',sans-serif;cursor:not-allowed;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:line-through"><span style="font-size:14px">1</span><span style="font-size:10px">Outdoor</span></button>
+              <button onClick="{{ noop }}" style="border:1px solid #000000;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:14px;font-variation-settings:'wdth' 100,'wght' 600">2</span><span style="font-size:10px;color:#8E8E8E">Outdoor</span></button>
+              <button onClick="{{ noop }}" style="border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#9A9A9A;font-family:'Archivo',sans-serif;cursor:not-allowed;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:line-through"><span style="font-size:14px">3</span><span style="font-size:10px">Indoor</span></button>
+              <button onClick="{{ noop }}" style="border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:2px" style-hover="background:#F4F4F4"><span style="font-size:14px">4</span><span style="font-size:10px;color:#6E6E6E">Indoor, +2.000</span></button>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Duration</div><span style="font-size:12px;color:#9A9A9A">Ends {{ slotEnd }}</span></div>
+            <div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="background:#F4F4F4">60 min</button>
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #000000;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">90 min</button>
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="background:#F4F4F4">120 min</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Pay with</div>
+            <div style="margin-top:12px;border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;font-size:14px">
+              <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #E6E6E6"><i data-lucide="credit-card" style="width:18px;height:18px"></i><span style="flex:1">Visa •••• 4410</span><i data-lucide="check" style="width:16px;height:16px"></i></div>
+              <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;color:#6E6E6E"><i data-lucide="smartphone" style="width:18px;height:18px"></i><span style="flex:1">BenefitPay</span></div>
+            </div>
+          </div>
+          <div style="border:1px solid #E6E6E6;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span style="color:#6E6E6E">Court 2, peak, 90 min</span><span>18.000 BD</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#6E6E6E">Booking fee</span><span>0.000 BD</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid #E6E6E6;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600"><span>Total</span><span>18.000 BD</span></div>
+            <div style="font-size:12px;color:#9A9A9A;line-height:1.5">Free cancellation until Wed 6:00 PM. Split with players after you book.</div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:14px 22px 22px;border-top:1px solid #E6E6E6">
+          <a href="#c4" style="width:100%;height:52px;border-radius:12px;background:#000000;color:#FFFFFF;font-size:16px;font-variation-settings:'wdth' 100,'wght' 600;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box">Pay 18.000 BD</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- C4 BOOKED -->
+    <div id="c4" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">C4 / BOOKED, NOW MAKE IT A GAME</div>
+      <div data-screen-label="C4 Booked" style="width:390px;background:#000000;border:1px solid #000000;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px;color:#FFFFFF">
+        <div style="padding:22px 22px 0;display:flex;justify-content:flex-end"><a href="#c6" style="width:40px;height:40px;margin-right:-10px;display:flex;align-items:center;justify-content:center;color:#FFFFFF"><i data-lucide="x" style="width:20px;height:20px"></i></a></div>
+        <div style="padding:24px 26px 0">
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#8E8E8E">BOOKED, REF KC-4471</div>
+          <div style="margin-top:14px;font-variation-settings:'wdth' 112,'wght' 700;letter-spacing:-0.035em;font-size:44px;line-height:0.96">Court 2 is<br>yours tonight.</div>
+          <div style="margin-top:16px;display:flex;align-items:baseline;gap:10px"><span style="font-variation-settings:'wdth' 118,'wght' 700;letter-spacing:-0.03em;font-size:32px;line-height:1;white-space:nowrap">{{ slotLabel }}</span><span style="font-size:15px;color:#8E8E8E">to {{ slotEnd }}, Karbabad Courts</span></div>
+          <div style="margin-top:8px;font-size:14px;color:#8E8E8E">18.000 BD paid. Receipt sent to your phone.</div>
+        </div>
+        <div style="margin:36px 26px 0;border-top:1px solid #2E2E2E;padding-top:26px">
+          <div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:22px">Who is playing?</div>
+          <div style="margin-top:6px;font-size:14px;color:#8E8E8E;line-height:1.5">Turn the booking into a game and Temba handles seats, invites and the score.</div>
+          <div style="margin-top:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="height:66px;border-radius:10px;background:#1C1C1C;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><span style="font-size:14px;font-variation-settings:'wdth' 100,'wght' 600">MK</span><span style="font-size:11px;color:#8E8E8E">You, C+</span></div>
+            <div style="height:66px;border-radius:10px;border:1px solid #2E2E2E;box-sizing:border-box;background:repeating-linear-gradient(45deg,#000000 0 4px,#2E2E2E 4px 5px);display:flex;align-items:center;justify-content:center;font-size:11px;color:#FFFFFF">open</div>
+            <div style="height:66px;border-radius:10px;border:1px solid #2E2E2E;box-sizing:border-box;background:repeating-linear-gradient(45deg,#000000 0 4px,#2E2E2E 4px 5px);display:flex;align-items:center;justify-content:center;font-size:11px;color:#FFFFFF">open</div>
+            <div style="height:66px;border-radius:10px;border:1px solid #2E2E2E;box-sizing:border-box;background:repeating-linear-gradient(45deg,#000000 0 4px,#2E2E2E 4px 5px);display:flex;align-items:center;justify-content:center;font-size:11px;color:#FFFFFF">open</div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:26px;display:flex;flex-direction:column;gap:10px">
+          <a href="#c5" style="width:100%;height:52px;border-radius:12px;background:#FFFFFF;color:#000000;font-size:16px;font-variation-settings:'wdth' 100,'wght' 600;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box">Create a game for this booking</a>
+          <a href="#c6" style="width:100%;height:52px;border:1px solid #2E2E2E;border-radius:12px;background:#000000;color:#FFFFFF;font-size:16px;font-variation-settings:'wdth' 100,'wght' 600;display:flex;align-items:center;justify-content:center;box-sizing:border-box">Not now</a>
+          <div style="margin-top:4px;text-align:center;font-size:12px;color:#8E8E8E">You can do this later from My bookings.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C5 GAME FROM BOOKING -->
+    <div id="c5" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">C5 / GAME FROM BOOKING</div>
+      <div data-screen-label="C5 Game from booking" style="width:390px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px">
+        <div style="background:#000000;color:#FFFFFF;padding:22px 22px 20px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><a href="#c4" style="width:40px;height:40px;margin-left:-10px;display:flex;align-items:center;justify-content:center;color:#FFFFFF"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></a><div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#8E8E8E">FROM BOOKING KC-4471</div></div>
+          <div style="margin-top:18px;font-variation-settings:'wdth' 118,'wght' 700;letter-spacing:-0.03em;font-size:36px;line-height:1">New game</div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:8px;font-size:13px;color:#8E8E8E"><i data-lucide="lock" style="width:13px;height:13px"></i>Today {{ slotLabel }}<span style="color:#2E2E2E">/</span>Karbabad Courts<span style="color:#2E2E2E">/</span>Court 2</div>
+          <div style="margin-top:6px;font-size:12px;color:#8E8E8E">Where and when come from the booking. Only the rest is yours to set.</div>
+        </div>
+        <div style="padding:24px 22px 8px;display:flex;flex-direction:column;gap:26px">
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Game type</div><div style="font-size:12px;color:#9A9A9A">Required</div></div>
+            <div style="margin-top:12px;border:1px solid #E6E6E6;border-radius:14px;overflow:hidden">
+              <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="3">
+                <button onClick="{{ k.pick }}" style="width:100%;border:none;border-bottom:1px solid #E6E6E6;background:{{ k.bg }};color:{{ k.color }};font-family:'Archivo',sans-serif;text-align:left;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:12px">
+                  <span style="width:32px;height:32px;border-radius:8px;border:1px solid #E6E6E6;box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="{{ k.icon }}" style="width:16px;height:16px"></i></span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-variation-settings:'wdth' 100,'wght' 600">{{ k.title }}</span><span style="font-size:12px;color:{{ k.sub }}">{{ k.meta }}</span></span>
+                  <sc-if value="{{ k.on }}" hint-placeholder-val="{{ false }}"><i data-lucide="check" style="width:18px;height:18px;flex:none"></i></sc-if>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Court cost</div><div style="font-size:12px;color:#9A9A9A">You decide</div></div>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ pays }}" as="p" hint-placeholder-count="2">
+                <button onClick="{{ p.pick }}" style="width:100%;border:1px solid #E6E6E6;border-radius:12px;background:{{ p.bg }};color:{{ p.color }};font-family:'Archivo',sans-serif;text-align:left;cursor:pointer;padding:14px 16px;display:flex;align-items:center;gap:12px">
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">{{ p.title }}</span><span style="font-size:12px;color:{{ p.sub }}">{{ p.meta }}</span></span>
+                  <sc-if value="{{ p.on }}" hint-placeholder-val="{{ false }}"><i data-lucide="check" style="width:16px;height:16px;flex:none"></i></sc-if>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Level</div><div style="font-size:12px;color:#9A9A9A">Open game only</div></div>
+            <div style="margin-top:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="background:#F4F4F4">D</button>
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #000000;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">C</button>
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #000000;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">C+</button>
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="background:#F4F4F4">B</button>
+              <button onClick="{{ noop }}" style="height:42px;border:1px solid #E6E6E6;border-radius:10px;background:#FFFFFF;font-family:'Archivo',sans-serif;font-size:14px;cursor:pointer" style-hover="background:#F4F4F4">B+</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:14px 22px 22px;border-top:1px solid #E6E6E6;display:flex;align-items:center;gap:12px">
+          <div style="flex:1;min-width:0"><div style="font-size:12px;color:#9A9A9A">3 open seats</div><div style="font-size:14px;font-variation-settings:'wdth' 100,'wght' 600">Counts for your rating</div></div>
+          <a href="#c6" style="width:150px;height:50px;border-radius:12px;background:#000000;color:#FFFFFF;font-size:15px;font-variation-settings:'wdth' 100,'wght' 600;display:flex;align-items:center;justify-content:center;gap:8px">Post game<i data-lucide="arrow-right" style="width:16px;height:16px"></i></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- C6 MY BOOKINGS -->
+    <div id="c6" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">C6 / MY BOOKINGS</div>
+      <div data-screen-label="C6 My bookings" style="width:390px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px">
+        <div style="padding:22px 22px 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:28px">My bookings</div>
+          <a href="#c1" style="height:38px;padding:0 14px;border-radius:10px;background:#000000;color:#FFFFFF;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;display:flex;align-items:center;gap:6px"><i data-lucide="plus" style="width:14px;height:14px"></i>Book</a>
+        </div>
+        <div style="padding:16px 22px 0;display:flex;border:none;gap:18px;font-size:14px;border-bottom:1px solid #E6E6E6;margin:0 22px;padding-left:0;padding-right:0"><span style="padding-bottom:10px;border-bottom:2px solid #000000;font-variation-settings:'wdth' 100,'wght' 600">Upcoming, 3</span><span style="padding-bottom:10px;color:#6E6E6E">Past</span></div>
+        <div style="padding:18px 22px 0;display:flex;flex-direction:column;gap:12px">
+          <a href="#c7" style="background:#000000;color:#FFFFFF;border-radius:14px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#8E8E8E"><span>Tonight</span><span>Court 2, Karbabad Courts</span></div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:34px;line-height:0.95">{{ slotLabel }}</span><span style="font-size:14px;color:#8E8E8E">90 min</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <div style="height:44px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">MK</div>
+              <div style="height:44px;border-radius:8px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">SL</div>
+              <div style="height:44px;border-radius:8px;border:1px solid #2E2E2E;box-sizing:border-box;background:repeating-linear-gradient(45deg,#000000 0 4px,#2E2E2E 4px 5px);display:flex;align-items:center;justify-content:center;font-size:11px">open</div>
+              <div style="height:44px;border-radius:8px;border:1px solid #2E2E2E;box-sizing:border-box;background:repeating-linear-gradient(45deg,#000000 0 4px,#2E2E2E 4px 5px);display:flex;align-items:center;justify-content:center;font-size:11px">open</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;border:1px solid #2E2E2E;border-radius:4px;padding:1px 5px">OPEN GAME</span><span style="color:#8E8E8E">2 of 4, split per seat</span></span><span>4.500 BD each</span></div>
+          </a>
+          <a href="#c7" style="border:1px solid #E6E6E6;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;color:#000000">
+            <div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:22px;line-height:1;text-align:center">20<br><span style="font-size:11px;font-variation-settings:'wdth' 100,'wght' 500;letter-spacing:0;color:#6E6E6E">Tue</span></div>
+            <div style="flex:1;min-width:0"><div style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">8:00 PM, Karbabad Courts</div><div style="font-size:12px;color:#6E6E6E">Court 1, 120 min, Tuesday Crew group game</div></div>
+            <span style="font-size:11px;background:#000000;color:#FFFFFF;border-radius:6px;padding:3px 7px">4 of 4</span>
+          </a>
+          <a href="#c7" style="border:1px solid #E6E6E6;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;color:#000000">
+            <div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:22px;line-height:1;text-align:center">24<br><span style="font-size:11px;font-variation-settings:'wdth' 100,'wght' 500;letter-spacing:0;color:#6E6E6E">Sat</span></div>
+            <div style="flex:1;min-width:0"><div style="font-size:15px;font-variation-settings:'wdth' 100,'wght' 600">6:00 PM, Seef Padel Hub</div><div style="font-size:12px;color:#6E6E6E">Court 3, 90 min, no game yet</div></div>
+            <span style="font-size:11px;border:1px dashed #C9C9C9;border-radius:6px;padding:3px 7px;color:#6E6E6E">Add game</span>
+          </a>
+        </div>
+        <div style="padding:26px 22px 0">
+          <div style="font-size:13px;color:#6E6E6E">Invited to play</div>
+          <div style="margin-top:10px;border:1px solid #E6E6E6;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid #E6E6E6;display:flex;align-items:center;justify-content:center;font-size:12px;font-variation-settings:'wdth' 100,'wght' 600">JB</div>
+            <div style="flex:1;min-width:0"><div style="font-size:14px">Jonas booked Fri 7:00 PM</div><div style="font-size:12px;color:#6E6E6E">Court 2, your seat is 3.000 BD</div></div>
+            <button onClick="{{ noop }}" style="height:36px;padding:0 12px;border:none;border-radius:9px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;font-variation-settings:'wdth' 100,'wght' 600;cursor:pointer">Join</button>
+          </div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid #E6E6E6;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 14px;gap:2px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><i data-lucide="home" style="width:19px;height:19px"></i><span style="font-size:10px">Home</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><svg width="19" height="19" viewBox="0 0 100 100" style="display:block;opacity:0.45" aria-hidden="true"><use href="#bkMark"></use></svg><span style="font-size:10px">Games</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#000000"><i data-lucide="calendar-check" style="width:19px;height:19px"></i><span style="font-size:10px;font-variation-settings:'wdth' 100,'wght' 600">Book</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><i data-lucide="users" style="width:19px;height:19px"></i><span style="font-size:10px">Groups</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#9A9A9A"><i data-lucide="circle-user" style="width:19px;height:19px"></i><span style="font-size:10px">Profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C7 BOOKING DETAIL -->
+    <div id="c7" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9A9A9A">C7 / BOOKING DETAIL</div>
+      <div data-screen-label="C7 Booking detail" style="width:390px;background:#FFFFFF;border:1px solid #E6E6E6;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:844px">
+        <div style="background:#000000;color:#FFFFFF;padding:22px 22px 22px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><a href="#c6" style="width:40px;height:40px;margin-left:-10px;display:flex;align-items:center;justify-content:center;color:#FFFFFF"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></a><div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#8E8E8E">KC-4471</div></div>
+          <div style="margin-top:14px;display:flex;align-items:baseline;gap:8px"><span style="font-variation-settings:'wdth' 118,'wght' 700;letter-spacing:-0.03em;font-size:44px;line-height:0.95">{{ slotLabel }}</span><span style="font-size:15px;color:#8E8E8E;margin-left:4px">to {{ slotEnd }}</span></div>
+          <div style="margin-top:8px;font-size:14px;color:#8E8E8E">Tonight / Karbabad Courts / Court 2</div>
+          <div style="margin-top:18px;display:flex;gap:8px">
+            <button onClick="{{ noop }}" style="flex:1;height:44px;border:1px solid #2E2E2E;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i data-lucide="navigation" style="width:14px;height:14px"></i>Directions</button>
+            <button onClick="{{ noop }}" style="flex:1;height:44px;border:1px solid #2E2E2E;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i data-lucide="share" style="width:14px;height:14px"></i>Invite</button>
+            <button onClick="{{ noop }}" style="flex:1;height:44px;border:1px solid #2E2E2E;border-radius:10px;background:#000000;color:#FFFFFF;font-family:'Archivo',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i data-lucide="qr-code" style="width:14px;height:14px"></i>Check in</button>
+          </div>
+        </div>
+        <div style="padding:22px 22px 0;display:flex;flex-direction:column;gap:22px">
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-variation-settings:'wdth' 116,'wght' 700;letter-spacing:-0.03em;font-size:19px">Open game</div><span style="font-size:13px;color:#6E6E6E;text-decoration:underline">Manage</span></div>
+            <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <div style="height:62px;border-radius:10px;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">MK</span><span style="font-size:10px;color:#8E8E8E">paid</span></div>
+              <div style="height:62px;border-radius:10px;background:#000000;color:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:13px;font-variation-settings:'wdth' 100,'wght' 600">SL</span><span style="font-size:10px;color:#8E8E8E">paid</span></div>
+              <div style="height:62px;border-radius:10px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 4px,#E6E6E6 4px 5px);display:flex;align-items:center;justify-content:center;font-size:11px;color:#6E6E6E">open</div>
+              <div style="height:62px;border-radius:10px;border:1px solid #E6E6E6;box-sizing:border-box;background:repeating-linear-gradient(45deg,#FFFFFF 0 4px,#E6E6E6 4px 5px);display:flex;align-items:center;justify-content:center;font-size:11px;color:#6E6E6E">open</div>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:#6E6E6E">Level C to C+. Two seats still open to Temba. 14 players nearby were notified.</div>
+          </div>
+          <div style="border:1px solid #E6E6E6;border-radius:14px;overflow:hidden;font-size:13px">
+            <div style="padding:14px 16px;border-bottom:1px solid #E6E6E6;display:flex;justify-content:space-between"><span style="color:#6E6E6E">Court, 90 min peak</span><span>18.000 BD</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid #E6E6E6;display:flex;justify-content:space-between"><span style="color:#6E6E6E">You paid</span><span>18.000 BD</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid #E6E6E6;display:flex;justify-content:space-between"><span style="color:#6E6E6E">Refunded as seats filled</span><span>4.500 BD</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between;font-variation-settings:'wdth' 100,'wght' 600"><span>Your share so far</span><span>13.500 BD</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E6E6E6"><span style="color:#6E6E6E">Cancellation</span><span>50% refund until 1:00 PM</span></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E6E6E6"><span style="color:#6E6E6E">Venue</span><span>+973 1700 4410</span></div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:14px 22px 22px;border-top:1px solid #E6E6E6;display:flex;gap:10px">
+          <button onClick="{{ noop }}" style="flex:1;height:50px;border:1px solid #E6E6E6;border-radius:12px;background:#FFFFFF;color:#000000;font-family:'Archivo',sans-serif;font-size:15px;cursor:pointer" style-hover="background:#F4F4F4">Move time</button>
+          <button onClick="{{ noop }}" style="flex:1;height:50px;border:1px solid #E6E6E6;border-radius:12px;background:#FFFFFF;color:#6E6E6E;font-family:'Archivo',sans-serif;font-size:15px;cursor:pointer" style-hover="background:#F4F4F4">Cancel booking</button>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1800}}">
+class Component extends DCLogic {
+  componentDidMount() { this.icons(); }
+  componentDidUpdate() { this.icons(); }
+  icons() {
+    const run = () => { try { window.lucide && window.lucide.createIcons(); } catch (e) {} };
+    run();
+    if (!window.lucide) setTimeout(run, 400);
+    setTimeout(run, 1200);
+  }
+  state = { manualOpen: true, cancelOpen: true, slot: 5, gameKind: 'open', payMode: 'seat' };
+  renderVals() {
+    const s = this.state;
+    const times = ['6:00','6:30','7:00','7:30','8:00','8:30','9:00','9:30','10:00','10:30'];
+    const taken = [1, 2, 6];
+    const slots = times.map((t, i) => ({
+      label: t,
+      bg: i === s.slot ? '#000000' : '#FFFFFF',
+      color: i === s.slot ? '#FFFFFF' : (taken.includes(i) ? '#9A9A9A' : '#000000'),
+      border: i === s.slot ? '#000000' : '#E6E6E6',
+      deco: taken.includes(i) ? 'line-through' : 'none',
+      pick: () => { if (!taken.includes(i)) this.setState({ slot: i }); }
+    }));
+    const kinds = [
+      { id: 'private', title: 'Private game', meta: 'Just the four of you. Invite by link.', icon: 'lock' },
+      { id: 'open', title: 'Open game', meta: 'Temba fills the empty seats at your level.', icon: 'shuffle' },
+      { id: 'group', title: 'Group game', meta: 'Post it to Tuesday Crew first.', icon: 'users' }
+    ].map(k => ({ ...k, on: s.gameKind === k.id, bg: s.gameKind === k.id ? '#000000' : '#FFFFFF', color: s.gameKind === k.id ? '#FFFFFF' : '#000000', sub: s.gameKind === k.id ? '#8E8E8E' : '#6E6E6E', pick: () => this.setState({ gameKind: k.id }) }));
+    const pays = [
+      { id: 'all', title: 'I cover the court', meta: '18.000 BD, already paid. Seats are free.' },
+      { id: 'seat', title: 'Split per seat', meta: '4.500 BD each. You are refunded as seats fill.' }
+    ].map(p => ({ ...p, on: s.payMode === p.id, bg: s.payMode === p.id ? '#000000' : '#FFFFFF', color: s.payMode === p.id ? '#FFFFFF' : '#000000', sub: s.payMode === p.id ? '#8E8E8E' : '#6E6E6E', pick: () => this.setState({ payMode: p.id }) }));
+    return {
+      noop: () => {},
+      manualOpen: s.manualOpen, toggleManual: () => this.setState({ manualOpen: !s.manualOpen }),
+      cancelOpen: s.cancelOpen, toggleCancel: () => this.setState({ cancelOpen: !s.cancelOpen }),
+      slots, slotLabel: times[s.slot] + ' PM', slotEnd: times[Math.min(s.slot + 3, 9)] + ' PM',
+      kinds, pays
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import type {
   GroupLeaderboardEntryData,
   GroupPlayedGameData,
 } from "@repo/domain/group-data";
+import { UNRATED_STANDING_COPY } from "@repo/domain/game-rating-impact";
 import {
   filterGroupMembersByName,
   groupHomeMetaLine,
@@ -139,6 +140,10 @@ export const STANDING_NO_RESULTS_COPY = {
   title: "Standings appear after the first result",
   description: null,
 };
+
+export function standingNoResultsCopy(verified: boolean) {
+  return verified ? STANDING_NO_RESULTS_COPY : UNRATED_STANDING_COPY;
+}
 
 export type PlayedTrailing =
   | { kind: "cancelled" }

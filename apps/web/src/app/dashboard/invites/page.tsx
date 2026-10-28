@@ -1,14 +1,21 @@
 "use client";
 
+import {
+  GROUP_LINK_REQUEST_ROW_META,
+  VENUE_REQUESTS_TITLE,
+  groupLinkRequestRowTitle,
+} from "@repo/domain/group-link-request";
 import { Inbox } from "lucide-react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
 import { Button } from "~/components/ui/button";
@@ -28,6 +35,7 @@ export default function InvitesPage() {
   const groupInvites = api.groups.pendingLookupInvites.useQuery();
   const teamInvites = api.teams.pendingInvites.useQuery();
   const gameInvites = api.games.pendingLookupInvites.useQuery();
+  const venueRequests = api.groups.pendingLinkRequests.useQuery();
 
   const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
     onSuccess: async () => {
@@ -80,12 +88,15 @@ export default function InvitesPage() {
     communityInvites.isLoading ||
     groupInvites.isLoading ||
     teamInvites.isLoading ||
-    gameInvites.isLoading;
+    gameInvites.isLoading ||
+    venueRequests.isLoading;
   const error =
     communityInvites.error ??
     groupInvites.error ??
     teamInvites.error ??
-    gameInvites.error;
+    gameInvites.error ??
+    venueRequests.error;
+  const venueRequestRows = venueRequests.data ?? [];
   const items = mergeInviteInbox({
     community: communityInvites.data,
     group: groupInvites.data,
@@ -140,11 +151,15 @@ export default function InvitesPage() {
             void groupInvites.refetch();
             void teamInvites.refetch();
             void gameInvites.refetch();
+            void venueRequests.refetch();
           }}
         />
       ) : null}
 
-      {!isLoading && !error && items.length === 0 ? (
+      {!isLoading &&
+      !error &&
+      items.length === 0 &&
+      venueRequestRows.length === 0 ? (
         <EmptyState
           icon={Inbox}
           title="Nothing waiting"
@@ -243,6 +258,32 @@ export default function InvitesPage() {
             );
           })}
         </RowList>
+      ) : null}
+
+      {venueRequestRows.length > 0 ? (
+        <section aria-labelledby="venue-requests-heading" className="space-y-3">
+          <h2
+            id="venue-requests-heading"
+            className="text-title font-semibold tracking-[-0.01em]"
+          >
+            {VENUE_REQUESTS_TITLE}
+          </h2>
+          <RowList>
+            {venueRequestRows.map((request) => (
+              <ListRow
+                key={request.id}
+                leading={<EntityMonogram name={request.venueName} size="lg" />}
+                title={groupLinkRequestRowTitle(
+                  request.venueName,
+                  request.groupName,
+                )}
+                meta={GROUP_LINK_REQUEST_ROW_META}
+                stackTrailing
+                trailing={<VenueLinkRequestActions request={request} />}
+              />
+            ))}
+          </RowList>
+        </section>
       ) : null}
     </DashboardShell>
   );

@@ -24,14 +24,15 @@ Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to
 
 Until a phase lands, its paths below do not exist. Do not create them outside that phase's tickets.
 
-Settled decisions: the API runs on Railway, Clerk stays and gains Sign in with Apple, iOS ships before Android, and Venue administration stays web only.
+Settled decisions: the API runs on Railway, Clerk stays and gains Sign in with Apple, iOS ships before Android, and Venue administration stays on the web, in the Venue console App (ADR-0031).
 
 ## Layout
 
 Today:
 
 ```text
-apps/web                     Next.js 15 App: UI only, `/api/*` is rewritten to the API App
+apps/web                     Next.js 15 App for players: UI only, `/api/*` is rewritten to the API App
+apps/console                 Next.js 15 App for Venue managers (the Venue console, ADR-0031): same shape as web, port 3001
 apps/mobile                  Expo App (SDK 57): Expo Router, NativeWind v5, Clerk, tRPC; scaffold and placeholder screen only
 apps/api                     Hono host: verifies the session, builds the context, mounts routes
 packages/api                 @repo/api: tRPC routers, procedures, shared server modules
@@ -46,7 +47,8 @@ packages/typescript-config   @repo/typescript-config
 Target:
 
 ```text
-apps/web      Next.js UI                  apps/mobile   Expo UI
+apps/web      Next.js UI (players)        apps/mobile   Expo UI
+apps/console  Next.js UI (Venue managers)
 apps/api      Hono host, no business logic
 packages/api            @repo/api            tRPC routers, procedures, shared server modules
 packages/db             @repo/db             schema, client, migrations, PGlite harness
@@ -63,6 +65,7 @@ Run from Root. The Web App filter is `web`.
 pnpm install
 ./start-database.sh                          # local Postgres in Docker
 pnpm exec turbo run dev --filter web         # web on :3000
+pnpm exec turbo run dev --filter console     # Venue console on :3001
 pnpm exec turbo run typecheck lint test      # the gate for every pull request
 pnpm exec turbo run build --filter web
 pnpm --filter web format:write
@@ -73,26 +76,26 @@ pnpm exec turbo run db:migrate
 
 - Tests run on PGlite and need neither Postgres nor `DATABASE_URL`: `@repo/db` connects on first use. The harness is `@repo/db/testing`.
 - A single test: `pnpm --filter web exec vitest run path/to/file.test.ts`, or `pnpm --filter @repo/api exec vitest run path/to/file.test.ts` for the server tree.
-- The API runs on port 4000. `pnpm dev` runs web, API and mobile together; the Expo dev server is on port 8081 and needs `apps/mobile/.env` (copy `.env.example`).
+- The API runs on port 4000. `pnpm dev` runs web, console, API and mobile together; `pnpm dev:console` runs the console and the API. The console needs `apps/console/.env` (copy `.env.example`) and the API must list its origin in `CONSOLE_ORIGIN`; the Expo dev server is on port 8081 and needs `apps/mobile/.env` (copy `.env.example`).
 
 ## Package boundaries
 
 These bind all new code. Existing code is brought into line by the phase that moves it.
 
 ```text
-apps/web, apps/mobile  ──► @repo/domain, @repo/validators, @repo/design-tokens, @repo/api/types
+apps/web, apps/console, apps/mobile  ──► @repo/domain, @repo/validators, @repo/design-tokens, @repo/api/types
 apps/api               ──► @repo/api, @repo/db
 @repo/api              ──► @repo/db, @repo/domain, @repo/validators
 @repo/validators       ──► @repo/domain
 @repo/domain, @repo/db, @repo/design-tokens ──► no Workspace imports
 ```
 
-- **Clients never import server code.** `apps/web/src` and `apps/mobile` may import `@repo/api/types` with `import type` and nothing else from `@repo/api`. They never import `@repo/db`. Scripts under `apps/web/scripts` are exempt.
+- **Clients never import server code.** `apps/web/src`, `apps/console/src` and `apps/mobile` may import `@repo/api/types` with `import type` and nothing else from `@repo/api`. They never import `@repo/db`. Scripts under `apps/web/scripts` are exempt.
 - **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. The one exception is `friendly-game-partner` and `tournament-join`, which keep their routes until Phase 6 (spec section 9). A function goes there only if a client uses it, or two or more server callers do.
 - **`@repo/validators` is for shared schemas only.** A schema used by one procedure stays inline in that procedure file.
 - **`@repo/api` is host-neutral.** No `next/*`, `@clerk/nextjs`, `react` or `server-only`. Auth, role metadata and the web origin arrive through the context.
 - **`apps/api` holds no business logic.** It verifies the session, builds the context and mounts routes.
-- **No `~/` alias inside Packages.** It is a web App alias. `@repo/api` uses `#src/...` subpath imports (webpack rejects `#/`). Other Packages use relative imports.
+- **No `~/` alias inside Packages.** It is an alias of the web and console Apps. `@repo/api` uses `#src/...` subpath imports (webpack rejects `#/`). Other Packages use relative imports.
 - **No barrel files** in `@repo/domain`. Import `@repo/domain/<module>`.
 
 ## Conventions

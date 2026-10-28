@@ -6,14 +6,17 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import {
   Building2,
   CalendarDays,
+  ClipboardList,
   House,
   Mail,
   MapPin,
+  ShieldCheck,
   UserRound,
   Users,
 } from "lucide-react";
 
 import { useCreateAccess } from "~/components/create-access-gate";
+import { api } from "~/trpc/react";
 import { NavMain } from "~/components/nav-main";
 import {
   Sidebar,
@@ -64,6 +67,24 @@ const venuesNav = {
   icon: MapPin,
 };
 
+const operatorGroupsNav = {
+  title: "Verify Groups",
+  url: "/dashboard/operator/groups",
+  icon: ShieldCheck,
+};
+
+const consoleOrigin = process.env.NEXT_PUBLIC_CONSOLE_ORIGIN;
+
+/** The Venue console is its own App (ADR-0031); the entry is an external link. */
+const consoleNav = consoleOrigin
+  ? {
+      title: "Venue console",
+      url: consoleOrigin,
+      icon: ClipboardList,
+      external: true,
+    }
+  : undefined;
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const { isLoaded, hasCreateAccess } = useCreateAccess();
@@ -72,7 +93,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     (item) =>
       item.url !== "/dashboard/communities" || (isLoaded && hasCreateAccess),
   );
-  const navItems = isOperator ? [...items, venuesNav] : items;
+  const managed = api.venues.listManaged.useQuery();
+  const managesVenue = (managed.data?.length ?? 0) > 0;
+  const navItems = [
+    ...items,
+    ...(managesVenue && consoleNav ? [consoleNav] : []),
+    ...(isOperator ? [venuesNav, operatorGroupsNav] : []),
+  ];
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>

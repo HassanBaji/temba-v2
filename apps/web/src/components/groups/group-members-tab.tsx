@@ -111,10 +111,12 @@ function SavedBanner({
 function GroupMemberRow({
   member,
   canSetLevel,
+  showLevel,
   href,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
+  showLevel: boolean;
   href?: string;
 }) {
   return (
@@ -132,12 +134,14 @@ function GroupMemberRow({
             size={14}
             gap={4}
           />
-          <LevelCell
-            band={member.levelBand}
-            level={member.level}
-            provisional={member.levelProvisional}
-            className="w-16"
-          />
+          {showLevel ? (
+            <LevelCell
+              band={member.levelBand}
+              level={member.level}
+              provisional={member.levelProvisional}
+              className="w-16"
+            />
+          ) : null}
         </>
       }
     />
@@ -171,7 +175,9 @@ export function GroupMembersTab({
   savedUserId,
   onDismissSaved,
   onInvite,
+  showLevel = true,
 }: {
+  showLevel?: boolean;
   groupId: string;
   members: GroupMember[];
   linkToPlayers: boolean;
@@ -228,6 +234,7 @@ export function GroupMembersTab({
               key={member.userId}
               member={member}
               canSetLevel={canSetLevel}
+              showLevel={showLevel}
               href={
                 canSetLevel && !member.isViewer
                   ? groupMemberSetLevelHref(groupId, member.userId)

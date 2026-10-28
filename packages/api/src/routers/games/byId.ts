@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import {
   MatchStatusEnum,
+  bookings,
+  courts,
   gameCourts,
   gamePlayers,
   gameTeams,
@@ -55,6 +57,7 @@ import {
   sitsOnCompletedMatch,
   type SeatOccupant,
 } from "#src/games/seats";
+import { isRosterRegistrationGame } from "@repo/domain/game-shape";
 import { bothSlotsFilled } from "#src/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "#src/games/both-slotted-teams-complete";
 import {
@@ -261,6 +264,18 @@ export async function gameById(
       logoImageUrl: true,
     },
   });
+
+  const [booking] = await database
+    .select({
+      id: bookings.id,
+      userId: bookings.userId,
+      startsAt: bookings.startsAt,
+      endsAt: bookings.endsAt,
+      courtName: courts.name,
+    })
+    .from(bookings)
+    .innerJoin(courts, eq(courts.id, bookings.courtId))
+    .where(eq(bookings.gameId, game.id));
 
   const memberships = await database.query.teamMembers.findMany({
     where: eq(teamMembers.userId, args.userId),
@@ -498,13 +513,15 @@ export async function gameById(
     };
 
     if (phase === "final") {
-      const viewerRatingEvent = await database.query.ratingEvents.findFirst({
-        where: and(
-          eq(ratingEvents.matchId, friendlyMatch.id),
-          eq(ratingEvents.userId, args.userId),
-        ),
-        columns: { muBefore: true, muAfter: true, phiAfter: true },
-      });
+      const viewerRatingEvent = game.rated
+        ? await database.query.ratingEvents.findFirst({
+            where: and(
+              eq(ratingEvents.matchId, friendlyMatch.id),
+              eq(ratingEvents.userId, args.userId),
+            ),
+            columns: { muBefore: true, muAfter: true, phiAfter: true },
+          })
+        : undefined;
       if (viewerRatingEvent) {
         const beforeLevel = levelFromMu(viewerRatingEvent.muBefore);
         const afterLevel = levelFromMu(viewerRatingEvent.muAfter);
@@ -541,6 +558,12 @@ export async function gameById(
     }
   }
 
+  const registeredPlayers = playerRows.flatMap((row) =>
+    row.user
+      ? [{ id: row.user.id, name: row.user.name, image: row.user.image }]
+      : [],
+  );
+
   return {
     id: game.id,
     name: game.name,
@@ -548,6 +571,7 @@ export async function gameById(
     registrationMode: game.registrationMode,
     allowSoloRegister: game.allowSoloRegister,
     isPublic: game.isPublic,
+    rated: game.rated,
     groupId: game.groupId,
     groupName: group?.name ?? null,
     venueId: game.venueId,
@@ -560,6 +584,15 @@ export async function gameById(
           longitude: venue.longitude,
           archivedAt: venue.archivedAt,
           logoImageUrl: venue.logoImageUrl,
+        }
+      : null,
+    booking: booking
+      ? {
+          id: booking.id,
+          courtName: booking.courtName,
+          startsAt: booking.startsAt,
+          endsAt: booking.endsAt,
+          heldByViewer: booking.userId === args.userId,
         }
       : null,
     windowStart: game.windowStart,
@@ -700,17 +733,15 @@ export async function gameById(
     ratingImpact,
     canReportWrongScore,
     unseatedPlayers,
-    registeredPlayers: playerRows.flatMap((row) =>
-      row.user
-        ? [
-            {
-              id: row.user.id,
-              name: row.user.name,
-              image: row.user.image,
-            },
-          ]
-        : [],
-    ),
+    registeredPlayers,
+    sideSize: game.sideSize,
+    roster: isRosterRegistrationGame(game)
+      ? {
+          users: registeredPlayers,
+          count: userCount,
+          cap: game.playersAllowed,
+        }
+      : null,
     recordedCourts: recordedCourtRows
       .flatMap((row) =>
         row.court ? [{ id: row.court.id, name: row.court.name }] : [],

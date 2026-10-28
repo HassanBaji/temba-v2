@@ -1,6 +1,11 @@
-import { useUser } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+
+import {
+  DEFAULT_PUBLIC_GROUP_SPORT_FILTER,
+  publicGroupSportFilterInput,
+  type PublicGroupSportFilter,
+} from "@repo/domain/sport";
 
 import { slotOf } from "../lib/slot-of";
 import { apiOrigin } from "../lib/api-origin-runtime";
@@ -14,16 +19,21 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function GroupsScreen() {
   const router = useRouter();
-  const { user } = useUser();
   const [tab, setTab] = useState<GroupsTab>("mine");
+  const [sportFilter, setSportFilter] = useState<PublicGroupSportFilter>(
+    DEFAULT_PUBLIC_GROUP_SPORT_FILTER,
+  );
   const [refreshing, setRefreshing] = useState(false);
   const { join, pendingGroupId } = useGroupJoin();
 
   const mine = api.groups.mine.useQuery(undefined, REFETCH_ON_FOREGROUND);
-  const publicGroups = api.groups.listPublic.useQuery(undefined, {
-    ...REFETCH_ON_FOREGROUND,
-    enabled: tab === "public",
-  });
+  const publicGroups = api.groups.listPublic.useQuery(
+    publicGroupSportFilterInput(sportFilter),
+    {
+      ...REFETCH_ON_FOREGROUND,
+      enabled: tab === "public",
+    },
+  );
 
   const refetchActive = useCallback(
     () =>
@@ -47,6 +57,8 @@ export function GroupsScreen() {
       <GroupsView
         tab={tab}
         onTabChange={setTab}
+        sportFilter={sportFilter}
+        onSportFilterChange={setSportFilter}
         mine={slotOf(mine)}
         publicGroups={slotOf(publicGroups)}
         apiOrigin={apiOrigin}
@@ -54,7 +66,6 @@ export function GroupsScreen() {
         onOpen={(groupId) => router.push(groupPath(groupId))}
         onJoin={join}
         onRetry={() => void refetchActive()}
-        hasCreateAccess={user?.publicMetadata.groupCreator === true}
         onCreate={() => router.push("/groups/new")}
       />
     </Screen>

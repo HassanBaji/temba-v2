@@ -2,15 +2,15 @@
 
 import { useClerk } from "@clerk/nextjs";
 import { useSignUp } from "@clerk/nextjs/legacy";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PhoneField } from "~/components/auth/phone-field";
+import { TermsConsent } from "~/components/auth/terms-consent";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
-import { Button, touchHitArea } from "~/components/ui/button";
+import { Button } from "~/components/ui/button";
 import {
   Field,
   FieldError,
@@ -30,13 +30,13 @@ import {
   assembleE164,
   formatInternationalNumber,
 } from "@repo/domain/phone-number";
-import { cn } from "~/lib/utils";
 
 const FIELD_IDS = {
   username: "sign-up-username",
   phoneNumber: "sign-up-phone",
   password: "sign-up-password",
   code: "sign-up-code",
+  terms: "sign-up-terms",
 };
 
 type Step = "details" | "verify-phone";
@@ -73,7 +73,13 @@ function focusSplit(split: SplitFormError, extra: HTMLElement | null) {
   extra?.focus();
 }
 
-export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
+export function SignUpForm({
+  redirectUrl,
+  termsAccepted = false,
+}: {
+  redirectUrl: string | null;
+  termsAccepted?: boolean;
+}) {
   const router = useRouter();
   const { setActive } = useClerk();
   const { signUp, isLoaded } = useSignUp();
@@ -81,6 +87,12 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
   const completeUrl = authCompleteUrl(redirectUrl);
   const signInUrl = authCrossLinkUrl("/login", redirectUrl);
 
+  const termsHref = `/terms?${new URLSearchParams({
+    from: "signup",
+    ...(redirectUrl ? { redirect_url: redirectUrl } : {}),
+  }).toString()}`;
+
+  const [agreed, setAgreed] = React.useState(termsAccepted);
   const [step, setStep] = React.useState<Step>("details");
   const [username, setUsername] = React.useState("");
   const [countryIso, setCountryIso] = React.useState(
@@ -143,7 +155,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
 
   async function onCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || !signUp) {
+    if (pending || !signUp || !agreed) {
       return;
     }
     const assembled = assembleE164(countryIso, national);
@@ -166,6 +178,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
         username,
         phoneNumber: assembled.e164,
         password,
+        legalAccepted: true,
       });
       await continueAfterResource(created);
       setPending(false);
@@ -242,7 +255,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
       description={
         verifying
           ? undefined
-          : "We send a six digit code to confirm your number."
+          : "We send a six digit code to confirm your number. One account per person."
       }
       footer={
         verifying ? (
@@ -252,21 +265,8 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
           </p>
         ) : (
           <p className="text-eyebrow text-muted-foreground leading-[1.6]">
-            By creating an account you agree to the{" "}
-            <Link
-              className={cn(touchHitArea, "text-ink underline")}
-              href="/terms"
-            >
-              Terms
-            </Link>{" "}
-            and{" "}
-            <Link
-              className={cn(touchHitArea, "text-ink underline")}
-              href="/privacy"
-            >
-              Privacy Policy
-            </Link>
-            .
+            Under 18? A parent or guardian must review and accept the Terms for
+            you.
           </p>
         )
       }
@@ -385,17 +385,28 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string | null }) {
               ) : null}
             </Field>
           </FieldGroup>
+          <TermsConsent
+            id={FIELD_IDS.terms}
+            agreed={agreed}
+            onChange={setAgreed}
+            termsHref={termsHref}
+            disabled={pending}
+          />
           <Button
             type="submit"
             size="lg"
             pending={pending}
             pendingLabel="Sending code…"
-            disabled={!isLoaded}
+            disabled={!isLoaded || !agreed}
             className="w-full font-semibold"
           >
             Send code
           </Button>
-          <OauthButtons flow="sign-up" redirectUrl={redirectUrl} />
+          <OauthButtons
+            flow="sign-up"
+            redirectUrl={redirectUrl}
+            disabled={!agreed}
+          />
         </form>
       )}
     </AuthScreen>

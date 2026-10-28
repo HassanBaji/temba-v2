@@ -235,6 +235,8 @@ async function admitTeam(
     where: eq(teamMembers.teamId, party.teamId),
     columns: { userId: true },
   });
+  // A Game side is a pair: football Teams do not register on Games yet, so this
+  // stays at two rather than reading the Team roster rule.
   if (members.length !== 2) {
     return { ok: false, reason: "team_incomplete" };
   }

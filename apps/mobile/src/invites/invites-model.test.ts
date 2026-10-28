@@ -10,10 +10,19 @@ import {
   inviteLandingPath,
   inviteLinkFromParams,
   inviteLinkHref,
+  gameInviteSubtitle,
+  inviteLinkNote,
+  inviteModes,
+  inviteSheetTitle,
   lookupResultView,
-  revokeConfirmCopy,
-  sendLookupLabel,
-  toggleSelection,
+  noPlayersMatchCopy,
+  openSeatCount,
+  phoneInviteLabel,
+  phoneInviteNote,
+  playersHeading,
+  rowWithPhone,
+  textMessageUrl,
+  whatsAppUrl,
 } from "./invites-model";
 
 describe("inviteLandingPath", () => {
@@ -97,50 +106,147 @@ describe("share messages", () => {
       shortLink,
     );
     expect(roster).toContain("Padel Hub");
-    expect(roster).toContain("- Ada");
+    expect(roster).toContain("- Left: Ada");
     expect(roster.endsWith("https://temba.example/g/AbCd1234")).toBe(true);
   });
 });
 
 describe("lookupResultView", () => {
-  it("prefers the cue and reads the selection", () => {
+  it("leads with the username, then the cue, and reads the invite", () => {
     expect(
       lookupResultView(
-        { id: "u", name: "Ada", cue: "Played with you", email: "a@x.io" },
+        {
+          id: "u",
+          name: "Ada",
+          username: "ada",
+          cue: "Group member",
+          email: "a@x.io",
+        },
         true,
       ),
     ).toEqual({
       id: "u",
       name: "Ada",
-      meta: "Played with you",
-      accessibilityLabel: "Ada, Played with you, selected",
+      meta: "@ada, Group member",
+      accessibilityLabel: "Ada, @ada, Group member, invited",
     });
+    expect(lookupResultView({ id: "u", name: "Kim" }, false)).toMatchObject({
+      meta: null,
+      accessibilityLabel: "Kim",
+    });
+  });
+});
+
+describe("inviteModes", () => {
+  it("offers Phone and Link only with link rights", () => {
+    expect(inviteModes({ canLookup: true, canLink: true })).toEqual([
+      "players",
+      "phone",
+      "link",
+    ]);
+    expect(inviteModes({ canLookup: true, canLink: false })).toEqual([
+      "players",
+    ]);
+    expect(inviteModes({ canLookup: false, canLink: true })).toEqual([
+      "phone",
+      "link",
+    ]);
+  });
+});
+
+describe("invite sheet copy", () => {
+  it("names the sheet for its door", () => {
+    expect(inviteSheetTitle("game")).toBe("Invite players");
+    expect(inviteSheetTitle("team")).toBe("Invite your partner");
+  });
+
+  it("switches the list heading when searching", () => {
+    expect(playersHeading("  ")).toBe("Suggested");
+    expect(playersHeading("nor")).toBe("Results");
+  });
+
+  it("points to the other ways in only when they exist", () => {
+    expect(noPlayersMatchCopy(" zed ", true)).toBe(
+      'No one on Temba matches "zed".\nTry their phone number or send them the link.',
+    );
+    expect(noPlayersMatchCopy("zed", false)).toBe(
+      'No one on Temba matches "zed".',
+    );
+  });
+
+  it("labels the text invite by readiness", () => {
+    expect(phoneInviteLabel(false, false)).toBe("Enter a number");
+    expect(phoneInviteLabel(true, false)).toBe("Send invite by text");
+    expect(phoneInviteLabel(true, true)).toBe("Sending…");
+    expect(phoneInviteNote(false)).toBe("They get a text with your invite.");
+  });
+
+  it("describes the link for each door", () => {
+    expect(inviteLinkNote("game")).toContain("take a seat");
+    expect(inviteLinkNote("community")).toContain("join the Community");
+  });
+});
+
+describe("gameInviteSubtitle", () => {
+  const sides = [
+    { sideIndex: 0, left: { name: "Ada" }, right: null },
+    { sideIndex: 1, left: null, right: null },
+  ];
+  const game = {
+    format: "doubles",
+    registrationMode: "individual",
+    venueName: "Karbabad Courts",
+    courtName: "Court 2",
+    windowStart: "2026-10-21T17:30:00.000Z",
+    windowEnd: "2026-10-21T19:00:00.000Z",
+    sides,
+  };
+
+  it("counts open seats", () => {
+    expect(openSeatCount(sides)).toBe(3);
+  });
+
+  it("reads like the artboard", () => {
+    expect(gameInviteSubtitle(game, new Date("2026-10-21T09:00:00.000Z"))).toBe(
+      "Tonight 8:30 PM, Court 2. 3 seats open.",
+    );
+  });
+
+  it("drops what is unknown", () => {
     expect(
-      lookupResultView({ id: "u", name: "Kim" }, false).accessibilityLabel,
-    ).toBe("Kim");
+      gameInviteSubtitle(
+        {
+          ...game,
+          windowStart: null,
+          courtName: null,
+          sides: [{ sideIndex: 0, left: { name: "A" }, right: { name: "B" } }],
+        },
+        new Date(),
+      ),
+    ).toBe("Karbabad Courts.");
   });
 });
 
-describe("toggleSelection", () => {
-  const ada = { id: "a" };
-  const kim = { id: "k" };
-
-  it("adds and removes in multiple mode", () => {
-    expect(toggleSelection([ada], kim, "multiple")).toEqual([ada, kim]);
-    expect(toggleSelection([ada, kim], ada, "multiple")).toEqual([kim]);
-  });
-
-  it("replaces in single mode", () => {
-    expect(toggleSelection([ada], kim, "single")).toEqual([kim]);
+describe("rowWithPhone", () => {
+  it("matches the whole number, however it is written", () => {
+    const rows = [
+      { id: "a", name: "Ada", phoneNumber: "+973 3300 00001" },
+      { id: "k", name: "Kim", phoneNumber: "+973 3300 0000" },
+    ];
+    expect(rowWithPhone(rows, "+97333000000")?.id).toBe("k");
+    expect(rowWithPhone(rows, "+97339999999")).toBeNull();
   });
 });
 
-describe("send copy", () => {
-  it("counts the selection", () => {
-    expect(sendLookupLabel(1, false)).toBe("Send Lookup invite");
-    expect(sendLookupLabel(3, false)).toBe("Send 3 Lookup invites");
-    expect(sendLookupLabel(3, true)).toBe("Sending…");
-    expect(revokeConfirmCopy("Ada").title).toBe("Revoke the invite for Ada?");
+describe("message urls", () => {
+  it("puts the body where each platform reads it", () => {
+    expect(textMessageUrl("ios", "+97333000000", "Join me")).toBe(
+      "sms:+97333000000&body=Join%20me",
+    );
+    expect(textMessageUrl("android", null, "Join me")).toBe(
+      "sms:?body=Join%20me",
+    );
+    expect(whatsAppUrl("a&b")).toBe("whatsapp://send?text=a%26b");
   });
 });
 

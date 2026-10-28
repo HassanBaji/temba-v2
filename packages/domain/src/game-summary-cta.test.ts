@@ -30,6 +30,30 @@ function game(
 }
 
 describe("gameSummaryPrimaryAction", () => {
+  it("registers onto a football Friendly game and seats a padel one", () => {
+    assert.equal(
+      gameSummaryPrimaryAction(game({ sport: "football", canRegister: true })),
+      "register",
+    );
+    assert.equal(
+      gameSummaryPrimaryAction(game({ sport: "padel", canRegister: true })),
+      "join",
+    );
+  });
+
+  it("waitlists a full football Friendly game", () => {
+    assert.equal(
+      gameSummaryPrimaryAction(
+        game({
+          sport: "football",
+          canWaitlist: true,
+          registrationStatus: "full",
+        }),
+      ),
+      "join_waitlist",
+    );
+  });
+
   it("offers Join on an open individual Friendly game", () => {
     assert.equal(gameSummaryPrimaryAction(game({ canRegister: true })), "join");
   });

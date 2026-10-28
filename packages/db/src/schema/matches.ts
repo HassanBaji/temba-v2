@@ -5,6 +5,8 @@ import { courts } from "./courts";
 import { games } from "./games";
 import { gameTeams } from "./game-teams";
 import { matchSets } from "./match-sets";
+import { matchGoals } from "./match-goals";
+import { matchResultConfirmations } from "./match-result-confirmations";
 import { gameStatus, MatchStatusEnum } from "./game-enums";
 
 export const matches = pgTable("matches", {
@@ -54,4 +56,6 @@ export const matchRelations = relations(matches, ({ one, many }) => ({
     relationName: "matchSlot2",
   }),
   sets: many(matchSets),
+  goals: many(matchGoals),
+  confirmations: many(matchResultConfirmations),
 }));

@@ -18,6 +18,7 @@ export async function createClubPublic(
     description?: string;
     sport: "padel" | "football";
     userId: string;
+    verifiedBy?: string;
     requiresApproval?: boolean;
   },
 ) {
@@ -29,6 +30,7 @@ export async function createClubPublic(
     sport: args.sport,
     type: GroupTypeEnum.PUBLIC,
     createdBy: args.userId,
+    verifiedBy: args.verifiedBy,
     requiresApproval: args.requiresApproval,
   });
 }
@@ -51,6 +53,10 @@ export const createClubPublicProcedure = protectedProcedure
       description: input.description,
       sport: input.sport,
       userId: appUser.id,
+      verifiedBy:
+        (await ctx.getPublicMetadata())?.groupCreator === true
+          ? appUser.id
+          : undefined,
       requiresApproval: input.requiresApproval,
     });
   });
