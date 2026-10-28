@@ -91,6 +91,7 @@ export type GroupHomeData = {
   isLoose: boolean;
   canManageLookupInvites: boolean;
   canManageInviteLinks: boolean;
+  canCreateGame: boolean;
   requiresApproval: boolean;
   verified: boolean;
   venueCommunity: { venueId: string; venueName: string } | null;

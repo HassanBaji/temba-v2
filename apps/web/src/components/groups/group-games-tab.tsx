@@ -1,11 +1,12 @@
 "use client";
 
-import { Calendar } from "lucide-react";
+import { Calendar, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { UserAvatar } from "~/components/common/user-avatar";
 import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
@@ -18,6 +19,10 @@ import {
   groupHistoryCanLoadMore,
   groupHistoryPageExhausted,
 } from "@repo/domain/group-join";
+import {
+  groupGamePlayersNeeded,
+  groupGamesEmptyLine,
+} from "@repo/domain/group-empty-states";
 import { offersPartnerJoin } from "@repo/domain/friendly-game-partner";
 import {
   gameSummaryPrimaryAction,
@@ -26,6 +31,7 @@ import {
   showsGameCardPartnerFooter,
 } from "@repo/domain/game-summary-cta";
 import { cardFrame } from "~/lib/page-layout";
+import { cn } from "~/lib/utils";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -33,6 +39,117 @@ type GroupHome = RouterOutputs["groups"]["byId"];
 type ScheduledGame = GroupHome["upcomingGames"][number];
 
 const HEADING = "font-expanded pb-2.5 text-title leading-tight";
+
+type GroupMemberSeat = {
+  userId: string;
+  name: string | null;
+  image?: string | null;
+  isViewer: boolean;
+};
+
+function NotSetCell({ label }: { label: string }) {
+  return (
+    <div className="hatch flex flex-col gap-0.5 px-5 py-3.5 [--hatch-inset:transparent]">
+      <dt className="text-eyebrow text-muted-foreground">{label}</dt>
+      <dd className="text-body font-semibold">Not set</dd>
+    </div>
+  );
+}
+
+/**
+ * Design "Group empty states" 02: the first Game drawn as a placeholder card,
+ * its seats filled by the members so far and hatched for the rest.
+ */
+function NoGamesYet({
+  sport,
+  members,
+  isMember,
+  createGameHref,
+  onInvite,
+}: {
+  sport: string | null;
+  members: GroupMemberSeat[];
+  isMember: boolean;
+  createGameHref: string | null;
+  onInvite: (() => void) | null;
+}) {
+  const needed = groupGamePlayersNeeded(sport);
+  const seated = [...members]
+    .sort((a, b) => Number(b.isViewer) - Number(a.isViewer))
+    .slice(0, needed);
+  const openSeats = needed - seated.length;
+
+  return (
+    <div className="flex flex-col gap-[22px]">
+      <section className={cardFrame}>
+        <div className="flex flex-col gap-[18px] p-5">
+          <p className="text-meta text-muted-foreground flex justify-between gap-3">
+            <span>Next Game</span>
+            <span>Not scheduled</span>
+          </p>
+          <div aria-hidden="true" className="flex flex-wrap gap-1.5">
+            {seated.map((member) => (
+              <UserAvatar
+                key={member.userId}
+                name={member.name ?? "Member"}
+                image={member.image}
+                className={cn(
+                  "size-[34px] rounded-[9px] [&_[data-slot=avatar-fallback]]:rounded-none [&_[data-slot=avatar-fallback]]:text-[11px] [&_[data-slot=avatar-fallback]]:font-semibold",
+                  member.isViewer &&
+                    "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper",
+                )}
+              />
+            ))}
+            {Array.from({ length: openSeats }, (_, index) => (
+              <span key={index} className="hatch size-[34px] rounded-[9px]" />
+            ))}
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="font-expanded text-h1 leading-tight">
+              No Games yet
+            </h2>
+            <p className="text-body text-muted-foreground">
+              {groupGamesEmptyLine({
+                sport,
+                memberCount: members.length,
+                isMember,
+              })}
+            </p>
+          </div>
+        </div>
+        <dl className="border-rule divide-rule grid grid-cols-2 divide-x border-t">
+          <NotSetCell label="When" />
+          <NotSetCell label="Where" />
+        </dl>
+      </section>
+      {createGameHref || onInvite ? (
+        <div className="flex flex-col gap-2">
+          {createGameHref ? (
+            <Button
+              asChild
+              size="lg"
+              className="text-body w-full font-semibold"
+            >
+              <Link href={createGameHref}>Create the first Game</Link>
+            </Button>
+          ) : null}
+          {onInvite ? (
+            <Button
+              type="button"
+              size="lg"
+              variant={createGameHref ? "outline" : "default"}
+              className="text-body w-full font-semibold"
+              onClick={onInvite}
+            >
+              <UserRoundPlus aria-hidden="true" />
+              Invite players
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function GroupGamesTab({
   upcomingGames,
@@ -45,7 +162,17 @@ export function GroupGamesTab({
   onJoinSeat,
   onJoinWaitlist,
   onRegister,
+  sport,
+  members,
+  isMember,
+  canInvite,
+  onInvite,
 }: {
+  sport: string | null;
+  members: GroupMemberSeat[];
+  isMember: boolean;
+  canInvite: boolean;
+  onInvite: () => void;
   upcomingGames: GroupHome["upcomingGames"];
   gameHistory: GroupHome["gameHistory"];
   groupId: string;
@@ -112,6 +239,20 @@ export function GroupGamesTab({
       </Link>
     </Button>
   ) : null;
+
+  if (!hasAny && !isCommunityArchived) {
+    return (
+      <NoGamesYet
+        sport={sport}
+        members={members}
+        isMember={isMember}
+        createGameHref={
+          canShowCreateGame ? `/dashboard/games/new?groupId=${groupId}` : null
+        }
+        onInvite={canInvite ? onInvite : null}
+      />
+    );
+  }
 
   if (!hasAny) {
     return (
