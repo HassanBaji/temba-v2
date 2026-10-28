@@ -42,6 +42,7 @@ export type DetailsHandlers = {
   onRequestLevel: () => void;
   onFooterAction: (kind: FriendlyGameFooterAction["kind"]) => void;
   onOpenPlayer?: (userId: string) => void;
+  onRenameUnclaimed?: (player: { userId: string; name: string }) => void;
 };
 
 export type DetailsOrganizer = {
@@ -102,6 +103,7 @@ export function GameDetailsContent({
         onMove={handlers.onMove}
         kickableUserIds={organizer?.plan.kickableUserIds}
         onKick={organizer?.handlers.onKickPlayer}
+        onRenameUnclaimed={handlers.onRenameUnclaimed}
         onOpenPlayer={handlers.onOpenPlayer}
       />
       {live && firstMatch ? (

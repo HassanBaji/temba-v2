@@ -13,6 +13,7 @@ import {
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
+import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
@@ -217,6 +218,10 @@ export default function GameHomePage({
   const justSavedEditSectionsRef = React.useRef(new Set<GameEditSection>());
   const [invitesOpen, setInvitesOpen] = React.useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
+  const [renaming, setRenaming] = React.useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
@@ -1191,6 +1196,7 @@ export default function GameHomePage({
               onKick={(userId) => requestKick({ userId })}
               linkToPlayers={gamePlayersLink(data)}
               onAddPlayer={openAddPlayer}
+              onRenameUnclaimed={data.isOrganizer ? setRenaming : undefined}
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
@@ -1466,6 +1472,13 @@ export default function GameHomePage({
           placement={addPlacement}
           sides={data.sides}
           onAdded={() => utils.games.byId.invalidate({ id })}
+        />
+      ) : null}
+
+      {data.isOrganizer ? (
+        <RenameUnclaimedPlayerDialog
+          player={renaming}
+          onClose={() => setRenaming(null)}
         />
       ) : null}
 

@@ -216,7 +216,8 @@ type ExpectedUsers =
   | "profileStats"
   | "playerProfile"
   | "setPreferredPosition"
-  | "completeOnboarding";
+  | "completeOnboarding"
+  | "renameUnclaimedPlayer";
 
 type ExpectedVenues =
   | "list"

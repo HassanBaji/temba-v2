@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
+import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GroupAddPlayerDialog } from "~/components/groups/group-add-player-dialog";
@@ -111,6 +112,10 @@ export default function GroupHomePage({
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [removing, setRemoving] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const [renaming, setRenaming] = useState<{
     userId: string;
     name: string;
   } | null>(null);
@@ -778,6 +783,7 @@ export default function GroupHomePage({
                 onInvite={() => setInvitesOpen(true)}
                 canAddPlayers={data.canAddPlayers}
                 onAddPlayer={() => setAddPlayerOpen(true)}
+                onRenameUnclaimed={setRenaming}
                 onRemoveUnclaimed={setRemoving}
               />
             </div>
@@ -864,6 +870,13 @@ export default function GroupHomePage({
           }
         }}
       />
+
+      {data.canAddPlayers ? (
+        <RenameUnclaimedPlayerDialog
+          player={renaming}
+          onClose={() => setRenaming(null)}
+        />
+      ) : null}
 
       {data.canAddPlayers ? (
         <GroupAddPlayerDialog

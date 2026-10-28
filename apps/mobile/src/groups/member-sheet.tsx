@@ -1,4 +1,7 @@
-import { REMOVE_UNCLAIMED_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
+import {
+  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  RENAME_UNCLAIMED_PLAYER_ACTION,
+} from "@repo/domain/add-player-by-phone";
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
@@ -13,12 +16,14 @@ export function MemberSheet({
   onClose,
   onSetLevel,
   onViewProfile,
+  onRename,
   onRemove,
 }: {
   member: MemberSheetView | null;
   onClose: () => void;
   onSetLevel?: () => void;
   onViewProfile?: () => void;
+  onRename?: () => void;
   onRemove?: () => void;
 }) {
   return (
@@ -78,6 +83,14 @@ export function MemberSheet({
               size="lg"
               variant="outline"
               onPress={onViewProfile}
+            />
+          ) : null}
+          {onRename ? (
+            <Button
+              label={RENAME_UNCLAIMED_PLAYER_ACTION}
+              size="lg"
+              variant="outline"
+              onPress={onRename}
             />
           ) : null}
           {onRemove ? (

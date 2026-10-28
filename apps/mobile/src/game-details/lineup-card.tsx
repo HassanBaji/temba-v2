@@ -10,7 +10,10 @@ import type {
   FriendlyGameDetailsSide,
 } from "@repo/domain/friendly-game-details";
 import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
-import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
+import {
+  NOT_ON_TEMBA_YET_LABEL,
+  RENAME_UNCLAIMED_PLAYER_ACTION,
+} from "@repo/domain/add-player-by-phone";
 import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { Fragment } from "react";
@@ -26,6 +29,7 @@ import { Text } from "../primitives/text";
 import { spacing } from "@repo/design-tokens";
 
 type Position = "left" | "right";
+type RenameTarget = { userId: string; name: string };
 
 const SEAT_ICON = 40;
 
@@ -121,12 +125,14 @@ function SeatRow({
   position,
   isViewer,
   onKick,
+  onRename,
   onOpen,
 }: {
   seat: FriendlyGameDetailsSeat;
   position: Position;
   isViewer: boolean;
   onKick: (() => void) | null;
+  onRename: (() => void) | null;
   onOpen: (() => void) | null;
 }) {
   const subline = friendlyGameSeatSubline(position, seat.levelBand);
@@ -191,14 +197,27 @@ function SeatRow({
       ) : (
         <View style={occupantStyle}>{occupant}</View>
       )}
-      {onKick ? (
-        <Button
-          label={KICK_ACTION}
-          accessibilityLabel={`${KICK_ACTION} ${seat.name}`}
-          variant="outline"
-          size="sm"
-          onPress={onKick}
-        />
+      {onKick || onRename ? (
+        <View style={{ gap: 6, alignItems: "flex-end" }}>
+          {onRename ? (
+            <Button
+              label={RENAME_UNCLAIMED_PLAYER_ACTION}
+              accessibilityLabel={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${seat.name}`}
+              variant="outline"
+              size="sm"
+              onPress={onRename}
+            />
+          ) : null}
+          {onKick ? (
+            <Button
+              label={KICK_ACTION}
+              accessibilityLabel={`${KICK_ACTION} ${seat.name}`}
+              variant="outline"
+              size="sm"
+              onPress={onKick}
+            />
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -215,6 +234,7 @@ function SideColumn({
   onMove,
   kickableUserIds,
   onKick,
+  onRename,
   onOpenPlayer,
 }: {
   side: FriendlyGameDetailsSide;
@@ -227,6 +247,7 @@ function SideColumn({
   onMove: (position: Position) => void;
   kickableUserIds: readonly string[];
   onKick: ((userId: string) => void) | undefined;
+  onRename: ((player: RenameTarget) => void) | undefined;
   onOpenPlayer: ((userId: string) => void) | undefined;
 }) {
   const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
@@ -253,6 +274,11 @@ function SideColumn({
             onKick={
               onKick && kickableUserIds.includes(seat.userId)
                 ? () => onKick(seat.userId)
+                : null
+            }
+            onRename={
+              onRename && seat.unclaimed
+                ? () => onRename({ userId: seat.userId, name: seat.name })
                 : null
             }
             onOpen={onOpenPlayer ? () => onOpenPlayer(seat.userId) : null}
@@ -282,6 +308,7 @@ export function LineupCard({
   onMove,
   kickableUserIds = [],
   onKick,
+  onRenameUnclaimed,
   onOpenPlayer,
 }: {
   sides: FriendlyGameDetailsSide[];
@@ -293,6 +320,7 @@ export function LineupCard({
   onMove: (sideIndex: number, position: Position) => void;
   kickableUserIds?: readonly string[];
   onKick?: (userId: string) => void;
+  onRenameUnclaimed?: (player: RenameTarget) => void;
   onOpenPlayer?: (userId: string) => void;
 }) {
   const vacant = vacantJoinSeats(sides);
@@ -336,6 +364,7 @@ export function LineupCard({
               onMove={(position) => onMove(side.sideIndex, position)}
               kickableUserIds={kickableUserIds}
               onKick={onKick}
+              onRename={onRenameUnclaimed}
               onOpenPlayer={onOpenPlayer}
             />
           </Fragment>

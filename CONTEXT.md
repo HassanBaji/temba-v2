@@ -450,7 +450,7 @@ A person on Temba. Almost every User has a Temba account; the exception is an Un
 _Avoid_: player (when you mean User), member (when you mean the Community role)
 
 **Unclaimed player**:
-A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
+A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
 _Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:

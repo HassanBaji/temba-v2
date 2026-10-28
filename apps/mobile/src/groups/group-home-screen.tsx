@@ -29,6 +29,7 @@ import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
+import { RenamePlayerSheet } from "../game-details/rename-player-sheet";
 import {
   gamePath,
   registerRequest,
@@ -79,6 +80,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
+  const [renaming, setRenaming] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [older, setOlder] = useState<OlderPages | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
@@ -260,6 +265,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onJoin={(door) => joinGroup(groupId, door)}
         onInvite={() => setInviteOpen(true)}
         onAddPlayer={() => setAddPlayerOpen(true)}
+        onRenameUnclaimed={setRenaming}
         onRemoveUnclaimed={(member) =>
           setConfirm({
             title: REMOVE_UNCLAIMED_PLAYER_ACTION,
@@ -364,6 +370,12 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
           onRegister: (gameId) => joinGame(registerRequest(gameId)),
         }}
       />
+      {data.canAddPlayers ? (
+        <RenamePlayerSheet
+          player={renaming}
+          onClose={() => setRenaming(null)}
+        />
+      ) : null}
       {data.canAddPlayers ? (
         <GroupAddPlayerSheet
           visible={addPlayerOpen}

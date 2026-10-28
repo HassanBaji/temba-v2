@@ -27,6 +27,7 @@ import type { LevelBand } from "@repo/domain/level-bands";
 import {
   ADD_PLAYER_ACTION,
   REMOVE_UNCLAIMED_PLAYER_ACTION,
+  RENAME_UNCLAIMED_PLAYER_ACTION,
 } from "@repo/domain/add-player-by-phone";
 import {
   levelOverrideCaption,
@@ -120,12 +121,14 @@ function GroupMemberRow({
   canSetLevel,
   showLevel,
   href,
+  onRename,
   onRemove,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
   showLevel: boolean;
   href?: string;
+  onRename?: () => void;
   onRemove?: () => void;
 }) {
   return (
@@ -138,16 +141,31 @@ function GroupMemberRow({
       href={href}
       meta={memberCaption(member, canSetLevel)}
       action={
-        onRemove ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onRemove}
-            aria-label={`${REMOVE_UNCLAIMED_PLAYER_ACTION}: ${member.name}`}
-          >
-            Remove
-          </Button>
+        onRename || onRemove ? (
+          <div className="flex items-center gap-2">
+            {onRename ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRename}
+                aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${member.name}`}
+              >
+                {RENAME_UNCLAIMED_PLAYER_ACTION}
+              </Button>
+            ) : null}
+            {onRemove ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRemove}
+                aria-label={`${REMOVE_UNCLAIMED_PLAYER_ACTION}: ${member.name}`}
+              >
+                Remove
+              </Button>
+            ) : null}
+          </div>
         ) : undefined
       }
       trailing={
@@ -200,12 +218,14 @@ export function GroupMembersTab({
   onInvite,
   canAddPlayers = false,
   onAddPlayer,
+  onRenameUnclaimed,
   onRemoveUnclaimed,
   showLevel = true,
 }: {
   showLevel?: boolean;
   canAddPlayers?: boolean;
   onAddPlayer?: () => void;
+  onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
   onRemoveUnclaimed?: (member: { userId: string; name: string }) => void;
   groupId: string;
   members: GroupMember[];
@@ -284,6 +304,15 @@ export function GroupMembersTab({
                   : linkToPlayers
                     ? playerProfilePath(member.userId)
                     : undefined
+              }
+              onRename={
+                canAddPlayers && member.unclaimed && onRenameUnclaimed
+                  ? () =>
+                      onRenameUnclaimed({
+                        userId: member.userId,
+                        name: member.name,
+                      })
+                  : undefined
               }
               onRemove={
                 canAddPlayers && member.unclaimed && onRemoveUnclaimed

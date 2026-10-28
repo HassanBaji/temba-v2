@@ -251,6 +251,29 @@ export function removeUnclaimedPlayerToast(name: string) {
   return `${name} removed`;
 }
 
+export const RENAME_UNCLAIMED_PLAYER_ACTION = "Edit name";
+
+export const RENAME_UNCLAIMED_PLAYER_DESCRIPTION =
+  "Their phone stays the same. If the number is wrong, remove them and add them again.";
+
+export const UNCLAIMED_PLAYER_NAME_MAX_LENGTH = 255;
+
+export function renameUnclaimedPlayerCanSubmit(input: {
+  current: string;
+  next: string;
+}) {
+  const next = input.next.trim();
+  return (
+    next.length > 0 &&
+    next.length <= UNCLAIMED_PLAYER_NAME_MAX_LENGTH &&
+    next !== input.current
+  );
+}
+
+export function renameUnclaimedPlayerToast(name: string) {
+  return `Name changed to ${name}`;
+}
+
 export function addPlayerSeatChoices(
   sides: readonly { sideIndex: number; left: unknown; right: unknown }[],
 ): {

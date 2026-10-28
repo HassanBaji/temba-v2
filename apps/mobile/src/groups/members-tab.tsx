@@ -129,6 +129,7 @@ export function MembersTab({
   onSetLevel,
   onOpenMember,
   canAddPlayers = false,
+  onRenameUnclaimed,
   onRemoveUnclaimed,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
@@ -140,6 +141,7 @@ export function MembersTab({
   onSetLevel: (userId: string) => void;
   onOpenMember?: (userId: string) => void;
   canAddPlayers?: boolean;
+  onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
   onRemoveUnclaimed?: (member: { userId: string; name: string }) => void;
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -215,6 +217,19 @@ export function MembersTab({
                   setSelectedUserId(null);
                   onOpenMember(selected.userId);
                 }
+              }
+            : undefined
+        }
+        onRename={
+          selected &&
+          onRenameUnclaimed &&
+          memberIsRemovable(selected, canAddPlayers)
+            ? () => {
+                setSelectedUserId(null);
+                onRenameUnclaimed({
+                  userId: selected.userId,
+                  name: selected.name ?? "Member",
+                });
               }
             : undefined
         }

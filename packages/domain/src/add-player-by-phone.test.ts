@@ -17,7 +17,9 @@ import {
   addPlayerSeatChoices,
   addPlayerSideChoices,
   organizerCanAddPlayer,
+  renameUnclaimedPlayerCanSubmit,
   sameJoinSeat,
+  UNCLAIMED_PLAYER_NAME_MAX_LENGTH,
 } from "./add-player-by-phone";
 
 const seat = { sideIndex: 1, position: "left" as const };
@@ -383,5 +385,29 @@ describe("organizerCanAddPlayer", () => {
         false,
       );
     }
+  });
+});
+
+describe("renameUnclaimedPlayerCanSubmit", () => {
+  it("needs a changed, non-blank name within the length bound", () => {
+    assert.equal(
+      renameUnclaimedPlayerCanSubmit({ current: "Ali", next: "Ali Hassan" }),
+      true,
+    );
+    assert.equal(
+      renameUnclaimedPlayerCanSubmit({ current: "Ali", next: " Ali " }),
+      false,
+    );
+    assert.equal(
+      renameUnclaimedPlayerCanSubmit({ current: "Ali", next: "   " }),
+      false,
+    );
+    assert.equal(
+      renameUnclaimedPlayerCanSubmit({
+        current: "Ali",
+        next: "a".repeat(UNCLAIMED_PLAYER_NAME_MAX_LENGTH + 1),
+      }),
+      false,
+    );
   });
 });

@@ -52,6 +52,7 @@ import { TournamentContent } from "../tournament/tournament-content";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
 import { api } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
+import { RenamePlayerSheet } from "./rename-player-sheet";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import {
   GameDetailsBar,
@@ -132,6 +133,10 @@ export function GameDetailsScreen({
     position: "left" | "right";
   } | null>(null);
   const [teamId, setTeamId] = useState("");
+  const [renaming, setRenaming] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
@@ -656,6 +661,7 @@ export function GameDetailsScreen({
       organizer.onFooterAction(kind);
     },
     onOpenPlayer,
+    onRenameUnclaimed: details.isOrganizer ? setRenaming : undefined,
   };
 
   const hero = gameHeroModel(details, now);
@@ -712,6 +718,12 @@ export function GameDetailsScreen({
             onAdded={refresh}
           />
         </>
+      ) : null}
+      {details.isOrganizer ? (
+        <RenamePlayerSheet
+          player={renaming}
+          onClose={() => setRenaming(null)}
+        />
       ) : null}
     </View>
   );

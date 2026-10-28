@@ -69,6 +69,7 @@ export type GroupHomeViewProps = {
   onLeaveVenue: () => void;
   onInvite: () => void;
   onAddPlayer: () => void;
+  onRenameUnclaimed: (member: { userId: string; name: string }) => void;
   onRemoveUnclaimed: (member: { userId: string; name: string }) => void;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
@@ -317,6 +318,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           showLevel={groupShowsLevel(data.sport)}
           onSetLevel={props.onSetLevel}
           canAddPlayers={data.canAddPlayers}
+          onRenameUnclaimed={props.onRenameUnclaimed}
           onRemoveUnclaimed={props.onRemoveUnclaimed}
         />
       ) : null}
