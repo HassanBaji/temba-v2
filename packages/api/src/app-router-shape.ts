@@ -101,6 +101,8 @@ type ExpectedGames =
   | "leave"
   | "leaveWaitlist"
   | "kick"
+  | "previewPlayerByPhone"
+  | "addPlayerByPhone"
   | "closeRegistration"
   | "reopenRegistration"
   | "cancel"
@@ -176,7 +178,10 @@ type ExpectedGroups =
   | "pendingLinkRequests"
   | "acceptLinkRequest"
   | "declineLinkRequest"
-  | "unlinkFromVenue";
+  | "unlinkFromVenue"
+  | "previewPlayerByPhone"
+  | "addPlayerByPhone"
+  | "removeUnclaimedPlayer";
 
 type ExpectedNotifications =
   | "list"
@@ -211,7 +216,8 @@ type ExpectedUsers =
   | "profileStats"
   | "playerProfile"
   | "setPreferredPosition"
-  | "completeOnboarding";
+  | "completeOnboarding"
+  | "renameUnclaimedPlayer";
 
 type ExpectedVenues =
   | "list"

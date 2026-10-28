@@ -122,6 +122,44 @@ describe("notify", () => {
     }
   });
 
+  it("writes no row for an Unclaimed recipient", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const organizer = await insertUser(db, "notify-organizer@example.com");
+      const [unclaimed] = await db
+        .insert(user)
+        .values({
+          name: "Ali",
+          phoneNumber: "+97336124408",
+          addedByUserId: organizer,
+          addedAt: new Date(),
+        })
+        .returning({ id: user.id });
+      if (!unclaimed) {
+        throw new Error("Failed to insert Unclaimed player");
+      }
+
+      await notify(db, {
+        type: "game_finished",
+        recipients: [
+          { userId: unclaimed.id, audience: "player" },
+          { userId: organizer, audience: "admin" },
+        ],
+        excludeUserIds: [],
+      });
+      await notify(db, {
+        type: "game_finished",
+        recipients: [{ userId: unclaimed.id, audience: "player" }],
+        excludeUserIds: [],
+      });
+
+      expect(await rowsFor(db, unclaimed.id)).toEqual([]);
+      expect(await rowsFor(db, organizer)).toHaveLength(1);
+    } finally {
+      await close();
+    }
+  });
+
   it("writes a keyed row once per recipient", async () => {
     const { db, close } = await createPgliteDb();
     try {

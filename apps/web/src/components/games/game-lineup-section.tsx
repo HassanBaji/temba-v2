@@ -2,6 +2,10 @@
 
 import { Fragment } from "react";
 
+import {
+  ADD_PLAYER_ACTION,
+  RENAME_UNCLAIMED_PLAYER_ACTION,
+} from "@repo/domain/add-player-by-phone";
 import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
@@ -23,6 +27,7 @@ import { type RouterOutputs } from "~/trpc/react";
 type GameDetailsSide = RouterOutputs["games"]["byId"]["sides"][number];
 type GameDetailsSeat = NonNullable<GameDetailsSide["left"]>;
 type SeatPosition = "left" | "right";
+type RenameTarget = { userId: string; name: string };
 
 const VS_DIVIDER =
   "text-muted-foreground before:bg-rule after:bg-rule flex shrink-0 items-center gap-3 self-stretch text-xs font-semibold before:h-px before:flex-1 after:h-px after:flex-1 sm:self-center sm:px-1 sm:before:hidden sm:after:hidden";
@@ -41,6 +46,7 @@ function LineupSeatRow({
   canKick,
   kickPending,
   onKick,
+  onRename,
   linked,
 }: {
   occupant: GameDetailsSeat | null;
@@ -56,6 +62,7 @@ function LineupSeatRow({
   canKick: boolean;
   kickPending: boolean;
   onKick: (userId: string) => void;
+  onRename?: (player: RenameTarget) => void;
   linked: boolean;
 }) {
   if (vacant || !occupant) {
@@ -103,24 +110,45 @@ function LineupSeatRow({
     );
   }
 
+  const canRename = onRename != null && occupant.unclaimed;
+
   return (
     <SeatRow
       occupant={occupant}
       isViewer={isViewer}
+      unclaimed={occupant.unclaimed}
+      phoneMasked={occupant.phoneMasked}
       href={linked ? playerProfilePath(occupant.userId) : undefined}
       subline={friendlyGameSeatSubline(position, occupant.levelBand)}
       trailing={
-        canKick ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            aria-label={`${KICK_ACTION} ${occupant.name}`}
-            disabled={kickPending}
-            onClick={() => onKick(occupant.userId)}
-          >
-            {KICK_ACTION}
-          </Button>
+        canKick || canRename ? (
+          <div className="flex items-center gap-2">
+            {canRename ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${occupant.name}`}
+                onClick={() =>
+                  onRename?.({ userId: occupant.userId, name: occupant.name })
+                }
+              >
+                {RENAME_UNCLAIMED_PLAYER_ACTION}
+              </Button>
+            ) : null}
+            {canKick ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-label={`${KICK_ACTION} ${occupant.name}`}
+                disabled={kickPending}
+                onClick={() => onKick(occupant.userId)}
+              >
+                {KICK_ACTION}
+              </Button>
+            ) : null}
+          </div>
         ) : undefined
       }
     />
@@ -141,6 +169,7 @@ function LineupTeamColumn({
   canKick,
   kickPending,
   onKick,
+  onRename,
   linkToPlayers,
 }: {
   side: GameDetailsSide;
@@ -156,6 +185,7 @@ function LineupTeamColumn({
   canKick: (userId: string) => boolean;
   kickPending: boolean;
   onKick: (userId: string) => void;
+  onRename?: (player: RenameTarget) => void;
   linkToPlayers: boolean;
 }) {
   const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
@@ -184,6 +214,7 @@ function LineupTeamColumn({
           canKick={side.left != null && canKick(side.left.userId)}
           kickPending={kickPending}
           onKick={onKick}
+          onRename={onRename}
           linked={linkToPlayers}
         />
         <LineupSeatRow
@@ -200,6 +231,7 @@ function LineupTeamColumn({
           canKick={side.right != null && canKick(side.right.userId)}
           kickPending={kickPending}
           onKick={onKick}
+          onRename={onRename}
           linked={linkToPlayers}
         />
       </div>
@@ -231,6 +263,8 @@ export function GameLineupSection({
   kickPending,
   onKick,
   linkToPlayers,
+  onAddPlayer,
+  onRenameUnclaimed,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
@@ -246,6 +280,8 @@ export function GameLineupSection({
   kickPending: boolean;
   onKick: (userId: string) => void;
   linkToPlayers: boolean;
+  onAddPlayer?: () => void;
+  onRenameUnclaimed?: (player: RenameTarget) => void;
 }) {
   // Final phase never shows invite affordances in this section, regardless
   // of the caller's organizer-only `canMintInvite` value (spec: "no invite
@@ -268,9 +304,19 @@ export function GameLineupSection({
       data-slot="game-lineup-section"
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
-      <h2 className="text-muted-foreground px-[22px] pb-3 pt-[22px] text-sm">
-        Line-up
-      </h2>
+      <div className="flex items-center justify-between gap-3 px-[22px] pb-3 pt-[22px]">
+        <h2 className="text-muted-foreground text-sm">Line-up</h2>
+        {onAddPlayer ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onAddPlayer}
+          >
+            {ADD_PLAYER_ACTION}
+          </Button>
+        ) : null}
+      </div>
       <div
         className={cn(
           "border-rule flex flex-col gap-4 border-t px-[22px] pb-[22px] pt-[18px] sm:flex-row sm:items-start sm:gap-3",
@@ -299,6 +345,7 @@ export function GameLineupSection({
               canKick={canKick}
               kickPending={kickPending}
               onKick={onKick}
+              onRename={onRenameUnclaimed}
               linkToPlayers={linkToPlayers}
             />
           </Fragment>

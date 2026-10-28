@@ -1,5 +1,9 @@
 import { spacing } from "@repo/design-tokens";
 import {
+  ADD_PLAYER_ACTION,
+  ADD_PLAYER_DESCRIPTION,
+} from "@repo/domain/add-player-by-phone";
+import {
   CLOSE_REGISTRATION_ACTION,
   COMPLETE_MATCH_ACTION,
   COMPLETE_MATCH_CONSEQUENCE,
@@ -27,6 +31,7 @@ export type OrganizerHandlers = {
   onReject: (requestId: string) => void;
   onKickWaitlist: (waitlistId: string) => void;
   onKickPlayer: (userId: string) => void;
+  onAddPlayer: () => void;
 };
 
 export function Block({ children }: { children: React.ReactNode }) {
@@ -98,6 +103,26 @@ export function OrganizerCard({
       </View>
     </Block>,
   ];
+
+  if (plan.canAddPlayer) {
+    blocks.push(
+      <Block key="add-player">
+        <View>
+          <Text weight="medium">Players</Text>
+          <Text size="meta" tone="muted">
+            {ADD_PLAYER_DESCRIPTION}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={ADD_PLAYER_ACTION}
+            variant="outline"
+            onPress={handlers.onAddPlayer}
+          />
+        </View>
+      </Block>,
+    );
+  }
 
   if (plan.court) {
     blocks.push(

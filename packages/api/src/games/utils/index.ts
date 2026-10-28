@@ -225,7 +225,7 @@ export type VacatedSeat = {
 
 export type AdmitDb = DbClient | DbTx;
 
-export type AdmitDoor = "register" | "promote";
+export type AdmitDoor = "register" | "promote" | "organizer_add";
 
 export type AdmitParty =
   | {
@@ -251,7 +251,9 @@ export type AdmitReason =
   | "team_not_found"
   | "team_incomplete"
   | "team_already_on_game"
-  | "level_range";
+  | "level_range"
+  | "cancelled"
+  | "match_completed";
 
 export type AdmitPlacement =
   | {

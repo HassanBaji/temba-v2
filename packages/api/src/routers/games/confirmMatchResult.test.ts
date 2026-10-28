@@ -13,15 +13,18 @@ import {
   matchResultConfirmations,
   matchSets,
   ratingEvents,
+  ratings,
   user,
   venues,
 } from "@repo/db/schema";
 
 import { addSet } from "#src/routers/games/addSet";
+import { gameById } from "#src/routers/games/byId";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { createFriendlyGame } from "#src/games/create-friendly";
+import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -552,6 +555,353 @@ describe("Match result confirmation (ADR-0011)", () => {
         });
         expect(events).toHaveLength(4);
       }
+    } finally {
+      await close();
+    }
+  });
+});
+
+let unclaimedPhoneSuffix = 4400;
+
+async function insertUnclaimed(database: TestDatabase, addedByUserId: string) {
+  unclaimedPhoneSuffix += 1;
+  const created = await database.transaction((tx) =>
+    createUnclaimedPlayer(tx, {
+      phoneNumber: `+9733612${unclaimedPhoneSuffix}`,
+      name: `Unclaimed ${unclaimedPhoneSuffix}`,
+      addedByUserId,
+      startingLevel: { sport: "padel", level: "C+" },
+    }),
+  );
+  return created.user;
+}
+
+type SeatKey = "a" | "b" | "c" | "d";
+
+async function setUpMatchWithUnclaimed(
+  database: TestDatabase,
+  args: { unclaimed: SeatKey[]; organizerSeated: boolean },
+) {
+  const organizer = await insertUser(
+    database,
+    `organizer-${crypto.randomUUID()}@example.com`,
+  );
+  const seat = async (key: SeatKey) => {
+    if (key === "a" && args.organizerSeated) {
+      return organizer;
+    }
+    if (args.unclaimed.includes(key)) {
+      return insertUnclaimed(database, organizer.id);
+    }
+    return insertUser(database, `${key}-${crypto.randomUUID()}@example.com`);
+  };
+  const a = await seat("a");
+  const b = await seat("b");
+  const c = await seat("c");
+  const d = await seat("d");
+  const venue = await insertVenue(database);
+  const group = await insertGroup(database, organizer.id);
+  const windowStart = new Date();
+  const created = await createFriendlyGame(database, {
+    createdBy: organizer.id,
+    groupId: group.id,
+    venueId: venue.id,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + 60 * 60 * 1000),
+  });
+  await seatFriendlyMatch(database, {
+    gameId: created.game.id,
+    matchId: created.matchId,
+    slot1: { left: a, right: b },
+    slot2: { left: c, right: d },
+  });
+  const [firstSet] = await database.query.matchSets.findMany({
+    where: eq(matchSets.matchId, created.matchId),
+  });
+  if (!firstSet) {
+    throw new Error("Expected a Set shell");
+  }
+  return {
+    game: created.game,
+    matchId: created.matchId,
+    firstSetId: firstSet.id,
+    organizer,
+    a,
+    b,
+    c,
+    d,
+  };
+}
+
+async function matchStatus(database: TestDatabase, matchId: string) {
+  const match = await database.query.matches.findFirst({
+    where: eq(matches.id, matchId),
+    columns: { status: true },
+  });
+  return match?.status;
+}
+
+async function ratedUserIds(database: TestDatabase, matchId: string) {
+  const events = await database.query.ratingEvents.findMany({
+    where: eq(ratingEvents.matchId, matchId),
+    columns: { userId: true },
+  });
+  return events.map((event) => event.userId).sort();
+}
+
+describe("Match result confirmation with Unclaimed players (D14)", () => {
+  it("completes and rates once the three account holders confirm", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: ["d"],
+        organizerSeated: false,
+      });
+      const before = await db.query.ratings.findFirst({
+        where: eq(ratings.userId, f.d.id),
+      });
+
+      await scoreSet(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        setId: f.firstSetId,
+        userId: f.a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.b.id,
+      });
+      expect(await matchStatus(db, f.matchId)).not.toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      await expect(
+        confirmMatchResult(db, {
+          gameId: f.game.id,
+          matchId: f.matchId,
+          userId: f.organizer.id,
+        }),
+      ).rejects.toThrow("Only Users seated");
+
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.c.id,
+      });
+
+      expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
+      expect(await ratedUserIds(db, f.matchId)).toEqual(
+        [f.a.id, f.b.id, f.c.id, f.d.id].sort(),
+      );
+      const after = await db.query.ratings.findFirst({
+        where: eq(ratings.userId, f.d.id),
+      });
+      expect(after?.mu).not.toBe(before?.mu);
+    } finally {
+      await close();
+    }
+  });
+
+  it("completes a side of two Unclaimed players once the other side and an Organizer confirm", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: ["c", "d"],
+        organizerSeated: false,
+      });
+
+      await scoreSet(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        setId: f.firstSetId,
+        userId: f.a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.b.id,
+      });
+      expect(await matchStatus(db, f.matchId)).not.toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+
+      const details = await gameById(db, {
+        gameId: f.game.id,
+        userId: f.organizer.id,
+      });
+      expect(details.matchResultConfirmation?.requiredUserIds.sort()).toEqual(
+        [f.a.id, f.b.id].sort(),
+      );
+      expect(details.matchResultConfirmation?.organizerSides).toEqual([
+        { slot: 2, confirmed: false },
+      ]);
+
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.organizer.id,
+      });
+
+      expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
+      expect(await ratedUserIds(db, f.matchId)).toEqual(
+        [f.a.id, f.b.id, f.c.id, f.d.id].sort(),
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets a seated Organizer confirm for the other side by naming it", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: ["c", "d"],
+        organizerSeated: true,
+      });
+
+      await scoreSet(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        setId: f.firstSetId,
+        userId: f.a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      await expect(
+        confirmMatchResult(db, {
+          gameId: f.game.id,
+          matchId: f.matchId,
+          userId: f.a.id,
+          slot: 1,
+        }),
+      ).rejects.toThrow("confirm for themselves");
+      await expect(
+        confirmMatchResult(db, {
+          gameId: f.game.id,
+          matchId: f.matchId,
+          userId: f.b.id,
+          slot: 2,
+        }),
+      ).rejects.toThrow("Only an organizer");
+
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.a.id,
+        slot: 2,
+      });
+      expect(await matchStatus(db, f.matchId)).not.toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.b.id,
+      });
+
+      expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
+    } finally {
+      await close();
+    }
+  });
+
+  it("asks an Organizer to name the side when neither side has an account holder", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: ["a", "b", "c", "d"],
+        organizerSeated: false,
+      });
+
+      await scoreSet(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        setId: f.firstSetId,
+        userId: f.organizer.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      await expect(
+        confirmMatchResult(db, {
+          gameId: f.game.id,
+          matchId: f.matchId,
+          userId: f.organizer.id,
+        }),
+      ).rejects.toThrow("Choose the side");
+
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.organizer.id,
+        slot: 1,
+      });
+      expect(await matchStatus(db, f.matchId)).not.toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.organizer.id,
+        slot: 2,
+      });
+
+      expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
+      expect(await ratedUserIds(db, f.matchId)).toEqual(
+        [f.a.id, f.b.id, f.c.id, f.d.id].sort(),
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("clears the Organizer's side confirmation when the score changes", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: ["c", "d"],
+        organizerSeated: false,
+      });
+      const score = (slot2GamesWon: number) =>
+        scoreSet(db, {
+          gameId: f.game.id,
+          matchId: f.matchId,
+          setId: f.firstSetId,
+          userId: f.a.id,
+          slot1GamesWon: 6,
+          slot2GamesWon,
+        });
+
+      await score(2);
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.organizer.id,
+      });
+      expect(await confirmedUserIds(db, f.matchId)).toEqual(
+        [f.a.id, f.c.id, f.d.id].sort(),
+      );
+
+      await score(4);
+      expect(await confirmedUserIds(db, f.matchId)).toEqual([f.a.id]);
+
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.b.id,
+      });
+      expect(await matchStatus(db, f.matchId)).not.toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.organizer.id,
+      });
+      expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
     } finally {
       await close();
     }

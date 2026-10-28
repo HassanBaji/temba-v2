@@ -279,7 +279,11 @@ async function teamPlayers(
       : await database.query.gameTeamPlayers.findMany({
           where: inArray(gameTeamPlayers.gameTeamId, [...teamIds]),
           columns: { gameTeamId: true },
-          orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+          orderBy: (table, { asc }) => [
+            asc(table.position),
+            asc(table.createdAt),
+            asc(table.id),
+          ],
           with: {
             gamePlayer: {
               columns: {},

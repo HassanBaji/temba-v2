@@ -210,6 +210,80 @@ describe("notificationCopy for a Game leave", () => {
   });
 });
 
+describe("notificationCopy for an Organizer's add", () => {
+  const game = {
+    name: "Thursday Padel",
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 9, 8, 19, 0, 0),
+  };
+
+  it("tells a player an Organizer seated them", () => {
+    assert.deepEqual(
+      notificationCopy({
+        type: "game_seated_by_organizer",
+        audience: "player",
+        actor: { name: "Sara" },
+        group: { name: "Night Crew" },
+        game,
+      }),
+      {
+        title: [
+          { text: "Sara", strong: true },
+          { text: " added you to ", strong: false },
+          { text: "Thursday Padel", strong: true },
+        ],
+        subline: null,
+      },
+    );
+    assert.equal(
+      notificationCopy({
+        type: "game_seated_by_organizer",
+        audience: "admin",
+        actor: { name: "Sara" },
+        group: null,
+        game,
+      }),
+      null,
+    );
+  });
+});
+
+describe("notificationCopy for a claimed history", () => {
+  function linked(item: Partial<NotificationCopyInput>) {
+    return notificationCopy({
+      type: "history_linked",
+      audience: "player",
+      actor: null,
+      group: null,
+      gameCount: 3,
+      ...item,
+    });
+  }
+
+  it("tells the claimer how many Games were linked", () => {
+    assert.deepEqual(linked({}), {
+      title: [
+        { text: "We linked ", strong: false },
+        { text: "3 Games", strong: true },
+        { text: " played under your number", strong: false },
+      ],
+      subline: null,
+    });
+    assert.equal(
+      linked({ gameCount: 1 })
+        ?.title.map((part) => part.text)
+        .join(""),
+      "We linked 1 Game played under your number",
+    );
+  });
+
+  it("returns null without a Game count or for another audience", () => {
+    assert.equal(linked({ gameCount: null }), null);
+    assert.equal(linked({ gameCount: 0 }), null);
+    assert.equal(linked({ audience: "admin" }), null);
+  });
+});
+
 describe("notificationCopy for a Finished Game", () => {
   const game = {
     name: "Thursday Padel",

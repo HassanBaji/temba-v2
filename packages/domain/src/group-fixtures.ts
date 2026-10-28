@@ -37,6 +37,8 @@ function entry(
     levelOverride: null,
     formMarks: [],
     joinedAt: new Date("2025-02-11T12:00:00Z"),
+    unclaimed: false,
+    phoneMasked: null,
     ...extra,
   };
 }
@@ -242,6 +244,7 @@ export function createGroupFixtures(now = new Date()) {
     canSetRequiresApproval: false,
     canDecideJoinRequests: false,
     canManageImage: false,
+    canAddPlayers: false,
     canDelete: false,
     viewerCanSetLevel: false,
     venueCommunity: null,
@@ -256,6 +259,7 @@ export function createGroupFixtures(now = new Date()) {
     canSetRequiresApproval: true,
     canDecideJoinRequests: true,
     canManageImage: true,
+    canAddPlayers: true,
   };
 
   const joinRequests: GroupJoinRequestData[] = [

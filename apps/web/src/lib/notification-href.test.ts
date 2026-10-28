@@ -37,6 +37,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Game an Organizer seated the player on", () => {
+    assert.equal(
+      notificationHref({
+        type: "game_seated_by_organizer",
+        group: null,
+        game: { id: "x4" },
+      }),
+      "/dashboard/games/x4",
+    );
+  });
+
   it("opens the Game a Finished Game is about", () => {
     assert.equal(
       notificationHref({
@@ -49,6 +60,13 @@ describe("notificationHref", () => {
     assert.equal(
       notificationHref({ type: "game_finished", group: null, game: null }),
       null,
+    );
+  });
+
+  it("opens Match history for a claimed history", () => {
+    assert.equal(
+      notificationHref({ type: "history_linked", group: null, game: null }),
+      "/dashboard/games?tab=history",
     );
   });
 

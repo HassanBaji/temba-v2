@@ -9,6 +9,7 @@ import {
   integer,
   uniqueIndex,
   check,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { account } from "./account";
@@ -63,6 +64,17 @@ export const user = pgTable(
     preferredFootballRole: footballRoles("preferred_football_role"),
     preferredFootballPosition: footballPositions("preferred_football_position"),
     onboardingCompletedAt: timestamp("onboarding_completed_at"),
+    addedByUserId: uuid("added_by_user_id").references(
+      (): AnyPgColumn => user.id,
+      { onDelete: "set null" },
+    ),
+    /**
+     * Set when an Organizer or Group approver added the person by phone. With
+     * a null `clerk_id` it marks an Unclaimed player; legacy rows without a
+     * clerkId leave it null so they are never read as Unclaimed (ADR-0042).
+     */
+    addedAt: timestamp("added_at"),
+    claimedAt: timestamp("claimed_at"),
     createdAt: timestamp("created_at")
       .$defaultFn(() => /* @__PURE__ */ new Date())
       .notNull(),
@@ -75,6 +87,10 @@ export const user = pgTable(
     emailOrPhone: check(
       "user_email_or_phone_number",
       sql`${table.email} is not null or ${table.phoneNumber} is not null`,
+    ),
+    unclaimedHasPhone: check(
+      "user_unclaimed_has_phone",
+      sql`${table.addedAt} is null or ${table.clerkId} is not null or ${table.phoneNumber} is not null`,
     ),
   }),
 );

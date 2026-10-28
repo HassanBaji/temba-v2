@@ -4,6 +4,7 @@ import { and, ilike, inArray, notInArray, or, sql } from "drizzle-orm";
 import { user } from "@repo/db";
 
 import type { LookupUserSearchRow } from "#src/invites/doors/utils";
+import { notUnclaimedUserSql } from "#src/unclaimed-players/is-unclaimed";
 
 export const LOOKUP_USER_SEARCH_LIMIT = 20;
 
@@ -95,6 +96,7 @@ async function queryLookupUsers(
         : args.excludeUserIds.length > 0
           ? notInArray(user.id, args.excludeUserIds)
           : undefined,
+      notUnclaimedUserSql,
       args.textFilter,
     ),
     columns: {

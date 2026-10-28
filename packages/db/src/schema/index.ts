@@ -1,6 +1,7 @@
 export * from "./account";
 export * from "./session";
 export * from "./user";
+export * from "./user-merges";
 export * from "./ratings";
 export * from "./level-overrides";
 export * from "./verification";

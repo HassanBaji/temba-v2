@@ -1,0 +1,1 @@
+ALTER TABLE "notifications" ADD COLUMN "game_count" integer;

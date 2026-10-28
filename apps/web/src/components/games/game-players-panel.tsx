@@ -14,9 +14,11 @@ import {
   gameTeamDisplayName,
 } from "@repo/domain/game-side-label";
 import { LookupUserSelect } from "~/components/invites/lookup-user-select";
-import { REGISTER_TEAM_ACTION } from "@repo/domain/game-copy";
+import { RENAME_UNCLAIMED_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
+import { KICK_ACTION, REGISTER_TEAM_ACTION } from "@repo/domain/game-copy";
 import type { LookupUserSearchRow } from "@repo/api/types";
 import { Section } from "~/components/layout/section";
+import { NotOnTembaTag } from "~/components/temba/seat";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -46,6 +48,80 @@ import { showsFriendlyRoster } from "@repo/domain/game-summary-cta";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameDetail = RouterOutputs["games"]["byId"];
+type RosterPlayer = GameDetail["registeredPlayers"][number];
+type RenameTarget = { userId: string; name: string };
+
+function RosterPlayerRow({
+  player,
+  isViewer = false,
+  canKick,
+  kickPending,
+  onKick,
+  onRename,
+}: {
+  player: RosterPlayer;
+  isViewer?: boolean;
+  canKick: boolean;
+  kickPending: boolean;
+  onKick: (userId: string) => void;
+  onRename?: (player: RenameTarget) => void;
+}) {
+  const canRename = onRename != null && player.unclaimed;
+  return (
+    <ListRow
+      leading={<UserAvatar name={player.name} image={player.image} size="lg" />}
+      title={
+        <>
+          {player.name}
+          {isViewer ? (
+            <Badge variant="outline" className="ml-2 align-middle">
+              You
+            </Badge>
+          ) : null}
+          {player.unclaimed ? (
+            <span className="ml-2 inline-flex align-middle">
+              <NotOnTembaTag />
+            </span>
+          ) : null}
+        </>
+      }
+      subtitle={
+        player.phoneMasked ? (
+          <span className="tabular-nums">{player.phoneMasked}</span>
+        ) : undefined
+      }
+      trailing={
+        canKick || canRename ? (
+          <div className="flex items-center gap-2">
+            {canRename ? (
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${player.name}`}
+                onClick={() =>
+                  onRename?.({ userId: player.id, name: player.name })
+                }
+              >
+                {RENAME_UNCLAIMED_PLAYER_ACTION}
+              </Button>
+            ) : null}
+            {canKick ? (
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={`${KICK_ACTION} ${player.name}`}
+                onClick={() => onKick(player.id)}
+                disabled={kickPending}
+              >
+                {KICK_ACTION}
+              </Button>
+            ) : null}
+          </div>
+        ) : undefined
+      }
+    />
+  );
+}
 
 export function GamePlayersPanel({
   game,
@@ -73,6 +149,7 @@ export function GamePlayersPanel({
   onKickWaitlist,
   onRegisterWithPartner,
   onRegisterTeam,
+  onRenameUnclaimed,
 }: {
   game: GameDetail;
   partnerQuery: string;
@@ -109,6 +186,7 @@ export function GamePlayersPanel({
     position?: "left" | "right";
   }) => void;
   onRegisterTeam: (teamId: string) => void;
+  onRenameUnclaimed?: (player: RenameTarget) => void;
 }) {
   const individualSeats =
     game.registrationMode === "individual" && game.format !== "americano";
@@ -168,40 +246,14 @@ export function GamePlayersPanel({
                       isViewer,
                     });
                     return (
-                      <ListRow
+                      <RosterPlayerRow
                         key={player.id}
-                        leading={
-                          <UserAvatar
-                            name={player.name}
-                            image={player.image}
-                            size="lg"
-                          />
-                        }
-                        title={
-                          <>
-                            {player.name}
-                            {isViewer ? (
-                              <Badge
-                                variant="outline"
-                                className="ml-2 align-middle"
-                              >
-                                You
-                              </Badge>
-                            ) : null}
-                          </>
-                        }
-                        trailing={
-                          canKick ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onKick(player.id)}
-                              disabled={kickPending}
-                            >
-                              Kick
-                            </Button>
-                          ) : undefined
-                        }
+                        player={player}
+                        isViewer={isViewer}
+                        canKick={canKick}
+                        kickPending={kickPending}
+                        onKick={onKick}
+                        onRename={onRenameUnclaimed}
                       />
                     );
                   })}
@@ -239,28 +291,13 @@ export function GamePlayersPanel({
                 </h2>
                 <RowList>
                   {game.unseatedPlayers.map((player) => (
-                    <ListRow
+                    <RosterPlayerRow
                       key={player.id}
-                      leading={
-                        <UserAvatar
-                          name={player.name}
-                          image={player.image}
-                          size="lg"
-                        />
-                      }
-                      title={player.name}
-                      trailing={
-                        game.isOrganizer && !cancelled ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onKick(player.id)}
-                            disabled={kickPending}
-                          >
-                            Kick
-                          </Button>
-                        ) : undefined
-                      }
+                      player={player}
+                      canKick={game.isOrganizer && !cancelled}
+                      kickPending={kickPending}
+                      onKick={onKick}
+                      onRename={onRenameUnclaimed}
                     />
                   ))}
                 </RowList>
@@ -312,28 +349,13 @@ export function GamePlayersPanel({
                   ),
               )
               .map((player) => (
-                <ListRow
+                <RosterPlayerRow
                   key={player.id}
-                  leading={
-                    <UserAvatar
-                      name={player.name}
-                      image={player.image}
-                      size="lg"
-                    />
-                  }
-                  title={player.name}
-                  trailing={
-                    game.isOrganizer && !game.cancelledAt ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onKick(player.id)}
-                        disabled={kickPending}
-                      >
-                        Kick
-                      </Button>
-                    ) : undefined
-                  }
+                  player={player}
+                  canKick={game.isOrganizer && !cancelled}
+                  kickPending={kickPending}
+                  onKick={onKick}
+                  onRename={onRenameUnclaimed}
                 />
               ))}
           </RowList>

@@ -33,6 +33,7 @@ export type NotificationItem = {
   createdAt: Date;
   readAt: Date | null;
   viaWaitlist: boolean;
+  gameCount: number | null;
   actor: NotificationPerson | null;
   partner: NotificationPerson | null;
   team: { id: string; name: string | null } | null;
@@ -84,6 +85,7 @@ export async function listNotifications(
       createdAt: true,
       readAt: true,
       viaWaitlist: true,
+      gameCount: true,
     },
     with: {
       actor: { columns: { id: true, name: true, image: true } },

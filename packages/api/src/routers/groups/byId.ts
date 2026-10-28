@@ -70,6 +70,8 @@ import {
   standingPosition,
 } from "@repo/domain/compare-standing";
 import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
+import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayUnlinkFromVenueCommunity } from "#src/venue-community/unlink-group";
 
 type DbClient = typeof db;
@@ -362,12 +364,25 @@ export async function groupById(
           id: true,
           name: true,
           image: true,
+          clerkId: true,
+          addedAt: true,
+          phoneNumber: true,
         },
       },
     },
   });
 
   const memberUserIds = memberRows.map((row) => row.userId);
+  const memberMarkByUserId = new Map(
+    memberRows.map((row) => {
+      const unclaimed = isUnclaimed(row.user);
+      const phoneMasked =
+        isApprover && unclaimed && row.user.phoneNumber
+          ? maskPhone(row.user.phoneNumber)
+          : null;
+      return [row.userId, { unclaimed, phoneMasked }] as const;
+    }),
+  );
 
   const standingMembers =
     (await loadGroupStandingMembers(database, [group.id])).get(group.id) ?? [];
@@ -684,6 +699,8 @@ export async function groupById(
       joinedAt: entry.joinedAt,
       isOrganizer:
         entry.userId === group.createdBy || staffUserIds.has(entry.userId),
+      unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
+      phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
     };
   });
 
@@ -769,6 +786,7 @@ export async function groupById(
     canDelete,
     canCreateGame,
     canManageImage: isApprover,
+    canAddPlayers: isApprover,
     viewerCanSetLevel,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,

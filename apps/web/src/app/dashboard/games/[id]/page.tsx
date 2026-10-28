@@ -13,7 +13,9 @@ import {
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
+import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
@@ -89,6 +91,11 @@ import {
   friendlyGameCanMintInvite,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import {
+  ADD_PLAYER_ACTION,
+  addPlayerPlacement,
+  organizerCanAddPlayer,
+} from "@repo/domain/add-player-by-phone";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
@@ -210,6 +217,11 @@ export default function GameHomePage({
   const [editOpen, setEditOpen] = React.useState(false);
   const justSavedEditSectionsRef = React.useRef(new Set<GameEditSection>());
   const [invitesOpen, setInvitesOpen] = React.useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
+  const [renaming, setRenaming] = React.useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
@@ -785,6 +797,9 @@ export default function GameHomePage({
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
   const plan = friendlyGameDetailsPlan(data);
+  const addPlacement = addPlayerPlacement(data);
+  const canAddPlayer = organizerCanAddPlayer(data);
+  const openAddPlayer = canAddPlayer ? () => setAddPlayerOpen(true) : undefined;
   const { firstMatch, winningGameTeamId, canLeaveGame } = plan;
   const heroInput = friendlyGameHeroInput(data);
   const ctaFamily = usesFriendlyChrome
@@ -862,6 +877,11 @@ export default function GameHomePage({
           {canManageGameInvites ? (
             <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
               Invite
+            </ActionMenuItem>
+          ) : null}
+          {openAddPlayer ? (
+            <ActionMenuItem onSelect={openAddPlayer}>
+              {ADD_PLAYER_ACTION}
             </ActionMenuItem>
           ) : null}
         </>
@@ -1074,6 +1094,7 @@ export default function GameHomePage({
               onCancelGame={() => setCancelGameOpen(true)}
               onKick={(userId) => requestKick({ userId })}
               onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
+              onAddPlayer={openAddPlayer}
               onCancelKnockoutMatch={setCancelKnockoutPlace}
             />
           </>
@@ -1174,6 +1195,8 @@ export default function GameHomePage({
               kickPending={kick.isPending}
               onKick={(userId) => requestKick({ userId })}
               linkToPlayers={gamePlayersLink(data)}
+              onAddPlayer={openAddPlayer}
+              onRenameUnclaimed={data.isOrganizer ? setRenaming : undefined}
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
@@ -1184,6 +1207,7 @@ export default function GameHomePage({
                   viewerUserId={data.viewerUserId}
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
+                  isOrganizer={data.isOrganizer}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
                   onScoreSet={(input) =>
@@ -1199,6 +1223,13 @@ export default function GameHomePage({
                     confirmMatchResult.mutate({
                       gameId: id,
                       matchId: firstMatch.id,
+                    })
+                  }
+                  onConfirmForSlot={(slot) =>
+                    confirmMatchResult.mutate({
+                      gameId: id,
+                      matchId: firstMatch.id,
+                      slot,
                     })
                   }
                 />
@@ -1253,6 +1284,7 @@ export default function GameHomePage({
               <div className="space-y-6">
                 <GamePlayersPanel
                   game={data}
+                  onRenameUnclaimed={data.isOrganizer ? setRenaming : undefined}
                   partnerQuery={partnerQuery}
                   selectedPartner={selectedPartner}
                   partnerSide={partnerSide}
@@ -1430,6 +1462,24 @@ export default function GameHomePage({
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutateAsync({ gameId: id, sideIndex, position })
           }
+        />
+      ) : null}
+
+      {addPlacement && (canAddPlayer || addPlayerOpen) ? (
+        <AddPlayerDialog
+          open={addPlayerOpen}
+          onOpenChange={setAddPlayerOpen}
+          gameId={id}
+          placement={addPlacement}
+          sides={data.sides}
+          onAdded={() => utils.games.byId.invalidate({ id })}
+        />
+      ) : null}
+
+      {data.isOrganizer ? (
+        <RenameUnclaimedPlayerDialog
+          player={renaming}
+          onClose={() => setRenaming(null)}
         />
       ) : null}
 

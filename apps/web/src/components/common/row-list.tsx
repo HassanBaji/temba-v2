@@ -23,6 +23,9 @@ export function RowList({
   );
 }
 
+const actionRow = "flex items-center";
+const actionSlot = "shrink-0 pr-4";
+
 export function ListRow({
   leading,
   title,
@@ -30,6 +33,7 @@ export function ListRow({
   meta,
   trailing,
   footer,
+  action,
   size = "default",
   stackTrailing = false,
   asChild = false,
@@ -45,6 +49,8 @@ export function ListRow({
   trailing?: React.ReactNode;
   /** Full-width line under the row, inside the same row target. */
   footer?: React.ReactNode;
+  /** A control beside the row target, so it never nests inside a link. */
+  action?: React.ReactNode;
   size?: "default" | "lg";
   /** Below `sm`, put `trailing` on its own line so actions never squeeze the title. */
   stackTrailing?: boolean;
@@ -118,20 +124,25 @@ export function ListRow({
     }
 
     return (
-      <li data-slot="list-row">
+      <li
+        data-slot="list-row"
+        className={action != null ? actionRow : undefined}
+      >
         {React.cloneElement(children, {
           className: cn(rowClass, children.props.className),
           children: body,
         })}
+        {action != null ? <div className={actionSlot}>{action}</div> : null}
       </li>
     );
   }
 
   return (
-    <li data-slot="list-row">
+    <li data-slot="list-row" className={action != null ? actionRow : undefined}>
       <div className={rowClass} {...props}>
         {body}
       </div>
+      {action != null ? <div className={actionSlot}>{action}</div> : null}
     </li>
   );
 }

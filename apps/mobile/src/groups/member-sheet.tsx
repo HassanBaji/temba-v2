@@ -1,6 +1,11 @@
+import {
+  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  RENAME_UNCLAIMED_PLAYER_ACTION,
+} from "@repo/domain/add-player-by-phone";
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
+import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -11,16 +16,32 @@ export function MemberSheet({
   onClose,
   onSetLevel,
   onViewProfile,
+  onRename,
+  onRemove,
 }: {
   member: MemberSheetView | null;
   onClose: () => void;
-  onSetLevel: () => void;
+  onSetLevel?: () => void;
   onViewProfile?: () => void;
+  onRename?: () => void;
+  onRemove?: () => void;
 }) {
   return (
     <Sheet visible={member != null} onClose={onClose} title={member?.name}>
       {member ? (
         <View style={{ gap: 14 }}>
+          {member.unclaimed ? (
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <NotOnTembaMark />
+              {member.phoneMasked ? (
+                <Text size="meta" tone="muted">
+                  {member.phoneMasked}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
           <Text size="meta" tone="muted">
             {member.summary}
           </Text>
@@ -53,13 +74,31 @@ export function MemberSheet({
               <Text>{member.latestSet}</Text>
             </Surface>
           ) : null}
-          <Button label="Set Level" size="lg" onPress={onSetLevel} />
+          {onSetLevel ? (
+            <Button label="Set Level" size="lg" onPress={onSetLevel} />
+          ) : null}
           {onViewProfile ? (
             <Button
               label="View profile"
               size="lg"
               variant="outline"
               onPress={onViewProfile}
+            />
+          ) : null}
+          {onRename ? (
+            <Button
+              label={RENAME_UNCLAIMED_PLAYER_ACTION}
+              size="lg"
+              variant="outline"
+              onPress={onRename}
+            />
+          ) : null}
+          {onRemove ? (
+            <Button
+              label={REMOVE_UNCLAIMED_PLAYER_ACTION}
+              size="lg"
+              variant="outline"
+              onPress={onRemove}
             />
           ) : null}
         </View>
