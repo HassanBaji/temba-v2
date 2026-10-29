@@ -16,15 +16,15 @@ import {
 } from "@repo/domain/friendly-game-results";
 import { setLabel } from "@repo/domain/game-copy";
 import {
+  ORGANIZER_CONFIRM_NOTE,
   SCORE_INCOMPLETE_MESSAGE,
   scoreCanConfirm,
   scoreCanEnter,
-  scoreConfirmForSlotLabel,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
   scoreNameByUserId,
-  scoreOrganizerConfirmSlots,
+  scoreOrganizerCanConfirm,
   scoreOrganizerWaitingLines,
   scoreSetBoxAccessibleLabel,
   scoreSetBoxState,
@@ -159,12 +159,14 @@ function SetBox({
 function ScoreFooterNote({
   phase,
   confirmedAtLabel,
+  confirmedByOrganizer,
 }: {
   phase: GameScoreSectionPhase;
   confirmedAtLabel: string | null;
+  confirmedByOrganizer: boolean;
 }) {
   const { isFinal } = scorePhaseFlags(phase);
-  const copy = scoreFooterNote(phase, confirmedAtLabel);
+  const copy = scoreFooterNote(phase, confirmedAtLabel, confirmedByOrganizer);
 
   return (
     <div className="flex items-start gap-2.5">
@@ -185,19 +187,17 @@ function MatchResultConfirmations({
   viewerUserId,
   names,
   canConfirm,
-  confirmForSlots,
+  organizerCanConfirm,
   confirmPending,
   onConfirm,
-  onConfirmForSlot,
 }: {
   confirmation: GameScoreSectionConfirmation;
   viewerUserId: string;
   names: ReadonlyMap<string, string>;
   canConfirm: boolean;
-  confirmForSlots: (1 | 2)[];
+  organizerCanConfirm: boolean;
   confirmPending: boolean;
   onConfirm: () => void;
-  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
   const waitingLines = scoreOrganizerWaitingLines(confirmation);
@@ -230,32 +230,31 @@ function MatchResultConfirmations({
           {line}
         </p>
       ))}
-      {canConfirm || confirmForSlots.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {canConfirm ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onConfirm}
-              disabled={confirmPending}
-            >
-              Confirm result
-            </Button>
-          ) : null}
-          {confirmForSlots.map((slot) => (
-            <Button
-              key={slot}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onConfirmForSlot(slot)}
-              disabled={confirmPending}
-            >
-              {scoreConfirmForSlotLabel(slot)}
-            </Button>
-          ))}
+      {organizerCanConfirm ? (
+        <div className="space-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onConfirm}
+            disabled={confirmPending}
+          >
+            Confirm score
+          </Button>
+          <p className="text-muted-foreground text-meta">
+            {ORGANIZER_CONFIRM_NOTE}
+          </p>
         </div>
+      ) : canConfirm ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onConfirm}
+          disabled={confirmPending}
+        >
+          Confirm result
+        </Button>
       ) : null}
     </div>
   );
@@ -281,7 +280,6 @@ export function GameScoreSection({
   confirmPending,
   onScoreSet,
   onConfirm,
-  onConfirmForSlot,
 }: {
   phase: GameScoreSectionPhase;
   match: GameScoreSectionMatch;
@@ -298,7 +296,6 @@ export function GameScoreSection({
     slot2GamesWon: number;
   }) => void | Promise<unknown>;
   onConfirm: () => void;
-  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const [drafts, setDrafts] = React.useState<Record<string, SetDraft>>({});
 
@@ -341,7 +338,7 @@ export function GameScoreSection({
     phase,
     viewerUserId,
   });
-  const confirmForSlots = scoreOrganizerConfirmSlots({
+  const organizerCanConfirm = scoreOrganizerCanConfirm({
     confirmation: matchResultConfirmation,
     hasResult,
     phase,
@@ -483,10 +480,9 @@ export function GameScoreSection({
             viewerUserId={viewerUserId}
             names={names}
             canConfirm={canConfirm}
-            confirmForSlots={confirmForSlots}
+            organizerCanConfirm={organizerCanConfirm}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
-            onConfirmForSlot={onConfirmForSlot}
           />
         ) : null}
 
@@ -496,6 +492,9 @@ export function GameScoreSection({
             matchResultConfirmation?.confirmedAt
               ? formatAbsoluteDay(matchResultConfirmation.confirmedAt)
               : null
+          }
+          confirmedByOrganizer={
+            matchResultConfirmation?.confirmedByOrganizer ?? false
           }
         />
       </div>

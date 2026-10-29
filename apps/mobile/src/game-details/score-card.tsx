@@ -6,14 +6,14 @@ import type {
   FriendlyGameDetailsSide,
 } from "@repo/domain/friendly-game-details";
 import {
+  ORGANIZER_CONFIRM_NOTE,
   scoreCanConfirm,
   scoreCanEnter,
-  scoreConfirmForSlotLabel,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
   scoreNameByUserId,
-  scoreOrganizerConfirmSlots,
+  scoreOrganizerCanConfirm,
   scoreOrganizerWaitingLines,
   scorePhaseFlags,
   scoreSetBoxAccessibleLabel,
@@ -129,9 +129,11 @@ function SetBox({
 function FooterNote({
   phase,
   confirmedAtLabel,
+  confirmedByOrganizer,
 }: {
   phase: FriendlyScorePhase;
   confirmedAtLabel: string | null;
+  confirmedByOrganizer: boolean;
 }) {
   const palette = useTonePalette();
   const { isFinal } = scorePhaseFlags(phase);
@@ -149,7 +151,7 @@ function FooterNote({
         {isFinal ? null : <Hatch radius={2} />}
       </View>
       <Text size="meta" tone="muted" style={{ flex: 1 }}>
-        {scoreFooterNote(phase, confirmedAtLabel)}
+        {scoreFooterNote(phase, confirmedAtLabel, confirmedByOrganizer)}
       </Text>
     </View>
   );
@@ -160,19 +162,17 @@ function Confirmations({
   viewerUserId,
   names,
   canConfirm,
-  confirmForSlots,
+  organizerCanConfirm,
   confirmPending,
   onConfirm,
-  onConfirmForSlot,
 }: {
   confirmation: FriendlyGameDetailsConfirmation;
   viewerUserId: string;
   names: ReadonlyMap<string, string>;
   canConfirm: boolean;
-  confirmForSlots: (1 | 2)[];
+  organizerCanConfirm: boolean;
   confirmPending: boolean;
   onConfirm: () => void;
-  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
   const waitingLines = scoreOrganizerWaitingLines(confirmation);
@@ -208,28 +208,21 @@ function Confirmations({
           {line}
         </Text>
       ))}
-      {canConfirm || confirmForSlots.length > 0 ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {canConfirm ? (
-            <Button
-              label="Confirm result"
-              variant="outline"
-              size="sm"
-              pending={confirmPending}
-              onPress={onConfirm}
-            />
-          ) : null}
-          {confirmForSlots.map((slot) => (
-            <Button
-              key={slot}
-              label={scoreConfirmForSlotLabel(slot)}
-              variant="outline"
-              size="sm"
-              pending={confirmPending}
-              onPress={() => onConfirmForSlot(slot)}
-            />
-          ))}
+      {organizerCanConfirm || canConfirm ? (
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={organizerCanConfirm ? "Confirm score" : "Confirm result"}
+            variant="outline"
+            size="sm"
+            pending={confirmPending}
+            onPress={onConfirm}
+          />
         </View>
+      ) : null}
+      {organizerCanConfirm ? (
+        <Text size="meta" tone="muted">
+          {ORGANIZER_CONFIRM_NOTE}
+        </Text>
       ) : null}
     </View>
   );
@@ -247,7 +240,6 @@ export function ScoreCard({
   confirmPending,
   onSaveSets,
   onConfirm,
-  onConfirmForSlot,
 }: {
   phase: FriendlyScorePhase;
   match: FriendlyGameDetailsMatch;
@@ -260,7 +252,6 @@ export function ScoreCard({
   confirmPending: boolean;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
-  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const [drafts, setDrafts] = useState<ScoreDrafts>(() =>
     draftsFromSets(match.sets),
@@ -278,7 +269,7 @@ export function ScoreCard({
     phase,
     viewerUserId,
   });
-  const confirmForSlots = scoreOrganizerConfirmSlots({
+  const organizerCanConfirm = scoreOrganizerCanConfirm({
     confirmation,
     hasResult,
     phase,
@@ -374,10 +365,9 @@ export function ScoreCard({
             viewerUserId={viewerUserId}
             names={names}
             canConfirm={canConfirm}
-            confirmForSlots={confirmForSlots}
+            organizerCanConfirm={organizerCanConfirm}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
-            onConfirmForSlot={onConfirmForSlot}
           />
         ) : null}
 
@@ -388,6 +378,7 @@ export function ScoreCard({
               ? formatAbsoluteDay(confirmation.confirmedAt)
               : null
           }
+          confirmedByOrganizer={confirmation?.confirmedByOrganizer ?? false}
         />
       </View>
     </Card>

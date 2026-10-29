@@ -222,6 +222,7 @@ export async function footballBoard(
         viewerSide != null &&
         !viewerConfirmed &&
         !viewerSideConfirmed,
+      canConfirmAsOrganizer: organizer && live && score != null,
       canConfirmForSlots:
         organizer && live && score != null
           ? organizerSides.flatMap((side) =>
