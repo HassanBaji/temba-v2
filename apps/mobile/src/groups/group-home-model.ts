@@ -3,13 +3,10 @@ import type {
   GroupLeaderboardEntryData,
   GroupPlayedGameData,
 } from "@repo/domain/group-data";
-import { UNRATED_STANDING_COPY } from "@repo/domain/game-rating-impact";
 import {
   filterGroupMembersByName,
   groupHomeMetaLine,
   groupHomeShowsMemberSearch,
-  groupMemberFormMarks,
-  groupMemberRoleCaption,
   groupPlayedMarkVariant,
   groupPlayedOpponentLine,
   groupPlayedScoreLine,
@@ -30,11 +27,15 @@ import {
   type GroupJoinDoor,
 } from "@repo/domain/group-join";
 import {
+  groupMemberTableCaption,
+  sortGroupMembers,
+  type GroupMembersSort,
+} from "@repo/domain/group-members-table";
+import {
   levelOverrideCaption,
   levelOverrideReasonLabel,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
-import type { FormMark } from "@repo/domain/member-form-marks";
 import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
@@ -147,10 +148,6 @@ export const STANDING_NO_RESULTS_COPY = {
   description: null,
 };
 
-export function standingNoResultsCopy(rates: boolean) {
-  return rates ? STANDING_NO_RESULTS_COPY : UNRATED_STANDING_COPY;
-}
-
 export type PlayedTrailing =
   | { kind: "cancelled" }
   | { kind: "score"; text: string }
@@ -203,11 +200,6 @@ export const MEMBERS_EMPTY_COPY = {
   title: "No members yet",
   description: "People who join this Group will show up here.",
 };
-export const MEMBERS_NO_MATCH_COPY = "No members match that name.";
-
-export const MEMBERS_SET_LEVEL_HINT =
-  "Select a member to set their Level. Hatched Levels are still Provisional.";
-
 export type MemberRowView = {
   key: string;
   name: string;
@@ -215,7 +207,8 @@ export type MemberRowView = {
   isViewer: boolean;
   unclaimed: boolean;
   caption: string | null;
-  formMarks: FormMark[];
+  played: number;
+  wins: number;
   level: LevelCellView;
   levelText: string | null;
   selectable: boolean;
@@ -254,7 +247,7 @@ export function memberRowView(
 ): MemberRowView {
   const name = entry.name ?? "Member";
   const caption = [
-    groupMemberRoleCaption(entry),
+    groupMemberTableCaption(entry),
     entry.phoneMasked,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption(entry.levelOverride)
@@ -270,7 +263,8 @@ export function memberRowView(
     isViewer: entry.isViewer,
     unclaimed: entry.unclaimed,
     caption: caption || null,
-    formMarks: groupMemberFormMarks(entry.formMarks),
+    played: entry.totalGamesPlayed,
+    wins: entry.wins,
     level,
     levelText: entry.level,
     selectable:
@@ -281,6 +275,8 @@ export function memberRowView(
       entry.isViewer ? `${name}, you` : name,
       entry.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
       caption || null,
+      `${entry.totalGamesPlayed} ${entry.totalGamesPlayed === 1 ? "Game" : "Games"} played`,
+      `${entry.wins} ${entry.wins === 1 ? "Match" : "Matches"} won`,
       levelSpokenLabel(level, entry.level),
     ]
       .filter(Boolean)
@@ -295,8 +291,10 @@ export function memberList(
   canSetLevel = false,
   canAddPlayers = false,
   canAppointOrganizers = false,
+  sort?: GroupMembersSort,
 ) {
-  const members = leaderboard.map((entry) =>
+  const ordered = sort ? sortGroupMembers(leaderboard, sort) : leaderboard;
+  const members = ordered.map((entry) =>
     memberRowView(
       entry,
       apiOrigin,

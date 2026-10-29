@@ -23,7 +23,7 @@ import { Text } from "../primitives/text";
 import {
   LEVEL_PROVISIONAL_NOTE,
   STANDING_NOT_MEMBER_COPY,
-  standingNoResultsCopy,
+  STANDING_NO_RESULTS_COPY,
   standingRowView,
   standingStats,
   type StandingRowView,
@@ -407,15 +407,13 @@ export function StandingTab({
   const router = useRouter();
   const state = groupStandingState({
     isMember: data.membership != null,
-    verified: data.verified,
-    sport: data.sport,
     hasGames: groupHasGames(data),
     leaderboard: data.standing.leaderboard,
   });
   if (state.kind === "not-member") {
     return <Notice {...STANDING_NOT_MEMBER_COPY} />;
   }
-  if (state.rates && state.showNoResultsNotice && state.showTable) {
+  if (state.showNoResultsNotice && state.showTable) {
     const firstGameHref = state.showCreateFirstGame
       ? createGameHref
       : undefined;
@@ -454,7 +452,7 @@ export function StandingTab({
   return (
     <View style={{ gap: spacing.compact }}>
       {state.showNoResultsNotice ? (
-        <Notice {...standingNoResultsCopy(state.rates)} />
+        <Notice {...STANDING_NO_RESULTS_COPY} />
       ) : null}
       {state.showTable ? (
         <>

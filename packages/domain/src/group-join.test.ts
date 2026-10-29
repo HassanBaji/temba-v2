@@ -184,12 +184,7 @@ describe("groupStandingState", () => {
     totalGamesPlayed: 1,
   };
   const unplayed = { totalSetsWon: 0, totalPointsWon: 0, totalGamesPlayed: 0 };
-  const member = {
-    isMember: true,
-    verified: true,
-    sport: "padel",
-    hasGames: true,
-  };
+  const member = { isMember: true, hasGames: true };
 
   it("asks a non-member to join", () => {
     expect(
@@ -202,7 +197,6 @@ describe("groupStandingState", () => {
       kind: "standing",
       showNoResultsNotice: false,
       showTable: true,
-      rates: true,
       showCreateFirstGame: false,
     });
   });
@@ -224,15 +218,6 @@ describe("groupStandingState", () => {
     expect(
       groupStandingState({ ...member, leaderboard: [unplayed] }),
     ).toMatchObject({ showCreateFirstGame: false });
-  });
-
-  it("does not rate a Group that is not Verified or plays football", () => {
-    expect(
-      groupStandingState({ ...member, verified: false, leaderboard: [] }),
-    ).toMatchObject({ rates: false });
-    expect(
-      groupStandingState({ ...member, sport: "football", leaderboard: [] }),
-    ).toMatchObject({ rates: false });
   });
 });
 

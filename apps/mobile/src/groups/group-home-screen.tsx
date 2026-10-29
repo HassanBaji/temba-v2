@@ -93,6 +93,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     { id: groupId },
     REFETCH_ON_FOREGROUND,
   );
+  const lookupInvites = api.groups.listLookupInvites.useQuery(
+    { groupId },
+    { enabled: Boolean(group.data?.canManageLookupInvites) },
+  );
   const linkRequest = useGroupLinkRequest();
   const linkRequests = api.groups.pendingLinkRequests.useQuery(undefined, {
     enabled: (group.data?.pendingLinkRequestCount ?? 0) > 0,
@@ -361,6 +365,11 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         }}
         memberQuery={memberQuery}
         onMemberQueryChange={setMemberQuery}
+        pendingInviteNames={
+          data.canManageLookupInvites
+            ? (lookupInvites.data ?? []).map((invite) => invite.user.name)
+            : []
+        }
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}
         onSetLevel={openSetLevelScreen}
         saved={saved}

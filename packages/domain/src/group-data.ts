@@ -51,6 +51,8 @@ export type GroupLeaderboardEntryData = {
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
   formMarks: FormMark[];
+  /** The member's latest completed Match in this Group; null before one. */
+  lastPlayedAt: Date | string | null;
   joinedAt: Date | string | null;
   unclaimed: boolean;
   phoneMasked: string | null;

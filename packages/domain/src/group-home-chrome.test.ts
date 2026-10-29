@@ -8,11 +8,9 @@ import {
   groupHomeMetaLine,
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
-  groupMemberFormMarks,
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
   groupShowsLevel,
-  groupMemberRoleCaption,
   groupPlayedMarkVariant,
   groupPlayedOpponentLine,
   groupPlayedScoreLine,
@@ -144,35 +142,6 @@ describe("groupHomeShowsMemberSearch", () => {
   });
 });
 
-describe("groupMemberRoleCaption", () => {
-  it("reads Organizer for the creator and Community staff", () => {
-    assert.equal(
-      groupMemberRoleCaption({
-        isOrganizer: true,
-        joinedAt: new Date("2024-02-10T12:00:00Z"),
-      }),
-      "Organizer",
-    );
-  });
-
-  it("falls back to the join month for everyone else", () => {
-    assert.equal(
-      groupMemberRoleCaption({
-        isOrganizer: false,
-        joinedAt: new Date("2024-02-10T12:00:00Z"),
-      }),
-      "Member since Feb",
-    );
-  });
-
-  it("returns null when neither role nor join date is known", () => {
-    assert.equal(
-      groupMemberRoleCaption({ isOrganizer: false, joinedAt: null }),
-      null,
-    );
-  });
-});
-
 describe("groupStandingRecordLabel", () => {
   it("draws the W-L pair, zero included", () => {
     assert.equal(groupStandingRecordLabel(18, 6), "18-6");
@@ -279,13 +248,6 @@ describe("levelCellView", () => {
     assert.deepEqual(levelCellView(null, false), bare);
     assert.deepEqual(levelCellView(undefined, false), bare);
     assert.deepEqual(levelCellView(null, true), bare);
-  });
-});
-
-describe("groupMemberFormMarks", () => {
-  it("keeps the latest four marks", () => {
-    assert.deepEqual(groupMemberFormMarks([1, 2, 3, 4, 5]), [2, 3, 4, 5]);
-    assert.deepEqual(groupMemberFormMarks([1, 2]), [1, 2]);
   });
 });
 

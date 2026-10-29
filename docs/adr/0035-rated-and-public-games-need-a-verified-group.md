@@ -1,6 +1,6 @@
 # Rated and public Games need a Verified Group
 
-**Status:** accepted. Spec: `.scratch/verified-groups/spec.md`.
+**Status:** accepted. Spec: `.scratch/verified-groups/spec.md`. Unrated Games feed a Standing since [ADR-0045](./0045-a-standing-counts-unrated-games.md).
 
 Group creation was limited to a few Users by a client-only Clerk flag, `publicMetadata.groupCreator`, and every Group Game was rated. The product wants anyone to create a Group. Without a guard, any Group could move Levels and Standings or open Games to anyone with the link.
 

@@ -146,20 +146,11 @@ export type GroupStandingState =
       kind: "standing";
       showNoResultsNotice: boolean;
       showTable: boolean;
-      rates: boolean;
       showCreateFirstGame: boolean;
     };
 
-/**
- * `rates` is false when the Group's Games are Unrated: it is not a Verified
- * Group, or it plays football, whose Games are always Unrated. Those Games
- * never reach a Standing, so the Standing must not promise one "after the
- * first result".
- */
 export function groupStandingState(input: {
   isMember: boolean;
-  verified: boolean;
-  sport: string | null | undefined;
   hasGames: boolean;
   leaderboard: readonly {
     totalSetsWon: number;
@@ -174,7 +165,6 @@ export function groupStandingState(input: {
     kind: "standing",
     showNoResultsNotice: !groupHomeHasStandingResults(input.leaderboard),
     showTable: input.leaderboard.length > 0,
-    rates: input.verified && input.sport !== "football",
     showCreateFirstGame: !input.hasGames,
   };
 }

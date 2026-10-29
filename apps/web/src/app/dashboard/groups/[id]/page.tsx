@@ -719,8 +719,6 @@ export default function GroupHomePage({
               leaderboard={data.standing.leaderboard}
               groupId={id}
               canShowCreateGame={canShowCreateGame}
-              verified={data.verified}
-              sport={data.sport ?? null}
               hasGames={groupHasGames(data)}
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}
@@ -803,7 +801,9 @@ export default function GroupHomePage({
                   isOrganizer: entry.isOrganizer,
                   isAppointedOrganizer: entry.isAppointedOrganizer,
                   joinedAt: entry.joinedAt,
-                  formMarks: entry.formMarks,
+                  lastPlayedAt: entry.lastPlayedAt,
+                  totalGamesPlayed: entry.totalGamesPlayed,
+                  wins: entry.wins,
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
                   level: entry.level,
@@ -820,6 +820,23 @@ export default function GroupHomePage({
                 onRenameUnclaimed={setRenaming}
                 onRemoveUnclaimed={setRemoving}
                 canAppointOrganizers={data.canAppointOrganizers}
+                pendingInvites={
+                  data.canManageLookupInvites
+                    ? (lookupInvites.data ?? []).map((invite) => ({
+                        id: invite.id,
+                        name: invite.user.name,
+                        invitedAt: invite.createdAt,
+                      }))
+                    : []
+                }
+                revokeInvitePendingId={
+                  revokeLookupInvite.isPending
+                    ? revokeLookupInvite.variables?.inviteId
+                    : undefined
+                }
+                onRevokeInvite={(inviteId) =>
+                  revokeLookupInvite.mutate({ inviteId })
+                }
                 onOrganizerAction={(member, action) =>
                   setOrganizer.mutate(
                     {

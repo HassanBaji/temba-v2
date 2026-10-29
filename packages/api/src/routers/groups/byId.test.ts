@@ -584,6 +584,7 @@ describe("groupById standing facts", () => {
         losses: 0,
         levelBand: null,
         levelProvisional: true,
+        lastPlayedAt: null,
       });
       expect(byUserId.get(viewer.id)?.formMarks).toEqual([
         "won",
@@ -764,6 +765,10 @@ describe("groupById standing facts", () => {
       });
       expect(settled.standing.awaitingScoreCount).toBe(0);
       expect(settled.totalGamesPlayed).toBe(1);
+      const lastPlayedAt = (detail: typeof settled) =>
+        detail.standing.leaderboard.find((entry) => entry.userId === viewer.id)
+          ?.lastPlayedAt;
+      expect(lastPlayedAt(settled)).toBeInstanceOf(Date);
 
       const cancelled = await insertGroupGame(db, {
         createdBy: viewer.id,
@@ -814,6 +819,9 @@ describe("groupById standing facts", () => {
       });
       expect(detail.standing.awaitingScoreCount).toBe(1);
       expect(detail.totalGamesPlayed).toBe(1);
+      // Neither the cancelled Game nor the Match awaiting its score is the
+      // member's last played.
+      expect(lastPlayedAt(detail)).toEqual(lastPlayedAt(settled));
     } finally {
       await close();
     }

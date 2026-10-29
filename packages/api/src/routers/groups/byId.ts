@@ -176,6 +176,30 @@ type GroupGameMatch = {
 };
 
 /**
+ * When the member last played in this Group: the latest completed Match they
+ * sat on. A Match still awaiting its result is not played yet.
+ */
+function memberLastPlayedAt(
+  matches: readonly GroupFormMatch[],
+  userId: string,
+): Date | null {
+  let latest: Date | null = null;
+  for (const match of matches) {
+    if (
+      match.status !== MatchStatusEnum.COMPLETED ||
+      seatedUserSlotOnMatch(match, userId) == null
+    ) {
+      continue;
+    }
+    const playedAt = match.startTime ?? match.createdAt;
+    if (latest == null || playedAt.getTime() > latest.getTime()) {
+      latest = playedAt;
+    }
+  }
+  return latest;
+}
+
+/**
  * The Match a past Game reads as: the latest one the viewer sat on, so the
  * row speaks about their own result, and otherwise the latest Match on the
  * Game, so a Game they did not play in still shows both teams and the score.
@@ -701,6 +725,7 @@ export async function groupById(
       ratedMatchCount: rating?.ratedMatchCount ?? 0,
       levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
+      lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),
       joinedAt: entry.joinedAt,
       isOrganizer:
         entry.userId === group.createdBy ||
