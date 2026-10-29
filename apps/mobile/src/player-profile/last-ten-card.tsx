@@ -13,6 +13,36 @@ import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
 import { PlayerMatchRow } from "./match-row";
 
+export function LastTenMarks({ summary }: { summary: LastTenSummary }) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Last 10 games. ${summary.record}`}
+      style={{
+        paddingHorizontal: spacing.surface,
+        paddingBottom: spacing.surface,
+        gap: 8,
+      }}
+    >
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        {summary.marks.map((mark, index) => (
+          <ResultMark key={index} variant={mark} size={22} decorative />
+        ))}
+      </View>
+      {summary.ends ? (
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text size="meta" tone="muted">
+            {summary.ends.newest}
+          </Text>
+          <Text size="meta" tone="muted">
+            {summary.ends.oldest}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function PlayerLastTenCard({
   summary,
   rows,
@@ -26,33 +56,7 @@ export function PlayerLastTenCard({
 }) {
   return (
     <Card title="Last 10 games" meta={summary.record}>
-      <View
-        accessible
-        accessibilityLabel={`Last 10 games. ${summary.record}`}
-        style={{
-          paddingHorizontal: spacing.surface,
-          paddingBottom: spacing.surface,
-          gap: 8,
-        }}
-      >
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          {summary.marks.map((mark, index) => (
-            <ResultMark key={index} variant={mark} size={22} decorative />
-          ))}
-        </View>
-        {summary.ends ? (
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <Text size="meta" tone="muted">
-              {summary.ends.newest}
-            </Text>
-            <Text size="meta" tone="muted">
-              {summary.ends.oldest}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+      <LastTenMarks summary={summary} />
       {rows.map((row) => (
         <View key={row.matchId}>
           <Hairline />

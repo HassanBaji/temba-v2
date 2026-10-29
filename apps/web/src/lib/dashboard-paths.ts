@@ -1,13 +1,17 @@
+import type { Sport } from "@repo/domain/sport";
+
 const PLAYER_PROFILE = /^\/dashboard\/players\/[^/]+\/?$/;
 const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
 
-export function playerProfilePath(userId: string) {
-  return `/dashboard/players/${userId}`;
+/** The Player profile, opened on `sport` when given. */
+export function playerProfilePath(userId: string, sport?: Sport) {
+  const path = `/dashboard/players/${userId}`;
+  return sport ? `${path}?sport=${sport}` : path;
 }
 
 /** The Last 10 page, opened on one Match's sheet when `matchId` is given. */
 export function playerMatchesPath(userId: string, matchId?: string) {
-  const path = `${playerProfilePath(userId)}/matches`;
+  const path = `/dashboard/players/${userId}/matches`;
   return matchId ? `${path}?match=${matchId}` : path;
 }
 

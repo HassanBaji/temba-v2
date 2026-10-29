@@ -6,6 +6,7 @@ import {
   publicGroupSportFilterLabel,
   sportGlyph,
   sportLabel,
+  sportsPlayed,
 } from "./sport";
 
 describe("sport", () => {
@@ -36,5 +37,12 @@ describe("sport", () => {
     expect(publicGroupSportFilterInput("football")).toEqual({
       sport: "football",
     });
+  });
+
+  it("reads Sports played in a fixed order, and none recorded as padel only", () => {
+    expect(sportsPlayed(["football", "padel"])).toEqual(["padel", "football"]);
+    expect(sportsPlayed(["football"])).toEqual(["football"]);
+    expect(sportsPlayed(null)).toEqual(["padel"]);
+    expect(sportsPlayed([])).toEqual(["padel"]);
   });
 });

@@ -71,7 +71,7 @@ export function FootballPlayerDialog({
             <div className="flex gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
               {canOpenProfile ? (
                 <Button variant="outline" asChild>
-                  <Link href={playerProfilePath(player.userId)}>
+                  <Link href={playerProfilePath(player.userId, "football")}>
                     View profile
                   </Link>
                 </Button>

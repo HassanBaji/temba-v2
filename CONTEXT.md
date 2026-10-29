@@ -474,7 +474,7 @@ The signed-in User’s landing dashboard after login. It shows that User’s Gam
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
 
 **Player profile**:
-A read-only page about one User: their padel Level, Win streaks, Preferred Position, All time stats and Last 10. Visible to that User and to every User who shares a Group or a Game with them. Distinct from You, which is the signed-in User's own page with settings.
+A read-only page about one User, with a Padel / Football switch: for each sport their Level, Win streaks, preferred position, All time stats and Last 10. It opens on football from a football Game, or when the User plays football only. Football results are Unrated, so the football Level is the starting one and football goals count in All time. Visible to that User and to every User who shares a Group or a Game with them. Distinct from You, which is the signed-in User's own page with settings.
 _Avoid_: public profile, player card, user page
 
 **Last 10**:

@@ -11,6 +11,32 @@ import { playerMatchesPath } from "~/lib/dashboard-paths";
 
 import { PlayerMatchRow } from "./player-match-row";
 
+export function LastTenMarks({ summary }: { summary: LastTenSummary }) {
+  return (
+    <div className="px-5 pb-5">
+      <div aria-hidden="true" className="flex justify-between">
+        {summary.marks.map((mark, index) => (
+          <ResultMark
+            key={index}
+            variant={mark}
+            decorative
+            className="size-[22px]"
+          />
+        ))}
+      </div>
+      {summary.ends ? (
+        <div
+          aria-hidden="true"
+          className="text-meta text-muted-foreground mt-2 flex justify-between"
+        >
+          <span>{summary.ends.newest}</span>
+          <span>{summary.ends.oldest}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function PlayerLastTenCard({
   userId,
   summary,
@@ -25,27 +51,7 @@ export function PlayerLastTenCard({
       <SurfaceLabel inset="profile" meta={summary.record}>
         Last 10 games
       </SurfaceLabel>
-      <div className="px-5 pb-5">
-        <div aria-hidden="true" className="flex justify-between">
-          {summary.marks.map((mark, index) => (
-            <ResultMark
-              key={index}
-              variant={mark}
-              decorative
-              className="size-[22px]"
-            />
-          ))}
-        </div>
-        {summary.ends ? (
-          <div
-            aria-hidden="true"
-            className="text-meta text-muted-foreground mt-2 flex justify-between"
-          >
-            <span>{summary.ends.newest}</span>
-            <span>{summary.ends.oldest}</span>
-          </div>
-        ) : null}
-      </div>
+      <LastTenMarks summary={summary} />
       {rows.length > 0 ? (
         <ul className="border-rule divide-rule divide-y border-t">
           {rows.map((row) => (
