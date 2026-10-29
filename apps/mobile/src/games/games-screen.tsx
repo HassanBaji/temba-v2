@@ -111,6 +111,9 @@ export function GamesScreen() {
         }}
         onLoadMore={loadMore}
         onCreate={() => router.push("/games/new")}
+        onFindGroup={() =>
+          router.push({ pathname: "/groups", params: { tab: "public" } })
+        }
         onRetry={() => void onRefresh()}
       />
     </Screen>

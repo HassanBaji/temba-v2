@@ -79,20 +79,6 @@ export function footballScorePath(gameId: string) {
   return `/games/${gameId}/score`;
 }
 
-export function historyEmptyCopy() {
-  return {
-    title: "No Match history yet",
-    description: "Completed Games you played in show up here.",
-  };
-}
-
-export function myGamesEmptyCopy() {
-  return {
-    title: "No Games yet",
-    description: "Games you create or join show up here.",
-  };
-}
-
 export function tabCount(count: number | undefined) {
   return count != null && count > 0 ? count : null;
 }

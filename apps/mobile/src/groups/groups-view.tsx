@@ -24,11 +24,10 @@ import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { MyGroupsEmpty, PublicGroupsEmpty } from "./groups-empty";
 import {
   groupRowView,
-  myGroupsEmptyCopy,
   publicGroupRowView,
-  publicGroupsEmptyCopy,
   type GroupsTab,
   type PublicGroupRowView,
 } from "./groups-model";
@@ -95,27 +94,6 @@ function Failure({
       <View style={{ flexDirection: "row", marginTop: 4 }}>
         <Button label="Try again" variant="outline" onPress={onRetry} />
       </View>
-    </Surface>
-  );
-}
-
-function Empty({
-  title,
-  description,
-}: {
-  title: string;
-  description: string | null;
-}) {
-  return (
-    <Surface style={{ gap: 4 }}>
-      <Text size="lead" weight="semibold">
-        {title}
-      </Text>
-      {description ? (
-        <Text size="meta" tone="muted">
-          {description}
-        </Text>
-      ) : null}
     </Surface>
   );
 }
@@ -289,7 +267,12 @@ function MineList(props: GroupsViewProps) {
     );
   }
   if (mine.value.length === 0) {
-    return <Empty {...myGroupsEmptyCopy()} />;
+    return (
+      <MyGroupsEmpty
+        onCreate={props.onCreate}
+        onBrowsePublic={() => props.onTabChange("public")}
+      />
+    );
   }
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -338,7 +321,12 @@ function PublicList(props: GroupsViewProps) {
     );
   }
   if (publicGroups.value.length === 0) {
-    return <Empty {...publicGroupsEmptyCopy()} />;
+    return (
+      <PublicGroupsEmpty
+        sportFilter={props.sportFilter}
+        onCreate={props.onCreate}
+      />
+    );
   }
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
