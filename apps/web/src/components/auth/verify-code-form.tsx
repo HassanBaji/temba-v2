@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  arrivedWhole,
+  isVerificationCodeComplete,
+} from "@repo/domain/verification-code";
+import * as React from "react";
+
 import { OtpInput } from "~/components/ui/otp-input";
 import { Button, touchHitArea } from "~/components/ui/button";
 import { FieldError } from "~/components/ui/field";
@@ -36,7 +42,16 @@ export function VerifyCodeForm({
   codeInputId?: string;
   summaryRef?: React.Ref<HTMLDivElement>;
 }) {
-  const ready = code.length === 6;
+  const ready = isVerificationCodeComplete(code);
+  const autoVerify = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!autoVerify.current || !ready || pending) {
+      return;
+    }
+    autoVerify.current = false;
+    onVerify();
+  }, [code, ready, pending, onVerify]);
   const helperId = `${codeInputId}-helper`;
   const errorId = `${codeInputId}-error`;
 
@@ -68,7 +83,10 @@ export function VerifyCodeForm({
       <OtpInput
         id={codeInputId}
         value={code}
-        onChange={onCodeChange}
+        onChange={(next) => {
+          autoVerify.current = arrivedWhole(code, next);
+          onCodeChange(next);
+        }}
         autoFocus
         aria-invalid={Boolean(codeError)}
         aria-describedby={codeError ? errorId : ready ? undefined : helperId}

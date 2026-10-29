@@ -1,14 +1,12 @@
 "use client";
 
+import {
+  extractVerificationCode,
+  VERIFICATION_CODE_LENGTH as LENGTH,
+} from "@repo/domain/verification-code";
 import * as React from "react";
 
 import { cn } from "~/lib/utils";
-
-const LENGTH = 6;
-
-function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "").slice(0, LENGTH);
-}
 
 export function OtpInput({
   id,
@@ -34,7 +32,7 @@ export function OtpInput({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [focused, setFocused] = React.useState(false);
   const [caret, setCaret] = React.useState(0);
-  const digits = digitsOnly(value);
+  const digits = extractVerificationCode(value);
 
   function syncCaret() {
     const el = inputRef.current;
@@ -45,7 +43,7 @@ export function OtpInput({
   }
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    onChange(digitsOnly(event.target.value));
+    onChange(extractVerificationCode(event.target.value));
   }
 
   const activeIndex = focused ? Math.min(caret, LENGTH - 1) : -1;
@@ -102,7 +100,6 @@ export function OtpInput({
         onSelect={syncCaret}
         autoComplete="one-time-code"
         inputMode="numeric"
-        maxLength={LENGTH}
         pattern="[0-9]*"
         autoFocus={autoFocus}
         disabled={disabled}

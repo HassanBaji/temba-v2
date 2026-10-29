@@ -3,10 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildContinuePayload,
   fieldError,
-  isCodeComplete,
   nextSignUpStep,
   resolveSignInIdentifier,
-  sanitizeCode,
   splitSignInError,
 } from "./clerk-forms";
 
@@ -148,14 +146,6 @@ describe("buildContinuePayload", () => {
       national: "12",
     });
     expect(result.ok).toBe(false);
-  });
-});
-
-describe("codes", () => {
-  it("keeps six digits", () => {
-    expect(sanitizeCode("12a34-5678")).toBe("123456");
-    expect(isCodeComplete("12345")).toBe(false);
-    expect(isCodeComplete("123456")).toBe(true);
   });
 });
 
