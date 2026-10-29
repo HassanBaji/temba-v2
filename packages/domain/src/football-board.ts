@@ -359,7 +359,9 @@ export function confirmationLine(
   organizerSides: readonly { slot: Side }[] = [],
 ) {
   if (completed) {
-    return "Both sides confirmed.";
+    return confirmed.slot1 && confirmed.slot2
+      ? "Both sides confirmed."
+      : "Confirmed by the Organizer.";
   }
   const byOrganizer = (slot: Side) =>
     organizerSides.some((side) => side.slot === slot);
@@ -382,13 +384,6 @@ export function confirmationLine(
     return `Waiting for ${waitingOn(1)} and ${waitingOn(2)}.`;
   }
   return "Waiting for one player from each side to confirm.";
-}
-
-export function confirmForSideLabel(
-  slot: Side,
-  names: { slot1: string; slot2: string },
-) {
-  return `Confirm for ${slot === 1 ? names.slot1 : names.slot2}`;
 }
 
 export function viewerSideLine(

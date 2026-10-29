@@ -477,7 +477,7 @@ describe("football Score and goals", () => {
 });
 
 describe("football Score with a side of Unclaimed players (D14)", () => {
-  it("is agreed once a player on the other side and an Organizer confirm, and a changed Score asks the Organizer again", async () => {
+  it("waits on the Organizer for that side, whose confirmation completes the Score", async () => {
     await withFootballGame(async (f) => {
       const [a, b] = await addPlayers(f, 2);
       const c = await addUnclaimedPlayer(f, "+97336124501");
@@ -486,62 +486,85 @@ describe("football Score with a side of Unclaimed players (D14)", () => {
       const match = await f.db.query.matches.findFirst({
         where: eq(matches.gameId, f.gameId),
       });
-      const save = (userId: string, slot1Goals: number) =>
-        saveFootballScore(
-          f.db,
-          { gameId: f.gameId, userId, slot1Goals, slot2Goals: 1, scorers: [] },
-          AFTER_KICKOFF(),
-        );
-      const organizerConfirms = () =>
-        confirmMatchResult(f.db, {
+      await saveFootballScore(
+        f.db,
+        {
           gameId: f.gameId,
-          matchId: match!.id,
-          userId: f.organizer.id,
-        });
+          userId: a!.id,
+          slot1Goals: 2,
+          slot2Goals: 1,
+          scorers: [],
+        },
+        AFTER_KICKOFF(),
+      );
 
-      await save(f.organizer.id, 2);
       const waiting = await footballBoard(f.db, {
         gameId: f.gameId,
         userId: f.organizer.id,
       });
-      expect(waiting.match?.confirmed).toEqual({ slot1: false, slot2: false });
+      expect(waiting.match?.confirmed).toEqual({ slot1: true, slot2: false });
       expect(waiting.match?.organizerSides).toEqual([
         { slot: 2, confirmed: false },
       ]);
-      expect(waiting.viewer.canConfirmForSlots).toEqual([2]);
+      expect(waiting.match?.status).not.toBe("completed");
+      expect(waiting.viewer.canConfirmAsOrganizer).toBe(true);
       const player = await footballBoard(f.db, {
         gameId: f.gameId,
         userId: b!.id,
       });
-      expect(player.viewer.canConfirmForSlots).toEqual([]);
+      expect(player.viewer.canConfirmAsOrganizer).toBe(false);
 
-      await organizerConfirms();
-      const organizerConfirmed = await footballBoard(f.db, {
+      await confirmMatchResult(f.db, {
         gameId: f.gameId,
+        matchId: match!.id,
         userId: f.organizer.id,
       });
-      expect(organizerConfirmed.match?.confirmed).toEqual({
-        slot1: false,
-        slot2: true,
-      });
-      expect(organizerConfirmed.match?.status).not.toBe("completed");
-
-      await save(a!.id, 3);
-      const changed = await footballBoard(f.db, {
-        gameId: f.gameId,
-        userId: f.organizer.id,
-      });
-      expect(changed.match?.status).not.toBe("completed");
-      expect(changed.match?.confirmed).toEqual({ slot1: true, slot2: false });
-      expect(changed.viewer.canConfirmForSlots).toEqual([2]);
-
-      await organizerConfirms();
       const done = await footballBoard(f.db, {
         gameId: f.gameId,
         userId: f.organizer.id,
       });
       expect(done.match?.status).toBe("completed");
-      expect(done.viewer.canConfirmForSlots).toEqual([]);
+      expect(done.viewer.canConfirmAsOrganizer).toBe(false);
+    });
+  });
+});
+
+describe("an Organizer's football Score confirmation (ADR-0044)", () => {
+  it("completes the Score without either side confirming", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const match = await f.db.query.matches.findFirst({
+        where: eq(matches.gameId, f.gameId),
+      });
+      await saveFootballScore(
+        f.db,
+        {
+          gameId: f.gameId,
+          userId: f.organizer.id,
+          slot1Goals: 3,
+          slot2Goals: 1,
+          scorers: [],
+        },
+        AFTER_KICKOFF(),
+      );
+      const entered = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+      });
+      expect(entered.match?.status).not.toBe("completed");
+
+      await confirmMatchResult(f.db, {
+        gameId: f.gameId,
+        matchId: match!.id,
+        userId: f.organizer.id,
+      });
+      const done = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: a!.id,
+      });
+      expect(done.match?.status).toBe("completed");
+      expect(done.match?.confirmed).toEqual({ slot1: false, slot2: false });
     });
   });
 });

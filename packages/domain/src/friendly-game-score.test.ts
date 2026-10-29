@@ -4,12 +4,11 @@ import { describe, it } from "vitest";
 import {
   scoreCanConfirm,
   scoreCanEnter,
-  scoreConfirmForSlotLabel,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
   scoreNameByUserId,
-  scoreOrganizerConfirmSlots,
+  scoreOrganizerCanConfirm,
   scoreOrganizerWaitingLines,
   scoreSetBoxAccessibleLabel,
   scoreSetBoxState,
@@ -127,6 +126,10 @@ describe("score helpers", () => {
     assert.equal(
       scoreFooterNote("final", null),
       "Confirmed by all four players. Nothing else needed.",
+    );
+    assert.equal(
+      scoreFooterNote("final", "Mon 5 Oct", true),
+      "Confirmed by the Organizer. Nothing else needed.",
     );
   });
 });
@@ -248,23 +251,30 @@ describe("Organizer confirmation for a side with no account holder", () => {
     );
   });
 
-  it("offers the Organizer the confirm action for that side only", () => {
-    assert.deepEqual(
-      scoreOrganizerConfirmSlots({ ...input, isOrganizer: true }),
-      [2],
+  it("offers an Organizer the final confirm until the score is final", () => {
+    assert.equal(
+      scoreOrganizerCanConfirm({ ...input, isOrganizer: true }),
+      true,
     );
-    assert.deepEqual(
-      scoreOrganizerConfirmSlots({ ...input, isOrganizer: false }),
-      [],
+    assert.equal(
+      scoreOrganizerCanConfirm({ ...input, isOrganizer: false }),
+      false,
     );
-    assert.deepEqual(
-      scoreOrganizerConfirmSlots({
+    assert.equal(
+      scoreOrganizerCanConfirm({
+        ...input,
+        isOrganizer: true,
+        hasResult: false,
+      }),
+      false,
+    );
+    assert.equal(
+      scoreOrganizerCanConfirm({
         ...input,
         isOrganizer: true,
         phase: "final",
       }),
-      [],
+      false,
     );
-    assert.equal(scoreConfirmForSlotLabel(2), "Confirm for Team B");
   });
 });

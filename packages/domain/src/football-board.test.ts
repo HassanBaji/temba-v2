@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   addGoal,
-  confirmForSideLabel,
   confirmationLine,
   draftSummary,
   initialTeamsDraft,
@@ -169,6 +168,9 @@ describe("score draft", () => {
     expect(confirmationLine({ slot1: true, slot2: true }, names, true)).toBe(
       "Both sides confirmed.",
     );
+    expect(confirmationLine({ slot1: true, slot2: false }, names, true)).toBe(
+      "Confirmed by the Organizer.",
+    );
   });
 
   it("names the Organizer for a side with no account holder", () => {
@@ -197,7 +199,6 @@ describe("score draft", () => {
         { slot: 2 },
       ]),
     ).toBe("Waiting for the Organizer to confirm for both sides.");
-    expect(confirmForSideLabel(2, names)).toBe("Confirm for White");
   });
 
   it("tells the viewer their team and position", () => {

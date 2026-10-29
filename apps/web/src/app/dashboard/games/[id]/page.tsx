@@ -1225,13 +1225,6 @@ export default function GameHomePage({
                       matchId: firstMatch.id,
                     })
                   }
-                  onConfirmForSlot={(slot) =>
-                    confirmMatchResult.mutate({
-                      gameId: id,
-                      matchId: firstMatch.id,
-                      slot,
-                    })
-                  }
                 />
               </div>
             ) : null}
