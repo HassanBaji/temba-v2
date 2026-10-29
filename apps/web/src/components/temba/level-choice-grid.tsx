@@ -55,7 +55,7 @@ export function LevelChoiceGrid({
       aria-labelledby={labelledBy}
       aria-invalid={invalid ? true : undefined}
       aria-describedby={describedBy}
-      className="grid grid-cols-3 gap-2 sm:grid-cols-4"
+      className="grid grid-cols-3 gap-2"
     >
       {LEVEL_CHOICES.map((option) => {
         const selected = value === option.value;
@@ -68,8 +68,7 @@ export function LevelChoiceGrid({
             variant={selected ? "default" : "outline"}
             className={cn(
               "min-h-11",
-              option.value === UNKNOWN_LEVEL_CHOICE &&
-                "col-span-3 sm:col-span-4",
+              option.value === UNKNOWN_LEVEL_CHOICE && "col-span-3",
             )}
             disabled={disabled}
             onClick={() => {

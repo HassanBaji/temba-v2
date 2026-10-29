@@ -69,7 +69,7 @@ describe("setLevelUnchanged", () => {
 
 describe("setLevelConfirmLabel", () => {
   it("names the letter and the Level", () => {
-    expect(setLevelConfirmLabel(46)).toBe("Set to B 4.6");
+    expect(setLevelConfirmLabel(46)).toBe("Set to B- 4.6");
   });
 });
 

@@ -16,16 +16,20 @@ const readout = (tenths: number, currentTenths = 24) =>
 
 describe("LEVEL_SLIDER_TICKS", () => {
   it("has the display-letter edges in tenths", () => {
-    expect(LEVEL_SLIDER_TICKS.edgesTenths).toEqual([14, 21, 35, 42, 56, 63]);
+    expect(LEVEL_SLIDER_TICKS.edgesTenths).toEqual([
+      14, 21, 28, 35, 42, 49, 56, 63,
+    ]);
   });
 
   it("labels each letter at its centre", () => {
     expect(LEVEL_SLIDER_TICKS.letters).toEqual([
       { label: "D", centreTenths: 7 },
       { label: "D+", centreTenths: 18 },
-      { label: "C", centreTenths: 28 },
+      { label: "C-", centreTenths: 25 },
+      { label: "C", centreTenths: 32 },
       { label: "C+", centreTenths: 39 },
-      { label: "B", centreTenths: 49 },
+      { label: "B-", centreTenths: 46 },
+      { label: "B", centreTenths: 53 },
       { label: "B+", centreTenths: 60 },
       { label: "A", centreTenths: 67 },
     ]);
@@ -49,11 +53,15 @@ describe("levelSliderReadout", () => {
     [13, "D"],
     [14, "D+"],
     [20, "D+"],
-    [21, "C"],
+    [21, "C-"],
+    [27, "C-"],
+    [28, "C"],
     [34, "C"],
     [35, "C+"],
     [41, "C+"],
-    [42, "B"],
+    [42, "B-"],
+    [48, "B-"],
+    [49, "B"],
     [55, "B"],
     [56, "B+"],
     [62, "B+"],
@@ -68,7 +76,7 @@ describe("levelSliderReadout", () => {
       levelLabel: "3.6",
       deltaLabel: "+1.2",
       rung: { label: "C+", lowerTenths: 35, upperTenths: 42 },
-      toNext: { label: "B", distanceLabel: "0.6" },
+      toNext: { label: "B-", distanceLabel: "0.6" },
       percentThroughRung: 14,
     });
   });
@@ -82,7 +90,7 @@ describe("levelSliderReadout", () => {
     expect(readout(14).percentThroughRung).toBe(0);
     expect(readout(20)).toMatchObject({
       percentThroughRung: 86,
-      toNext: { label: "C", distanceLabel: "0.1" },
+      toNext: { label: "C-", distanceLabel: "0.1" },
     });
   });
 

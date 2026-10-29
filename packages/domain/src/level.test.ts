@@ -48,9 +48,11 @@ describe("self-declare write-down midpoints", () => {
 
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("D")]).toBe(0.35);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("D+")]).toBe(1.75);
-    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("C")]).toBe(2.45);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("C-")]).toBe(2.45);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("C")]).toBe(3.15);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("C+")]).toBe(3.85);
-    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B")]).toBe(4.55);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B-")]).toBe(4.55);
+    expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B")]).toBe(5.25);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B+")]).toBe(5.95);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("A")]).toBe(6.65);
   });

@@ -129,6 +129,10 @@ describe("parseLevelBandSelectTenths", () => {
   it("round-trips display rungs to inclusive tenths", () => {
     expect(parseLevelBandSelectTenths("D", "min")).toBe(0);
     expect(parseLevelBandSelectTenths("D", "max")).toBe(13);
+    expect(parseLevelBandSelectTenths("C-", "min")).toBe(21);
+    expect(parseLevelBandSelectTenths("C-", "max")).toBe(27);
+    expect(parseLevelBandSelectTenths("C", "min")).toBe(28);
+    expect(parseLevelBandSelectTenths("C", "max")).toBe(34);
     expect(parseLevelBandSelectTenths("C+", "min")).toBe(35);
     expect(parseLevelBandSelectTenths("C+", "max")).toBe(41);
     expect(parseLevelBandSelectTenths("A", "min")).toBe(63);
@@ -165,12 +169,12 @@ describe("formatLevelRangeLabel", () => {
   });
 
   it("formats captioned slots as a bare band, without a Level prefix", () => {
-    expect(formatLevelRangeLabel(21, 41)).toBe("C–C+");
-    expect(formatLevelRangeLabel(21, 34)).toBe("C");
-    expect(formatLevelRangeLabel(21, null)).toBe("C and up");
+    expect(formatLevelRangeLabel(21, 41)).toBe("C-/C+");
+    expect(formatLevelRangeLabel(21, 34)).toBe("C-/C");
+    expect(formatLevelRangeLabel(21, null)).toBe("C- and up");
     expect(formatLevelRangeLabel(null, 41)).toBe("C+ and under");
-    expect(formatLevelRangeLabel(30, 45)).toBe("C–B");
-    expect(formatLevelRangeLabel(null, 45)).toBe("B and under");
+    expect(formatLevelRangeLabel(30, 45)).toBe("C/B-");
+    expect(formatLevelRangeLabel(null, 45)).toBe("B- and under");
     expect(formatLevelRangeLabel(21, 41)).not.toMatch(/^Level /);
   });
 
@@ -191,12 +195,12 @@ describe("formatLevelRangeProseLabel", () => {
   });
 
   it("prefixes Level for prose callers", () => {
-    expect(formatLevelRangeProseLabel(21, 41)).toBe("Level C–C+");
-    expect(formatLevelRangeProseLabel(21, 34)).toBe("Level C");
-    expect(formatLevelRangeProseLabel(21, null)).toBe("Level C and up");
+    expect(formatLevelRangeProseLabel(21, 41)).toBe("Level C-/C+");
+    expect(formatLevelRangeProseLabel(21, 34)).toBe("Level C-/C");
+    expect(formatLevelRangeProseLabel(21, null)).toBe("Level C- and up");
     expect(formatLevelRangeProseLabel(null, 41)).toBe("Level C+ and under");
-    expect(formatLevelRangeProseLabel(30, 45)).toBe("Level C–B");
-    expect(formatLevelRangeProseLabel(null, 45)).toBe("Level B and under");
+    expect(formatLevelRangeProseLabel(30, 45)).toBe("Level C/B-");
+    expect(formatLevelRangeProseLabel(null, 45)).toBe("Level B- and under");
   });
 
   it("collapses the same display min and max to one letter and never writes D++", () => {
@@ -239,14 +243,14 @@ describe("formatLevelRangeGateCopy", () => {
         levelMaxTenths: 45,
         viewerLevelTenths: 52,
       }),
-    ).toBe("This Game is for Level C–B. Your Level is B.");
+    ).toBe("This Game is for Level C/B-. Your Level is B.");
     expect(
       formatLevelRangeGateCopy({
         levelMinTenths: 21,
         levelMaxTenths: 41,
         viewerLevelTenths: 52,
       }),
-    ).toBe("This Game is for Level C–C+. Your Level is B.");
+    ).toBe("This Game is for Level C-/C+. Your Level is B.");
     expect(
       formatLevelRangeGateCopy({
         levelMinTenths: 30,

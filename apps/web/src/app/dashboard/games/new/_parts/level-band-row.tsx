@@ -37,7 +37,7 @@ export function LevelBandRow({
         aria-invalid={invalid ? true : undefined}
         aria-describedby={describedBy}
         tabIndex={-1}
-        className="grid grid-cols-4 gap-1.5 outline-none sm:grid-cols-7"
+        className="grid grid-cols-5 gap-1.5 outline-none sm:grid-cols-9"
       >
         {ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => (
           <ChoiceChip

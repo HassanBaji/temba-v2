@@ -8,7 +8,7 @@ import {
  * Football self-placement: four plain words instead of the padel letter
  * ladder, since pickup players rarely know a letter. Each one declares a
  * starting football Level that Make teams balances on until football results
- * rate. Pro sits on B, not A: A is earned, never self-placed.
+ * rate. Pro sits on B-, not A: A is earned, never self-placed.
  */
 export const FOOTBALL_SELF_PLACEMENTS = [
   "beginner",
@@ -35,7 +35,7 @@ export const FOOTBALL_SELF_PLACEMENT_CHOICES: {
     value: "casual",
     label: "Casual",
     description: "Pick-up games, holds a position. 1–2× a week.",
-    band: "C",
+    band: "C-",
   },
   {
     value: "competitive",
@@ -48,7 +48,7 @@ export const FOOTBALL_SELF_PLACEMENT_CHOICES: {
     label: "Pro",
     description:
       "Club or academy background, dictates the game. Several times a week.",
-    band: "B",
+    band: "B-",
   },
 ];
 
