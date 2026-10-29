@@ -16,6 +16,8 @@ export function MemberSheet({
   onClose,
   onSetLevel,
   onViewProfile,
+  organizerLabel,
+  onOrganizerAction,
   onRename,
   onRemove,
 }: {
@@ -23,6 +25,8 @@ export function MemberSheet({
   onClose: () => void;
   onSetLevel?: () => void;
   onViewProfile?: () => void;
+  organizerLabel?: string;
+  onOrganizerAction?: () => void;
   onRename?: () => void;
   onRemove?: () => void;
 }) {
@@ -83,6 +87,14 @@ export function MemberSheet({
               size="lg"
               variant="outline"
               onPress={onViewProfile}
+            />
+          ) : null}
+          {organizerLabel && onOrganizerAction ? (
+            <Button
+              label={organizerLabel}
+              size="lg"
+              variant="outline"
+              onPress={onOrganizerAction}
             />
           ) : null}
           {onRename ? (

@@ -19,6 +19,7 @@ import {
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import { groupMemberOrganizerToast } from "@repo/domain/group-home-chrome";
 import {
   groupLeaveVenueConfirm,
   groupLeftVenueToast,
@@ -136,6 +137,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const removeUnclaimedPlayer = api.groups.removeUnclaimedPlayer.useMutation({
     onError: (error) => toast.show(error.message),
     onSettled: () => setConfirm(null),
+  });
+
+  const setOrganizer = api.groups.setOrganizer.useMutation({
+    onError: (error) => toast.show(error.message),
   });
 
   const refreshMembers = useCallback(
@@ -282,6 +287,21 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
                 },
               ),
           })
+        }
+        onOrganizerAction={(member, action) =>
+          setOrganizer.mutate(
+            {
+              groupId,
+              userId: member.userId,
+              organizer: action === "appoint",
+            },
+            {
+              onSuccess: () => {
+                toast.show(groupMemberOrganizerToast(action, member.name));
+                void utils.groups.byId.invalidate({ id: groupId });
+              },
+            },
+          )
         }
         onLeave={() =>
           setConfirm({

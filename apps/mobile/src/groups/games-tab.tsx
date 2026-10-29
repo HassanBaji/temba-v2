@@ -1,11 +1,19 @@
-import { spacing } from "@repo/design-tokens";
-import type { GroupPlayedGameData } from "@repo/domain/group-data";
+import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import type {
+  GroupLeaderboardEntryData,
+  GroupPlayedGameData,
+} from "@repo/domain/group-data";
+import {
+  groupGamePlayersNeeded,
+  groupGamesEmptyLine,
+} from "@repo/domain/group-empty-states";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import {
   GROUP_ARCHIVE_GAMES_COPY,
   groupGamesEmptyDescription,
 } from "@repo/domain/group-join";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
+import { UserPlus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { FootballGameCard } from "../games/football-game-card";
@@ -16,8 +24,12 @@ import {
   hubItems,
 } from "../games/games-model";
 import { TournamentCard } from "../games/tournament-cards";
+import { mediaUrl } from "../lib/media-url";
+import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { hairline as hairlineWidth } from "../primitives/hairline-width";
+import { Hatch } from "../primitives/hatch";
 import { ResultMark } from "../primitives/result-mark";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
@@ -42,7 +54,134 @@ export type GamesTabProps = {
   actions: GameCardActions;
   onPickSeat: (game: HubGameRow) => void;
   onLoadMore: () => void;
+  sport: string | null;
+  members: GroupLeaderboardEntryData[];
+  isMember: boolean;
+  apiOrigin: string;
+  onInvite?: () => void;
+  createGameHref?: Href;
 };
+
+const SEAT_SIZE = 32;
+
+function NotSetCell({ label, divided }: { label: string; divided: boolean }) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingHorizontal: spacing.surface,
+        paddingVertical: 14,
+        gap: 2,
+        borderLeftWidth: divided ? hairlineWidth : 0,
+        borderLeftColor: colors.rule,
+      }}
+    >
+      <Hatch bordered={false} radius={0} />
+      <Text size="eyebrow" tone="muted">
+        {label}
+      </Text>
+      <Text weight="semibold">Not set</Text>
+    </View>
+  );
+}
+
+/**
+ * Design "Group empty states" 02: the first Game drawn as a placeholder card,
+ * its seats filled by the members so far and hatched for the rest.
+ */
+function NoGamesYet(props: GamesTabProps) {
+  const router = useRouter();
+  const { onInvite, createGameHref } = props;
+  const needed = groupGamePlayersNeeded(props.sport);
+  const seated = [...props.members]
+    .sort((a, b) => Number(b.isViewer) - Number(a.isViewer))
+    .slice(0, needed);
+
+  return (
+    <View style={{ gap: spacing.compact }}>
+      <Surface padded={false} style={{ overflow: "hidden" }}>
+        <View style={{ padding: spacing.surface, gap: spacing.compact }}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <Text size="meta" tone="muted">
+              Next Game
+            </Text>
+            <Text size="meta" tone="muted">
+              Not scheduled
+            </Text>
+          </View>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
+          >
+            {seated.map((member) => (
+              <Avatar
+                key={member.userId}
+                name={member.name ?? "Member"}
+                uri={mediaUrl(member.image, props.apiOrigin)}
+                radius={radii.sm}
+              />
+            ))}
+            {Array.from({ length: needed - seated.length }, (_, index) => (
+              <View key={index} style={{ width: SEAT_SIZE, height: SEAT_SIZE }}>
+                <Hatch radius={radii.sm} />
+              </View>
+            ))}
+          </View>
+          <View style={{ gap: 8 }}>
+            <Text
+              size="h1"
+              width="expanded"
+              weight="bold"
+              accessibilityRole="header"
+            >
+              {GAMES_EMPTY_TITLE}
+            </Text>
+            <Text tone="muted">
+              {groupGamesEmptyLine({
+                sport: props.sport,
+                memberCount: props.members.length,
+                isMember: props.isMember,
+              })}
+            </Text>
+          </View>
+        </View>
+        <Hairline />
+        <View style={{ flexDirection: "row" }}>
+          <NotSetCell label="When" divided={false} />
+          <NotSetCell label="Where" divided />
+        </View>
+      </Surface>
+      {createGameHref || onInvite ? (
+        <View style={{ gap: 8 }}>
+          {createGameHref ? (
+            <Button
+              label="Create the first Game"
+              size="lg"
+              onPress={() => router.push(createGameHref)}
+            />
+          ) : null}
+          {onInvite ? (
+            <Button
+              label="Invite players"
+              size="lg"
+              variant={createGameHref ? "outline" : "default"}
+              icon={
+                <UserPlus
+                  size={sizes.iconAction}
+                  color={createGameHref ? colors.ink : colors.paper}
+                />
+              }
+              onPress={onInvite}
+            />
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 function PlayedRow({
   row,
@@ -109,6 +248,14 @@ export function GamesTab(props: GamesTabProps) {
     onEnterScore: (gameId: string) => router.push(footballScorePath(gameId)),
     onConfirm: (gameId: string) => actions.onOpen(gameId),
   };
+
+  if (
+    upcomingGames.length === 0 &&
+    playedGames.length === 0 &&
+    !props.isCommunityArchived
+  ) {
+    return <NoGamesYet {...props} />;
+  }
 
   if (upcomingGames.length === 0 && playedGames.length === 0) {
     return (

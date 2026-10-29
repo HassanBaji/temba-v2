@@ -19,7 +19,10 @@ import { GroupAddPlayerDialog } from "~/components/groups/group-add-player-dialo
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
-import { groupShowsLevel } from "@repo/domain/group-home-chrome";
+import {
+  groupMemberOrganizerToast,
+  groupShowsLevel,
+} from "@repo/domain/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
 import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
@@ -253,6 +256,15 @@ export default function GroupHomePage({
         await utils.communities.byId.invalidate({ id: result.communityId });
         await utils.communities.mine.invalidate();
       }
+    },
+  });
+
+  const setOrganizer = api.groups.setOrganizer.useMutation({
+    onSuccess: async () => {
+      await utils.groups.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -699,6 +711,8 @@ export default function GroupHomePage({
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}
               showLevel={groupShowsLevel(data.sport)}
+              canInvite={canManageInvites}
+              onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
           <TabsContent value="games">
@@ -713,6 +727,11 @@ export default function GroupHomePage({
               onJoinSeat={onJoinSeat}
               onJoinWaitlist={onJoinWaitlist}
               onRegister={onRegisterGame}
+              sport={data.sport ?? null}
+              members={data.standing.leaderboard}
+              isMember={Boolean(data.membership)}
+              canInvite={canManageInvites}
+              onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
           <TabsContent value="members">
@@ -768,6 +787,7 @@ export default function GroupHomePage({
                   image: entry.image,
                   isViewer: entry.isViewer,
                   isOrganizer: entry.isOrganizer,
+                  isAppointedOrganizer: entry.isAppointedOrganizer,
                   joinedAt: entry.joinedAt,
                   formMarks: entry.formMarks,
                   levelBand: entry.levelBand,
@@ -785,6 +805,23 @@ export default function GroupHomePage({
                 onAddPlayer={() => setAddPlayerOpen(true)}
                 onRenameUnclaimed={setRenaming}
                 onRemoveUnclaimed={setRemoving}
+                canAppointOrganizers={data.canAppointOrganizers}
+                onOrganizerAction={(member, action) =>
+                  setOrganizer.mutate(
+                    {
+                      groupId: id,
+                      userId: member.userId,
+                      organizer: action === "appoint",
+                    },
+                    {
+                      onSuccess: () => {
+                        toast.success(
+                          groupMemberOrganizerToast(action, member.name),
+                        );
+                      },
+                    },
+                  )
+                }
               />
             </div>
           </TabsContent>

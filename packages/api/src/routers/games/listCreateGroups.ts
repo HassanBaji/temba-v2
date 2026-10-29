@@ -7,6 +7,7 @@ import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { mayCreateGameOnGroup } from "#src/games/access";
+import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 
 type DbOrTx = DbClient | DbTx;
@@ -58,11 +59,24 @@ export async function listCreateGroups(
           },
         });
 
+  const appointedGroupIds = await appointedOrganizerGroupIds(
+    database,
+    args.userId,
+  );
+  const appointedRows =
+    appointedGroupIds.length === 0
+      ? []
+      : await database.query.groups.findMany({
+          where: inArray(groups.id, appointedGroupIds),
+          with: {
+            community: {
+              columns: { name: true },
+            },
+          },
+        });
+
   const byId = new Map<string, (typeof createdRows)[number]>();
-  for (const row of createdRows) {
-    byId.set(row.id, row);
-  }
-  for (const row of clubRows) {
+  for (const row of [...createdRows, ...clubRows, ...appointedRows]) {
     byId.set(row.id, row);
   }
 

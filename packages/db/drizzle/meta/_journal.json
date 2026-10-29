@@ -463,6 +463,13 @@
       "when": 1793179375461,
       "tag": "0065_notification_game_count",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793190643363,
+      "tag": "0066_group_member_role",
+      "breakpoints": true
     }
   ]
 }

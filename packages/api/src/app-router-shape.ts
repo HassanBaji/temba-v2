@@ -181,7 +181,8 @@ type ExpectedGroups =
   | "unlinkFromVenue"
   | "previewPlayerByPhone"
   | "addPlayerByPhone"
-  | "removeUnclaimedPlayer";
+  | "removeUnclaimedPlayer"
+  | "setOrganizer";
 
 type ExpectedNotifications =
   | "list"

@@ -40,6 +40,7 @@ import {
   type MatchSlotMember,
 } from "@repo/domain/match-slots";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import { appointedOrganizerUserIds } from "#src/groups/helpers/appointed-organizers";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "#src/groups/helpers/group-has-non-creator-members";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
@@ -406,8 +407,12 @@ export async function groupById(
     ? standingPosition(sortedStanding, args.userId)
     : null;
 
-  // "Organizer" on the Members tab: the Group creator, or — on a Club Group —
-  // a Community staff member (`.scratch/groups-redesign/spec.md` D8).
+  // "Organizer" on the Members tab: the Group creator, an Appointed Organizer,
+  // or — on a Club Group — a Community staff member
+  // (`.scratch/groups-redesign/spec.md` D8).
+  const appointedUserIds = new Set(
+    await appointedOrganizerUserIds(database, group),
+  );
   const staffUserIds = new Set<string>();
   if (group.communityId && memberUserIds.length > 0) {
     const communityRoles = await database.query.communityMembers.findMany({
@@ -698,7 +703,13 @@ export async function groupById(
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       joinedAt: entry.joinedAt,
       isOrganizer:
-        entry.userId === group.createdBy || staffUserIds.has(entry.userId),
+        entry.userId === group.createdBy ||
+        staffUserIds.has(entry.userId) ||
+        appointedUserIds.has(entry.userId),
+      isAppointedOrganizer:
+        appointedUserIds.has(entry.userId) &&
+        entry.userId !== group.createdBy &&
+        !staffUserIds.has(entry.userId),
       unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
       phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
     };
@@ -787,6 +798,7 @@ export async function groupById(
     canCreateGame,
     canManageImage: isApprover,
     canAddPlayers: isApprover,
+    canAppointOrganizers: isApprover,
     viewerCanSetLevel,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,

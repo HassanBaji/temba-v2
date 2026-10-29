@@ -120,7 +120,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:seed": "tsx scripts/seed.ts",
-    "db:seed:football-pitches": "tsx scripts/seed-football-pitches.ts",
+    "db:seed:football-pitches": "tsx --env-file-if-exists=.env scripts/seed-football-pitches.ts",
     "format:check": "prettier --check \"**/*.{ts,js}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,js}\" --cache"
   },

@@ -14,6 +14,10 @@ import {
   teamMembers,
 } from "@repo/db";
 
+import {
+  appointedOrganizerUserIds,
+  isAppointedOrganizer,
+} from "#src/groups/helpers/appointed-organizers";
 import { groupApproverUserIds } from "#src/groups/helpers/is-group-approver";
 import { consult } from "#src/soft-archive";
 import type { RegistrationStatus } from "#src/games/utils";
@@ -60,6 +64,7 @@ export async function isGroupMember(
 }
 
 type GroupForOrganize = {
+  id: string;
   communityId: string | null;
   createdBy: string;
 };
@@ -84,7 +89,7 @@ async function clubCommunityIsArchived(database: DbOrTx, communityId: string) {
   return view.ok && view.freeze("host");
 }
 
-/** Group creator, or Community Owner/Admin on a Club Group. */
+/** Group creator, Community Owner/Admin on a Club Group, or an Appointed Organizer. */
 async function mayOrganizeGroupGames(
   database: DbOrTx,
   group: GroupForOrganize,
@@ -93,10 +98,13 @@ async function mayOrganizeGroupGames(
   if (group.createdBy === userId) {
     return true;
   }
-  if (!group.communityId) {
-    return false;
+  if (
+    group.communityId &&
+    (await isCommunityStaff(database, group.communityId, userId))
+  ) {
+    return true;
   }
-  return isCommunityStaff(database, group.communityId, userId);
+  return isAppointedOrganizer(database, group, userId);
 }
 
 export async function mayCreateGameOnGroup(
@@ -137,8 +145,8 @@ export async function assertMayCreateGameOnGroup(
   throw new TRPCError({
     code: "FORBIDDEN",
     message: group.communityId
-      ? "Only Owner, Admin, or the Group creator can create a Club Group Game"
-      : "Only the Group creator can create a Game on this Group",
+      ? "Only Owner, Admin, the Group creator or an Organizer can create a Club Group Game"
+      : "Only the Group creator or an Organizer can create a Game on this Group",
   });
 }
 
@@ -153,7 +161,7 @@ export async function isGameOrganizer(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { communityId: true, createdBy: true },
+    columns: { id: true, communityId: true, createdBy: true },
   });
   if (!group) {
     return false;
@@ -165,7 +173,7 @@ export async function isGameOrganizer(
  * The Game admin audience: who hears about a Game, never who may act on it.
  * On a Group Game, Organizers ∪ Group approvers minus a Club Group creator who
  * left the Community and everyone while it is Soft-archived reduces to the
- * Group approvers.
+ * Group approvers plus the Appointed Organizers, who lapse the same way.
  */
 export async function gameAdminUserIds(
   database: DbOrTx,
@@ -176,12 +184,24 @@ export async function gameAdminUserIds(
   }
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { communityId: true, createdBy: true },
+    columns: { id: true, communityId: true, createdBy: true },
   });
   if (!group) {
     return [];
   }
-  return groupApproverUserIds(database, group);
+  const approverIds = await groupApproverUserIds(database, group);
+  if (
+    group.communityId &&
+    (await clubCommunityIsArchived(database, group.communityId))
+  ) {
+    return approverIds;
+  }
+  return [
+    ...new Set([
+      ...approverIds,
+      ...(await appointedOrganizerUserIds(database, group)),
+    ]),
+  ];
 }
 
 export async function assertGameOrganizer(

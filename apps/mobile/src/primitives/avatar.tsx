@@ -13,9 +13,11 @@ export type AvatarProps = {
   name: string;
   uri?: string | null;
   size?: keyof typeof SIZES;
+  /** Defaults to a circle. */
+  radius?: number;
 };
 
-export function Avatar({ name, uri, size = "default" }: AvatarProps) {
+export function Avatar({ name, uri, size = "default", radius }: AvatarProps) {
   const palette = useTonePalette();
   const [failed, setFailed] = useState(false);
   const dimension = SIZES[size];
@@ -28,7 +30,7 @@ export function Avatar({ name, uri, size = "default" }: AvatarProps) {
       style={{
         width: dimension,
         height: dimension,
-        borderRadius: dimension / 2,
+        borderRadius: radius ?? dimension / 2,
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",

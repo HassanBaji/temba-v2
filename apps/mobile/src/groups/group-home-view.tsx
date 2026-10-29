@@ -2,8 +2,14 @@ import { spacing } from "@repo/design-tokens";
 import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
-import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
-import { groupShowsLevel } from "@repo/domain/group-home-chrome";
+import {
+  groupHomeCanManageInvites,
+  groupHomeCanShowCreateGame,
+} from "@repo/domain/group-home-cta";
+import {
+  groupShowsLevel,
+  type GroupMemberOrganizerAction,
+} from "@repo/domain/group-home-chrome";
 import {
   GROUP_LINK_REQUEST_ACCEPT_LABEL,
   GROUP_LINK_REQUEST_DECLINE_LABEL,
@@ -71,6 +77,10 @@ export type GroupHomeViewProps = {
   onAddPlayer: () => void;
   onRenameUnclaimed: (member: { userId: string; name: string }) => void;
   onRemoveUnclaimed: (member: { userId: string; name: string }) => void;
+  onOrganizerAction: (
+    member: { userId: string; name: string },
+    action: GroupMemberOrganizerAction,
+  ) => void;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
   onCloseConfirm: () => void;
@@ -82,7 +92,15 @@ export type GroupHomeViewProps = {
   onDismissSaved: () => void;
   games: Omit<
     GamesTabProps,
-    "upcomingGames" | "isCommunityArchived" | "actions"
+    | "upcomingGames"
+    | "isCommunityArchived"
+    | "actions"
+    | "sport"
+    | "members"
+    | "isMember"
+    | "apiOrigin"
+    | "onInvite"
+    | "createGameHref"
   >;
   pickerGame: HubGameRow | null;
   onClosePicker: () => void;
@@ -112,6 +130,10 @@ export function GroupHomeView(props: GroupHomeViewProps) {
   const banner = groupBanner(data);
   const door = cta?.door;
   const manage = groupManageActions(data);
+  const onInvite = groupHomeCanManageInvites(data) ? props.onInvite : undefined;
+  const createGameHref = groupHomeCanShowCreateGame(data)
+    ? ({ pathname: "/games/new", params: { groupId: data.id } } as const)
+    : undefined;
 
   return (
     <View style={{ gap: spacing.compact }}>
@@ -272,6 +294,9 @@ export function GroupHomeView(props: GroupHomeViewProps) {
       {props.tab === "standing" ? (
         <StandingTab
           data={data}
+          apiOrigin={props.apiOrigin}
+          onInvite={onInvite}
+          createGameHref={createGameHref}
           onOpenMember={
             groupMemberRowsLink(data.membership)
               ? props.onOpenMember
@@ -285,6 +310,12 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           upcomingGames={data.upcomingGames}
           isCommunityArchived={data.isCommunityArchived}
           actions={props.actions}
+          sport={data.sport ?? null}
+          members={data.standing.leaderboard}
+          isMember={data.membership != null}
+          apiOrigin={props.apiOrigin}
+          onInvite={onInvite}
+          createGameHref={createGameHref}
         />
       ) : null}
       {props.tab === "members" && props.saved && data.viewerCanSetLevel ? (
@@ -320,6 +351,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           canAddPlayers={data.canAddPlayers}
           onRenameUnclaimed={props.onRenameUnclaimed}
           onRemoveUnclaimed={props.onRemoveUnclaimed}
+          canAppointOrganizers={data.canAppointOrganizers}
+          onOrganizerAction={props.onOrganizerAction}
         />
       ) : null}
 
