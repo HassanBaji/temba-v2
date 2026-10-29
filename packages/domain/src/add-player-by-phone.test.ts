@@ -299,7 +299,7 @@ describe("ADD_PLAYER_LEVEL_CHOICES", () => {
   it("starts with Not sure, then the Onboarding Level bands", () => {
     assert.deepEqual(
       ADD_PLAYER_LEVEL_CHOICES.map((choice) => choice.value),
-      ["not_sure", "D", "D+", "C", "C+", "B", "B+", "A"],
+      ["not_sure", "D", "D+", "C-", "C+", "B-", "B+", "A"],
     );
   });
 });

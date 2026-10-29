@@ -305,7 +305,7 @@ describe("playerMatchSheetView", () => {
       "Elin Nilsson",
       "Jonas Berg",
     ]);
-    expect(sheet.teams[0].players[0]?.level).toBe("B 4.8");
+    expect(sheet.teams[0].players[0]?.level).toBe("B- 4.8");
     expect(sheet.teams[0].sets).toEqual([
       { games: 6, won: true },
       { games: 6, won: true },
@@ -366,9 +366,9 @@ describe("playerMatchSheetView", () => {
     expect(sheet.rating).toEqual({
       label: "Elin N's rating",
       before: "C+ 3.9",
-      after: "B 4.2",
+      after: "B- 4.2",
       delta: "+0.3",
-      accessibilityLabel: "Elin N's rating, C+ 3.9 to B 4.2, rating up 0.3",
+      accessibilityLabel: "Elin N's rating, C+ 3.9 to B- 4.2, rating up 0.3",
     });
   });
 

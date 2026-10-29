@@ -89,7 +89,7 @@ export const PADEL_LEVEL_CHOICES: {
   },
   { value: "D+", name: "Beginner", detail: "Lobs and volleys with intent." },
   {
-    value: "C",
+    value: "C-",
     name: "Improver",
     detail: "Overheads and volleys are reliable, errors still creep in.",
   },
@@ -100,7 +100,7 @@ export const PADEL_LEVEL_CHOICES: {
       "Plays tournaments, picks the right shot, rarely gives points away.",
   },
   {
-    value: "B",
+    value: "B-",
     name: "Advanced",
     detail: "Wins tournaments, finishes points at the net.",
   },

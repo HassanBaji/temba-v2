@@ -41,7 +41,7 @@ describe("createHomeFixtures", () => {
     assert.equal(displayLabelFromStoredBand(provisional.level.band!), "C");
     assert.equal(nextDistinctDisplayRung(provisional.level.band!), "C+");
     assert.equal(displayLabelFromStoredBand(confirmed.level.band!), "C+");
-    assert.equal(nextDistinctDisplayRung(confirmed.level.band!), "B");
+    assert.equal(nextDistinctDisplayRung(confirmed.level.band!), "B-");
     assert.notEqual(displayLabelFromStoredBand(confirmed.level.band!), "C1");
     assert.notEqual(nextDistinctDisplayRung(confirmed.level.band!), "B3");
   });

@@ -132,7 +132,7 @@ describe("teams draft", () => {
 
     const done = placeOn(placeOn(manual, "b", 2), "c", 2);
     expect(draftSummary(done, players).note).toBe(
-      "Everyone placed. Black avg B, White avg B.",
+      "Everyone placed. Black avg B, White avg B-.",
     );
   });
 });

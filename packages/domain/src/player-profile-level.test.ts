@@ -7,8 +7,8 @@ const fixtures = createPlayerProfileFixtures();
 
 describe("displayBandSpan", () => {
   it("spans every stored band behind one display label", () => {
-    expect(displayBandSpan("B3")).toEqual({ lower: 4.2, upper: 5.6 });
-    expect(displayBandSpan("B2")).toEqual({ lower: 4.2, upper: 5.6 });
+    expect(displayBandSpan("B3")).toEqual({ lower: 4.2, upper: 4.9 });
+    expect(displayBandSpan("B2")).toEqual({ lower: 4.9, upper: 5.6 });
     expect(displayBandSpan("B1")).toEqual({ lower: 5.6, upper: 6.3 });
     expect(displayBandSpan("D3")).toEqual({ lower: 0, upper: 1.4 });
     expect(displayBandSpan("A")).toEqual({ lower: 6.3, upper: 7 });
@@ -44,11 +44,11 @@ describe("playerLevelCardView", () => {
 
   it("measures distance and progress on the display band when Confirmed", () => {
     expect(playerLevelCardView(fixtures.confirmed.rating)).toMatchObject({
-      displayBand: "B",
+      displayBand: "B-",
       level: "4.8",
       provisional: false,
-      lines: ["Confirmed, 64 rated matches", "0.9 to B+ · 42% through B"],
-      fillPercent: 42,
+      lines: ["Confirmed, 64 rated matches", "0.2 to B · 84% through B-"],
+      fillPercent: 84,
     });
   });
 
@@ -61,7 +61,7 @@ describe("playerLevelCardView", () => {
       ratedMatchesRemaining: 0,
     });
     expect(view).toMatchObject({
-      lines: ["Confirmed, 1 rated match", "0.2 to B+ · 93% through B"],
+      lines: ["Confirmed, 1 rated match", "0.2 to B+ · 86% through B"],
     });
   });
 
@@ -82,9 +82,9 @@ describe("playerLevelCardView", () => {
 
   it("clamps progress to zero when hysteresis keeps a band below its span", () => {
     expect(playerLevelCardView(fixtures.hysteresis.rating)).toMatchObject({
-      displayBand: "B",
+      displayBand: "B-",
       level: "4.2",
-      lines: ["Confirmed, 40 rated matches", "1.6 to B+ · 0% through B"],
+      lines: ["Confirmed, 40 rated matches", "0.9 to B · 0% through B-"],
       fillPercent: 0,
     });
   });
@@ -100,7 +100,7 @@ describe("playerLevelCardView", () => {
       }),
     ).toMatchObject({
       displayBand: "C+",
-      lines: ["Confirmed, 8 rated matches", "0.5 to B · 50% through C+"],
+      lines: ["Confirmed, 8 rated matches", "0.5 to B- · 50% through C+"],
     });
   });
 

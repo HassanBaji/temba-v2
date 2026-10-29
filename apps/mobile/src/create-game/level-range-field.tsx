@@ -36,7 +36,7 @@ function BoundRow({
       </Text>
       <ChipGrid
         label={`${label} Level`}
-        columns={ASSIGNABLE_DISPLAY_LEVEL_BANDS.length}
+        columns={5}
         dense
         chips={ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
           value: band,
