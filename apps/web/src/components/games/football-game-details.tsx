@@ -408,7 +408,7 @@ export function FootballGameDetails({
     if (player && organizer && !player.isViewer) {
       setSelected(player);
     } else if (canOpenProfiles) {
-      router.push(playerProfilePath(userId));
+      router.push(playerProfilePath(userId, "football"));
     }
   }
   const pressPlayer = organizer || canOpenProfiles ? onPressPlayer : undefined;

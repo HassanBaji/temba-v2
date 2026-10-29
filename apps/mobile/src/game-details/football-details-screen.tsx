@@ -316,7 +316,7 @@ export function FootballGameDetails({
   });
   const canOpenProfile = gamePlayersLink(game);
   const openProfile = (userId: string) =>
-    router.push(playerPath(segments, userId));
+    router.push(playerPath(segments, userId, "football"));
   const onPressPlayer = (userId: string) => {
     const player = players.find((row) => row.userId === userId);
     if (player && model.organizer && !player.isViewer) {

@@ -33,6 +33,17 @@ export function sportGlyph(
   return isSport(value) ? SPORT_GLYPHS[value] : null;
 }
 
+/**
+ * The User's Sports played in a fixed order. None recorded means they
+ * onboarded before the question existed, which reads as padel only.
+ */
+export function sportsPlayed(
+  sports: readonly string[] | null | undefined,
+): Sport[] {
+  const played = SPORTS.filter((sport) => sports?.includes(sport));
+  return played.length > 0 ? played : ["padel"];
+}
+
 export const PUBLIC_GROUP_SPORT_FILTERS = ["all", ...SPORTS] as const;
 
 export type PublicGroupSportFilter =

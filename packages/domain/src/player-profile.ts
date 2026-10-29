@@ -4,6 +4,7 @@ import {
   type PreferredPosition,
 } from "./preferred-position";
 import { PRODUCT_TIMEZONE } from "./product-timezone";
+import { SPORT_LABELS, isSport, type Sport } from "./sport";
 import { formatWinRate } from "./win-rate";
 
 export type PlayerOverallInput = {
@@ -67,8 +68,29 @@ export function groupMemberRowsLink(membership: unknown) {
   return membership != null;
 }
 
-export function playerHeaderSubtitle(venue: { name: string } | null) {
-  return venue ? `Padel, plays at ${venue.name}` : "Padel";
+export function playerHeaderSubtitle(
+  venue: { name: string } | null,
+  sport: Sport = "padel",
+) {
+  const label = SPORT_LABELS[sport];
+  return venue ? `${label}, plays at ${venue.name}` : label;
+}
+
+/**
+ * The sport a Player profile opens on: the one asked for, else padel unless
+ * the player plays football only. Null until their Sports played are known.
+ */
+export function profileSport(
+  requested: unknown,
+  sports: readonly Sport[] | undefined,
+): Sport | null {
+  if (isSport(requested)) {
+    return requested;
+  }
+  if (!sports) {
+    return null;
+  }
+  return sports.includes("padel") ? "padel" : "football";
 }
 
 export function overallView(input: PlayerOverallInput): PlayerOverallView {
