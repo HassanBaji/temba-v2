@@ -35,7 +35,7 @@ export function DividedFigurePair({
       {figures.map((figure) => (
         <div
           key={figure.key}
-          className="flex min-w-0 flex-1 flex-col items-center gap-1 px-3 py-4 first:pl-0 last:pr-0"
+          className="flex min-w-0 flex-1 flex-col items-center gap-1 px-3 pt-4 first:pl-0 last:pr-0"
         >
           <p className="font-expanded text-[34px] tabular-nums leading-none">
             {figure.value}
