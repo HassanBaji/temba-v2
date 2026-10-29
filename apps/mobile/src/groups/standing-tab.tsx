@@ -5,7 +5,7 @@ import {
   groupStandingOpenSeats,
 } from "@repo/domain/group-empty-states";
 import { groupShowsLevel } from "@repo/domain/group-home-chrome";
-import { groupStandingState } from "@repo/domain/group-join";
+import { groupHasGames, groupStandingState } from "@repo/domain/group-join";
 import { useRouter, type Href } from "expo-router";
 import { Plus, UserPlus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -407,12 +407,18 @@ export function StandingTab({
   const router = useRouter();
   const state = groupStandingState({
     isMember: data.membership != null,
+    verified: data.verified,
+    sport: data.sport,
+    hasGames: groupHasGames(data),
     leaderboard: data.standing.leaderboard,
   });
   if (state.kind === "not-member") {
     return <Notice {...STANDING_NOT_MEMBER_COPY} />;
   }
-  if (data.verified && state.showNoResultsNotice && state.showTable) {
+  if (state.rates && state.showNoResultsNotice && state.showTable) {
+    const firstGameHref = state.showCreateFirstGame
+      ? createGameHref
+      : undefined;
     return (
       <View style={{ gap: spacing.compact }}>
         <StandingPreview
@@ -421,7 +427,7 @@ export function StandingTab({
           onOpenMember={onOpenMember}
           onInvite={onInvite}
         />
-        {onInvite || createGameHref ? (
+        {onInvite || firstGameHref ? (
           <View style={{ gap: 8 }}>
             {onInvite ? (
               <Button
@@ -431,12 +437,12 @@ export function StandingTab({
                 onPress={onInvite}
               />
             ) : null}
-            {createGameHref ? (
+            {firstGameHref ? (
               <Button
                 label="Create the first Game"
                 size="lg"
                 variant={onInvite ? "outline" : "default"}
-                onPress={() => router.push(createGameHref)}
+                onPress={() => router.push(firstGameHref)}
               />
             ) : null}
           </View>
@@ -448,7 +454,7 @@ export function StandingTab({
   return (
     <View style={{ gap: spacing.compact }}>
       {state.showNoResultsNotice ? (
-        <Notice {...standingNoResultsCopy(data.verified)} />
+        <Notice {...standingNoResultsCopy(state.rates)} />
       ) : null}
       {state.showTable ? (
         <>

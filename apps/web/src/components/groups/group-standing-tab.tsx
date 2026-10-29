@@ -318,6 +318,8 @@ export function GroupStandingTab({
   groupId,
   canShowCreateGame,
   verified,
+  sport,
+  hasGames,
   totalGamesPlayed,
   awaitingScoreCount,
   showLevel = true,
@@ -333,10 +335,18 @@ export function GroupStandingTab({
   groupId: string;
   canShowCreateGame: boolean;
   verified: boolean;
+  sport: string | null;
+  hasGames: boolean;
   totalGamesPlayed: number;
   awaitingScoreCount: number;
 }) {
-  const state = groupStandingState({ isMember, leaderboard });
+  const state = groupStandingState({
+    isMember,
+    verified,
+    sport,
+    hasGames,
+    leaderboard,
+  });
   if (state.kind === "not-member") {
     return (
       <EmptyState
@@ -347,7 +357,8 @@ export function GroupStandingTab({
     );
   }
 
-  const createFirstGame = canShowCreateGame ? (
+  const showCreateFirstGame = canShowCreateGame && state.showCreateFirstGame;
+  const createFirstGame = showCreateFirstGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
         Create the first Game
@@ -355,7 +366,7 @@ export function GroupStandingTab({
     </Button>
   ) : null;
 
-  if (verified && state.showNoResultsNotice && state.showTable) {
+  if (state.rates && state.showNoResultsNotice && state.showTable) {
     const invite = canInvite && onInvite ? onInvite : null;
     return (
       <div className="flex flex-col gap-[22px]">
@@ -365,7 +376,7 @@ export function GroupStandingTab({
           canInvite={invite != null}
           onInvite={() => invite?.()}
         />
-        {invite || canShowCreateGame ? (
+        {invite || showCreateFirstGame ? (
           <div className="flex flex-col gap-2">
             {invite ? (
               <Button
@@ -378,7 +389,7 @@ export function GroupStandingTab({
                 Invite players
               </Button>
             ) : null}
-            {canShowCreateGame ? (
+            {showCreateFirstGame ? (
               <Button
                 asChild
                 size="lg"
@@ -407,11 +418,13 @@ export function GroupStandingTab({
         <EmptyState
           icon={Users}
           title={
-            verified
+            state.rates
               ? "Standings appear after the first result"
               : UNRATED_STANDING_COPY.title
           }
-          description={verified ? undefined : UNRATED_STANDING_COPY.description}
+          description={
+            state.rates ? undefined : UNRATED_STANDING_COPY.description
+          }
           action={createFirstGame}
           className={state.showTable ? "py-6" : undefined}
         />

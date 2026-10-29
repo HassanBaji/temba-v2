@@ -14,6 +14,7 @@ import {
   groupJoinLabel,
   groupJoinToast,
   groupLeaveToast,
+  groupHasGames,
   groupStandingState,
   publicGroupJoinDoor,
   publicGroupMetaLine,
@@ -183,32 +184,63 @@ describe("groupStandingState", () => {
     totalGamesPlayed: 1,
   };
   const unplayed = { totalSetsWon: 0, totalPointsWon: 0, totalGamesPlayed: 0 };
+  const member = {
+    isMember: true,
+    verified: true,
+    sport: "padel",
+    hasGames: true,
+  };
 
   it("asks a non-member to join", () => {
     expect(
-      groupStandingState({ isMember: false, leaderboard: [played] }),
+      groupStandingState({ ...member, isMember: false, leaderboard: [played] }),
     ).toEqual({ kind: "not-member" });
   });
 
   it("shows the table without a notice once there are results", () => {
-    expect(
-      groupStandingState({ isMember: true, leaderboard: [played] }),
-    ).toEqual({
+    expect(groupStandingState({ ...member, leaderboard: [played] })).toEqual({
       kind: "standing",
       showNoResultsNotice: false,
       showTable: true,
+      rates: true,
+      showCreateFirstGame: false,
     });
   });
 
   it("keeps the table and adds the notice before the first result", () => {
     expect(
-      groupStandingState({ isMember: true, leaderboard: [unplayed] }),
-    ).toEqual({ kind: "standing", showNoResultsNotice: true, showTable: true });
-    expect(groupStandingState({ isMember: true, leaderboard: [] })).toEqual({
-      kind: "standing",
+      groupStandingState({ ...member, leaderboard: [unplayed] }),
+    ).toMatchObject({ showNoResultsNotice: true, showTable: true });
+    expect(groupStandingState({ ...member, leaderboard: [] })).toMatchObject({
       showNoResultsNotice: true,
       showTable: false,
     });
+  });
+
+  it("offers the first Game only while the Group has no Games", () => {
+    expect(
+      groupStandingState({ ...member, hasGames: false, leaderboard: [] }),
+    ).toMatchObject({ showCreateFirstGame: true });
+    expect(
+      groupStandingState({ ...member, leaderboard: [unplayed] }),
+    ).toMatchObject({ showCreateFirstGame: false });
+  });
+
+  it("does not rate a Group that is not Verified or plays football", () => {
+    expect(
+      groupStandingState({ ...member, verified: false, leaderboard: [] }),
+    ).toMatchObject({ rates: false });
+    expect(
+      groupStandingState({ ...member, sport: "football", leaderboard: [] }),
+    ).toMatchObject({ rates: false });
+  });
+});
+
+describe("groupHasGames", () => {
+  it("counts upcoming and past Games", () => {
+    expect(groupHasGames({ upcomingGames: [], gameHistory: [] })).toBe(false);
+    expect(groupHasGames({ upcomingGames: [{}], gameHistory: [] })).toBe(true);
+    expect(groupHasGames({ upcomingGames: [], gameHistory: [{}] })).toBe(true);
   });
 });
 
