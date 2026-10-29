@@ -12,7 +12,6 @@ import {
   groupStandingEmptyFooter,
   groupStandingOpenSeats,
 } from "@repo/domain/group-empty-states";
-import { UNRATED_STANDING_COPY } from "@repo/domain/game-rating-impact";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
@@ -317,8 +316,6 @@ export function GroupStandingTab({
   leaderboard,
   groupId,
   canShowCreateGame,
-  verified,
-  sport,
   hasGames,
   totalGamesPlayed,
   awaitingScoreCount,
@@ -334,16 +331,12 @@ export function GroupStandingTab({
   leaderboard: StandingEntry[];
   groupId: string;
   canShowCreateGame: boolean;
-  verified: boolean;
-  sport: string | null;
   hasGames: boolean;
   totalGamesPlayed: number;
   awaitingScoreCount: number;
 }) {
   const state = groupStandingState({
     isMember,
-    verified,
-    sport,
     hasGames,
     leaderboard,
   });
@@ -366,7 +359,7 @@ export function GroupStandingTab({
     </Button>
   ) : null;
 
-  if (state.rates && state.showNoResultsNotice && state.showTable) {
+  if (state.showNoResultsNotice && state.showTable) {
     const invite = canInvite && onInvite ? onInvite : null;
     return (
       <div className="flex flex-col gap-[22px]">
@@ -417,16 +410,8 @@ export function GroupStandingTab({
       {state.showNoResultsNotice ? (
         <EmptyState
           icon={Users}
-          title={
-            state.rates
-              ? "Standings appear after the first result"
-              : UNRATED_STANDING_COPY.title
-          }
-          description={
-            state.rates ? undefined : UNRATED_STANDING_COPY.description
-          }
+          title="Standings appear after the first result"
           action={createFirstGame}
-          className={state.showTable ? "py-6" : undefined}
         />
       ) : null}
 

@@ -227,7 +227,7 @@ describe("Unrated Games", () => {
     }
   });
 
-  it("keeps an unrated Game out of the Group Standing", async () => {
+  it("counts an unrated Game in the Group Standing without rating it", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const unrated = await setUpMatch(db, { rated: false });
@@ -237,11 +237,32 @@ describe("Unrated Games", () => {
         userId: unrated.a.id,
       });
       const standing = await loadGroupStandingMembers(db, [unrated.groupId]);
-      const members = standing.get(unrated.groupId) ?? [];
-      expect(members).toHaveLength(4);
-      expect(members.every((member) => member.totalGamesPlayed === 0)).toBe(
-        true,
+      const byUserId = new Map(
+        (standing.get(unrated.groupId) ?? []).map((member) => [
+          member.userId,
+          member,
+        ]),
       );
+      expect(byUserId.size).toBe(4);
+      for (const winner of [unrated.a, unrated.b]) {
+        expect(byUserId.get(winner.id)).toMatchObject({
+          totalSetsWon: 1,
+          totalPointsWon: 6,
+          totalGamesPlayed: 1,
+        });
+      }
+      for (const loser of [unrated.c, unrated.d]) {
+        expect(byUserId.get(loser.id)).toMatchObject({
+          totalSetsWon: 0,
+          totalPointsWon: 2,
+          totalGamesPlayed: 1,
+        });
+      }
+      expect(
+        await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, unrated.matchId),
+        }),
+      ).toHaveLength(0);
     } finally {
       await close();
     }
