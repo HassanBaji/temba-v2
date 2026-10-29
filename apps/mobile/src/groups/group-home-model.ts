@@ -147,8 +147,8 @@ export const STANDING_NO_RESULTS_COPY = {
   description: null,
 };
 
-export function standingNoResultsCopy(verified: boolean) {
-  return verified ? STANDING_NO_RESULTS_COPY : UNRATED_STANDING_COPY;
+export function standingNoResultsCopy(rates: boolean) {
+  return rates ? STANDING_NO_RESULTS_COPY : UNRATED_STANDING_COPY;
 }
 
 export type PlayedTrailing =
