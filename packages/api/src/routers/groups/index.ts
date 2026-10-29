@@ -36,6 +36,7 @@ import { requestJoinProcedure as requestJoin } from "./requestJoin";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
+import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
 import { setVerifiedProcedure as setVerified } from "./setVerified";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
@@ -80,4 +81,5 @@ export const groupsRouter = createTRPCRouter({
   previewPlayerByPhone,
   addPlayerByPhone,
   removeUnclaimedPlayer,
+  setOrganizer,
 });

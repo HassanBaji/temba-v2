@@ -113,6 +113,43 @@ export function groupMemberRoleCaption(member: {
   return since ? `Member since ${since}` : null;
 }
 
+export type GroupMemberOrganizerAction = "appoint" | "dismiss";
+
+/**
+ * Only an Appointed Organizer can be dismissed: the Group creator and
+ * Community Owner and Admin are Organizers by role, and an Unclaimed player
+ * cannot sign in to organize.
+ */
+export function groupMemberOrganizerAction(member: {
+  isViewer: boolean;
+  unclaimed: boolean;
+  isOrganizer: boolean;
+  isAppointedOrganizer: boolean;
+}): GroupMemberOrganizerAction | null {
+  if (member.isViewer || member.unclaimed) {
+    return null;
+  }
+  if (member.isAppointedOrganizer) {
+    return "dismiss";
+  }
+  return member.isOrganizer ? null : "appoint";
+}
+
+export function groupMemberOrganizerActionLabel(
+  action: GroupMemberOrganizerAction,
+) {
+  return action === "appoint" ? "Make Organizer" : "Remove as Organizer";
+}
+
+export function groupMemberOrganizerToast(
+  action: GroupMemberOrganizerAction,
+  name: string,
+) {
+  return action === "appoint"
+    ? `${name} is now an Organizer.`
+    : `${name} is no longer an Organizer.`;
+}
+
 /** The Standing W-L column: `{wins}-{losses}`, drawn even at `0-0`. */
 export function groupStandingRecordLabel(wins: number, losses: number) {
   return `${wins}-${losses}`;

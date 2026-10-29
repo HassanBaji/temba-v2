@@ -113,7 +113,7 @@ A User asking a Group approver to admit them to a Public Group that requires app
 _Avoid_: invitation, Invite, Community join request (when you mean this Group request)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone and remove Unclaimed players. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.
+Who may set Require approval, decide Group join requests, add players by phone, remove Unclaimed players, and make or unmake Appointed Organizers. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.
 _Avoid_: Group owner, organizer (when you mean this write permission), group admin
 
 **Loose Group Private**:
@@ -422,11 +422,15 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, kick registered or waitlisted entries, edit window and price per player and Game Level range, decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
+Of a Group Game: that Group’s creator, its Appointed Organizers, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, kick registered or waitlisted entries, edit window and price per player and Game Level range, decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
+**Appointed Organizer**:
+A Group member a Group approver made an Organizer of that Group's Games. Stored as the member's Group role. Not a Group approver: they cannot decide join requests, add or remove Group players, appoint others, or change, unlink or delete the Group. Never the Group creator, a Community Owner or Admin (already Organizers), or an Unclaimed player. On a Club Group only a Community Member can be appointed, and the appointment lapses while they are not one. Leaving the Group ends it.
+_Avoid_: co-organizer, co-host, Group admin, moderator
+
 **Game admins**:
-Who hears about a Game's joins and leaves, and gets the admin Finished Game notice: the Organizers and the Group approvers of the Game's Group, except a Club Group creator who has left the Community, and nobody while the Community is Soft-archived. On a groupless Game, its creator. Decides who is notified only, never who may act.
+Who hears about a Game's joins and leaves, and gets the admin Finished Game notice: the Organizers and the Group approvers of the Game's Group, except a Club Group creator or Appointed Organizer who has left the Community, and nobody while the Community is Soft-archived. On a groupless Game, its creator. Decides who is notified only, never who may act.
 _Avoid_: Organizer (that is the write permission), game admin (lowercase, as a role), co-host, host
 
 **Finished Game**:

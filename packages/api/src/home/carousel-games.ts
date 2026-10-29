@@ -16,6 +16,7 @@ import {
   FRIENDLY_TEAMS_ALLOWED,
   isStaffRole,
 } from "#src/games/access";
+import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import {
   expandDrawnTournamentHubRows,
   queryHubGames,
@@ -218,6 +219,7 @@ async function organizerGroupIdsForViewer(
   return new Set([
     ...created.map((row) => row.id),
     ...staffGroups.map((row) => row.id),
+    ...(await appointedOrganizerGroupIds(database, userId)),
   ]);
 }
 

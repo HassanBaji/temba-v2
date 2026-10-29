@@ -9,6 +9,8 @@ import {
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
   groupMemberFormMarks,
+  groupMemberOrganizerAction,
+  groupMemberOrganizerActionLabel,
   groupShowsLevel,
   groupMemberRoleCaption,
   groupPlayedMarkVariant,
@@ -292,5 +294,46 @@ describe("groupShowsLevel", () => {
     assert.equal(groupShowsLevel("football"), false);
     assert.equal(groupShowsLevel("padel"), true);
     assert.equal(groupShowsLevel(null), true);
+  });
+});
+
+describe("groupMemberOrganizerAction", () => {
+  const player = {
+    isViewer: false,
+    unclaimed: false,
+    isOrganizer: false,
+    isAppointedOrganizer: false,
+  };
+
+  it("offers to appoint a player and to dismiss an Appointed Organizer", () => {
+    assert.equal(groupMemberOrganizerAction(player), "appoint");
+    assert.equal(
+      groupMemberOrganizerAction({
+        ...player,
+        isOrganizer: true,
+        isAppointedOrganizer: true,
+      }),
+      "dismiss",
+    );
+    assert.equal(groupMemberOrganizerActionLabel("appoint"), "Make Organizer");
+    assert.equal(
+      groupMemberOrganizerActionLabel("dismiss"),
+      "Remove as Organizer",
+    );
+  });
+
+  it("offers nothing for an Organizer by role, the viewer or an Unclaimed player", () => {
+    assert.equal(
+      groupMemberOrganizerAction({ ...player, isOrganizer: true }),
+      null,
+    );
+    assert.equal(
+      groupMemberOrganizerAction({ ...player, isViewer: true }),
+      null,
+    );
+    assert.equal(
+      groupMemberOrganizerAction({ ...player, unclaimed: true }),
+      null,
+    );
   });
 });

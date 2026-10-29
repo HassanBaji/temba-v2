@@ -1,6 +1,7 @@
 import { pgTable, uuid, timestamp, integer, unique } from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { groups } from "./groups";
+import { GroupMemberRoleEnum, groupMemberRoles } from "./group-enums";
 import { relations } from "drizzle-orm";
 
 export const groupMembers = pgTable(
@@ -13,6 +14,7 @@ export const groupMembers = pgTable(
     userId: uuid("user_id")
       .references(() => user.id, { onDelete: "cascade" })
       .notNull(),
+    role: groupMemberRoles().notNull().default(GroupMemberRoleEnum.MEMBER),
     totalGamesPlayed: integer("total_games_played").notNull().default(0),
     totalPointsWon: integer("total_points_won").notNull().default(0),
     totalSetsWon: integer("total_sets_won").notNull().default(0),

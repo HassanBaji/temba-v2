@@ -6,7 +6,10 @@ import {
   groupHomeCanManageInvites,
   groupHomeCanShowCreateGame,
 } from "@repo/domain/group-home-cta";
-import { groupShowsLevel } from "@repo/domain/group-home-chrome";
+import {
+  groupShowsLevel,
+  type GroupMemberOrganizerAction,
+} from "@repo/domain/group-home-chrome";
 import {
   GROUP_LINK_REQUEST_ACCEPT_LABEL,
   GROUP_LINK_REQUEST_DECLINE_LABEL,
@@ -74,6 +77,10 @@ export type GroupHomeViewProps = {
   onAddPlayer: () => void;
   onRenameUnclaimed: (member: { userId: string; name: string }) => void;
   onRemoveUnclaimed: (member: { userId: string; name: string }) => void;
+  onOrganizerAction: (
+    member: { userId: string; name: string },
+    action: GroupMemberOrganizerAction,
+  ) => void;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
   onCloseConfirm: () => void;
@@ -344,6 +351,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           canAddPlayers={data.canAddPlayers}
           onRenameUnclaimed={props.onRenameUnclaimed}
           onRemoveUnclaimed={props.onRemoveUnclaimed}
+          canAppointOrganizers={data.canAppointOrganizers}
+          onOrganizerAction={props.onOrganizerAction}
         />
       ) : null}
 
