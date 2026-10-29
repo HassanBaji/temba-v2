@@ -28,7 +28,7 @@ import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
 import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
-import { InvitesDialog } from "~/components/invites/invites-dialog";
+import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
@@ -79,7 +79,7 @@ import {
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
-import { groupLookupNote, lookupInviteSentToast } from "@repo/domain/invites";
+import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -128,10 +128,6 @@ export default function GroupHomePage({
     userId: string;
     name: string;
   } | null>(null);
-  const [lookupQuery, setLookupQuery] = useState("");
-  const [lookupRefused, setLookupRefused] = useState<
-    { name: string; message: string }[] | null
-  >(null);
   const [restoreFocus, setRestoreFocus] = useState<"mobile" | "desktop">(
     "desktop",
   );
@@ -146,18 +142,6 @@ export default function GroupHomePage({
     { groupId: id },
     { enabled: Boolean(group.data?.canManageLookupInvites) },
   );
-  const lookupSearch = api.groups.searchLookupUsers.useQuery(
-    { groupId: id, query: lookupQuery },
-    {
-      enabled: invitesOpen && Boolean(group.data?.canManageLookupInvites),
-    },
-  );
-
-  const inviteLink = api.groups.getInviteLink.useQuery(
-    { groupId: id },
-    { enabled: Boolean(group.data?.canManageInviteLinks) },
-  );
-
   const joinClubPublic = api.groups.joinClubPublic.useMutation({
     onSuccess: async () => {
       toast.success(groupJoinToast("joinClubPublic"));
@@ -327,37 +311,6 @@ export default function GroupHomePage({
     onSuccess: async () => {
       toast.success(GROUP_IMAGE_REMOVED_TOAST);
       await invalidateGroupImage();
-    },
-  });
-
-  const createInviteLink = api.groups.createInviteLink.useMutation({
-    onSuccess: async (result) => {
-      await utils.groups.getInviteLink.invalidate({ groupId: id });
-      await navigator.clipboard.writeText(
-        groupInviteClipboardText({
-          groupName: group.data?.name,
-          sport: group.data?.sport,
-          inviteUrl: result.shortUrl ?? result.inviteUrl,
-        }),
-      );
-      toast.success("Invite link copied");
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const sendLookupInvite = api.groups.sendLookupInvite.useMutation({
-    onSuccess: async (result) => {
-      setLookupRefused(result.refused);
-      if (result.sent.length > 0) {
-        toast.success(lookupInviteSentToast(result.sent.length));
-      }
-      await utils.groups.listLookupInvites.invalidate({ groupId: id });
-      await utils.groups.searchLookupUsers.invalidate({ groupId: id });
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
     },
   });
 
@@ -968,48 +921,23 @@ export default function GroupHomePage({
         />
       ) : null}
 
-      <InvitesDialog
-        open={invitesOpen}
-        onOpenChange={(next) => {
-          setInvitesOpen(next);
-          if (!next) {
-            setLookupQuery("");
-            setLookupRefused(null);
-          }
+      <InviteDoorDialog
+        door={{
+          kind: "group",
+          groupId: id,
+          canLookup: data.canManageLookupInvites,
+          canLink: data.canManageInviteLinks,
+          subtitle: groupLookupNote(data.isLoose),
+          shareMessage: (inviteUrl) =>
+            groupInviteClipboardText({
+              groupName: data.name,
+              sport: data.sport,
+              inviteUrl,
+            }),
         }}
+        open={invitesOpen}
+        onOpenChange={setInvitesOpen}
         restoreFocusRef={restoreFocusRef}
-        lookup={
-          data.canManageLookupInvites
-            ? {
-                note: groupLookupNote(data.isLoose),
-                lookupInvites: lookupInvites.data,
-                sendPending: sendLookupInvite.isPending,
-                revokePendingId: revokeLookupInvite.isPending
-                  ? revokeLookupInvite.variables?.inviteId
-                  : undefined,
-                sendError: sendLookupInvite.error,
-                searchQuery: lookupQuery,
-                onSearchQueryChange: setLookupQuery,
-                searchResults: lookupSearch.data,
-                searchPending: lookupSearch.isFetching,
-                refused: lookupRefused,
-                onSendUserIds: (userIds) =>
-                  sendLookupInvite.mutate({ groupId: id, userIds }),
-                onRevokeLookup: (inviteId) =>
-                  revokeLookupInvite.mutate({ inviteId }),
-              }
-            : null
-        }
-        link={
-          data.canManageInviteLinks
-            ? {
-                inviteUrl:
-                  inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl,
-                copyPending: createInviteLink.isPending,
-                onCopy: () => createInviteLink.mutate({ groupId: id }),
-              }
-            : null
-        }
       />
     </DashboardShell>
   );

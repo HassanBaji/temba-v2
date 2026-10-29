@@ -10,16 +10,6 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 import { Pressable, View } from "react-native";
-
-import { PhoneField } from "../auth/phone-field";
-import type { Slot } from "../home/home-model";
-import { Avatar } from "../primitives/avatar";
-import { Button } from "../primitives/button";
-import { hairline } from "../primitives/hairline-width";
-import { SearchField } from "../primitives/search-field";
-import { Sheet } from "../primitives/sheet";
-import { Skeleton } from "../primitives/skeleton";
-import { Text } from "../primitives/text";
 import {
   copyLinkLabel,
   INVITE_LINK_EMPTY_NOTE,
@@ -38,7 +28,17 @@ import {
   type InviteDoorKind,
   type InviteMode,
   type LookupResultRow,
-} from "./invites-model";
+} from "@repo/domain/invite-door";
+
+import { PhoneField } from "../auth/phone-field";
+import type { Slot } from "../home/home-model";
+import { Avatar } from "../primitives/avatar";
+import { Button } from "../primitives/button";
+import { hairline } from "../primitives/hairline-width";
+import { SearchField } from "../primitives/search-field";
+import { Sheet } from "../primitives/sheet";
+import { Skeleton } from "../primitives/skeleton";
+import { Text } from "../primitives/text";
 
 const MODE_ICONS: Record<InviteMode, LucideIcon> = {
   players: Users,
