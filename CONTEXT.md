@@ -518,7 +518,7 @@ The continuous 0.0–7.0 skill face derived from a Rating’s μ (one decimal in
 _Avoid_: rank, ELO, Level band (that is the discrete label)
 
 **Level band**:
-The discrete skill label D–D+–C–C+–B–B+–A–PRO (PRO highest) shown in the App, derived from Level with hysteresis. PRO is reserved for an elite override and is not assigned from Level.
+The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highest) shown in the App, derived from Level with hysteresis. PRO is reserved for an elite override and is not assigned from Level.
 _Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:

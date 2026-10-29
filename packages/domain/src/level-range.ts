@@ -222,7 +222,7 @@ export function formatLevelRangeLabel(
     if (minLabel === maxLabel) {
       return `${minLabel}`;
     }
-    return `${minLabel}–${maxLabel}`;
+    return `${minLabel}/${maxLabel}`;
   }
   if (minLabel) {
     return `${minLabel} and up`;

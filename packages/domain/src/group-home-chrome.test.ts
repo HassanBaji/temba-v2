@@ -264,13 +264,16 @@ describe("groupPlayedMarkVariant", () => {
 
 describe("levelCellView", () => {
   it("shows the band label for a settled Rating", () => {
-    assert.deepEqual(levelCellView("B3", false), { kind: "label", label: "B" });
+    assert.deepEqual(levelCellView("B3", false), {
+      kind: "label",
+      label: "B-",
+    });
   });
 
   it("hatches a Provisional Rating and keeps its letter", () => {
     assert.deepEqual(levelCellView("B3", true), {
       kind: "provisional",
-      label: "B",
+      label: "B-",
     });
   });
 

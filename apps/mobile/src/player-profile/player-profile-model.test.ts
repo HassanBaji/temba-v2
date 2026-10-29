@@ -18,7 +18,7 @@ describe("playerProfileModel", () => {
     expect(model.name).toBe("Elin Nilsson");
     expect(model.imageUri).toBeNull();
     expect(model.subtitle).toBe("Padel, plays at Padelhuset Bromma");
-    expect(model.level).toMatchObject({ kind: "rated", displayBand: "B" });
+    expect(model.level).toMatchObject({ kind: "rated", displayBand: "B-" });
     expect(model.overall.tiles.map((tile) => tile.value)).toEqual([
       "64",
       "41",

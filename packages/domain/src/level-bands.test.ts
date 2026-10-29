@@ -19,10 +19,10 @@ describe("displayLabelFromStoredBand", () => {
       ["D3", "D"],
       ["D2", "D"],
       ["D1", "D+"],
-      ["C3", "C"],
+      ["C3", "C-"],
       ["C2", "C"],
       ["C1", "C+"],
-      ["B3", "B"],
+      ["B3", "B-"],
       ["B2", "B"],
       ["B1", "B+"],
       ["A", "A"],
@@ -40,12 +40,14 @@ describe("displayLabelFromStoredBand", () => {
     );
   });
 
-  it("lists the seven assignable picker rungs in product order", () => {
+  it("lists the nine assignable picker rungs in product order", () => {
     expect([...ASSIGNABLE_DISPLAY_LEVEL_BANDS]).toEqual([
       "D",
       "D+",
+      "C-",
       "C",
       "C+",
+      "B-",
       "B",
       "B+",
       "A",
@@ -57,20 +59,24 @@ describe("nextDistinctDisplayRung", () => {
   it("skips collapsed thirds that share the current display letter", () => {
     expect(nextDistinctDisplayRung("D3")).toBe("D+");
     expect(nextDistinctDisplayRung("D2")).toBe("D+");
-    expect(nextDistinctDisplayRung("C3")).toBe("C+");
+    expect(nextDistinctDisplayRung("D1")).toBe("C-");
+    expect(nextDistinctDisplayRung("C3")).toBe("C");
     expect(nextDistinctDisplayRung("C2")).toBe("C+");
+    expect(nextDistinctDisplayRung("C1")).toBe("B-");
     expect(nextDistinctDisplayRung("B1")).toBe("A");
     expect(nextDistinctDisplayRung("A")).toBeNull();
   });
 });
 
 describe("self-declare write-down", () => {
-  it("maps assignable display rungs to the lower stored third", () => {
+  it("maps each display rung to one stored band, D to its lower third", () => {
     expect(storedBandFromDisplayLabel("D")).toBe("D3");
     expect(storedBandFromDisplayLabel("D+")).toBe("D1");
-    expect(storedBandFromDisplayLabel("C")).toBe("C3");
+    expect(storedBandFromDisplayLabel("C-")).toBe("C3");
+    expect(storedBandFromDisplayLabel("C")).toBe("C2");
     expect(storedBandFromDisplayLabel("C+")).toBe("C1");
-    expect(storedBandFromDisplayLabel("B")).toBe("B3");
+    expect(storedBandFromDisplayLabel("B-")).toBe("B3");
+    expect(storedBandFromDisplayLabel("B")).toBe("B2");
     expect(storedBandFromDisplayLabel("B+")).toBe("B1");
     expect(storedBandFromDisplayLabel("A")).toBe("A");
   });
@@ -79,9 +85,11 @@ describe("self-declare write-down", () => {
     expect(selfDeclareChoiceFromDisplay("unknown")).toBe("unknown");
     expect(selfDeclareChoiceFromDisplay("D")).toBe("D3");
     expect(selfDeclareChoiceFromDisplay("D+")).toBe("D1");
-    expect(selfDeclareChoiceFromDisplay("C")).toBe("C3");
+    expect(selfDeclareChoiceFromDisplay("C-")).toBe("C3");
+    expect(selfDeclareChoiceFromDisplay("C")).toBe("C2");
     expect(selfDeclareChoiceFromDisplay("C+")).toBe("C1");
-    expect(selfDeclareChoiceFromDisplay("B")).toBe("B3");
+    expect(selfDeclareChoiceFromDisplay("B-")).toBe("B3");
+    expect(selfDeclareChoiceFromDisplay("B")).toBe("B2");
     expect(selfDeclareChoiceFromDisplay("B+")).toBe("B1");
     expect(selfDeclareChoiceFromDisplay("A")).toBe("A");
   });
