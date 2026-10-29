@@ -10,6 +10,7 @@ import {
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
 import { EmptyState } from "~/components/common/empty-state";
+import { LinkedTableRow } from "~/components/common/linked-table-row";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -267,11 +268,9 @@ function GroupMemberRow({
   actions?: ReactNode;
 }) {
   const caption = memberCaption(member, canSetLevel);
-  const linked = !managing && profileHref != null;
-  return (
-    <tr
-      className={cn("border-rule border-t", linked && "hover:bg-wash relative")}
-    >
+  const linkHref = managing ? undefined : profileHref;
+  const cells = (
+    <>
       <td className="py-3 pl-4 pr-2">
         <span className="flex min-w-0 items-center gap-2.5">
           <UserAvatar
@@ -281,10 +280,10 @@ function GroupMemberRow({
           />
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center gap-1.5">
-              {linked ? (
+              {linkHref ? (
                 <Link
-                  href={profileHref}
-                  className="text-body block min-w-0 truncate font-semibold outline-none after:absolute after:inset-0 focus-visible:underline"
+                  href={linkHref}
+                  className="text-body block min-w-0 truncate font-semibold outline-none focus-visible:underline"
                 >
                   {member.name}
                 </Link>
@@ -334,7 +333,17 @@ function GroupMemberRow({
       {managing ? (
         <td className={cn(COL_ACTION, "pr-1.5")}>{actions}</td>
       ) : null}
-    </tr>
+    </>
+  );
+  return linkHref ? (
+    <LinkedTableRow
+      href={linkHref}
+      className="border-rule hover:bg-wash border-t"
+    >
+      {cells}
+    </LinkedTableRow>
+  ) : (
+    <tr className="border-rule border-t">{cells}</tr>
   );
 }
 

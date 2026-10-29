@@ -1,7 +1,9 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Plus, UserRoundPlus, Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { LinkedTableRow } from "~/components/common/linked-table-row";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { LevelCell } from "~/components/temba/level-cell";
 import { NotOnTembaTag } from "~/components/temba/seat";
@@ -80,12 +82,12 @@ function StandingTable({
         </thead>
         <tbody>
           {leaderboard.map((entry) => (
-            <tr
+            <StandingTableRow
               key={entry.userId}
+              href={linkToPlayers ? playerProfilePath(entry.userId) : undefined}
               className={cn(
                 "border-rule border-t",
                 entry.isViewer && "bg-ink text-paper",
-                linkToPlayers && "relative",
               )}
             >
               <td
@@ -103,7 +105,7 @@ function StandingTable({
                     <Link
                       href={playerProfilePath(entry.userId)}
                       className={cn(
-                        "text-body block min-w-0 truncate after:absolute after:inset-0",
+                        "text-body block min-w-0 truncate",
                         entry.isViewer && "font-semibold",
                       )}
                     >
@@ -140,7 +142,7 @@ function StandingTable({
                   />
                 </td>
               ) : null}
-            </tr>
+            </StandingTableRow>
           ))}
         </tbody>
       </table>
@@ -150,6 +152,24 @@ function StandingTable({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function StandingTableRow({
+  href,
+  className,
+  children,
+}: {
+  href?: string;
+  className: string;
+  children: ReactNode;
+}) {
+  return href ? (
+    <LinkedTableRow href={href} className={className}>
+      {children}
+    </LinkedTableRow>
+  ) : (
+    <tr className={className}>{children}</tr>
   );
 }
 
