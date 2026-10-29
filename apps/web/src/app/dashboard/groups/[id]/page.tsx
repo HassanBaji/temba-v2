@@ -86,6 +86,11 @@ import { api, type RouterOutputs } from "~/trpc/react";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
+// Panels stay mounted so switching back to a tab does not rebuild its rows or
+// reload its avatars. Radix skips the fade on the first paint.
+const TAB_PANEL =
+  "data-[state=inactive]:hidden data-[state=active]:animate-in data-[state=active]:fade-in-0 duration-150 motion-reduce:animate-none";
+
 export default function GroupHomePage({
   params,
   searchParams,
@@ -99,7 +104,7 @@ export default function GroupHomePage({
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
-  const tab = groupHomeTabFromQuery(tabParam);
+  const [tab, setTabState] = useState(() => groupHomeTabFromQuery(tabParam));
   const savedUserId =
     (Array.isArray(query.saved) ? query.saved[0] : query.saved) ?? null;
   const { hasCreateAccess } = useCreateAccess();
@@ -453,9 +458,15 @@ export default function GroupHomePage({
     if (resolved === tab) {
       return;
     }
-    router.replace(`${pathname}${groupHomeTabQuery(resolved)}`, {
-      scroll: false,
-    });
+    setTabState(resolved);
+    // router.replace would refetch the page from the server and remount it on
+    // every switch. Next keeps useSearchParams in step with replaceState, so
+    // the URL still records the tab without the round trip.
+    window.history.replaceState(
+      null,
+      "",
+      `${pathname}${groupHomeTabQuery(resolved)}`,
+    );
   }
 
   function onJoin() {
@@ -701,7 +712,7 @@ export default function GroupHomePage({
             </Button>
           ) : null}
 
-          <TabsContent value="standing">
+          <TabsContent value="standing" forceMount className={TAB_PANEL}>
             <GroupStandingTab
               isMember={Boolean(data.membership)}
               linkToPlayers={groupMemberRowsLink(data.membership)}
@@ -718,7 +729,7 @@ export default function GroupHomePage({
               onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
-          <TabsContent value="games">
+          <TabsContent value="games" forceMount className={TAB_PANEL}>
             <GroupGamesTab
               upcomingGames={data.upcomingGames}
               gameHistory={data.gameHistory}
@@ -737,7 +748,7 @@ export default function GroupHomePage({
               onInvite={() => setInvitesOpen(true)}
             />
           </TabsContent>
-          <TabsContent value="members">
+          <TabsContent value="members" forceMount className={TAB_PANEL}>
             <div className="flex flex-col gap-[26px]">
               <GroupApproverControls
                 canSetRequiresApproval={data.canSetRequiresApproval}
