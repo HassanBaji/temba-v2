@@ -190,7 +190,12 @@ type ExpectedNotifications =
   | "markRead"
   | "markAllRead";
 
-type ExpectedRatings = "me" | "selfDeclare" | "setLevel";
+type ExpectedRatings =
+  | "me"
+  | "selfDeclare"
+  | "setLevel"
+  | "listForOperator"
+  | "setLevelAsOperator";
 
 type ExpectedTeams =
   | "create"

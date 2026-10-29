@@ -193,7 +193,7 @@ A Community role that helps run the Community (admit people, create Club Groups,
 _Avoid_: Owner, moderator, Operator
 
 **Operator**:
-A Temba staff User. Not a Community role. Operators curate Venues and Courts and decide Venue link requests.
+A Temba staff User. Not a Community role. Operators curate Venues and Courts, decide Venue link requests, and may set any other User's Level in either sport (ADR-0046).
 _Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
 
 **Venue manager**:
@@ -526,7 +526,7 @@ UI state on a Rating when rating deviation φ is above the product threshold (co
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
 
 **Level override**:
-A Level that a Level setter set by hand, and its audit record. It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
+A Level that a Level setter or an Operator set by hand, and its audit record. An Operator's has no Group. It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:

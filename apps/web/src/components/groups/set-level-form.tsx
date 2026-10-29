@@ -110,16 +110,48 @@ export function SetLevelForm({
   onSaved: () => Promise<void> | void;
 }) {
   const utils = api.useUtils();
-  const currentTenths = currentTenthsOf(member);
-  const [tenths, setTenths] = React.useState(currentTenths);
-  const [reason, setReason] = React.useState<LevelOverrideReason | null>(null);
-
   const setLevel = api.ratings.setLevel.useMutation({
     onSuccess: async () => {
       await utils.groups.byId.invalidate({ id: groupId });
       await onSaved();
     },
   });
+
+  return (
+    <SetLevelFields
+      member={member}
+      pending={setLevel.isPending}
+      error={setLevel.error}
+      onSubmit={({ levelTenths, reason }) =>
+        setLevel.mutate({
+          groupId,
+          userId: member.userId,
+          levelTenths,
+          reason,
+        })
+      }
+    />
+  );
+}
+
+/** The slider, reason and submit of a Level override, for any caller's mutation. */
+export function SetLevelFields({
+  member,
+  pending,
+  error,
+  onSubmit,
+}: {
+  member: SetLevelMember;
+  pending: boolean;
+  error: Parameters<typeof globalFormErrorMessage>[0] | null;
+  onSubmit: (args: {
+    levelTenths: number;
+    reason: LevelOverrideReason | undefined;
+  }) => void;
+}) {
+  const currentTenths = currentTenthsOf(member);
+  const [tenths, setTenths] = React.useState(currentTenths);
+  const [reason, setReason] = React.useState<LevelOverrideReason | null>(null);
 
   const readout = levelSliderReadout({ tenths, currentTenths });
   const alreadyConfirmed = member.level !== null && !member.levelProvisional;
@@ -231,7 +263,7 @@ export function SetLevelForm({
               key={option}
               role="radio"
               selected={reason === option}
-              disabled={setLevel.isPending}
+              disabled={pending}
               onClick={() => setReason(reason === option ? null : option)}
             >
               {levelOverrideReasonLabel(option)}
@@ -241,7 +273,7 @@ export function SetLevelForm({
       </div>
 
       <FormErrorSummary
-        message={setLevel.error ? globalFormErrorMessage(setLevel.error) : null}
+        message={error ? globalFormErrorMessage(error) : null}
       />
 
       <p className="text-body">
@@ -255,15 +287,10 @@ export function SetLevelForm({
       <Button
         type="button"
         className="bg-ink text-paper min-h-11 w-full font-semibold"
-        disabled={unchanged || setLevel.isPending}
-        aria-busy={setLevel.isPending}
+        disabled={unchanged || pending}
+        aria-busy={pending}
         onClick={() =>
-          setLevel.mutate({
-            groupId,
-            userId: member.userId,
-            levelTenths: tenths,
-            reason: reason ?? undefined,
-          })
+          onSubmit({ levelTenths: tenths, reason: reason ?? undefined })
         }
       >
         Set to {levelSliderLabel(tenths)}
