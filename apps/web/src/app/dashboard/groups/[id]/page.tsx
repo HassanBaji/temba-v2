@@ -59,6 +59,7 @@ import {
 } from "@repo/domain/entity-image-file";
 import {
   groupHomeBanner,
+  groupHasGames,
   groupHomeCanJoin,
   groupHomeJoinDoor,
   groupJoinDisabled,
@@ -708,6 +709,8 @@ export default function GroupHomePage({
               groupId={id}
               canShowCreateGame={canShowCreateGame}
               verified={data.verified}
+              sport={data.sport ?? null}
+              hasGames={groupHasGames(data)}
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}
               showLevel={groupShowsLevel(data.sport)}
