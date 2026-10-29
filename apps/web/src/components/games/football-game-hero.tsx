@@ -2,6 +2,11 @@ import type { footballHeroLines } from "@repo/domain/football-board";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
 import { Surface } from "~/components/ui/surface";
+import { cn } from "~/lib/utils";
+
+/** Edge to edge on phones, matching the mobile App; a card from `md` up. */
+const HERO_BLEED =
+  "-mx-4 px-4 py-[22px] min-[430px]:-mx-5 min-[430px]:px-5 md:mx-0 md:rounded-xl md:p-[22px]";
 
 /**
  * The head of a football Game: status, kick-off time, the day and pitch,
@@ -21,8 +26,10 @@ export function FootballGameHeroCard({
     <Surface
       as="article"
       tone={tone}
-      radius="surface"
-      className={tone === "paper" ? "border-rule border p-[22px]" : "p-[22px]"}
+      className={cn(
+        HERO_BLEED,
+        tone === "paper" && "border-rule border-y md:border",
+      )}
     >
       <div
         className={`${muted} text-meta flex items-start justify-between gap-3`}
