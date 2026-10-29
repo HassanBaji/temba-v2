@@ -90,6 +90,7 @@ async function insertGame(
     groupId: string;
     windowStart: Date;
     windowEnd: Date;
+    rated?: boolean;
   },
 ) {
   const [game] = await database
@@ -106,6 +107,7 @@ async function insertGame(
       teamsAllowed: 2,
       windowStart: args.windowStart,
       windowEnd: args.windowEnd,
+      rated: args.rated,
     })
     .returning({ id: games.id });
   if (!game) {
@@ -284,6 +286,41 @@ describe("groups.mine list facts", () => {
         nextGameStartTime: null,
       });
       expect(rows[0]?.formMarks).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("ranks the viewer in a Group that is not Verified from its Unrated Games", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "mine-unrated-viewer@example.com");
+      const rival = await insertUser(db, "mine-unrated-rival@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, {
+        name: "Thursday Friends",
+        createdBy: rival.id,
+        members: [{ userId: rival.id }, { userId: viewer.id }],
+      });
+      const unrated = await insertGame(db, {
+        createdBy: rival.id,
+        venueId: venue.id,
+        groupId: group.id,
+        windowStart: PAST_START,
+        windowEnd: PAST_END,
+        rated: false,
+      });
+      await seatAndScore(db, {
+        gameId: unrated.gameId,
+        matchId: unrated.matchId,
+        slot1UserId: viewer.id,
+        slot2UserId: rival.id,
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 3 }],
+      });
+
+      const rows = await mine(db, { userId: viewer.id, now: NOW });
+
+      expect(rows[0]).toMatchObject({ id: group.id, standingPosition: 1 });
     } finally {
       await close();
     }

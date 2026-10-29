@@ -719,8 +719,6 @@ export default function GroupHomePage({
               leaderboard={data.standing.leaderboard}
               groupId={id}
               canShowCreateGame={canShowCreateGame}
-              verified={data.verified}
-              sport={data.sport ?? null}
               hasGames={groupHasGames(data)}
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}

@@ -506,7 +506,7 @@ The Web App page at `/dashboard/notifications`, opened from the bell, listing th
 _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
-A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
+A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
 
 **Rating**:
@@ -534,5 +534,5 @@ A completed, non-cancelled Match on a Game that rates, which produced rating eve
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events, move a Level or feed a Standing, while still counting as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, any Game created on a Group that was not a Verified Group at create, and every football Game created before football results ship. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create; `bookings.createGame` and every football Game create set it.
+A Game whose completed Matches never produce rating events or move a Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, any Game created on a Group that was not a Verified Group at create, and every football Game created before football results ship. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create; `bookings.createGame` and every football Game create set it.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice
