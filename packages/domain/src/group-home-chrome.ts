@@ -95,24 +95,6 @@ export function filterGroupMembersByName<T extends { name: string }>(
   return members.filter((member) => member.name.toLowerCase().includes(needle));
 }
 
-/**
- * The Members tab role/tenure caption: **Organizer** for the Group creator
- * and — on a Club Group — a Community staff member (spec D8), otherwise
- * `"Member since {Mon}"` from the `group_members` join date. Returns `null`
- * when neither is known, so the row renders the name alone rather than an
- * empty caption.
- */
-export function groupMemberRoleCaption(member: {
-  isOrganizer: boolean;
-  joinedAt: Date | string | null | undefined;
-}) {
-  if (member.isOrganizer) {
-    return "Organizer";
-  }
-  const since = seasonSinceMonth(member.joinedAt);
-  return since ? `Member since ${since}` : null;
-}
-
 export type GroupMemberOrganizerAction = "appoint" | "dismiss";
 
 /**
@@ -257,11 +239,4 @@ export function levelCellView(
 /** A football Group has no Level until football results and Ratings exist. */
 export function groupShowsLevel(sport: string | null | undefined) {
   return sport !== "football";
-}
-
-/** Design 06c draws four marks per member; the derivation returns up to five. */
-export const GROUP_MEMBER_FORM_MARKS = 4;
-
-export function groupMemberFormMarks<T>(marks: readonly T[]): T[] {
-  return marks.slice(-GROUP_MEMBER_FORM_MARKS);
 }

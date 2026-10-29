@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { UserPlus, Users, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ChevronRight, UserPlus, Users, X } from "lucide-react";
 
 import {
   ActionMenu,
@@ -10,11 +10,16 @@ import {
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
 import { EmptyState } from "~/components/common/empty-state";
-import { MemberRow } from "~/components/common/member-row";
-import { RowList } from "~/components/common/row-list";
-import { FormStrip } from "~/components/temba/form-strip";
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "~/components/common/responsive-dialog";
+import { UserAvatar } from "~/components/common/user-avatar";
 import { LevelCell } from "~/components/temba/level-cell";
-import type { ResultMarkVariant } from "~/components/temba/result-mark";
+import { NotOnTembaTag, YouTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Surface } from "~/components/ui/surface";
@@ -22,15 +27,25 @@ import {
   groupMemberSetLevelHref,
   playerProfilePath,
 } from "~/lib/dashboard-paths";
+import { cardFrame } from "~/lib/page-layout";
+import { cn } from "~/lib/utils";
 import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,
-  groupMemberFormMarks,
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
-  groupMemberRoleCaption,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
+import {
+  GROUP_MEMBERS_DEFAULT_SORT,
+  GROUP_MEMBERS_NO_MATCH_COPY,
+  groupMemberTableCaption,
+  groupMembersLegend,
+  groupPendingInviteCaption,
+  groupPendingInvitesTitle,
+  sortGroupMembers,
+  type GroupMembersSort,
+} from "@repo/domain/group-members-table";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
 import {
@@ -53,7 +68,9 @@ type GroupMember = {
   isOrganizer: boolean;
   isAppointedOrganizer: boolean;
   joinedAt: Date | string | null;
-  formMarks: ResultMarkVariant[];
+  lastPlayedAt: Date | string | null;
+  totalGamesPlayed: number;
+  wins: number;
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
@@ -80,9 +97,15 @@ function savedLevelOf(member: GroupMember | undefined): SavedLevel | null {
   };
 }
 
+export type GroupPendingInvite = {
+  id: string;
+  name: string;
+  invitedAt: Date | string;
+};
+
 function memberCaption(member: GroupMember, canSetLevel: boolean) {
   const parts = [
-    groupMemberRoleCaption(member),
+    groupMemberTableCaption(member),
     member.phoneMasked,
     canSetLevel && member.levelOverride
       ? levelOverrideCaption(member.levelOverride)
@@ -179,72 +202,230 @@ function MemberActionsMenu({
   );
 }
 
+const COL_STAT = "w-[38px] px-0 text-center";
+const COL_LEVEL = "w-11 px-0";
+const COL_ACTION = "w-11 px-0";
+
+const SORT_COLUMNS: {
+  sort: GroupMembersSort;
+  label: string;
+  title: string;
+  className: string;
+}[] = [
+  { sort: "played", label: "P", title: "Games played", className: COL_STAT },
+  { sort: "won", label: "W", title: "Matches won", className: COL_STAT },
+  { sort: "level", label: "LVL", title: "Level", className: COL_LEVEL },
+];
+
+function SortHeader({
+  column,
+  sort,
+  onSort,
+}: {
+  column: (typeof SORT_COLUMNS)[number];
+  sort: GroupMembersSort;
+  onSort: (sort: GroupMembersSort) => void;
+}) {
+  const active = column.sort === sort;
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? "descending" : "none"}
+      className={column.className}
+    >
+      <button
+        type="button"
+        title={column.title}
+        aria-label={`Sort by ${column.title}`}
+        onClick={() => onSort(column.sort)}
+        className={cn(
+          "h-10 w-full font-mono text-[11px] font-normal outline-none focus-visible:ring-2 focus-visible:ring-current",
+          active
+            ? "text-ink underline underline-offset-[3px]"
+            : "text-muted-foreground",
+        )}
+      >
+        {column.label}
+      </button>
+    </th>
+  );
+}
+
 function GroupMemberRow({
   member,
   canSetLevel,
   showLevel,
-  setLevelHref,
+  managing,
   profileHref,
-  organizerAction,
-  onOrganizerAction,
-  onRename,
-  onRemove,
+  actions,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
   showLevel: boolean;
-  setLevelHref?: string;
+  managing: boolean;
   profileHref?: string;
-  organizerAction?: GroupMemberOrganizerAction;
-  onOrganizerAction?: () => void;
-  onRename?: () => void;
-  onRemove?: () => void;
+  actions?: ReactNode;
 }) {
-  const managed =
-    setLevelHref != null ||
-    onOrganizerAction != null ||
-    onRename != null ||
-    onRemove != null;
+  const caption = memberCaption(member, canSetLevel);
+  const linked = !managing && profileHref != null;
   return (
-    <MemberRow
-      size="lg"
-      name={member.name}
-      image={member.image}
-      isViewer={member.isViewer}
-      unclaimed={member.unclaimed}
-      href={setLevelHref ?? profileHref}
-      meta={memberCaption(member, canSetLevel)}
-      action={
-        managed ? (
-          <MemberActionsMenu
+    <tr
+      className={cn("border-rule border-t", linked && "hover:bg-wash relative")}
+    >
+      <td className="py-3 pl-4 pr-2">
+        <span className="flex min-w-0 items-center gap-2.5">
+          <UserAvatar
             name={member.name}
-            setLevelHref={setLevelHref}
-            profileHref={profileHref}
-            organizerAction={organizerAction}
-            onOrganizerAction={onOrganizerAction}
-            onRename={onRename}
-            onRemove={onRemove}
+            image={member.image}
+            className="size-8 shrink-0"
           />
-        ) : undefined
-      }
-      trailing={
-        <>
-          <FormStrip
-            marks={groupMemberFormMarks(member.formMarks)}
-            size={14}
-            gap={4}
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex min-w-0 items-center gap-1.5">
+              {linked ? (
+                <Link
+                  href={profileHref}
+                  className="text-body block min-w-0 truncate font-semibold outline-none after:absolute after:inset-0 focus-visible:underline"
+                >
+                  {member.name}
+                </Link>
+              ) : (
+                <span className="text-body block min-w-0 truncate font-semibold">
+                  {member.name}
+                </span>
+              )}
+              {member.isViewer ? <YouTag /> : null}
+              {member.unclaimed ? <NotOnTembaTag /> : null}
+            </span>
+            {caption ? (
+              <span className="text-eyebrow text-muted-foreground truncate">
+                {caption}
+              </span>
+            ) : null}
+          </span>
+        </span>
+      </td>
+      <td
+        className={cn(
+          COL_STAT,
+          "font-expanded text-body font-bold tabular-nums tracking-[-0.03em]",
+        )}
+      >
+        {member.totalGamesPlayed}
+      </td>
+      {managing ? null : (
+        <td
+          className={cn(
+            COL_STAT,
+            "text-meta text-muted-foreground tabular-nums",
+          )}
+        >
+          {member.wins}
+        </td>
+      )}
+      {showLevel ? (
+        <td className={COL_LEVEL}>
+          <LevelCell
+            band={member.levelBand}
+            provisional={member.levelProvisional}
+            className="text-meta justify-center text-center font-mono"
           />
-          {showLevel ? (
-            <LevelCell
-              band={member.levelBand}
-              level={member.level}
-              provisional={member.levelProvisional}
-              className="w-16"
-            />
-          ) : null}
-        </>
-      }
-    />
+        </td>
+      ) : null}
+      {managing ? (
+        <td className={cn(COL_ACTION, "pr-1.5")}>{actions}</td>
+      ) : null}
+    </tr>
+  );
+}
+
+function PendingInvitesCard({
+  invites,
+  onOpen,
+}: {
+  invites: GroupPendingInvite[];
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="border-rule rounded-card hover:border-ink flex w-full items-center justify-between gap-3 border px-[18px] py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-current"
+    >
+      <span className="min-w-0">
+        <span className="text-body block font-semibold">
+          {groupPendingInvitesTitle(invites.length)}
+        </span>
+        <span className="text-eyebrow text-muted-foreground block truncate">
+          {invites.map((invite) => invite.name).join(", ")}
+        </span>
+      </span>
+      <ChevronRight
+        aria-hidden="true"
+        className="text-muted-foreground size-[18px] shrink-0"
+      />
+    </button>
+  );
+}
+
+function PendingInvitesDialog({
+  open,
+  onOpenChange,
+  invites,
+  revokePendingId,
+  onRevoke,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  invites: GroupPendingInvite[];
+  revokePendingId?: string;
+  onRevoke: (inviteId: string) => void;
+}) {
+  return (
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Pending invites</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
+            {invites.length === 0
+              ? "Everyone you invited has joined or been cancelled."
+              : "Cancelling an invite revokes it."}
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
+        {invites.length > 0 ? (
+          <ul
+            className={cn(cardFrame, "mx-4 mb-4 md:mx-0 md:mb-0")}
+            aria-label="Pending invites"
+          >
+            {invites.map((invite) => (
+              <li
+                key={invite.id}
+                className="border-rule flex items-center gap-3 border-t py-3 pl-4 pr-3 first:border-t-0"
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-body truncate font-semibold">
+                    {invite.name}
+                  </span>
+                  <span className="text-eyebrow text-muted-foreground truncate">
+                    {groupPendingInviteCaption(invite.invitedAt)}
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  pending={revokePendingId === invite.id}
+                  disabled={revokePendingId != null}
+                  onClick={() => onRevoke(invite.id)}
+                  aria-label={`Cancel the invite to ${invite.name}`}
+                >
+                  Cancel
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -282,6 +463,9 @@ export function GroupMembersTab({
   canAppointOrganizers = false,
   onOrganizerAction,
   showLevel = true,
+  pendingInvites = [],
+  revokeInvitePendingId,
+  onRevokeInvite,
 }: {
   showLevel?: boolean;
   canAppointOrganizers?: boolean;
@@ -302,15 +486,33 @@ export function GroupMembersTab({
   savedUserId: string | null;
   onDismissSaved: () => void;
   onInvite: () => void;
+  /** Lookup invites not yet accepted; only an inviter is given them. */
+  pendingInvites?: GroupPendingInvite[];
+  revokeInvitePendingId?: string;
+  onRevokeInvite?: (inviteId: string) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<GroupMembersSort>(
+    GROUP_MEMBERS_DEFAULT_SORT,
+  );
+  const [managing, setManaging] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
   const saved = canSetLevel
     ? savedLevelOf(members.find((member) => member.userId === savedUserId))
     : null;
+  const canManage = canSetLevel || canAppointOrganizers || canAddPlayers;
+  const isManaging = canManage && managing;
   const showSearch = groupHomeShowsMemberSearch(members.length);
-  const visible = showSearch
-    ? filterGroupMembersByName(members, query)
-    : members;
+  const visible = sortGroupMembers(
+    showSearch ? filterGroupMembersByName(members, query) : members,
+    sort,
+  );
+  const sortColumns = SORT_COLUMNS.filter(
+    (column) =>
+      (column.sort !== "won" || !isManaging) &&
+      (column.sort !== "level" || showLevel),
+  );
+  const columnCount = 1 + sortColumns.length + (isManaging ? 1 : 0);
   const addPlayerButton =
     canAddPlayers && onAddPlayer ? (
       <Button
@@ -323,6 +525,17 @@ export function GroupMembersTab({
         {ADD_PLAYER_ACTION}
       </Button>
     ) : null;
+  const manageButton = canManage ? (
+    <Button
+      type="button"
+      variant={isManaging ? "default" : "outline"}
+      aria-pressed={isManaging}
+      onClick={() => setManaging((current) => !current)}
+      className={cn("shrink-0 px-4", isManaging && "font-semibold")}
+    >
+      {isManaging ? "Done" : "Manage"}
+    </Button>
+  ) : null;
 
   if (members.length === 0) {
     return (
@@ -338,86 +551,153 @@ export function GroupMembersTab({
     );
   }
 
+  function memberActions(member: GroupMember) {
+    const setLevelHref =
+      canSetLevel && !member.isViewer
+        ? groupMemberSetLevelHref(groupId, member.userId)
+        : undefined;
+    const profileHref = linkToPlayers
+      ? playerProfilePath(member.userId)
+      : undefined;
+    const organizerAction = canAppointOrganizers
+      ? (groupMemberOrganizerAction(member) ?? undefined)
+      : undefined;
+    const target = { userId: member.userId, name: member.name };
+    const onRename =
+      canAddPlayers && member.unclaimed && onRenameUnclaimed
+        ? () => onRenameUnclaimed(target)
+        : undefined;
+    const onRemove =
+      canAddPlayers && member.unclaimed && onRemoveUnclaimed
+        ? () => onRemoveUnclaimed(target)
+        : undefined;
+    if (
+      !setLevelHref &&
+      !profileHref &&
+      !organizerAction &&
+      !onRename &&
+      !onRemove
+    ) {
+      return null;
+    }
+    return (
+      <MemberActionsMenu
+        name={member.name}
+        setLevelHref={setLevelHref}
+        profileHref={profileHref}
+        organizerAction={organizerAction}
+        onOrganizerAction={
+          organizerAction && onOrganizerAction
+            ? () => onOrganizerAction(target, organizerAction)
+            : undefined
+        }
+        onRename={onRename}
+        onRemove={onRemove}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-[26px]">
       {saved ? <SavedBanner saved={saved} onDismiss={onDismissSaved} /> : null}
       {addPlayerButton}
-      {showSearch ? (
-        <Input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search members"
-          aria-label="Search members"
+
+      <div className="flex flex-col gap-3.5">
+        {showSearch || manageButton ? (
+          <div className="flex gap-2">
+            {showSearch ? (
+              <Input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search members"
+                aria-label="Search members"
+                className="min-w-0 flex-1"
+              />
+            ) : (
+              <span className="flex-1" />
+            )}
+            {manageButton}
+          </div>
+        ) : null}
+
+        <div className={cardFrame}>
+          <table className="w-full table-fixed border-collapse">
+            <caption className="sr-only">Group members</caption>
+            <thead className="bg-wash">
+              <tr>
+                <th
+                  scope="col"
+                  className="text-eyebrow text-muted-foreground py-0 pl-4 text-left font-normal"
+                >
+                  Member
+                </th>
+                {sortColumns.map((column) => (
+                  <SortHeader
+                    key={column.sort}
+                    column={column}
+                    sort={sort}
+                    onSort={setSort}
+                  />
+                ))}
+                {isManaging ? (
+                  <th scope="col" className={COL_ACTION}>
+                    <span className="sr-only">Actions</span>
+                  </th>
+                ) : null}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.length === 0 ? (
+                <tr className="border-rule border-t">
+                  <td
+                    colSpan={columnCount}
+                    className="text-meta text-muted-foreground px-[18px] py-5"
+                  >
+                    {GROUP_MEMBERS_NO_MATCH_COPY}
+                  </td>
+                </tr>
+              ) : (
+                visible.map((member) => (
+                  <GroupMemberRow
+                    key={member.userId}
+                    member={member}
+                    canSetLevel={canSetLevel}
+                    showLevel={showLevel}
+                    managing={isManaging}
+                    profileHref={
+                      linkToPlayers
+                        ? playerProfilePath(member.userId)
+                        : undefined
+                    }
+                    actions={isManaging ? memberActions(member) : undefined}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+          <p className="border-rule text-eyebrow text-muted-foreground border-t px-[18px] py-3">
+            {groupMembersLegend({ managing: isManaging, showLevel })}
+          </p>
+        </div>
+
+        {pendingInvites.length > 0 && onRevokeInvite ? (
+          <PendingInvitesCard
+            invites={pendingInvites}
+            onOpen={() => setInvitesOpen(true)}
+          />
+        ) : null}
+      </div>
+
+      {onRevokeInvite ? (
+        <PendingInvitesDialog
+          open={invitesOpen}
+          onOpenChange={setInvitesOpen}
+          invites={pendingInvites}
+          revokePendingId={revokeInvitePendingId}
+          onRevoke={onRevokeInvite}
         />
       ) : null}
-
-      {visible.length === 0 ? (
-        <p className="text-body text-muted-foreground py-6 text-center">
-          No members match that name.
-        </p>
-      ) : (
-        <RowList variant="card">
-          {visible.map((member) => {
-            const organizerAction = canAppointOrganizers
-              ? (groupMemberOrganizerAction(member) ?? undefined)
-              : undefined;
-            return (
-              <GroupMemberRow
-                key={member.userId}
-                member={member}
-                canSetLevel={canSetLevel}
-                showLevel={showLevel}
-                setLevelHref={
-                  canSetLevel && !member.isViewer
-                    ? groupMemberSetLevelHref(groupId, member.userId)
-                    : undefined
-                }
-                profileHref={
-                  linkToPlayers ? playerProfilePath(member.userId) : undefined
-                }
-                organizerAction={organizerAction}
-                onOrganizerAction={
-                  organizerAction && onOrganizerAction
-                    ? () =>
-                        onOrganizerAction(
-                          { userId: member.userId, name: member.name },
-                          organizerAction,
-                        )
-                    : undefined
-                }
-                onRename={
-                  canAddPlayers && member.unclaimed && onRenameUnclaimed
-                    ? () =>
-                        onRenameUnclaimed({
-                          userId: member.userId,
-                          name: member.name,
-                        })
-                    : undefined
-                }
-                onRemove={
-                  canAddPlayers && member.unclaimed && onRemoveUnclaimed
-                    ? () =>
-                        onRemoveUnclaimed({
-                          userId: member.userId,
-                          name: member.name,
-                        })
-                    : undefined
-                }
-              />
-            );
-          })}
-        </RowList>
-      )}
-
-      {canSetLevel ? (
-        <p className="text-meta text-muted-foreground">
-          Select a member to set their Level. Hatched Levels are still
-          Provisional.
-        </p>
-      ) : null}
-
-      {canInvite ? <InviteBlock onInvite={onInvite} /> : null}
     </div>
   );
 }
