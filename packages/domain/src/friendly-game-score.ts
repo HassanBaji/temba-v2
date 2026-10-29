@@ -110,7 +110,11 @@ export function scoreSetBoxAccessibleLabel(
 export function scoreFooterNote(
   phase: FriendlyScorePhase,
   confirmedAtLabel: string | null,
+  confirmedByOrganizer = false,
 ) {
+  if (phase === "final" && confirmedByOrganizer) {
+    return "Confirmed by the Organizer. Nothing else needed.";
+  }
   if (phase === "final") {
     return confirmedAtLabel
       ? `Confirmed by all four players on ${confirmedAtLabel}. Nothing else needed.`
@@ -182,25 +186,20 @@ export function scoreOrganizerWaitingLines(confirmation: ScoreConfirmation) {
     );
 }
 
-export function scoreOrganizerConfirmSlots(input: {
+/** An Organizer's confirmation is final: it skips waiting on the players. */
+export function scoreOrganizerCanConfirm(input: {
   confirmation: ScoreConfirmation | null;
   hasResult: boolean;
   phase: FriendlyScorePhase;
   isOrganizer: boolean;
-}): (1 | 2)[] {
-  if (
-    !input.isOrganizer ||
-    input.confirmation == null ||
-    !input.hasResult ||
-    input.phase === "final"
-  ) {
-    return [];
-  }
-  return (input.confirmation.organizerSides ?? []).flatMap((side) =>
-    side.confirmed ? [] : [side.slot],
+}) {
+  return (
+    input.isOrganizer &&
+    input.confirmation != null &&
+    input.hasResult &&
+    input.phase !== "final"
   );
 }
 
-export function scoreConfirmForSlotLabel(slot: 1 | 2) {
-  return `Confirm for ${formatMatchSlotLabel("friendly_game", slot)}`;
-}
+export const ORGANIZER_CONFIRM_NOTE =
+  "As the Organizer, your confirmation makes the score final.";

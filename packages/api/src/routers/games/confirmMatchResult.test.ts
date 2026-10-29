@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   GamePositionEnum,
+  GroupMemberRoleEnum,
   MatchStatusEnum,
   gamePlayers,
+  groupMembers,
   gameTeamPlayers,
   gameTeams,
   groups,
@@ -677,13 +679,6 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
       expect(await matchStatus(db, f.matchId)).not.toBe(
         MatchStatusEnum.COMPLETED,
       );
-      await expect(
-        confirmMatchResult(db, {
-          gameId: f.game.id,
-          matchId: f.matchId,
-          userId: f.organizer.id,
-        }),
-      ).rejects.toThrow("Only Users seated");
 
       await confirmMatchResult(db, {
         gameId: f.game.id,
@@ -755,7 +750,7 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
     }
   });
 
-  it("lets a seated Organizer confirm for the other side by naming it", async () => {
+  it("refuses a side confirmation from a player who is not an Organizer", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await setUpMatchWithUnclaimed(db, {
@@ -775,18 +770,13 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
         confirmMatchResult(db, {
           gameId: f.game.id,
           matchId: f.matchId,
-          userId: f.a.id,
-          slot: 1,
-        }),
-      ).rejects.toThrow("confirm for themselves");
-      await expect(
-        confirmMatchResult(db, {
-          gameId: f.game.id,
-          matchId: f.matchId,
           userId: f.b.id,
           slot: 2,
         }),
       ).rejects.toThrow("Only an organizer");
+      expect(await matchStatus(db, f.matchId)).not.toBe(
+        MatchStatusEnum.COMPLETED,
+      );
 
       await confirmMatchResult(db, {
         gameId: f.game.id,
@@ -794,22 +784,13 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
         userId: f.a.id,
         slot: 2,
       });
-      expect(await matchStatus(db, f.matchId)).not.toBe(
-        MatchStatusEnum.COMPLETED,
-      );
-      await confirmMatchResult(db, {
-        gameId: f.game.id,
-        matchId: f.matchId,
-        userId: f.b.id,
-      });
-
       expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
     } finally {
       await close();
     }
   });
 
-  it("asks an Organizer to name the side when neither side has an account holder", async () => {
+  it("completes a Match with no account holder once the Organizer confirms", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await setUpMatchWithUnclaimed(db, {
@@ -825,20 +806,6 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
         slot1GamesWon: 6,
         slot2GamesWon: 2,
       });
-      await expect(
-        confirmMatchResult(db, {
-          gameId: f.game.id,
-          matchId: f.matchId,
-          userId: f.organizer.id,
-        }),
-      ).rejects.toThrow("Choose the side");
-
-      await confirmMatchResult(db, {
-        gameId: f.game.id,
-        matchId: f.matchId,
-        userId: f.organizer.id,
-        slot: 1,
-      });
       expect(await matchStatus(db, f.matchId)).not.toBe(
         MatchStatusEnum.COMPLETED,
       );
@@ -846,7 +813,6 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
         gameId: f.game.id,
         matchId: f.matchId,
         userId: f.organizer.id,
-        slot: 2,
       });
 
       expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
@@ -857,41 +823,24 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
       await close();
     }
   });
+});
 
-  it("clears the Organizer's side confirmation when the score changes", async () => {
+describe("an Organizer's confirmation is final (ADR-0044)", () => {
+  it("completes and rates without any player confirming", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await setUpMatchWithUnclaimed(db, {
-        unclaimed: ["c", "d"],
+        unclaimed: [],
         organizerSeated: false,
       });
-      const score = (slot2GamesWon: number) =>
-        scoreSet(db, {
-          gameId: f.game.id,
-          matchId: f.matchId,
-          setId: f.firstSetId,
-          userId: f.a.id,
-          slot1GamesWon: 6,
-          slot2GamesWon,
-        });
 
-      await score(2);
-      await confirmMatchResult(db, {
+      await scoreSet(db, {
         gameId: f.game.id,
         matchId: f.matchId,
+        setId: f.firstSetId,
         userId: f.organizer.id,
-      });
-      expect(await confirmedUserIds(db, f.matchId)).toEqual(
-        [f.a.id, f.c.id, f.d.id].sort(),
-      );
-
-      await score(4);
-      expect(await confirmedUserIds(db, f.matchId)).toEqual([f.a.id]);
-
-      await confirmMatchResult(db, {
-        gameId: f.game.id,
-        matchId: f.matchId,
-        userId: f.b.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
       });
       expect(await matchStatus(db, f.matchId)).not.toBe(
         MatchStatusEnum.COMPLETED,
@@ -901,7 +850,119 @@ describe("Match result confirmation with Unclaimed players (D14)", () => {
         matchId: f.matchId,
         userId: f.organizer.id,
       });
+
       expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
+      expect(await ratedUserIds(db, f.matchId)).toEqual(
+        [f.a.id, f.b.id, f.c.id, f.d.id].sort(),
+      );
+      const details = await gameById(db, {
+        gameId: f.game.id,
+        userId: f.a.id,
+      });
+      expect(details.matchResultConfirmation?.confirmedByOrganizer).toBe(true);
+      expect(details.matchResultConfirmation?.confirmedAt).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps a seated Organizer's score entry waiting until they confirm", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: [],
+        organizerSeated: true,
+      });
+
+      await scoreSet(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        setId: f.firstSetId,
+        userId: f.organizer.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      expect(await confirmedUserIds(db, f.matchId)).toEqual([f.organizer.id]);
+      expect(await matchStatus(db, f.matchId)).not.toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: f.organizer.id,
+      });
+      expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets an Appointed Organizer confirm for everyone", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: [],
+        organizerSeated: false,
+      });
+      const appointed = await insertUser(
+        db,
+        `appointed-${crypto.randomUUID()}@example.com`,
+      );
+      if (!f.game.groupId) {
+        throw new Error("Expected a Group Game");
+      }
+      await db.insert(groupMembers).values({
+        groupId: f.game.groupId,
+        userId: appointed.id,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
+
+      await scoreSet(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        setId: f.firstSetId,
+        userId: f.a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      await confirmMatchResult(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        userId: appointed.id,
+      });
+      expect(await matchStatus(db, f.matchId)).toBe(MatchStatusEnum.COMPLETED);
+    } finally {
+      await close();
+    }
+  });
+
+  it("still refuses a User who is neither seated nor an Organizer", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpMatchWithUnclaimed(db, {
+        unclaimed: [],
+        organizerSeated: false,
+      });
+      const outsider = await insertUser(
+        db,
+        `outsider-${crypto.randomUUID()}@example.com`,
+      );
+      await scoreSet(db, {
+        gameId: f.game.id,
+        matchId: f.matchId,
+        setId: f.firstSetId,
+        userId: f.a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      await expect(
+        confirmMatchResult(db, {
+          gameId: f.game.id,
+          matchId: f.matchId,
+          userId: outsider.id,
+        }),
+      ).rejects.toThrow("or an organizer");
     } finally {
       await close();
     }

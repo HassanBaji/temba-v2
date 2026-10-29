@@ -514,6 +514,9 @@ export async function gameById(
     // column, no schema change.
     confirmedAt: Date | null;
     organizerSides?: { slot: MatchSlot; confirmed: boolean }[];
+    // A final Match that not every required player confirmed was confirmed
+    // by an Organizer (ADR-0044).
+    confirmedByOrganizer: boolean;
   } | null = null;
 
   let ratingImpact: {
@@ -538,8 +541,12 @@ export async function gameById(
         matchResultConfirmedUserIds(database, friendlyMatch.id),
         matchOrganizerSides(database, friendlyMatch),
       ]);
+    const confirmedByOrganizer =
+      phase === "final" &&
+      (requiredUserIds.length === 0 ||
+        requiredUserIds.some((userId) => !confirmedUserIds.includes(userId)));
     const confirmedAt =
-      phase === "final"
+      phase === "final" && !confirmedByOrganizer
         ? await matchResultConfirmationCompletedAt(database, friendlyMatch.id)
         : null;
     matchResultConfirmation = {
@@ -548,6 +555,7 @@ export async function gameById(
       viewerHasConfirmed: confirmedUserIds.includes(args.userId),
       confirmedAt,
       organizerSides,
+      confirmedByOrganizer,
     };
 
     if (phase === "final") {

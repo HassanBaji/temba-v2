@@ -1,5 +1,6 @@
 import { radii, spacing } from "@repo/design-tokens";
 import { footballResultLine } from "@repo/domain/football-lineup";
+import { ORGANIZER_CONFIRM_NOTE } from "@repo/domain/friendly-game-score";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
@@ -9,7 +10,6 @@ import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 import { BibChip } from "./bib-picker";
 import {
-  confirmForSideLabel,
   confirmationLine,
   shortName,
   type Bibs,
@@ -99,11 +99,10 @@ export type FootballScoreCardProps = {
   } | null;
   canEnterScore: boolean;
   canConfirm: boolean;
-  confirmForSlots: readonly (1 | 2)[];
+  canConfirmAsOrganizer: boolean;
   confirmPending: boolean;
   onEnterScore: () => void;
   onConfirm: () => void;
-  onConfirmForSlot: (slot: 1 | 2) => void;
 };
 
 /**
@@ -181,24 +180,16 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
           </Text>
         </View>
         {props.canConfirm ||
-        props.confirmForSlots.length > 0 ||
+        props.canConfirmAsOrganizer ||
         props.canEnterScore ? (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {props.canConfirm ? (
+            {props.canConfirm || props.canConfirmAsOrganizer ? (
               <Button
                 label="Confirm score"
                 pending={props.confirmPending}
                 onPress={props.onConfirm}
               />
             ) : null}
-            {props.confirmForSlots.map((slot) => (
-              <Button
-                key={slot}
-                label={confirmForSideLabel(slot, props.names)}
-                pending={props.confirmPending}
-                onPress={() => props.onConfirmForSlot(slot)}
-              />
-            ))}
             {props.canEnterScore ? (
               <Button
                 label="Edit score"
@@ -207,6 +198,11 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
               />
             ) : null}
           </View>
+        ) : null}
+        {props.canConfirmAsOrganizer ? (
+          <Text size="meta" tone="muted">
+            {ORGANIZER_CONFIRM_NOTE}
+          </Text>
         ) : null}
       </View>
       <Scorers players={props.players} />

@@ -1,13 +1,13 @@
 "use client";
 
 import {
-  confirmForSideLabel,
   confirmationLine,
   shortName,
   type Bibs,
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import { footballResultLine } from "@repo/domain/football-lineup";
+import { ORGANIZER_CONFIRM_NOTE } from "@repo/domain/friendly-game-score";
 import Link from "next/link";
 
 import { Button } from "~/components/ui/button";
@@ -44,11 +44,10 @@ export function FootballScoreCard({
   match,
   canEnterScore,
   canConfirm,
-  confirmForSlots,
+  canConfirmAsOrganizer,
   confirmPending,
   scoreHref,
   onConfirm,
-  onConfirmForSlot,
 }: {
   bibs: Bibs;
   names: { slot1: string; slot2: string };
@@ -62,11 +61,10 @@ export function FootballScoreCard({
   } | null;
   canEnterScore: boolean;
   canConfirm: boolean;
-  confirmForSlots: readonly (1 | 2)[];
+  canConfirmAsOrganizer: boolean;
   confirmPending: boolean;
   scoreHref: string;
   onConfirm: () => void;
-  onConfirmForSlot: (slot: 1 | 2) => void;
 }) {
   const score = match?.score ?? null;
   const completed = match?.status === "completed";
@@ -117,28 +115,24 @@ export function FootballScoreCard({
                   : ""}
               </p>
             </div>
-            {canConfirm || confirmForSlots.length > 0 || canEnterScore ? (
+            {canConfirm || canConfirmAsOrganizer || canEnterScore ? (
               <div className="flex flex-wrap gap-2">
-                {canConfirm ? (
+                {canConfirm || canConfirmAsOrganizer ? (
                   <Button pending={confirmPending} onClick={onConfirm}>
                     Confirm score
                   </Button>
                 ) : null}
-                {confirmForSlots.map((slot) => (
-                  <Button
-                    key={slot}
-                    pending={confirmPending}
-                    onClick={() => onConfirmForSlot(slot)}
-                  >
-                    {confirmForSideLabel(slot, names)}
-                  </Button>
-                ))}
                 {canEnterScore ? (
                   <Button variant="outline" asChild>
                     <Link href={scoreHref}>Edit score</Link>
                   </Button>
                 ) : null}
               </div>
+            ) : null}
+            {canConfirmAsOrganizer ? (
+              <p className="text-muted-foreground text-meta">
+                {ORGANIZER_CONFIRM_NOTE}
+              </p>
             ) : null}
           </div>
           {scorers.length > 0 ? (

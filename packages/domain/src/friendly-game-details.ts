@@ -56,6 +56,7 @@ export type FriendlyGameDetailsConfirmation = {
   viewerHasConfirmed: boolean;
   confirmedAt: Date | null;
   organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
+  confirmedByOrganizer?: boolean;
 };
 
 export type FriendlyGameDetailsRatingImpact = {

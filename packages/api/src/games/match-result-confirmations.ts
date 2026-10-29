@@ -131,21 +131,6 @@ export async function recordMatchResultConfirmation(
 }
 
 /**
- * Records an Organizer's confirmation for a side with no account holder, as
- * a confirmation row for each of its seated Unclaimed players, so a changed
- * score clears it like any other.
- */
-export async function recordOrganizerSideConfirmation(
-  database: DbClient,
-  matchId: string,
-  side: MatchSideSeats,
-): Promise<void> {
-  for (const userId of side.userIds) {
-    await recordMatchResultConfirmation(database, matchId, userId);
-  }
-}
-
-/**
  * Clears every Match result confirmation for a Match except the given
  * User's — used when a Set's games-won values change after at least one
  * confirmation already exists (a changed score requires re-agreement).

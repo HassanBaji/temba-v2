@@ -720,19 +720,15 @@ export function FootballGameDetails({
             match={board.data?.match ?? null}
             canEnterScore={board.data?.viewer.canEnterScore ?? false}
             canConfirm={board.data?.viewer.canConfirm ?? false}
-            confirmForSlots={board.data?.viewer.canConfirmForSlots ?? []}
+            canConfirmAsOrganizer={
+              board.data?.viewer.canConfirmAsOrganizer ?? false
+            }
             confirmPending={confirmScore.isPending}
             scoreHref={scoreHref}
             onConfirm={() => {
               const matchId = board.data?.match?.id;
               if (matchId) {
                 confirmScore.mutate({ gameId, matchId });
-              }
-            }}
-            onConfirmForSlot={(slot) => {
-              const matchId = board.data?.match?.id;
-              if (matchId) {
-                confirmScore.mutate({ gameId, matchId, slot });
               }
             }}
           />

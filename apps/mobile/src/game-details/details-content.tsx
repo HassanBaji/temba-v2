@@ -38,7 +38,6 @@ export type DetailsHandlers = {
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
-  onConfirmForSlot: (slot: 1 | 2) => void;
   onRequestLevel: () => void;
   onFooterAction: (kind: FriendlyGameFooterAction["kind"]) => void;
   onOpenPlayer?: (userId: string) => void;
@@ -119,7 +118,6 @@ export function GameDetailsContent({
           confirmPending={handlers.confirmPending}
           onSaveSets={handlers.onSaveSets}
           onConfirm={handlers.onConfirm}
-          onConfirmForSlot={handlers.onConfirmForSlot}
         />
       ) : null}
       {phase === "final" && game.ratingImpact ? (
